@@ -7,12 +7,17 @@
  * role never reaches the list, so the wallet is never asked to sign for nothing.
  */
 
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  AddMembersOutcome,
+  useAddMembersBatch,
+} from "@green-goods/shared/hooks/garden/useGardenOperations";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { renderWithProviders as render } from "../../test-utils";
 
 vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
@@ -111,6 +116,54 @@ const NO_MEMBERS: Record<GardenRole, Address[]> = {
 };
 // ADDRESS_A already gardens here.
 const WITH_GARDENER_A: Record<GardenRole, Address[]> = { ...NO_MEMBERS, gardener: [ADDRESS_A] };
+
+type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
+
+const SIGNER = "0xabcdef3333333333333333333333333333333333" as Address;
+const CHECKSUMMED_SIGNER = "0xABCDEF3333333333333333333333333333333333" as Address;
+const OTHER_SIGNER = "0x4444444444444444444444444444444444444444" as Address;
+const ROW_A = { address: ADDRESS_A, role: "gardener" as const };
+const ROW_B = { address: ADDRESS_B, role: "gardener" as const };
+const NOTHING: AddMembersOutcome = {
+  added: [],
+  alreadyHeld: [],
+  refused: [],
+  notSent: [],
+  notBatchable: [],
+  unknown: [],
+};
+const HOLD_ON_A = {
+  operationIds: ["held-add"],
+  rows: [ROW_A],
+  onChain: [{ ...ROW_A, wearsRole: true }],
+};
+
+function batchWith(overrides: Partial<AddMembersBatch> = {}): AddMembersBatch {
+  return {
+    account: SIGNER,
+    hold: null,
+    saved: [],
+    lastReadAt: 0,
+    isSettlingHold: false,
+    checkAgain: vi.fn(async () => undefined),
+    moveOn: vi.fn(async () => undefined),
+    available: true,
+    signaturesFor: (count) => Math.ceil(count / 10),
+    add: vi.fn<AddMembersBatch["add"]>(async () => NOTHING),
+    ...overrides,
+  };
+}
+
+async function stage(user: ReturnType<typeof userEvent.setup>, ...addresses: Address[]) {
+  const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+  for (const address of addresses) {
+    await user.click(input);
+    await user.paste(address);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+  }
+}
+
+const stagedList = () => within(screen.getByRole("group", { name: "Members to add" }));
 
 describe("components/Garden/AddMembersDialog", () => {
   const defaultProps = {
@@ -374,6 +427,289 @@ describe("components/Garden/AddMembersDialog", () => {
     await waitFor(() => {
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("says how many signatures a list takes, whichever way it goes", async () => {
+    const user = userEvent.setup({ delay: null });
+    const { rerender } = render(createElement(AddMembersDialog, defaultProps));
+    expect(screen.queryByText(/signature/)).not.toBeInTheDocument();
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    // A maximum: someone who has gained the role by then is skipped, with nothing to sign.
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
+
+    rerender(createElement(AddMembersDialog, { ...defaultProps, batch: batchWith() }));
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+  });
+
+  it("adds a list through one call and closes once every row has landed", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith();
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A, ROW_B]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("sends one person through the journal too, so another tab's hold can refuse it", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith();
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("asks before a list past its ceilings takes more signatures than it promised", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(/can’t share one signature right now/)).toBeInTheDocument();
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledTimes(2));
+    expect(batch.add).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it("gives a changed list another try under one signature", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    expect(await screen.findByText("Up to 2 signatures")).toBeInTheDocument();
+
+    // A typed person changes the list too, without being staged first.
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste("0x5555555555555555555555555555555555555555");
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 3 Gardeners" }));
+
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(batch.add).mock.calls[1][0]).toHaveLength(3);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("removes only the row pressed when a person has two", async () => {
+    const user = userEvent.setup({ delay: null });
+    const rows = [ROW_A, { address: ADDRESS_A, role: "steward" as const }];
+    const held = { operationIds: ["held-add"], rows, onChain: [] };
+    const { rerender } = render(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ hold: held, lastReadAt: 1 }),
+      })
+    );
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(2));
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ hold: null, lastReadAt: 2 }),
+      })
+    );
+    await waitFor(() =>
+      expect(stagedList().getAllByRole("button", { name: "Remove" })[0]).toBeEnabled()
+    );
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+
+    const left = stagedList().getAllByRole("listitem");
+    expect(left).toHaveLength(1);
+    expect(within(left[0]).getByText("Steward")).toBeInTheDocument();
+  });
+
+  it("says why a list stopped before anything went out", async () => {
+    const user = userEvent.setup({ delay: null });
+    const failure = new Error("NotGardenOwner");
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notSent: [ROW_A, ROW_B], failure })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(parseAndFormatError(failure).message)).toBeInTheDocument();
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("leaves another account's unsettled rows behind", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ hold: HOLD_ON_A, lastReadAt: 1 });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    expect(await screen.findByText("Not confirmed yet · On chain now")).toBeInTheDocument();
+    await stage(user, ADDRESS_B);
+
+    // A wallet dropping and coming back is the same person, so the draft stays.
+    rerender(
+      createElement(AddMembersDialog, { ...defaultProps, batch: batchWith({ account: null }) })
+    );
+    // Wallets can report one address in different casings.
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ account: CHECKSUMMED_SIGNER }),
+      })
+    );
+    expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ account: OTHER_SIGNER }),
+      })
+    );
+    await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
+    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+  });
+
+  it("keeps a refused row's reason, and sends the rest only once the person changes the list", async () => {
+    const user = userEvent.setup({ delay: null });
+    const reason = "This person can't hold this role";
+    const batch = batchWith({
+      add: vi
+        .fn<AddMembersBatch["add"]>(async () => NOTHING)
+        .mockResolvedValueOnce({
+          ...NOTHING,
+          refused: [{ ...ROW_A, reason }],
+          notSent: [ROW_B],
+        }),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(reason)).toBeInTheDocument();
+    expect(screen.getByText(/We can’t add 1 person, so nothing was sent/)).toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+    expect(screen.queryByText(reason)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(batch.add).mock.calls[1][0]).toEqual([ROW_B]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("stays open with an unknown add, and takes off the rows that did land", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async (_rows, onLanded) => {
+        onLanded?.([ROW_A]);
+        return {
+          ...NOTHING,
+          added: [{ ...ROW_A, transactionHash: `0x${"ab".repeat(32)}` as const }],
+          unknown: [ROW_B],
+        };
+      }),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    await waitFor(() => expect(stagedName(ADDRESS_B)).toBeInTheDocument());
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(1));
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("locks a held row and leaves it out of the send, until a read or moving on settles it", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ hold: HOLD_ON_A, lastReadAt: 1 });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    expect(await screen.findByText("Not confirmed yet · On chain now")).toBeInTheDocument();
+    expect(stagedList().getByRole("button", { name: "Remove" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Move On" }));
+    expect(batch.moveOn).toHaveBeenCalledTimes(1);
+
+    // Held rows hold no unsaved input of the person's, and the draft can't drop them.
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    expect(stagedName(ADDRESS_A)).toBeInTheDocument();
+
+    // Others can still go, without the held row.
+    await stage(user, ADDRESS_B);
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeEnabled();
+
+    // Moved on, unproven: the row is the person's again.
+    const movedOn = { ...batch, hold: null, lastReadAt: 2 };
+    rerender(createElement(AddMembersDialog, { ...defaultProps, batch: movedOn }));
+    await waitFor(() =>
+      expect(stagedList().getAllByRole("button", { name: "Remove" })[0]).toBeEnabled()
+    );
+    expect(screen.getByRole("button", { name: "Add 2 Gardeners" })).toBeEnabled();
+
+    // A later read proved it landed: it leaves the list.
+    const landed = { ...batch, hold: null, saved: [ROW_A], lastReadAt: 3 };
+    rerender(createElement(AddMembersDialog, { ...defaultProps, batch: landed }));
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(1));
+  });
+
+  it("leaves a send's result behind when the account changed while it ran", async () => {
+    const user = userEvent.setup({ delay: null });
+    let finish: (outcome: AddMembersOutcome) => void = () => undefined;
+    const batch = batchWith({
+      add: vi.fn(
+        () =>
+          new Promise<AddMembersOutcome>((resolve) => {
+            finish = resolve;
+          })
+      ),
+    });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: { ...batch, account: OTHER_SIGNER },
+      })
+    );
+    await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
+
+    await act(async () => finish({ ...NOTHING, notSent: [ROW_A, ROW_B] }));
+
+    expect(stagedList().queryAllByRole("listitem")).toHaveLength(0);
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("waits for the chain before it lets anyone send", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ isSettlingHold: true });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A);
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeDisabled();
   });
 
   it("lets the footer Cancel exit directly without a discard confirm", async () => {

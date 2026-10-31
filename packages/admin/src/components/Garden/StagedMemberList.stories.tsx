@@ -2,7 +2,7 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { buildRolesByAddress, type StagedMember } from "./addMembersEntry";
 import { StagedMemberList } from "./StagedMemberList";
@@ -43,7 +43,7 @@ const withPromotions: StagedMember[] = [
 const meta: Meta<typeof StagedMemberList> = {
   title: "Admin/Workflows/Garden/StagedMemberList",
   component: StagedMemberList,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [
     withSeededQueryClient([
       [queryKeys.ens.name(ROSA.toLowerCase()), "rosa.eth"],
@@ -88,6 +88,42 @@ export const WithPromotions: Story = {
 
 export const WriteInFlight: Story = {
   args: { members: withPromotions, disabled: true },
+};
+
+/** The chain would refuse Rosa's row, so the person sees why before anything is signed. */
+export const Refused: Story = {
+  args: {
+    members: [
+      { address: NEW_A, role: "gardener" },
+      {
+        address: ROSA,
+        role: "steward",
+        refusal: "This address can't hold this role. Remove it to add the rest.",
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText(
+        "This address can't hold this role. Remove it to add the rest."
+      )
+    ).toBeVisible();
+  },
+};
+
+/** Nobody can say yet whether these landed, so they cannot be removed. */
+export const NotConfirmed: Story = {
+  args: {
+    members: newGardeners,
+    heldNote: () => "Not confirmed yet · Not on chain",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText("Not confirmed yet · Not on chain")).toHaveLength(2);
+    for (const remove of canvas.getAllByRole("button", { name: "Remove" })) {
+      await expect(remove).toBeDisabled();
+    }
+  },
 };
 
 /** More rows than the reserved height: the list scrolls, the dialog never grows. */

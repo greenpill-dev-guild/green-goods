@@ -24,7 +24,7 @@ const HOLD = {
 const meta: Meta<typeof GardenSettingsHoldAlert> = {
   title: "Admin/Workflows/Garden/GardenSettingsHoldAlert",
   component: GardenSettingsHoldAlert,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     docs: {
       description: {

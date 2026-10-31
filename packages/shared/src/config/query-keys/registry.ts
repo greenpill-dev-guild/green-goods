@@ -1,11 +1,5 @@
 import { agentReportingKeys } from "./agent-reporting";
-import {
-  actionsKeys,
-  assessmentsKeys,
-  gardenSettingsBatchKeys,
-  gardensKeys,
-  platformKeys,
-} from "./garden";
+import { actionsKeys, assessmentsKeys, batchKeys, gardensKeys, platformKeys } from "./garden";
 import { commitmentPoolingKeys } from "./commitment-pooling";
 import { creditKeys } from "./credit";
 import { greenWillKeys } from "./greenwill";
@@ -36,7 +30,7 @@ export const queryKeys = {
   offline: offlineKeys,
   media: mediaKeys,
   gardens: gardensKeys,
-  gardenSettingsBatch: gardenSettingsBatchKeys,
+  batch: batchKeys,
   vaults: vaultsKeys,
   cookieJar: cookieJarKeys,
   conviction: convictionKeys,
