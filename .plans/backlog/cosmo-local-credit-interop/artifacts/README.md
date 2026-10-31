@@ -538,7 +538,9 @@ submission page, the canvas and the architecture page keep the 2 to 7% range and
 Slide 3 now says "with outcomes next", because outcome assessment is not live. The brief's Live row
 says new G$ promises are being switched on, because `SETTLEMENT_ENABLED` is still false. The builder's
 details left the notes, the claims list and this README, though older commits still hold them, and
-the render scripts now remove outputs a run no longer produces.
+the render scripts now remove outputs a run no longer produces. Afo also took one later Codex point:
+slide 10's note and its image description said only the person served can confirm, which
+`confirmFulfillmentAsFallback` contradicts, so they and the submission page now carry the steward fallback.
 
 ## Accessibility and reporting cost · 30 October 2026
 
