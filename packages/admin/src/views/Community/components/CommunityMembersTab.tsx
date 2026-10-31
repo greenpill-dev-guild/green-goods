@@ -4,6 +4,7 @@ import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/Person
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { GardenJoinRequestKind } from "@green-goods/shared/public-contracts/join-requests";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiGroupLine, RiUserSettingsLine } from "@remixicon/react";
@@ -34,6 +35,7 @@ export type CommunityMembersTabProps = Pick<
   | "visibleDirectory"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
+  onJoinRequestsRead: (kind: GardenJoinRequestKind, waiting: number) => void;
 };
 
 export function CommunityMembersTab({
@@ -42,6 +44,7 @@ export function CommunityMembersTab({
   closeMembersModal,
   memberCount,
   memberSearch,
+  onJoinRequestsRead,
   roleMembers,
   roleSummary,
   scheduleBackgroundRefetch,
@@ -81,7 +84,7 @@ export function CommunityMembersTab({
                 {formatMessage({ id: "cockpit.community.members.directory" })}
               </AdminCardTitle>
               <p className="mt-1 type-meta text-text-sub">
-                {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
+                {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
               </p>
             </div>
 
@@ -200,7 +203,7 @@ export function CommunityMembersTab({
 
         <aside className="garden-tab-rail flex flex-col gap-section">
           {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={gardenAddress} />
+            <CommunityJoinRequests gardenAddress={gardenAddress} onRead={onJoinRequestsRead} />
           ) : null}
           <AdminCard variant="elevated" className="space-y-3">
             <AdminCardTitle>

@@ -86,10 +86,13 @@ const messages = {
   "cockpit.community.stewardRequests.pending": "Steward assignment is pending.",
 };
 
-function renderQueue() {
+function renderQueue(onRead: (kind: string, waiting: number) => void = () => {}) {
   return render(
     <IntlProvider locale="en" messages={messages}>
-      <CommunityJoinRequests gardenAddress="0x1111111111111111111111111111111111111111" />
+      <CommunityJoinRequests
+        gardenAddress="0x1111111111111111111111111111111111111111"
+        onRead={onRead}
+      />
     </IntlProvider>
   );
 }
@@ -120,6 +123,24 @@ describe("CommunityJoinRequests", () => {
         expectedRevision: 0,
       })
     );
+  });
+
+  it("tells the Members tab how many wait only after a finished read (DL-134)", async () => {
+    const onRead = vi.fn();
+    const user = userEvent.setup();
+    renderQueue(onRead);
+    // Opening the queue reads nothing: the count never asks for a signature.
+    expect(loadQueue).not.toHaveBeenCalled();
+    expect(onRead).not.toHaveBeenCalled();
+
+    // A failed read says nothing about how many wait.
+    loadQueue.mockRejectedValueOnce(new Error("offline"));
+    await user.click(screen.getByRole("button", { name: "Check Requests" }));
+    await waitFor(() => expect(loadQueue).toHaveBeenCalledOnce());
+    expect(onRead).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Check Requests" }));
+    await waitFor(() => expect(onRead).toHaveBeenCalledWith("garden_membership", 1));
   });
 
   it("requires and sends a decline reason", async () => {

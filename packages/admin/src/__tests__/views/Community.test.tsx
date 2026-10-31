@@ -1,7 +1,7 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { fireEvent, renderWithProviders, screen, within } from "../test-utils";
+import { act, fireEvent, renderWithProviders, screen, within } from "../test-utils";
 import CommunityView from "@/views/Community";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   protocolGarden: false,
   changeMode: vi.fn(),
   identity: vi.fn(),
+  joinRequestsRead: (() => {}) as (kind: string, waiting: number) => void,
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController", () => ({
@@ -25,7 +26,12 @@ vi.mock("@/views/Community/components/CommunitySheetDescriptor", () => ({
   CommunitySheetDescriptor: () => null,
 }));
 vi.mock("@/views/Community/components/CommunityWorkspaceContent", () => ({
-  CommunityWorkspaceContent: () => null,
+  CommunityWorkspaceContent: (props: {
+    onJoinRequestsRead: (kind: string, waiting: number) => void;
+  }) => {
+    mocks.joinRequestsRead = props.onJoinRequestsRead;
+    return null;
+  },
 }));
 
 function renderCommunity() {
@@ -46,7 +52,6 @@ describe("Community navigation", () => {
       allocations: [],
       allocationsLoading: false,
       endowmentByAsset: [],
-      derived: { directoryEntries: [] },
       desktopActions: [],
       hasVaults: false,
       mode: "members",
@@ -101,5 +106,59 @@ describe("Community navigation", () => {
       </MemoryRouter>
     );
     expect(screen.queryByRole("tab", { name: "Coordination" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Community tab badges (DL-134)", () => {
+  beforeEach(() => {
+    mocks.protocolGarden = false;
+    mocks.workspace = {
+      selectedGarden: { id: GARDEN, chainId: 42161 },
+      selectedGardenAddress: GARDEN,
+      allocations: [
+        { assetAddress: GARDEN, cookieJarAmount: 1n, fractionsAmount: 0n, juiceboxAmount: 0n },
+      ],
+      allocationsLoading: false,
+      endowmentByAsset: [],
+      memberCount: 11,
+      desktopActions: [],
+      hasVaults: true,
+      mode: "members",
+      handleModeChange: mocks.changeMode,
+    } as unknown as CommunityWorkspace;
+  });
+
+  it("puts no number on a tab for the members, the payouts or having an endowment", () => {
+    renderCommunity();
+    // A count would join the tab's accessible name, so these exact names prove none.
+    for (const name of ["Members", "Endowment", "Payouts"]) {
+      expect(screen.getByRole("tab", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("counts both join-request queues on Members once a read says so, garden by garden", () => {
+    const { rerender } = renderCommunity();
+
+    act(() => mocks.joinRequestsRead("garden_membership", 2));
+    act(() => mocks.joinRequestsRead("steward_access", 1));
+    expect(screen.getByRole("tab", { name: "Members 3 waiting" })).toBeInTheDocument();
+
+    // Answering a request takes it off the count.
+    act(() => mocks.joinRequestsRead("garden_membership", 1));
+    expect(screen.getByRole("tab", { name: "Members 2 waiting" })).toBeInTheDocument();
+
+    // Another garden's rail shows nothing it has not read.
+    const ordinaryGarden = "0x2222222222222222222222222222222222222222";
+    mocks.workspace = {
+      ...mocks.workspace!,
+      selectedGarden: { ...mocks.workspace!.selectedGarden!, id: ordinaryGarden },
+      selectedGardenAddress: ordinaryGarden,
+    };
+    rerender(
+      <MemoryRouter>
+        <CommunityView />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("tab", { name: "Members" })).toBeInTheDocument();
   });
 });

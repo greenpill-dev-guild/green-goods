@@ -50,6 +50,7 @@ function MembersHarness({
       closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
       memberCount={memberCount}
       memberSearch=""
+      onJoinRequestsRead={() => {}}
       roleMembers={storyRoleMembers}
       roleSummary={roleSummary}
       scheduleBackgroundRefetch={() => {}}
@@ -76,6 +77,9 @@ describe("CommunityMembersTab", () => {
       .getByText("Total members")
       .closest('[data-component="FactRow"]') as HTMLElement;
     expect(within(total).getByText("2")).toBeInTheDocument();
+    // The total is the directory's own header line, not a number on the tab (DL-134).
+    const directory = screen.getByRole("heading", { name: "Member directory" });
+    expect(directory.nextElementSibling).toHaveTextContent(/^2 members$/);
     // The rail no longer repeats role counts or the header's member actions (D9, D15).
     expect(screen.queryByRole("link", { name: /^Stewards/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Manage Members" })).not.toBeInTheDocument();

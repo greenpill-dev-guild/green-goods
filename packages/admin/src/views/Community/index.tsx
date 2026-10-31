@@ -5,8 +5,9 @@ import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-poolin
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import type { GardenJoinRequestKind } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
@@ -24,8 +25,23 @@ export default function CommunityView() {
   });
   const showCoordination = Boolean(community.selectedGardenAddress) && isProtocolGarden;
 
-  // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
-  // header cannot add base units across WETH/USDC/etc. as one token total.
+  // Join requests are the one count on this rail, since only they wait on the
+  // steward (DL-134). Their queue reads only through the steward's signature, so
+  // the badge holds what the last read of this garden returned, and nothing
+  // before one: a badge never asks for a signature.
+  const [joinRequestsRead, setJoinRequestsRead] = useState<Record<string, number>>({});
+  const gardenAddress = community.selectedGardenAddress;
+  const noteJoinRequestsRead = useCallback(
+    (kind: GardenJoinRequestKind, waiting: number) =>
+      setJoinRequestsRead((read) => ({ ...read, [`${gardenAddress}:${kind}`]: waiting })),
+    [gardenAddress]
+  );
+  const waitingJoinRequests =
+    (joinRequestsRead[`${gardenAddress}:garden_membership`] ?? 0) +
+    (joinRequestsRead[`${gardenAddress}:steward_access`] ?? 0);
+
+  // Paid-out magnitudes by asset: the header cannot add base units across
+  // WETH/USDC/etc. as one token total.
   const distributedAmountsByAsset = useMemo(
     () =>
       Array.from(
@@ -106,7 +122,7 @@ export default function CommunityView() {
                 id: "cockpit.community.members",
                 defaultMessage: "Members",
               }),
-              count: community.derived.directoryEntries.length || undefined,
+              count: waitingJoinRequests,
             },
             ...(showCoordination
               ? [
@@ -125,7 +141,6 @@ export default function CommunityView() {
                 id: "cockpit.community.endowment",
                 defaultMessage: "Endowment",
               }),
-              count: community.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",
@@ -133,13 +148,12 @@ export default function CommunityView() {
                 id: "cockpit.community.payouts",
                 defaultMessage: "Payouts",
               }),
-              count: community.allocations.length || undefined,
             },
           ]}
         />
       </CanvasRouteHeader>
 
-      <CommunityWorkspaceContent workspace={community} />
+      <CommunityWorkspaceContent workspace={community} onJoinRequestsRead={noteJoinRequestsRead} />
     </CanvasRouteFrame>
   );
 }

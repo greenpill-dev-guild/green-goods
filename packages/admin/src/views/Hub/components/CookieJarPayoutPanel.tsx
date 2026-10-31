@@ -209,6 +209,16 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 defaultMessage: "Cookie Jars",
               })}
             </AdminCardTitle>
+            <p className="mt-1 type-meta text-text-sub">
+              {formatMessage(
+                {
+                  id: allocationCountAtLeast
+                    ? "cockpit.community.payouts.totalAtLeast"
+                    : "cockpit.community.payouts.total",
+                },
+                { count: allocationCount }
+              )}
+            </p>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: "app.cookieJar.payoutDescription",
