@@ -71,6 +71,19 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   but ignores activation (`SheetActions`' loading action), so a second press never sends
   twice. Proof: [AdminDialog.test.tsx](../../../packages/admin/src/__tests__/components/AdminDialog.test.tsx)
   and the dialog stories' play functions. (WAI-ARIA dialog pattern; NN/g user control.)
+- **A route-header action that opens a dialog opens it over the current tab (DL-140).** The press
+  adds the dialog's route item to the tab the steward is on and never changes the tab underneath.
+  Closing drops the item and leaves the tab alone, so the steward is back where they pressed; a
+  reload with the item in the URL reopens the dialog on that same tab, and a second press opens it
+  again. The dialog mounts at the workspace, not in one tab, and it says what it is waiting for or
+  why it cannot go on, because no tab behind it will. A choice inside the dialog may still lead
+  elsewhere: Fix Limit First goes to the jar's limit editor under Payouts. Fund Cookie Jar is the
+  shipped case. Add Member still lands on Members, the Hub's trio on its own stage, and Edit Garden
+  on Health. Proof: [community.utils.ts](../../../packages/shared/src/hooks/admin-ui/community/community.utils.ts),
+  where `buildCommunityViewActions` hands Fund Cookie Jar the active tab, and
+  [CommunitySheetDescriptor.test.tsx](../../../packages/admin/src/views/Community/components/CommunitySheetDescriptor.test.tsx),
+  which walks every Community tab. (NN/g user control; Jakob's Law: a dialog sits over the page it
+  was opened from.)
 - **Action labels are specific**: "Pause pool", "Cancel season", "Approve work", never "OK",
   "Confirm", "Submit". Confirmations name consequences before the act (ecosystem cascade rule).
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);
