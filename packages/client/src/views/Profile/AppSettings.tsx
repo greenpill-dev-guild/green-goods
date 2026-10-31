@@ -17,6 +17,7 @@ import { type ReactNode, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/Inputs";
 import { OfflineContentRow } from "./OfflineContentRow";
+import { SETTING_CONTROL_WIDTH } from "./settingControls";
 import { SettingTitle } from "./SettingTitle";
 
 interface ApplicationSettings {
@@ -37,13 +38,6 @@ interface UpdateRow {
   busy: boolean;
   onClick?: () => void;
 }
-
-/**
- * One width for every control in the settings column. 120px fits the busiest
- * button label with its spinner; the subtitle beside it gives up every pixel
- * this grows by.
- */
-const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
 /**
  * A select keeps its value on one line. The trigger leaves 66px for the text,

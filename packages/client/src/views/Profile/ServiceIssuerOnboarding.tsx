@@ -28,7 +28,7 @@ interface Props {
 }
 
 /**
- * A member's draft service in their Service Assets: what they would promise, what stays theirs,
+ * A member's draft service in Your Services: what they would promise, what stays theirs,
  * and the approval only they can give, signed from their own account. A steward's help is named
  * as help; nothing a steward does reads as approval.
  */
