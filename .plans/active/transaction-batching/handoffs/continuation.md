@@ -30,6 +30,8 @@ A second review round found six more, fixed in `301cc1fc7`: another casing of th
 
 A third round found one more real gap, fixed in `a84afd07e`: a send that finished after an account change put its rows into the new draft. Its test failed first at 20:58 UTC, and Admin passed 7 files with 116 tests at 20:58:51 UTC. Its other finding, duplicate rows from concurrent holds, cannot happen: `BatchJournal.claim` refuses a second open operation on an item inside one transaction.
 
+A fourth round found one more real gap, fixed in `71c52b405`: one person took the one-at-a-time path, which skips the journal, so a row another tab still held could go twice. On a listed rail, one person now takes the batch path too. Its tests failed first at 21:08 UTC, 2 on behavior. Green at 21:11:04 UTC (Shared 7 files, 94 passed) and 21:11:28 UTC (Admin 7 files, 116 passed).
+
 Still open for that slice, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here

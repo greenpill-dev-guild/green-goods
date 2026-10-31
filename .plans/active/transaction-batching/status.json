@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T20:59:23.022Z"
+    "updated_at": "2026-10-31T21:13:09.766Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,11 +58,11 @@
         "status": "green_recorded",
         "red": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx",
-          "evidence": "2026-10-31 20:58:11 UTC: 1 failed on behavior from the third review of #1400: a send that finished after an account change put its rows into the new draft."
+          "evidence": "2026-10-31 21:08:33 UTC: 2 failed on behavior from the fourth review of #1400: one person on a listed rail skipped the journal, so another tab's hold could not refuse the row."
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx src/components/Garden src/views/Community/components/CommunityMembersTab.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 20:58:51 UTC: 7 files, 116 passed, at the tree committed as a84afd07e."
+          "evidence": "2026-10-31 21:11:28 UTC: 7 files, 116 passed, at the tree committed as 71c52b405."
         },
         "note": ""
       },
@@ -84,7 +84,7 @@
         },
         "green": {
           "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts src/__tests__/hooks/useGardenOperations.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-10-31 20:45:38 UTC: 7 files, 93 passed, at the tree committed as 301cc1fc7."
+          "evidence": "2026-10-31 21:11:04 UTC: 7 files, 94 passed, at the tree committed as 71c52b405."
         },
         "note": ""
       },
@@ -532,6 +532,22 @@
       "timestamp": "2026-10-31T20:59:23.023Z",
       "actor": "claude",
       "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:13:04.813Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:13:09.772Z",
+      "actor": "claude",
+      "lane": "state_api",
       "status": "tdd_recorded",
       "branch": "feature/batch-add-members",
       "note": "Recorded RED/GREEN TDD proof"
