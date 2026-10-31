@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type GroupableCommitment,
   groupCommitmentsForDisplay,
+  identicalOpenCopyKey,
   selectRewardEdit,
 } from "../modules/commitment-pooling/display-groups";
 import {
@@ -265,6 +266,53 @@ describe("promises shown as groups", () => {
     expect(
       entry?.kind === "group" && new Set(entry.children.map((child) => child.dueDate)).size
     ).toBe(1);
+  });
+});
+
+describe("identical open copies made apart (DL-150)", () => {
+  const keyOf = (overrides: Partial<GroupableCommitment> = {}) =>
+    identicalOpenCopyKey(record({ metadataCID: "cid-plain", ...overrides }), metadata);
+
+  it("gives copies with no group id one key, whatever their reward amount", () => {
+    expect(keyOf()).not.toBeNull();
+    expect(keyOf()).toBe(keyOf());
+    expect(keyOf()).toBe(keyOf({ considerationAmount: 40_000n } as Partial<GroupableCommitment>));
+  });
+
+  it.each<[string, Partial<GroupableCommitment>]>([
+    ["creator", { creator: LINA }],
+    ["kind", { commitmentType: "DOMAIN_IMPACT" }],
+    ["direction", { direction: "OFFER" }],
+    ["state", { onchainState: "OFFERED" }],
+    ["due date", { dueDate: 1_790_086_400n }],
+    ["cycle", { cycleId: 4n }],
+    ["units", { targetUnits: 2n }],
+    ["claim mode", { claimMode: "APPROVAL_GATED" }],
+    ["requirements", { requirements: [{ actionUID: 44n, requiredCount: 2 }] }],
+    ["reward rail", { considerationRail: "NONE" }],
+    ["words", { metadataCID: "cid-water" }],
+  ])("keeps apart another %s", (_term, change) => {
+    expect(keyOf(change)).not.toBe(keyOf());
+  });
+
+  it.each<[string, Partial<GroupableCommitment>]>([
+    ["taken up", { onchainState: "ACCEPTED" }],
+    ["kept", { onchainState: "FULFILLED" }],
+    ["missing a term", { requirements: null }],
+    ["without words", { metadataCID: null }],
+  ])("gives none to a record %s", (_state, change) => {
+    expect(keyOf(change)).toBeNull();
+  });
+
+  it("folds unread words under their one CID, and leaves words it can't read ordinary", () => {
+    const unread = identicalOpenCopyKey(record({ metadataCID: "cid-unread" }), metadata);
+    expect(unread).not.toBeNull();
+    expect(identicalOpenCopyKey(record({ metadataCID: "cid-other-unread" }), metadata)).not.toBe(
+      unread
+    );
+    const later = new Map(metadata);
+    later.set("cid-plain", { ...metadata.get("cid-plain")!, version: 2 });
+    expect(identicalOpenCopyKey(record({ metadataCID: "cid-plain" }), later)).toBeNull();
   });
 });
 

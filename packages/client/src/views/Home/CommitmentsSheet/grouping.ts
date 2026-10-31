@@ -1,9 +1,11 @@
 import type { Garden } from "@green-goods/shared/types/domain";
 import type {
+  CommitmentMetadataV1,
   CommitmentPoolRecord,
   CommitmentsToConfirm,
   InboxCommitment,
 } from "@green-goods/shared/commitment-pooling";
+import { identicalOpenCopyKey } from "@green-goods/shared/modules/commitment-pooling/display-groups";
 
 /**
  * What the To confirm tab lists, and so what its badge and the launcher count:
@@ -18,6 +20,38 @@ export interface GardenGroup {
   key: string;
   gardenName: string;
   rows: InboxCommitment[];
+}
+
+/** One line of the Live list: a promise, or its identical open copies as one (DL-150). */
+export type LiveEntry =
+  | { kind: "row"; row: InboxCommitment }
+  | { kind: "copies"; key: string; rows: InboxCommitment[] };
+
+/**
+ * Fold identical open copies into one entry that takes the place of its first copy. The display
+ * groups judge what is identical; what waits on the reader, or says it didn't send, keeps its
+ * own row here. Every copy stays its own promise.
+ */
+export function foldIdenticalCopies(
+  rows: readonly InboxCommitment[],
+  metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>,
+  sendFailed: ReadonlySet<string>
+): LiveEntry[] {
+  const copies = new Map<string, InboxCommitment[]>();
+  const keys = rows.map((row) => {
+    const key =
+      row.needsYou || sendFailed.has(row.commitment.commitmentId.toString())
+        ? null
+        : identicalOpenCopyKey(row.commitment, metadataByCID);
+    if (key) copies.set(key, [...(copies.get(key) ?? []), row]);
+    return key;
+  });
+  return rows.flatMap((row, index): LiveEntry[] => {
+    const key = keys[index];
+    const fold = key ? copies.get(key) : undefined;
+    if (!key || !fold || fold.length < 2) return [{ kind: "row", row }];
+    return fold[0] === row ? [{ kind: "copies", key, rows: fold }] : [];
+  });
 }
 
 /**
