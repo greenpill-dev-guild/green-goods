@@ -140,7 +140,9 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
         args: settlementArgs(input),
         chainId,
       });
-      return result.hash;
+      // A Safe-style wallet can answer with a proposal (`confirmation: "pending"`):
+      // nothing has run yet, and the caller must not read it as a confirmed step.
+      return result;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });

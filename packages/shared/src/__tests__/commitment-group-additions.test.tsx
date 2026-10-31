@@ -36,10 +36,19 @@ const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 const chain = vi.hoisted(() => ({
   creator: "0x1111111111111111111111111111111111111111",
   rail: 0,
+  settlementAccountActive: true as boolean | Error,
 }));
 const send = vi.hoisted(() => ({
   script: (_copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
   inputs: [] as CreationSendInput[],
+}));
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
 }));
 
 /** A creation job in the queue, as Finish Creating reads it. */
@@ -93,10 +102,15 @@ vi.mock("../hooks/commitment-pooling/useCommitmentPoolMutations", () => ({
 }));
 vi.mock("../utils/blockchain/contracts", () => ({
   CommitmentPoolingModuleABI: [],
+  getNetworkContracts: () => ({ settlementModule: "0x8888888888888888888888888888888888888888" }),
   createClients: () => ({
     publicClient: {
-      readContract: async ({ functionName }: { functionName: string }) =>
-        functionName === "getConfirmers"
+      readContract: async ({ functionName }: { functionName: string }) => {
+        if (functionName === "settlementAccountOf") {
+          if (chain.settlementAccountActive instanceof Error) throw chain.settlementAccountActive;
+          return { active: chain.settlementAccountActive };
+        }
+        return functionName === "getConfirmers"
           ? []
           : {
               poolId: 7n,
@@ -121,7 +135,8 @@ vi.mock("../utils/blockchain/contracts", () => ({
               consideration: { rail: chain.rail, source: GARDEN, token: GARDEN, amount: 0n },
               declaredUnitValue: 0n,
               declaredValueBasis: "",
-            },
+            };
+      },
     },
   }),
 }));
@@ -131,6 +146,8 @@ beforeEach(() => {
   send.script = () => ({ status: "created" });
   chain.creator = STEWARD;
   chain.rail = 0;
+  chain.settlementAccountActive = true;
+  releaseScope.settlementEnabled = true;
 });
 
 /** How `getCommitment` decodes a copy of a garden-work group, trimmed to what matters. */
@@ -275,10 +292,29 @@ describe("useAddToGroup", () => {
     expect(first![0]!.payload.metadataCID).toBe("bafy-group-document");
   });
 
-  it("blocks a rewarded template before queuing or sending new copies", async () => {
+  it("adds copies of a rewarded template, unless settlement is off", async () => {
     chain.rail = 2;
+    releaseScope.settlementEnabled = false;
     expect(await setup().add(3)).toBe("blocked");
     expect(send.inputs).toEqual([]);
+
+    releaseScope.settlementEnabled = true;
+    expect(await setup().add(3)).toBe("sent");
+    expect(send.inputs[0]?.copies).toHaveLength(3);
+  });
+
+  it("won't promise more of a reward the garden's settlement account can't pay", async () => {
+    chain.rail = 2;
+    chain.settlementAccountActive = false;
+    expect(await setup().add(3)).toBe("no-settlement-account");
+
+    chain.settlementAccountActive = new Error("rpc down");
+    expect(await setup().add(3)).toBe("blocked");
+    expect(send.inputs).toEqual([]);
+
+    // A group with no reward owes nothing through that account.
+    chain.rail = 0;
+    expect(await setup().add(3)).toBe("sent");
   });
 
   it("checks the deadline again on Try Again, and sends nothing once it has passed", async () => {
@@ -317,7 +353,20 @@ describe("useAddToGroup", () => {
 });
 
 describe("useFinishCreating", () => {
-  it("leaves unsent rewards out of Finish Creating and still reconciles recorded copies", async () => {
+  it("finishes unsent rewards while settlement is on", async () => {
+    const reward = job("reward", "group-00000001");
+    const jobs = [{ ...reward, payload: { ...reward.payload, consideration: { rail: 2 } } }];
+    vi.mocked(jobQueue.getJobs).mockResolvedValueOnce(jobs as never);
+    const view = renderHookWithProviders(() =>
+      useFinishCreating({ chainId: 42161, owner: STEWARD })
+    );
+    await waitFor(() =>
+      expect(view.result.current.waiting.get("group-00000001")).toEqual(["reward"])
+    );
+  });
+
+  it("leaves unsent rewards out of Finish Creating when settlement is off, and still reconciles recorded copies", async () => {
+    releaseScope.settlementEnabled = false;
     const reward = job("reward", "group-00000001");
     const payload = { ...reward.payload, consideration: { rail: 2 } };
     const jobs = [

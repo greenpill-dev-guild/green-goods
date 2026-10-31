@@ -55,7 +55,11 @@ describe("useSettlementOperationsController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.deliveryEnabled = false;
-    mocks.mutateAsync.mockResolvedValue("0xsafe-proposal");
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "0xsafe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
     mocks.readState.mockImplementation(async () => chainState());
   });
 
@@ -89,7 +93,7 @@ describe("useSettlementOperationsController", () => {
   it("confirms immediately when post-submission readback already matches", async () => {
     mocks.mutateAsync.mockImplementation(async () => {
       mocks.deliveryEnabled = true;
-      return "0xexecuted";
+      return { hash: "0xexecuted", sponsored: false };
     });
     const { result } = renderHookWithProviders(() =>
       useSettlementOperationsController({ chainId: 42161 })
