@@ -19,6 +19,11 @@ import type {
   SettlementActKind,
   SettlementActStatus,
 } from "./controller.types";
+import {
+  type PoolFundingTransferBlock,
+  selectQueuedTransferBlock,
+  selectTransferBlock,
+} from "../../../modules/commitment-pooling/pool-funding";
 import { selectSettlementActions } from "../../../modules/commitment-pooling/settlement";
 import { pinCommitmentReason } from "../../../modules/commitment-pooling/reasons";
 import type { HexString } from "../../../modules/commitment-pooling/types-core";
@@ -32,6 +37,12 @@ import {
   useSettlementOperationsCapabilities,
 } from "../../commitment-pooling/useSettlement";
 import { useRole } from "../../gardener/useRole";
+
+function transfersKey(snapshot: ReturnType<typeof usePoolFunding>["snapshot"]): string | null {
+  return snapshot
+    ? snapshot.disbursements.map((row) => `${row.disbursementId}:${row.state}`).join(",")
+    : null;
+}
 
 function fundingView(query: ReturnType<typeof usePoolFunding>): PoolFundingControllerView {
   return {
@@ -73,11 +84,24 @@ export function useProtocolFundingOperationsController(input: {
   });
   const mutation = useSettlementMutation({ chainId });
   const [lastAct, setLastAct] = useState<SettlementActStatus | null>(null);
-  const canAct = Boolean(viewer) && isOnline && !mutation.isPending && !capabilities.isLoading;
+  // The transfers as they stood when a Safe took an act as a proposal. Sends stay
+  // closed while the list still reads the same, so nothing goes out twice. This
+  // lasts as long as the panel: reloading is how a rejected proposal is sent again.
+  const [proposedAt, setProposedAt] = useState<string | null>(null);
+  const proposalPending = proposedAt !== null && transfersKey(sourceQuery.snapshot) === proposedAt;
+  // From the first tap: a send reads the Safe again before the wallet is asked.
+  const isActing = mutation.isPending || lastAct?.phase === "signing";
+  const canAct = Boolean(viewer) && isOnline && !isActing && !capabilities.isLoading;
+  const canSend = canAct && !proposalPending;
 
   const rows = useMemo<ProtocolFundingRow[]>(() => {
     const snapshot = sourceQuery.snapshot;
     if (!snapshot?.safe) return [];
+    const funding = {
+      snapshot,
+      isError: sourceQuery.isError,
+      hasStaleBalance: sourceQuery.hasStaleBalance,
+    };
     const sourceSafe = snapshot.safe.toLowerCase();
     const executions = new Map(
       snapshot.executions.map((execution) => [execution.executionKey.toLowerCase(), execution])
@@ -94,9 +118,13 @@ export function useProtocolFundingOperationsController(input: {
           isBatchMember: Boolean(row.batchId),
           kind: "FUNDING",
           sourcePaused: snapshot.settlementUnavailableReasons.includes("source_paused"),
-          canDispatchOrRetry: capabilities.canDispatchOrRetry && canAct,
-          canRequeueOrCancel: capabilities.canRequeueOrCancel && canAct,
+          canDispatchOrRetry: capabilities.canDispatchOrRetry && canSend,
+          canRequeueOrCancel: capabilities.canRequeueOrCancel && canSend,
         });
+        // A dispatch or resend spends the CCIP fee before Celo can refuse it.
+        const dispatchable = actions.dispatch && !row.batchId;
+        const resendable = actions.retrySameCommand && execution?.status !== "SUCCESS";
+        const sendBlock = selectQueuedTransferBlock(funding, row);
         const state: ProtocolFundingRow["state"] =
           row.state === "DISPATCHED" &&
           execution?.status === "SUCCESS" &&
@@ -111,14 +139,21 @@ export function useProtocolFundingOperationsController(input: {
           amount: row.amount,
           state,
           executionKey: row.executionKey,
-          canDispatch: actions.dispatch && !row.batchId,
-          canRetry: actions.retrySameCommand && execution?.status !== "SUCCESS",
+          canDispatch: dispatchable && !sendBlock,
+          canRetry: resendable && !sendBlock,
           canRequeue: actions.startNewAttempt,
           canCancel: actions.cancelIndividual,
+          sendBlock: dispatchable || resendable ? sendBlock : null,
         };
       })
       .sort((left, right) => (left.disbursementId > right.disbursementId ? -1 : 1));
-  }, [canAct, capabilities, sourceQuery.snapshot]);
+  }, [
+    canSend,
+    capabilities,
+    sourceQuery.snapshot,
+    sourceQuery.isError,
+    sourceQuery.hasStaleBalance,
+  ]);
 
   const refetch = useCallback(async () => {
     return Promise.all([sourceQuery.refetch(), targetQuery.refetch()]);
@@ -130,12 +165,34 @@ export function useProtocolFundingOperationsController(input: {
       action:
         | { action: "queueFunding"; garden: Address; amount: bigint }
         | { action: "dispatchDisbursement" | "retryCommand" | "requeue"; disbursementId: bigint }
-        | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string }
+        | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string },
+      /** Asks the latest read why this can't go, when the send can spend the CCIP fee. */
+      blockOf?: (
+        funding: Parameters<typeof selectQueuedTransferBlock>[0]
+      ) => PoolFundingTransferBlock | null
     ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
+      let before = transfersKey(sourceQuery.snapshot);
       try {
-        const hash = (await mutation.mutateAsync(action)) as HexString;
-        setLastAct({ kind, phase: "submitted", hash });
+        if (blockOf) {
+          // The rows and the review read a snapshot up to 30 seconds old; the send reads again.
+          const fresh = await sourceQuery.refetch();
+          const block = blockOf({
+            snapshot: fresh.data ?? null,
+            isError: fresh.isError,
+            hasStaleBalance: false,
+          });
+          if (block) throw new Error(`The protocol Safe can't send this transfer: ${block}`);
+          before = transfersKey(fresh.data ?? null);
+        }
+        const result = await mutation.mutateAsync(action);
+        const hash = result.hash as HexString;
+        if (result.confirmation === "pending") {
+          setProposedAt(before);
+          setLastAct({ kind, phase: "proposed", hash });
+        } else {
+          setLastAct({ kind, phase: "submitted", hash });
+        }
         await refetch();
         return hash;
       } catch (error) {
@@ -144,8 +201,18 @@ export function useProtocolFundingOperationsController(input: {
         throw error;
       }
     },
-    [mutation, refetch]
+    [mutation, refetch, sourceQuery]
   );
+
+  /** A queued or dispatched transfer as the read holds it; one it no longer holds is not sent. */
+  const transferOf = (disbursementId: bigint) => {
+    const row = sourceQuery.snapshot?.disbursements.find(
+      (entry) => entry.disbursementId === disbursementId
+    );
+    if (!row) throw new Error(`Transfer #${disbursementId.toString()} is not in the latest read`);
+    return (funding: Parameters<typeof selectQueuedTransferBlock>[0]) =>
+      selectQueuedTransferBlock(funding, row);
+  };
 
   return {
     chainId,
@@ -161,13 +228,24 @@ export function useProtocolFundingOperationsController(input: {
     sourceFunding: fundingView(sourceQuery),
     targetFunding: fundingView(targetQuery),
     rows,
-    lastAct,
-    isActing: mutation.isPending,
+    // Once the list moves, the proposal ran and the indexed rows say how it went.
+    lastAct:
+      lastAct?.phase === "proposed" && !proposalPending
+        ? { ...lastAct, phase: "submitted" }
+        : lastAct,
+    isActing,
     queueFunding: (garden, amount) =>
-      run("queue-funding", { action: "queueFunding", garden, amount }),
-    dispatch: (disbursementId) =>
-      run("dispatch", { action: "dispatchDisbursement", disbursementId }),
-    retry: (disbursementId) => run("retry", { action: "retryCommand", disbursementId }),
+      run("queue-funding", { action: "queueFunding", garden, amount }, (funding) =>
+        selectTransferBlock(funding, amount)
+      ),
+    dispatch: async (disbursementId) =>
+      run(
+        "dispatch",
+        { action: "dispatchDisbursement", disbursementId },
+        transferOf(disbursementId)
+      ),
+    retry: async (disbursementId) =>
+      run("retry", { action: "retryCommand", disbursementId }, transferOf(disbursementId)),
     requeue: (disbursementId) => run("requeue", { action: "requeue", disbursementId }),
     cancel: async (disbursementId, reason) => {
       const reasonCID = await pinCommitmentReason({

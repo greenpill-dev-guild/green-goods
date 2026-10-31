@@ -78,6 +78,8 @@ export function EditRewardDialog({
   const reward = useEditReward({ chainId });
   const [amountText, setAmountText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Taking the reward off needs no price, and no active settlement account to pay through.
+  const [removing, setRemoving] = useState(false);
   // The G$ amount of the first change, kept for every Try Again.
   const fixedAmount = useRef<bigint | null>(null);
 
@@ -86,6 +88,7 @@ export function EditRewardDialog({
     if (!open) return;
     reset();
     fixedAmount.current = null;
+    setRemoving(false);
     setError(null);
     setAmountText(currentCentsAsSet !== null ? usdCentsText(currentCentsAsSet) : "");
   }, [open, reset, currentCentsAsSet]);
@@ -114,24 +117,39 @@ export function EditRewardDialog({
     currentCentsAsSet !== null &&
     newCents === currentCentsAsSet &&
     availableRewards.every((agreement) => agreement.wei === currentWei);
-  const blocked = !settlementActive
-    ? formatMessage({
-        id: "cockpit.garden.pool.reward.needsSettlement",
-        defaultMessage:
-          "A reward is paid through this garden's settlement account, which isn't active.",
-      })
-    : (unavailable ??
-      (unchanged
-        ? formatMessage({
-            id: "cockpit.garden.pool.reward.unchanged",
-            defaultMessage: "Type the new amount to change the reward.",
-          })
-        : null));
+  const blocked = removing
+    ? null
+    : !settlementActive
+      ? formatMessage({
+          id: "cockpit.garden.pool.reward.needsSettlement",
+          defaultMessage:
+            "A reward is paid through this garden's settlement account, which isn't active.",
+        })
+      : (unavailable ??
+        (unchanged
+          ? formatMessage({
+              id: "cockpit.garden.pool.reward.unchanged",
+              defaultMessage: "Type the new amount to change the reward.",
+            })
+          : null));
   const count = retrying ? status.retry.length : available.length;
+
+  const send = async (amount: bigint) => {
+    const outcome = await reward.change(retrying ? status.retry : available, amount);
+    if (outcome === "changed") onChanged(available.length);
+    if (outcome === "blocked") {
+      setError(
+        formatMessage({
+          id: "cockpit.garden.pool.reward.blocked",
+          defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
+        })
+      );
+    }
+  };
 
   const change = async () => {
     setError(null);
-    let amount = locked ? fixedAmount.current : null;
+    let amount = locked || removing ? fixedAmount.current : null;
     if (amount === null) {
       if (newCents === null) return;
       try {
@@ -144,16 +162,15 @@ export function EditRewardDialog({
       }
       fixedAmount.current = amount;
     }
-    const outcome = await reward.change(retrying ? status.retry : available, amount);
-    if (outcome === "changed") onChanged(available.length);
-    if (outcome === "blocked") {
-      setError(
-        formatMessage({
-          id: "cockpit.garden.pool.reward.blocked",
-          defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",
-        })
-      );
-    }
+    await send(amount);
+  };
+
+  // Zero is no reward (`goodDollarConsideration`), and a Try Again removes it the same way.
+  const remove = async () => {
+    setError(null);
+    setRemoving(true);
+    fixedAmount.current = 0n;
+    await send(0n);
   };
 
   const summarizeAgreement = (agreement: GroupReward["taken"][number]) => {
@@ -174,7 +191,7 @@ export function EditRewardDialog({
   const summary = editRewardSummary({
     available: availableRewards.map(summarizeAgreement),
     taken: takenRewards.map(summarizeAgreement),
-    newCents,
+    newCents: removing ? 0n : newCents,
     formatUsd: (cents) => formatUsd(cents, locale),
     formatMessage,
   });
@@ -240,12 +257,29 @@ export function EditRewardDialog({
           >
             {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
           </Button>
+          {!locked && !removing ? (
+            <Button
+              type="button"
+              emphasis="tertiary"
+              tone="danger"
+              size="sm"
+              onClick={() => void remove()}
+              disabled={status.busy}
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.reward.remove",
+                defaultMessage: "Remove Reward",
+              })}
+            </Button>
+          ) : null}
           <Button
             type="button"
             emphasis="primary"
             size="sm"
             onClick={() => void change()}
-            disabled={status.busy || Boolean(blocked) || (!locked && newCents === null)}
+            disabled={
+              status.busy || Boolean(blocked) || (!locked && !removing && newCents === null)
+            }
             loading={status.busy}
             className="w-full sm:w-auto"
           >
@@ -308,7 +342,7 @@ export function EditRewardDialog({
         />
         <fieldset
           className="min-w-0 space-y-2"
-          disabled={status.busy || locked || price.state.status !== "ready"}
+          disabled={status.busy || locked || removing || price.state.status !== "ready"}
           aria-labelledby={`${fieldsetId}-title`}
         >
           <AdminCardTitle as="h4" id={`${fieldsetId}-title`}>

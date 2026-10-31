@@ -4,12 +4,41 @@ import type {
   ProtocolFundingOperationsController,
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { PoolFundingTransferLimit } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import type { TransferAct } from "@/views/Garden/Pool/TransferReviewDialog";
+
+/** What the amount field and a held transfer say for each limit, in the words of the facts listed. */
+export const OVER_LIMIT_MESSAGES: Record<
+  PoolFundingTransferLimit,
+  { id: string; defaultMessage: string }
+> = {
+  transfer_cap: {
+    id: "cockpit.community.protocolFunding.amount.overTransferCap",
+    defaultMessage: "More than the per-transfer cap.",
+  },
+  period_allowance: {
+    id: "cockpit.community.protocolFunding.amount.overPeriodAllowance",
+    defaultMessage: "More than the period allowance left.",
+  },
+  roles_allowance: {
+    id: "cockpit.community.protocolFunding.amount.overSafeAllowance",
+    defaultMessage: "More than the Safe allowance left.",
+  },
+  balance: {
+    id: "cockpit.community.protocolFunding.amount.overBalance",
+    defaultMessage: "More than the protocol Safe holds.",
+  },
+};
+
+const LIMITS_UNREAD_ROW = {
+  id: "cockpit.community.protocolFunding.row.limitsUnread",
+  defaultMessage: "Can't be sent until the protocol Safe's limits are read.",
+};
 
 function rowVariant(state: ProtocolFundingRow["state"]) {
   if (state === "confirmed") return "success" as const;
@@ -135,6 +164,15 @@ export function ProtocolFundingRows({
                     {statusLabel(row.state)}
                   </StatusBadge>
                 </div>
+                {row.sendBlock ? (
+                  <p className="type-meta text-text-soft" data-testid="protocol-funding-send-block">
+                    {formatMessage(
+                      row.sendBlock === "limits_unread"
+                        ? LIMITS_UNREAD_ROW
+                        : OVER_LIMIT_MESSAGES[row.sendBlock]
+                    )}
+                  </p>
+                ) : null}
                 {/* End-aligned, two weights, the affirmative act rightmost: a queued
                     transfer's Cancel… and Dispatch… are the row's paired decision. */}
                 <div className="flex flex-wrap items-center justify-end gap-2">

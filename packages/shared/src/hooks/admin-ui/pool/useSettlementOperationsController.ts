@@ -74,10 +74,12 @@ export function useSettlementOperationsController(input: {
       requestedDelivery.current = enabled;
       setLastAct({ kind: "set-gardener-delivery", phase: "signing" });
       try {
-        const hash = (await mutation.mutateAsync({
-          action: "setGardenerDeliveryEnabled",
-          enabled,
-        })) as HexString;
+        const hash = (
+          await mutation.mutateAsync({
+            action: "setGardenerDeliveryEnabled",
+            enabled,
+          })
+        ).hash as HexString;
         setLastAct({ kind: "set-gardener-delivery", phase: "submitted", hash });
         // The flag the card shows is the chain's answer, never the request.
         const result = await query.refetch();

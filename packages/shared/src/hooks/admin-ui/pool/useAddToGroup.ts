@@ -39,7 +39,12 @@ import {
 } from "../../../modules/commitment-pooling/seed-sets";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import type { Address } from "../../../types/domain";
-import { CommitmentPoolingModuleABI, createClients } from "../../../utils/blockchain/contracts";
+import { SettlementModuleABI } from "../../../utils/blockchain/contract-abis/settlement-module";
+import {
+  CommitmentPoolingModuleABI,
+  createClients,
+  getNetworkContracts,
+} from "../../../utils/blockchain/contracts";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { resolveCommitmentPoolingModule } from "../../commitment-pooling/useCommitmentPoolMutations";
 import { useAsyncEffect } from "../../utils/useAsyncEffect";
@@ -68,6 +73,8 @@ export type AddToGroupOutcome =
   | "not-creator"
   /** More offers than the steward has room for under the pool's at-once limit. */
   | "full"
+  /** The group carries a G$ reward and the garden's settlement account isn't active. */
+  | "no-settlement-account"
   /** Nothing could be read or sent from here. */
   | "blocked";
 
@@ -153,11 +160,17 @@ export function useAddToGroup(input: {
       group.templateCommitmentId
     );
     if (!canAddToGroup(template, owner)) return "not-creator";
-    if (
-      !SETTLEMENT_ENABLED &&
-      template.terms.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
-    )
-      return "blocked";
+    if (template.terms.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT) {
+      if (!SETTLEMENT_ENABLED) return "blocked";
+      // The seed form reads the index; adding to a rewarded group reads the chain, right before.
+      const account = (await publicClient.readContract({
+        address: getNetworkContracts(chainId).settlementModule,
+        abi: SettlementModuleABI,
+        functionName: "settlementAccountOf",
+        args: [group.gardenAddress],
+      })) as { active?: boolean };
+      if (account.active !== true) return "no-settlement-account";
+    }
     const copies = identity.copyIds.map((clientCommitmentId) => ({
       clientCommitmentId,
       setId: group.displayGroupId,

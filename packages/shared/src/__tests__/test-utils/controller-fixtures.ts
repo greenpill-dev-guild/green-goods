@@ -720,6 +720,8 @@ export function commitmentSettlementControllerFixture(
       isOnline,
       chainRead,
       isActing,
+      proposalPending: false,
+      transferBlock: () => null,
       now: NOW,
     });
   return {

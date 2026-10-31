@@ -213,6 +213,21 @@ const BLOCKER_MESSAGES: Record<SettlementActionBlocker, Message> = {
     id: "cockpit.garden.pool.settlement.blocker.acting",
     defaultMessage: "A transaction is already in flight.",
   },
+  "proposal-pending": {
+    id: "cockpit.garden.pool.settlement.blocker.proposal-pending",
+    defaultMessage:
+      "A Safe proposal for this step is waiting for signatures. If your Safe rejected it, reopen this promise to send it again.",
+  },
+  "funding-unread": {
+    id: "cockpit.garden.pool.settlement.blocker.funding-unread",
+    defaultMessage:
+      "The paying garden's Celo Safe balance and limits haven't been read, so nothing can be dispatched yet.",
+  },
+  "funding-over-limit": {
+    id: "cockpit.garden.pool.settlement.blocker.funding-over-limit",
+    defaultMessage:
+      "This is more than the paying garden's Celo Safe can send right now. Add funds or wait for its allowance to reset.",
+  },
 };
 
 export function blockerMessage(blocker: SettlementActionBlocker, intl: IntlShape): string {
