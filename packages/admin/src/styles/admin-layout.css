@@ -336,15 +336,16 @@ button.garden-stat-row:hover {
     min-height: 0;
   }
 
+  /* Every stage's empty, loading and failed state keeps the shell's own 24rem
+   * minimum. A child-only override to 100% reached the Work and record tabs,
+   * which render the shell directly, but not Confirm, which renders it inside
+   * its own region, so the four stages sat at different heights (qa-session
+   * 2026-10-30 OBS-02). */
   .hub-results-pane {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     gap: 0.75rem;
     min-height: 0;
-  }
-
-  .hub-results-pane > [data-component="EmptyStateShell"] {
-    --canvas-empty-state-min-height: 100%;
   }
 }
