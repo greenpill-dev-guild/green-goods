@@ -3,8 +3,10 @@ import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 import {
   BatchConfirmationPendingError,
   BatchNotSubmittedError,
+  batchReferenceKey,
   type BatchExecution,
   type BatchGroup,
+  type BatchReceipt,
   type BatchRecord,
   type BatchReference,
   type PreparedBatch,
@@ -44,10 +46,20 @@ function assertExecutionReference(
     reference.account.toLowerCase() !== prepared.account.toLowerCase()
   )
     throw new Error("batch-reference-scope-mismatch");
-  const key = (ref: BatchReference) =>
-    `${ref.kind}:${"id" in ref ? ref.id : ref.hash.toLowerCase()}`;
-  if (group.reference && key(reference) !== key(group.reference))
+  if (group.reference && batchReferenceKey(reference) !== batchReferenceKey(group.reference))
     throw new Error("batch-reference-mismatch");
+}
+
+/** A later read can expire or see less, so evidence already saved is never dropped. */
+function mergeReceipts(
+  saved: readonly BatchReceipt[],
+  observed: readonly BatchReceipt[]
+): BatchReceipt[] {
+  return [
+    ...new Map(
+      [...saved, ...observed].map((receipt) => [receipt.transactionHash.toLowerCase(), receipt])
+    ).values(),
+  ];
 }
 
 async function settle(
@@ -61,7 +73,7 @@ async function settle(
     ...group,
     status: execution.status,
     reference: execution.reference ?? group.reference,
-    receipts: [...execution.receipts],
+    receipts: mergeReceipts(group.receipts, execution.receipts),
   };
   if (execution.status !== "confirmed")
     return group.confirmedItemIds?.length && execution.status === "reverted"
@@ -105,7 +117,7 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
       chainId: prepared.chainId,
     });
   // A definitely ended attempt remains immutable; an explicit retry gets a new operation ID.
-  if (["declined", "reverted"].includes(record.status)) return record;
+  if (["declined", "reverted", "released"].includes(record.status)) return record;
   if (!prepared.budget) throw new Error("batch-budget-required");
   if (!sender.preflightBatch) throw new Error("batch-preflight-unavailable");
   if (prepared.mode === "atomic") {
@@ -132,13 +144,15 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
       await owned(sender, prepared);
       let next: BatchGroup = { ...group, quote, status: "awaiting-approval" };
       await save(next);
-      const referenceKnown = async (reference: BatchReference) => {
+      const referenceKnown = async (reference: BatchReference, accepted: boolean) => {
         if (
           reference.chainId !== prepared.chainId ||
           reference.account.toLowerCase() !== prepared.account.toLowerCase()
         )
           throw new Error("batch-reference-scope-mismatch");
-        next = { ...next, status: "submitted", reference };
+        next = { ...next, status: accepted ? "submitted" : next.status, reference };
+        // Once a send is accepted its identity is saved, even if this tab has lost its claim.
+        if (accepted) await journal.recordSubmission(prepared.id, next.itemIds, reference);
         await save(next);
       };
       const scoped = (reference: BroadcastReference): BatchReference => {
@@ -158,17 +172,19 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           ) => {
             await owned(sender, prepared);
             if (reference)
-              await referenceKnown({
-                ...reference,
-                account: prepared.account,
-                chainId: prepared.chainId,
-              });
+              await referenceKnown(
+                { ...reference, account: prepared.account, chainId: prepared.chainId },
+                false
+              );
+            // Reopening after a crash relies on a UserOperation's reference being saved by now.
+            else if (quote.authority === "user-operation")
+              throw new Error("batch-reference-required");
             else await save(next);
           },
           onBroadcastReference: async (
             reference: Parameters<NonNullable<TransactionSender["reconcileBroadcast"]>>[0]
-          ) => referenceKnown(scoped(reference)),
-          onBatchReference: referenceKnown,
+          ) => referenceKnown(scoped(reference), true),
+          onBatchReference: (reference: BatchReference) => referenceKnown(reference, true),
         };
         let execution: BatchExecution;
         if (prepared.mode === "atomic") execution = await sender.submitAtomicBatch!(calls, options);
@@ -234,19 +250,33 @@ export async function reconcileBatchOperation(
   )
     throw new Error("batch-scope-mismatch");
   await owned(input.sender, record.prepared);
-  if (["confirmed", "prepared", "declined", "reverted"].includes(record.status)) return record;
+  if (!waiting.has(record.status)) return record;
   return withBatchProgress(input.journal, record, true, async (save, current) => {
     for (const group of current().groups) {
       if (!waiting.has(group.status)) continue;
+      // A UserOperation's reference is saved before it can be sent, so none means it was not sent.
+      // A wallet is different: a prompt left open can still be approved after this tab has closed.
+      if (!group.reference && group.quote?.authority === "user-operation") {
+        await save({ ...group, status: "prepared", quote: undefined });
+        break;
+      }
       let next = { ...group, status: "unresolved" as const } as BatchGroup;
       try {
         if (group.reference) {
           const execution = await input.sender.reconcileBatch?.(group.reference);
           if (execution) {
             assertExecutionReference(record.prepared, next, execution);
-            next = { ...next, receipts: [...execution.receipts] };
+            next = { ...next, receipts: mergeReceipts(next.receipts, execution.receipts) };
             await save(next);
-            next = await settle(input, record.prepared, next, execution);
+            // Execution proven once stays proven when a later wallet read has expired or sees less.
+            const proven =
+              group.confirmedItemIds !== undefined && execution.status === "unresolved";
+            next = await settle(
+              input,
+              record.prepared,
+              next,
+              proven ? { ...execution, status: "confirmed", receipts: next.receipts } : execution
+            );
           }
         }
       } catch {
@@ -255,6 +285,23 @@ export async function reconcileBatchOperation(
       await save(next);
       if (next.status !== "confirmed") break;
     }
+    return current();
+  });
+}
+
+/**
+ * End a hold at a person's request, after they have seen fresh domain state. The read comes first,
+ * so a submission that landed is confirmed instead. This is the only exit from an unknown outcome,
+ * and it accepts that such a send could still land; the saved evidence stays on the record.
+ */
+export async function releaseBatchOperation(
+  input: RecoveryInput & { operationId: string; account: Address; chainId: number }
+): Promise<BatchRecord> {
+  const record = await reconcileBatchOperation(input);
+  if (!waiting.has(record.status)) return record;
+  return withBatchProgress(input.journal, record, true, async (save, current) => {
+    for (const group of current().groups)
+      if (waiting.has(group.status)) await save({ ...group, status: "released" });
     return current();
   });
 }

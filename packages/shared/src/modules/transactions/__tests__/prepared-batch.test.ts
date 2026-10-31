@@ -86,3 +86,20 @@ it("freezes reviewed fee ceilings into the intent fingerprint", () => {
   prepared.budget!.maxFee = "1";
   expect(() => assertPreparedBatch(prepared)).toThrow("batch-intent-changed");
 });
+
+it("applies a budget to each sequential group, not to the whole selection", () => {
+  const request = input();
+  request.items.push({ id: "garden:description", call: createMockContractCall({ account }) });
+  const oneCall = createMockBatchBudget({ maxCalls: 1, maxCalldataBytes: 68 });
+  expect(() => prepareBatch({ ...request, mode: "sequential", budget: oneCall })).not.toThrow();
+  expect(() => prepareBatch({ ...request, mode: "atomic", budget: oneCall })).toThrow(
+    "batch-budget-exceeded"
+  );
+  expect(() =>
+    prepareBatch({
+      ...request,
+      mode: "sequential",
+      budget: createMockBatchBudget({ maxCalls: 1, maxCalldataBytes: 67 }),
+    })
+  ).toThrow("batch-budget-exceeded");
+});

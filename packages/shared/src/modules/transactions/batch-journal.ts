@@ -5,11 +5,22 @@ import { getTransactionScopeKey } from "./types";
 import { isCanonicalTransactionHash } from "./confirmation";
 import { assertBatchQuote } from "./batch-budget";
 import { assertPreparedBatch } from "./prepared-batch";
-import type { BatchRecord, PreparedBatch } from "./batch-types";
+import {
+  batchReferenceKey,
+  type BatchItemState,
+  type BatchRecord,
+  type BatchReference,
+  type PreparedBatch,
+} from "./batch-types";
 
 const LEASE_MS = 60_000;
 const TERMINAL_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const uncertain = new Set(["awaiting-approval", "submitted", "unresolved"]);
+/** What a group becomes once its send is known to be accepted, whatever was assumed before. */
+function afterAcceptance(status: BatchItemState): BatchItemState {
+  if (status === "prepared" || status === "awaiting-approval") return "submitted";
+  return status === "confirmed" || status === "submitted" ? status : "unresolved";
+}
 interface RetiredOperation {
   id: string;
   fingerprint: string;
@@ -61,6 +72,7 @@ export class BatchJournal extends Dexie {
       "reverted",
       "unresolved",
       "declined",
+      "released",
     ]);
     if (
       !statuses.has(record.status) ||
@@ -97,6 +109,18 @@ export class BatchJournal extends Dexie {
         expected.some((id) => record.itemStates[id] !== "confirmed") ||
         !record.receipts.length ||
         record.receipts.some((receipt) => receipt.status !== "success"))
+    )
+      throw new Error("batch-invalid-record");
+    // A status that frees its items cannot sit over a send that may still be live.
+    if (
+      !uncertain.has(record.status) &&
+      (record.groups.some((group) => uncertain.has(group.status)) ||
+        expected.some((id) => uncertain.has(record.itemStates[id])))
+    )
+      throw new Error("batch-invalid-record");
+    if (
+      ["reverted", "declined", "released"].includes(record.status) &&
+      !record.groups.some((group) => group.status === record.status)
     )
       throw new Error("batch-invalid-record");
     for (const group of record.groups) {
@@ -208,10 +232,55 @@ export class BatchJournal extends Dexie {
       await this.claims.put({ id, token, expiresAt: this.now() + LEASE_MS });
     });
   }
+  /** Expiry lets another tab take over; until one does, the holder is still the only writer. */
   private async assertClaim(id: string, token: string) {
     const claim = await this.claims.get(id);
-    if (!claim || claim.token !== token || claim.expiresAt <= this.now())
-      throw new Error("batch-claim-lost");
+    if (!claim || claim.token !== token) throw new Error("batch-claim-lost");
+  }
+  /**
+   * An accepted submission outranks any lease, so this needs no claim. It only adds identity: it
+   * never clears one, and a reference that arrives after a release holds the items again.
+   */
+  async recordSubmission(
+    id: string,
+    itemIds: readonly string[],
+    reference: BatchReference
+  ): Promise<void> {
+    await this.ready();
+    await this.transaction("rw", this.operations, async () => {
+      const record = await this.operations.get(id);
+      if (!record) throw new Error("batch-not-found");
+      const group = record.groups.find(
+        (candidate) => candidate.itemIds.join("\0") === itemIds.join("\0")
+      );
+      if (!group) throw new Error("batch-group-mismatch");
+      // A reference saved at signing is only a candidate until the network answers with its own.
+      if (group.reference && group.status !== "awaiting-approval") {
+        if (batchReferenceKey(group.reference) === batchReferenceKey(reference)) return;
+        throw new Error("batch-reference-mismatch");
+      }
+      const status = afterAcceptance(group.status);
+      const next: BatchRecord = {
+        ...record,
+        reference,
+        status: status === "confirmed" ? record.status : status,
+        groups: record.groups.map((candidate) =>
+          candidate === group ? { ...group, reference, status } : candidate
+        ),
+        itemStates: {
+          ...record.itemStates,
+          ...Object.fromEntries(
+            group.itemIds.map((item) => [
+              item,
+              group.confirmedItemIds?.includes(item) ? "confirmed" : status,
+            ])
+          ),
+        },
+        updatedAt: this.now(),
+      };
+      this.validate(next);
+      await this.operations.put(next);
+    });
   }
   async checkpoint(
     id: string,
@@ -251,7 +320,7 @@ export class BatchJournal extends Dexie {
         .below(this.now() - TERMINAL_RETENTION_MS)
         .toArray()) {
         this.validate(record);
-        if (!["confirmed", "declined", "reverted"].includes(record.status)) continue;
+        if (!["confirmed", "declined", "reverted", "released"].includes(record.status)) continue;
         if (((await this.claims.get(record.id))?.expiresAt ?? 0) > this.now()) continue;
         await this.retired.put({
           id: record.id,

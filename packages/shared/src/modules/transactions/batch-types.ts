@@ -39,6 +39,11 @@ export type BatchReference = BatchScope &
     | { kind: "user-operation"; hash: Hex }
   );
 
+/** Two references name the same submission when these match; a wallet's ID is compared exactly. */
+export function batchReferenceKey(reference: BatchReference): string {
+  return `${reference.kind}:${"id" in reference ? reference.id : reference.hash.toLowerCase()}`;
+}
+
 export interface BatchReceipt {
   transactionHash: Hex;
   status: "success" | "reverted";
@@ -60,9 +65,11 @@ export type BatchItemState =
   | "confirmed"
   | "reverted"
   | "unresolved"
-  | "declined";
+  | "declined"
+  | "released";
 
 export interface PreparedBatch {
+  /** Minted per attempt and unique in this browser; a retry gets a new one. */
   id: string;
   account: Address;
   chainId: number;
@@ -124,6 +131,8 @@ export interface BatchOperations {
     }
   ): Promise<BatchRecord>;
   reconcile(operationId: string, scope: BatchScope, verify: VerifyBatchItems): Promise<BatchRecord>;
+  /** Call only for a person who has just seen fresh domain state and chosen to move on. */
+  release(operationId: string, scope: BatchScope, verify: VerifyBatchItems): Promise<BatchRecord>;
   list(scope: BatchScope): Promise<BatchRecord[]>;
 }
 

@@ -1,4 +1,8 @@
-import { executeBatchOperation, reconcileBatchOperation } from "./batch-operation";
+import {
+  executeBatchOperation,
+  reconcileBatchOperation,
+  releaseBatchOperation,
+} from "./batch-operation";
 import { BatchJournal } from "./batch-journal";
 import type { TransactionSender } from "./types";
 
@@ -19,6 +23,15 @@ export function withBatchRecovery<T extends TransactionSender>(sender: T): T {
       }),
     reconcile: (operationId, scope, verify) =>
       reconcileBatchOperation({
+        sender,
+        journal: storage(),
+        operationId,
+        account: scope.account,
+        chainId: scope.chainId,
+        verify,
+      }),
+    release: (operationId, scope, verify) =>
+      releaseBatchOperation({
         sender,
         journal: storage(),
         operationId,
