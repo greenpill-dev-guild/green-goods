@@ -16,7 +16,9 @@ Review of #1398 found three gaps, fixed before the merge. A partly proven save n
 
 A second review round found two more. The engine now gives the caller the reason for a batch proven never sent, so one refused by the last check before signing goes one field at a time instead of failing, and any other reason reaches the person as a toast. A banner removal now survives a reload. Their tests failed first at 09:19:49 UTC, 4 on behavior. At 09:20:17 UTC Shared passed 369, with six existing skips, and admin 80.
 
-Next, once this PR merges: list each rail in a small follow-up and prove one live batch on each. That needs the user's passkey and approval to broadcast, and it is where the ceilings and the RPC's `simulateCalls` answer get checked. [The plan](../plan.todo.md#slices) defines every slice after that.
+#1398 merged as `92d1ab74f`, with its landed tree equal to the tested one. Three narrow findings from a third review round were confirmed and left for `fix/batch-settings-findings`, checkpoint 2.4. Their tests failed first at 10:17:23 UTC, 6 on behavior. At 10:18:14 UTC Shared passed 373, with six existing skips, and admin 82.
+
+Next, once that merges: list each rail in a small follow-up and prove one live batch on each. That needs the user's passkey and approval to broadcast, and it is where the ceilings and the RPC's `simulateCalls` answer get checked. [The plan](../plan.todo.md#slices) defines every slice after that.
 
 ## Start here
 
