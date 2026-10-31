@@ -3913,6 +3913,8 @@
   "app.treasury.withdrawing": "Withdrawing...",
   "app.txFeedback.cancelled.title": "Transaction canceled",
   "app.txFeedback.failed.title": "Transaction failed",
+  "app.txFeedback.unconfirmed.title": "We couldn’t confirm this yet",
+  "app.txFeedback.unconfirmed.message": "It could still go through, so wait a moment and check before you try again.",
   "app.update.applying.description": "Restarting the app.",
   "app.update.button": "Update",
   "app.update.check.description": "Check for a newer version.",
