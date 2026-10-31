@@ -1,7 +1,8 @@
 import messages from "@green-goods/shared/i18n/en.json";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockJoinGarden = vi.fn();
 const mockToastSuccess = vi.fn();
@@ -38,8 +39,32 @@ function stubPhoneViewport() {
   });
 }
 
+function Place() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      {useLocation().pathname}
+    </button>
+  );
+}
+
+/** The button on a garden's page, as a visit from Explore opens it. */
+function renderOnGardenPage() {
+  render(
+    <MemoryRouter initialEntries={["/home/explore", "/home/0xgarden"]} initialIndex={1}>
+      <IntlProvider locale="en" messages={messages}>
+        <Place />
+        <JoinGardenButton gardenId="0xgarden" gardenName="Open Garden" />
+      </IntlProvider>
+    </MemoryRouter>
+  );
+}
+
 describe("JoinGardenButton", () => {
   const originalMatchMedia = window.matchMedia;
+
+  // The confirmation's code loads with the first press; a slow first import is not what these test.
+  beforeAll(() => import("@/components/Features/Garden/JoinGardenConfirmDialog"));
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,17 +79,12 @@ describe("JoinGardenButton", () => {
     });
   });
 
-  it("asks for confirmation before joining, then joins and closes", async () => {
+  it("asks for confirmation before joining, then joins and opens Home in place of the visit", async () => {
     mockJoinGarden.mockResolvedValue("joined");
-    render(
-      <IntlProvider locale="en" messages={messages}>
-        <JoinGardenButton gardenId="0xgarden" gardenName="Open Garden" />
-      </IntlProvider>
-    );
+    renderOnGardenPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
     expect(mockJoinGarden).not.toHaveBeenCalled();
-    // The confirmation's code loads with the first press.
     expect(
       await screen.findByText(
         "You'll join Open Garden as a gardener and can submit work right away."
@@ -75,20 +95,44 @@ describe("JoinGardenButton", () => {
     await waitFor(() => expect(mockJoinGarden).toHaveBeenCalledWith("0xgarden"));
     await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument());
+
+    // Back steps past the garden's page, to the Explore list the visit came from.
+    fireEvent.click(await screen.findByRole("button", { name: "/home" }));
+    expect(await screen.findByRole("button", { name: "/home/explore" })).toBeInTheDocument();
   });
 
-  it("reports a failed join and closes the confirmation", async () => {
+  it("opens Home in a garden the chain says the member already belongs to", async () => {
+    mockJoinGarden.mockResolvedValue("already-member");
+    renderOnGardenPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Join" }));
+
+    expect(await screen.findByRole("button", { name: "/home" })).toBeInTheDocument();
+  });
+
+  it("stays on the page and reports nothing while a join is already in flight", async () => {
+    mockJoinGarden.mockResolvedValue("already-joining");
+    renderOnGardenPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Join" }));
+    await waitFor(() => expect(mockJoinGarden).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument());
+
+    expect(mockToastSuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "/home/0xgarden" })).toBeInTheDocument();
+  });
+
+  it("reports a failed join, closes the confirmation and stays on the page", async () => {
     mockJoinGarden.mockRejectedValue(new Error("rejected"));
-    render(
-      <IntlProvider locale="en" messages={messages}>
-        <JoinGardenButton gardenId="0xgarden" gardenName="Open Garden" />
-      </IntlProvider>
-    );
+    renderOnGardenPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
     fireEvent.click(await screen.findByRole("button", { name: "Join" }));
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.queryByTestId("confirm-dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "/home/0xgarden" })).toBeInTheDocument();
   });
 });

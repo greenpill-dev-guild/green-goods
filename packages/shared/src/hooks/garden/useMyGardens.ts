@@ -50,18 +50,19 @@ export function useMyGardens(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [list, account, pendingJoinsVersion]);
 
-  // Once the roster lists the account, its open join has done its job, and a request to join
+  // Once the roster read lists the account, its open join has done its job, and a request to join
   // there has been answered.
+  const readAt = query.dataUpdatedAt;
   useEffect(() => {
     if (!account) return;
     const listed = gardens
       .filter(({ membership }) => membership.roles.length > 0)
       .map(({ garden }) => garden.id);
     if (listed.length === 0) return;
-    forgetListedPendingJoins(account, listed);
+    forgetListedPendingJoins(account, listed, readAt);
     const scope = awaitingJoinRequestScope(chainId, account);
     if (scope) useAwaitingJoinRequestsStore.getState().forgetRequests(scope, listed);
-  }, [account, chainId, gardens]);
+  }, [account, chainId, gardens, readAt]);
 
   const { refetch: refetchGardens } = query;
   const refetch = useCallback(() => {

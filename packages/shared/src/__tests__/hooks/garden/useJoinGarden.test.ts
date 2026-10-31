@@ -94,15 +94,26 @@ describe("forgetListedPendingJoins", () => {
       })
     );
 
-    forgetListedPendingJoins(user.toUpperCase().replace("0X", "0x"), [
-      "GARDEN-LISTED",
-      "garden-shared",
-    ]);
+    forgetListedPendingJoins(
+      user.toUpperCase().replace("0X", "0x"),
+      ["GARDEN-LISTED", "garden-shared"],
+      joinedAt
+    );
 
     expect(JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) ?? "{}")).toEqual({
       "garden-waiting": { address: user, timestamp: joinedAt },
       "garden-shared": { address: other, timestamp: joinedAt },
     });
+  });
+
+  it("keeps a join newer than the read that lists it: that is its own optimistic entry", () => {
+    const joinedAt = Date.now();
+    const saved = JSON.stringify({ "garden-listed": { address: user, timestamp: joinedAt } });
+    localStorage.setItem(PENDING_JOINS_KEY, saved);
+
+    forgetListedPendingJoins(user, ["garden-listed"], joinedAt - 1);
+
+    expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe(saved);
   });
 
   it("keeps going when storage refuses the write, and says so", () => {
@@ -114,7 +125,7 @@ describe("forgetListedPendingJoins", () => {
       },
     });
 
-    expect(() => forgetListedPendingJoins(user, ["garden-listed"])).not.toThrow();
+    expect(() => forgetListedPendingJoins(user, ["garden-listed"], Date.now())).not.toThrow();
     expect(logger.warn).toHaveBeenCalledWith(
       "Could not forget a settled pending join",
       expect.objectContaining({ source: "forgetListedPendingJoins" })
@@ -188,7 +199,7 @@ describe("isGardenMember", () => {
     expect(stored[gardenId]).toBeUndefined();
   });
 
-  it("cleans up pending join when confirmed in gardeners list", () => {
+  it("leaves a pending join to the roster read when the list names the user", () => {
     const user = "0x4444444444444444444444444444444444444444";
     const gardenId = "garden-confirmed";
 
@@ -201,12 +212,11 @@ describe("isGardenMember", () => {
     };
     localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pendingJoins));
 
-    // User is now confirmed in gardeners list
+    // The list may only hold the join's own optimistic entry.
     const result = isGardenMember(user, [user], [], gardenId);
     expect(result).toBe(true);
 
-    // Pending join should be cleaned up since the user is now confirmed
-    const stored = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
-    expect(stored[gardenId]).toBeUndefined();
+    // `forgetListedPendingJoins` settles it once a read lists the user.
+    expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe(JSON.stringify(pendingJoins));
   });
 });

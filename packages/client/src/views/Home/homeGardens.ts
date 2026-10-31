@@ -52,7 +52,10 @@ export function awaitingGardens(
   });
 }
 
-/** One row of the switcher: a garden, how the member stands with it, and whether it is active. */
+/**
+ * One row of the switcher or the first-login page: a garden, how the member stands with it, and
+ * whether it is active.
+ */
 export interface SwitcherRow {
   garden: Garden;
   /** The member's first role (owner first), or `awaiting` for a request a steward has not answered. */
@@ -60,10 +63,20 @@ export interface SwitcherRow {
   active: boolean;
 }
 
+/** What a row says about how the member stands with its garden. */
+export const STANDING_LABEL_IDS = {
+  owner: "app.roles.owner",
+  steward: "app.roles.steward",
+  evaluator: "app.roles.evaluator",
+  gardener: "app.roles.gardener",
+  awaiting: "app.home.awaitingReview",
+} as const satisfies Record<SwitcherRow["standing"], string>;
+
 /**
- * The switcher's rows (DL-125): one per garden of the member's in their list's order, each with
- * the member's first role, then the gardens awaiting review. An open join just sent stands in
- * for the gardener role until the roster lists the account.
+ * The rows of the switcher (DL-125) and the first-login page (DL-146): one per garden of the
+ * member's in their list's order, each with the member's first role, then the gardens awaiting
+ * review. An open join just sent stands in for the gardener role until the roster lists the
+ * account.
  */
 export function switcherRows(
   myGardens: readonly MemberGarden[],

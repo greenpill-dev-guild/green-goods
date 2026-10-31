@@ -30,10 +30,12 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { activeGardenScope } from "../../modules/garden/active-garden";
 import {
   createDefaultJoinGardenPorts,
   joinGarden as submitJoinGarden,
 } from "../../modules/garden/join-garden-command";
+import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 
@@ -125,11 +127,9 @@ function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.
 }
 
 // Idempotent: must not notify when nothing changed. `isGardenMember` (a render-
-// path predicate) calls this to clean up confirmed/expired pendings, and an
-// unconditional notify would re-trigger any memo subscribed via
-// `usePendingJoinsVersion`, producing an infinite render loop the moment the
-// indexer-confirmed gardener list and the local pending-join overlap (e.g.
-// immediately post-login on the auto-join-community-garden flow).
+// path predicate) calls this to clean up expired pendings, and an unconditional
+// notify would re-trigger any memo subscribed via `usePendingJoinsVersion`,
+// producing an infinite render loop.
 function removePendingJoin(gardenId: string) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
@@ -170,6 +170,12 @@ function pendingJoinAccount(record: unknown): string | null {
   return typeof address === "string" ? address.toLowerCase() : null;
 }
 
+/** When a saved pending join was recorded, or null for a malformed record. */
+function pendingJoinTime(record: unknown): number | null {
+  const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
+  return typeof joinedAt === "number" ? joinedAt : null;
+}
+
 /**
  * The gardens, lower-cased, where this device holds a fresh open join for the account: a join
  * sent on-chain that the garden's roster may not show yet. Reads only. A join request waiting
@@ -180,10 +186,10 @@ export function pendingJoinGardenIds(account: string): Set<string> {
   const now = Date.now();
   const gardenIds = new Set<string>();
   for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
-    const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
+    const joinedAt = pendingJoinTime(record);
     if (
       pendingJoinAccount(record) === member &&
-      typeof joinedAt === "number" &&
+      joinedAt !== null &&
       now - joinedAt <= PENDING_JOIN_TTL
     ) {
       gardenIds.add(gardenId.toLowerCase());
@@ -193,17 +199,27 @@ export function pendingJoinGardenIds(account: string): Set<string> {
 }
 
 /**
- * Forget this device's open joins for the account in gardens whose roster now lists it, so a
- * role removed later is not masked by the join that came before it. Notifies only on a change.
+ * Forget this device's open joins for the account in gardens whose roster, as read at `readAt`,
+ * lists it, so a role removed later is not masked by the join that came before it. A join newer
+ * than the read stays: until the roster is read again the list only shows the join's own optimistic
+ * entry, which the next read drops while the indexer catches up. Notifies only on a change.
  */
-export function forgetListedPendingJoins(account: string, listedGardenIds: readonly string[]) {
+export function forgetListedPendingJoins(
+  account: string,
+  listedGardenIds: readonly string[],
+  readAt: number
+) {
   if (typeof window === "undefined") return;
   const pending = savedPendingJoins();
   const listed = new Set(listedGardenIds.map((gardenId) => gardenId.toLowerCase()));
   const member = account.toLowerCase();
   let changed = false;
   for (const [gardenId, record] of Object.entries(pending)) {
-    if (listed.has(gardenId.toLowerCase()) && pendingJoinAccount(record) === member) {
+    if (
+      listed.has(gardenId.toLowerCase()) &&
+      pendingJoinAccount(record) === member &&
+      (pendingJoinTime(record) ?? 0) <= readAt
+    ) {
       delete pending[gardenId];
       changed = true;
     }
@@ -236,7 +252,6 @@ export function isGardenMember(
 
   // Check actual membership
   if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, stewards)) {
-    if (gardenId) removePendingJoin(gardenId); // Cleanup if confirmed
     return true;
   }
 
@@ -302,8 +317,18 @@ export function useJoinGarden() {
   // 10 seconds for indexer to process
   const { start: scheduleGardenSync } = useDelayedInvalidation(invalidateGardens, 10000);
 
+  // A join is the member choosing the garden: it becomes the active one, whatever was active
+  // before (DL-147). The pending join just recorded lists it as theirs until the roster does.
+  const activateJoinedGarden = useCallback(
+    (gardenAddress: string, account: string) => {
+      const scope = activeGardenScope(chainId, account);
+      if (scope) useActiveGardenStore.getState().rememberGarden(scope, gardenAddress);
+    },
+    [chainId]
+  );
+
   /**
-   * Join a garden by its address/ID
+   * Join a garden by its address/ID, which also makes it the active garden (DL-147)
    *
    * @param gardenAddress - The garden contract address to join
    * @param sessionOverride - Optional passkey session (used during login flow)
@@ -364,7 +389,9 @@ export function useJoinGarden() {
           })
         );
 
-        // Optimistic update: add user to garden's gardeners list
+        // Optimistic update: add user to garden's gardeners list. The list keeps the time it was
+        // read: the roster has not been read since the join, so the pending join still stands in
+        // (`forgetListedPendingJoins`).
         queryClient.setQueryData(
           gardensKeys.byChain(chainId),
           (oldGardens: Garden[] | undefined) => {
@@ -381,8 +408,11 @@ export function useJoinGarden() {
               }
               return garden;
             });
-          }
+          },
+          { updatedAt: queryClient.getQueryState(gardensKeys.byChain(chainId))?.dataUpdatedAt }
         );
+
+        activateJoinedGarden(gardenAddress, targetAddress);
 
         // Delayed sync - give indexer time to process the event
         // Uses useDelayedInvalidation for automatic cleanup on unmount
@@ -410,6 +440,7 @@ export function useJoinGarden() {
           isJoiningRef.current = false;
           trackGardenJoinAlreadyMember({ gardenAddress });
           addPendingJoin(gardenAddress, targetAddress);
+          activateJoinedGarden(gardenAddress, targetAddress);
           setState((prev) => ({
             ...prev,
             isJoining: false,
@@ -473,6 +504,7 @@ export function useJoinGarden() {
       chainId,
       queryClient,
       scheduleGardenSync,
+      activateJoinedGarden,
       formatMessage,
     ]
   );
