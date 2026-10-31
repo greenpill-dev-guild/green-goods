@@ -78,8 +78,8 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   again. The dialog mounts at the workspace, not in one tab, and it says what it is waiting for or
   why it cannot go on, because no tab behind it will. A choice inside the dialog may still lead
   elsewhere: Fix Limit First goes to the jar's limit editor under Payouts. Fund Cookie Jar is the
-  shipped case. Add Member still lands on Members, the Hub's trio on its own stage, and Edit Garden
-  on Health. Proof: [community.utils.ts](../../../packages/shared/src/hooks/admin-ui/community/community.utils.ts),
+  shipped case. Add Member still lands on Members, the Hub's trio opens on routes of its own with
+  no Hub behind the dialog, and Edit Garden lands on Health. Proof: [community.utils.ts](../../../packages/shared/src/hooks/admin-ui/community/community.utils.ts),
   where `buildCommunityViewActions` hands Fund Cookie Jar the active tab, and
   [CommunitySheetDescriptor.test.tsx](../../../packages/admin/src/views/Community/components/CommunitySheetDescriptor.test.tsx),
   which walks every Community tab. (NN/g user control; Jakob's Law: a dialog sits over the page it
