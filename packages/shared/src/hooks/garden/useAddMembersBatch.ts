@@ -17,6 +17,7 @@ import {
   type GardenMemberRow,
   gardenMembersBudget,
   moveOnFromAddMembersHold,
+  type ProvenMemberRow,
   readAddMembersHold,
   signaturesForMembers,
 } from "../../modules/garden/members-batch";
@@ -92,6 +93,15 @@ export function useAddMembersBatch(gardenId: string) {
     toastService.success({
       title: formatMessage({ id: "app.admin.roles.addedCount" }, { count }),
     });
+  const trackStarted = ({ address, role }: GardenMemberRow) =>
+    trackAdminMemberAddStarted({ gardenAddress, memberType: role, targetAddress: address });
+  const trackAdded = ({ address, role }: GardenMemberRow, txHash: string) =>
+    trackAdminMemberAddSuccess({
+      gardenAddress,
+      memberType: role,
+      targetAddress: address,
+      txHash,
+    });
   const trackFailed = ({ address, role }: GardenMemberRow, error: string) =>
     trackAdminMemberAddFailed({
       gardenAddress,
@@ -101,12 +111,7 @@ export function useAddMembersBatch(gardenId: string) {
     });
 
   const add = useMutation({
-    onMutate: ({ rows }: AddMembersRequest) => {
-      for (const { address, role } of rows) {
-        trackAdminMemberAddStarted({ gardenAddress, memberType: role, targetAddress: address });
-      }
-      return queryClient.cancelQueries({ queryKey: holdKey });
-    },
+    onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
     mutationFn: async ({ rows, onLanded }: AddMembersRequest): Promise<AddMembersOutcome> => {
       try {
         return await addGardenMembersBatch({ ...batchInput(), rail: rail!, rows, onLanded });
@@ -124,20 +129,15 @@ export function useAddMembersBatch(gardenId: string) {
     },
     onSuccess: (outcome) => {
       landRows([...outcome.added, ...outcome.alreadyHeld]);
-      for (const { address, role, transactionHash } of outcome.added) {
-        trackAdminMemberAddSuccess({
-          gardenAddress,
-          memberType: role,
-          targetAddress: address,
-          txHash: transactionHash,
-        });
-      }
-      for (const { reason, ...row } of outcome.refused) trackFailed(row, reason);
-      if (outcome.failure) {
-        const { message } = parseContractError(outcome.failure);
-        for (const row of outcome.notSent) trackFailed(row, message);
-        handleError(outcome.failure, { authMode: rail, gardenAddress });
-      }
+      // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
+      // no attempt, and a list past its ceilings has not been tried yet.
+      const { added, unknown, refused, notSent, failure } = outcome;
+      for (const row of [...added, ...unknown, ...refused, ...notSent]) trackStarted(row);
+      for (const { transactionHash, ...row } of added) trackAdded(row, transactionHash);
+      for (const { reason, ...row } of refused) trackFailed(row, reason);
+      const stoppedBy = failure ? parseContractError(failure).message : "Not sent";
+      for (const row of notSent) trackFailed(row, stoppedBy);
+      if (failure) handleError(failure, { authMode: rail, gardenAddress });
       if (outcome.added.length > 0) {
         announceAdded(outcome.added.length);
       } else if (outcome.alreadyHeld.length > 0 && outcome.notSent.length === 0) {
@@ -152,7 +152,7 @@ export function useAddMembersBatch(gardenId: string) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
   });
 
-  const held = useHeldBatches<AddMembersHold, GardenMemberRow>({
+  const held = useHeldBatches<AddMembersHold, ProvenMemberRow>({
     domain,
     account,
     chainId,
@@ -161,6 +161,9 @@ export function useAddMembersBatch(gardenId: string) {
     moveOn: (hold) => moveOnFromAddMembersHold(batchInput(), hold),
     onSaved: (saved) => {
       landRows(saved);
+      for (const { transactionHash, ...row } of saved) {
+        if (transactionHash) trackAdded(row, transactionHash);
+      }
       announceAdded(saved.length);
     },
     onError: (error) => handleError(error, { authMode: rail, gardenAddress }),
@@ -168,6 +171,8 @@ export function useAddMembersBatch(gardenId: string) {
 
   return {
     ...held,
+    /** Who `hold` and `add` act for. A hold is theirs alone, so a draft should not outlive a change. */
+    account,
     available,
     signaturesFor: signaturesForMembers,
     add: (rows: readonly GardenMemberRow[], onLanded?: AddMembersRequest["onLanded"]) =>

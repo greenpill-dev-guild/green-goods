@@ -210,7 +210,7 @@ describe("addGardenMembersBatch", () => {
     expect(outcome.failure).toBeUndefined();
   });
 
-  it("goes one at a time when the last check before signing refuses the group", async () => {
+  it("reports a group past its ceilings as untried, even when the last check finds it", async () => {
     const { input, sender } = setup(CONFIRMED);
     const rows = [row(), row()];
     vi.mocked(sender.sendContractCall).mockImplementationOnce(async () => {
@@ -221,6 +221,19 @@ describe("addGardenMembersBatch", () => {
 
     expect(outcome.notBatchable).toEqual(rows);
     expect(outcome.notSent).toEqual([]);
+  });
+
+  it("sends nothing when it can't read who already holds a role", async () => {
+    const { input, sender, chain } = setup(CONFIRMED);
+    const rows = [row(), row()];
+    const failure = new Error("rpc down");
+    chain.wearsRole.mockRejectedValueOnce(failure);
+
+    const outcome = await add(input, rows);
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.notSent).toEqual(rows);
+    expect(outcome.failure).toBe(failure);
   });
 
   it("stops before signing when the sender has lost the role, with the reason", async () => {
@@ -297,7 +310,7 @@ describe("holding an add whose outcome is unknown", () => {
 
     await expect(readAddMembersHold(input)).resolves.toEqual({
       hold: null,
-      saved: rows.map(lowercased),
+      saved: rows.map((member) => ({ ...lowercased(member), transactionHash: hash })),
     });
     await expect(readAddMembersHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });

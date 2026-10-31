@@ -435,6 +435,7 @@
   "admin.addMember.remove": "Remove",
   "admin.addMember.signatureCount": "{count, plural, one {# signature} other {# signatures}}",
   "admin.addMember.refused": "{count, plural, one {We can’t add # person, so nothing was sent. Remove them to add the rest.} other {We can’t add # people, so nothing was sent. Remove them to add the rest.}}",
+  "admin.addMember.needsMoreSignatures": "These people can’t share one signature right now, and nothing has been sent for them. Press Add again to sign for each one.",
   "admin.addMember.hold.title": "We couldn’t confirm the last people you added.",
   "admin.addMember.hold.body": "They could still be added, so they stay locked until you check again or move on.",
   "admin.addMember.held.unread": "Not confirmed yet",

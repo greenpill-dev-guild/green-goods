@@ -91,6 +91,20 @@ export function AddMembersDialog({
   const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [shownFor, setShownFor] = useState({ open, initialAddress });
+  // Past its ceilings a list goes one person at a time, once the person has seen what that costs.
+  const [oneAtATime, setOneAtATime] = useState(false);
+  const [draftAccount, setDraftAccount] = useState(batch?.account ?? null);
+  // A draft is its signer's. A hold is scoped to who sent it, so another account would find held
+  // rows unlocked and could send them again. A wallet dropping and coming back is the same person.
+  if (batch?.account && batch.account !== draftAccount) {
+    setDraftAccount(batch.account);
+    if (draftAccount) {
+      setPending([]);
+      setInput(initialAddress ?? "");
+      setError("");
+      setOneAtATime(false);
+    }
+  }
   const hold = batch?.hold ?? null;
   const isSettlingHold = batch?.isSettlingHold ?? false;
   const lastReadAt = batch?.lastReadAt ?? 0;
@@ -158,6 +172,7 @@ export function AddMembersDialog({
     // A held row is not the person's to drop: it stays until it settles.
     setPending((current) => current.filter(isHeld));
     setError("");
+    setOneAtATime(false);
   };
 
   const resolveInput = async (): Promise<Address | null> => {
@@ -199,10 +214,13 @@ export function AddMembersDialog({
     if (!stageable(resolved)) return;
     setPending((prev) => [...prev, { address: resolved, role: selectedRole }]);
     setInput("");
+    setOneAtATime(false);
   };
 
-  const removeEntry = (address: Address) =>
+  const removeEntry = (address: Address) => {
     setPending((prev) => prev.filter((entry) => entry.address !== address || isHeld(entry)));
+    setOneAtATime(false);
+  };
 
   const handlePaste = async () => {
     try {
@@ -249,7 +267,7 @@ export function AddMembersDialog({
       const run = await runAddMembers({
         rows,
         addOne: onAdd,
-        addBatch: batch?.available ? batch.add : undefined,
+        addBatch: batch?.available && !oneAtATime ? batch.add : undefined,
         onLanded: (landed) => setPending((current) => stagedAfterRead(current, [], landed)),
       });
       setPending((current) => [...current.filter(isHeld), ...run.remaining]);
@@ -262,6 +280,9 @@ export function AddMembersDialog({
         setError(parsed.isKnown ? message : addFailed);
       } else if (run.failedCount > 0) {
         setError(addFailed);
+      } else if (run.needsMoreSignatures) {
+        setOneAtATime(true);
+        setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }));
       } else if (run.remaining.length === 0 && !hold) {
         resetDraft();
         onClose();
@@ -305,7 +326,8 @@ export function AddMembersDialog({
         },
         { count: batchCount }
       );
-  const signatureCount = batch?.available ? batch.signaturesFor(batchCount) : batchCount;
+  const signatureCount =
+    batch?.available && !oneAtATime ? batch.signaturesFor(batchCount) : batchCount;
   const closeAndReset = () => {
     resetDraft();
     onClose();

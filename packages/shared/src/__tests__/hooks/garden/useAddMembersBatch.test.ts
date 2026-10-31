@@ -9,22 +9,34 @@ import { toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { gardensKeys } from "../../../config/query-keys/garden";
 import type { GardenMemberRow } from "../../../modules/garden/members-batch";
-import type { BatchExecution } from "../../../modules/transactions/batch-types";
+import {
+  type BatchExecution,
+  BatchNotSubmittedError,
+} from "../../../modules/transactions/batch-types";
 import { type Address, type Garden } from "../../../types/domain";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
 
-const { auth, mockErrorHandler, mockIsBatchEnabled, mockRefusal, sending, toasts, wearing } =
-  vi.hoisted(() => ({
-    auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
-    mockErrorHandler: vi.fn(),
-    mockIsBatchEnabled: vi.fn(),
-    mockRefusal: vi.fn(),
-    sending: { sender: null as unknown },
-    toasts: { success: vi.fn(), info: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() },
-    wearing: new Set<string>(),
-  }));
+const {
+  auth,
+  mockErrorHandler,
+  mockIsBatchEnabled,
+  mockRefusal,
+  sending,
+  toasts,
+  tracking,
+  wearing,
+} = vi.hoisted(() => ({
+  auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
+  mockErrorHandler: vi.fn(),
+  mockIsBatchEnabled: vi.fn(),
+  mockRefusal: vi.fn(),
+  sending: { sender: null as unknown },
+  toasts: { success: vi.fn(), info: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() },
+  tracking: { started: vi.fn(), success: vi.fn(), failed: vi.fn() },
+  wearing: new Set<string>(),
+}));
 
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => sending.sender,
@@ -38,9 +50,9 @@ vi.mock("../../../modules/transactions/batch-enablement", () => ({
   isBatchEnabled: mockIsBatchEnabled,
 }));
 vi.mock("../../../modules/app/analytics-events", () => ({
-  trackAdminMemberAddStarted: vi.fn(),
-  trackAdminMemberAddSuccess: vi.fn(),
-  trackAdminMemberAddFailed: vi.fn(),
+  trackAdminMemberAddStarted: tracking.started,
+  trackAdminMemberAddSuccess: tracking.success,
+  trackAdminMemberAddFailed: tracking.failed,
 }));
 vi.mock("../../../modules/garden/members-batch", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../modules/garden/members-batch")>()),
@@ -111,6 +123,7 @@ describe("useAddMembersBatch", () => {
     });
     expect(listed.sender.getBatchCapability).not.toHaveBeenCalled();
     expect(listed.result.current.signaturesFor(11)).toBe(2);
+    expect(listed.result.current.account).toBe(auth.primaryAddress);
   });
 
   it("adds the list, updates the roster, and says so once", async () => {
@@ -134,6 +147,45 @@ describe("useAddMembersBatch", () => {
     const [garden] = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(42161))!;
     expect(garden.gardeners).toContain(list[0].address.toLowerCase());
     expect(garden.evaluators).toContain(list[1].address.toLowerCase());
+  });
+
+  it("tells analytics only about rows it tried", async () => {
+    const { result } = renderBatch(CONFIRMED);
+    const [held, sent] = rows();
+    wearing.add(`${held.address.toLowerCase()}:${held.role}`);
+    mockRefusal.mockImplementation(async () => {
+      wearing.add(`${sent.address.toLowerCase()}:${sent.role}`);
+      return null;
+    });
+
+    await act(async () => {
+      await result.current.add([held, sent]);
+    });
+
+    expect(tracking.started).toHaveBeenCalledTimes(1);
+    expect(tracking.started).toHaveBeenCalledWith(
+      expect.objectContaining({ targetAddress: sent.address })
+    );
+    expect(tracking.success).toHaveBeenCalledTimes(1);
+    expect(tracking.failed).not.toHaveBeenCalled();
+  });
+
+  it("leaves a list past its ceilings out of analytics until someone tries it", async () => {
+    const { result, sender } = renderBatch(CONFIRMED);
+    vi.mocked(sender.sendContractCall).mockImplementationOnce(async () => {
+      throw new BatchNotSubmittedError(new Error("batch-budget-exceeded"));
+    });
+    const list = rows();
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.add(list);
+    });
+
+    expect(outcome).toMatchObject({ notBatchable: list, notSent: [] });
+    expect(tracking.started).not.toHaveBeenCalled();
+    expect(tracking.failed).not.toHaveBeenCalled();
+    expect(mockErrorHandler).not.toHaveBeenCalled();
   });
 
   it("explains a failure before sending, and keeps every row", async () => {
@@ -189,6 +241,10 @@ describe("useAddMembersBatch", () => {
     await waitFor(() => expect(result.current.saved).toHaveLength(2));
     expect(result.current.hold).toBeNull();
     expect(toasts.success).toHaveBeenCalledTimes(1);
+    // The add that started unknown ends in analytics too.
+    expect(tracking.started).toHaveBeenCalledTimes(2);
+    expect(tracking.success).toHaveBeenCalledTimes(2);
+    expect(tracking.success).toHaveBeenCalledWith(expect.objectContaining({ txHash: hash }));
     const [garden] = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(42161))!;
     expect(garden.gardeners).toContain(list[0].address.toLowerCase());
   });

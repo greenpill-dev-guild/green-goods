@@ -5,7 +5,6 @@ import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { readGardenRoleHat } from "../../utils/blockchain/garden-role-reads";
 import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
-import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
 import { provenItems, settleOpenBatches, verifyByReading } from "../transactions/batch-hold";
 import {
@@ -52,7 +51,7 @@ export function createGardenMembersChain(
     wearsRole: async ({ address, role }) =>
       readGardenRoleHat(gardenAddress, address, role, chainId, await hatsModule()),
     refusal: async ({ address, functionName, args }, account) => {
-      const simulation = await simulateTransaction(
+      const { success, error } = await simulateTransaction(
         address,
         HATS_MODULE_ABI as Abi,
         functionName,
@@ -60,9 +59,7 @@ export function createGardenMembersChain(
         account,
         chainId
       );
-      return simulation.success
-        ? null
-        : (simulation.error?.message ?? "Transaction simulation failed");
+      return success ? null : (error?.message ?? "Transaction simulation failed");
     },
   };
 }
@@ -155,7 +152,6 @@ interface GardenMembersBatchInput {
   scope: BatchScope;
   gardenAddress: Address;
   chain: GardenMembersChain;
-  /** How long to wait before reading again when the chain disagrees with a receipt. */
   retryMs?: number;
 }
 
@@ -171,7 +167,7 @@ export interface AddMembersOutcome {
   refused: (GardenMemberRow & { reason: string })[];
   /** Nothing went out for these, and they can go again as they are. */
   notSent: GardenMemberRow[];
-  /** Nothing went out for these, and they do not fit one signature, so they go one at a time. */
+  /** Nothing went out for these: past the ceilings, they need more signatures than promised. */
   notBatchable: GardenMemberRow[];
   /** They may have landed: held until someone reads them or moves on. */
   unknown: GardenMemberRow[];
@@ -190,7 +186,6 @@ export async function addGardenMembersBatch(
   input: GardenMembersBatchInput & {
     rail: BatchRail;
     rows: readonly GardenMemberRow[];
-    /** Each signature's rows, once they have landed. */
     onLanded?: (rows: readonly GardenMemberRow[]) => void;
   }
 ): Promise<AddMembersOutcome> {
@@ -199,23 +194,22 @@ export async function addGardenMembersBatch(
   if (!moduleAddress) throw new Error("Hats module is not configured for this garden");
 
   const rows = [...new Map(input.rows.map((row) => [rowId(row), row])).values()];
-  const wearing = await Promise.all(
-    rows.map((row) =>
-      chain.wearsRole(row).catch((error: unknown) => {
-        // Unknown is not "no", but granting a held role changes nothing, so the add can go on.
-        logger.warn("Role read failed before adding members", { error, gardenAddress });
-        return false;
-      })
-    )
-  );
   const outcome: AddMembersOutcome = {
     added: [],
-    alreadyHeld: rows.filter((_, index) => wearing[index]),
+    alreadyHeld: [],
     refused: [],
     notSent: [],
     notBatchable: [],
     unknown: [],
   };
+  let wearing: boolean[];
+  try {
+    wearing = await Promise.all(rows.map((row) => chain.wearsRole(row)));
+  } catch (failure) {
+    // Unknown is not "no": a grant on a held role still costs a transaction and runs its sync steps.
+    return { ...outcome, notSent: rows, failure };
+  }
+  outcome.alreadyHeld = rows.filter((_, index) => wearing[index]);
   const toSend = rows.filter((_, index) => !wearing[index]);
   const groups = Array.from({ length: signaturesForMembers(toSend.length) }, (_, index) =>
     toSend.slice(index * MAX_MEMBERS_PER_SIGNATURE, (index + 1) * MAX_MEMBERS_PER_SIGNATURE)
@@ -223,8 +217,8 @@ export async function addGardenMembersBatch(
 
   for (const group of groups) {
     const groupCall = grantRolesCall(moduleAddress, gardenAddress, group);
-    const groupRefusal = await chain.refusal(groupCall, scope.account);
-    if (!groupRefusal) continue;
+    const refusal = await chain.refusal(groupCall, scope.account);
+    if (!refusal) continue;
     const alone = await Promise.all(
       group.map(async (row) => ({
         row,
@@ -240,8 +234,7 @@ export async function addGardenMembersBatch(
     );
     const refused = alone.flatMap(({ row, reason }) => (reason ? [{ ...row, reason }] : []));
     // The call is refused but no single row is: nothing is sent blind.
-    if (refused.length === 0)
-      return { ...outcome, notSent: toSend, failure: new Error(groupRefusal) };
+    if (refused.length === 0) return { ...outcome, notSent: toSend, failure: new Error(refusal) };
     outcome.refused.push(...refused);
   }
   if (outcome.refused.length > 0) {
@@ -298,10 +291,12 @@ export interface AddMembersHold {
   onChain: (GardenMemberRow & { wearsRole: boolean })[];
 }
 
+/** A row a read proved landed, with the transaction that carried it when a receipt says so. */
+export type ProvenMemberRow = GardenMemberRow & { transactionHash?: Hex };
+
 interface AddMembersSettlement {
   hold: AddMembersHold | null;
-  /** Rows this read proved landed. */
-  saved: GardenMemberRow[];
+  saved: ProvenMemberRow[];
 }
 
 async function settleOpenAdds(
@@ -319,7 +314,12 @@ async function settleOpenAdds(
     shownIds: options.shown?.operationIds,
     onlyShown: options.onlyShown,
   });
-  const saved = ended.flatMap((record) => rowsOf(provenItems(record)));
+  const saved = ended.flatMap((record) =>
+    rowsOf(provenItems(record)).map((row) => ({
+      ...row,
+      transactionHash: record.receipts[0]?.transactionHash,
+    }))
+  );
   const rows = held.flatMap((record) => rowsOf(record.prepared.items));
   if (rows.length === 0) return { hold: null, saved };
 

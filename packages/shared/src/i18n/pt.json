@@ -435,6 +435,7 @@
   "admin.addMember.remove": "Remover",
   "admin.addMember.signatureCount": "{count, plural, one {# assinatura} other {# assinaturas}}",
   "admin.addMember.refused": "{count, plural, one {Não podemos adicionar # pessoa, então nada foi enviado. Remova-a para adicionar as demais.} other {Não podemos adicionar # pessoas, então nada foi enviado. Remova-as para adicionar as demais.}}",
+  "admin.addMember.needsMoreSignatures": "Estas pessoas não podem compartilhar uma assinatura agora, e nada foi enviado para elas. Pressione Adicionar de novo para assinar por cada uma.",
   "admin.addMember.hold.title": "Não conseguimos confirmar as últimas pessoas que você adicionou.",
   "admin.addMember.hold.body": "Elas ainda podem ser adicionadas, então ficam bloqueadas até você verificar de novo ou seguir em frente.",
   "admin.addMember.held.unread": "Ainda não confirmado",

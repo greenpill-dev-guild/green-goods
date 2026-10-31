@@ -435,6 +435,7 @@
   "admin.addMember.remove": "Quitar",
   "admin.addMember.signatureCount": "{count, plural, one {# firma} other {# firmas}}",
   "admin.addMember.refused": "{count, plural, one {No podemos agregar a # persona, así que no se envió nada. Quítala para agregar al resto.} other {No podemos agregar a # personas, así que no se envió nada. Quítalas para agregar al resto.}}",
+  "admin.addMember.needsMoreSignatures": "Estas personas no pueden compartir una firma ahora mismo, y no se ha enviado nada para ellas. Vuelve a pulsar Agregar para firmar por cada una.",
   "admin.addMember.hold.title": "No pudimos confirmar a las últimas personas que agregaste.",
   "admin.addMember.hold.body": "Aún podrían agregarse, así que siguen bloqueadas hasta que vuelvas a comprobar o sigas adelante.",
   "admin.addMember.held.unread": "Sin confirmar todavía",

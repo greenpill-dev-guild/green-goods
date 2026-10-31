@@ -17,6 +17,7 @@ import type {
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { renderWithProviders as render } from "../../test-utils";
 
 vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
@@ -118,6 +119,8 @@ const WITH_GARDENER_A: Record<GardenRole, Address[]> = { ...NO_MEMBERS, gardener
 
 type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
 
+const SIGNER = "0x3333333333333333333333333333333333333333" as Address;
+const OTHER_SIGNER = "0x4444444444444444444444444444444444444444" as Address;
 const ROW_A = { address: ADDRESS_A, role: "gardener" as const };
 const ROW_B = { address: ADDRESS_B, role: "gardener" as const };
 const NOTHING: AddMembersOutcome = {
@@ -136,6 +139,7 @@ const HOLD_ON_A = {
 
 function batchWith(overrides: Partial<AddMembersBatch> = {}): AddMembersBatch {
   return {
+    account: SIGNER,
     hold: null,
     saved: [],
     lastReadAt: 0,
@@ -449,25 +453,94 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
   });
 
-  it("sends one person the usual way, and rows that do not fit a signature one at a time", async () => {
+  it("sends one person the usual way", async () => {
     const user = userEvent.setup({ delay: null });
-    const batch = batchWith({
-      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
-    });
-    const { unmount } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    const batch = batchWith();
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
 
     await stage(user, ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
     await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledTimes(1));
     expect(batch.add).not.toHaveBeenCalled();
-    unmount();
+  });
 
-    defaultProps.onAdd.mockClear();
+  it("asks before a list past its ceilings takes more signatures than it promised", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
     render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
     await stage(user, ADDRESS_A, ADDRESS_B);
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(/can’t share one signature right now/)).toBeInTheDocument();
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
     await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
     await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledTimes(2));
     expect(batch.add).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(defaultProps.onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it("gives a changed list another try under one signature", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    expect(await screen.findByText("2 signatures")).toBeInTheDocument();
+
+    await stage(user, "0x5555555555555555555555555555555555555555" as Address);
+    expect(screen.getByText("1 signature")).toBeInTheDocument();
+  });
+
+  it("says why a list stopped before anything went out", async () => {
+    const user = userEvent.setup({ delay: null });
+    const failure = new Error("NotGardenOwner");
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notSent: [ROW_A, ROW_B], failure })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(parseAndFormatError(failure).message)).toBeInTheDocument();
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("leaves another account's unsettled rows behind", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({ hold: HOLD_ON_A, lastReadAt: 1 });
+    const { rerender } = render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+    expect(await screen.findByText("Not confirmed yet · On chain now")).toBeInTheDocument();
+    await stage(user, ADDRESS_B);
+
+    // A wallet dropping and coming back is the same person, so the draft stays.
+    rerender(
+      createElement(AddMembersDialog, { ...defaultProps, batch: batchWith({ account: null }) })
+    );
+    rerender(
+      createElement(AddMembersDialog, { ...defaultProps, batch: batchWith({ account: SIGNER }) })
+    );
+    expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ account: OTHER_SIGNER }),
+      })
+    );
+    await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
+    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
   });
 
   it("keeps a refused row's reason, and sends the rest only once the person changes the list", async () => {

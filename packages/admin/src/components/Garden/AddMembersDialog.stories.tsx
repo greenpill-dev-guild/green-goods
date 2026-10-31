@@ -36,6 +36,7 @@ const NOTHING_LANDED = {
 
 // A rail that can send a list under one signature, with nothing unsettled.
 const listedBatch = {
+  account: GARDEN,
   hold: null,
   saved: [],
   lastReadAt: 0,
@@ -239,6 +240,32 @@ export const RefusedRow: Story = {
     await userEvent.click(await body().findByRole("button", { name: "Add 2 Gardeners" }));
     await expect(await body().findByText("This person can’t hold this role.")).toBeVisible();
     await expect(body().getByText(/so nothing was sent/)).toBeVisible();
+  },
+};
+
+/**
+ * The list is past its ceilings, which only the last check before signing can
+ * find. Nothing went out, and the footer's count is corrected before anyone
+ * is asked for more signatures than they were promised.
+ */
+export const NeedsMoreSignatures: Story = {
+  args: {
+    batch: {
+      ...listedBatch,
+      add: fn(async (rows: readonly StagedMember[]) => ({
+        ...NOTHING_LANDED,
+        notBatchable: [...rows],
+      })),
+    },
+  },
+  play: async () => {
+    await enter(NEW_A);
+    await stage();
+    await enter(NEW_B);
+    await stage();
+    await userEvent.click(await body().findByRole("button", { name: "Add 2 Gardeners" }));
+    await expect(await body().findByText(/can’t share one signature right now/)).toBeVisible();
+    await expect(body().getByText("2 signatures")).toBeVisible();
   },
 };
 

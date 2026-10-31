@@ -21,6 +21,8 @@ export interface AddMembersRun {
   failedCount: number;
   /** What stopped a write, when that is more than a failed result. */
   thrown?: unknown;
+  /** Rows past their ceilings: nothing went out, and they now take more signatures than promised. */
+  needsMoreSignatures: boolean;
 }
 
 async function addOneAtATime(
@@ -44,7 +46,9 @@ async function addOneAtATime(
 
 /**
  * Runs one press of Add. Two or more people go through `addBatch` when the
- * person's rail can do that; everything else goes one person at a time.
+ * person's rail can do that; everything else goes one person at a time. A list
+ * past its ceilings comes back untried: it was promised fewer signatures, so
+ * going one at a time takes another press.
  */
 export async function runAddMembers({
   rows: staged,
@@ -56,14 +60,14 @@ export async function runAddMembers({
   const rows = staged.map(({ address, role }): StagedMember => ({ address, role }));
   if (!addBatch || rows.length < 2) {
     const { failed, thrown } = await addOneAtATime(rows, addOne, onLanded);
-    return { remaining: failed, failedCount: failed.length, thrown };
+    return { remaining: failed, failedCount: failed.length, thrown, needsMoreSignatures: false };
   }
 
   const outcome = await addBatch(rows, onLanded);
-  const alone = await addOneAtATime(outcome.notBatchable, addOne, onLanded);
   const reasons = new Map(outcome.refused.map((row) => [memberRowKey(row), row.reason]));
-  const failed = [...outcome.notSent, ...alone.failed];
-  const open = new Set([...failed, ...outcome.unknown].map(memberRowKey));
+  const open = new Set(
+    [...outcome.notSent, ...outcome.notBatchable, ...outcome.unknown].map(memberRowKey)
+  );
   return {
     remaining: rows.flatMap((row): StagedMember[] => {
       const key = memberRowKey(row);
@@ -72,8 +76,9 @@ export async function runAddMembers({
       return open.has(key) ? [row] : [];
     }),
     // After an unknown add the hold explains why the rest did not go.
-    failedCount: outcome.unknown.length > 0 ? 0 : failed.length,
-    thrown: outcome.failure ? undefined : alone.thrown,
+    failedCount: outcome.unknown.length > 0 ? 0 : outcome.notSent.length,
+    thrown: outcome.failure,
+    needsMoreSignatures: outcome.notBatchable.length > 0,
   };
 }
 
