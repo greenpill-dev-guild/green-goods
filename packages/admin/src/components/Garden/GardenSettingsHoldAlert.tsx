@@ -1,7 +1,6 @@
-import { Alert } from "@green-goods/shared/components/Alert";
-import { Button } from "@green-goods/shared/components/Button";
 import type { GardenSettingsHold } from "@green-goods/shared/hooks/garden/useUpdateGarden";
 import { useIntl } from "react-intl";
+import { BatchHoldAlert } from "./BatchHoldAlert";
 import { gardenSettingsFieldTitle, gardenSettingsValueText } from "./gardenSettingsSave";
 
 /**
@@ -24,51 +23,23 @@ export function GardenSettingsHoldAlert({
   onMoveOn: () => void;
 }) {
   const { formatMessage } = useIntl();
-  // A person moves on only from values they have seen.
-  const hasUnreadValues = hold.onChain.length < hold.fields.length;
   return (
-    <Alert
-      variant="warning"
-      // Stacked, so a long value truncates at the alert's edge.
-      layout="stacked"
+    <BatchHoldAlert
       title={formatMessage({
         id: "app.garden.settings.hold.title",
         defaultMessage: "We couldn’t confirm your last save.",
       })}
-      action={
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            onClick={onCheckAgain}
-            disabled={isSaving}
-            loading={isSettling}
-          >
-            {formatMessage({
-              id: "app.garden.settings.hold.checkAgain",
-              defaultMessage: "Check Again",
-            })}
-          </Button>
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="sm"
-            onClick={onMoveOn}
-            disabled={isSaving || isSettling || hasUnreadValues}
-          >
-            {formatMessage({ id: "app.garden.settings.hold.moveOn", defaultMessage: "Move On" })}
-          </Button>
-        </div>
-      }
+      body={formatMessage({
+        id: "app.garden.settings.hold.body",
+        defaultMessage:
+          "It could still land, so these fields stay locked until you check again or move on.",
+      })}
+      hasUnreadValues={hold.onChain.length < hold.fields.length}
+      isSettling={isSettling}
+      isSaving={isSaving}
+      onCheckAgain={onCheckAgain}
+      onMoveOn={onMoveOn}
     >
-      <p>
-        {formatMessage({
-          id: "app.garden.settings.hold.body",
-          defaultMessage:
-            "It could still land, so these fields stay locked until you check again or move on.",
-        })}
-      </p>
       <ul className="mt-2 space-y-1">
         {hold.onChain.map((change) => {
           const line = formatMessage(
@@ -85,14 +56,6 @@ export function GardenSettingsHoldAlert({
           );
         })}
       </ul>
-      {hasUnreadValues ? (
-        <p className="mt-2">
-          {formatMessage({
-            id: "app.garden.settings.hold.unread",
-            defaultMessage: "Some values couldn’t be read just now. Check again to move on.",
-          })}
-        </p>
-      ) : null}
-    </Alert>
+    </BatchHoldAlert>
   );
 }

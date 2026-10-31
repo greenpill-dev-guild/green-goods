@@ -13,6 +13,13 @@ import {
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ isLoading: false }),
+  useAddMembersBatch: () => ({
+    hold: null,
+    saved: [],
+    lastReadAt: 0,
+    isSettlingHold: false,
+    available: false,
+  }),
 }));
 vi.mock("./CommunityJoinRequests", () => ({
   CommunityJoinRequests: () => null,
