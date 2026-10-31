@@ -2,9 +2,11 @@ import { Button } from "@green-goods/shared/components/Button";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
+import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { useGardenRoleHat } from "@green-goods/shared/hooks/roles/useGardenRoleHat";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { resolveEnsAddress } from "@green-goods/shared/utils/blockchain/ens";
 import {
   GARDEN_ROLE_ORDER,
@@ -12,39 +14,39 @@ import {
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { RiAddLine, RiClipboardLine } from "@remixicon/react";
-import { type ReactNode, useId, useMemo, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
+import { AddMembersEntryStatus } from "./AddMembersEntryStatus";
 import {
   buildRolesByAddress,
   canStage,
   checkEntry,
-  formatRoleNames,
+  memberListKey,
+  memberRowKey,
   type StagedMember,
   sharedRole,
 } from "./addMembersEntry";
+import { runAddMembers, stagedAfterRead } from "./addMembersRun";
+import { BatchHoldAlert } from "./BatchHoldAlert";
 import { getRoleLabel } from "./gardenUtils";
 import { StagedMemberList } from "./StagedMemberList";
 
 export interface AddMembersDialogProps {
   open: boolean;
   onClose: () => void;
-  /**
-   * Commit one address for one role. The dialog loops the staged batch itself;
-   * a `{ success: false }` result (or a throw) keeps that address staged for
-   * retry. Wire this to `useGardenOperations` in the hosting view.
-   */
+  /** Commits one person. `{ success: false }` or a throw keeps that row staged for retry. */
   onAdd: (role: GardenRole, address: Address) => Promise<{ success: boolean }>;
+  /** Lets a list go under fewer signatures, and settles an add whose outcome is unknown. */
+  batch?: ReturnType<typeof useAddMembersBatch>;
   /** The garden being written to; the chain confirms held roles against it. */
   gardenAddress: Address;
   /**
-   * Who holds which role today (the indexed roster). The dialog uses it to
-   * refuse a role someone already has, confirmed on chain first because the
-   * roster can lag, and to show what adding a role changes for an existing member.
+   * Who holds which role today (the indexed roster). It refuses a role someone already has, confirmed
+   * on chain first because the roster can lag, and shows what an add changes for an existing member.
    */
   roleMembers: Record<GardenRole, Address[]>;
   /** Starts the field with this person (the Manage Roles path into promotion). */
@@ -66,6 +68,7 @@ export function AddMembersDialog({
   open,
   onClose,
   onAdd,
+  batch,
   gardenAddress,
   roleMembers,
   initialAddress,
@@ -82,6 +85,42 @@ export function AddMembersDialog({
   const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [shownFor, setShownFor] = useState({ open, initialAddress });
+  // The list that came back past its ceilings. It goes one person at a time now the person has seen
+  // what that costs. Any change makes it a different list, which gets a fresh try.
+  const [overCeilings, setOverCeilings] = useState<string | null>(null);
+  const [draftAccount, setDraftAccount] = useState(batch?.account ?? null);
+  // A draft is its signer's. A hold is scoped to who sent it, so another account would find held
+  // rows unlocked and could send them again. A wallet dropping and coming back is the same person.
+  if (batch?.account && !compareAddresses(batch.account, draftAccount)) {
+    setDraftAccount(batch.account);
+    if (draftAccount) {
+      setPending([]);
+      setInput(initialAddress ?? "");
+      setError("");
+      setOverCeilings(null);
+    }
+  }
+  // A send outlives a change of account, and what it left behind is not the new draft's.
+  const draftAccountRef = useRef(draftAccount);
+  useEffect(() => {
+    draftAccountRef.current = draftAccount;
+  }, [draftAccount]);
+  const hold = batch?.hold ?? null;
+  const isSettlingHold = batch?.isSettlingHold ?? false;
+  const lastReadAt = batch?.lastReadAt ?? 0;
+  const landedRows = batch?.saved;
+  const heldKeys = new Set(hold?.rows.map(memberRowKey));
+  const isHeld = (row: StagedMember) => heldKeys.has(memberRowKey(row));
+  const sendable = pending.filter((row) => !isHeld(row));
+
+  // Once per read of a held add, whichever way it came about: what landed leaves
+  // the list, and what is still held joins it. The ref is the real trigger.
+  const lastAppliedReadRef = useRef(0);
+  useEffect(() => {
+    if (!lastReadAt || lastAppliedReadRef.current === lastReadAt) return;
+    lastAppliedReadRef.current = lastReadAt;
+    setPending((current) => stagedAfterRead(current, hold?.rows ?? [], landedRows ?? []));
+  }, [lastReadAt, hold, landedRows]);
 
   // Each opening, and each change of the person it opens for, starts the field
   // from `initialAddress`. Resetting here, rather than remounting through a
@@ -128,12 +167,12 @@ export function AddMembersDialog({
   const typedEntryCommitReady = typedCheck !== null && canStage(typedCheck);
   const typedInputInvalid = Boolean(trimmed) && !resolvingEns && !typedResolvedAddress;
 
-  const roleName = (role: GardenRole) => getRoleLabel(role, formatMessage).singular;
-
   const resetDraft = () => {
     setInput("");
-    setPending([]);
+    // A held row is not the person's to drop: it stays until it settles.
+    setPending((current) => current.filter(isHeld));
     setError("");
+    setOverCeilings(null);
   };
 
   const resolveInput = async (): Promise<Address | null> => {
@@ -177,8 +216,8 @@ export function AddMembersDialog({
     setInput("");
   };
 
-  const removeEntry = (address: Address) =>
-    setPending((prev) => prev.filter((entry) => entry.address !== address));
+  const removeEntry = (row: StagedMember) =>
+    setPending((prev) => prev.filter((entry) => memberRowKey(entry) !== memberRowKey(row)));
 
   const handlePaste = async () => {
     try {
@@ -197,15 +236,13 @@ export function AddMembersDialog({
     event.preventDefault();
     setError("");
 
-    const failed: StagedMember[] = [];
-    let processedCount = 0;
-    let batch = pending;
+    const addFailed = formatMessage({ id: "app.admin.roles.error.addFailed" });
+    const sentBy = draftAccount;
+    let rows = sendable;
     try {
-      // Fold a typed-but-not-yet-staged person into the batch so a single
-      // entry doesn't require the extra "Add" tap. Someone already queued, or
-      // already holding the role, is left out; the status line says why. ENS
-      // submit resolution is marked busy before awaiting so close paths cannot
-      // continue into a wallet write after the steward cancels.
+      // Fold a typed person into the list, so one entry needs no extra "Add" tap. Someone queued or
+      // already holding the role is left out; the status line says why. ENS resolution is marked
+      // busy before awaiting, so close paths cannot continue into a wallet write after a cancel.
       if (trimmed) {
         if (!isHexAddress) setSubmitResolving(true);
         const resolved = await resolveInput();
@@ -213,104 +250,65 @@ export function AddMembersDialog({
           setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
           return;
         }
-        if (stageable(resolved)) batch = [...pending, { address: resolved, role: selectedRole }];
+        if (draftAccountRef.current !== sentBy) return;
+        if (stageable(resolved)) rows = [...sendable, { address: resolved, role: selectedRole }];
       }
 
-      if (batch.length === 0) {
+      if (rows.length === 0) {
         setError(formatMessage({ id: "app.admin.roles.error.addressRequired" }));
         return;
       }
 
       setSubmitResolving(false);
       setSubmitting(true);
-      for (const [index, entry] of batch.entries()) {
-        const result = await onAdd(entry.role, entry.address);
-        processedCount = index + 1;
-        if (!result.success) failed.push(entry);
-      }
-      if (failed.length > 0) {
-        // Keep only the failures staged for retry.
-        setPending(failed);
-        setInput("");
-        setError(formatMessage({ id: "app.admin.roles.error.addFailed" }));
-        return;
-      }
-      resetDraft();
-      onClose();
-    } catch (err) {
-      const { message, parsed } = parseAndFormatError(err);
-      setPending([...failed, ...batch.slice(processedCount)]);
+      const run = await runAddMembers({
+        rows,
+        addOne: onAdd,
+        addBatch: batch?.available && memberListKey(rows) !== overCeilings ? batch.add : undefined,
+        onLanded: (landed) => setPending((current) => stagedAfterRead(current, [], landed)),
+      });
+      if (draftAccountRef.current !== sentBy) return;
+      setPending((current) => [...current.filter(isHeld), ...run.remaining]);
       setInput("");
-      setError(parsed.isKnown ? message : formatMessage({ id: "app.admin.roles.error.addFailed" }));
+      const refusedCount = run.remaining.filter((row) => row.refusal).length;
+      if (refusedCount > 0) {
+        setError(formatMessage({ id: "admin.addMember.refused" }, { count: refusedCount }));
+      } else if (run.thrown) {
+        const { message, parsed } = parseAndFormatError(run.thrown);
+        setError(parsed.isKnown ? message : addFailed);
+      } else if (run.failedCount > 0) {
+        setError(addFailed);
+      } else if (run.needsMoreSignatures) {
+        setOverCeilings(memberListKey(run.remaining));
+        setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }));
+      } else if (run.remaining.length === 0 && !hold) {
+        resetDraft();
+        onClose();
+      }
+    } catch (err) {
+      logger.error("Failed to add members", { error: err, gardenAddress });
+      setError(addFailed);
     } finally {
       setSubmitResolving(false);
       setSubmitting(false);
     }
   };
 
-  // What the typed entry means, most specific first. A typed ENS name is
-  // repeated as typed; a pasted address shows its ENS name when it has one.
-  const typedMember: ReactNode =
-    isHexAddress && typedResolvedAddress ? (
-      <EnsAddressText address={typedResolvedAddress} />
-    ) : (
-      trimmed
-    );
-  let entryStatus: ReactNode = null;
-  if (resolvingEns) {
-    entryStatus = formatMessage({
-      id: "admin.addMember.resolvingEns",
-      defaultMessage: "Resolving ENS name...",
+  const heldNote = (row: StagedMember) => {
+    if (!isHeld(row)) return null;
+    const read = hold?.onChain.find((line) => memberRowKey(line) === memberRowKey(row));
+    if (!read) return formatMessage({ id: "admin.addMember.held.unread" });
+    return formatMessage({
+      id: read.wearsRole ? "admin.addMember.held.onChain" : "admin.addMember.held.notOnChain",
     });
-  } else if (typedCheck?.kind === "staged") {
-    entryStatus = (
-      <FormattedMessage
-        id="admin.addMember.alreadyStaged"
-        values={{
-          member: typedMember,
-          role: roleName(typedCheck.stagedRole),
-          roleKey: typedCheck.stagedRole,
-        }}
-      />
-    );
-  } else if (typedCheck?.kind === "held") {
-    entryStatus = (
-      <FormattedMessage
-        id="admin.addMember.alreadyHasRole"
-        values={{ member: typedMember, role: roleName(selectedRole), roleKey: selectedRole }}
-      />
-    );
-  } else if (typedCheck?.kind === "member") {
-    entryStatus = (
-      <FormattedMessage
-        id="admin.addMember.currentRolesHint"
-        values={{
-          member: typedMember,
-          roles: formatRoleNames(typedCheck.currentRoles, intl),
-          firstRoleKey: typedCheck.currentRoles[0],
-        }}
-      />
-    );
-  } else if (shouldResolveEns) {
-    entryStatus = typedResolvedAddress ? (
-      <FormattedMessage
-        id="admin.addMember.ensResolved"
-        defaultMessage="Resolves to {address}"
-        values={{ address: <EnsAddressText address={typedResolvedAddress} /> }}
-      />
-    ) : (
-      formatMessage({
-        id: "admin.addMember.enterValidAddress",
-        defaultMessage: "Enter a valid ENS name or 0x address.",
-      })
-    );
-  }
+  };
 
   const formId = "admin-add-members-dialog";
-  const batchRoles = [
-    ...pending.map((entry) => entry.role),
-    ...(typedEntryCommitReady ? [selectedRole] : []),
-  ];
+  const batchRows: StagedMember[] =
+    typedEntryCommitReady && typedResolvedAddress
+      ? [...sendable, { address: typedResolvedAddress, role: selectedRole }]
+      : sendable;
+  const batchRoles = batchRows.map((entry) => entry.role);
   const batchCount = batchRoles.length;
   // The button names the role when every row shares it; an empty list names
   // the role the picker would add.
@@ -327,6 +325,10 @@ export function AddMembersDialog({
         },
         { count: batchCount }
       );
+  const signatureCount =
+    batch?.available && memberListKey(batchRows) !== overCeilings
+      ? batch.signaturesFor(batchCount)
+      : batchCount;
   const closeAndReset = () => {
     resetDraft();
     onClose();
@@ -335,7 +337,7 @@ export function AddMembersDialog({
   // steward input, so X/scrim/Escape confirm first. A prefilled person nobody
   // changed is not. The footer Cancel still exits directly per the dialog contract.
   const dirtyClose = useDirtyClose({
-    isDirty: pending.length > 0 || (Boolean(trimmed) && trimmed !== (initialAddress ?? "")),
+    isDirty: sendable.length > 0 || (Boolean(trimmed) && trimmed !== (initialAddress ?? "")),
     onClose: closeAndReset,
   });
   const handleOpenChange = (next: boolean) => {
@@ -357,7 +359,13 @@ export function AddMembersDialog({
           defaultMessage: "Choose a role for each person, then add the whole list.",
         })}
         actions={
-          <>
+          // One row at every width, so this line appearing never moves the buttons under a finger.
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
+              {batchCount > 0
+                ? formatMessage({ id: "admin.addMember.signatureCount" }, { count: signatureCount })
+                : null}
+            </p>
             <Button
               type="button"
               emphasis="tertiary"
@@ -372,14 +380,27 @@ export function AddMembersDialog({
               type="submit"
               form={formId}
               loading={submitResolving || submitting}
-              disabled={busy || batchCount === 0 || typedInputInvalid || resolvingEns}
+              disabled={
+                busy || isSettlingHold || batchCount === 0 || typedInputInvalid || resolvingEns
+              }
             >
               {submitLabel}
             </Button>
-          </>
+          </div>
         }
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+          {hold ? (
+            <BatchHoldAlert
+              title={formatMessage({ id: "admin.addMember.hold.title" })}
+              body={formatMessage({ id: "admin.addMember.hold.body" })}
+              hasUnreadValues={hold.onChain.length < hold.rows.length}
+              isSettling={isSettlingHold}
+              isSaving={busy}
+              onCheckAgain={() => void batch?.checkAgain()}
+              onMoveOn={() => void batch?.moveOn()}
+            />
+          ) : null}
           <AdminSelect
             id="member-role"
             label={formatMessage({ id: "app.admin.roles.roleLabel", defaultMessage: "Role" })}
@@ -447,23 +468,24 @@ export function AddMembersDialog({
                 </Button>
               </div>
             </div>
-            {/* Always mounted so screen readers hear each change; guidance is
-                calm supporting text, never an error state, inset like the
-                field's own supporting text. */}
-            <p
+            <AddMembersEntryStatus
               id={statusId}
-              aria-live="polite"
-              className="mt-1 px-4 type-body text-text-soft empty:mt-0"
-            >
-              {entryStatus}
-            </p>
+              typed={trimmed}
+              isHexAddress={isHexAddress}
+              resolvedAddress={typedResolvedAddress}
+              isEnsName={shouldResolveEns}
+              isResolvingEns={resolvingEns}
+              check={typedCheck}
+              selectedRole={selectedRole}
+            />
           </div>
 
           <StagedMemberList
             members={pending}
             rolesByAddress={rolesByAddress}
             onRemove={removeEntry}
-            disabled={busy}
+            disabled={busy || isSettlingHold}
+            heldNote={heldNote}
           />
         </form>
       </AdminDialog>
