@@ -12,6 +12,8 @@ Slice 1E, #1397, merged as `3fbe745c6`.
 
 Garden settings (slice 2) is built on `feature/batch-garden-settings`, with the enablement list empty, so it changes nothing for anyone yet. Proof, with RED first for Shared: at 08:16:11 UTC its new tests failed on the missing modules. Admin's tests followed the wiring, so they were proven by breaking the behavior at 08:42:30 UTC: with the batch path, the sent values, the field locks, and the read-driven settlement removed, 17 failed, and with moving on no longer limited to the saves a person was shown, 1 more failed in Shared. With the behavior back at 08:42:46 UTC, admin passed 78 tests and Shared 363, with six existing skips. Rendered proof is Storybook only: the alert and the one-signature rows at desktop and 375px.
 
+Review of #1398 found three gaps, fixed before the merge. A partly proven save now stays whole until it ends and reports what it proved once, the capability cache names the wallet connector, and Move On waits until every held value has been read. Their tests failed first at 08:58:29 UTC, 4 on behavior. At 09:02:08 UTC Shared passed 366, with six existing skips, and admin 79.
+
 Next, once this PR merges: list each rail in a small follow-up and prove one live batch on each. That needs the user's passkey and approval to broadcast, and it is where the ceilings and the RPC's `simulateCalls` answer get checked. [The plan](../plan.todo.md#slices) defines every slice after that.
 
 ## Start here
