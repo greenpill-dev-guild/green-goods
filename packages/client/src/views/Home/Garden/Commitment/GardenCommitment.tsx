@@ -136,20 +136,11 @@ export function GardenCommitment() {
   // under the status band says how to join instead. Nothing shows while
   // membership is still being read, or while an act is already on its way.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
-  const showJoinToAct =
-    ordinary &&
-    !act &&
-    !controller.queue.hasPendingJob &&
-    controller.membership.isMember === false &&
-    untaken;
+  const noActToOffer = ordinary && !act && !controller.queue.hasPendingJob && untaken;
+  const showJoinToAct = noActToOffer && controller.membership.isMember === false;
   // A read the answer depends on failed: say so and offer it again, rather than
   // an empty bar or a join card for someone who may already belong.
-  const showMembershipRetry =
-    ordinary &&
-    !act &&
-    !controller.queue.hasPendingJob &&
-    controller.membership.unavailable &&
-    untaken;
+  const showMembershipRetry = noActToOffer && controller.membership.unavailable;
   const band = selectStatusBand({
     commitment,
     seat: controller.seat,
@@ -434,6 +425,7 @@ export function GardenCommitment() {
         isPending={isPending}
         notYetFailed={notYetFailed}
         canNotYet={controller.confirmation.canNotYet}
+        canConfirm={act?.kind === "confirm"}
         onConfirm={() => keepSurfaceOnFailure(controller.acts.confirm())}
         onNotYet={(reason) => {
           setNotYetFailed(false);
