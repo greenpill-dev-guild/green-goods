@@ -11,7 +11,7 @@ import {
   createMockContractCall,
   createMockBatchBudget,
 } from "../../../__tests__/test-utils/transaction-fakes";
-import { BatchNotSubmittedError, type BatchQuote } from "../batch-types";
+import { BatchNotSubmittedError, type BatchQuote, type PreparedBatch } from "../batch-types";
 import type { TransactionSender } from "../types";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
@@ -708,5 +708,137 @@ describe("races during recovery", () => {
       "reverted",
       "success",
     ]);
+  });
+});
+
+describe("accepted references and proven execution", () => {
+  const scope = { account, chainId: 42161 };
+  const signed = { kind: "user-operation", hash, account, chainId: 42161 } as const;
+  const quote: BatchQuote = {
+    gas: "300000",
+    maxFeePerGas: "2000000",
+    maxFee: "600000000000",
+    sponsored: true,
+    authority: "user-operation",
+  };
+
+  const sponsored = () =>
+    prepareBatch({
+      id: "operation",
+      ...scope,
+      domain: "settings",
+      budget: createMockBatchBudget({ sponsorship: "required" }),
+      mode: "atomic",
+      items: ["name", "description"].map((id) => ({
+        id,
+        call: createMockContractCall({ account }),
+      })),
+    });
+
+  /** A tab that closed after signing: the reference is known, but only as a candidate. */
+  async function closeTabAfterSigning(journal: BatchJournal, prepared: PreparedBatch) {
+    const record = await journal.prepare(prepared);
+    const token = await journal.claim(prepared.id);
+    await journal.checkpoint(prepared.id, token, {
+      status: "awaiting-approval",
+      reference: signed,
+      groups: record.groups.map((group) => ({
+        ...group,
+        quote,
+        reference: signed,
+        status: "awaiting-approval",
+      })),
+    });
+    await journal.release(prepared.id, token);
+  }
+
+  it("keeps an accepted reference over a different one from a stale writer", async () => {
+    const { journal, prepared } = setup();
+    const record = await journal.prepare(prepared);
+    const token = await journal.claim(prepared.id);
+    await journal.recordSubmission(prepared.id, ["name", "description"], reference);
+    const written = await journal.checkpoint(prepared.id, token, {
+      status: "unresolved",
+      reference: signed,
+      groups: record.groups.map((group) => ({
+        ...group,
+        reference: signed,
+        status: "unresolved",
+      })),
+    });
+    expect(written.reference).toEqual(reference);
+    expect(written.groups[0].reference).toEqual(reference);
+  });
+
+  it("does not end a proven execution when a later read reports a revert", async () => {
+    const { journal, prepared, sender } = setup();
+    await executeBatchOperation({
+      journal,
+      prepared,
+      sender,
+      preflight,
+      verify: async () => {
+        throw new Error("indexer unavailable");
+      },
+    });
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+      status: "reverted",
+      reference,
+      receipts: [{ transactionHash: `0x${"b".repeat(64)}`, status: "reverted" }],
+      sponsored: false,
+    });
+    expect(
+      (
+        await reconcileBatchOperation({
+          journal,
+          operationId: prepared.id,
+          ...scope,
+          sender,
+          verify,
+        })
+      ).status
+    ).toBe("unresolved");
+  });
+
+  it("stops a release when a signing-time reference is accepted after its read", async () => {
+    const { journal, sender } = setup();
+    const prepared = sponsored();
+    await closeTabAfterSigning(journal, prepared);
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+      status: "unresolved",
+      reference: signed,
+      receipts: [],
+      sponsored: true,
+    });
+    const claim = journal.claim.bind(journal);
+    let claims = 0;
+    vi.spyOn(journal, "claim").mockImplementation(async (id, recovery) => {
+      claims += 1;
+      if (claims === 2) await journal.recordSubmission(id, ["name", "description"], signed);
+      return claim(id, recovery);
+    });
+    const result = await releaseBatchOperation({
+      journal,
+      operationId: prepared.id,
+      ...scope,
+      sender,
+      verify,
+    });
+    expect(result.status).not.toBe("released");
+  });
+
+  it("holds the items again when a signing-time reference is accepted after a release", async () => {
+    const { journal, sender } = setup();
+    const prepared = sponsored();
+    await closeTabAfterSigning(journal, prepared);
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+      status: "unresolved",
+      reference: signed,
+      receipts: [],
+      sponsored: true,
+    });
+    await releaseBatchOperation({ journal, operationId: prepared.id, ...scope, sender, verify });
+    await journal.recordSubmission(prepared.id, ["name", "description"], signed);
+    expect((await journal.get(prepared.id))?.status).toBe("unresolved");
   });
 });

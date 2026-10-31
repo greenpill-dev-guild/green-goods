@@ -89,6 +89,8 @@ export interface BatchGroup {
   confirmedItemIds?: string[];
   /** Saved before verification starts, so recovery can finish it after a wallet's status expires. */
   executionConfirmed?: boolean;
+  /** The network or wallet answered with this reference; one saved at signing is only a candidate. */
+  accepted?: boolean;
   itemIds: string[];
   status: BatchItemState;
   reference?: BatchReference;
