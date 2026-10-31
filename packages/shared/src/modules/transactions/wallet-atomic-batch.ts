@@ -14,6 +14,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
 import {
+  assertBatchCapabilityKnown,
   BatchNotSubmittedError,
   type BatchBudget,
   type BatchCapability,
@@ -144,11 +145,9 @@ export async function sendWalletAtomicBatch(
   };
   try {
     await assertSigner();
-    if (
-      !deps.sendCalls ||
-      !deps.waitForCallsStatus ||
-      (await readWalletBatchCapability(port, { account, chainId })).atomic !== "supported"
-    )
+    const capability = await readWalletBatchCapability(port, { account, chainId });
+    assertBatchCapabilityKnown(capability);
+    if (!deps.sendCalls || !deps.waitForCallsStatus || capability.atomic !== "supported")
       throw new Error("batch-atomic-unavailable");
     await deps.ensureWalletChain?.(chainId, "write", assertSigner);
     await deps.assertWriteSafety?.();

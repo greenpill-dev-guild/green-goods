@@ -86,6 +86,18 @@ function passkey() {
 }
 
 describe("explicit wallet batching", () => {
+  it("says so when a wallet cannot tell whether it can batch, which is not a refusal", async () => {
+    const { sender, deps, calls } = wallet();
+    deps.getCapabilities.mockRejectedValue(new Error("wallet did not answer"));
+
+    const failure = await sender
+      .submitAtomicBatch(calls, { batchBudget: walletBudget })
+      .catch((error) => error);
+
+    expect(failure).toBeInstanceOf(BatchNotSubmittedError);
+    expect(failure.message).toBe("batch-capability-unknown");
+    expect(deps.sendCalls).not.toHaveBeenCalled();
+  });
   it("persists the opaque ID before waiting and retains all execution receipts", async () => {
     const { sender, deps, calls } = wallet();
     const onBatchReference = vi.fn(async (reference: BatchReference) => {
@@ -216,6 +228,22 @@ describe("explicit passkey batching", () => {
 
     expect(refusal).toBeInstanceOf(BatchNotSubmittedError);
     expect(refusal.message).toBe(message);
+    expect(client.sendUserOperation).not.toHaveBeenCalled();
+  });
+  it("says so when a passkey cannot tell whether it can batch, which is not a refusal", async () => {
+    const { sender, client, calls } = passkey();
+    vi.spyOn(sender, "getBatchCapability").mockResolvedValue({
+      account: client.account!.address,
+      chainId: client.chain!.id,
+      atomic: "unknown",
+    });
+
+    const failure = await sender
+      .submitAtomicBatch(calls, { batchBudget: passkeyBudget })
+      .catch((error) => error);
+
+    expect(failure).toBeInstanceOf(BatchNotSubmittedError);
+    expect(failure.message).toBe("batch-capability-unknown");
     expect(client.sendUserOperation).not.toHaveBeenCalled();
   });
   it("does not report outer-transaction success when the UserOperation failed", async () => {

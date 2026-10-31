@@ -30,6 +30,11 @@ export interface BatchCapability extends BatchScope {
   atomic: "supported" | "ready" | "unsupported" | "unknown";
 }
 
+/** `unknown` means the check itself failed. That is not a "no", so nothing should go another way. */
+export function assertBatchCapabilityKnown(capability?: BatchCapability): void {
+  if (capability?.atomic === "unknown") throw new Error("batch-capability-unknown");
+}
+
 /** A wallet call identifier is opaque; it must never be queried as a transaction hash. */
 export type BatchReference = BatchScope &
   (

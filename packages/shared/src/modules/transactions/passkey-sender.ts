@@ -32,6 +32,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import type { Address } from "../../types/domain";
 import {
+  assertBatchCapabilityKnown,
   BatchNotSubmittedError,
   type BatchBudget,
   type BatchCapability,
@@ -333,8 +334,9 @@ export class PasskeySender implements TransactionSender {
         mode: "atomic",
         items: calls.map((call, index) => ({ id: String(index), call })),
       });
-      if ((await this.getBatchCapability({ account, chainId })).atomic !== "supported")
-        throw new Error("batch-atomic-unavailable");
+      const capability = await this.getBatchCapability({ account, chainId });
+      assertBatchCapabilityKnown(capability);
+      if (capability.atomic !== "supported") throw new Error("batch-atomic-unavailable");
       return { account, chainId };
     } catch (error) {
       throw new BatchNotSubmittedError(error);

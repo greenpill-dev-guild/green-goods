@@ -1,6 +1,7 @@
 import type { Address } from "../../types/domain";
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 import {
+  assertBatchCapabilityKnown,
   BatchConfirmationPendingError,
   BatchNotSubmittedError,
   batchReferenceKey,
@@ -123,6 +124,7 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
   if (!sender.preflightBatch) throw new Error("batch-preflight-unavailable");
   if (prepared.mode === "atomic") {
     const capability = await sender.getBatchCapability?.(prepared);
+    assertBatchCapabilityKnown(capability);
     if (
       !sender.submitAtomicBatch ||
       capability?.atomic !== "supported" ||

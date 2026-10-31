@@ -233,6 +233,20 @@ describe("sendGardenSettingsBatch", () => {
     await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });
 
+  it("goes another way only on a definite no, not when the check itself failed", async () => {
+    const { input, sender } = setup();
+
+    sender.getBatchCapability = vi.fn(async (scope) => ({
+      ...scope,
+      atomic: "unsupported" as const,
+    }));
+    await expect(send(input)).resolves.toEqual({ status: "not-batchable" });
+
+    sender.getBatchCapability = vi.fn(async (scope) => ({ ...scope, atomic: "unknown" as const }));
+    await expect(send(input)).rejects.toThrow("batch-capability-unknown");
+    expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+  });
+
   it("gives the reason when a send fails for another reason before going out", async () => {
     const { input, sender } = setup();
     sender.submitAtomicBatch = vi.fn(async () => {
