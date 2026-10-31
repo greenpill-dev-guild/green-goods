@@ -165,7 +165,10 @@ export function OverviewTab({
           ) : null}
 
           {isHealthMode && (section === undefined || section === "health") && (
-            <AdminCard density="none" className={SECTION_CARD_MIN_HEIGHT}>
+            <AdminCard
+              density="none"
+              className={`${SECTION_CARD_MIN_HEIGHT} garden-tab-main-own-height`}
+            >
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
                   <AdminCardTitle>

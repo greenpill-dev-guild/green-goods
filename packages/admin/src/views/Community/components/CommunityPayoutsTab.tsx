@@ -69,6 +69,11 @@ export function CommunityPayoutsTab({
             gardenAddress={garden.id as Address}
             gardenName={garden.name}
             routeAction={selectedItem === "fund-jar" ? "deposit" : null}
+            // Closing the dialog Fund Cookie Jar opened drops its route item, so
+            // a reload does not reopen it (qa-session 2026-10-30 OBS-10).
+            onRouteActionClose={() =>
+              navigate(adminRoutes.communityPayouts({ gardenId: garden.id }), { replace: true })
+            }
             routeEditLimitJar={
               selectedItem?.startsWith(JAR_LIMIT_ROUTE_ITEM_PREFIX)
                 ? selectedItem.slice(JAR_LIMIT_ROUTE_ITEM_PREFIX.length)
