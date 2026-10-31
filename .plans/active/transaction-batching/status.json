@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T10:19:44.086Z"
+    "updated_at": "2026-10-31T10:29:57.916Z"
   },
   "links": {
     "brief": "brief.md",
@@ -79,12 +79,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/modules/transactions/__tests__/batch-senders.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts",
-          "evidence": "2026-10-31 10:17:23 UTC: 4 failures on behavior: a passkey batch refused by its last checks was not reported as never sent, and a save another tab proved reported nothing in the tab showing it. Earlier RED is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/shared test src/modules/transactions/__tests__/batch-senders.test.ts src/__tests__/modules/garden-settings-batch.test.ts",
+          "evidence": "2026-10-31 10:27:50 UTC: 3 failures on behavior: a capability check that failed read as a refusal, so the save fell back instead of showing the failure. Earlier RED is in handoffs/continuation.md."
         },
         "green": {
           "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/hooks/garden/useSetGardenDomains.test.ts src/__tests__/modules/update-garden-command.test.ts src/__tests__/i18n/locale-coverage.test.ts src/modules/transactions/__tests__/",
-          "evidence": "2026-10-31 10:18:14 UTC: 24 files, 373 passed, 6 existing skips, at the tree committed as d4329e3b5."
+          "evidence": "2026-10-31 10:28:22 UTC: 24 files, 376 passed, 6 existing skips, at the tree committed as 5b040cfe8."
         },
         "note": ""
       },
@@ -412,6 +412,14 @@
       "timestamp": "2026-10-31T10:19:44.087Z",
       "actor": "claude",
       "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:29:57.920Z",
+      "actor": "claude",
+      "lane": "state_api",
       "status": "tdd_recorded",
       "branch": "fix/batch-settings-findings",
       "note": "Recorded RED/GREEN TDD proof"
