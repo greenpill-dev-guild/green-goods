@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { listMyGardens, type MyGarden } from "../../modules/garden/membership";
+import { forgetListedPendingJoins, pendingJoinGardenIds } from "../../modules/garden/pending-joins";
 import {
   awaitingJoinRequestScope,
   useAwaitingJoinRequestsStore,
 } from "../../stores/useAwaitingJoinRequestsStore";
 import type { Garden } from "../../types/domain";
 import { useGardens } from "../blockchain/useBaseLists";
-import {
-  forgetListedPendingJoins,
-  pendingJoinGardenIds,
-  usePendingJoinsVersion,
-} from "./useJoinGarden";
+import { usePendingJoinsVersion } from "./useJoinGarden";
 
 export interface MyGardens {
   /** The account's gardens in the list's order (newest first), each with its roles. */

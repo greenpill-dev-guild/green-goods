@@ -69,9 +69,8 @@ vi.mock("../../../hooks/utils/useTimeout", () => ({
   useDelayedInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
 }));
 
-const { forgetListedPendingJoins, isGardenMember } = await import(
-  "../../../hooks/garden/useJoinGarden"
-);
+const { isGardenMember } = await import("../../../hooks/garden/useJoinGarden");
+const { forgetListedPendingJoins } = await import("../../../modules/garden/pending-joins");
 const { logger } = await import("../../../modules/app/logger");
 
 describe("forgetListedPendingJoins", () => {
