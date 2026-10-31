@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T20:24:33.086Z"
+    "updated_at": "2026-10-31T20:46:11.679Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,11 +58,11 @@
         "status": "green_recorded",
         "red": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx",
-          "evidence": "2026-10-31 20:19:52 UTC: 4 failed on behavior from review of #1400: a list past its ceilings went straight to one at a time, a changed list did not try one signature again, a batch failure lost its reason, and another account inherited held rows."
+          "evidence": "2026-10-31 20:42:43 UTC: 5 failed on behavior from the second review of #1400: another casing cleared a draft, Remove took every row for an address, a typed person did not retry one signature, and the count did not read as a maximum."
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx src/components/Garden src/views/Community/components/CommunityMembersTab.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 20:24:23 UTC: 7 files, 114 passed, at the tree committed as a68a454a6."
+          "evidence": "2026-10-31 20:45:57 UTC: 7 files, 115 passed, at the tree committed as 301cc1fc7."
         },
         "note": ""
       },
@@ -79,12 +79,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts",
-          "evidence": "2026-10-31 20:19:48 UTC: 6 failed on behavior from review of #1400: a failed role read still sent, a list past its ceilings and a held role were tracked as started, and a proven add carried no hash or success event."
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts; node --test --test-name-pattern=\"signing, sending, queue and session hooks stay critical\" scripts/quality/select-validation.test.mjs",
+          "evidence": "2026-10-31 20:42:40 UTC: 2 failed on behavior from the second review of #1400: a tab that only heard an add had ended still got the hash that counts it, and the selector did not treat batch modules as critical."
         },
         "green": {
           "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts src/__tests__/hooks/useGardenOperations.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-10-31 20:24:14 UTC: 7 files, 92 passed, at the tree committed as a68a454a6."
+          "evidence": "2026-10-31 20:45:38 UTC: 7 files, 93 passed, at the tree committed as 301cc1fc7."
         },
         "note": ""
       },
@@ -506,6 +506,22 @@
     },
     {
       "timestamp": "2026-10-31T20:24:33.088Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:46:10.071Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:46:11.681Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",

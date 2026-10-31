@@ -26,6 +26,8 @@ Add members (slice 3) is built on `feature/batch-add-members`, ahead of the live
 
 Review of #1400 found five real gaps, fixed in `a68a454a6`. Another account could send rows held for the last one; a failed role read still sent, though `_grantRole` on a held role skips only the mint; a list past its ceilings went straight to as many prompts as people; a batch's reason never reached the dialog's line; and analytics reported starts for rows never tried. Their tests failed first at 20:19 UTC, 10 on behavior. Green at 20:24:14 UTC (Shared 7 files, 92 passed) and 20:24:23 UTC (Admin 7 files, 114 passed), with 31 stories passing at 20:23 UTC.
 
+A second review round found six more, fixed in `301cc1fc7`: another casing of the same wallet cleared a draft, Remove took every row for an address, a typed person did not retry one signature, the footer's count could overstate, two tabs both counted a proven add, and the selector missed batch modules. `batches` is now a mutation primitive, which marks `members-batch`, `settings-batch` and `batch-hold` critical and will catch every later slice. Their tests failed first at 20:42 UTC, 7 on behavior. Green at 20:45:38 UTC (Shared 7 files, 93 passed) and 20:45:57 UTC (Admin 7 files, 115 passed), with 31 stories passing at 20:44 UTC.
+
 Still open for that slice, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here
