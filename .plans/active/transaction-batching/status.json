@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T09:03:36.795Z"
+    "updated_at": "2026-10-31T09:22:19.289Z"
   },
   "links": {
     "brief": "brief.md",
@@ -57,12 +57,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 08:58:29 UTC: 1 failure on behavior from review of #1398: Move On stayed enabled with a held value unread. The slice's own proof, by breaking the behavior, is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/admin test src/components/Garden/gardenSettingsDraft.test.ts",
+          "evidence": "2026-10-31 09:19:49 UTC: 1 failure on behavior from the second review round on #1398: a banner removal did not come back after a reload. Earlier proof is in handoffs/continuation.md."
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/components/Garden src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 09:02:08 UTC: 5 files, 79 passed, at the tree committed as 5a47e1284."
+          "evidence": "2026-10-31 09:20:17 UTC: 5 files, 80 passed, at the tree committed as 1f6e06511."
         },
         "note": ""
       },
@@ -79,12 +79,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts",
-          "evidence": "2026-10-31 08:58:29 UTC: 3 failures on behavior from review of #1398: a partly proven save re-reported its proven fields, moving on released values nobody had seen, and the capability cache ignored a change of connector. The slice's own RED is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-settings-batch.test.ts src/modules/transactions/__tests__/batch-operation.test.ts",
+          "evidence": "2026-10-31 09:19:49 UTC: 3 failures on behavior from the second review round on #1398: a batch refused by the last check before signing failed instead of falling back, and the reason for a batch proven never sent was dropped. Earlier RED is in handoffs/continuation.md."
         },
         "green": {
           "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/hooks/garden/useSetGardenDomains.test.ts src/__tests__/modules/update-garden-command.test.ts src/__tests__/i18n/locale-coverage.test.ts src/modules/transactions/__tests__/",
-          "evidence": "2026-10-31 09:02:08 UTC: 24 files, 366 passed, 6 existing skips, at the tree committed as 5a47e1284."
+          "evidence": "2026-10-31 09:20:17 UTC: 24 files, 369 passed, 6 existing skips, at the tree committed as 1f6e06511."
         },
         "note": ""
       },
@@ -362,6 +362,22 @@
     },
     {
       "timestamp": "2026-10-31T09:03:36.797Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-garden-settings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T09:22:17.413Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-garden-settings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T09:22:19.292Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",
