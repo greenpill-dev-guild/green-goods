@@ -8,9 +8,11 @@ import type {
   GardenNotification,
   GardenNotifications,
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiHammerLine, RiHandHeartLine, RiNotificationLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { NotificationRow } from "./NotificationRow";
@@ -60,7 +62,9 @@ const LOADING_ROWS = 3;
 /**
  * The bell's sheet (DL-130, DL-133): a `full` sheet over Home with the garden named beneath its
  * title, listing the garden's events for the member, one item row each, newest first, under All,
- * Work and Promises tabs. A row opens the work or the promise, closing the sheet first so the
+ * Work and Promises tabs. Each tab scrolls in a container of its own, so a tab opens at its top
+ * however far the last one was scrolled; the sheet's body hands it scrolling, as the Wallet and
+ * Promises sheets do. A row opens the work or the promise, closing the sheet first so the
  * screen it opens is not under it. Opening the sheet marks the open tab's events seen on this
  * device, as does switching to a tab, while an event under another tab stays new; Clear All in
  * the shared bar hides every listed event here for good. With nothing to list it shows the
@@ -214,6 +218,8 @@ export function NotificationsSheet({
       }))}
       activeTab={tab}
       onTabChange={(id) => setTab(id as NotificationsTab)}
+      // The body stops scrolling and padding: the open tab's scroller below takes both over.
+      contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       actions={{
         secondary: {
           label: formatMessage({ id: "app.home.notifications.clearAll" }),
@@ -229,7 +235,15 @@ export function NotificationsSheet({
           : undefined,
       }}
     >
-      {body}
+      {/* Keyed by tab, so a tab change mounts a fresh scroller at its top. It keeps the body's
+          padding, its scroll containment and both edge hairlines, so nothing else moves. */}
+      <div
+        key={tab}
+        className={cn(PWA_SHEET_SCROLL_CLASSNAME, "overscroll-contain px-4 pb-4")}
+        data-scroll-edge="both"
+      >
+        {body}
+      </div>
     </AppSheet>
   );
 }

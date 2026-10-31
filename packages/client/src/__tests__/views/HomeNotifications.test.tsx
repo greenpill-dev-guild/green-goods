@@ -364,7 +364,19 @@ describe("the sheet", () => {
         .getAllByRole("tab")
         .map((tab) => tab.textContent)
     ).toEqual(["All", "Work", "Promises"]);
+    // Each tab scrolls on its own: Work opens at its top however far All was scrolled.
+    const scroller = () => {
+      const node = within(sheet)
+        .getByRole("tabpanel")
+        .querySelector<HTMLElement>(".overflow-y-auto");
+      if (!node) throw new Error("the open tab has no scroller of its own");
+      return node;
+    };
+    const allScroller = scroller();
+    allScroller.scrollTop = 120;
     fireEvent.click(within(sheet).getByRole("tab", { name: "Work" }));
+    expect(scroller()).not.toBe(allScroller);
+    expect(scroller().scrollTop).toBe(0);
     expect(rowsOf(sheet).map(titleOf)).toEqual(["Hedge Planting", "Compost Turn", "Seed Swap"]);
     // A tab marks seen only what it shows.
     expect(markedIds()).toEqual(idsOf(workEvents));
