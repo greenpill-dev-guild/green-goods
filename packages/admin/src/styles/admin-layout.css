@@ -109,7 +109,7 @@ button.garden-stat-row:hover {
     flex: 1 1 auto;
   }
 
-  /* Garden Health opts out and keeps its own height (DL-141): the fill wrapped
+  /* Garden Health opts out and keeps its own height (DL-143): the fill wrapped
    * its 347px of content in a 667px card at every desktop width, because the
    * grid stretches the main column to the taller rail (qa-session 2026-10-30
    * OBS-05). */
