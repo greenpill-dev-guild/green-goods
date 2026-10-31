@@ -220,10 +220,12 @@ describe("createBannerUploader", () => {
     mockUploadFileToIPFS
       .mockRejectedValueOnce(new Error("pinning down"))
       .mockResolvedValue({ cid: "bafybanner" });
-    const upload = createBannerUploader();
+    const { upload, uploadedUrlOf } = createBannerUploader();
 
     await expect(upload(FILE)).rejects.toThrow("pinning down");
+    expect(uploadedUrlOf(FILE)).toBeNull();
     await expect(upload(FILE)).resolves.toBe("https://ipfs.example/bafybanner");
+    expect(uploadedUrlOf(FILE)).toBe("https://ipfs.example/bafybanner");
     await expect(upload(FILE)).resolves.toBe("https://ipfs.example/bafybanner");
     expect(mockUploadFileToIPFS).toHaveBeenCalledTimes(2);
 

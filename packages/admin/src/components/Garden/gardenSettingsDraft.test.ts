@@ -88,15 +88,41 @@ describe("draftAfterRead", () => {
     expect(draftAfterRead(edited, read({ held: [{ field: "name", value: "Sent" }] }))).toBe(edited);
   });
 
-  it("clears a banner file once its save has landed", () => {
-    const file = new File(["banner"], "banner.png", { type: "image/png" });
+  describe("when a banner save has landed", () => {
+    const sent = new File(["sent"], "sent.png", { type: "image/png" });
+    const uploads = {
+      uploadedUrlOf: (file: File) => (file === sent ? "https://example.org/sent.png" : null),
+    };
+    const landedImage = read({
+      saved: [{ field: "banner", value: "https://example.org/sent.png" }],
+    });
 
-    expect(
-      draftAfterRead(
-        { ...draft, bannerFile: file },
-        read({ saved: [{ field: "banner", value: "https://example.org/new.png" }] })
-      )
-    ).toEqual(draft);
+    it("clears the file that landed, so it is not sent again", () => {
+      expect(draftAfterRead({ ...draft, bannerFile: sent }, landedImage, uploads)).toEqual(draft);
+    });
+
+    it("keeps a different file chosen while the read ran", () => {
+      const chosen = new File(["chosen"], "chosen.png", { type: "image/png" });
+      const edited = { ...draft, bannerFile: chosen };
+
+      expect(draftAfterRead(edited, landedImage, uploads)).toEqual(edited);
+    });
+
+    it("keeps a removal staged while the read ran", () => {
+      const edited = { ...draft, bannerRemoved: true };
+
+      expect(draftAfterRead(edited, landedImage, uploads)).toEqual(edited);
+    });
+
+    it("ends a removal once that removal has landed", () => {
+      expect(
+        draftAfterRead(
+          { ...draft, bannerRemoved: true },
+          read({ saved: [{ field: "banner", value: "" }] }),
+          uploads
+        )
+      ).toEqual(draft);
+    });
   });
 
   it("keeps the same draft when nothing was sent, so a read causes no render", () => {

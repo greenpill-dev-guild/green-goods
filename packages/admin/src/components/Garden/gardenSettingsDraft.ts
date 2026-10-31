@@ -240,16 +240,23 @@ export function draftAfterRead(
     landed: LandedValues;
     saved: readonly GardenSettingsChange[];
     held: readonly GardenSettingsChange[];
-  }
+  },
+  uploads: { uploadedUrlOf: (file: File) => string | null } = { uploadedUrlOf: () => null }
 ): SettingsDraft {
   const edited = dirtyFieldsOf(current, garden, landed);
   const next = withSentValues(
     current,
     [...saved, ...held].filter((change) => !edited.includes(change.field))
   );
-  return saved.some((change) => change.field === "banner")
-    ? { ...next, bannerFile: null, bannerRemoved: false }
-    : next;
+  // A banner edit ends only if it is the one that landed: someone may have
+  // chosen another image, or a removal, while the read ran.
+  const savedBanner = saved.find((change) => change.field === "banner");
+  const bannerLanded =
+    savedBanner?.field === "banner" &&
+    (savedBanner.value
+      ? next.bannerFile !== null && uploads.uploadedUrlOf(next.bannerFile) === savedBanner.value
+      : next.bannerRemoved && !next.bannerFile);
+  return bannerLanded ? { ...next, bannerFile: null, bannerRemoved: false } : next;
 }
 
 /** What `LandedValues` remembers for changes a read has proven landed. */

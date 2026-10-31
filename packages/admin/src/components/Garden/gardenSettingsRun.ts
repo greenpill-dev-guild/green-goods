@@ -24,14 +24,18 @@ import type {
  */
 export function createBannerUploader() {
   let last: { file: File; url: string } | null = null;
-  return async (file: File): Promise<string> => {
-    if (last?.file === file) return last.url;
-    const { file: upload } = imageCompressor.shouldCompress(file, 1024)
-      ? await imageCompressor.compressImage(file, { maxSizeMB: 0.8, maxWidthOrHeight: 2048 })
-      : { file };
-    const { cid } = await uploadFileToIPFS(upload);
-    last = { file, url: resolveIPFSUrl(cid) };
-    return last.url;
+  return {
+    upload: async (file: File): Promise<string> => {
+      if (last?.file === file) return last.url;
+      const { file: upload } = imageCompressor.shouldCompress(file, 1024)
+        ? await imageCompressor.compressImage(file, { maxSizeMB: 0.8, maxWidthOrHeight: 2048 })
+        : { file };
+      const { cid } = await uploadFileToIPFS(upload);
+      last = { file, url: resolveIPFSUrl(cid) };
+      return last.url;
+    },
+    /** The address a file has uploaded to; null until it has. */
+    uploadedUrlOf: (file: File) => (last?.file === file ? last.url : null),
   };
 }
 

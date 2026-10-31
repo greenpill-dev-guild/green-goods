@@ -86,6 +86,18 @@ function passkey() {
 }
 
 describe("explicit wallet batching", () => {
+  it("takes a wallet reporting no atomic capability as one that cannot batch", async () => {
+    const { sender, deps, calls } = wallet();
+    deps.getCapabilities.mockResolvedValue({} as { atomic: { status: string } });
+
+    const refusal = await sender
+      .submitAtomicBatch(calls, { batchBudget: walletBudget })
+      .catch((error) => error);
+
+    expect(refusal).toBeInstanceOf(BatchNotSubmittedError);
+    expect(refusal.message).toBe("batch-atomic-unavailable");
+    expect(deps.sendCalls).not.toHaveBeenCalled();
+  });
   it("says so when a wallet cannot tell whether it can batch, which is not a refusal", async () => {
     const { sender, deps, calls } = wallet();
     deps.getCapabilities.mockRejectedValue(new Error("wallet did not answer"));

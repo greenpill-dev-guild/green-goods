@@ -106,7 +106,9 @@ export async function readWalletBatchCapability(
     );
     if (deps.getAccount?.().address?.toLowerCase() !== scope.account.toLowerCase())
       return { ...scope, atomic: "unknown" };
-    const status = capabilities?.atomic?.status;
+    // EIP-5792: a wallet that reports no atomic capability does not batch.
+    if (!capabilities?.atomic) return { ...scope, atomic: "unsupported" };
+    const { status } = capabilities.atomic;
     return {
       ...scope,
       atomic:

@@ -143,7 +143,7 @@ export const GardenSettingsEditor = forwardRef<
   const setGardenDomains = useSetGardenDomains();
   const settingsBatch = useGardenSettingsBatch(gardenAddress);
   const { hold, saved: landedChanges, lastReadAt, isSettlingHold } = settingsBatch;
-  const [uploadBanner] = useState(createBannerUploader);
+  const [bannerUploader] = useState(createBannerUploader);
 
   const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
   const [isSaving, setIsSaving] = useState(false);
@@ -199,12 +199,14 @@ export const GardenSettingsEditor = forwardRef<
     lastAppliedReadRef.current = lastReadAt;
     const savedFields = landedChanges.map((change) => change.field);
     const held = hold?.attempted ?? [];
-    setDraft((current) => draftAfterRead(current, { garden, landed, saved: landedChanges, held }));
+    setDraft((current) =>
+      draftAfterRead(current, { garden, landed, saved: landedChanges, held }, bannerUploader)
+    );
     if (savedFields.length > 0) {
       setLanded((current) => ({ ...current, ...landedValuesOf(landedChanges) }));
     }
     setRun((current) => settleGardenSettingsRun(current, savedFields, hold?.fields ?? []));
-  }, [lastReadAt, landedChanges, hold, garden, landed]);
+  }, [lastReadAt, landedChanges, hold, garden, landed, bannerUploader]);
 
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
@@ -312,7 +314,7 @@ export const GardenSettingsEditor = forwardRef<
         return setGardenDomains.mutateAsync({ gardenAddress, domains: values.domains });
       case "banner": {
         if (!values.bannerFile) return updateBannerImage.mutateAsync({ gardenAddress, value: "" });
-        const value = await uploadBanner(values.bannerFile);
+        const value = await bannerUploader.upload(values.bannerFile);
         onUploaded();
         return updateBannerImage.mutateAsync({ gardenAddress, value });
       }
@@ -335,7 +337,7 @@ export const GardenSettingsEditor = forwardRef<
       fields: dirtyFields,
       values: draft,
       sendBatch: settingsBatch.available ? settingsBatch.send : undefined,
-      uploadBanner,
+      uploadBanner: bannerUploader.upload,
       writeField,
       onRun: setRun,
       onLanded: landField,
