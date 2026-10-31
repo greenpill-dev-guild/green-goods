@@ -109,9 +109,12 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
+        {/* The row keeps 8px above and below the input, so its 2px focus ring
+            sits inside the panel's clipped, rounded top edge instead of being cut
+            along it (qa-session 2026-10-30 OBS-17). */}
         <div
           data-component="CommandPaletteSearch"
-          className="flex items-center gap-3 border-b border-stroke-soft px-4"
+          className="flex items-center gap-3 border-b border-stroke-soft px-4 py-2"
         >
           <RiSearchLine className="h-5 w-5 shrink-0 text-text-soft" aria-hidden="true" />
           <input

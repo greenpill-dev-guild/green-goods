@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 import { SheetBody } from "./SheetBody";
+import { SheetFooter } from "./SheetFooter";
 
 const meta: Meta<typeof SheetBody> = {
   title: "Shared/Canvas/Sheet anatomy/SheetBody",
@@ -16,6 +18,7 @@ const meta: Meta<typeof SheetBody> = {
           "- `flex: 1; min-height: 0; overflow-y: auto` so it grows inside the sheet's flex column",
           "- Hidden scrollbar (no scrollbar gutter)",
           "- `padded={true}` (default) applies `20px 16px` padding for form-style content",
+          "- The host sheet can retune that inset through `--gg-sheet-body-padding` (and the footer's through `--gg-sheet-footer-padding`); the cockpit's docked side sheet sets 24px sides from 640px",
           "- `padded={false}` for edge-to-edge lists (notifications, member rosters)",
           "",
           "Compose with `<SheetFooter>` below for pinned-footer behavior.",
@@ -95,6 +98,53 @@ export const PaddedDefault: Story = {
  */
 export const EdgeToEdgeList: Story = {
   render: () => sheetFrame(<SheetBody padded={false}>{listContent}</SheetBody>),
+};
+
+/**
+ * A host sheet that sets `--gg-sheet-body-padding` and `--gg-sheet-footer-padding`
+ * moves both insets at once, as the cockpit's docked side sheet does at 24px so
+ * its content lines up with its header; a host that sets nothing keeps the
+ * handoff's 16px (see `PaddedDefault`).
+ */
+export const HostInset: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div
+      data-testid="host-sheet"
+      className="flex flex-col overflow-hidden border border-stroke-soft bg-bg-white-0"
+      style={
+        {
+          width: 360,
+          height: 360,
+          borderRadius: "var(--radius-sheet, 24px)",
+          "--gg-sheet-body-padding": "20px 24px",
+          "--gg-sheet-footer-padding": "12px 24px",
+        } as React.CSSProperties
+      }
+    >
+      <SheetBody padded={true}>
+        <div className="text-sm text-text-sub">
+          The body starts 24px in, level with the header title.
+        </div>
+      </SheetBody>
+      <SheetFooter>
+        <button
+          type="button"
+          className="rounded-full px-4 py-1.5 text-sm font-medium text-error-base hover:bg-error-lighter"
+        >
+          Disconnect
+        </button>
+      </SheetFooter>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const host = within(canvasElement).getByTestId("host-sheet");
+    const body = host.querySelector<HTMLElement>('[data-component="SheetBody"]');
+    const footer = host.querySelector<HTMLElement>('[data-component="SheetFooter"]');
+    if (!body || !footer) throw new Error("SheetBody or SheetFooter not found");
+    await expect(getComputedStyle(body).padding).toBe("20px 24px");
+    await expect(getComputedStyle(footer).padding).toBe("12px 24px");
+  },
 };
 
 /**
