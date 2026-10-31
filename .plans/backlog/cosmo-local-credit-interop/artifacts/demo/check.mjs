@@ -12,8 +12,10 @@
 // Rendered checks (Chromium, light, 1440x900): the intro with its chapters and its shot; the story
 // walked from Start by each screen's hotspot, or Next where it has none, with each image loaded,
 // its caption, who you are, where and the "In pilot" chip as declared, the counter and the strip
-// marking this screen, and the bar, stage, who-you-are row, caption, controls and device in the
-// same place on every screen, the caption within two lines; Finish to the close and on to every
+// marking this screen, and the bar, the body, who you are, the caption and the controls in the
+// same place on every screen, with the device centered on one line beside them (wide and
+// landscape) or sharing a top and bottom under them (a stage wider than a desktop screen), the
+// caption within two lines; Finish to the close and on to every
 // step; every chapter walked the same way, its end opening the next chapter; every back region
 // going back a screen and the browser's back returning; a tap beside the hotspot not advancing;
 // Right, Left, Escape, Back and Intro; focus kept on a visible control when the hotspot or a back
@@ -170,10 +172,13 @@ const frame = (page) => page.evaluate(() => {
   const range = document.createRange();
   range.selectNodeContents(caption);
   const who = document.getElementById("who");
+  // Wide and landscape, the body lays the stage and the words out as two columns.
+  const body = document.querySelector("#player .body");
   return {
+    side: getComputedStyle(body).gridTemplateColumns.trim().split(/\s+/).length > 1,
     parts: {
       bar: box(document.querySelector("#player .bar")),
-      stage: box(document.querySelector("#player .stage")),
+      body: box(body),
       meta: box(document.querySelector("#player .meta")),
       caption: box(caption),
       controls: box(document.querySelector("#player .controls")),
@@ -192,8 +197,13 @@ function holds(name, base, now, { device = false } = {}) {
   for (const [part, b] of Object.entries(base.parts)) {
     if (now.parts[part].some((v, i) => Math.abs(v - b[i]) > 0.5)) note(`${name}: the ${part} moved, from ${JSON.stringify(b)} to ${JSON.stringify(now.parts[part])}`);
   }
-  // Where the stage is wider than a desktop screen, phone and desktop screens share a top and bottom.
-  if (device && (Math.abs(now.device[1] - base.device[1]) > 1 || Math.abs(now.device[1] + now.device[3] - base.device[1] - base.device[3]) > 1)) note(`${name}: the device's top or bottom moved, from ${JSON.stringify(base.device)} to ${JSON.stringify(now.device)}`);
+  if (now.side !== base.side) note(`${name}: the player's layout changed`);
+  // Beside the words, every device is centered on the body's height: a phone fills it, a desktop
+  // screen is bound by its width. Under them, where the stage is wider than a desktop screen, phone
+  // and desktop screens share a top and bottom.
+  const middle = (d) => d[1] + d[3] / 2;
+  if (now.side && Math.abs(middle(now.device) - middle(base.device)) > 1) note(`${name}: the device's middle moved, from ${JSON.stringify(base.device)} to ${JSON.stringify(now.device)}`);
+  if (!now.side && device && (Math.abs(now.device[1] - base.device[1]) > 1 || Math.abs(now.device[1] + now.device[3] - base.device[1] - base.device[3]) > 1)) note(`${name}: the device's top or bottom moved, from ${JSON.stringify(base.device)} to ${JSON.stringify(now.device)}`);
   if (now.lines > 2) note(`${name}: the caption runs to ${now.lines} lines`);
   if (now.whoCut) note(`${name}: who you are is cut off`);
   if (now.tall > 1) note(`${name}: the page scrolls by ${now.tall}px`);

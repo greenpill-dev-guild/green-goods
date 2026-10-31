@@ -4,7 +4,7 @@
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --check      checks only, no browser
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --sync       copy the Markdown notes into index.html, then check
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs --only=3,7   render and probe only those slides
-// Source checks: 18 slides, the corner symbol on every slide, slide numbers in order (the title and
+// Source checks: 17 slides, the corner symbol on every slide, slide numbers in order (the title and
 // the closing slide carry none), the HTML notes equal the Markdown notes, data-time equals each
 // notes heading, the spoken timings total 8:00, and no em dashes. While rendering it also reports
 // text outside the 128px side margins or in the corner band, text or artwork over the headline,
@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const EXPECTED_SLIDES = 18;
+const EXPECTED_SLIDES = 17;
 const EXPECTED_SECONDS = 8 * 60;
 const here = dirname(fileURLToPath(import.meta.url));
 const htmlPath = join(here, "index.html");
@@ -246,8 +246,11 @@ if (problems.length) {
 // rename that fails halfway removes every promoted name and puts the backup back.
 const backup = mkdtempSync(join(out, ".previous-"));
 const names = readdirSync(staging);
+// A full render replaces the whole set, so slides it no longer produces go too and cannot be shared
+// by accident. A partial render (--only) leaves the other slides alone.
+const stale = only.length ? [] : readdirSync(out).filter((name) => /^slide-\d+\.png$/.test(name) && !names.includes(name));
 try {
-  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+  for (const name of [...names, ...stale]) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
 } catch (error) {
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; nothing in output/ was replaced`);
@@ -257,6 +260,7 @@ try {
 const promoted = [];
 try {
   for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); }
+  for (const name of stale) rmSync(join(out, name), { force: true });
 } catch (error) {
   // A restore that fails keeps the backup folder and names it, so the last good output is never lost.
   const unrestored = [];

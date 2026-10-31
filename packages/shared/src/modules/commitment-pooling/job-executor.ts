@@ -71,13 +71,16 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
   }
 
   // Reconcile submitted work above first; retain unsent reward jobs without a new signature.
-  if (
-    !SETTLEMENT_ENABLED &&
-    job.kind === "commitment" &&
-    (job.payload as CommitmentCreationPayload).consideration.rail ===
-      CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
-  ) {
-    return { status: "waiting", reason: "settlement-unavailable" };
+  // A reward is paid through the garden's settlement account, so it isn't promised while
+  // that account is inactive or can't be read, however long the job sat in the queue.
+  if (job.kind === "commitment") {
+    const payload = job.payload as CommitmentCreationPayload;
+    if (payload.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT) {
+      const active =
+        SETTLEMENT_ENABLED &&
+        (await dependencies.readSettlementAccountActive?.(payload.gardenAddress));
+      if (active !== true) return { status: "waiting", reason: "settlement-unavailable" };
+    }
   }
 
   if (job.kind === "workLink") {

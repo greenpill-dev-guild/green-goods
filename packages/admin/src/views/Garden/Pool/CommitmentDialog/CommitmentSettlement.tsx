@@ -113,10 +113,11 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
           : action.kind === "prepare-contributor"
             ? settlement.acts.prepareContributor(action.contributor)
             : settlement.acts.dispatch(action.disbursementId));
+    // The panel's status line says whether it landed or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.garden.pool.settlement.toast.confirmed",
-        defaultMessage: "Settlement step confirmed",
+        id: "cockpit.garden.pool.settlement.toast.sent",
+        defaultMessage: "Settlement step sent",
       }),
       message: `${actionStep(action, intl)} · ${hash.slice(0, 10)}…`,
     });
@@ -273,12 +274,35 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
                       id: "cockpit.garden.pool.settlement.status.confirmed",
                       defaultMessage: "Confirmed on chain. Settlement state was read back.",
                     })
-                  : formatMessage({
-                      id: "cockpit.garden.pool.settlement.status.failed",
-                      defaultMessage:
-                        "The transaction failed or was rejected. Nothing changed on chain.",
-                    })}
+                  : settlement.lastAct.phase === "proposed"
+                    ? formatMessage({
+                        id: "cockpit.garden.pool.settlement.status.proposed",
+                        defaultMessage:
+                          "Sent to your Safe. This step reopens once the chain shows it ran.",
+                      })
+                    : formatMessage({
+                        id: "cockpit.garden.pool.settlement.status.failed",
+                        defaultMessage:
+                          "The transaction failed or was rejected. Nothing changed on chain.",
+                      })}
             </p>
+          ) : null}
+
+          {settlement.lastAct?.phase === "proposed" ? (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                emphasis="tertiary"
+                size="compact"
+                leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+                onClick={() => void settlement.refetch()}
+              >
+                {formatMessage({
+                  id: "cockpit.garden.pool.settlement.retry",
+                  defaultMessage: "Read Again",
+                })}
+              </Button>
+            </div>
           ) : null}
 
           {nextAction ? (

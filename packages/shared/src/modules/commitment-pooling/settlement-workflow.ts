@@ -19,6 +19,8 @@ import { selectSettlementActions } from "./settlement";
 import type {
   SettlementActionBlocker,
   SettlementChainDisbursement,
+  SettlementChainPlan,
+  SettlementChainRow,
   SettlementDisbursementView,
   SettlementDisplayState,
   SettlementNextAction,
@@ -43,7 +45,24 @@ function connectionBlockers(input: SettlementWorkflowInput): SettlementActionBlo
   if (!input.authority.viewer) blockers.push("wallet-disconnected");
   if (!input.isOnline) blockers.push("offline");
   if (input.isActing) blockers.push("acting");
+  if (input.proposalPending) blockers.push("proposal-pending");
   return blockers;
+}
+
+/**
+ * What a step sent from here would change on chain, to tell when a Safe proposal
+ * has run. The read's own time and the module-wide switches are left out.
+ */
+export function settlementProgressKey(chain: {
+  payoutPlanId: bigint | null;
+  plan: SettlementChainPlan | null;
+  rows: readonly SettlementChainRow[];
+  disbursements: readonly SettlementChainDisbursement[];
+}): string {
+  return JSON.stringify(
+    [chain.payoutPlanId, chain.plan, chain.rows, chain.disbursements],
+    (_key, value) => (typeof value === "bigint" ? value.toString() : value)
+  );
 }
 
 function stewardBlockers(input: SettlementWorkflowInput): SettlementActionBlocker[] {
@@ -97,7 +116,11 @@ function disbursementView(
     Boolean(input.authority.viewer) &&
     input.isOnline &&
     !input.isActing &&
+    !input.proposalPending &&
     input.chainRead === "ready";
+  // A dispatch or resend spends the CCIP fee before Celo can refuse, so it needs a
+  // read that says the Safe can send this. A requeue or a cancel moves nothing.
+  const sendable = input.transferBlock(disbursement) === null;
   const actions = selectSettlementActions({
     state: disbursement.state,
     isBatch: false,
@@ -114,8 +137,11 @@ function disbursementView(
     actions: {
       // LifecycleLib.dispatchDisbursement refuses a batched child; the batch
       // is dispatched as a whole through its own surface.
-      dispatch: actions.dispatch && !(disbursement.batchId !== null && disbursement.batchId !== 0n),
-      retry: actions.retrySameCommand,
+      dispatch:
+        actions.dispatch &&
+        sendable &&
+        !(disbursement.batchId !== null && disbursement.batchId !== 0n),
+      retry: actions.retrySameCommand && sendable,
       requeue: actions.startNewAttempt,
       cancel: actions.cancelIndividual,
     },
@@ -225,11 +251,18 @@ export function selectSettlementWorkflow(input: SettlementWorkflowInput): Settle
   const allConfirmed = states.length > 0 && states.every((state) => state === "CONFIRMED");
   const anyToDispatch = states.some((state) => state === "QUEUED" || state === "FAILED");
   const anyDispatched = states.some((state) => state === "DISPATCHED");
+  const fundingBlockers = views.flatMap((view): SettlementActionBlocker[] => {
+    if (view.disbursement.state !== "QUEUED") return [];
+    const block = input.transferBlock(view.disbursement);
+    if (block === null) return [];
+    return [block === "limits_unread" ? "funding-unread" : "funding-over-limit"];
+  });
   const dispatchBlockers = anyToDispatch
     ? unique([
         ...base,
         ...(input.authority.canDispatchOrRetry ? [] : (["missing-operator"] as const)),
         ...pausedBlockers(input),
+        ...fundingBlockers,
       ])
     : [];
   steps.push({
