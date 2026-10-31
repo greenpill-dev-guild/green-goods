@@ -2,7 +2,7 @@ import messages from "@green-goods/shared/i18n/en.json";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockJoinGarden = vi.fn();
 const mockToastSuccess = vi.fn();
@@ -20,6 +20,8 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
 }));
 
 import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton";
+// The button loads this with its first press; a slow first import is not what these tests prove.
+import "@/components/Features/Garden/JoinGardenConfirmDialog";
 
 /** Render at phone width, where the confirmation is a bottom sheet. */
 function stubPhoneViewport() {
@@ -62,9 +64,6 @@ function renderOnGardenPage() {
 
 describe("JoinGardenButton", () => {
   const originalMatchMedia = window.matchMedia;
-
-  // The confirmation's code loads with the first press; a slow first import is not what these test.
-  beforeAll(() => import("@/components/Features/Garden/JoinGardenConfirmDialog"));
 
   beforeEach(() => {
     vi.clearAllMocks();

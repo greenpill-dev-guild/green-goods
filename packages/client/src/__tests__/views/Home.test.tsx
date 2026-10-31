@@ -152,6 +152,10 @@ vi.mock("../../views/Home/Journal", async () => {
 
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton";
+// Home and the button load these with their first opening. A slow first import is not what these
+// tests prove, and a sheet that opened by itself would show at once.
+import "@/components/Features/Garden/JoinGardenConfirmDialog";
+import "../../views/Home/GardenSwitcher";
 import Home from "../../views/Home";
 import { hasArrivalPassed, markArrivalPassed } from "../../views/Home/arrivalToast";
 
@@ -375,8 +379,6 @@ describe("the first-login page", () => {
   });
 
   it("lists a member's gardens under Explore with their role, and opens no sheet by itself", async () => {
-    // The sheet's code is at hand, so a sheet that opened by itself would show here.
-    await import("../../views/Home/GardenSwitcher");
     setActive("choose", SEVERAL);
     renderHome();
     await act(() => vi.advanceTimersByTimeAsync(1_000));
@@ -455,8 +457,6 @@ describe("a garden change", () => {
 
 describe("joining an open garden from its page", () => {
   it("opens Home in the joined garden at its top, whatever garden was active before", async () => {
-    // The confirmation's code loads with the first press.
-    await import("@/components/Features/Garden/JoinGardenConfirmDialog");
     const mine: Array<[Garden, Role[]]> = [[TAS, ["steward"]]];
     setActive("ready", mine, TAS.id);
     joinGarden.mockImplementation(async () => {
