@@ -130,32 +130,38 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
       aria-labelledby={titleId}
       data-component="KarmaIntegrationPanel"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <AdminCardTitle id={titleId}>
+      {/* The status shares the title's line and never wraps; the description
+          takes the card's full width under them, so a two-word status such as
+          "Migration needed" stays one line in the rail (qa-session 2026-10-30
+          OBS-06). */}
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <AdminCardTitle id={titleId} className="min-w-0">
             {formatMessage({
               id: "cockpit.garden.karma.title",
               defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
-          <p className="mt-1 type-meta text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.karma.description",
-              defaultMessage:
-                "Check the public Karma profile and repair project or role sync when needed.",
-            })}
-          </p>
+          <span className="shrink-0 whitespace-nowrap">
+            <StatusBadge
+              variant={presentation.variant}
+              size="sm"
+              aria-live={integration.status.status === "retrying" ? "off" : "polite"}
+            >
+              {formatMessage({
+                id: presentation.badgeId,
+                defaultMessage: presentation.badgeDefault,
+              })}
+            </StatusBadge>
+          </span>
         </div>
-        <StatusBadge
-          variant={presentation.variant}
-          size="sm"
-          aria-live={integration.status.status === "retrying" ? "off" : "polite"}
-        >
+        <p className="mt-1 type-meta text-text-soft">
           {formatMessage({
-            id: presentation.badgeId,
-            defaultMessage: presentation.badgeDefault,
+            id: "cockpit.garden.karma.description",
+            defaultMessage:
+              "Check the public Karma profile and repair project or role sync when needed.",
           })}
-        </StatusBadge>
+        </p>
       </div>
 
       <p className="type-body text-text-sub">
