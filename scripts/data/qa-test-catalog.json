@@ -2462,19 +2462,19 @@
       "priority": "P0",
       "kind": "journey",
       "area": "Work",
-      "scenario": "Pending tab filters: All, Needs review, and My submissions with the time filter",
+      "scenario": "Your Work's Pending holds your own work, and To Review the queue you may review, each counted on its tab",
       "preconditions": [
-        "Steward of one garden with pending work from another gardener",
-        "One own pending submission in any garden"
+        "Steward or owner of one garden with pending work from another gardener",
+        "One own pending submission in that garden, which is the active garden"
       ],
       "steps": [
-        "Open the work dashboard's Pending tab",
-        "Switch the filter between All, Needs review, and My submissions",
-        "Change the time filter from Month to Day, Week, and Year",
-        "Open a row"
+        "Open Your Work on its Pending tab and read its list, its filter and its count",
+        "Open the To Review tab and read its list and count against Needs Your Attention on Home",
+        "Open a row",
+        "Sign in as a gardener or an evaluator of that garden and open Your Work"
       ],
-      "expected": "All lists both kinds; Needs review shows only other gardeners' work in gardens you steward, never your own submission, each badged 'Needs review'; My submissions shows only yours; the time filter narrows the list to that window; a row opens its work detail",
-      "evidence": "Screenshots of each filter",
+      "expected": "Pending lists only your own work, never the queue, and its count matches the Home badge; To Review lists only other gardeners' work that waits for you, each marked To review, and its count matches Needs Your Attention; a row opens its work detail; a gardener or an evaluator alone sees no To Review tab",
+      "evidence": "Screenshots of Pending and To Review, and of a gardener's Your Work",
       "role": "steward",
       "tags": ["my-work"],
       "requiresProduction": false,
@@ -10585,7 +10585,7 @@
       "steps": [
         "Reload the app, open Submit Work and read the sheet",
         "Choose Start Fresh and inspect the wizard",
-        "Choose a different action and garden, then leave Submit Work",
+        "Choose an action, add a photo or a note, then leave Submit Work",
         "Open Your Work, choose Editing and read both draft rows",
         "Resume the first draft and inspect the restored wizard"
       ],
