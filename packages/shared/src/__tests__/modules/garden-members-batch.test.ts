@@ -314,6 +314,24 @@ describe("holding an add whose outcome is unknown", () => {
     });
     await expect(readAddMembersHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });
+
+  it("tells a tab about an add another tab ended, without the hash that would count it twice", async () => {
+    const { input, sender, wear } = setup();
+    const rows = [row(), row()];
+    await add(input, rows);
+    const { hold: shown } = await readAddMembersHold(input);
+    sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
+    wear(...rows);
+
+    const { saved: endedHere } = await readAddMembersHold(input);
+    expect(endedHere[0].transactionHash).toBe(hash);
+
+    const { saved: endedElsewhere } = await readAddMembersHold(input, shown);
+    expect(endedElsewhere.map(({ address: member }) => member)).toEqual(
+      rows.map((member) => member.address.toLowerCase())
+    );
+    expect(endedElsewhere[0].transactionHash).toBeUndefined();
+  });
 });
 
 /** The journal's item IDs carry lowercase addresses, so a row read back from one does too. */

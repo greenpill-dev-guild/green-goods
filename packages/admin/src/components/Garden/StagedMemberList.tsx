@@ -1,7 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine, RiUserAddLine } from "@remixicon/react";
@@ -13,7 +12,7 @@ interface StagedMemberListProps {
   members: StagedMember[];
   /** Roles each address holds today (lowercase keys), for the "Currently a …" line. */
   rolesByAddress: Map<string, GardenRole[]>;
-  onRemove: (address: Address) => void;
+  onRemove: (member: StagedMember) => void;
   disabled?: boolean;
   /** What a row with an unknown outcome says. It cannot be removed until that settles. */
   heldNote?: (member: StagedMember) => string | null;
@@ -122,7 +121,7 @@ export function StagedMemberList({
                 <IconButton
                   size="compact"
                   className="shrink-0"
-                  onClick={() => onRemove(address)}
+                  onClick={() => onRemove(member)}
                   disabled={disabled || held !== null}
                   aria-label={formatMessage({
                     id: "admin.addMember.remove",

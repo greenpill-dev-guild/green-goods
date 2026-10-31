@@ -291,7 +291,7 @@ export interface AddMembersHold {
   onChain: (GardenMemberRow & { wearsRole: boolean })[];
 }
 
-/** A row a read proved landed, with the transaction that carried it when a receipt says so. */
+/** A row a read proved landed. The hash comes only from the tab that ended it, so it counts once. */
 export type ProvenMemberRow = GardenMemberRow & { transactionHash?: Hex };
 
 interface AddMembersSettlement {
@@ -305,7 +305,7 @@ async function settleOpenAdds(
   options: { shown?: AddMembersHold | null; onlyShown?: boolean } = {}
 ): Promise<AddMembersSettlement> {
   const { batches, scope, gardenAddress, chain } = input;
-  const { held, ended } = await settleOpenBatches({
+  const { held, ended, endedHere } = await settleOpenBatches({
     batches,
     scope,
     domain: addMembersDomain(gardenAddress),
@@ -314,12 +314,11 @@ async function settleOpenAdds(
     shownIds: options.shown?.operationIds,
     onlyShown: options.onlyShown,
   });
-  const saved = ended.flatMap((record) =>
-    rowsOf(provenItems(record)).map((row) => ({
-      ...row,
-      transactionHash: record.receipts[0]?.transactionHash,
-    }))
-  );
+  const saved = ended.flatMap((record) => {
+    const here = endedHere.includes(record);
+    const transactionHash = here ? record.receipts[0]?.transactionHash : undefined;
+    return rowsOf(provenItems(record)).map((row) => ({ ...row, transactionHash }));
+  });
   const rows = held.flatMap((record) => rowsOf(record.prepared.items));
   if (rows.length === 0) return { hold: null, saved };
 

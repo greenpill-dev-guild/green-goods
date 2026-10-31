@@ -6,6 +6,7 @@ import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGar
 import { useGardenRoleHat } from "@green-goods/shared/hooks/roles/useGardenRoleHat";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { resolveEnsAddress } from "@green-goods/shared/utils/blockchain/ens";
 import {
   GARDEN_ROLE_ORDER,
@@ -24,6 +25,7 @@ import {
   buildRolesByAddress,
   canStage,
   checkEntry,
+  memberListKey,
   memberRowKey,
   type StagedMember,
   sharedRole,
@@ -42,10 +44,7 @@ export interface AddMembersDialogProps {
    * retry. Wire this to `useGardenOperations` in the hosting view.
    */
   onAdd: (role: GardenRole, address: Address) => Promise<{ success: boolean }>;
-  /**
-   * Lets a list go under fewer signatures, and settles an add whose outcome is
-   * unknown. Those rows stay listed and locked until it settles.
-   */
+  /** Lets a list go under fewer signatures, and settles an add whose outcome is unknown. */
   batch?: ReturnType<typeof useAddMembersBatch>;
   /** The garden being written to; the chain confirms held roles against it. */
   gardenAddress: Address;
@@ -91,18 +90,19 @@ export function AddMembersDialog({
   const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [shownFor, setShownFor] = useState({ open, initialAddress });
-  // Past its ceilings a list goes one person at a time, once the person has seen what that costs.
-  const [oneAtATime, setOneAtATime] = useState(false);
+  // The list that came back past its ceilings. It goes one person at a time now the person has seen
+  // what that costs. Any change makes it a different list, which gets a fresh try.
+  const [overCeilings, setOverCeilings] = useState<string | null>(null);
   const [draftAccount, setDraftAccount] = useState(batch?.account ?? null);
   // A draft is its signer's. A hold is scoped to who sent it, so another account would find held
   // rows unlocked and could send them again. A wallet dropping and coming back is the same person.
-  if (batch?.account && batch.account !== draftAccount) {
+  if (batch?.account && !compareAddresses(batch.account, draftAccount)) {
     setDraftAccount(batch.account);
     if (draftAccount) {
       setPending([]);
       setInput(initialAddress ?? "");
       setError("");
-      setOneAtATime(false);
+      setOverCeilings(null);
     }
   }
   const hold = batch?.hold ?? null;
@@ -172,7 +172,7 @@ export function AddMembersDialog({
     // A held row is not the person's to drop: it stays until it settles.
     setPending((current) => current.filter(isHeld));
     setError("");
-    setOneAtATime(false);
+    setOverCeilings(null);
   };
 
   const resolveInput = async (): Promise<Address | null> => {
@@ -214,13 +214,10 @@ export function AddMembersDialog({
     if (!stageable(resolved)) return;
     setPending((prev) => [...prev, { address: resolved, role: selectedRole }]);
     setInput("");
-    setOneAtATime(false);
   };
 
-  const removeEntry = (address: Address) => {
-    setPending((prev) => prev.filter((entry) => entry.address !== address || isHeld(entry)));
-    setOneAtATime(false);
-  };
+  const removeEntry = (row: StagedMember) =>
+    setPending((prev) => prev.filter((entry) => memberRowKey(entry) !== memberRowKey(row)));
 
   const handlePaste = async () => {
     try {
@@ -267,7 +264,7 @@ export function AddMembersDialog({
       const run = await runAddMembers({
         rows,
         addOne: onAdd,
-        addBatch: batch?.available && !oneAtATime ? batch.add : undefined,
+        addBatch: batch?.available && memberListKey(rows) !== overCeilings ? batch.add : undefined,
         onLanded: (landed) => setPending((current) => stagedAfterRead(current, [], landed)),
       });
       setPending((current) => [...current.filter(isHeld), ...run.remaining]);
@@ -281,7 +278,7 @@ export function AddMembersDialog({
       } else if (run.failedCount > 0) {
         setError(addFailed);
       } else if (run.needsMoreSignatures) {
-        setOneAtATime(true);
+        setOverCeilings(memberListKey(run.remaining));
         setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }));
       } else if (run.remaining.length === 0 && !hold) {
         resetDraft();
@@ -306,10 +303,11 @@ export function AddMembersDialog({
   };
 
   const formId = "admin-add-members-dialog";
-  const batchRoles = [
-    ...sendable.map((entry) => entry.role),
-    ...(typedEntryCommitReady ? [selectedRole] : []),
-  ];
+  const batchRows: StagedMember[] =
+    typedEntryCommitReady && typedResolvedAddress
+      ? [...sendable, { address: typedResolvedAddress, role: selectedRole }]
+      : sendable;
+  const batchRoles = batchRows.map((entry) => entry.role);
   const batchCount = batchRoles.length;
   // The button names the role when every row shares it; an empty list names
   // the role the picker would add.
@@ -327,7 +325,9 @@ export function AddMembersDialog({
         { count: batchCount }
       );
   const signatureCount =
-    batch?.available && !oneAtATime ? batch.signaturesFor(batchCount) : batchCount;
+    batch?.available && memberListKey(batchRows) !== overCeilings
+      ? batch.signaturesFor(batchCount)
+      : batchCount;
   const closeAndReset = () => {
     resetDraft();
     onClose();

@@ -119,7 +119,8 @@ const WITH_GARDENER_A: Record<GardenRole, Address[]> = { ...NO_MEMBERS, gardener
 
 type AddMembersBatch = ReturnType<typeof useAddMembersBatch>;
 
-const SIGNER = "0x3333333333333333333333333333333333333333" as Address;
+const SIGNER = "0xabcdef3333333333333333333333333333333333" as Address;
+const CHECKSUMMED_SIGNER = "0xABCDEF3333333333333333333333333333333333" as Address;
 const OTHER_SIGNER = "0x4444444444444444444444444444444444444444" as Address;
 const ROW_A = { address: ADDRESS_A, role: "gardener" as const };
 const ROW_B = { address: ADDRESS_B, role: "gardener" as const };
@@ -434,7 +435,8 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(screen.queryByText(/signature/)).not.toBeInTheDocument();
 
     await stage(user, ADDRESS_A, ADDRESS_B);
-    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    // A maximum: someone who has gained the role by then is skipped, with nothing to sign.
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
 
     rerender(createElement(AddMembersDialog, { ...defaultProps, batch: batchWith() }));
     expect(screen.getByText("1 signature")).toBeInTheDocument();
@@ -476,7 +478,7 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
 
     expect(await screen.findByText(/can’t share one signature right now/)).toBeInTheDocument();
-    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
 
@@ -495,10 +497,46 @@ describe("components/Garden/AddMembersDialog", () => {
 
     await stage(user, ADDRESS_A, ADDRESS_B);
     await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
-    expect(await screen.findByText("2 signatures")).toBeInTheDocument();
+    expect(await screen.findByText("Up to 2 signatures")).toBeInTheDocument();
 
-    await stage(user, "0x5555555555555555555555555555555555555555" as Address);
+    // A typed person changes the list too, without being staged first.
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste("0x5555555555555555555555555555555555555555");
     expect(screen.getByText("1 signature")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add 3 Gardeners" }));
+
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(batch.add).mock.calls[1][0]).toHaveLength(3);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("removes only the row pressed when a person has two", async () => {
+    const user = userEvent.setup({ delay: null });
+    const rows = [ROW_A, { address: ADDRESS_A, role: "steward" as const }];
+    const held = { operationIds: ["held-add"], rows, onChain: [] };
+    const { rerender } = render(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ hold: held, lastReadAt: 1 }),
+      })
+    );
+    await waitFor(() => expect(stagedList().getAllByRole("listitem")).toHaveLength(2));
+
+    rerender(
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ hold: null, lastReadAt: 2 }),
+      })
+    );
+    await waitFor(() =>
+      expect(stagedList().getAllByRole("button", { name: "Remove" })[0]).toBeEnabled()
+    );
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+
+    const left = stagedList().getAllByRole("listitem");
+    expect(left).toHaveLength(1);
+    expect(within(left[0]).getByText("Steward")).toBeInTheDocument();
   });
 
   it("says why a list stopped before anything went out", async () => {
@@ -528,8 +566,12 @@ describe("components/Garden/AddMembersDialog", () => {
     rerender(
       createElement(AddMembersDialog, { ...defaultProps, batch: batchWith({ account: null }) })
     );
+    // Wallets can report one address in different casings.
     rerender(
-      createElement(AddMembersDialog, { ...defaultProps, batch: batchWith({ account: SIGNER }) })
+      createElement(AddMembersDialog, {
+        ...defaultProps,
+        batch: batchWith({ account: CHECKSUMMED_SIGNER }),
+      })
     );
     expect(stagedList().getAllByRole("listitem")).toHaveLength(2);
 

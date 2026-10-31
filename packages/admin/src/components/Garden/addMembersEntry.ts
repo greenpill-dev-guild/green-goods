@@ -17,6 +17,8 @@ export interface StagedMember {
 /** Which add a row belongs to: a person can have an unsettled add under another role. */
 export const memberRowKey = ({ address, role }: StagedMember) => `${address.toLowerCase()}:${role}`;
 
+export const memberListKey = (rows: readonly StagedMember[]) => rows.map(memberRowKey).join();
+
 /** The roles each address holds today, keyed by lowercase address, in display order. */
 export function buildRolesByAddress(
   roleMembers: Record<GardenRole, Address[]>

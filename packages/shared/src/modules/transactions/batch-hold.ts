@@ -46,7 +46,7 @@ export async function settleOpenBatches(input: {
   settle: BatchOperations["reconcile"];
   shownIds?: readonly string[];
   onlyShown?: boolean;
-}): Promise<{ held: BatchRecord[]; ended: BatchRecord[] }> {
+}): Promise<{ held: BatchRecord[]; ended: BatchRecord[]; endedHere: BatchRecord[] }> {
   const { batches, scope, domain, verifierFor, settle, shownIds = [], onlyShown = false } = input;
   const records = await batches.list(scope);
   const open = records.filter(
@@ -66,10 +66,11 @@ export async function settleOpenBatches(input: {
           })
     )
   );
+  const endedHere = settled.filter((record) => !UNKNOWN_BATCH_STATES.has(record.status));
   return {
     held: settled.filter((record) => UNKNOWN_BATCH_STATES.has(record.status)),
-    ended: [...settled, ...endedElsewhere].filter(
-      (record) => !UNKNOWN_BATCH_STATES.has(record.status)
-    ),
+    ended: [...endedHere, ...endedElsewhere],
+    // One tab ends a save and every tab showing it hears: count it here, not there, to count it once.
+    endedHere,
   };
 }
