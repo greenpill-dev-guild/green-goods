@@ -115,4 +115,24 @@ describe("EditGardenDialog", () => {
     await user.click(screen.getByRole("button", { name: "Move On" }));
     expect(settingsBatch.moveOn).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps Move On off until every held value has been read", async () => {
+    settingsBatch.lastReadAt = 1;
+    settingsBatch.hold = {
+      operationIds: ["a"],
+      fields: ["name", "openJoining"],
+      attempted: [
+        { field: "name", value: "Tech and Sun Hub" },
+        { field: "openJoining", value: false },
+      ],
+      onChain: [{ field: "name", value: "Tech and Sun" }],
+    };
+    renderDialog(CAPPED_GARDEN);
+
+    expect(
+      await screen.findByText("Some values couldn’t be read just now. Check again to move on.")
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+  });
 });

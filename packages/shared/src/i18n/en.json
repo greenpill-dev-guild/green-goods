@@ -2546,7 +2546,7 @@
   "app.garden.settings.hold.title": "We couldn’t confirm your last save.",
   "app.garden.settings.hold.body": "It could still land, so these fields stay locked until you check again or move on.",
   "app.garden.settings.hold.onChain": "{field} on chain: {value}",
-  "app.garden.settings.hold.unread": "Some values couldn’t be read just now.",
+  "app.garden.settings.hold.unread": "Some values couldn’t be read just now. Check again to move on.",
   "app.garden.settings.hold.checkAgain": "Check Again",
   "app.garden.settings.hold.moveOn": "Move On",
   "app.garden.settings.hold.on": "On",

@@ -12,7 +12,6 @@ import type { BatchRail } from "../transactions/batch-enablement";
 import {
   type BatchBudget,
   type BatchOperations,
-  type BatchRecord,
   type BatchScope,
   type PreparedBatch,
   UNKNOWN_BATCH_STATES,
@@ -174,7 +173,7 @@ const VERIFY_ATTEMPTS = 3;
  */
 export function verifyGardenSettings(
   prepared: PreparedBatch,
-  options: Pick<GardenSettingsBatchInput, "gardenAddress" | "chain"> & { retryMs?: number }
+  options: Pick<GardenSettingsBatchInput, "gardenAddress" | "chain" | "retryMs">
 ): VerifyBatchItems {
   const { gardenAddress, chain, retryMs = 1_500 } = options;
   return async ({ itemIds }) => {
@@ -221,6 +220,8 @@ interface GardenSettingsBatchInput {
   scope: BatchScope;
   gardenAddress: Address;
   chain: GardenSettingsChain;
+  /** How long to wait before reading again when the chain disagrees with a receipt. */
+  retryMs?: number;
 }
 
 export type GardenSettingsBatchOutcome =
@@ -249,7 +250,7 @@ export async function sendGardenSettingsBatch(
     });
     const record = await batches.execute(prepared, {
       preflight: (reviewed, itemIds) => checkPermissions(reviewed, itemIds, chain),
-      verify: verifyGardenSettings(prepared, { gardenAddress, chain }),
+      verify: verifyGardenSettings(prepared, input),
     });
     if (record.status === "confirmed")
       return { status: "saved", transactionHash: record.receipts[0].transactionHash };
@@ -278,10 +279,8 @@ export interface GardenSettingsSettlement {
   saved: GardenSettingsChange[];
 }
 
-const changesOf = (record: BatchRecord, confirmed: boolean) =>
-  record.prepared.items
-    .filter((item) => (record.itemStates[item.id] === "confirmed") === confirmed)
-    .map((item) => changeFrom(item.id as GardenSettingsField, writtenBy(item)));
+const changesOf = (items: PreparedBatch["items"]) =>
+  items.map((item) => changeFrom(item.id as GardenSettingsField, writtenBy(item)));
 
 async function settleOpenSaves(
   input: GardenSettingsBatchInput,
@@ -297,20 +296,24 @@ async function settleOpenSaves(
     open.map((record) =>
       only && !only.includes(record.id)
         ? record
-        : settle(
-            record.id,
-            scope,
-            verifyGardenSettings(record.prepared, { gardenAddress, chain })
-          ).catch((error: unknown) => {
-            // Another tab may be working on it. The hold stands; it can be read again.
-            logger.warn("Could not read a held garden settings save", { error, id: record.id });
-            return record;
-          })
+        : settle(record.id, scope, verifyGardenSettings(record.prepared, input)).catch(
+            (error: unknown) => {
+              // Another tab may be working on it. The hold stands; it can be read again.
+              logger.warn("Could not read a held garden settings save", { error, id: record.id });
+              return record;
+            }
+          )
     )
   );
-  const saved = settled.flatMap((record) => changesOf(record, true));
+  // A save stays whole until it ends. What it proved is reported once, when it ends, so a later
+  // read cannot put an old value back over a newer edit.
   const held = settled.filter((record) => UNKNOWN_BATCH_STATES.has(record.status));
-  const attempted = held.flatMap((record) => changesOf(record, false));
+  const attempted = held.flatMap((record) => changesOf(record.prepared.items));
+  const saved = settled
+    .filter((record) => !UNKNOWN_BATCH_STATES.has(record.status))
+    .flatMap((record) =>
+      changesOf(record.prepared.items.filter((item) => record.itemStates[item.id] === "confirmed"))
+    );
   if (attempted.length === 0) return { hold: null, saved };
 
   const fields = attempted.map((change) => change.field);
@@ -339,5 +342,7 @@ export function moveOnFromGardenSettingsHold(
   input: GardenSettingsBatchInput,
   hold: GardenSettingsHold
 ) {
+  // A value that could not be read has not been seen, so the hold stands until a read finds it.
+  if (hold.onChain.length < hold.fields.length) return readGardenSettingsHold(input);
   return settleOpenSaves(input, input.batches.release, hold.operationIds);
 }

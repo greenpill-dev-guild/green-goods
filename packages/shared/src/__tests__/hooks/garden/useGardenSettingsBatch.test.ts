@@ -15,15 +15,23 @@ import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
 
-const { auth, chainValues, mockErrorHandler, mockIsBatchEnabled, mockSimulate, sending } =
-  vi.hoisted(() => ({
-    auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
-    chainValues: {} as Record<string, unknown>,
-    mockErrorHandler: vi.fn(),
-    mockIsBatchEnabled: vi.fn(),
-    mockSimulate: vi.fn(),
-    sending: { sender: null as unknown },
-  }));
+const {
+  auth,
+  chainValues,
+  connection,
+  mockErrorHandler,
+  mockIsBatchEnabled,
+  mockSimulate,
+  sending,
+} = vi.hoisted(() => ({
+  auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
+  connection: { connector: { uid: "first-wallet" } as { uid: string } | undefined },
+  chainValues: {} as Record<string, unknown>,
+  mockErrorHandler: vi.fn(),
+  mockIsBatchEnabled: vi.fn(),
+  mockSimulate: vi.fn(),
+  sending: { sender: null as unknown },
+}));
 
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 42161 }));
 vi.mock("../../../hooks/blockchain/useContractTxSender", () => ({
@@ -33,6 +41,7 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => sending.sender,
 }));
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => auth }));
+vi.mock("wagmi", () => ({ useAccount: () => connection }));
 vi.mock("../../../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mockErrorHandler,
 }));
@@ -77,15 +86,17 @@ function renderBatch(
   sending.sender = sender;
   const queryClient = createTestQueryClient();
   const invalidate = vi.spyOn(queryClient, "invalidateQueries");
-  const { result } = renderHookWithProviders(() => useGardenSettingsBatch(gardenAddress), {
-    queryClient,
-  });
-  return { result, sender, invalidate };
+  const { result, rerender } = renderHookWithProviders(
+    () => useGardenSettingsBatch(gardenAddress),
+    { queryClient }
+  );
+  return { result, rerender, sender, invalidate };
 }
 
 describe("useGardenSettingsBatch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    connection.connector = { uid: "first-wallet" };
     mockIsBatchEnabled.mockReturnValue(true);
     mockSimulate.mockResolvedValue(undefined);
     Object.assign(chainValues, { name: "Old name", openJoining: false });
@@ -116,6 +127,23 @@ describe("useGardenSettingsBatch", () => {
     await waitFor(() => expect(notAtomic.sender.getBatchCapability).toHaveBeenCalled());
     await waitFor(() => expect(notAtomic.result.current.isSettlingHold).toBe(false));
     expect(notAtomic.result.current.available).toBe(false);
+  });
+
+  it("asks again when the same account reconnects through another wallet", async () => {
+    const { result, sender, rerender } = renderBatch({}, "ready");
+    await waitFor(() => expect(sender.getBatchCapability).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.isSettlingHold).toBe(false));
+    expect(result.current.available).toBe(false);
+
+    connection.connector = { uid: "second-wallet" };
+    sender.getBatchCapability = vi.fn(async (scope) => ({
+      ...scope,
+      atomic: "supported" as const,
+    }));
+    rerender();
+
+    await waitFor(() => expect(result.current.available).toBe(true));
+    expect(sender.getBatchCapability).toHaveBeenCalledTimes(1);
   });
 
   it("refreshes the garden after a save lands", async () => {

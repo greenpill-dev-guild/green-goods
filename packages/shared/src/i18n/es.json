@@ -2546,7 +2546,7 @@
   "app.garden.settings.hold.title": "No pudimos confirmar tu último guardado.",
   "app.garden.settings.hold.body": "Aún podría aplicarse, así que estos campos siguen bloqueados hasta que vuelvas a comprobar o sigas adelante.",
   "app.garden.settings.hold.onChain": "{field} en cadena: {value}",
-  "app.garden.settings.hold.unread": "Algunos valores no se pudieron leer ahora.",
+  "app.garden.settings.hold.unread": "Algunos valores no se pudieron leer ahora. Vuelve a comprobar para seguir adelante.",
   "app.garden.settings.hold.checkAgain": "Comprobar de nuevo",
   "app.garden.settings.hold.moveOn": "Seguir adelante",
   "app.garden.settings.hold.on": "Activado",

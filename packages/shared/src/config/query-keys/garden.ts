@@ -19,8 +19,9 @@ export const gardensKeys = {
  * save refreshes the garden and reading a hold can settle it.
  */
 export const gardenSettingsBatchKeys = {
-  capability: (account: string, chainId: number) =>
-    ["greengoods", "garden-settings-batch", "capability", account, chainId] as const,
+  /** Per connector: the same account can reconnect through a wallet that batches differently. */
+  capability: (account: string, chainId: number, connectorId: string) =>
+    ["greengoods", "garden-settings-batch", "capability", account, chainId, connectorId] as const,
   hold: (gardenId: string, account: string, chainId: number) =>
     ["greengoods", "garden-settings-batch", "hold", gardenId, account, chainId] as const,
 } as const;

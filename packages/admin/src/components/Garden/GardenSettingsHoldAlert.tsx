@@ -24,6 +24,8 @@ export function GardenSettingsHoldAlert({
   onMoveOn: () => void;
 }) {
   const { formatMessage } = useIntl();
+  // A person moves on only from values they have seen.
+  const hasUnreadValues = hold.onChain.length < hold.fields.length;
   return (
     <Alert
       variant="warning"
@@ -53,7 +55,7 @@ export function GardenSettingsHoldAlert({
             emphasis="tertiary"
             size="sm"
             onClick={onMoveOn}
-            disabled={isSaving || isSettling}
+            disabled={isSaving || isSettling || hasUnreadValues}
           >
             {formatMessage({ id: "app.garden.settings.hold.moveOn", defaultMessage: "Move On" })}
           </Button>
@@ -83,11 +85,11 @@ export function GardenSettingsHoldAlert({
           );
         })}
       </ul>
-      {hold.onChain.length < hold.fields.length ? (
+      {hasUnreadValues ? (
         <p className="mt-2">
           {formatMessage({
             id: "app.garden.settings.hold.unread",
-            defaultMessage: "Some values couldn’t be read just now.",
+            defaultMessage: "Some values couldn’t be read just now. Check again to move on.",
           })}
         </p>
       ) : null}

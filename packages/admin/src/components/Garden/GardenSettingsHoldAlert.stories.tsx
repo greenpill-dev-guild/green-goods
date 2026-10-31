@@ -54,12 +54,15 @@ export const ChainValues: Story = {
   },
 };
 
-/** A read failed: the hold stands and says some values are missing. */
+/** A read failed: the hold stands, and moving on waits until every value has been seen. */
 export const SomeValuesUnread: Story = {
   args: { hold: { ...HOLD, onChain: HOLD.onChain.slice(0, 1) } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Some values couldn’t be read just now.")).toBeVisible();
+    await expect(
+      canvas.getByText("Some values couldn’t be read just now. Check again to move on.")
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Move On" })).toBeDisabled();
   },
 };
 

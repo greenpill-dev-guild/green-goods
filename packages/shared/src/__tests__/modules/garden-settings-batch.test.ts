@@ -47,7 +47,7 @@ function setup(execution: Partial<BatchExecution> = {}, values: Record<string, u
   const sender = createFakeBatchingSender(account, execution);
   const batches = sender.batches!;
   const { chain, update } = chainHolding({ name: "Old name", openJoining: false, ...values });
-  const input = { batches, chain, gardenAddress, scope: { account, chainId } };
+  const input = { batches, chain, gardenAddress, scope: { account, chainId }, retryMs: 0 };
   return { ...input, input, sender, update };
 }
 
@@ -323,6 +323,43 @@ describe("holding a save whose outcome is unknown", () => {
     const { hold } = await moveOnFromGardenSettingsHold(input, shown!);
 
     expect(hold?.fields).toEqual(["description", "location"]);
+  });
+
+  it("will not move on from a value the person could not see", async () => {
+    const { input, chain, batches } = setup();
+    await send(input);
+    chain.read.mockRejectedValueOnce(new Error("rpc down"));
+    const { hold: unread } = await readGardenSettingsHold(input);
+    expect(unread?.onChain).toHaveLength(1);
+    const release = vi.spyOn(batches, "release");
+
+    const { hold } = await moveOnFromGardenSettingsHold(input, unread!);
+
+    expect(release).not.toHaveBeenCalled();
+    expect(hold?.fields).toEqual(["name", "openJoining"]);
+    expect(hold?.onChain).toHaveLength(2);
+  });
+
+  it("keeps a partly proven save whole until it ends, then reports what it proved once", async () => {
+    const { input, sender, update } = setup();
+    await send(input);
+    sender.reconcileBatch = vi.fn(async () => ({
+      status: "confirmed" as const,
+      receipts: [{ transactionHash: hash, status: "success" as const }],
+      sponsored: true,
+    }));
+    // Someone else changed open joining right after, so only the name can be proven.
+    update({ name: "Tech and Sun" });
+
+    const partial = await readGardenSettingsHold(input);
+    expect(partial.saved).toEqual([]);
+    expect(partial.hold?.fields).toEqual(["name", "openJoining"]);
+    expect(partial.hold?.attempted).toEqual(NAME_AND_JOINING);
+
+    const ended = await moveOnFromGardenSettingsHold(input, partial.hold!);
+    expect(ended).toEqual({ hold: null, saved: [{ field: "name", value: "Tech and Sun" }] });
+
+    await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });
 
   it("stays in place when a record cannot be claimed, so nothing is sent over it", async () => {
