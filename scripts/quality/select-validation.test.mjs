@@ -2278,6 +2278,9 @@ test("signing, sending, queue and session hooks stay critical", () => {
     "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
     "packages/shared/src/hooks/garden/useJoinGarden.ts",
     "packages/shared/src/modules/transactions/wallet-sender.ts",
+    "packages/shared/src/modules/transactions/batch-hold.ts",
+    "packages/shared/src/modules/garden/members-batch.ts",
+    "packages/shared/src/modules/garden/settings-batch.ts",
     "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
   ]) {
     const plan = selectValidation({ intent: "push", changedPaths: [changedPath] });

@@ -1,4 +1,4 @@
-import type { Abi, Hex } from "viem";
+import type { Hex } from "viem";
 import type { Address, Domain } from "../../types/domain";
 import {
   ActionRegistryABI,
@@ -7,8 +7,8 @@ import {
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
 import { domainMaskOf, expandDomainMask } from "../../utils/domain";
-import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
+import { provenItems, settleOpenBatches, verifyByReading } from "../transactions/batch-hold";
 import {
   type BatchBudget,
   type BatchOperations,
@@ -17,7 +17,7 @@ import {
   UNKNOWN_BATCH_STATES,
   type VerifyBatchItems,
 } from "../transactions/batch-types";
-import { prepareBatch } from "../transactions/prepared-batch";
+import { onlyFunction, prepareBatch } from "../transactions/prepared-batch";
 import type { ContractCall } from "../transactions/types";
 
 /** One garden setting a save changes, and the value it writes. */
@@ -79,13 +79,8 @@ export function gardenSettingsBudget(rail: BatchRail, chainId: number): BatchBud
   return GARDEN_SETTINGS_BUDGETS[chainId]?.[rail] ?? null;
 }
 
-const gardenSettingsDomain = (gardenAddress: Address) =>
+export const gardenSettingsDomain = (gardenAddress: Address) =>
   `garden-settings:${gardenAddress.toLowerCase()}`;
-
-/** The journal stores every prepared call, so each carries only its own function. */
-function onlyFunction(abi: Abi, functionName: string): Abi {
-  return abi.filter((item) => item.type === "function" && item.name === functionName);
-}
 
 function callFor(change: GardenSettingsChange, gardenAddress: Address, chainId: number) {
   if (change.field === "domains")
@@ -164,33 +159,22 @@ function readSetting(
       });
 }
 
-const VERIFY_ATTEMPTS = 3;
-
-/**
- * Confirms a field only when the chain holds what the batch wrote: `setMaxGardeners` emits nothing,
- * so a receipt alone cannot say. An RPC can answer from before the receipt's block, so a mismatch
- * is read again before it stands.
- */
+/** `setMaxGardeners` emits nothing, so what the chain holds is what proves a field. */
 export function verifyGardenSettings(
   prepared: PreparedBatch,
   options: Pick<GardenSettingsBatchInput, "gardenAddress" | "chain" | "retryMs">
 ): VerifyBatchItems {
-  const { gardenAddress, chain, retryMs = 1_500 } = options;
-  return async ({ itemIds }) => {
-    const items = prepared.items.filter((item) => itemIds.includes(item.id));
-    for (let attempt = 1; ; attempt += 1) {
-      const onChain = await Promise.all(
-        items.map((item) =>
-          readSetting(item.id as GardenSettingsField, gardenAddress, prepared.chainId, chain)
-        )
-      );
-      const matched = items
-        .filter((item, index) => String(onChain[index]) === String(writtenBy(item)))
-        .map((item) => item.id);
-      if (matched.length === items.length || attempt === VERIFY_ATTEMPTS) return matched;
-      await new Promise((resolve) => setTimeout(resolve, retryMs));
-    }
-  };
+  const { gardenAddress, chain, retryMs } = options;
+  return verifyByReading(async (itemId) => {
+    const item = prepared.items.find((candidate) => candidate.id === itemId);
+    const onChain = await readSetting(
+      itemId as GardenSettingsField,
+      gardenAddress,
+      prepared.chainId,
+      chain
+    );
+    return item !== undefined && String(onChain) === String(writtenBy(item));
+  }, retryMs);
 }
 
 /** Roles can lapse while a form is open, and one stale role would revert the whole group. */
@@ -273,7 +257,7 @@ export interface GardenSettingsHold {
   onChain: GardenSettingsChange[];
 }
 
-export interface GardenSettingsSettlement {
+interface GardenSettingsSettlement {
   hold: GardenSettingsHold | null;
   /** Changes this read proved landed. */
   saved: GardenSettingsChange[];
@@ -285,40 +269,22 @@ const changesOf = (items: PreparedBatch["items"]) =>
 async function settleOpenSaves(
   input: GardenSettingsBatchInput,
   settle: BatchOperations["reconcile"],
-  { shown, onlyShown = false }: { shown?: GardenSettingsHold | null; onlyShown?: boolean } = {}
+  options: { shown?: GardenSettingsHold | null; onlyShown?: boolean } = {}
 ): Promise<GardenSettingsSettlement> {
   const { batches, scope, gardenAddress, chain } = input;
-  const domain = gardenSettingsDomain(gardenAddress);
-  const records = await batches.list(scope);
-  const open = records.filter(
-    (record) => record.prepared.domain === domain && UNKNOWN_BATCH_STATES.has(record.status)
-  );
-  // Another tab can end a save this one is showing, and it would no longer be among the open ones.
-  const endedElsewhere = records.filter(
-    (record) => shown?.operationIds.includes(record.id) && !UNKNOWN_BATCH_STATES.has(record.status)
-  );
-  const settled = await Promise.all(
-    open.map((record) =>
-      onlyShown && !shown?.operationIds.includes(record.id)
-        ? record
-        : settle(record.id, scope, verifyGardenSettings(record.prepared, input)).catch(
-            (error: unknown) => {
-              // Another tab may be working on it. The hold stands; it can be read again.
-              logger.warn("Could not read a held garden settings save", { error, id: record.id });
-              return record;
-            }
-          )
-    )
-  );
-  // A save stays whole until it ends. What it proved is reported once, when it ends, so a later
-  // read cannot put an old value back over a newer edit.
-  const held = settled.filter((record) => UNKNOWN_BATCH_STATES.has(record.status));
+  const { held, ended } = await settleOpenBatches({
+    batches,
+    scope,
+    domain: gardenSettingsDomain(gardenAddress),
+    verifierFor: (prepared) => verifyGardenSettings(prepared, input),
+    settle,
+    shownIds: options.shown?.operationIds,
+    onlyShown: options.onlyShown,
+  });
+  // What a save proved is reported once, when it ends, so a later read cannot put an old value
+  // back over a newer edit.
   const attempted = held.flatMap((record) => changesOf(record.prepared.items));
-  const saved = [...settled, ...endedElsewhere]
-    .filter((record) => !UNKNOWN_BATCH_STATES.has(record.status))
-    .flatMap((record) =>
-      changesOf(record.prepared.items.filter((item) => record.itemStates[item.id] === "confirmed"))
-    );
+  const saved = ended.flatMap((record) => changesOf(provenItems(record)));
   if (attempted.length === 0) return { hold: null, saved };
 
   const fields = attempted.map((change) => change.field);

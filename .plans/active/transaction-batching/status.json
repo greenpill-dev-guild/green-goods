@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T10:51:50.608Z"
+    "updated_at": "2026-10-31T21:17:02.026Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,19 +50,19 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "fix/batch-settings-findings",
+      "branch": "feature/batch-add-members",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/components/Garden/gardenSettingsDraft.test.ts src/components/Garden/gardenSettingsRun.test.ts",
-          "evidence": "2026-10-31 10:50:06 UTC: 3 failures: a read cleared a different file and a removal chosen while it ran, and the uploader could not say where a file went. Earlier proof is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx",
+          "evidence": "2026-10-31 21:08:33 UTC: 2 failed on behavior from the fourth review of #1400: one person on a listed rail skipped the journal, so another tab's hold could not refuse the row."
         },
         "green": {
-          "command": "bun run --cwd packages/admin test src/components/Garden src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 10:50:31 UTC: 5 files, 88 passed, at the tree committed as a334fab3b."
+          "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx src/components/Garden src/views/Community/components/CommunityMembersTab.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
+          "evidence": "2026-10-31 21:15:40 UTC: 7 files, 116 passed, at the tree committed as db712a741."
         },
         "note": ""
       },
@@ -72,19 +72,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "fix/batch-settings-findings",
+      "branch": "feature/batch-add-members",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/modules/transactions/__tests__/batch-senders.test.ts",
-          "evidence": "2026-10-31 10:50:06 UTC: 1 failure on behavior: a wallet reporting no atomic capability read as a check that failed. Earlier RED is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useAddMembersBatch.test.ts",
+          "evidence": "2026-10-31 21:14:49 UTC: 1 failed on behavior from CodeRabbit's review of #1400: the toast said nothing to sign while rows past the ceilings were left."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/hooks/garden/useSetGardenDomains.test.ts src/__tests__/modules/update-garden-command.test.ts src/__tests__/i18n/locale-coverage.test.ts src/modules/transactions/__tests__/",
-          "evidence": "2026-10-31 10:50:31 UTC: 24 files, 377 passed, 6 existing skips, at the tree committed as a334fab3b."
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts src/__tests__/hooks/useGardenOperations.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/i18n/locale-coverage.test.ts",
+          "evidence": "2026-10-31 21:15:04 UTC: 7 files, 95 passed, at the tree committed as db712a741."
         },
         "note": ""
       },
@@ -447,6 +447,134 @@
       "status": "tdd_recorded",
       "branch": "fix/batch-settings-findings",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T19:52:22.201Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/batch-add-members",
+      "note": "Slice 3, add members, on feature/batch-add-members."
+    },
+    {
+      "timestamp": "2026-10-31T19:52:27.857Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/batch-add-members",
+      "note": "Slice 3, add members, on feature/batch-add-members."
+    },
+    {
+      "timestamp": "2026-10-31T19:52:31.609Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T19:52:33.206Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:02:57.330Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:02:58.480Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:24:31.978Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:24:33.088Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:46:10.071Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:46:11.681Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:59:23.023Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:13:04.813Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:13:09.772Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:16:36.283Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:16:39.691Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T21:17:02.034Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -476,11 +604,11 @@
     },
     "phase_3_members": {
       "machine_lane": "ui",
-      "owner": "codex",
-      "status": "todo",
-      "branch": null,
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/batch-add-members",
       "depends_on": ["phase_2_settings"],
-      "handoff": "handoffs/ui.md"
+      "handoff": "handoffs/continuation.md"
     },
     "phase_4_deposits": {
       "machine_lane": "ui",
