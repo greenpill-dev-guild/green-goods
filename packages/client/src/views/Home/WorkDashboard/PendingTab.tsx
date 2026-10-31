@@ -26,7 +26,6 @@ import {
   type PendingRowContext,
   proofRow,
   submissionRow,
-  toReviewRow,
 } from "./buildPendingRows";
 import {
   filterPendingRows,
@@ -47,8 +46,6 @@ interface PendingTabProps {
   /** Your own work still pending: on this phone, or on the record without a review. */
   submissions: Work[];
   isOnThisDevice: (work: Work) => boolean;
-  /** Work in gardens you steward that waits for your review. */
-  toReview: Work[];
   /** Work you reviewed on this phone whose review is still on its way. */
   decisions: Work[];
   uploads: Pick<WorkUploads, "decisionFor" | "pausedForDataSaver" | "statusOf">;
@@ -72,7 +69,6 @@ interface PendingTabProps {
 const FILTER_LABELS: Record<WorkDashboardPendingFilter, string> = {
   all: "app.workDashboard.filter.all",
   needs: "app.workDashboard.filter.needs",
-  needsReview: "app.workDashboard.filter.needsReview",
   upload: "app.workDashboard.filter.upload",
   editing: "app.workDashboard.filter.editing",
   checking: "app.workDashboard.filter.checking",
@@ -82,7 +78,6 @@ const FILTER_LABELS: Record<WorkDashboardPendingFilter, string> = {
 const COUNT_LABELS: Record<WorkDashboardPendingFilter, string> = {
   all: "app.workDashboard.pending.itemsPending",
   needs: "app.pending.count.needs",
-  needsReview: "app.pending.count.needsReview",
   upload: "app.pending.count.upload",
   editing: "app.drafts.count",
   checking: "app.pending.count.checking",
@@ -100,16 +95,15 @@ function clientWorkIdOf(work: Work): string | null {
 }
 
 /**
- * Your Work › Pending (D12, D13, D17): one list sorted by what needs you,
- * holding work, reviews and proof that are still on this phone or waiting for
- * a review. The header is the count, Refresh and Upload all, then the filter.
- * Discard is offered only where it's safe and always asks first.
+ * Your Work › Pending (D12, D13, D17, DL-149): one list of the member's own, sorted by what needs
+ * them, holding work, reviews and proof that are still on this phone or waiting for a review. The
+ * header is the count, Refresh and Upload all, then the filter. Discard is offered only where it's
+ * safe and always asks first.
  */
 export const PendingTab: React.FC<PendingTabProps> = ({
   inScope,
   submissions,
   isOnThisDevice,
-  toReview,
   decisions,
   uploads,
   viewer,
@@ -132,7 +126,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const queue = useCommitmentQueueState(viewer);
   const { sendsFromTap } = useCommitmentJobs({ chainId });
   const { data: actions = [] } = useActions();
-  const onRecord = [...submissions.filter((work) => !isOnThisDevice(work)), ...toReview];
+  const onRecord = submissions.filter((work) => !isOnThisDevice(work));
   const { linked } = useLinkedWorkUIDs({ chainId, workUIDs: onRecord.map((work) => work.id) });
 
   const context: PendingRowContext = {
@@ -164,7 +158,6 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const rows = sortPendingRows([
     ...submissions.map((work) => submissionRow(work, isOnThisDevice(work), context)),
     ...decisions.map((work) => decisionRow(work, uploads.decisionFor(work.id), context)),
-    ...toReview.map((work) => toReviewRow(work, context)),
     ...drafts.filter((draft) => inScope([draft.gardenAddress])).map(draftRow),
     // Proof follows the garden saved with it, as the Your Work count does.
     ...proofs.items

@@ -29,7 +29,7 @@ import {
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
 import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiTaskLine } from "@remixicon/react";
+import { RiCheckLine, RiInboxLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -38,6 +38,7 @@ import type { StandardTab } from "@/components/Navigation";
 import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
+import { ToReviewTab } from "./ToReviewTab";
 import { buildUploadAction } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 import {
@@ -120,7 +121,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const initialTab = useUIStore((s) => s.workDashboardInitialTab);
   const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
   const returnState = useUIStore((s) => s.workDashboardReturnState);
-  const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
+  const [chosenTab, setChosenTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
   const closeCompletedRef = useRef(false);
   const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
@@ -132,16 +133,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(returnState?.timeFilter ?? "month");
   const restoredScrollRef = useRef(false);
 
-  // Needs review reads each garden you review the way its Work tab does, so a review
+  // To Review reads each garden you review the way its Work tab does, so a review
   // made on this device leaves the list at once. Only the active garden's are read, so
   // another garden's slow or failed read never holds this list or its Refresh.
   const { reviewerGardenIds: reviewedGardens, isLoading: isLoadingReviewerGardens } =
-    useReviewerGardenIds(activeAddress);
+    useReviewerGardenIds();
   const reviewerGardenIds = useMemo(
     () => reviewedGardens.filter((gardenId) => inScope([gardenId])),
     [reviewedGardens, inScope]
   );
   const needsReview = useNeedsReview(reviewerGardenIds, activeAddress);
+  // The tab shows only to someone who may review here (DL-149). A To Review restored while the
+  // gardens are read holds until they answer, then gives way if it is not theirs.
+  const reviewsHere = reviewerGardenIds.length > 0;
+  const activeTab =
+    chosenTab === "toReview" && !reviewsHere && !isLoadingReviewerGardens ? "pending" : chosenTab;
 
   // Include offline queued submissions so the Pending tab still reflects the
   // dashboard badge after the Recent/Uploading tab was removed.
@@ -166,7 +172,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   const reviewWorksById = useMemo(() => buildWorkMap(needsReview.allWorks), [needsReview.allWorks]);
 
-  const pendingNeedsReview = needsReview.works.filter(inGarden);
+  const toReview = needsReview.works.filter(inGarden);
   // Reviews made here and still waiting to upload: read in each garden they name, a garden the
   // reader has left included, as Continue reads them and the badge counts them.
   const queuedDecisions = useQueuedDecisions({ uploads, inScope, reviewer: activeAddress });
@@ -312,7 +318,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     }
   };
 
-  // One Refresh re-reads everything the dashboard shows, from either tab. Only a
+  // One Refresh re-reads everything the dashboard shows, from any tab. Only a
   // refresh someone asked for reports failure; background reads stay quiet (D4-A).
   const [isRefreshing, setIsRefreshing] = useState(false);
   const mountedRef = useRef(false);
@@ -358,15 +364,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   // Offline, the count line says when the oldest part of the list was saved.
-  const pendingSavedAt = oldestTime(needsReview.savedAt, myWorksUpdatedAt, myApprovalsUpdatedAt);
+  const pendingSavedAt = oldestTime(myWorksUpdatedAt, myApprovalsUpdatedAt);
   const completedSavedAt = oldestTime(reviewHistoryUpdatedAt, myApprovalsUpdatedAt);
 
   // Loading and errors follow the source the active filter shows, and an error
   // takes over a tab only when there is nothing to show.
-  const toReviewState = {
-    isLoading: isLoadingReviewerGardens || needsReview.isLoading,
-    isError: needsReview.isError,
-  };
+  const isLoadingToReview =
+    (isLoadingReviewerGardens || needsReview.isLoading) && toReview.length === 0;
+  const hasToReviewError = needsReview.isError && toReview.length === 0;
   // My pending submissions and my reviewed work both come from my works joined to approvals.
   const myWorkState = {
     isLoading: isLoadingMyWorks || isLoadingMyApprovals,
@@ -395,6 +400,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       label: fmt("app.workDashboard.tabs.pending", "Pending"),
       count: onPhoneCount > 0 ? onPhoneCount : undefined,
     },
+    ...(reviewsHere || activeTab === "toReview"
+      ? [
+          {
+            id: "toReview",
+            icon: <RiInboxLine className="w-4 h-4" />,
+            label: fmt("app.workDashboard.tabs.toReview", "To Review"),
+            // As Needs Your Attention does, a list that may stop short names no count.
+            count: needsReview.ready && toReview.length > 0 ? toReview.length : undefined,
+          },
+        ]
+      : []),
     {
       id: "completed",
       icon: <RiCheckLine className="w-4 h-4" />,
@@ -443,12 +459,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             inScope={inScope}
             submissions={pendingMySubmissions}
             isOnThisDevice={isOnThisDevice}
-            toReview={pendingNeedsReview}
             decisions={queuedDecisions.works}
             uploads={uploads}
             viewer={viewer}
             // Pending weighs each read against the filter in use and the rows it shows.
-            reads={{ needsReview: toReviewState, decisions: queuedDecisions, myWork: myWorkState }}
+            reads={{ decisions: queuedDecisions, myWork: myWorkState }}
             isFetching={isRefreshing}
             isOffline={isOffline}
             savedAt={pendingSavedAt}
@@ -458,6 +473,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             onRefresh={handleRefresh}
             onOpenWork={handleWorkClick}
             onOpenPath={leaveFor}
+          />
+        );
+      case "toReview":
+        return (
+          <ToReviewTab
+            items={toReview}
+            viewer={viewer}
+            isLoading={isLoadingToReview}
+            isFetching={isRefreshing}
+            hasError={hasToReviewError}
+            uncounted={!needsReview.ready}
+            onWorkClick={handleWorkClick}
+            onRefresh={handleRefresh}
+            isOffline={isOffline}
+            savedAt={needsReview.savedAt}
           />
         );
       case "completed":
@@ -492,7 +522,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       gardenName={activeGarden?.name}
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
+      onTabChange={(tabId: string) => setChosenTab(tabId as WorkDashboardTab)}
     >
       {renderTabContent()}
     </WorkDashboardShell>
