@@ -31,7 +31,7 @@ Place-based initiatives like the one I'll show you do real work every season, an
 
 ## 3. The solution · 0:25
 
-Green Goods answers each one. An endowment keeps a gift invested, so support outlasts the grant. Members prove work with a tap and a photo, in the app or by chat. The record is public and owned by the community, and no one can quietly change it. And one record follows the need through the promise and the work to its outcomes. We call each community a garden. And here's why I'm the one building it.
+Green Goods answers each one. An endowment keeps a gift invested, so support outlasts the grant. Members prove work with a tap and a photo, in the app or by chat. The record is public and owned by the community, and no one can quietly change it. And one record follows the need through the promise and the work, with outcomes next. We call each community a garden. And here's why I'm the one building it.
 
 ## 4. Why I build Green Goods · 0:45
 
@@ -130,10 +130,10 @@ Let's grow together. I am because we are.
   survey found that by 10 February 2025, 83% of its members, local and national NGOs, had paused
   programmes because of the US funding cuts. The older Humentum (2022), CEP (2013) and IIED (2017)
   figures are retired as too old. Humanitarian context, never our market.
-- **Outcomes (slides 2 and 3), added 27 October.** The slides say the record follows the need
-  through the work to its outcomes. Today evaluators set the baseline and what good evidence looks
-  like, and assessing what changed against that baseline is the next step; say so if asked, and
-  never call outcome assessment live.
+- **Outcomes (slides 2 and 3), revised 30 October.** Slide 3 says the record follows the need
+  through the promise and the work, with outcomes next. Today evaluators set the baseline and what
+  good evidence looks like, and assessing what changed against that baseline is the next step; say
+  so if asked, and never call outcome assessment live.
 - **"Across Nigeria" (slide 5), added 27 October.** One hub is live, in Awka; Enugu and Abuja are
   the plan on Tech and Sun's site. Say "builds hubs across Nigeria" as its mission, never as a count.
 - **Ubuntu (slides 7 and 17), added 27 October.** A Nguni Bantu word for humanity, glossed "I am

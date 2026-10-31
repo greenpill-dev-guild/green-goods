@@ -531,6 +531,15 @@ now says "before central costs" and lists the fee as "$3,000 setup, $7,000 suppo
 An earlier check of the Octant pilot vaults' underlying rate read about 1.4%, below this range, so
 every mention keeps "typically" and the risk line.
 
+## Review pass · 30 October 2026
+
+One round on the bot reviews of this work, with three wording decisions from Afo. Slide 12, the
+submission page, the canvas and the architecture page keep the 2 to 7% range and add "not guaranteed".
+Slide 3 now says "with outcomes next", because outcome assessment is not live. The brief's Live row
+says new G$ promises are being switched on, because `SETTLEMENT_ENABLED` is still false. The builder's
+details left the notes, the claims list and this README, though older commits still hold them, and
+the render scripts now remove outputs a run no longer produces.
+
 ## Accessibility and reporting cost · 30 October 2026
 
 After the pitch Afo asked the other documents to say plainly how Green Goods lowers barriers and the
