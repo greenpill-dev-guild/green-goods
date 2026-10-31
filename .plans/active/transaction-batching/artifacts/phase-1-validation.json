@@ -1,0 +1,60 @@
+{
+  "observedAt": "2026-10-23T23:48:04.283907+00:00",
+  "implementationCommit": null,
+  "sourceBaseline": "73f05a9177125d6509105659f5a724472343cc31",
+  "sourceFingerprint": "phase-1-worktree.json",
+  "checkpointCommand": "phase-1-checkpoint-command.json",
+  "checkpointResult": {
+    "exitCode": 1,
+    "freshPasses": 9,
+    "reusedPasses": 0,
+    "failed": "source-structure",
+    "notRun": ["ontology"],
+    "manualPending": ["browser-proof"]
+  },
+  "packageTests": {
+    "shared": {
+      "passed": 7719,
+      "skipped": 16
+    },
+    "client": {
+      "passed": 1797
+    },
+    "admin": {
+      "passed": 1335
+    },
+    "agentVitest": {
+      "passed": 558,
+      "skipped": 1
+    },
+    "agentSQLiteBun": {
+      "passed": 218
+    }
+  },
+  "focusedBatchTests": {
+    "passed": 51,
+    "files": 6
+  },
+  "independentChecks": {
+    "sharedSourceTypecheck": "passed after final fix",
+    "sharedTestTypecheck": "passed after final fix",
+    "finalBundlerLint": "passed",
+    "ontology": "passed; 73 guard tests and all ontology guards",
+    "planSchema": "passed; 33 hubs",
+    "finalRepositoryFormat": "passed; 4135 files",
+    "localLinks": "passed; 48 links",
+    "sourceFingerprints": "29 matched; no unexpected changed paths",
+    "gitDiffCheck": "passed"
+  },
+  "inheritedSourceFailures": [
+    "packages/shared/src/modules/auth/session.ts: clearStoredAccountProfiles has no production consumer",
+    "packages/shared/src/modules/auth/pilot-account-proof.ts: internal-barrel import"
+  ],
+  "liveProof": "pending; no broadcast or authenticated signing performed",
+  "limitations": [
+    "Uncommitted worktree; no clean implementation-SHA receipt",
+    "Measured gas/deployment/sponsorship limits pending",
+    "No feature bulk UI enabled; later phases remain planned",
+    "Broader inherited test-quality failures are retained in the handoff"
+  ]
+}

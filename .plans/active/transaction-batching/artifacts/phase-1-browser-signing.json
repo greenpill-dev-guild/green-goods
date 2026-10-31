@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-10-24T01:21:35.679Z",
+  "engine": "Brave",
+  "session": "authenticated Brave",
+  "vendor": "MetaMask (advertised by connected provider)",
+  "walletVersion": "unknown",
+  "messageSigning": {
+    "status": "verified",
+    "method": "personal_sign",
+    "verification": "Local viem recovery matched the connected public address",
+    "purpose": "Explicit local compatibility message, no transaction/login/delegation authorization"
+  },
+  "batchCapability": {
+    "method": "wallet_getCapabilities",
+    "requestedChains": [42161, 100, 42220],
+    "status": "unavailable",
+    "code": -32601,
+    "result": "The connected provider had no corresponding handler. Atomic batching remains unavailable; no upgrade was requested."
+  },
+  "walletConnectedChainId": 1,
+  "passkeyDeviceSigning": "external dependency; standalone probe stopped after scope correction",
+  "privacy": "Account identifiers, signed payloads, and raw screenshots remain outside Git. This aggregate is not a live transaction/recovery receipt.",
+  "scope": "Batching implementation owns Shared transport/recovery/limits. Auth/profile migration and further live chain/account QA remain outside this lane."
+}
