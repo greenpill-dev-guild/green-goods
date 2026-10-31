@@ -9,6 +9,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // core queue tests stub them.
 import "fake-indexeddb/auto";
 
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
 vi.mock("../config/appkit", () => ({
   getWagmiConfig: () => ({}),
   getAppKit: () => null,
@@ -119,8 +126,34 @@ function commitmentPayload(
   };
 }
 
-describe("deferred settlement creation", () => {
-  it("retains an unsent reward job without changing its payload or sending", async () => {
+describe("settlement creation", () => {
+  afterEach(() => {
+    releaseScope.settlementEnabled = true;
+  });
+
+  it("sends a reward job while settlement is on", async () => {
+    const payload = commitmentPayload({
+      consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
+    });
+    const deps = dependencies();
+    await expect(
+      executeCommitmentJob(
+        {
+          id: "reward",
+          kind: "commitment",
+          payload,
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+        },
+        deps
+      )
+    ).resolves.toMatchObject({ status: "sent" });
+    expect(deps.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains an unsent reward job without changing its payload or sending when settlement is off", async () => {
+    releaseScope.settlementEnabled = false;
     const payload = commitmentPayload({
       consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
     });

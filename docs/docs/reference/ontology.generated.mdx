@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:b32caed1028ab8628dda9dbc6ded3981a4b1094f6208c605c7814ebaac388757"
+source_digest: "sha256:fdfa49c9538de2235c2dffadb302a33c24dc84e0ddd9e8563e4df997b67ee825"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -56,7 +56,7 @@ The ontology currently declares 21 canonical concepts. Availability does not cha
 | <TermAnchor id="commitment-series-cycle-summary" />**Commitment Series Cycle Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | Current lifecycle counts for the instances of one commitment series within one cycle. | indexer (CommitmentSeriesCycleSummary) · spec |
 | <TermAnchor id="commitment" />**Commitment** | canonical | available | implemented · deployed · active · integrated | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
 | <TermAnchor id="commitment-contributor" />**Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
-| <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
+| <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
 
 ## Personas
 

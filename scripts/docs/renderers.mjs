@@ -795,7 +795,7 @@ export function renderSkills({ root, sources, digest }) {
 const GLOSSARY_EVERYDAY = [
   { ref: "entity:commitment-pool", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
   { ref: "entity:season", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
-  { ref: "entity:commitment-contributor", heading: "Contributor", availabilityNote: "Team membership and contributions are available; contributor payouts remain deferred.", guide: ["Keep a Promise", "/community/gardener-guide/keep-a-promise"] },
+  { ref: "entity:commitment-contributor", heading: "Contributor", availabilityNote: "Team membership, contributions and contributor payouts are available.", guide: ["Keep a Promise", "/community/gardener-guide/keep-a-promise"] },
   { ref: "entity:garden", guide: ["How It Works", "/community/how-it-works"] },
   { ref: "entity:action", guide: ["Manage Actions", "/community/steward-guide/managing-actions"] },
   // Every surface calls a commitment a promise; the word stays only in the feature's name. Offer

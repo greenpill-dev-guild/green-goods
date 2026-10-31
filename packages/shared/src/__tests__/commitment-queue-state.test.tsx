@@ -14,8 +14,18 @@ import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
 
-const mocks = vi.hoisted(() => ({ getJobs: vi.fn(), getWorkCompletion: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getJobs: vi.fn(),
+  getWorkCompletion: vi.fn(),
+  settlementEnabled: true,
+}));
 
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return mocks.settlementEnabled;
+  },
+}));
 vi.mock("../modules/job-queue/db", () => ({
   jobQueueDB: {
     getJobs: (input: unknown) => mocks.getJobs(input),
@@ -52,7 +62,17 @@ const appClient = () =>
   });
 
 describe("useCommitmentQueueState", () => {
-  it("marks unsent rewards deferred before a flush, but leaves recorded sends recoverable", async () => {
+  it("leaves unsent rewards ready to send while settlement is on", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({ id: "reward", payload: { poolId: 7n, consideration: { rail: 2 } } }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(1));
+    expect(result.current.pendingCreates[0]?.settlementDeferred).toBe(false);
+  });
+
+  it("marks unsent rewards deferred before a flush when settlement is off, but leaves recorded sends recoverable", async () => {
+    mocks.settlementEnabled = false;
     const payload = { poolId: 7n, consideration: { rail: 2 } };
     mocks.getJobs.mockResolvedValue([
       creation({ id: "reward", payload }),
@@ -75,6 +95,7 @@ describe("useCommitmentQueueState", () => {
   });
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.settlementEnabled = true;
   });
 
   it("distinguishes expired unsent group copies from recorded sends that still need recovery", async () => {

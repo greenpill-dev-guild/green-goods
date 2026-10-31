@@ -320,8 +320,6 @@ describe("useSettlementMutation", () => {
   ];
 
   it("blocks every settlement action before signing even when live contracts are active", async () => {
-    const actual = await vi.importActual<typeof import("../config/app")>("../config/app");
-    expect(actual.SETTLEMENT_ENABLED).toBe(false);
     mocks.settlementEnabled = false;
     const { result } = renderHookWithProviders(() => useSettlementMutation({ chainId: 42161 }));
     for (const { input } of actions) {

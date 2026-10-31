@@ -41,6 +41,14 @@ const send = vi.hoisted(() => ({
   script: (_copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
   inputs: [] as CreationSendInput[],
 }));
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
 
 /** A creation job in the queue, as Finish Creating reads it. */
 const job = (id: string, group: string | null, chainId = 42161) => ({
@@ -131,6 +139,7 @@ beforeEach(() => {
   send.script = () => ({ status: "created" });
   chain.creator = STEWARD;
   chain.rail = 0;
+  releaseScope.settlementEnabled = true;
 });
 
 /** How `getCommitment` decodes a copy of a garden-work group, trimmed to what matters. */
@@ -275,10 +284,15 @@ describe("useAddToGroup", () => {
     expect(first![0]!.payload.metadataCID).toBe("bafy-group-document");
   });
 
-  it("blocks a rewarded template before queuing or sending new copies", async () => {
+  it("adds copies of a rewarded template, unless settlement is off", async () => {
     chain.rail = 2;
+    releaseScope.settlementEnabled = false;
     expect(await setup().add(3)).toBe("blocked");
     expect(send.inputs).toEqual([]);
+
+    releaseScope.settlementEnabled = true;
+    expect(await setup().add(3)).toBe("sent");
+    expect(send.inputs[0]?.copies).toHaveLength(3);
   });
 
   it("checks the deadline again on Try Again, and sends nothing once it has passed", async () => {
@@ -317,7 +331,20 @@ describe("useAddToGroup", () => {
 });
 
 describe("useFinishCreating", () => {
-  it("leaves unsent rewards out of Finish Creating and still reconciles recorded copies", async () => {
+  it("finishes unsent rewards while settlement is on", async () => {
+    const reward = job("reward", "group-00000001");
+    const jobs = [{ ...reward, payload: { ...reward.payload, consideration: { rail: 2 } } }];
+    vi.mocked(jobQueue.getJobs).mockResolvedValueOnce(jobs as never);
+    const view = renderHookWithProviders(() =>
+      useFinishCreating({ chainId: 42161, owner: STEWARD })
+    );
+    await waitFor(() =>
+      expect(view.result.current.waiting.get("group-00000001")).toEqual(["reward"])
+    );
+  });
+
+  it("leaves unsent rewards out of Finish Creating when settlement is off, and still reconciles recorded copies", async () => {
+    releaseScope.settlementEnabled = false;
     const reward = job("reward", "group-00000001");
     const payload = { ...reward.payload, consideration: { rail: 2 } };
     const jobs = [

@@ -365,7 +365,7 @@
       "evidence": [
         {
           "file": "packages/shared/src/modules/job-queue/commitment-call-builder.ts",
-          "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The client app offers them on a garden's Promises tab, and the steward console seeds and confirms promises. Only settlement stays off in the app."
+          "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The client app offers them on a garden's Promises tab, and the steward console seeds and confirms promises. Settlement was off in that release and is on in the app after it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -392,18 +392,18 @@
         },
         {
           "file": "packages/indexer/schema.graphql",
-          "note": "The production indexer held nine contributor records on 2026-10-18, and the app reads rosters for membership and fallback confirmation. No client or admin screen adds or removes a contributor, and contributor payouts are deferred past release 2.0."
+          "note": "The production indexer held nine contributor records on 2026-10-18, and the app reads rosters for membership and fallback confirmation. No client or admin screen adds or removes a contributor. Contributor payouts run through G$ settlement, on in the app after release 2.0; none had been sent on 2026-10-30."
         }
       ],
-      "verified_at": "2026-10-18"
+      "verified_at": "2026-10-30"
     },
     {
       "ref": "entity:commitment-payout-plan",
       "implementation": "implemented",
       "deployment": "deployed",
       "activation": "active",
-      "integration": "partial",
-      "availability": "deployed-not-available",
+      "integration": "integrated",
+      "availability": "available",
       "evidence": [
         {
           "file": "packages/contracts/deployments/42161-latest.json",
@@ -411,10 +411,10 @@
         },
         {
           "file": "packages/indexer/schema.graphql",
-          "note": "Release 2.0 keeps settlement writes, contributor payouts, and new G$ reward promises off in the app (SETTLEMENT_ENABLED is false in packages/shared/src/config/app.ts); existing settlement records stay readable. The production indexer held no payout plans on 2026-10-18."
+          "note": "Release 2.0 kept settlement writes, contributor payouts, and new G$ reward promises off in the app; SETTLEMENT_ENABLED in packages/shared/src/config/app.ts turns them on after it. gardenerDeliveryEnabled() read true on the module on 2026-10-30, and no member payout had been sent. The production indexer held no payout plans on 2026-10-18."
         }
       ],
-      "verified_at": "2026-10-18"
+      "verified_at": "2026-10-30"
     }
   ],
   "human_concepts": [
@@ -763,11 +763,11 @@
       "evidence": [
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
-          "note": "Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused; settlement stays off in the app."
+          "note": "Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30."
         }
       ],
-      "safe_wording": "Gardens can run a commitment pool in Green Goods 2.0: members make, take up, and confirm promises. G$ rewards and contributor payouts are not switched on yet.",
-      "verified_at": "2026-10-18"
+      "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
+      "verified_at": "2026-10-30"
     },
     {
       "id": "community-needs",
