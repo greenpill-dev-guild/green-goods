@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import { MockCookieJar } from "../../src/mocks/YieldDeps.sol";
 import { AaveOctantForkBase } from "./helpers/AaveOctantForkBase.sol";
 
 /// @notice Runnable Arbitrum fork gate for YieldResolver split behavior using real Octant + Aave wiring.
@@ -42,7 +43,7 @@ contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
         _deployFullStackOnFork();
 
         (address garden, address vault) = _createHarvestableGarden("Yield Core Garden");
-        address cookieJar = address(0xC001);
+        address cookieJar = address(new MockCookieJar(yieldAsset));
         address treasury = address(0x7EA5);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);
