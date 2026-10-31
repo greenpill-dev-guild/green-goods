@@ -10,6 +10,7 @@ import {
   isNotificationCleared,
   isNotificationNew,
   NEW_NOTIFICATION_WINDOW_SECONDS,
+  type SeenNotification,
 } from "../../modules/garden/notifications";
 import { resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
 import { readGardenActivity } from "../../modules/work/work-list";
@@ -47,10 +48,11 @@ export interface GardenNotifications {
    */
   isIncomplete: boolean;
   /**
-   * Record that the member was shown every listed event, on this device, and recompute what is
-   * new as of now: the sheet calls it as it opens.
+   * Record that the member was shown these events, on this device, and recompute what is new as
+   * of now. The sheet calls it with the rows its open tab lists, as it opens and as they change,
+   * so an event that lands under another tab stays new until that tab is opened (DL-133).
    */
-  markAllSeen: () => void;
+  markSeen: (shown: readonly SeenNotification[]) => void;
   /**
    * Hide every listed event on this device and count it seen: the sheet's Clear All (DL-133).
    * A later event is new and listed as before.
@@ -133,7 +135,7 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   const record = useGardenNotificationsSeenStore((state) =>
     scope ? state.seenByScope[scope] : undefined
   );
-  const markSeen = useGardenNotificationsSeenStore((state) => state.markSeen);
+  const writeSeen = useGardenNotificationsSeenStore((state) => state.markSeen);
   const clearMarks = useGardenNotificationsSeenStore((state) => state.clearAll);
 
   // The moment newness is judged against. It moves when the sheet opens, when the page comes
@@ -207,11 +209,14 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     return scheduleRefresh(refreshNow, Math.max(0, delayMs));
   }, [notifications, refreshNow, scheduleRefresh]);
 
-  const markAllSeen = useCallback(() => {
-    const at = nowInSeconds();
-    setNow(at);
-    if (scope) markSeen(scope, notifications, at);
-  }, [markSeen, notifications, scope]);
+  const markSeen = useCallback(
+    (shown: readonly SeenNotification[]) => {
+      const at = nowInSeconds();
+      setNow(at);
+      if (scope) writeSeen(scope, shown, at);
+    },
+    [writeSeen, scope]
+  );
   const clearAll = useCallback(() => {
     const at = nowInSeconds();
     setNow(at);
@@ -242,7 +247,7 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       workRead.hasUnknownStatuses ||
       activity?.complete === false ||
       weekIncomplete,
-    markAllSeen,
+    markSeen,
     clearAll,
   };
 }

@@ -49,7 +49,7 @@ export function NotificationsLauncher({
           isLoading={bell.isLoading}
           isError={bell.isError}
           isIncomplete={bell.isIncomplete}
-          markAllSeen={bell.markAllSeen}
+          markSeen={bell.markSeen}
           clearAll={bell.clearAll}
         />
       ) : null}

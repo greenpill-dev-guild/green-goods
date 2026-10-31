@@ -320,7 +320,10 @@ describe("useGardenNotifications", () => {
     const { result, rerender } = renderNotifications();
     await waitFor(() => expect(result.current.newCount).toBe(4));
 
-    act(() => result.current.markAllSeen());
+    // The sheet marks only the rows its open tab shows; the rest stay new (DL-133).
+    act(() => result.current.markSeen(result.current.notifications.slice(0, 2)));
+    expect(result.current.newCount).toBe(2);
+    act(() => result.current.markSeen(result.current.notifications));
 
     expect(result.current.newCount).toBe(0);
     expect(result.current.notifications.every(({ isNew }) => !isNew)).toBe(true);
@@ -497,7 +500,7 @@ describe("useGardenNotifications", () => {
 
       // Two minutes pass with the app open; nothing re-renders the hook.
       vi.spyOn(Date, "now").mockReturnValue((now + 120) * 1000);
-      act(() => result.current.markAllSeen());
+      act(() => result.current.markSeen(result.current.notifications));
 
       expect(result.current.newCount).toBe(0);
       expect(result.current.notifications.map(({ isNew }) => isNew)).toEqual([false]);

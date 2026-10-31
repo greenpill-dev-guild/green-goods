@@ -4,7 +4,10 @@ import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/It
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import type { GardenNotification } from "@green-goods/shared/hooks/garden/useGardenNotifications";
+import type {
+  GardenNotification,
+  GardenNotifications,
+} from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { RiHammerLine, RiHandHeartLine, RiNotificationLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -24,8 +27,8 @@ export interface NotificationsSheetProps {
   isLoading: boolean;
   isError: boolean;
   isIncomplete: boolean;
-  /** Records that the listed events were shown; the sheet calls it as it opens. */
-  markAllSeen: () => void;
+  /** Records that the open tab's events were shown: called as the sheet opens and as they change. */
+  markSeen: GardenNotifications["markSeen"];
   /** Hides every listed event on this device: the sheet's Clear All (DL-133). */
   clearAll: () => void;
 }
@@ -58,8 +61,9 @@ const LOADING_ROWS = 3;
  * The bell's sheet (DL-130, DL-133): a `full` sheet over Home with the garden named beneath its
  * title, listing the garden's events for the member, one item row each, newest first, under All,
  * Work and Promises tabs. A row opens the work or the promise, closing the sheet first so the
- * screen it opens is not under it. Opening the sheet marks the listed events seen on this device,
- * and Clear All in the shared bar hides them here for good. With nothing to list it shows the
+ * screen it opens is not under it. Opening the sheet marks the open tab's events seen on this
+ * device, as does switching to a tab, while an event under another tab stays new; Clear All in
+ * the shared bar hides every listed event here for good. With nothing to list it shows the
  * shared state block, and a read that failed or answered only in part says so in one quiet line
  * while the rows it did find stay. Offline the reads pause rather than fail: with nothing cached
  * the block says the events cannot be checked instead of reporting an empty inbox, and the rows
@@ -74,7 +78,7 @@ export function NotificationsSheet({
   isLoading,
   isError,
   isIncomplete,
-  markAllSeen,
+  markSeen,
   clearAll,
 }: NotificationsSheetProps) {
   const { formatMessage } = useIntl();
@@ -86,11 +90,12 @@ export function NotificationsSheet({
     [notifications, tab]
   );
 
-  // Opening shows the member every listed event, so the sheet marks them seen as it opens. An
-  // event that lands while it is open is shown too, and marked with the render that lists it.
+  // Opening shows the member the open tab's events, so the sheet marks those seen as it opens,
+  // and again as the tab or the list changes. An event that lands under another tab is not
+  // shown, so it stays new until that tab is opened.
   useEffect(() => {
-    if (open) markAllSeen();
-  }, [open, markAllSeen]);
+    if (open) markSeen(shown);
+  }, [open, markSeen, shown]);
 
   // A promise's words live at its metadata CID; one read names every promise row.
   const commitments = useMemo(
@@ -132,8 +137,10 @@ export function NotificationsSheet({
   const partial = isError || isIncomplete || !isOnline;
   const partialNotice = formatMessage({ id: "app.home.notifications.partial" });
   const unavailableOffline = !isOnline && notifications.length === 0 && !isLoading && !isError;
-  // A read still running speaks only while there is nothing to show.
-  const holdsFrame = isLoading && notifications.length === 0;
+  // A read still running speaks only while the open tab has nothing to show. The work and
+  // promise reads answer apart, so an empty tab stays busy until every read has settled instead
+  // of reporting an empty inbox its own read has not answered yet.
+  const holdsFrame = isLoading && shown.length === 0;
 
   let body: React.ReactNode;
   if (holdsFrame) {
