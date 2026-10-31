@@ -38,7 +38,8 @@ its limits. Older research and demo scripts in [`../research/`](../research/READ
 | [`brief/render.mjs`](brief/render.mjs) | Checks the brief and renders its PDF and page PNGs |
 | [`submission/business-model-canvas.html`](submission/business-model-canvas.html) | The Business Model Canvas the event asks for: one A4 landscape page, the nine standard blocks, figures from the brief and labeled illustrative |
 | [`submission/logical-architecture.html`](submission/logical-architecture.html) | The logical architecture the event asks for: one A4 landscape page from the five roles down to the three networks, with data in and out and the rules that hold everywhere |
-| [`submission/render.mjs`](submission/render.mjs) | Checks both one-pagers (margins, footers, box and band overflow, images, em dashes, PDF word positions) and renders their PDFs and PNGs |
+| [`submission/submission-page.html`](submission/submission-page.html) | The one-page index of the submission, A4 portrait, on Drive as "Green Goods SF Live 2026 Submission.pdf". The demo's share link stays out of tracked files, so the page holds a placeholder that `render.mjs` fills from `SF_LIVE_DEMO_LINK` |
+| [`submission/render.mjs`](submission/render.mjs) | Checks the one-pagers (margins, footers, box and band overflow, images, em dashes, PDF word positions) and renders their PDFs and PNGs |
 | `demo/` | The clickable demo the event asks for, with its own README: a twelve-screen story of one promise at Tech and Sun's hub in four chapters, with the whole season behind "See every step" in nine chapters and 50 screens (17 from the develop app, 19 from a Storybook built locally from develop, 14 composites of the two), set at the hub with invented names and every voucher screen marked "In pilot"; the capture, build and check scripts, and a UI review of every screen. The built page is never committed, since it embeds photos of identifiable people; it lives in Drive and as a Claude artifact shared by link for the submission |
 | [`review-2026-10-25.md`](review-2026-10-25.md) | Afo's 25 October slide and brief review, with the Tech and Sun research; implemented in [the revision](#the-revision--25-october-2026) |
 | [`../research/diaspora-evidence-pass-2026-10-25.md`](../research/diaspora-evidence-pass-2026-10-25.md) | The RESR-94 evidence pass: every diaspora, remittance, hub and funding claim checked against primary sources, with proposed ledger rows and open questions; applied in [the evidence pass](#the-evidence-pass--25-october-2026) |
@@ -67,6 +68,9 @@ node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/brief/render.mjs
 node .plans/backlog/cosmo-local-credit-interop/artifacts/submission/render.mjs
 ```
+
+The submission script renders the submission page only when `SF_LIVE_DEMO_LINK` holds the demo's
+share link; without it, it renders the other two pages and says so.
 
 The clickable demo has its own capture, build and check commands in `demo/README.md`.
 
@@ -527,6 +531,28 @@ now says "before central costs" and lists the fee as "$3,000 setup, $7,000 suppo
 An earlier check of the Octant pilot vaults' underlying rate read about 1.4%, below this range, so
 every mention keeps "typically" and the risk line.
 
+## Accessibility and reporting cost · 30 October 2026
+
+After the pitch Afo asked the other documents to say plainly how Green Goods lowers barriers and the
+cost of reporting impact. The deck stays as presented, apart from slide 2's correction below. The
+four PDFs on Drive were replaced in place, so the links on the submission page and in the chat held.
+
+- **Submission page.** New "Accessible by design" and "Reporting costs less" sections. To stay on one
+  page, "What we built" lost its sentences on cross-network messages and on G$ rewards on Celo; the
+  architecture page keeps the message rules and G$ on Celo. Its source moved here from a session
+  scratchpad as `submission/submission-page.html`.
+- **Brief.** Page 1 gains slide 2's figures and the same two points, with the hero photo cut from
+  60mm to 42mm to make room. Page 2 gains "Reporting without barriers", and page 6 the ALNAP source.
+  Small wording trims on pages 2 and 6 keep them inside their footers.
+- **Canvas and architecture.** The canvas names a lower cost to report impact for communities and
+  funders and lists the three languages under channels; "as a signed record" and "with less overhead"
+  gave way to fit its Value box. The architecture's Data in list adds "Accessible by default".
+- **What the claims rest on, read at `7c07bd38f`.** English, Spanish and Portuguese each carry all
+  8,344 strings in `packages/shared/src/i18n`, and the agent's messages exist in all three. The app's
+  media step records voice notes; the bot's voice transcription depends on its configuration, so the
+  new list does not promise voice by chat. WhatsApp waits on its business account, so nothing here
+  promises it. No hours-saved figure appears, because none has been verified.
+
 ## The pitch-day polish · 28 October 2026
 
 Afo's review on the day of the pitch. Each change was outlined and approved before it was made, and
@@ -739,6 +765,25 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
     line is the ledger owner's to reconcile; the deck states no time of day.
 11. **Fonts offline.** Fraunces and Inter load from Google Fonts. Vendoring the OFL files would
     remove that dependency; it needs a download this task did not authorize. The PDFs embed both.
+
+## Task record · pitch-day polish and follow-ups
+
+Task record: SF.Live deck polish, problem figures and accessibility docs | Type: documentation/design
+| Outcome: deck and four documents updated on Drive and committed; merge left to Afo | Agent/model:
+Claude Code, claude-opus-5-5 | Coverage: from `fa160c373` plus the uncommitted 27 October photo pass
+
+| Phase | Start → end (UTC) | Result / evidence |
+|---|---|---|
+| investigate | 28 Oct 02:09 → 02:26 | Slides rendered, type measured per slide, four-image layouts previewed in scratch |
+| implement | 28 Oct 02:28 → 02:44 | Type scale, spacing and slide 4; deck render clean; Drive deck replaced |
+| implement | 28 Oct unknown → unknown | Slides 7 to 11 thread and Ubuntu; deck render clean |
+| research | 28 Oct unknown → 11:05 | Problem figures read in the GHA 2025 PDF; slide 2 updated; Drive deck replaced |
+| implement | 31 Oct 02:12 → 02:27 | Four documents; GHA 2026 PDFs read; render checks clean; PDFs checked for pages, words and links; Drive replaced |
+| publish | 31 Oct 02:27 → 02:43 | Slide 2 corrected to ALNAP and 8.7%; Drive deck replaced, same file ids |
+| publish | 31 Oct 02:49 → ongoing | Signed commits, push gate and push to the PR branch |
+
+Human corrections: 1 (figures about the problem rather than Green Goods, and as current as possible).
+The ALNAP credit and the superseded figure were found by the agent, after the pitch.
 
 ## Task record · why-thread rebuild
 

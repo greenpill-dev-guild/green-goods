@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Green Goods · SF Live 2026 submission</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
+<style>
+  :root {
+    --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
+    --rule: #E7E1D9; --rule-2: #D9D1C5; --sand: #F3EEE6;
+    --green: #1FC16B; --green-action: #1A7544; --green-wash: #E3F7EC; --amber: #B45309;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  @page { size: A4; margin: 0; }
+  html, body { margin: 0; background: var(--linen); color: var(--ink); font: 400 12.5px/1.46 var(--sans); -webkit-font-smoothing: antialiased; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .page { position: relative; width: 210mm; height: 297mm; padding: 15mm 16mm 22mm; background: var(--linen); overflow: hidden; }
+  .foot { position: absolute; left: 16mm; right: 16mm; bottom: 9mm; display: flex; align-items: center; gap: 10px; font: 500 10.5px/1 var(--sans); color: var(--stone); }
+  .foot img { width: 26px; height: auto; display: block; }
+  .foot .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+  h1 { margin: 0; font: 400 36px/1.08 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
+  h3 { margin: 0 0 4px; font: 400 16px/1.2 var(--serif); letter-spacing: -0.005em; }
+  em.accent { font-style: italic; color: var(--green-action); }
+  p { margin: 0 0 6px; text-wrap: pretty; }
+  a { color: var(--green-action); text-decoration: underline; text-decoration-color: #BFE8D0; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .meta { font: 500 11px/1.4 var(--sans); color: var(--stone); margin-bottom: 14px; }
+  .lede { margin-top: 12px; font-size: 13.5px; line-height: 1.48; color: var(--ink-2); }
+  .state { font: 600 11px/1.2 var(--sans); margin: 0 0 4px; color: var(--green-action); }
+  .demo { margin-top: 14px; background: var(--green-wash); border: 1px solid #BFE8D0; border-radius: 10px; padding: 13px 15px; }
+  .demo .open { font: 400 19px/1.3 var(--serif); color: var(--ink); margin: 2px 0 7px; }
+  .demo .open a { font-family: var(--sans); font-size: 15px; font-weight: 500; }
+  .demo p { color: var(--ink-2); }
+  .demo .backup { margin: 0; font-size: 11.5px; color: var(--sub); }
+  .section { margin-top: 12px; }
+  .rule { border-top: 1px solid var(--rule-2); padding-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.4; }
+  th { text-align: left; font: 600 11px/1.3 var(--sans); color: var(--ink); padding: 4px 6px 4px 0; border-bottom: 1px solid var(--rule-2); }
+  td { padding: 5px 6px 5px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); vertical-align: top; }
+  td.num, th.num { text-align: right; padding-right: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  td b { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; row-gap: 10px; }
+  .cols-2 > div p { color: var(--ink-2); }
+  .wide { grid-column: 1 / -1; }
+  .built p { color: var(--ink-2); }
+  .built .code { margin: 2px 0 0; font-size: 12px; color: var(--sub); }
+  .links { margin-top: 12px; font: 400 14px/1.4 var(--serif); color: var(--green-action); }
+</style>
+</head>
+<body>
+<section class="page">
+  <p class="meta">Green Goods · SustainableFinance.Live 2026 · Problem Statement 2 submission</p>
+  <h1>Green Goods: From <em class="accent">Good</em> Intentions to <em class="accent">Green</em> Outcomes</h1>
+  <p class="lede">We built commitment pooling: communities promise useful work, prove it, and turn the record into support. The people a promise served confirm it was kept, never the people who did the work. We are starting with Tech and Sun, which builds solar-powered hubs in Nigeria; its first hub, in Awka, has served more than 300 people.</p>
+
+  <div class="section rule">
+    <h3>Submission materials</h3>
+    <table>
+      <tr><th>Document</th><th>What it covers</th><th class="num">Open</th></tr>
+      <tr><td><b>Pitch deck</b></td><td>Seventeen slides, from the problem to the business model</td><td class="num"><a href="https://drive.google.com/file/d/1c8YNjDYBNrVTnMNeOSqsCjbCTxr5UIED/view">PDF</a></td></tr>
+      <tr><td><b>Clickable demo</b></td><td>One promise in twelve screens, then every step of the season</td><td class="num"><a data-demo-link href="#">Open</a></td></tr>
+      <tr><td><b>Business Model Canvas</b></td><td>The nine standard blocks, with illustrative costs and revenue</td><td class="num"><a href="https://drive.google.com/file/d/11xTLDPXRc0wCtWm3-j7jtFY1OYEW8afp/view">PDF</a></td></tr>
+      <tr><td><b>Logical architecture</b></td><td>From the five roles down to the three public networks, with the rules that hold</td><td class="num"><a href="https://drive.google.com/file/d/1pVPLcDVQNsfziUrCpSw3Z9n3C4sOsenu/view">PDF</a></td></tr>
+      <tr><td><b>Companion brief</b></td><td>Six pages of detail behind the slides, with sources</td><td class="num"><a href="https://drive.google.com/file/d/1AKFVu2Q-C93VJv2SQvi_lvj1Wgk52iZ5/view">PDF</a></td></tr>
+    </table>
+  </div>
+
+  <div class="section rule built">
+    <h3>What we built for SF.Live: Cosmo-Local Credit inside commitment pooling</h3>
+    <p>Commitment pooling was already live: members offer or request specific work, take promises up and document them, and the person served confirms each one kept. For SF.Live we integrated Cosmo-Local Credit, the open voucher protocol from Grassroots Economics, so a kept promise can earn service vouchers. When a promise is confirmed on Arbitrum, a cross-network message pays its vouchers on Gnosis, where Cosmo-Local runs. Members swap them in one shared Cosmo-Local pool and book services, with vouchers held in escrow until delivery and undelivered units returned. The contracts are deployed on public networks and in pilot with Tech and Sun, and the whole flow was rehearsed end to end, including what happens when a step fails partway.</p>
+    <p class="code">Code: <a href="https://github.com/greenpill-dev-guild/green-goods">github.com/greenpill-dev-guild/green-goods</a> · <a href="https://github.com/greenpill-dev-guild/green-goods/tree/develop/packages/contracts/src/modules">the voucher adapter and escrow contracts</a></p>
+  </div>
+
+  <div class="section rule cols-2">
+    <div><h3>The problem</h3><p>Communities create value every season, but the record of it stays trapped. Proving work costs more than doing it, reporting tools were built for offices, and the record sits on platforms communities don't own.</p></div>
+    <div><h3>Where it stands</h3><p>Live: the app, promises, chat reporting and endowments. Deployed: the voucher contracts, on public networks since 24 October. In pilot: service vouchers with Tech and Sun. Open now: the hub's first promise season, running to 31 January 2027.</p></div>
+    <div><h3>Accessible by design</h3><p>Works offline, signs in by fingerprint or face, reports by chat, in English, Spanish or Portuguese.</p></div>
+    <div><h3>Reporting costs less</h3><p>Proof is captured as the work happens, confirmed by the person served, and read by every funder.</p></div>
+    <div><h3>How it pays for itself</h3><p>Funders pay Green Goods a separate fee for setup, support and reporting. Endowments earn DeFi yield on ETH and stablecoins, typically 2 to 7% a year, and Green Goods' share of those earnings is 2.7% by default, being switched on. Never a supporter's deposit, never a garden's shared fund.</p></div>
+    <div><h3>Who we are looking for</h3><p>Institutional funders who want to pilot allocation tools like Green Goods, diaspora associations ready to pool members' gifts behind a hub's season, and mentors for business development and for telling our story.</p></div>
+  </div>
+
+  <p class="links"><a href="https://greengoods.app">greengoods.app</a> · <a href="https://beta.greengoods.app">beta.greengoods.app</a> · <a href="https://docs.greengoods.app">docs.greengoods.app</a> · <a href="mailto:contact@greengoods.app">contact@greengoods.app</a></p>
+
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · SF Live 2026 submission · October 2026</span></footer>
+</section>
+</body>
+</html>
