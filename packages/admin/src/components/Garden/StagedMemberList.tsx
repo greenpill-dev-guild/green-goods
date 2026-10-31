@@ -3,9 +3,10 @@ import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCloseLine, RiUserAddLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { formatRoleNames, type StagedMember } from "./addMembersEntry";
+import { formatRoleNames, memberRowKey, type StagedMember } from "./addMembersEntry";
 import { RoleChip } from "./RoleChip";
 
 interface StagedMemberListProps {
@@ -14,18 +15,22 @@ interface StagedMemberListProps {
   rolesByAddress: Map<string, GardenRole[]>;
   onRemove: (address: Address) => void;
   disabled?: boolean;
+  /** What a row with an unknown outcome says. It cannot be removed until that settles. */
+  heldNote?: (member: StagedMember) => string | null;
 }
 
 /**
  * The Add Members queue: who is being added and the role each person is
  * getting. People already in the garden also show the roles they hold today,
- * so a promotion reads at a glance; new people stay one line.
+ * so a promotion reads at a glance; new people stay one line. A row the chain
+ * would refuse says why, and a row with an unknown outcome is locked.
  */
 export function StagedMemberList({
   members,
   rolesByAddress,
   onRemove,
   disabled = false,
+  heldNote,
 }: StagedMemberListProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -57,7 +62,10 @@ export function StagedMemberList({
         />
       ) : (
         <ul className="space-y-2">
-          {members.map(({ address, role }) => {
+          {members.map((member) => {
+            const { address, role } = member;
+            const held = heldNote?.(member) ?? null;
+            const note = held ?? member.refusal ?? null;
             // A row's own role is never one they hold: only people without it
             // are staged, and the chain can overrule a roster that lags a revoke.
             const currentRoles = (rolesByAddress.get(address.toLowerCase()) ?? []).filter(
@@ -75,7 +83,7 @@ export function StagedMemberList({
                 : null;
             return (
               <li
-                key={address}
+                key={memberRowKey(member)}
                 className="flex items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2"
               >
                 <div className="min-w-0 flex-1">
@@ -97,13 +105,24 @@ export function StagedMemberList({
                       {currentRolesLabel}
                     </span>
                   ) : null}
+                  {note ? (
+                    <span
+                      className={cn(
+                        "block truncate type-body",
+                        held ? "text-warning-dark" : "text-error-dark"
+                      )}
+                      title={note}
+                    >
+                      {note}
+                    </span>
+                  ) : null}
                 </div>
                 <RoleChip role={role} />
                 <IconButton
                   size="compact"
                   className="shrink-0"
                   onClick={() => onRemove(address)}
-                  disabled={disabled}
+                  disabled={disabled || held !== null}
                   aria-label={formatMessage({
                     id: "admin.addMember.remove",
                     defaultMessage: "Remove",

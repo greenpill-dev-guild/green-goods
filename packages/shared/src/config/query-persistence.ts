@@ -327,7 +327,7 @@ export function createShouldDehydrateQuery({
     if (key[1] === "agent-reporting") return false;
 
     // The batch journal owns a save's outcome: a restored copy could show a hold that has ended.
-    if (key[1] === "garden-settings-batch") return false;
+    if (key[1] === "batch") return false;
 
     // The due clock's calibration belongs to the page that read it: restored after the device
     // clock moved, it would move the chain's clock with it.

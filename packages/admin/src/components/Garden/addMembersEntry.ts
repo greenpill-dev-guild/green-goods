@@ -10,7 +10,12 @@ import { getRoleLabel } from "./gardenUtils";
 export interface StagedMember {
   address: Address;
   role: GardenRole;
+  /** Why the chain would refuse this row, from the last attempt to add it. */
+  refusal?: string;
 }
+
+/** Which add a row belongs to: a person can have an unsettled add under another role. */
+export const memberRowKey = ({ address, role }: StagedMember) => `${address.toLowerCase()}:${role}`;
 
 /** The roles each address holds today, keyed by lowercase address, in display order. */
 export function buildRolesByAddress(
