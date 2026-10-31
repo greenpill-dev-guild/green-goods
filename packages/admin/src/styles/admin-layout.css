@@ -103,9 +103,11 @@ button.garden-stat-row:hover {
     gap: 1.5rem;
   }
 
-  .garden-tab-main > :only-child {
-    flex: 1 1 auto;
-  }
+  /* A lone child keeps its own height. The only-child rule that stretched it to
+   * the rail made Garden Health a 667px card around 347px of content, because
+   * the grid stretches the main column to the taller rail (qa-session
+   * 2026-10-30 OBS-05). A card that should fill opts in with flex-1, as the
+   * activity feed does. */
 
 }
 
