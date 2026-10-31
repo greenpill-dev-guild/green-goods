@@ -7,7 +7,14 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/__tests__/test-utils";
+import {
+  act,
+  fireEvent,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from "@/__tests__/test-utils";
 import { AdminViewActions } from "@/components/AdminViewActions";
 import { CommunitySheetDescriptor } from "./CommunitySheetDescriptor";
 
@@ -20,7 +27,7 @@ const jars = vi.hoisted(() => ({ current: [] as unknown[] }));
 const deposit = vi.hoisted(() => ({
   error: null,
   isPending: false,
-  mutate: () => {},
+  mutate: vi.fn(),
   reset: () => {},
 }));
 
@@ -64,14 +71,15 @@ function CommunityRoute() {
         selectedItem={new URLSearchParams(location.search).get("item")}
         gardenAddress={GARDEN}
       />
+      <button type="button" data-testid="browser-back" onClick={() => navigate(-1)} />
       <output data-testid="location">{`${location.pathname}${location.search}`}</output>
     </>
   );
 }
 
-function renderAt(path: string) {
+function renderAt(path: string, before?: string) {
   return renderWithProviders(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={before ? [before, path] : [path]} initialIndex={before ? 1 : 0}>
       <CommunityRoute />
     </MemoryRouter>
   );
@@ -80,9 +88,11 @@ function renderAt(path: string) {
 const fundButton = () => screen.getByRole("button", { name: "Fund Cookie Jar" });
 const fundDialog = () => screen.queryByRole("dialog", { name: "Fund Cookie Jar" });
 const currentUrl = () => screen.getByTestId("location").textContent;
+const pressBrowserBack = () => fireEvent.click(screen.getByTestId("browser-back"));
 
 describe("CommunitySheetDescriptor: Fund Cookie Jar (DL-140)", () => {
   beforeEach(() => {
+    deposit.mutate.mockClear();
     jars.current = [
       {
         jarAddress: JAR,
@@ -124,12 +134,52 @@ describe("CommunitySheetDescriptor: Fund Cookie Jar (DL-140)", () => {
     expect(fundDialog()).toBeInTheDocument();
   });
 
-  it("reopens on the same tab when the page reloads with the item in the URL", () => {
-    const url = `/community/endowment?gardenId=${GARDEN}&item=fund-jar`;
-    renderAt(url);
+  it("reopens on the same tab from a direct link or a reload, and closes in place", async () => {
+    const user = userEvent.setup();
+    const tabUrl = `/community/endowment?gardenId=${GARDEN}`;
+    renderAt(`${tabUrl}&item=fund-jar`);
 
     expect(fundDialog()).toBeInTheDocument();
-    expect(currentUrl()).toBe(url);
+    expect(currentUrl()).toBe(`${tabUrl}&item=fund-jar`);
+
+    // Nothing of ours lies beneath this entry, so closing must not go back over it.
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(fundDialog()).not.toBeInTheDocument());
+    expect(currentUrl()).toBe(tabUrl);
+  });
+
+  it("leaves no dead Back step behind a press and a close", async () => {
+    const user = userEvent.setup();
+    const before = `/community/members?gardenId=${GARDEN}`;
+    renderAt(`/community/endowment?gardenId=${GARDEN}`, before);
+
+    await user.click(fundButton());
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(fundDialog()).not.toBeInTheDocument());
+
+    pressBrowserBack();
+
+    await waitFor(() => expect(currentUrl()).toBe(before));
+  });
+
+  it("does not move a steward who went Back before their deposit landed", async () => {
+    const user = userEvent.setup();
+    const before = `/community/members?gardenId=${GARDEN}`;
+    const tabUrl = `/community/endowment?gardenId=${GARDEN}`;
+    renderAt(tabUrl, before);
+
+    await user.click(fundButton());
+    await user.type(screen.getByRole("textbox", { name: "How much" }), "1");
+    await user.click(screen.getByRole("button", { name: "Deposit" }));
+    const sent = deposit.mutate.mock.calls[0]?.[1] as { onSuccess: () => void };
+
+    pressBrowserBack();
+    await waitFor(() => expect(currentUrl()).toBe(tabUrl));
+    act(() => sent.onSuccess());
+
+    await waitFor(() => expect(fundDialog()).not.toBeInTheDocument());
+    expect(currentUrl()).toBe(tabUrl);
   });
 
   it("stays closed for another route item", () => {
