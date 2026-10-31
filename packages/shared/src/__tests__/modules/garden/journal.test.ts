@@ -27,6 +27,7 @@ import {
   isTakeableBy,
   NO_TAKE_UPS,
   recentActivityState,
+  takePartEmptyReason,
   takePartEntries,
   takePartPromises,
   viewerTakeUps,
@@ -260,6 +261,40 @@ describe("Take Part", () => {
     expect(offered.map((item) => item.commitmentId)).toEqual([9n, 8n]);
     // Signed out, nothing is anyone's own, so every open promise is listed.
     expect(takePartPromises([openOffer, readersOwn], null, NO_TAKE_UPS, CLOCK)).toHaveLength(2);
+  });
+
+  it("says why nothing is listed: no open promise, or only the reader's own (DL-132)", () => {
+    const input = (commitments: CommitmentReadModel[]) => ({
+      commitments,
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: true,
+      takeUps: NO_TAKE_UPS,
+      clock: CLOCK,
+    });
+    const readersOwn = promise(7, { creator: READER, leadProvider: READER });
+    const kept = promise(4, { onchainState: "FULFILLED", derivedState: "FULFILLED" });
+
+    expect(takePartEmptyReason(input([]))).toBe("none");
+    expect(takePartEmptyReason(input([kept]))).toBe("none");
+    expect(takePartEmptyReason(input([readersOwn, kept]))).toBe("yours");
+    // Another's open offer is listed, so there is nothing to explain.
+    expect(takePartEmptyReason(input([readersOwn, promise(9)]))).toBe("none");
+    // Another's ask the reader asked to take up, or has queued, is not the reader's own yet: the
+    // request may be declined and the send may fail, so the row never calls it "yours".
+    const othersAsk = promise(8, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+    });
+    const requested = { requested: new Set(["8"]), queued: new Set<string>() };
+    const queued = { requested: new Set<string>(), queued: new Set(["8"]) };
+    expect(takePartEmptyReason({ ...input([othersAsk]), takeUps: requested })).toBe("none");
+    expect(takePartEmptyReason({ ...input([othersAsk, readersOwn]), takeUps: queued })).toBe(
+      "none"
+    );
+    // A pool that is not open takes nothing up, whoever made its promises.
+    expect(takePartEmptyReason({ ...input([readersOwn]), poolOpen: false })).toBe("none");
   });
 
   it("folds copies of one set into one row, as the Pool tab does", () => {

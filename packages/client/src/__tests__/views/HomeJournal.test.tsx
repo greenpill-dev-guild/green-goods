@@ -286,6 +286,7 @@ function promises(overrides: Partial<GardenOpenPromises> = {}): GardenOpenPromis
     state: { status: "ready", items: [OFFER, ASK], savedAt: null },
     all: { status: "ready", items: [OFFER, ASK], savedAt: null },
     ask: ASK,
+    emptyReason: "none",
     titleOf: (cid) => (cid ? (TITLES[cid] ?? null) : null),
     refetch: vi.fn(),
     ...overrides,
@@ -620,7 +621,7 @@ describe("Home journal", () => {
       ]);
     });
 
-    it("tells a chain without promises, a failure, a wait and nothing open apart", async () => {
+    it("tells a chain without promises, a failure, a wait, nothing open and only the reader's own apart", async () => {
       const user = userEvent.setup();
       const refetch = vi.fn();
       mocks.promises.mockReturnValue(promises({ state: { status: "unavailable" } }));
@@ -652,6 +653,18 @@ describe("Home journal", () => {
         </MemoryRouter>
       );
       expect(screen.getByText("No open promises right now")).toBeVisible();
+
+      // A steward whose own promises are the only open ones hears that instead (DL-132).
+      mocks.promises.mockReturnValue(
+        promises({ state: { status: "empty" }, emptyReason: "yours" })
+      );
+      rerender(
+        <MemoryRouter>
+          <TakePart gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.getByText("Nothing new to take up")).toBeVisible();
+      expect(screen.getByText("Every open promise here is already yours")).toBeVisible();
     });
 
     it("stands each open cycle as one line when Home has no carousel, opening its details", async () => {

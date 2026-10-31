@@ -23,6 +23,7 @@ import {
   type RecentActivityState,
   recentActivityState,
   type TakePartEntry as JournalTakePartEntry,
+  takePartEmptyReason,
   takePartEntries,
 } from "../../modules/garden/journal";
 import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
@@ -152,6 +153,8 @@ export interface GardenOpenPromises {
   all: JournalSectionState<TakePartEntry>;
   /** The newest ask open to take up, from every entry, for the carousel. */
   ask: TakePartEntry | null;
+  /** Why `state` is empty, when it is: nothing open, or only the reader's own (DL-132). */
+  emptyReason: "none" | "yours";
   /** A promise's own name, once its metadata has resolved. */
   titleOf: (metadataCID: string | null | undefined) => string | null;
   refetch: () => void;
@@ -187,18 +190,17 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const poolOpen = pool?.state === "OPEN";
   // Ticks when a listed promise falls due, so a lapsed one leaves the list.
   const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
-  const entries = useMemo(
-    () =>
-      takePartEntries({
-        commitments: listed,
-        metadataByCID: byCID,
-        viewer,
-        poolOpen,
-        takeUps,
-        clock: due.clock,
-      }),
-    [listed, byCID, viewer, poolOpen, takeUps, due.clock]
-  );
+  const { entries, emptyReason } = useMemo(() => {
+    const input = {
+      commitments: listed,
+      metadataByCID: byCID,
+      viewer,
+      poolOpen,
+      takeUps,
+      clock: due.clock,
+    };
+    return { entries: takePartEntries(input), emptyReason: takePartEmptyReason(input) };
+  }, [listed, byCID, viewer, poolOpen, takeUps, due.clock]);
 
   const read = {
     available: commitments.availability.status === "available",
@@ -225,6 +227,7 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
     state,
     all,
     ask: state.status === "ready" ? openAsk(entries) : null,
+    emptyReason,
     titleOf: (metadataCID) => (metadataCID ? (byCID.get(metadataCID.trim())?.title ?? null) : null),
     refetch: () => {
       if (pools.isError) void pools.refetch();
