@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T07:38:17.181Z"
+    "updated_at": "2026-10-31T08:43:43.050Z"
   },
   "links": {
     "brief": "brief.md",
@@ -48,44 +48,43 @@
   ],
   "lanes": {
     "ui": {
-      "owner": "codex",
-      "status": "blocked",
-      "branch": null,
-      "depends_on": [],
-      "handoff": "handoffs/ui.md",
-      "tdd": {
-        "mode": "required",
-        "status": "pending",
-        "red": {
-          "command": "",
-          "evidence": ""
-        },
-        "green": {
-          "command": "",
-          "evidence": ""
-        },
-        "note": "Future behavior-changing implementation requires fresh RED/GREEN proof; no implementation performed during planning."
-      },
-      "skill_tags": ["ui", "frontend-design", "react"],
-      "manual_blocked": true,
-      "blocked_reason": "Phases 2–12 wait for slice 1D and need their own authorization where they broadcast live."
-    },
-    "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "fix/batch-recovery-races",
+      "branch": "feature/batch-garden-settings",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/batch-journal.test.ts",
-          "evidence": "2026-10-31 07:35:27 UTC: 4 failures on behavior: a stale checkpoint erased a reference, a release ran past a late reference, verification could not resume after an expired status, and a contradicting read overwrote a saved receipt. Guard tests already passed."
+          "command": "bun run --cwd packages/admin test src/components/Garden src/views/Garden/components/EditGardenDialog.test.tsx",
+          "evidence": "2026-10-31 08:42:30 UTC: these tests followed the wiring, so they were proven by breaking the behavior: with the batch path, the sent values, the field locks, and the read-driven settlement removed, 17 failed in 4 files."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test -- <the 13 focused files named in handoffs/continuation.md>",
-          "evidence": "2026-10-31 07:37:31 UTC: 13 files, 234 passed, 6 existing skips, on the working copy later committed for slice 1E. Shared typechecks passed. The PR records the gate and CI results for its final head."
+          "command": "bun run --cwd packages/admin test src/components/Garden src/views/Garden/components/EditGardenDialog.test.tsx",
+          "evidence": "2026-10-31 08:42:46 UTC: 5 files, 78 passed, with the behavior restored, at the tree committed as 98b2b83aa."
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/batch-garden-settings",
+      "depends_on": [],
+      "handoff": "handoffs/continuation.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-settings-batch.test.ts",
+          "evidence": "2026-10-31 08:16:11 UTC: this file failed on the missing settings batch module, as did a small enablement test later folded into prepared-batch.test.ts. Moving on was narrowed to the saves a person was shown after that, and proven at 08:42:30 UTC by removing the limit: 1 failed."
+        },
+        "green": {
+          "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/hooks/garden/useSetGardenDomains.test.ts src/__tests__/modules/update-garden-command.test.ts src/__tests__/i18n/locale-coverage.test.ts src/modules/transactions/__tests__/",
+          "evidence": "2026-10-31 08:42:46 UTC: 24 files, 363 passed, 6 existing skips, at the tree committed as 98b2b83aa."
         },
         "note": ""
       },
@@ -304,6 +303,54 @@
       "status": "tdd_recorded",
       "branch": "fix/batch-recovery-races",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T08:35:28.299Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/batch-garden-settings",
+      "note": "Slice 1E merged as 3fbe745c6. Slice 2 prepares garden settings in Shared."
+    },
+    {
+      "timestamp": "2026-10-31T08:35:29.253Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/batch-garden-settings",
+      "note": "Slice 2 wires the batched save and the unknown-save alert into Edit Garden."
+    },
+    {
+      "timestamp": "2026-10-31T08:35:30.164Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-garden-settings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T08:35:31.034Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-garden-settings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T08:43:41.719Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-garden-settings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T08:43:43.052Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-garden-settings",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -318,18 +365,18 @@
     "phase_1_recovery_gaps": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "in_progress",
-      "branch": "fix/batch-recovery-races",
+      "status": "completed",
+      "branch": null,
       "depends_on": ["phase_1_shared"],
       "handoff": "handoffs/continuation.md"
     },
     "phase_2_settings": {
       "machine_lane": "ui",
-      "owner": "codex",
-      "status": "todo",
-      "branch": null,
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/batch-garden-settings",
       "depends_on": ["phase_1_shared", "phase_1_recovery_gaps"],
-      "handoff": "handoffs/ui.md"
+      "handoff": "handoffs/continuation.md"
     },
     "phase_3_members": {
       "machine_lane": "ui",

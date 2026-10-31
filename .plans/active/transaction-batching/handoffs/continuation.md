@@ -8,7 +8,11 @@ PR #1208 merged to `develop` as `2376e5b84`. Slice 1D, #1396, merged as `a2fdc72
 
 Proof for 1D, with RED first. The first run, at 05:58:45 UTC, had 8 failures: 4 assertions on real behavior and 4 on the missing release function. The second, at 06:03:48 UTC, had 8 more: 7 assertions on the same round of behavior and a budget test corrected once to fail for the right reason. At 06:05:07 UTC, 13 focused files passed 228 tests with 6 existing skips, and both Shared typechecks passed. For 1E, on 2026-10-31, 4 new tests failed on behavior at 07:35:27 UTC, and at 07:37:31 UTC the same 13 files passed 234 tests with 6 existing skips, with both Shared typechecks passing. Each PR records the gate and CI results for its final head.
 
-Next: garden settings (slice 2). It needs the user's passkey and approval to broadcast for its live proof. [The plan](../plan.todo.md#slices) defines every slice after that.
+Slice 1E, #1397, merged as `3fbe745c6`.
+
+Garden settings (slice 2) is built on `feature/batch-garden-settings`, with the enablement list empty, so it changes nothing for anyone yet. Proof, with RED first for Shared: at 08:16:11 UTC its new tests failed on the missing modules. Admin's tests followed the wiring, so they were proven by breaking the behavior at 08:42:30 UTC: with the batch path, the sent values, the field locks, and the read-driven settlement removed, 17 failed, and with moving on no longer limited to the saves a person was shown, 1 more failed in Shared. With the behavior back at 08:42:46 UTC, admin passed 78 tests and Shared 363, with six existing skips. Rendered proof is Storybook only: the alert and the one-signature rows at desktop and 375px.
+
+Next, once this PR merges: list each rail in a small follow-up and prove one live batch on each. That needs the user's passkey and approval to broadcast, and it is where the ceilings and the RPC's `simulateCalls` answer get checked. [The plan](../plan.todo.md#slices) defines every slice after that.
 
 ## Start here
 
