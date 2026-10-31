@@ -196,6 +196,26 @@ export const NamedGroup: Story = {
   },
 };
 
+/**
+ * A request a steward seeded with named confirmers, read by one of them. They did not ask for
+ * it, and the person who asked does not confirm by asking, so the sheet says neither.
+ */
+export const NamedGroupRequest: Story = {
+  args: {
+    commitment: commitment({
+      direction: "REQUEST",
+      creator: STEWARD,
+      leadProvider: PROVIDER,
+      counterparty: PROVIDER,
+      confirmers: [VIEWER, STEWARD],
+    }),
+  },
+  play: async () => {
+    await expect(await screen.findByText(/The named people do\./)).toBeVisible();
+    await expect(screen.queryByText(/You asked/)).not.toBeInTheDocument();
+  },
+};
+
 export const NotYet: Story = {
   play: async () => {
     const user = userEvent.setup();

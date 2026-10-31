@@ -115,6 +115,22 @@ export function ConfirmSheet({
   ).length;
   const provider = commitment.leadProvider ?? commitment.creator ?? null;
   const excludedCount = contributors.filter((entry) => entry.active).length;
+  // Named confirmers replace the default confirmer on the contract, so a named reader need not be
+  // the person who asked, and the person who asked does not confirm unless they are named too.
+  const reader = viewer?.toLowerCase();
+  const namedNotAsker =
+    commitment.creator?.toLowerCase() !== reader &&
+    named.some((address) => address.toLowerCase() === reader);
+  const summaryAfter =
+    namedNotAsker && cast === "request"
+      ? "app.confirm.summary.request.afterNamed"
+      : namedNotAsker && cast === "request-work"
+        ? "app.confirm.summary.request-work.afterNamed"
+        : `app.confirm.summary.${cast}.after`;
+  const exclusion =
+    named.length > 0 && cast !== "offer"
+      ? "app.confirm.exclusion.named"
+      : `app.confirm.exclusion.${cast}`;
 
   const title =
     phase === "confirmed"
@@ -236,10 +252,10 @@ export function ConfirmSheet({
               <span className="flex flex-wrap items-center gap-1">
                 {formatMessage({ id: `app.confirm.summary.${cast}.before` })}
                 <AddressDisplay address={provider} showCopyButton={false} interactive={false} />
-                {formatMessage({ id: `app.confirm.summary.${cast}.after` })}
+                {formatMessage({ id: summaryAfter })}
               </span>
             ) : (
-              formatMessage({ id: `app.confirm.summary.${cast}.after` })
+              formatMessage({ id: summaryAfter })
             )}
           </div>
 
@@ -325,9 +341,7 @@ export function ConfirmSheet({
 
           <p className="flex items-start gap-2 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-xs text-text-sub-600">
             <RiShieldCheckLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {service
-              ? service.note
-              : formatMessage({ id: `app.confirm.exclusion.${cast}` }, { count: excludedCount })}
+            {service ? service.note : formatMessage({ id: exclusion }, { count: excludedCount })}
           </p>
 
           {!canNotYet ? (

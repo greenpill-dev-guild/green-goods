@@ -19,6 +19,7 @@ const { ConfirmSheet } = await import("../../views/Home/Garden/Commitment/Confir
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const PROVIDER = "0x2222222222222222222222222222222222222222" as const;
+const STEWARD = "0x3333333333333333333333333333333333333333" as const;
 
 function evidence(cid: string): ResolvedEvidence {
   return {
@@ -143,6 +144,35 @@ describe("ConfirmSheet words for a request that is not garden work", () => {
       "placeholder",
       "The last part is still to come…"
     );
+  });
+});
+
+describe("ConfirmSheet words for a request with named confirmers", () => {
+  it("says the asker confirms only to the asker, and names the group as who confirms", () => {
+    // A steward can seed a request and name who confirms it. The contract then seats only those
+    // people, so a named reader did not ask for it, and the asker does not confirm by asking.
+    const request = {
+      direction: "REQUEST",
+      commitmentType: "SUPPORT_SERVICE",
+      counterparty: PROVIDER,
+    } as const;
+    const { rerender } = renderWithProviders(
+      sheet(1, { ...request, creator: STEWARD, confirmers: [VIEWER, STEWARD] })
+    );
+    const summary = () => document.querySelector('[data-component="ConfirmSummary"]');
+
+    expect(summary()).toHaveTextContent("took this up. You are named to confirm it.");
+    expect(summary()).not.toHaveTextContent("You asked");
+    expect(screen.getByText(/The named people do\./)).toBeInTheDocument();
+    expect(screen.queryByText(/The person who asked does\./)).toBeNull();
+
+    rerender(sheet(1, { ...request, creator: VIEWER, confirmers: [VIEWER, STEWARD] }));
+    expect(summary()).toHaveTextContent("took this up. You asked for it, so you confirm it.");
+    expect(screen.getByText(/The named people do\./)).toBeInTheDocument();
+
+    rerender(sheet(1, { ...request, creator: VIEWER, confirmers: [] }));
+    expect(summary()).toHaveTextContent("took this up. You asked for it, so you confirm it.");
+    expect(screen.getByText(/The person who asked does\./)).toBeInTheDocument();
   });
 });
 
