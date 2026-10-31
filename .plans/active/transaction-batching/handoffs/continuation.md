@@ -4,9 +4,9 @@ Finish the remaining plan from this batching checkpoint. Read `status.json`, `pl
 
 ## State on 2026-10-30
 
-PR #1208 merged to `develop` as `2376e5b84`, with six open review findings on code nothing calls yet. Slice 1D, on branch `fix/batch-recovery-gaps`, answers them. Five are fixed; operation IDs stay unscoped, with the reason in [the spec](../spec.md#recovery-rules-added-on-2026-10-30).
+PR #1208 merged to `develop` as `2376e5b84`. Slice 1D, #1396, merged as `a2fdc723a` and answered its six review findings: five are fixed, and operation IDs stay unscoped, with the reason in [the spec](../spec.md#recovery-rules-added-on-2026-10-30). Slice 1E, on branch `fix/batch-recovery-races`, fixes the four findings from review of #1396.
 
-Proof for 1D, with RED first. The first run, at 05:58:45 UTC, had 8 failures: 4 assertions on real behavior and 4 on the missing release function. The second, at 06:03:48 UTC, had 8 more: 7 assertions on the same round of behavior and a budget test corrected once to fail for the right reason. At 06:05:07 UTC, 13 focused files passed 228 tests with 6 existing skips, and both Shared typechecks passed. The PR records the gate and CI results for its final head.
+Proof for 1D, with RED first. The first run, at 05:58:45 UTC, had 8 failures: 4 assertions on real behavior and 4 on the missing release function. The second, at 06:03:48 UTC, had 8 more: 7 assertions on the same round of behavior and a budget test corrected once to fail for the right reason. At 06:05:07 UTC, 13 focused files passed 228 tests with 6 existing skips, and both Shared typechecks passed. For 1E, on 2026-10-31, 4 new tests failed on behavior at 07:35:27 UTC, and at 07:37:31 UTC the same 13 files passed 234 tests with 6 existing skips, with both Shared typechecks passing. Each PR records the gate and CI results for its final head.
 
 Next: garden settings (slice 2). It needs the user's passkey and approval to broadcast for its live proof. [The plan](../plan.todo.md#slices) defines every slice after that.
 
