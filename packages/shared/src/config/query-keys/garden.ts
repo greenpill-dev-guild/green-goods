@@ -15,15 +15,16 @@ export const gardensKeys = {
 } as const;
 
 /**
- * A settings batch's wallet capability and unknown outcomes. Apart from `gardensKeys`, because a
- * save refreshes the garden and reading a hold can settle it.
+ * A batched action's wallet capability and unknown outcomes. Apart from each action's own keys,
+ * because a save refreshes those and reading a hold can settle it. `domain` names the action and
+ * its target, as the batch journal does.
  */
-export const gardenSettingsBatchKeys = {
+export const batchKeys = {
   /** Per connector: the same account can reconnect through a wallet that batches differently. */
   capability: (account: string, chainId: number, connectorId: string) =>
-    ["greengoods", "garden-settings-batch", "capability", account, chainId, connectorId] as const,
-  hold: (gardenId: string, account: string, chainId: number) =>
-    ["greengoods", "garden-settings-batch", "hold", gardenId, account, chainId] as const,
+    ["greengoods", "batch", "capability", account, chainId, connectorId] as const,
+  hold: (domain: string, account: string, chainId: number) =>
+    ["greengoods", "batch", "hold", domain, account, chainId] as const,
 } as const;
 
 export const actionsKeys = {

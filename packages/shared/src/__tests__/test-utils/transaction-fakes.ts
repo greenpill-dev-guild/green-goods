@@ -236,7 +236,17 @@ export function createFakeBatchingSender(
     authMode: "passkey",
     supportsSponsorship: true,
     supportsBatching: true,
-    sendContractCall: vi.fn(),
+    // The path a `single-call` batch takes.
+    sendContractCall: vi.fn(async (_call, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash });
+      await options?.onBroadcastReference?.({ kind: "user-operation", hash });
+      return {
+        hash,
+        sponsored: true,
+        broadcastReference: { kind: "user-operation", hash },
+        ...(outcome.status === "confirmed" ? {} : { confirmation: "pending" }),
+      } as TxResult;
+    }),
     getBatchCapability: vi.fn(async (scope) => ({ ...scope, atomic: "supported" })),
     preflightBatch: async () => ({
       gas: "1600000",
