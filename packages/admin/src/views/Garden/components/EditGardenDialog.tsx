@@ -16,6 +16,7 @@ import {
   type GardenSettingsEditorHandle,
   type GardenSettingsFormState,
 } from "@/components/Garden/GardenSettingsEditor";
+import { GardenSettingsHoldAlert } from "@/components/Garden/GardenSettingsHoldAlert";
 import {
   buildGardenSettingsSaveRows,
   gardenSettingsSaveLine,
@@ -38,17 +39,20 @@ const INITIAL_FORM: GardenSettingsFormState = {
   isSaving: false,
   hasValidationError: false,
   dirtyCount: 0,
+  oneSignature: false,
   canEdit: false,
   run: null,
+  hold: null,
+  isSettlingHold: false,
 };
 
 /**
  * Edit Garden, opened by the workspace action of the same name. The form owns
  * the draft and the save; this dialog owns the close guard, the identity
- * preview, and the pinned footer. The footer says how many wallet
- * confirmations a save takes before it starts; once it starts, the body shows
- * each write landing, a stop says where and what was saved, and Try Again
- * sends only the rest (Rule 20).
+ * preview, and the pinned footer. The footer says how many signatures a save
+ * takes before it starts; once it starts, the body shows each write landing, a
+ * stop says where and what was saved, and Try Again sends only the rest (Rule
+ * 20). A save whose outcome is unknown stays at the top until it is settled.
  */
 export function EditGardenDialog({
   open,
@@ -114,7 +118,11 @@ export function EditGardenDialog({
         </Button>
       );
     }
-    if (run?.status === "stopped" || (run?.status === "running" && retrying)) {
+    if (
+      run?.status === "stopped" ||
+      run?.status === "unconfirmed" ||
+      (run?.status === "running" && retrying)
+    ) {
       return (
         <>
           <Button
@@ -129,16 +137,19 @@ export function EditGardenDialog({
               defaultMessage: "Keep Editing",
             })}
           </Button>
-          <Button
-            type="button"
-            emphasis="primary"
-            size="sm"
-            onClick={() => save(true)}
-            disabled={!settingsForm.isDirty || settingsForm.isSaving}
-            loading={settingsForm.isSaving}
-          >
-            {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-          </Button>
+          {/* An unknown save is not sent again: its alert says what can happen next. */}
+          {run.status === "unconfirmed" ? null : (
+            <Button
+              type="button"
+              emphasis="primary"
+              size="sm"
+              onClick={() => save(true)}
+              disabled={!settingsForm.isDirty || settingsForm.isSaving}
+              loading={settingsForm.isSaving}
+            >
+              {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+            </Button>
+          )}
         </>
       );
     }
@@ -193,13 +204,27 @@ export function EditGardenDialog({
                 aria-live="polite"
                 data-slot="dirty-state"
               >
-                {gardenSettingsSaveLine(run, settingsForm.dirtyCount, formatMessage)}
+                {gardenSettingsSaveLine(
+                  run,
+                  settingsForm.dirtyCount,
+                  formatMessage,
+                  settingsForm.oneSignature
+                )}
               </p>
               <div className="flex items-center justify-end gap-2">{buttons()}</div>
             </div>
           ) : undefined
         }
       >
+        {settingsForm.hold ? (
+          <GardenSettingsHoldAlert
+            hold={settingsForm.hold}
+            isSettling={settingsForm.isSettlingHold}
+            isSaving={settingsForm.isSaving}
+            onCheckAgain={() => void settingsEditorRef.current?.checkHold()}
+            onMoveOn={() => void settingsEditorRef.current?.moveOnFromHold()}
+          />
+        ) : null}
         {run ? (
           <TxProgressList
             testId="garden-settings-save"

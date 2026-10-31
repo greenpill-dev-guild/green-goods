@@ -1,11 +1,27 @@
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
 import { EditGardenDialog, type EditGardenDialogProps } from "./EditGardenDialog";
+
+const { settingsBatch } = vi.hoisted(() => ({
+  settingsBatch: {
+    available: false,
+    hold: null as unknown,
+    saved: [] as unknown[],
+    lastReadAt: 0,
+    isSettlingHold: false,
+    send: vi.fn(),
+    checkAgain: vi.fn(),
+    moveOn: vi.fn(),
+  },
+}));
 
 vi.mock("@green-goods/shared/hooks/garden/useUpdateGarden", () => {
   const mutation = () => ({ mutateAsync: vi.fn(), isPending: false });
   return {
+    // A new object per render, as the real hook returns.
+    useGardenSettingsBatch: () => ({ ...settingsBatch }),
     useUpdateGardenName: mutation,
     useUpdateGardenDescription: mutation,
     useUpdateGardenLocation: mutation,
@@ -53,10 +69,70 @@ function renderDialog(garden: EditGardenDialogProps["garden"]) {
 }
 
 describe("EditGardenDialog", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    settingsBatch.hold = null;
+    settingsBatch.lastReadAt = 0;
+  });
+
   it("opens a capped garden with Limit gardeners on and its cap shown", async () => {
     renderDialog(CAPPED_GARDEN);
 
     expect(await screen.findByRole("switch", { name: "Limit gardeners" })).toBeChecked();
     expect(screen.getByLabelText("Maximum gardeners")).toHaveValue(25);
+  });
+
+  it("puts an unknown save at the top, locks its fields, and settles it on request", async () => {
+    const user = userEvent.setup();
+    settingsBatch.lastReadAt = 1;
+    settingsBatch.hold = {
+      operationIds: ["a"],
+      fields: ["name", "openJoining"],
+      attempted: [
+        { field: "name", value: "Tech and Sun Hub" },
+        { field: "openJoining", value: false },
+      ],
+      onChain: [
+        { field: "name", value: "Tech and Sun" },
+        { field: "openJoining", value: true },
+      ],
+    };
+    renderDialog(CAPPED_GARDEN);
+
+    expect(await screen.findByText("We couldn’t confirm your last save.")).toBeVisible();
+    expect(screen.getByText("Name on chain: Tech and Sun")).toBeVisible();
+    expect(screen.getByText("Open joining on chain: On")).toBeVisible();
+    // The form shows what was sent, locked, and has nothing else to save.
+    expect(screen.getByLabelText(/Name/)).toHaveValue("Tech and Sun Hub");
+    expect(screen.getByLabelText(/Name/)).toBeDisabled();
+    expect(screen.getByRole("switch", { name: "Open joining" })).toBeDisabled();
+    expect(screen.getByLabelText("Description")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Check Again" }));
+    expect(settingsBatch.checkAgain).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Move On" }));
+    expect(settingsBatch.moveOn).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps Move On off until every held value has been read", async () => {
+    settingsBatch.lastReadAt = 1;
+    settingsBatch.hold = {
+      operationIds: ["a"],
+      fields: ["name", "openJoining"],
+      attempted: [
+        { field: "name", value: "Tech and Sun Hub" },
+        { field: "openJoining", value: false },
+      ],
+      onChain: [{ field: "name", value: "Tech and Sun" }],
+    };
+    renderDialog(CAPPED_GARDEN);
+
+    expect(
+      await screen.findByText("Some values couldn’t be read just now. Check again to move on.")
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
   });
 });

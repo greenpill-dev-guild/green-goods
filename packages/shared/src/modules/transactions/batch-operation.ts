@@ -10,6 +10,7 @@ import {
   type BatchRecord,
   type BatchReference,
   type PreparedBatch,
+  UNKNOWN_BATCH_STATES as waiting,
   type VerifyBatchItems,
 } from "./batch-types";
 import { assertBatchQuote } from "./batch-budget";
@@ -28,7 +29,6 @@ interface ExecutionInput extends RecoveryInput {
   /** Domain/transport preflight must simulate the exact reviewed group and enforce its budget. */
   preflight: (prepared: PreparedBatch, itemIds: readonly string[]) => Promise<void>;
 }
-const waiting = new Set(["awaiting-approval", "submitted", "unresolved"]);
 
 async function owned(sender: TransactionSender, prepared: PreparedBatch) {
   await sender.assertOwnership?.(prepared.account, prepared.chainId);
@@ -76,7 +76,8 @@ async function settle(
   };
   if (receiptsContradict(next.receipts)) return { ...next, status: "unresolved" };
   if (execution.status !== "confirmed")
-    return group.confirmedItemIds?.length && execution.status === "reverted"
+    return (group.confirmedItemIds?.length || group.executionConfirmed) &&
+      execution.status === "reverted"
       ? { ...next, status: "unresolved" }
       : next;
   if (
@@ -150,7 +151,11 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           reference.account.toLowerCase() !== prepared.account.toLowerCase()
         )
           throw new Error("batch-reference-scope-mismatch");
-        next = { ...next, status: accepted ? "submitted" : next.status, reference };
+        next = {
+          ...next,
+          reference,
+          ...(accepted ? { status: "submitted", accepted: true } : {}),
+        };
         // Once a send is accepted its identity is saved, even if this tab has lost its claim.
         if (accepted) await journal.recordSubmission(prepared.id, next.itemIds, reference);
         await save(next);
@@ -231,6 +236,8 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           status: declined ? "declined" : notSubmitted ? "prepared" : "unresolved",
         };
         await save(next).catch(() => undefined);
+        // Proven never sent: the caller gets the reason, and its items stay free to send.
+        if (notSubmitted && !declined) throw error;
         return { ...current(), status: next.status };
       }
       if (next.status !== "confirmed") return current();
@@ -303,7 +310,8 @@ export async function releaseBatchOperation(
 ): Promise<BatchRecord> {
   const record = await reconcileBatchOperation(input);
   if (!waiting.has(record.status)) return record;
-  const identity = (group: BatchGroup) => group.reference && batchReferenceKey(group.reference);
+  const identity = (group: BatchGroup) =>
+    `${group.accepted ? "accepted" : "candidate"}:${group.reference ? batchReferenceKey(group.reference) : ""}`;
   return withBatchProgress(input.journal, record, true, async (save, current) => {
     // A send accepted after that read is news this person has not seen, so the hold stays.
     if (current().groups.some((group, index) => identity(group) !== identity(record.groups[index])))

@@ -12,11 +12,11 @@ import {
   type BatchRecord,
   type BatchReference,
   type PreparedBatch,
+  UNKNOWN_BATCH_STATES as uncertain,
 } from "./batch-types";
 
 const LEASE_MS = 60_000;
 const TERMINAL_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const uncertain = new Set(["awaiting-approval", "submitted", "unresolved"]);
 /** What a group becomes once its send is known to be accepted, whatever was assumed before. */
 function afterAcceptance(status: BatchItemState): BatchItemState {
   if (status === "prepared" || status === "awaiting-approval") return "submitted";
@@ -33,7 +33,7 @@ function withAcceptedReference(
     reference,
     status: status === "confirmed" ? record.status : status,
     groups: record.groups.map((candidate) =>
-      candidate === group ? { ...group, reference, status } : candidate
+      candidate === group ? { ...group, reference, status, accepted: true } : candidate
     ),
     itemStates: {
       ...record.itemStates,
@@ -49,14 +49,16 @@ function withAcceptedReference(
 /** A writer that read before a send was accepted cannot erase it: its group goes back to held. */
 function keepAcceptedReferences(stored: BatchRecord, next: BatchRecord): BatchRecord {
   return stored.groups.reduce((result, saved) => {
-    if (!saved.reference || saved.status === "prepared" || saved.status === "awaiting-approval")
-      return result;
+    if (!saved.accepted || !saved.reference) return result;
     const incoming = result.groups.find(
       (group) => group.itemIds.join("\0") === saved.itemIds.join("\0")
     );
-    return incoming && !incoming.reference
-      ? withAcceptedReference(result, incoming, saved.reference)
-      : result;
+    if (!incoming) return result;
+    const same =
+      incoming.accepted &&
+      incoming.reference &&
+      batchReferenceKey(incoming.reference) === batchReferenceKey(saved.reference);
+    return same ? result : withAcceptedReference(result, incoming, saved.reference);
   }, next);
 }
 interface RetiredOperation {
@@ -292,8 +294,7 @@ export class BatchJournal extends Dexie {
         (candidate) => candidate.itemIds.join("\0") === itemIds.join("\0")
       );
       if (!group) throw new Error("batch-group-mismatch");
-      // A reference saved at signing is only a candidate until the network answers with its own.
-      if (group.reference && group.status !== "awaiting-approval") {
+      if (group.accepted && group.reference) {
         if (batchReferenceKey(group.reference) === batchReferenceKey(reference)) return;
         throw new Error("batch-reference-mismatch");
       }
