@@ -147,7 +147,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <div
           className={cn(
             "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap",
-            "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
+            "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface))] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
             "opacity-0 transition-opacity group-hover/fab:opacity-100",
             "motion-reduce:transition-none"
           )}
@@ -277,7 +277,9 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
           "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
           "shadow-[var(--admin-chrome-shadow)]",
-          "m3-state-layer [--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
+          // The default neutral ink layer (Rule 18), painted beneath the icon and
+          // label, keeps them at their rest contrast.
+          "m3-state-layer m3-state-layer-beneath",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
         )}
       >

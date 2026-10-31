@@ -1,9 +1,15 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { mocked } from "storybook/test";
+import { AdminCard } from "@/components/AdminCard";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { FunderRow } from "./FunderRow";
 
 // ⚠ VISUAL HARNESS — not the real ImpactFunders.
@@ -30,18 +36,14 @@ function ImpactFundersHarness({
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
+      <AdminCard className="sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 flex flex-col gap-(--gg-list-gap)">
           {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-14 rounded-lg skeleton-shimmer"
-              style={{ animationDelay: `${i * 0.08}s` }}
-            />
+            <ItemRowSkeleton key={i} lead="avatar" />
           ))}
         </div>
-      </section>
+      </AdminCard>
     );
   }
 
@@ -49,10 +51,8 @@ function ImpactFundersHarness({
 
   const visibleFunders = expanded ? funders : funders.slice(0, DEFAULT_VISIBLE);
   const hasMore = funders.length > DEFAULT_VISIBLE;
-  const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
-
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
+    <AdminCard className="sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading type-title-md font-semibold text-text-strong">
@@ -68,29 +68,35 @@ function ImpactFundersHarness({
           </span>
         )}
       </div>
-      <div className="mt-3 space-y-2">
+      <ul className="mt-3 flex flex-col gap-(--gg-list-gap)">
         {visibleFunders.map((f) => (
-          <FunderRow key={f.address} funder={f} maxYield={maxYield} />
+          <li key={f.address}>
+            <FunderRow funder={f} />
+          </li>
         ))}
-      </div>
+      </ul>
       {hasMore && (
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
+          size="compact"
+          className="mt-3 w-full"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-3 flex w-full items-center justify-center gap-1 rounded-md border border-stroke-soft py-2 type-label-sm text-text-sub transition-colors hover:bg-bg-weak"
+          leadingIcon={
+            expanded ? (
+              <RiArrowUpSLine className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <RiArrowDownSLine className="h-4 w-4" aria-hidden="true" />
+            )
+          }
         >
           {expanded ? "Collapse" : `View all ${funders.length}`}
-          {expanded ? (
-            <RiArrowUpSLine className="h-3.5 w-3.5" />
-          ) : (
-            <RiArrowDownSLine className="h-3.5 w-3.5" />
-          )}
-        </button>
+        </Button>
       )}
       <p className="mt-3 type-meta text-text-sub">
         Contextual copy about how impact funding works, protocol-wide.
       </p>
-    </section>
+    </AdminCard>
   );
 }
 
@@ -129,6 +135,14 @@ const meta: Meta<typeof ImpactFundersHarness> = {
       </div>
     ),
   ],
+  // Each row reads its funder's profile photo; these funders have none.
+  beforeEach: () => {
+    mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: null,
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    return resetHookMocks(useResolvedProfileAvatar);
+  },
 };
 
 export default meta;

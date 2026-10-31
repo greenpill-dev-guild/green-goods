@@ -1,7 +1,7 @@
 import { useDraftThumbnail, type DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import React from "react";
 import { useIntl } from "react-intl";
-import { formatAgoStandalone } from "./pendingCopy";
+import { formatAgo } from "./pendingCopy";
 import { PendingCard } from "./PendingCard";
 
 export interface DraftCardProps {
@@ -9,13 +9,15 @@ export interface DraftCardProps {
   actionTitle?: string;
   className?: string;
   onResume: () => void;
-  onDelete: () => void;
+  /** Offers Delete in the row's right slot; Home's Continue leaves it to Your Work. */
+  onDelete?: () => void;
 }
 
 /**
  * A work draft in Your Work › Pending: the pending row with the Draft pill,
- * when it was last touched, and which step it reached with how many photos.
- * Its photo loads once the row scrolls into view.
+ * when it was last touched, and which step it reached with how many photos,
+ * after the ask it takes up first when it is for one. Its photo loads once the
+ * row scrolls into view.
  */
 export const DraftCard: React.FC<DraftCardProps> = ({
   draft,
@@ -27,6 +29,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
   const intl = useIntl();
   const thumbnail = useDraftThumbnail(draft);
   const imageCount = draft.attachmentCount ?? draft.images.length;
+  const progress = { step: stepNumber(draft.firstIncompleteStep), count: imageCount };
 
   return (
     <PendingCard
@@ -36,7 +39,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         actionTitle ||
         intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })
       }
-      meta={formatAgoStandalone(intl, draft.updatedAt)}
+      meta={formatAgo(intl, draft.updatedAt)}
       marker={
         draft.linkIntent
           ? {
@@ -48,14 +51,26 @@ export const DraftCard: React.FC<DraftCardProps> = ({
             }
           : undefined
       }
-      status={intl.formatMessage(
-        {
-          id: "app.pending.status.draft",
-          defaultMessage:
-            "{count, plural, =0 {Step {step} of 4} one {Step {step} of 4 · # photo} other {Step {step} of 4 · # photos}}",
-        },
-        { step: stepNumber(draft.firstIncompleteStep), count: imageCount }
-      )}
+      status={
+        // A draft for an Open ask takes it up first when sent (decision 18), so it leads with that.
+        draft.linkIntent?.takesUp
+          ? intl.formatMessage(
+              {
+                id: "app.pending.status.draftTakesUp",
+                defaultMessage:
+                  "{count, plural, =0 {Takes up an ask · Step {step} of 4} one {Takes up an ask · Step {step} of 4 · # photo} other {Takes up an ask · Step {step} of 4 · # photos}}",
+              },
+              progress
+            )
+          : intl.formatMessage(
+              {
+                id: "app.pending.status.draft",
+                defaultMessage:
+                  "{count, plural, =0 {Step {step} of 4} one {Step {step} of 4 · # photo} other {Step {step} of 4 · # photos}}",
+              },
+              progress
+            )
+      }
       thumbnailUrl={draft.thumbnailUrl ?? thumbnail.url}
       thumbnailRef={thumbnail.ref}
       onOpen={onResume}

@@ -19,6 +19,7 @@ import type { BatchReference } from "../transactions/batch-types";
 import { rememberBatchBroadcast, retainedBatchBroadcast } from "./batch-send-reference";
 import type { SendCheckpoint } from "../../types/job-queue";
 import { logger } from "../app/logger";
+import { intentHead } from "../job-queue/send-chain-reads";
 import {
   type BroadcastReference,
   type ContractCall,
@@ -27,7 +28,6 @@ import {
   type TransactionSender,
   type TxResult,
 } from "../transactions/types";
-import { intentHead } from "../job-queue/send-chain-reads";
 import { classifySendFailure } from "./send-outcome";
 import {
   AwaitingWorkConfirmation,
@@ -58,6 +58,8 @@ export interface CheckpointedSend {
   /** A head read before the send, kept when the one at the intent cannot be read. */
   headBeforeSend?: Pick<SendCheckpoint, "intentBlock" | "intentChainTime">;
   assertOwnership?: () => void | Promise<void>;
+  /** Revalidate action eligibility after a prompt, before the send intent can be recorded. */
+  beforeBroadcast?: () => Promise<void>;
   now?: () => number;
 }
 
@@ -78,6 +80,7 @@ export async function sendWithCheckpoint({
   readChainHead,
   headBeforeSend,
   assertOwnership,
+  beforeBroadcast,
   now = Date.now,
 }: CheckpointedSend): Promise<CheckpointedSendResult> {
   let intentAttempted = false;
@@ -128,6 +131,7 @@ export async function sendWithCheckpoint({
       ...(assertOwnership ? { assertOwnership } : {}),
       onBeforeBroadcast: async (reference) => {
         await assertOwnership?.();
+        await beforeBroadcast?.();
         carriedByOperation ||= reference?.kind === "user-operation";
         await readHead();
         const at = new Date(now()).toISOString();

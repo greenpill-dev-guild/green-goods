@@ -3,6 +3,10 @@
  * test is about; `payload` is merged into the defaults rather than replacing them.
  */
 
+import type {
+  ClaimJobPayload,
+  WorkLinkJobPayload,
+} from "../../modules/commitment-pooling/job-types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 
@@ -58,4 +62,36 @@ export function queuedDecisionJob(overrides: QueuedJobOverrides<ApprovalJobPaylo
     },
     overrides
   );
+}
+
+/**
+ * One tap's take-up chain (decision 18) as the queue holds it before anything is sent: the
+ * claim that takes the ask up, the work for it with its sealed link, and that link's own job.
+ */
+export function queuedTakeUpChain(commitmentId = 9n) {
+  const dependentWorkLink = {
+    clientOperationId: `work-link:client-1:${commitmentId}:0`,
+    commitmentId,
+    clientWorkId: "client-1",
+    requirementIndex: 0,
+    gardenAddress: QUEUED_JOB_GARDEN,
+    operationKey: `0x${"cd".repeat(32)}` as const,
+  } satisfies Extract<WorkLinkJobPayload, { clientWorkId: string }>;
+  const claim = queuedJob<ClaimJobPayload>(
+    "claim",
+    {
+      commitmentId,
+      kind: 1,
+      gardenContext: QUEUED_JOB_GARDEN,
+      gardenAddress: QUEUED_JOB_GARDEN,
+    },
+    { id: "take-up" }
+  );
+  const work = queuedWorkJob({ id: "work-for-it", payload: { dependentWorkLink } });
+  const link = queuedJob<WorkLinkJobPayload>(
+    "workLink",
+    { ...dependentWorkLink, sourceWorkJobId: work.id },
+    { id: "its-link" }
+  );
+  return { claim, work, link };
 }

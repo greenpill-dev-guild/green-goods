@@ -103,7 +103,12 @@ function answerWith(gardenRows: unknown[], ownRows: unknown[] = []) {
   );
 }
 
-async function toConfirm(options: { includeProtocolFallback?: boolean } = {}) {
+async function toConfirm(
+  options: {
+    includeProtocolFallback?: boolean;
+    inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
+  } = {}
+) {
   const { result } = renderHookWithProviders(() =>
     useCommitmentsToConfirm({ chainId: 42161, viewer: VIEWER, ...options })
   );
@@ -144,6 +149,34 @@ describe("useCommitmentsToConfirm", () => {
     expect(result.current.groups[0]?.rows[0]?.seat).toBe("confirmer");
     expect(result.current.groups[0]?.rows[0]?.needsYou).toBe(true);
     expect(result.current.count).toBe(1);
+  });
+
+  it("scoped to a garden, lists what that garden must confirm, and is a tab only for its stewards", async () => {
+    mocks.gardens = [
+      garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] }),
+      garden(GARDEN_B, "Awka", { owners: [VIEWER] }),
+      garden(ROOT_GARDEN, "Community", { gardeners: [VIEWER] }),
+    ];
+    // Each garden took one promise up and must confirm it.
+    mocks.getCommitments.mockImplementation(async (input: { account?: string }) => {
+      if (input.account === GARDEN_A) return [commitment()];
+      if (input.account === GARDEN_B)
+        return [commitment({ id: "42161-10", commitmentId: 10n, counterparty: GARDEN_B })];
+      return [];
+    });
+    const only = (gardenId: string) => (gardens: readonly (string | null | undefined)[]) =>
+      gardens.includes(gardenId);
+
+    const inA = await toConfirm({ inScope: only(GARDEN_A) });
+    expect(inA.current.groups.map((group) => group.gardenName)).toEqual(["Rocinha"]);
+    expect(inA.current.count).toBe(1);
+    expect(inA.current.isSteward).toBe(true);
+
+    // A garden where the reader only gardens has no queue to show them.
+    const inRoot = await toConfirm({ inScope: only(ROOT_GARDEN) });
+    expect(inRoot.current.groups).toEqual([]);
+    expect(inRoot.current.count).toBe(0);
+    expect(inRoot.current.isSteward).toBe(false);
   });
 
   it("is empty for a plain member, without asking the indexer", async () => {

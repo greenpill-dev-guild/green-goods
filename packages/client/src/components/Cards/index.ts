@@ -1,12 +1,5 @@
 // Base card components
 
-// Action cards
-export {
-  ActionCard,
-  type ActionCardRootProps,
-  type ActionCardVariantProps,
-} from "./Action/ActionCard";
-export { ActionCardSkeleton } from "./Action/ActionCardSkeleton";
 export {
   Card,
   CardContent,
@@ -23,21 +16,6 @@ export {
 export { FormCard } from "./Form/FormCard";
 export { FormInfo } from "./Form/FormInfo";
 
-// Garden cards
-export {
-  GardenCard,
-  type GardenCardOptions,
-  type GardenCardProps,
-  type GardenCardVariantProps,
-  gardenCardVariants,
-} from "./Garden/GardenCard";
-export { GardenCardSkeleton } from "./Garden/GardenCardSkeleton";
-
 // Work cards
 export { DraftCard, type DraftCardProps } from "./Work/DraftCard";
-export {
-  MinimalWorkCard,
-  type MinimalWorkCardProps,
-  StatusBadge,
-  type StatusBadgeProps,
-} from "./Work/WorkCard";
+export { MinimalWorkCard, type MinimalWorkCardProps } from "./Work/MinimalWorkCard";

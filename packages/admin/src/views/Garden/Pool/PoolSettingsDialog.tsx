@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
@@ -13,7 +14,6 @@ import {
 } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
 import { type ReactNode, useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
@@ -159,21 +159,22 @@ export function PoolSettingsDialog({
   const footer = (): ReactNode => {
     if (status === "complete") {
       return (
-        <AdminButton type="button" variant="filled" onClick={onClose}>
+        <Button type="button" emphasis="primary" size="sm" onClick={onClose}>
           {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
+        </Button>
       );
     }
     if (stopped || (status === "running" && lastAct === "retry")) {
       return (
         <>
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={busy}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose} disabled={busy}>
             {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-          </AdminButton>
+          </Button>
           {retryable || status === "running" ? (
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
+              size="sm"
               onClick={() => void retry()}
               disabled={busy || !pool.isOnline}
               loading={status === "running"}
@@ -182,24 +183,26 @@ export function PoolSettingsDialog({
                 id: "cockpit.garden.pool.setup.retry",
                 defaultMessage: "Try Again",
               })}
-            </AdminButton>
+            </Button>
           ) : null}
         </>
       );
     }
     return (
       <>
-        <AdminButton
+        <Button
           type="button"
-          variant="text"
+          emphasis="tertiary"
+          size="sm"
           onClick={() => dirtyClose.onOpenChange(false)}
           disabled={busy}
         >
           {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </AdminButton>
-        <AdminButton
+        </Button>
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={() => void save()}
           disabled={!canSave}
           loading={busy}
@@ -208,7 +211,7 @@ export function PoolSettingsDialog({
             id: "cockpit.garden.pool.settings.save",
             defaultMessage: "Save Settings",
           })}
-        </AdminButton>
+        </Button>
       </>
     );
   };

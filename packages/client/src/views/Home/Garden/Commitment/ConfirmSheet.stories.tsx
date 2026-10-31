@@ -159,6 +159,28 @@ export const AskGardenWork: Story = {
   },
 };
 
+/**
+ * A request that is not garden work, read by the person who asked: a course a garden asked
+ * members to complete reads the same as a ride someone asked for, so it asks if it was kept.
+ */
+export const AskSupportRequest: Story = {
+  args: {
+    commitment: commitment({
+      direction: "REQUEST",
+      creator: VIEWER,
+      leadProvider: PROVIDER,
+      counterparty: PROVIDER,
+      targetUnits: 1n,
+      unitLabel: "certificates",
+    }),
+  },
+  play: async () => {
+    await expect(await screen.findByRole("dialog", { name: "Promise kept?" })).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Confirm It Was Kept" })).toBeVisible();
+    await expect(screen.queryByText(/help/i)).not.toBeInTheDocument();
+  },
+};
+
 export const AskCaptured: Story = {
   args: { commitment: commitment({ recordedBy: STEWARD }) },
 };

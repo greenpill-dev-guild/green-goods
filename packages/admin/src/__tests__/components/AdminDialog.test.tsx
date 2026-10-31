@@ -1,13 +1,96 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiSearchLine } from "@remixicon/react";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, renderWithProviders, screen } from "../test-utils";
-import { AdminButton } from "../../components/AdminButton";
-import { AdminSideSheet } from "../../components/AdminSideSheet";
+import { useRef, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ADMIN_FLOW_DIALOG_CLASS,
   AdminConfirmDialog,
   AdminDialog,
 } from "../../components/AdminDialog";
+import { AdminSideSheet } from "../../components/AdminSideSheet";
+import {
+  act,
+  fireEvent,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "../test-utils";
+
+type Width = "phone" | "desktop";
+type ChangeListener = (event: MediaQueryListEvent) => void;
+const PHONE_QUERY = "(max-width: 639px)";
+
+/**
+ * Below 640px the cockpit's dialogs present as the shared bottom sheet (F5).
+ * Returns the restore function, with `resize` to cross 640px mid-test.
+ */
+function emulateViewport(initial: Width) {
+  const original = window.matchMedia;
+  let width = initial;
+  const phoneListeners = new Set<ChangeListener>();
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    get matches() {
+      return width === "phone" && query === PHONE_QUERY;
+    },
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: (_type: string, listener: ChangeListener) => {
+      if (query === PHONE_QUERY) phoneListeners.add(listener);
+    },
+    removeEventListener: (_type: string, listener: ChangeListener) => {
+      phoneListeners.delete(listener);
+    },
+    dispatchEvent: vi.fn(),
+  })) as typeof window.matchMedia;
+  return Object.assign(
+    () => {
+      window.matchMedia = original;
+    },
+    {
+      resize(next: Width) {
+        width = next;
+        const event = { matches: next === "phone", media: PHONE_QUERY } as MediaQueryListEvent;
+        for (const listener of phoneListeners) listener(event);
+      },
+    }
+  );
+}
+
+/**
+ * A controlled dialog opened from a plain button. It names its opener through
+ * finalFocusRef unless `namedReturn` is false, as most call sites do.
+ */
+function OpenerHarness({
+  preventClose = false,
+  namedReturn = true,
+}: {
+  preventClose?: boolean;
+  namedReturn?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button ref={opener} type="button" onClick={() => setOpen(true)}>
+        Edit domains
+      </button>
+      <AdminDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Edit Domains"
+        tone="garden"
+        preventClose={preventClose}
+        finalFocusRef={namedReturn ? opener : undefined}
+      >
+        <p>Domain form body</p>
+      </AdminDialog>
+    </>
+  );
+}
 
 describe("AdminDialog", () => {
   it("renders the standard desktop/mobile contract attributes with pinned actions", () => {
@@ -19,8 +102,12 @@ describe("AdminDialog", () => {
         description="Choose supported work domains"
         actions={
           <>
-            <AdminButton variant="text">Cancel</AdminButton>
-            <AdminButton>Save</AdminButton>
+            <Button type="button" emphasis="tertiary" size="sm">
+              Cancel
+            </Button>
+            <Button type="button" size="sm">
+              Save
+            </Button>
           </>
         }
       >
@@ -49,6 +136,14 @@ describe("AdminDialog", () => {
     expect(screen.getByTestId("admin-dialog-actions")).toContainElement(
       screen.getByRole("button", { name: "Save" })
     );
+    // From 640px the centered dialog keeps its own surface and takes the shared
+    // header, which carries the close on the title's line (DL-117).
+    expect(dialog).not.toHaveAttribute("data-sheet-surface");
+    expect(dialog.querySelector('[data-component="SheetGrip"]')).toBeNull();
+    const header = dialog.querySelector('[data-component="SheetHeader"][data-slot="root"]');
+    expect(header).toHaveAttribute("data-standalone");
+    expect(within(header as HTMLElement).getByRole("button", { name: "Close" })).toBeVisible();
+    expect(screen.getByTestId("admin-dialog-body")).toHaveAttribute("data-scroll-edge", "top");
   });
 
   it("uses full-width mobile geometry for flow action dialogs", () => {
@@ -112,6 +207,156 @@ describe("AdminDialog", () => {
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("AdminDialog on phones (F5)", () => {
+  let restoreViewport: () => void;
+  beforeEach(() => {
+    restoreViewport = emulateViewport("phone");
+  });
+  afterEach(() => restoreViewport());
+
+  it("takes the shared sheet: its material, a grip that does not drag, and the shared header", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Close This Pool"
+        target={<p>Writing to Rocinha’s pool</p>}
+        description="Closing ends participation for every member."
+        confirmLabel="Close Pool"
+        variant="danger"
+      />
+    );
+
+    const dialog = screen.getByRole("alertdialog", { name: "Close This Pool" });
+    expect(dialog).toHaveAttribute("data-sheet-surface");
+    expect(dialog).toHaveAccessibleDescription("Closing ends participation for every member.");
+    const grip = dialog.querySelector('[data-component="SheetGrip"][data-slot="drag-handle"]');
+    expect(grip).not.toBeNull();
+    expect(grip).not.toHaveAttribute("data-drag-region");
+
+    // The shared header replaces the centered one: no leading icon (the danger
+    // lives in the role and the filled action), the target before the description.
+    expect(dialog.querySelector('[data-slot="header"]')).toBeNull();
+    const header = dialog.querySelector<HTMLElement>(
+      '[data-component="SheetHeader"][data-slot="root"]'
+    );
+    expect(header).not.toBeNull();
+    const close = within(header as HTMLElement).getByRole("button", { name: "Close" });
+    expect(
+      Array.from(header?.querySelectorAll("svg") ?? []).every((icon) => close.contains(icon))
+    ).toBe(true);
+    const target = screen.getByText("Writing to Rocinha’s pool");
+    const description = screen.getByText("Closing ends participation for every member.");
+    expect(
+      target.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    // No rule under the header: the hairline shows only while the body scrolls.
+    expect(screen.getByTestId("admin-dialog-body")).toHaveAttribute("data-scroll-edge", "top");
+  });
+
+  it("keeps an accessible description when the dialog has none to show", () => {
+    renderWithProviders(
+      <AdminDialog open onOpenChange={vi.fn()} title="Edit Domains" tone="garden">
+        <p>Domain form body</p>
+      </AdminDialog>
+    );
+    expect(screen.getByRole("dialog", { name: "Edit Domains" })).toHaveAccessibleDescription(
+      "Edit Domains"
+    );
+  });
+});
+
+describe.each(["phone", "desktop"] as const)("AdminDialog behavior on %s", (width) => {
+  let restoreViewport: () => void;
+  beforeEach(() => {
+    restoreViewport = emulateViewport(width);
+  });
+  afterEach(() => restoreViewport());
+
+  it("opens on its close button and hands focus back to the opener when it closes", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<OpenerHarness />);
+    const opener = screen.getByRole("button", { name: "Edit domains" });
+
+    await user.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Edit Domains" });
+    const close = within(dialog).getByRole("button", { name: "Close" });
+    await waitFor(() => expect(close).toHaveFocus());
+
+    await user.click(close);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(opener).toHaveFocus();
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "Edit Domains" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(opener).toHaveFocus();
+  });
+
+  it("hands focus back to the opener without a finalFocusRef", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<OpenerHarness namedReturn={false} />);
+    const opener = screen.getByRole("button", { name: "Edit domains" });
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "Edit Domains" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
+  it("holds the close button and Escape while a blocking action runs", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<OpenerHarness preventClose />);
+    await user.click(screen.getByRole("button", { name: "Edit domains" }));
+    const dialog = await screen.findByRole("dialog", { name: "Edit Domains" });
+
+    expect(within(dialog).getByRole("button", { name: "Close" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: "Edit Domains" })).toBeInTheDocument();
+  });
+});
+
+describe("Crossing 640px while open", () => {
+  // The phone and centered layouts render different Close buttons, so the one
+  // that had focus unmounts when a rotated phone or a resized window crosses 640px.
+  it.each([
+    [
+      "AdminDialog",
+      () => (
+        <AdminDialog open onOpenChange={vi.fn()} title="Edit Domains" tone="garden">
+          <p>Domain form body</p>
+        </AdminDialog>
+      ),
+    ],
+    [
+      "AdminSideSheet",
+      () => (
+        <AdminSideSheet open onOpenChange={vi.fn()} title="Notifications">
+          <p>No new notifications</p>
+        </AdminSideSheet>
+      ),
+    ],
+  ] as const)("%s hands focus to the other layout's Close", async (_name, surface) => {
+    const viewport = emulateViewport("phone");
+    try {
+      renderWithProviders(surface());
+      const dialog = screen.getByRole("dialog");
+      const close = () => within(dialog).getByRole("button", { name: "Close" });
+      await waitFor(() => expect(close()).toHaveFocus());
+
+      for (const width of ["desktop", "phone"] as const) {
+        act(() => viewport.resize(width));
+        await waitFor(() => expect(close()).toHaveFocus());
+      }
+    } finally {
+      viewport();
+    }
   });
 });
 
@@ -193,12 +438,33 @@ describe("AdminConfirmDialog", () => {
     expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-md");
   });
 
-  it("locks confirmation dialogs while loading", () => {
+  it.each([
+    ["warning", "warning"],
+    ["danger", "danger"],
+    ["default", null],
+  ] as const)("fills a %s confirmation's confirm in its tone", (variant, tone) => {
     renderWithProviders(
       <AdminConfirmDialog
         isOpen
         onClose={vi.fn()}
         onConfirm={vi.fn()}
+        title="Discard changes?"
+        confirmLabel="Discard"
+        variant={variant}
+      />
+    );
+    const confirm = screen.getByRole("button", { name: "Discard" });
+    if (tone) expect(confirm).toHaveAttribute("data-tone", tone);
+    else expect(confirm).not.toHaveAttribute("data-tone");
+  });
+
+  it("locks confirmation dialogs while loading", () => {
+    const onConfirm = vi.fn();
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={onConfirm}
         title="Emergency pause"
         description="Pause this vault?"
         confirmLabel="Pause"
@@ -210,7 +476,12 @@ describe("AdminConfirmDialog", () => {
 
     expect(screen.queryByLabelText("Close")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+    // The shared action bar keeps a loading confirm focusable but inert.
+    const confirm = screen.getByRole("button", { name: "Pause" });
+    expect(confirm).toHaveAttribute("aria-disabled", "true");
+    expect(confirm).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });
 
@@ -228,5 +499,35 @@ describe("AdminSideSheet mobile geometry", () => {
       "bottom-0",
       "sm:w-[var(--admin-side-sheet-width)]"
     );
+    expect(screen.getByTestId("admin-side-sheet-content")).not.toHaveAttribute(
+      "data-body-scroll-edge"
+    );
+  });
+
+  it("presents on phones as the dialog does: the shared sheet, grip and header, closing as before", () => {
+    const restoreViewport = emulateViewport("phone");
+    try {
+      const onOpenChange = vi.fn();
+      renderWithProviders(
+        <AdminSideSheet open onOpenChange={onOpenChange} title="Notifications">
+          <p>No new notifications</p>
+        </AdminSideSheet>
+      );
+      const sheet = screen.getByRole("dialog", { name: "Notifications" });
+      expect(sheet).toHaveAttribute("data-sheet-surface");
+      expect(sheet).toHaveAccessibleDescription("Notifications");
+      expect(sheet.querySelector('[data-component="SheetGrip"]')).not.toHaveAttribute(
+        "data-drag-region"
+      );
+      // The panel's SheetBody scrolls, so it takes the header's scroll edge.
+      expect(within(sheet).getByTestId("admin-side-sheet-content")).toHaveAttribute(
+        "data-body-scroll-edge",
+        "top"
+      );
+      fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    } finally {
+      restoreViewport();
+    }
   });
 });

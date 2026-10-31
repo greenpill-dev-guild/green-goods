@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Green Goods · Logical architecture · October 2026</title>
+<meta name="description" content="One-page logical architecture of Green Goods, written for SustainableFinance.Live 2026, Problem Statement 2: the five roles, the surfaces they use, the Green Goods services, the protocols and partners beneath them, the three public networks, and the data that flows in and out. Written 25 October 2026." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" />
+<style>
+  /* Same Warm Earth tokens as the deck and the brief. One A4 landscape page. Network names appear
+     here and in the brief's architecture page, never on the slides. */
+  :root {
+    --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
+    --rule: #E7E1D9; --rule-2: #D9D1C5; --sand: #F3EEE6;
+    --green: #1FC16B; --green-action: #1A7544; --green-wash: #E3F7EC; --amber: #B45309;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #1C1917; color: var(--ink); font: 400 10px/1.38 var(--sans); -webkit-font-smoothing: antialiased; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .page { position: relative; width: 297mm; height: 210mm; margin: 24px auto; padding: 10mm 12mm 14mm; background: var(--linen); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.4); display: flex; flex-direction: column; }
+  .foot { position: absolute; left: 12mm; right: 12mm; bottom: 7mm; display: flex; align-items: center; gap: 10px; font: 500 10px/1 var(--sans); color: var(--stone); }
+  .foot img { width: 24px; height: auto; display: block; }
+  .foot .n { margin-left: auto; }
+  .meta { font: 500 10.5px/1.4 var(--sans); color: var(--stone); margin: 0 0 4px; }
+  h1 { margin: 0; font: 400 26px/1.1 var(--serif); letter-spacing: -0.02em; color: var(--ink); }
+  em.accent { font-style: italic; color: var(--green-action); }
+  .lede { margin: 4px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-2); max-width: 1010px; text-wrap: pretty; }
+  p { margin: 0; text-wrap: pretty; }
+  ul { margin: 0; padding: 0 0 0 11px; }
+  li { margin: 0 0 3px; text-wrap: pretty; color: var(--ink-2); }
+  li::marker { color: var(--green-action); }
+  b { font-weight: 600; color: var(--ink); }
+  /* A few links, underlined in the brief's light green, so a reader who wants more can go there. */
+  a { color: var(--green-action); text-decoration: underline; text-decoration-color: #BFE8D0; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .foot a { color: inherit; }
+
+  .body { display: grid; grid-template-columns: 1fr 250px; column-gap: 10px; margin-top: 7px; flex: 1; min-height: 0; }
+  /* The services row is never shorter than its content: as a plain 1fr track with min-height 0 it
+     shrank below its ten boxes, which then spilled into the Protocols band. */
+  .stack { position: relative; display: grid; grid-template-rows: auto auto minmax(max-content, 1fr) auto auto; row-gap: 6px; min-height: 0; }
+  /* One line runs down behind the bands, so it reads as the connector in each gap. */
+  .stack::before { content: ""; position: absolute; left: 13px; top: 20px; bottom: 20px; width: 2px; background: var(--green); opacity: .55; }
+  .band { position: relative; display: grid; grid-template-columns: 96px 1fr; column-gap: 10px; padding: 6px 9px 6px 8px; background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; min-height: 0; }
+  .band.core { border-color: var(--green); background: #FBFEFC; }
+  .band .label { position: relative; padding-left: 16px; }
+  .band .label::before { content: ""; position: absolute; left: 1px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--green-action); }
+  .band .label h2 { margin: 0; font: 400 13px/1.15 var(--serif); letter-spacing: -0.005em; color: var(--ink); }
+  .band .label p { margin-top: 2px; font-size: 9px; line-height: 1.3; color: var(--stone); }
+  .row { display: flex; gap: 6px; min-width: 0; }
+  .row.wrap { flex-wrap: wrap; }
+  .box { flex: 1 1 0; min-width: 0; background: var(--sand); border-radius: 7px; padding: 5px 8px; }
+  .core .box { background: var(--green-wash); }
+  .box b { display: block; font-size: 10.5px; line-height: 1.25; margin-bottom: 2px; }
+  .box span { display: block; font-size: 9.2px; line-height: 1.32; color: var(--sub); }
+  .grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+  .chip { background: var(--sand); border-radius: 99px; padding: 4px 9px; font-size: 9.4px; line-height: 1.25; color: var(--sub); white-space: nowrap; }
+  .chip b { font-size: 9.6px; }
+  .nets { display: grid; grid-template-columns: 1fr 44px 1.25fr 44px 1fr; align-items: stretch; }
+  .net { background: var(--sand); border-radius: 7px; padding: 5px 8px; }
+  .net.core { background: var(--green-wash); border: 1px solid #BFE8D0; }
+  .net b { display: block; font-size: 11px; line-height: 1.2; }
+  .net i { display: block; font: 500 9px/1.3 var(--sans); color: var(--stone); margin-bottom: 3px; }
+  .net span { display: block; font-size: 9.2px; line-height: 1.32; color: var(--sub); }
+  .link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; font: 500 8.5px/1.2 var(--sans); color: var(--stone); }
+  .link svg { width: 36px; height: 12px; }
+
+  .side { display: grid; grid-template-rows: auto auto 1fr; row-gap: 7px; min-height: 0; }
+  .side .block { background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 6px 9px; overflow: hidden; }
+  .side h3 { margin: 0 0 3px; font: 400 13px/1.15 var(--serif); letter-spacing: -0.005em; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .side h3 svg { width: 15px; height: 15px; fill: none; stroke: var(--green-action); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .side li { font-size: 9.5px; margin-bottom: 2.5px; }
+  .sources { margin-top: 7px; font-size: 9.5px; line-height: 1.4; color: var(--stone); }
+
+  @page { size: A4 landscape; margin: 0; }
+  @media print {
+    html, body { background: var(--linen); }
+    .page { margin: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57534E"/></marker>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M12 20V8M7 13l5-5 5 5"/><path d="M5 4h14"/></symbol>
+  <symbol id="i-rules" viewBox="0 0 24 24"><path d="M12 3.5l7 3v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6.5z"/><path d="M9 12l2 2 4-4"/></symbol>
+</defs></svg>
+
+<section class="page">
+  <p class="meta">Logical architecture · Green Goods · October 2026 · Written for SustainableFinance.Live 2026, Problem Statement 2</p>
+  <h1>One record, from the field to the <em class="accent">networks</em> that fund and count it.</h1>
+  <p class="lede">Five roles, five surfaces, one set of Green Goods services on open protocols and three public networks. For Problem Statement 2, it makes a community's commitments and history visible: promises, work and confirmations become one record for fair finance, mutual credit and better coordination.</p>
+
+  <div class="body">
+    <div class="stack">
+      <div class="band">
+        <div class="label"><h2>People</h2><p>Five roles in every garden</p></div>
+        <div class="row">
+          <div class="box"><b>Gardeners</b><span>Do the work and document it, offline when needed.</span></div>
+          <div class="box"><b>Stewards</b><span>Run the garden: seasons, members, review and approval.</span></div>
+          <div class="box"><b>Evaluators</b><span>Set the baseline and author assessments.</span></div>
+          <div class="box"><b>Funders</b><span>Fund gardens directly or through endowments.</span></div>
+          <div class="box"><b>Community members</b><span>Witness the work and confirm what was done for them.</span></div>
+        </div>
+      </div>
+
+      <div class="band">
+        <div class="label"><h2>Surfaces</h2><p>Where the roles act</p></div>
+        <div class="row">
+          <div class="box"><b>Member app</b><span>Installable, offline-ready: promises, work, proof, rewards.</span></div>
+          <div class="box"><b>Steward dashboard</b><span>Seasons, members, review, assessments, pools, funds.</span></div>
+          <div class="box"><b>Chat reporting</b><span>A Telegram bot turns a message with photos into a record.</span></div>
+          <div class="box"><b>Public pages</b><span>greengoods.app: each garden's record and funding, open to all.</span></div>
+          <div class="box"><b>Partner surfaces</b><span>Ma Earth through Hypercerts Certified, next; Bloom and Regen in conversation.</span></div>
+        </div>
+      </div>
+
+      <div class="band core">
+        <div class="label"><h2>Green Goods services</h2><p>One record, one set of rules, on every surface</p></div>
+        <div class="grid5">
+          <div class="box"><b>Accounts</b><span>Passkey accounts, sponsored fees, one address on every network.</span></div>
+          <div class="box"><b>Gardens and roles</b><span>Garden accounts, roles as Hats, membership and joining.</span></div>
+          <div class="box"><b>Promises</b><span>Offers and requests, take-up, proof, confirmation by the person served.</span></div>
+          <div class="box"><b>Work and evidence</b><span>Submissions and approvals as signed attestations; media on IPFS.</span></div>
+          <div class="box"><b>Assessments</b><span>Baselines and outcomes an evaluator records for each area of work.</span></div>
+          <div class="box"><b>Rewards</b><span>Agreed G$ rewards for kept promises; service purchases across gardens.</span></div>
+          <div class="box"><b>Service vouchers</b><span>Issuer tokens, an adapter that pays earned vouchers, one pool, escrow.</span></div>
+          <div class="box"><b>Endowments</b><span>Vaults that stay invested; earnings split between the garden, impact certificates and the protocol.</span></div>
+          <div class="box"><b>Impact certificates and payouts</b><span>A season's impact as a certificate; campaign payouts.</span></div>
+          <div class="box"><b>Indexer and public data</b><span>Reads Arbitrum and Celo today, Gnosis next, so pages, reports and partners share one record.</span></div>
+        </div>
+      </div>
+
+      <div class="band">
+        <div class="label"><h2>Protocols and partners</h2><p>Open building blocks, each doing one job</p></div>
+        <div class="chips">
+          <span class="chip"><b>Hats Protocol</b> · roles</span>
+          <span class="chip"><b>EAS</b> · signed records</span>
+          <span class="chip"><b>Safe</b> · garden accounts</span>
+          <span class="chip"><b>GoodDollar</b> · G$ rewards and payments</span>
+          <span class="chip"><b>Cosmo-Local Credit</b> · service vouchers</span>
+          <span class="chip"><b>Octant</b> and <b>Aave v3</b> · endowments</span>
+          <span class="chip"><b>Hypercerts</b> · certificates</span>
+          <span class="chip"><b>Certified</b> · publishing</span>
+          <span class="chip"><b>Chainlink CCIP</b> · cross-network messages</span>
+          <span class="chip"><b>Envio</b> · indexing</span>
+          <span class="chip"><b>IPFS</b> · media</span>
+          <span class="chip"><b>Telegram</b> · chat reporting</span>
+        </div>
+      </div>
+
+      <div class="band">
+        <div class="label"><h2>Networks</h2><p>Three public networks, one job each</p></div>
+        <div class="nets">
+          <div class="net"><b>Celo</b><i>Money · home of G$</i><span>G$ rewards for kept promises; service purchases; garden Safes and a settlement executor that pays providers or refunds buyers.</span></div>
+          <div class="link"><svg viewBox="0 0 36 12"><line x1="4" y1="6" x2="32" y2="6" stroke="#57534E" stroke-width="1.4" marker-start="url(#ah)" marker-end="url(#ah)"/></svg>CCIP messages</div>
+          <div class="net core"><b>Arbitrum One</b><i>Record and capital · home of Green Goods</i><span>Gardens and roles; the commitment pool and promise registry; work, approvals and assessments; endowment vaults; voucher terms and results; certificates.</span></div>
+          <div class="link"><svg viewBox="0 0 36 12"><line x1="4" y1="6" x2="32" y2="6" stroke="#57534E" stroke-width="1.4" marker-start="url(#ah)" marker-end="url(#ah)"/></svg>CCIP messages</div>
+          <div class="net"><b>Gnosis</b><i>Services · home of Cosmo-Local</i><span>Cosmo-Local voucher tokens, one per issuer; the shared exchange pool; the voucher adapter; the service escrow.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="block">
+        <h3><svg><use href="#i-in"/></svg>Data in</h3>
+        <ul>
+          <li><b>Evidence from the field:</b> photos, notes, audio and links, by app or by chat, captured offline and synced later.</li>
+          <li><b>Confirmations</b> by the people served, and steward review of work.</li>
+          <li><b>Baselines and assessments</b> from evaluators.</li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3><svg><use href="#i-out"/></svg>Data out</h3>
+        <ul>
+          <li><b>Public garden pages</b> and the indexer's data, readable by anyone.</li>
+          <li><b>Reports</b> funders can act on and renew from.</li>
+          <li><b>Records published</b> to partner networks: Ma Earth through Certified first; Bloom and Regen in conversation.</li>
+          <li><b>Impact certificates</b> for a season's work; the rewards and vouchers a kept promise earns.</li>
+        </ul>
+      </div>
+      <div class="block">
+        <h3><svg><use href="#i-rules"/></svg>Rules that hold everywhere</h3>
+        <ul>
+          <li><strong>The person served confirms a promise, never the person who did it</strong>; a steward can confirm only as a labeled fallback.</li>
+          <li>Work, approvals and assessments are signed attestations anyone can check; other records are contract state.</li>
+          <li>Messages between networks authorize actions; they never carry money or tokens.</li>
+          <li>Payment commands between networks carry a stable identity, so a retry never repeats one. Contracts can pause; upgrades need owner approval.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="sources">Status on 25 October 2026: the app, promises, chat reporting and endowments are live; the voucher contracts are deployed on the public networks and in pilot with <a href="https://techandsun.com">Tech and Sun</a>; impact certificates are partly built (minting exists, buying in the app does not yet); voucher recovery and members' approval of delegated authority are still being built. Sources: <a href="https://docs.greengoods.app">docs.greengoods.app</a>, the Green Goods brief and each protocol's documentation.</p>
+  <footer class="foot"><img src="../deck/assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span>Green Goods · Logical architecture · October 2026</span><span class="n"><a href="mailto:contact@greengoods.app">contact@greengoods.app</a> · <a href="https://greengoods.app">greengoods.app</a></span></footer>
+</section>
+</body>
+</html>

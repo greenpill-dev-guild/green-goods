@@ -49,8 +49,19 @@ import {
   setStoredRpId,
   setStoredSmartAccountAddress,
   setStoredUsername,
+  getStoredAccountProfile,
+  setStoredAccountProfile,
+  getStoredProfileAddress,
+  setStoredProfileAddress,
 } from "../modules/auth/session";
-import { assertPrimaryPasskeyProfile } from "../modules/commitment-pooling/account-profiles";
+import {
+  getPasskeyAccountRecipe,
+  getPilotCredentialId,
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  type PasskeyAccountProfileId,
+} from "../modules/auth/account-profile";
+import { discoverPilotAccountProof } from "../modules/auth/pilot-account-proof";
 
 export type PasskeyServerClientAdapter = ReturnType<typeof createPasskeyServerClient>;
 
@@ -66,6 +77,19 @@ export interface PasskeySessionAdapter {
   setStoredUsername(userName: string): void;
   getStoredSmartAccountAddress(): Hex | null;
   setStoredSmartAccountAddress(address: Hex): void;
+  getStoredAccountProfile(): PasskeyAccountProfileId;
+  setStoredAccountProfile(profile: PasskeyAccountProfileId): void;
+  getStoredProfileAddress(
+    profile: PasskeyAccountProfileId,
+    credential: PasskeyCredential
+  ): Hex | null;
+  setStoredProfileAddress(
+    profile: PasskeyAccountProfileId,
+    credential: PasskeyCredential,
+    address: Hex,
+    rpId: string,
+    userName: string
+  ): void;
 }
 
 export interface AuthTelemetryAdapter {
@@ -79,6 +103,7 @@ export interface AuthTelemetryAdapter {
 }
 
 export interface PasskeyAdapters {
+  hasPilotAccountProof(credential: PasskeyCredential, address: Hex): Promise<boolean>;
   session: PasskeySessionAdapter;
   telemetry: AuthTelemetryAdapter;
   isServerEnabled(): boolean;
@@ -101,7 +126,8 @@ export interface PasskeyAdapters {
     credential: PasskeyCredential,
     chainId: number,
     rpId: string,
-    knownAddress?: Hex
+    knownAddress?: Hex,
+    profile?: PasskeyAccountProfileId
   ): Promise<{ client: SmartAccountClient; address: Hex }>;
 }
 
@@ -135,17 +161,25 @@ async function buildSmartAccount(
   credential: PasskeyCredential,
   chainId: number,
   rpId: string,
-  knownAddress?: Hex
+  knownAddress?: Hex,
+  profile: PasskeyAccountProfileId = LEGACY_PASSKEY_PROFILE
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
-  assertPrimaryPasskeyProfile(chainId);
+  const recipe = getPasskeyAccountRecipe(profile, chainId);
+  if (profile === PILOT_PASSKEY_PROFILE && knownAddress) {
+    throw new Error("Pilot accounts must be derived without an address override");
+  }
+  const ownerCredential =
+    profile === PILOT_PASSKEY_PROFILE
+      ? { ...credential, id: getPilotCredentialId(credential) }
+      : credential;
   const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
   const account = await toKernelSmartAccount({
     client: publicClient,
-    version: "0.3.1",
-    owners: [createPasskeyOwner(credential, rpId)],
+    ...recipe,
+    owners: [createPasskeyOwner(ownerCredential, rpId)],
     entryPoint: { address: entryPoint07Address, version: "0.7" },
     address: knownAddress,
   });
@@ -169,6 +203,15 @@ async function buildSmartAccount(
 }
 
 export const defaultPasskeyAdapters: PasskeyAdapters = {
+  hasPilotAccountProof: async (credential, address) =>
+    Boolean(
+      await discoverPilotAccountProof({
+        client: createPublicClientForChain(100),
+        accountAddress: address,
+        publicKey: credential.publicKey,
+        canonicalCredentialId: getPilotCredentialId(credential),
+      })
+    ),
   session: {
     hasSignedOutSentinel,
     clearSignedOutSentinel,
@@ -181,6 +224,10 @@ export const defaultPasskeyAdapters: PasskeyAdapters = {
     setStoredUsername,
     getStoredSmartAccountAddress: () => getStoredSmartAccountAddress() as Hex | null,
     setStoredSmartAccountAddress: (address) => setStoredSmartAccountAddress(address),
+    getStoredAccountProfile,
+    setStoredAccountProfile,
+    getStoredProfileAddress,
+    setStoredProfileAddress,
   },
   telemetry: {
     restore: trackAuthSessionRestored,

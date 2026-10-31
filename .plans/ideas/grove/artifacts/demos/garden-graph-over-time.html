@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grove · Knowledge over time</title>
+<style>
+:root{color-scheme:light;--background:#faf8f1;--foreground:#23372b;--muted-foreground:#657163;--viz-series-1:#32734c;--viz-series-2:#b16a35;--viz-series-3:#6b7299}body{margin:0;padding:20px;background:var(--background);color:var(--foreground);font:15px/1.5 system-ui,sans-serif}a{color:inherit}.prototype-note{max-width:1200px;margin:0 auto 16px;padding:12px 16px;border:1px solid #cbd3c4;border-radius:12px;background:#f0f2e8}.prototype-note a{font-weight:600}.prototype-note p{margin:4px 0}button,input,select{font:inherit}:focus-visible{outline:3px solid #28784f;outline-offset:4px}
+</style>
+</head>
+<body>
+<aside class="prototype-note" aria-label="Prototype context"><a href="index.html">← All Grove demos</a><p><strong>Design prototype.</strong> Synthetic design prototype. No live garden data.</p></aside>
+<div id="garden-temporal-explorer">
+  <style>
+    #garden-temporal-explorer .graph-space { width:100%; display:block; }
+    #garden-temporal-explorer .graph-space text { fill:var(--foreground); font-size:12px; }
+    #garden-temporal-explorer .graph-space .edge-label { paint-order:stroke; stroke:var(--background); stroke-width:5px; stroke-linejoin:round; }
+    #garden-temporal-explorer .graph-legend { display:flex; flex-wrap:wrap; gap:8px 18px; margin:12px 0; }
+    #garden-temporal-explorer .key { display:inline-block; width:12px; height:12px; margin-right:6px; vertical-align:middle; }
+    #garden-temporal-explorer .time-row { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; margin-top:12px; }
+    #garden-temporal-explorer .time-row input { grid-column:1 / -1; }
+    #garden-temporal-explorer .selection { min-height:42px; margin-top:8px; }
+    @media(max-width:450px) { #garden-temporal-explorer .time-row { grid-template-columns:1fr; gap:4px; } }
+  </style>
+  <h3>A garden graph over four weeks</h3>
+  <div class="text-small">Illustrative records · knowledge arrival time</div>
+  <div class="viz-controls">
+    <label class="form-label" for="gg-query">Find a node
+      <input class="form-control" id="gg-query" type="search" placeholder="Try baseline, guide, or seedlings">
+    </label>
+    <label class="form-label" for="gg-filter">Focus
+      <select class="form-select" id="gg-filter">
+        <option value="all">All knowledge</option>
+        <option value="changes">Changes this week</option>
+        <option value="data">Garden data</option>
+        <option value="knowledge">Knowledge</option>
+        <option value="resource">Resources</option>
+      </select>
+    </label>
+  </div>
+  <div class="viz-row">
+    <label class="form-check" for="gg-proposals"><input class="form-check-input" type="checkbox" id="gg-proposals" checked><span class="form-check-label">Show proposed relationships</span></label>
+  </div>
+  <div class="time-row">
+    <label class="form-label" for="gg-time">Known by <span id="gg-week">week 3</span></label>
+    <span id="gg-count" class="text-small tabular-nums" aria-live="polite"></span>
+    <input class="form-range" id="gg-time" type="range" min="1" max="4" value="3" step="1" aria-valuetext="Week 3">
+  </div>
+  <svg class="graph-space" role="img" aria-labelledby="gg-graph-title gg-graph-desc">
+    <title id="gg-graph-title">Garden knowledge and resource relationships</title>
+    <desc id="gg-graph-desc">Stable node positions across four weekly snapshots. A plus ring marks new records and a triangle marks a changed record. Dashed edges are proposals. Use the inspect selector for keyboard access to every node and relationship.</desc>
+  </svg>
+  <div class="graph-legend text-small">
+    <span><span class="key" style="background:var(--viz-series-1);border-radius:50%"></span>Garden data</span>
+    <span><span class="key" style="background:var(--viz-series-2)"></span>Knowledge</span>
+    <span><span class="key" style="background:var(--viz-series-3);transform:rotate(45deg)"></span>Resources</span>
+    <span>＋ New this week</span><span>△ Changed</span><span>Dashed: proposed</span>
+  </div>
+  <label class="form-label" for="gg-inspect">Inspect a node or relationship</label>
+  <select class="form-select" id="gg-inspect"><option value="">Choose an item</option></select>
+  <div id="gg-detail" class="selection text-small" aria-live="polite">Select the baseline record to see the difference between its activity date and arrival date.</div>
+  <script>
+  (() => {
+    const root = document.getElementById('garden-temporal-explorer');
+    const svg = root.querySelector('.graph-space');
+    const query = root.querySelector('#gg-query');
+    const filter = root.querySelector('#gg-filter');
+    const proposals = root.querySelector('#gg-proposals');
+    const time = root.querySelector('#gg-time');
+    const inspect = root.querySelector('#gg-inspect');
+    const detail = root.querySelector('#gg-detail');
+    const colors = {data:'var(--viz-series-1)',knowledge:'var(--viz-series-2)',resource:'var(--viz-series-3)'};
+    const nodes = [
+      {id:'garden',name:'Garden',lines:['Garden'],type:'data',week:1,x:.48,y:.49,info:'Garden · imported in week 1 · the shared context for these records.'},
+      {id:'work',name:'Plant seedlings',lines:['Plant','seedlings'],type:'data',week:1,x:.16,y:.18,info:'Work · recorded in week 1 · linked to its existing Garden and Action identifiers.'},
+      {id:'action',name:'Planting Action',lines:['Planting','Action'],type:'data',week:1,x:.15,y:.56,info:'Action · imported in week 1 · the activity template referenced by the Work.'},
+      {id:'question',name:'Seedling survival?',lines:['Seedling','survival?'],type:'knowledge',week:2,x:.48,y:.14,info:'Question · added in week 2 · asks what the garden needs to understand about survival.'},
+      {id:'guide',name:'Mulching guide',lines:['Mulching','guide'],type:'knowledge',week:2,x:.82,y:.14,info:'Source · saved in week 2 · its exact captured revision remains available after later changes.'},
+      {id:'claim',name:'Mulch may help',lines:['Mulch','may help'],type:'knowledge',week:2,changed:4,x:.83,y:.49,info:'Claim · proposed in week 2 · week 4 adds a soil-condition caveat and revises its source relationship.'},
+      {id:'resource',name:'Nursery workshop',lines:['Nursery','workshop'],type:'resource',week:3,x:.83,y:.83,info:'Resource · found in week 3 · relevance to the question is proposed; availability remains unconfirmed.'},
+      {id:'baseline',name:'Survival baseline',lines:['Survival','baseline'],type:'data',week:3,x:.48,y:.83,info:'Baseline observation · happened in week 1; imported in week 3. Earlier knowledge snapshots must not include it.'},
+      {id:'lesson',name:'Reviewed lesson',lines:['Reviewed','lesson'],type:'knowledge',week:4,x:.15,y:.88,info:'Lesson · reviewed in week 4 · connects the Work and baseline while retaining the local conditions.'}
+    ];
+    const edges = [
+      {id:'e1',from:'work',to:'garden',label:'performed in',week:1},
+      {id:'e2',from:'work',to:'action',label:'instance of',week:1},
+      {id:'e3',from:'question',to:'work',label:'prompted by',week:2},
+      {id:'e4',from:'guide',to:'claim',label:'supports',week:2,end:4},
+      {id:'e5',from:'claim',to:'question',label:'may address',week:2,proposed:true},
+      {id:'e6',from:'resource',to:'question',label:'may help',week:3,proposed:true,curve:true},
+      {id:'e7',from:'baseline',to:'garden',label:'describes',week:3},
+      {id:'e8',from:'baseline',to:'question',label:'informs',week:3,curve:true},
+      {id:'e9',from:'lesson',to:'baseline',label:'draws on',week:4},
+      {id:'e10',from:'lesson',to:'work',label:'draws on',week:4,curve:true},
+      {id:'e11',from:'guide',to:'claim',label:'qualifies',week:4}
+    ];
+    let selection = '';
+    const ns = 'http://www.w3.org/2000/svg';
+    function el(tag,attrs,text) {
+      const element = document.createElementNS(ns,tag);
+      for (const [key,value] of Object.entries(attrs||{})) element.setAttribute(key,String(value));
+      if (text!==undefined) element.textContent=text;
+      return element;
+    }
+    function save() {
+      if (window.openai && window.openai.setWidgetState) window.openai.setWidgetState({modelContent:{week:Number(time.value),focus:filter.value,query:query.value,proposed:proposals.checked,selected:selection},privateContent:null}).catch(()=>{});
+    }
+    function restore(saved) {
+      const s = saved && saved.modelContent;
+      if (!s) return;
+      time.value = Math.min(4,Math.max(1,Number(s.week)||3));
+      if (['all','changes','data','knowledge','resource'].includes(s.focus)) filter.value=s.focus;
+      query.value=typeof s.query==='string'?s.query:'';
+      proposals.checked=s.proposed!==false;
+      selection=typeof s.selected==='string'?s.selected:'';
+    }
+    function select(id) { selection=id;draw();save(); }
+    function draw() {
+      const week=Number(time.value), width=Math.max(280,root.clientWidth), height=width<450?480:430;
+      svg.setAttribute('viewBox','0 0 '+width+' '+height);
+      svg.setAttribute('height',height);
+      svg.querySelectorAll('g,defs').forEach(item=>item.remove());
+      const defs=el('defs');
+      const marker=el('marker',{id:'gg-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:5,markerHeight:5,orient:'auto-start-reverse'});
+      marker.append(el('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'var(--muted-foreground)'}));defs.append(marker);svg.append(defs);
+      const visible=nodes.filter(n=>n.week<=week);
+      const byId=new Map(visible.map(n=>[n.id,n]));
+      const q=query.value.trim().toLowerCase();
+      const matches=new Set(visible.filter(n=>(!q||n.name.toLowerCase().includes(q))&&(filter.value==='all'||(filter.value==='changes'?(n.week===week||n.changed===week):n.type===filter.value))).map(n=>n.id));
+      const activeEdges=edges.filter(e=>e.week<=week&&(!e.end||week<e.end)&&(!e.proposed||proposals.checked)&&byId.has(e.from)&&byId.has(e.to));
+      const selectedEdge=activeEdges.find(e=>e.id===selection);
+      const selectedNode=byId.get(selection);
+      const pt=n=>({x:32+n.x*(width-64),y:12+n.y*(height-60)});
+      const edgeGroup=el('g'),nodeGroup=el('g');svg.append(edgeGroup,nodeGroup);
+      for (const e of activeEdges) {
+        const a=pt(byId.get(e.from)),b=pt(byId.get(e.to));
+        const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+        const start={x:a.x+dx/len*18,y:a.y+dy/len*18},end={x:b.x-dx/len*19,y:b.y-dy/len*19};
+        const bend=e.curve?(e.id==='e8'?112:e.id==='e10'?-64:32):0;
+        const cx=(start.x+end.x)/2+bend,cy=(start.y+end.y)/2;
+        const d=e.curve?'M '+start.x+' '+start.y+' Q '+cx+' '+cy+' '+end.x+' '+end.y:'M '+start.x+' '+start.y+' L '+end.x+' '+end.y;
+        const active=filter.value==='changes'?e.week===week:(matches.has(e.from)||matches.has(e.to));
+        const group=el('g',{opacity:active?1:.22,'class':'cursor-interaction'});
+        const line=el('path',{d,fill:'none',stroke:e.week===week?'var(--viz-series-1)':'var(--muted-foreground)','stroke-width':e.id===selection?3:1.5,'marker-end':'url(#gg-arrow)'});
+        if(e.proposed)line.setAttribute('stroke-dasharray','5 5');
+        const hit=el('path',{d,fill:'none',stroke:'transparent','stroke-width':16,'data-tooltip':e.label+' · '+(e.proposed?'proposed':'recorded')+' · added week '+e.week});
+        hit.addEventListener('click',()=>select(e.id));group.append(line,hit);
+        if(e.week===week)group.append(el('text',{x:(start.x+end.x)/2+bend/2,y:(start.y+end.y)/2-5,'text-anchor':'middle',class:'edge-label'},'+'));
+        if(e.id===selection)group.append(el('text',{x:(start.x+end.x)/2+bend/2,y:(start.y+end.y)/2+18,'text-anchor':'middle',class:'edge-label'},e.label));
+        edgeGroup.append(group);
+      }
+      for(const n of visible) {
+        const p=pt(n),active=matches.has(n.id),selected=selection===n.id;
+        const group=el('g',{transform:'translate('+p.x+','+p.y+')',opacity:active?1:.3,class:'cursor-interaction','data-tooltip':n.name+' · added week '+n.week});
+        const shape=n.type==='data'?el('circle',{r:13}):n.type==='resource'?el('path',{d:'M 0 -16 L 16 0 L 0 16 L -16 0 Z'}):el('rect',{x:-12,y:-12,width:24,height:24,rx:3});
+        shape.setAttribute('fill',colors[n.type]);shape.setAttribute('fill-opacity','.25');shape.setAttribute('stroke',selected?'var(--foreground)':'var(--muted-foreground)');shape.setAttribute('stroke-width',selected?'2.5':'1');group.append(shape);
+        if(n.week===week){group.append(el('circle',{r:20,fill:'none',stroke:'var(--viz-series-1)','stroke-width':2}));group.append(el('text',{x:19,y:-16},'+'));}
+        if(n.changed===week)group.append(el('text',{x:18,y:-16},'△'));
+        n.lines.forEach((line,i)=>group.append(el('text',{x:0,y:35+i*16,'text-anchor':'middle'},line)));
+        group.addEventListener('click',()=>select(n.id));nodeGroup.append(group);
+      }
+      root.querySelector('#gg-week').textContent='week '+week;
+      time.setAttribute('aria-valuetext','Week '+week);
+      root.querySelector('#gg-count').textContent=matches.size+' matching nodes · '+activeEdges.length+' relationships';
+      inspect.replaceChildren(new Option('Choose an item',''));
+      for(const n of visible)inspect.add(new Option(n.name,n.id));
+      for(const e of activeEdges)inspect.add(new Option(byId.get(e.from).name+' → '+e.label+' → '+byId.get(e.to).name,e.id));
+      if(selectedNode||selectedEdge) inspect.value=selection;
+      if(selectedNode)detail.textContent=selectedNode.id==='claim'&&week<4?'Claim · proposed in week 2 · its applicability remains under review.':selectedNode.info;
+      else if(selectedEdge)detail.textContent=byId.get(selectedEdge.from).name+' → '+selectedEdge.label+' → '+byId.get(selectedEdge.to).name+' · '+(selectedEdge.proposed?'AI proposal, unreviewed':'Recorded relationship')+' · added week '+selectedEdge.week+(selectedEdge.id==='e11'?' · replaces the earlier “supports” relationship.':'.');
+      else detail.textContent=q&&matches.size===0?'No matching nodes in this snapshot.':'Select a node or relationship to inspect its source and timing.';
+    }
+    restore(window.openai&&window.openai.widgetState);
+    for(const control of [query,filter,proposals,time])control.addEventListener('input',()=>{draw();save();});
+    inspect.addEventListener('change',()=>select(inspect.value));
+    window.addEventListener('openai:set_globals',event=>{if(event.detail&&event.detail.globals&&event.detail.globals.widgetState){restore(event.detail.globals.widgetState);draw();}});
+    new ResizeObserver(draw).observe(root);
+    draw();
+  })();
+  </script>
+</div>
+
+</body>
+</html>

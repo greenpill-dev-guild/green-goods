@@ -19,7 +19,7 @@ generated_from:
   - docs/routines/sync-triage-pulse.md
   - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
-source_digest: "sha256:b72df9cba4415fc8536f79aa13c1b683fcc6e035aa9b7451afea1efde1a79864"
+source_digest: "sha256:3759e612f7a691a61ddfef35fc895fe6cc98512dfca1769fa4102cc9583ff1a2"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
@@ -59,7 +59,7 @@ Projected from the checked-in MCP configuration, `.mcp.json`.
 
 ### Safety boundary {#safety-boundary}
 
-- WebMCP proof through this wrapper is Brave-only (navigator.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.
+- WebMCP proof through this wrapper is Brave-only (document.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.
 - The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.
 - This isolated DevTools MCP server is public clean-room evidence only; it is not authenticated local QA.
 - Use the authenticated Brave extension or visible-desktop path for wallet, passkey, session, installed-PWA, and profile-dependent proof (AGENTS.md § Browser Evidence).

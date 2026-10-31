@@ -1,4 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
@@ -19,7 +21,6 @@ import {
 import { type ReactNode, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminInlineField } from "@/components/AdminInlineField";
 import { AdminSelect } from "@/components/AdminTextField";
@@ -47,16 +48,11 @@ export function cooldownLabel(formatMessage: IntlShape["formatMessage"], seconds
 
 function ChangeSummary({ rows }: { rows: Array<[term: string, value: ReactNode]> }) {
   return (
-    <dl className="divide-y divide-stroke-soft rounded-lg bg-bg-weak px-3">
+    <FactList frame="inset">
       {rows.map(([term, value]) => (
-        <div key={term} className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="shrink-0 type-meta-sm text-text-soft">{term}</dt>
-          <dd className="text-right type-meta font-medium tabular-nums text-text-strong">
-            {value}
-          </dd>
-        </div>
+        <FactRow key={term} label={term} value={<span className="tabular-nums">{value}</span>} />
       ))}
-    </dl>
+    </FactList>
   );
 }
 
@@ -86,12 +82,12 @@ function EditorFooter({
         {formatMessage({ id: "app.cookieJar.signsAsGarden" })}
       </p>
       <div className="flex flex-wrap justify-end gap-2">
-        <AdminButton type="button" variant="outlined" onClick={onCancel}>
+        <Button type="button" emphasis="secondary" size="sm" onClick={onCancel}>
           {formatMessage({ id: "app.common.cancel" })}
-        </AdminButton>
-        <AdminButton type="button" disabled={!canSubmit} onClick={onSubmit}>
+        </Button>
+        <Button size="sm" type="button" disabled={!canSubmit} onClick={onSubmit}>
           {submitLabel}
-        </AdminButton>
+        </Button>
       </div>
     </>
   );

@@ -1,4 +1,5 @@
 import {
+  type Config,
   getBlock as wagmiGetBlock,
   getBytecode as wagmiGetBytecode,
   getTransaction as wagmiGetTransaction,
@@ -6,15 +7,14 @@ import {
   getTransactionReceipt as wagmiGetTransactionReceipt,
   readContract as wagmiReadContract,
   simulateContract as wagmiSimulateContract,
-  type Config,
 } from "@wagmi/core";
-import { decodeEventLog, keccak256, toBytes, type Hex } from "viem";
+import { decodeEventLog, type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
-import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import type { Address } from "../../types/domain";
 import { CommitmentPoolingModuleABI, GardenAccountABI } from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
 import { logger } from "../app/logger";
+import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
 import { createSendChainReads, type SendChainReads } from "./send-chain-reads";
 
 export type CommitmentChainReads = Pick<
@@ -30,6 +30,8 @@ export type CommitmentChainReads = Pick<
   | "hasMembership"
 > &
   SendChainReads & {
+    /** Verifies the claimant's current reward revision; an unread binding must block a send. */
+    assertClaimRewardAgreed: (commitmentId: bigint, claimant: Address) => Promise<void>;
     /**
      * Runs an act's call without sending it. A wallet estimates inside its own
      * send, after the queue records the intent, so a refusal found there would
@@ -100,6 +102,18 @@ export function createCommitmentChainReads({
   const wagmiConfig = config ?? getWagmiConfig();
 
   return {
+    assertClaimRewardAgreed: async (commitmentId, claimant) => {
+      // Claims reach this reader at execution time; keep it out of the queue's startup graph.
+      const { assertEarnedRewardAgreed } = await import("../commitment-pooling/earned-agreement");
+      await assertEarnedRewardAgreed(
+        { chainId, core: moduleAddress, commitmentId, claimant },
+        (request) =>
+          readContract(wagmiConfig, { ...request, chainId } as Parameters<
+            typeof wagmiReadContract
+          >[1]),
+        "broadcast"
+      );
+    },
     ...createSendChainReads({
       chainId,
       getBlock,

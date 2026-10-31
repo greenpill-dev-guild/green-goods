@@ -1,10 +1,11 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useCreateHypercertController } from "@green-goods/shared/hooks/admin-ui/hub/useCreateHypercertController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
   isHypercertMintingInProgress,
   useHypercertWizardStore,
 } from "@green-goods/shared/stores/useHypercertWizardStore";
+import { RiLockLine, RiSearchLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
@@ -50,14 +51,14 @@ export default function CreateHypercert() {
     description = formatMessage({ id: "app.hypercerts.create.notFound" });
     body = (
       <ActionFlowShell layout="dialog" title={title}>
-        <Alert variant="error">{description}</Alert>
+        <EmptyState tone="error" icon={<RiSearchLine />} title={description} />
       </ActionFlowShell>
     );
   } else if (!createHypercert.canManage) {
     description = formatMessage({ id: "app.hypercerts.create.unauthorized" });
     body = (
       <ActionFlowShell layout="dialog" title={title} context={createHypercert.garden.name}>
-        <Alert variant="warning">{description}</Alert>
+        <EmptyState tone="warning" icon={<RiLockLine />} title={description} />
       </ActionFlowShell>
     );
   } else {

@@ -1,6 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
-import { AdminButton } from "@/components/AdminButton";
+import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea } from "@/components/AdminTextField";
@@ -9,7 +10,7 @@ import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
 import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 import { GardenSelector } from "./GardenSelector";
-import { publicJarLink } from "./helpers";
+import { formatCampaignDate, publicJarLink } from "./helpers";
 
 export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProps) {
   const {
@@ -23,7 +24,6 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     campaignSearch,
     setCampaignSearch,
     visibleCampaigns,
-    gardensByAddress,
     setSelectedCampaign,
     selectedCampaign,
     selectedCampaignTitle,
@@ -53,6 +53,11 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     syncJar,
     headerAction,
   } = props;
+  const { locale } = useIntl();
+  // The list row leaves the jar's creation date to its own page, the Manage dialog.
+  const createdLabel = selectedCampaign
+    ? formatCampaignDate(selectedCampaign.createdAt, locale)
+    : null;
   return (
     <div className="flex flex-col gap-5">
       {!moduleConfigured ? (
@@ -80,7 +85,6 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         campaignSearch={campaignSearch}
         setCampaignSearch={setCampaignSearch}
         visibleCampaigns={visibleCampaigns}
-        gardensByAddress={gardensByAddress}
         onSelectCampaign={setSelectedCampaign}
         headerAction={headerAction}
       />
@@ -109,17 +113,19 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             {/* Disabled while a write is in flight: the sync/metadata hooks
                 report errors inline, so a Cancel-close mid-write would render
                 the failure into a dialog nobody can see. */}
-            <AdminButton
+            <Button
               type="button"
-              variant="text"
+              emphasis="tertiary"
+              size="sm"
               onClick={() => setSelectedCampaign(null)}
               disabled={syncAllowlist.isPending || updateMetadata.isPending}
             >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
+            </Button>
+            <Button
+              size="sm"
               type="button"
-              leadingIcon={<RiRefreshLine />}
+              leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
               onClick={handleSync}
               disabled={!canSync || syncAllowlist.isPending || updateMetadata.isPending}
               loading={syncAllowlist.isPending || updateMetadata.isPending}
@@ -128,7 +134,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 id: "cockpit.community.cookies.sync",
                 defaultMessage: "Sync Allowlist",
               })}
-            </AdminButton>
+            </Button>
           </>
         }
       >
@@ -144,6 +150,14 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               <p className="mt-1 break-all type-meta text-text-sub">
                 <EnsAddressText address={selectedCampaign.address} />
               </p>
+              {createdLabel ? (
+                <p className="mt-1 type-meta text-text-sub">
+                  {formatMessage(
+                    { id: "cockpit.community.cookies.createdOn", defaultMessage: "Created {date}" },
+                    { date: createdLabel }
+                  )}
+                </p>
+              ) : null}
               <a
                 href={publicJarLink(selectedCampaign.address)}
                 target="_blank"

@@ -15,10 +15,15 @@
 
 import { useCallback, useMemo } from "react";
 import type { PoolConsoleController } from "./controller.types";
+import { logger } from "../../../modules/app/logger";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { commitmentNeedsSeat } from "../../../modules/commitment-pooling/acts";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
+import {
+  selectVoucherAcceptanceChecks,
+  type VoucherAsk,
+} from "../../../modules/commitment-pooling/voucher-console";
 import {
   actPhaseFor,
   claimActKey,
@@ -47,10 +52,15 @@ import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReaso
 import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
-import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
+import { useChainClockReader, useExpiryClock } from "../../commitment-pooling/useExpiryClock";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
 import { useClaimDecisions, useClaimDecisionVisit } from "./useClaimDecisions";
 import { useFinishCreating } from "./useFinishCreating";
+
+// The voucher console sits beside this one on the same public leaf (PRD-1297 surface 6), and so
+// do a promise's voucher outcomes, for its inspector (PRD-1323).
+export { useCommitmentVoucherOutcomes } from "./useCommitmentVoucherOutcomes";
+export { useVoucherConsole } from "./useVoucherConsole";
 
 /** Queue acts are not mutations, so their failures go through the same handler by hand. */
 const reportQueuedSendError = createMutationErrorHandler({
@@ -127,7 +137,12 @@ export function usePoolConsoleController(input: {
       ),
     [hasPool, cyclesQuery.cycles]
   );
-  const now = useExpiryClock({ commitments: commitmentsQuery.commitments, cycleEndTimes });
+  const now = useExpiryClock({
+    chainId,
+    commitments: commitmentsQuery.commitments,
+    cycleEndTimes,
+  });
+  const readChainClock = useChainClockReader(chainId);
   const model = useMemo(
     () =>
       selectPoolConsoleModel({
@@ -234,6 +249,40 @@ export function usePoolConsoleController(input: {
             commitmentMutation.mutateAsync({ action: "acceptClaim", commitmentId, claimant, send }),
           askedAt(commitmentId, claimant)
         ),
+      // A voucher booking is the ask's decision on the same line, so its row
+      // follows the act and keeps the outcome. The checks gate the wallet too,
+      // not only the dialog's button, on the chain's latest block read as the act
+      // starts: a tab left open across the deadline holds the time it last drew,
+      // and while the chain's time can't be read the act refuses.
+      acceptServiceClaim: async (ask: VoucherAsk, now: number) => {
+        let chainNow: bigint;
+        try {
+          chainNow = await readChainClock();
+        } catch (error) {
+          logger.warn("[usePoolConsoleController] the chain's time could not be read to accept", {
+            error,
+            commitmentId: ask.commitmentId.toString(),
+          });
+          throw new Error("The chain's time can't be read right now, so nothing was accepted");
+        }
+        if (!selectVoucherAcceptanceChecks(ask, Math.max(now, Number(chainNow))).ready) {
+          throw new Error("This booking isn't ready to accept");
+        }
+        const { commitmentId, buyer, claimHash } = ask;
+        return approveClaim(
+          commitmentId,
+          buyer,
+          (send) =>
+            commitmentMutation.mutateAsync({
+              action: "acceptServiceClaim",
+              commitmentId,
+              buyer,
+              expectedClaimHash: claimHash,
+              send,
+            }),
+          askedAt(commitmentId, buyer)
+        );
+      },
       declineClaim: (commitmentId: bigint, claimant: Address, reason: string) =>
         declineClaim(
           commitmentId,
@@ -295,6 +344,7 @@ export function usePoolConsoleController(input: {
       approveClaim,
       declineClaim,
       askedAt,
+      readChainClock,
       trackPool,
       trackQueued,
       finishGroup,

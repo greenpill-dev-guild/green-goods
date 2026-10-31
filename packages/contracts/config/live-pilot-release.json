@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "green-goods-tech-and-sun-live-pilot",
+  "earnedFeeReserveMinimumWei": null,
+  "manifests": {
+    "sourceUpgrades": "config/source-upgrade-release.json",
+    "stewardSafe": "config/steward-safe-release.json",
+    "vouchers": "config/voucher-pilot-release.json",
+    "clc": "config/clc-pilot-release.json"
+  }
+}

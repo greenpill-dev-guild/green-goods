@@ -6,6 +6,11 @@ Afo accepted it on 20 October as the PRD-1315 candidate. Afo's voucher-direction
 21 October are recorded in the [spec](spec.md#voucher-direction-decided-2026-10-21). No implementation or deployment
 authorized.
 
+**Current scope:** the [spec](spec.md) and [acceptance checks](eval.md) record the later
+implementation decisions, member-owned issuer model and PRD-1317 recovery scope. The alternatives
+below remain historical. Earned delivery uses finite reserve allowance; the adapter has no
+mint/writer fallback.
+
 **Accepted user intent:** one Green Goods commitment can receive both vouchers and G$, with both
 terms agreed at commitment acceptance.
 The earlier several-G$-installments interpretation is withdrawn. The original four goals remain:
@@ -137,7 +142,7 @@ sequenceDiagram
 
 | Component | Chain | Proposed treatment and responsibility |
 |---|---|---|
-| CommitmentPooling and its acceptance/terminal libraries | Arbitrum 42161 | **Reuse, unchanged:** the voucher module reads `getCommitment`, `isEligibleContributor` and `validateRecognitionSnapshot`. **Proposed terms binding:** pre-acceptance state checks alone do not bind a pending claimant to a voucher revision. PRD-1317 must freeze the exact approved revision and counterparty consent while the core is Offered/Requested, before acceptance, and prove direct claimCommitment/acceptClaim cannot bypass it. If the unchanged core cannot enforce that invariant, return the candidate boundary for explicit decision; the [spec](spec.md#commitment-rewards--clarified-intent-proposed-architecture) records this open decision. A stored fulfillment path is an optional later upgrade, needed only if a path-restricted eligibility rule is chosen. |
+| CommitmentPooling and its acceptance/terminal libraries | Arbitrum 42161 | **Reuse, unchanged:** the voucher module reads `getCommitment`, `isEligibleContributor` and `validateRecognitionSnapshot`. **Proposed terms binding:** pre-acceptance state checks alone do not bind a pending claimant to a voucher revision. PRD-1317 must freeze the exact approved revision and counterparty consent while the core is Offered/Requested, before acceptance, and prove direct claimCommitment/acceptClaim cannot bypass it. If the unchanged core cannot enforce that invariant, return the candidate boundary for explicit decision; the [current spec](spec.md#accepted-earned-reward-terms-and-consent) records the accepted terms and consent boundary. A stored fulfillment path is an optional later upgrade, needed only if a path-restricted eligibility rule is chosen. |
 | CommitmentRegistry, credit/evidence foundations, Hats | Arbitrum | **Reuse:** work units, identities, authorization and recognition. A voucher is not a transferable version of the registry commitment. |
 | Voucher entitlement module (working name) | Arbitrum | **New GG:** registers voucher terms only while the commitment is Offered or Requested, binds issuer authorization and a shared delivery limit (no reservation), derives entitlement ids, delivers earned rewards on `Fulfilled`, dispatches data-only commands and stores authenticated results. Custodies nothing and bridges no value. |
 | SettlementModule | Arbitrum | **Reuse by default:** existing Celo consideration and one payout plan remain valid. No installment rewrite. Any required change must be demonstrated rather than presumed. |

@@ -1,10 +1,12 @@
-import { useActionEditorController } from "@green-goods/shared/hooks/admin-ui/actions/useActionEditorController";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useActionEditorController } from "@green-goods/shared/hooks/admin-ui/actions/useActionEditorController";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@green-goods/shared/utils/time";
+import { RiLoader4Line, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { ActionTranslationEditor } from "@/components/Action/ActionTranslationEditor";
-import { AdminButton } from "@/components/AdminButton";
+import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
@@ -55,9 +57,11 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-          <AdminCard role="status" aria-live="polite">
-            <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
-          </AdminCard>
+          <EmptyState
+            busy
+            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+            title={formatMessage({ id: "app.actions.loading" })}
+          />
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -84,9 +88,10 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-          <AdminCard className="text-center">
-            <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          </AdminCard>
+          <EmptyState
+            icon={<RiSearchLine />}
+            title={formatMessage({ id: "app.actions.notFound" })}
+          />
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -115,7 +120,6 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
             <AdminTextField
               label={formatMessage({ id: "app.assessment.table.title" })}
               id="action-title"
-              variant="outlined"
               error={form.formState.errors.title?.message}
               {...form.register("title")}
             />
@@ -125,7 +129,6 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
                 label={formatMessage({ id: "app.actions.detail.startTime" })}
                 id="action-start-time"
                 type="datetime-local"
-                variant="outlined"
                 value={toDateTimeLocalValue(form.watch("startTime").getTime())}
                 onChange={(e) => form.setValue("startTime", fromDateTimeLocalValue(e.target.value))}
               />
@@ -134,7 +137,6 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
                 label={formatMessage({ id: "app.actions.detail.endTime" })}
                 id="action-end-time"
                 type="datetime-local"
-                variant="outlined"
                 value={toDateTimeLocalValue(form.watch("endTime").getTime())}
                 onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
               />
@@ -148,16 +150,16 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
               {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
             </h3>
             {!isLoadingInstructions && (
-              <AdminButton
+              <Button
                 type="button"
-                variant="text"
-                size="sm"
+                emphasis="tertiary"
+                size="compact"
                 onClick={() => setIsEditingInstructions(!isEditingInstructions)}
               >
                 {isEditingInstructions
                   ? formatMessage({ id: "app.actions.edit.cancelEditing" })
                   : formatMessage({ id: "app.actions.edit.editInstructions" })}
-              </AdminButton>
+              </Button>
             )}
           </div>
 
@@ -196,7 +198,8 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
                     "Transaction submitted. Check its confirmation before trying again.",
                 })}
               </Alert>
-              <AdminButton
+              <Button
+                size="sm"
                 type="button"
                 disabled={isCheckingConfirmation}
                 onClick={() => void checkConfirmation()}
@@ -205,16 +208,22 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
                   id: "app.account.checkConfirmation",
                   defaultMessage: "Check confirmation",
                 })}
-              </AdminButton>
+              </Button>
             </>
           ) : (
-            <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
+            <Button
+              type="submit"
+              emphasis="primary"
+              size="sm"
+              disabled={isLoading}
+              loading={isLoading}
+            >
               {formatMessage({ id: "app.actions.edit.saveChanges" })}
-            </AdminButton>
+            </Button>
           )}
-          <AdminButton type="button" variant="outlined" onClick={cancel}>
+          <Button type="button" emphasis="secondary" size="sm" onClick={cancel}>
             {formatMessage({ id: "app.common.cancel" })}
-          </AdminButton>
+          </Button>
         </AdminCard>
       </form>
     </CanvasRouteContent>

@@ -5,7 +5,7 @@ import type { TimeFilter } from "@green-goods/shared/utils/time";
 import { RiCheckLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import type { WorkCardPresentation } from "@/components/Cards/Work/WorkCard";
+import type { WorkCardPresentation } from "@/components/Cards/Work/MinimalWorkCard";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
 
@@ -72,12 +72,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
           id: "app.workDashboard.badge.yourWorkReviewed",
           defaultMessage: "Your work was reviewed",
         }),
-    supportingText: work.feedback?.trim()
-      ? intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })
-      : intl.formatMessage({
-          id: "app.workCard.reviewRecorded",
-          defaultMessage: "Review added to the garden record",
-        }),
+    // The row itself gives feedback in the age's place when there is some (F7).
   });
 
   return (

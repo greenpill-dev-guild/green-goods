@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import type { Garden, Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -29,6 +30,11 @@ type TopNavProps = {
   onGovernanceClick?: () => void;
   /** Shares the garden; renders last in the action stack so the other buttons keep their places. */
   onShareClick?: () => void;
+  /**
+   * A flow's step markers, laid beside Back as its flex sibling and across the bar's width to a
+   * 16px end gutter, so they can never overlap it (DL-131, decision 31).
+   */
+  steps?: React.ReactNode;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type ButtonVariant = "work";
@@ -41,20 +47,6 @@ const BUTTON_VARIANT_TONES = {
 // icon carries the status tone (DL-023, DL-026).
 const iconTone = (variant: ButtonVariant = "work") =>
   pwaStatusStyles[BUTTON_VARIANT_TONES[variant]].icon;
-
-// Reusable notification badge, pinned by the IconButton badge slot
-const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
-  <span
-    className={cn(
-      "inline-flex items-center justify-center text-xs font-semibold rounded-full",
-      "min-w-[18px] h-[18px] px-1",
-      pwaStatusStyles.primary.badge,
-      "shadow-sm border-2 border-bg-white-0"
-    )}
-  >
-    {count > 99 ? "99+" : count}
-  </span>
-);
 
 const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works, garden }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +66,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
         onClick={() => setIsOpen(true)}
         aria-label="View notifications"
         icon={<NotificationIcon className={iconTone()} aria-hidden="true" />}
-        badge={hasNotifications ? <NotificationBadge count={workNotifications.length} /> : null}
+        badge={hasNotifications ? <CountBadge count={workNotifications.length} ring /> : null}
       />
       <AppSheet
         isOpen={isOpen}
@@ -168,6 +160,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   showGovernanceButton = false,
   onGovernanceClick,
   onShareClick,
+  steps,
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
@@ -177,6 +170,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   // offline banner shows, and the bar is 72px tall below the safe area.
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[var(--app-top-offset)] h-[var(--app-top-bar-height)]",
+    steps !== undefined && "pe-4",
     overlay && "fixed bg-bg-canvas"
   );
 
@@ -202,39 +196,52 @@ export const TopNav: React.FC<TopNavProps> = ({
         />
       )}
 
+      {/* Steps beside Back share the button's row, and their names hang below it. */}
+      {steps !== undefined ? <div className="flex min-w-0 flex-1 items-start">{steps}</div> : null}
+
       {/* The middle starts clear of the back button's 48px hit area, and at the
           bar's top padding like the button, so a flow's step markers share the
           button's row and their names hang below it. Nothing in it rises into
           that padding, where the shell's offline banner lies. Equal clearance
           on both sides keeps the tracker centred even on narrow phones. */}
-      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-[var(--app-top-offset)]">
-        <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
-      </div>
+      {children !== undefined ? (
+        <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-[var(--app-top-offset)]">
+          <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
+        </div>
+      ) : null}
 
-      <div className="flex grow" />
-      <div className="flex flex-col items-end gap-2 z-1">
-        {/* Notifications at top — stewards need quick access to pending reviews */}
-        {garden && isSteward && <NotificationCenter works={works} garden={garden} />}
-        {garden && showGovernanceButton && onGovernanceClick && (
-          <GovernanceButton
-            onClick={onGovernanceClick}
-            ariaLabel={formatMessage({ id: "app.signal.governance" })}
-          />
-        )}
-        {garden && showEndowmentButton && onEndowmentClick && (
-          <EndowmentButton
-            hasDeposits={hasEndowmentDeposits}
-            onClick={onEndowmentClick}
-            ariaLabel={formatMessage({ id: "app.treasury.open" })}
-          />
-        )}
-        {garden && onShareClick && (
-          <ShareButton
-            onClick={onShareClick}
-            ariaLabel={formatMessage({ id: "app.garden.share", defaultMessage: "Share Garden" })}
-          />
-        )}
-      </div>
+      {/* A flow's steps reach the 16px end gutter; a garden's page actions stack at the end. */}
+      {steps === undefined ? (
+        <>
+          <div className="flex grow" />
+          <div className="flex flex-col items-end gap-2 z-1">
+            {/* Notifications at top — stewards need quick access to pending reviews */}
+            {garden && isSteward && <NotificationCenter works={works} garden={garden} />}
+            {garden && showGovernanceButton && onGovernanceClick && (
+              <GovernanceButton
+                onClick={onGovernanceClick}
+                ariaLabel={formatMessage({ id: "app.signal.governance" })}
+              />
+            )}
+            {garden && showEndowmentButton && onEndowmentClick && (
+              <EndowmentButton
+                hasDeposits={hasEndowmentDeposits}
+                onClick={onEndowmentClick}
+                ariaLabel={formatMessage({ id: "app.treasury.open" })}
+              />
+            )}
+            {garden && onShareClick && (
+              <ShareButton
+                onClick={onShareClick}
+                ariaLabel={formatMessage({
+                  id: "app.garden.share",
+                  defaultMessage: "Share Garden",
+                })}
+              />
+            )}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 };

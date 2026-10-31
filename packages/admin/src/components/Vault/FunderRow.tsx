@@ -1,60 +1,27 @@
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
-import { RiLeafLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { formatEnsAddressName } from "@/components/EnsAddressText";
 
 interface FunderRowProps {
   funder: FunderLeaderboardEntry;
-  /** The top funder's yield — used to calculate proportional bar width. */
-  maxYield: bigint;
 }
 
-export function FunderRow({ funder, maxYield }: FunderRowProps) {
+/**
+ * One funder in a supporters list: a person row (DL-112) with the Funder chip and, as its
+ * one count, the yield their deposits have generated, which is what the list ranks by. Yields
+ * in different assets never add up, so a funder with positions in several assets has no one
+ * yield (`totalYieldGenerated` is 0 for them) and the row counts the gardens they support.
+ */
+export function FunderRow({ funder }: FunderRowProps) {
   const { formatMessage } = useIntl();
-  const { data: ensName } = useEnsName(funder.address as Address);
-  const displayName = formatEnsAddressName(funder.address as Address, ensName);
-
-  const hasYield = funder.totalYieldGenerated > 0n;
-  const barWidth =
-    hasYield && maxYield > 0n ? Number((funder.totalYieldGenerated * 100n) / maxYield) : 0;
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5">
-      {/* Avatar placeholder */}
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-lighter type-meta font-semibold text-primary-dark">
-        {displayName.charAt(0).toUpperCase()}
-      </div>
-
-      {/* Name + yield bar */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="truncate type-body font-medium text-text-strong">{displayName}</p>
-          <span className="shrink-0 type-body font-semibold text-success-dark">
-            {hasYield ? `+${formatTokenAmount(funder.totalYieldGenerated)}` : formatTokenAmount(0n)}
-          </span>
-        </div>
-
-        {/* Proportional yield bar */}
-        {barWidth > 0 && (
-          <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-bg-soft">
-            <div
-              className="h-full rounded-full bg-success-base transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] motion-reduce:transition-none"
-              style={{ width: `${Math.max(barWidth, 2)}%` }}
-            />
-          </div>
-        )}
-
-        {/* Garden count */}
-        <div className="mt-1 flex items-center gap-1 type-meta text-text-sub">
-          <RiLeafLine className="h-3 w-3" />
-          <span>
-            {formatMessage({ id: "app.funders.gardensSupported" }, { count: funder.gardenCount })}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  const detail =
+    funder.assetTotals.length > 1
+      ? formatMessage({ id: "app.funders.gardensSupported" }, { count: funder.gardenCount })
+      : formatMessage(
+          { id: "app.funders.yieldGenerated" },
+          { amount: formatTokenAmount(funder.totalYieldGenerated) }
+        );
+  return <PersonRow address={funder.address as Address} roles={["funder"]} details={[detail]} />;
 }

@@ -135,16 +135,33 @@
  * surfaces (`variant="flow"`) portal to <body> — OUTSIDE `.admin-m3` — and only
  * re-establish `[data-tone]` (via the dialog's `tone` prop). So in-portal,
  * `--m3-primary` fell back to the no-tone green and every consumer that reads it
- * (AdminButton focus ring, AdminLinearProgress bar, AdminCheckbox, …) rendered
+ * (AdminLinearProgress bar, AdminCheckbox, AdminFilterChip, …) rendered
  * green inside a blue/red/amber flow — while `--tone-action` consumers toned
- * correctly. This bare `[data-tone]` rule re-derives the primary roles from the
- * tone the portal DOES carry. It is a NO-OP in-canvas (those elements carry both
- * `.admin-m3` and `[data-tone]`, and both resolve to `var(--tone-primary)`); the
+ * correctly. This rule re-derives the primary roles from the tone the portal
+ * DOES carry. It is a NO-OP in-canvas (those elements carry both `.admin-m3` and
+ * `[data-tone]`, and both resolve to `var(--tone-primary)`); the
  * `:is(...[data-theme="dark"]...)` block below keeps higher specificity in dark.
  * Theme is handled by `--tone-primary` itself (light/dark variants on the
  * `[data-tone]` scopes), so one rule covers both modes.
+ *
+ * It names the workspaces (`AdminWorkspaceId`) rather than every `[data-tone]`:
+ * the shared Button, IconButton and state block carry a tone of their own
+ * (danger, warning, neutral) that is not a workspace. Matched here, such a piece
+ * re-derived these roles on itself from the green fallback, so where no
+ * workspace tone was set (every app story) a danger button rang the light green
+ * in dark instead of the ring its surface sets. The focus-ring role further down
+ * still matches every `[data-tone]`: it reads only tone roles a piece inherits,
+ * so a piece resolves the same ring as its scope.
  * -------------------------------------------------------------------------- */
-[data-tone] {
+:is(
+  [data-tone="home"],
+  [data-tone="hub"],
+  [data-tone="garden"],
+  [data-tone="community"],
+  [data-tone="cookies"],
+  [data-tone="actions"],
+  [data-tone="profile"]
+) {
   --m3-primary: var(--tone-primary, var(--green-800));
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
@@ -283,8 +300,21 @@
     opacity: 0;
   }
 
+  /* A filled control paints its layer beneath its content: the layer deepens
+   * or lifts the fill alone, so the label keeps its color and its contrast at
+   * rest. Painted over the label as well, the layer pulls fill and label toward
+   * one ink, and Community's dark pair (4.58:1 at rest) falls to 3.66:1 when
+   * pressed. */
+  .m3-state-layer-beneath {
+    isolation: isolate;
+  }
+
+  .m3-state-layer-beneath::after {
+    z-index: -1;
+  }
+
   /* M3 expanded touch target: a ≥44px effective hit area around the 32px-visual
-   * compact controls (AdminButton sm, AdminFilterChip). The block margin
+   * compact controls (AdminFilterChip, AdminInputChip). The block margin
    * reserves the pseudo-element's 6px reach above and below, so wrapped rows
    * cannot paint overlapping hit regions. The state layer's overlay clip is
    * released — its rounded shape comes from border-radius: inherit, not the
@@ -437,7 +467,9 @@
    FAB, date-picker selected day) — those need AA contrast, and orange-600 is
    the lightest white-safe step in the ramp. The yellow separation therefore
    comes from the canvas wash, surface tint, secondary, and containers, not the
-   primary accent. */
+   primary accent. The ramp is the cockpit's amber one (index.css), which covers
+   the canvas and its portals: orange-600 and -700 are #B45309 there, white at
+   5.02:1, and the orange-800 hover 7.09:1. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
@@ -447,7 +479,8 @@
   --tone-primary-container: var(--yellow-100);
   --tone-on-primary-container: var(--yellow-900);
   /* orange-800 (not -700) so tone-colored TEXT on the light community surface
-     clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
+     keeps a margin: orange-700 measured 4.01:1 on the 14px current-step rail
+     label while flow dialogs drew the shared orange ramp. */
   --tone-on-surface-accent: var(--orange-800);
   --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
 }
@@ -541,11 +574,10 @@
   --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
-/* Community = amber/gold. Filled action is a DEEP amber (orange-700, white-safe
- * 5.0:1) — a brighter amber is not white-safe, so the gold identity comes from
- * the wash, accent text, secondary and containers (the yellow family), matching
- * the light-mode strategy. Same orange-700 fill value as light mode → no hue
- * flip between modes. */
+/* Community = amber/gold. Dark filled actions are tonal (DL-009), so the gold
+ * identity reads in the fill itself: yellow-200 with yellow-900 ink, the
+ * tightest of the five tones, beside the wash, accent text and containers of
+ * the same yellow family. */
 [data-theme="dark"][data-tone="community"],
 [data-theme="dark"] [data-tone="community"] {
   --tone-primary: var(--yellow-200);

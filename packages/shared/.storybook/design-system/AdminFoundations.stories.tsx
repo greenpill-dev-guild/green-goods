@@ -1,7 +1,8 @@
 import { RiAddLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "storybook/test";
-import { AdminButton, AdminIconButton } from "../../../admin/src/components/AdminButton";
+import { Button } from "../../src/components/Button";
+import { IconButton } from "../../src/components/IconButton";
 import { AdminCard } from "../../../admin/src/components/AdminCard";
 import { AdminFilterChip } from "../../../admin/src/components/AdminFilterChip";
 import { AdminSortSelect } from "../../../admin/src/components/AdminSortSelect";
@@ -65,10 +66,10 @@ export const Tokens: Story = {
         <TokenTable
           tokens={[
             { name: "--m3-shape-xs", expected: "4px", note: "checkbox, tooltip" },
-            { name: "--m3-shape-sm", expected: "8px", note: "chips, filled field top corners, outlined fields" },
+            { name: "--m3-shape-sm", expected: "8px", note: "fields" },
             { name: "--m3-shape-md", expected: "12px", note: "cards, choice rows, selectable cards" },
             { name: "--m3-shape-lg", expected: "16px", note: "dialogs, page containers" },
-            { name: "--m3-shape-full", expected: "9999px", note: "buttons, toolbar pills, FAB" },
+            { name: "--m3-shape-full", expected: "9999px", note: "buttons, chips, toolbar pills, FAB" },
             { name: "--radius-xs", expected: "4px", note: "remapped in index.css" },
             { name: "--radius-sm", expected: "8px", note: "remapped in index.css" },
             { name: "--radius-xl", expected: "16px", note: "rounded-xl, remapped in index.css" },
@@ -86,7 +87,7 @@ export const Tokens: Story = {
             { name: "--gg-type-body-size", expected: "0.875rem", note: "14px body" },
             { name: "--gg-type-label-size", expected: "0.875rem", note: "14px: buttons, tabs" },
             { name: "--gg-type-label-sm-size", expected: "0.75rem", note: "12px / 500: eyebrows, metadata labels" },
-            { name: "--gg-type-meta-size", expected: "0.75rem", note: "12px: floating labels, supporting text" },
+            { name: "--gg-type-meta-size", expected: "0.75rem", note: "12px: field messages, supporting text" },
             { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "11px: chips (with their own weight) and small supporting lines" },
             { name: "--gg-type-field-size", note: "field text: 16px below 640px, 14px from 640px" },
             { name: "--font-heading", note: "Plus Jakarta Sans" },
@@ -94,7 +95,7 @@ export const Tokens: Story = {
         />
         <div className="sb-ds-row" style={{ marginTop: 14 }}>
           <Specimen title="button label · 14px / 500" expect={{ labelSize: 14, weight: 500, family: "Plus Jakarta Sans" }}>
-            <AdminButton>Create Garden</AdminButton>
+            <Button type="button" size="sm">Create Garden</Button>
           </Specimen>
           <Specimen title="field text · 14px (16px on touch widths)" target="input" expect={ADMIN.fieldInput()}>
             <div style={{ width: 240 }}>
@@ -125,12 +126,12 @@ export const Tokens: Story = {
       <Section id="heights" title="Compact metric (DL-011)" lede="28 / 32 / 36 / 40 / 44: buttons 28 / 32 / 40, toolbar pills and tabs 36, chips 32, identity pill 36, fields 40 from 640px and 44 on touch widths (DL-030). Shell chrome (56px app bar, 48 / 56px FAB, the nav dock) sits outside the scale by design.">
         <div className="sb-ds-row">
           <Specimen title="28 · sm button" expect={{ height: 28, hit: 44 }}>
-            <AdminButton size="sm" variant="outlined">
+            <Button type="button" emphasis="secondary" size="compact">
               Manage Members
-            </AdminButton>
+            </Button>
           </Specimen>
           <Specimen title="32 · md button, chip" target="button" all expect={{ height: 32 }}>
-            <AdminButton>Create Garden</AdminButton>
+            <Button type="button" size="sm">Create Garden</Button>
             <AdminFilterChip label="Pending" selected={false} onToggle={() => {}} />
           </Specimen>
           <Specimen title="36 · toolbar pill" target="label" expect={{ height: 36, radius: "pill" }}>
@@ -150,12 +151,10 @@ export const Tokens: Story = {
             </div>
           </Specimen>
           <Specimen title="40 · lg button, icon button" target="button" all expect={{ height: 40, hit: 44 }}>
-            <AdminButton size="lg">Submit Work</AdminButton>
-            <AdminIconButton size="lg" label="Add">
-              <RiAddLine />
-            </AdminIconButton>
+            <Button type="button" size="lg">Submit Work</Button>
+            <IconButton size="lg" aria-label="Add" title="Add" icon={<RiAddLine />} />
           </Specimen>
-          <Specimen title="field · 40 (44 on touch widths)" target='[data-component="AdminTextField"] > div:first-child' expect={ADMIN.fieldContainer()}>
+          <Specimen title="field · 40 (44 on touch widths)" target='[data-component="AdminTextField"] [data-region="field-container"]' expect={ADMIN.fieldContainer()}>
             <div style={{ width: 240 }}>
               <AdminTextField label="Location" />
             </div>
@@ -163,7 +162,7 @@ export const Tokens: Story = {
         </div>
       </Section>
 
-      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly four places: the active tab, the active nav pill, one filled header action, and the FAB fill, plus the faint canvas wash. Each card below sets data-tone and shows its filled action and active tab.">
+      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly six places: the active tab, the active nav pill, one filled header action, the FAB fill, the count badge on every tab of the rail, and a selected filter chip (DL-101), plus the faint canvas wash. Each card below sets data-tone and shows its filled action, a selected chip, and its tab rail with a count.">
         <div className="sb-ds-row">
           {TONES.map((tone) => (
             <div key={tone} data-tone={tone} className="sb-specimen" style={{ flexBasis: 220 }}>
@@ -181,7 +180,11 @@ export const Tokens: Story = {
                   gap: 10,
                 }}
               >
-                <AdminButton size="sm">Primary Act</AdminButton>
+                <Button type="button" size="compact">Primary Act</Button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <AdminFilterChip label="Pending" selected onToggle={() => {}} />
+                  <AdminFilterChip label="Approved" selected={false} onToggle={() => {}} />
+                </div>
                 <AdminTabRail
                   ariaLabel={`${tone} tabs`}
                   activeId="a"

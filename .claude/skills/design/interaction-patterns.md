@@ -61,8 +61,16 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   through a small dialog that jumps to a large wizard is the canonical violation. (NN/g
   consistency; Tesler's Law: the system absorbs the complexity, not the user.)
 - **The step rail is declared once per flow and never changes** (validator-enforced in the
-  prototype build; detours render inside their step). Below 620px dialogs present as bottom
-  sheets with the same content and the same footer order.
+  prototype build; detours render inside their step). Below 640px dialogs present as bottom
+  sheets with the same content and the same footer order, in the installed app's sheet
+  material with its grip; a flow keeps its own header under the grip (DL-104).
+- **A dialog hands focus back and holds its confirm while it works (DL-117).** Closing a
+  dialog by Close, Cancel, Escape or the scrim returns focus to the control that opened it
+  (`AdminDialog` remembers it; a caller's `finalFocusRef` names another), and a confirm opened
+  from a dialog hands it back one level at a time. A confirm that is sending stays focusable
+  but ignores activation (`SheetActions`' loading action), so a second press never sends
+  twice. Proof: [AdminDialog.test.tsx](../../../packages/admin/src/__tests__/components/AdminDialog.test.tsx)
+  and the dialog stories' play functions. (WAI-ARIA dialog pattern; NN/g user control.)
 - **Action labels are specific**: "Pause pool", "Cancel season", "Approve work", never "OK",
   "Confirm", "Submit". Confirmations name consequences before the act (ecosystem cascade rule).
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);
@@ -126,6 +134,13 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
     only where the acts are paired opposites (accept/decline, approve/reject); once decided,
     the pair is replaced by the outcome it produced, so a row never offers a decision twice.
 
+  Where a list's records are the shared item row (DL-102: work, and assessments and hypercerts,
+  DL-111), the row is that anatomy instead: one 88px height, the one pill under the title (the
+  row's status, or a state that replaces it; Your Work's Pending rows keep their kind there,
+  DL-061; a record that waits on no one has none), at most two details in the type's order on
+  one line, and the row's one act in its right slot. The chip and meta contract below
+  holds for decision rows and for rows not yet on the item row.
+
   Two lines are the default because a single-line row wraps its buttons as soon as the column
   narrows. State lives in the chip vocabulary (with text, never color alone). **The row's
   information contract is fixed**: chips = kind · lifecycle · at most one attention chip; meta =
@@ -185,20 +200,30 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [garden-detail.ts](../../../packages/shared/src/utils/garden-detail.ts). An alarm on every card
   stops meaning anything. (Refactoring UI: emphasize by de-emphasizing.)
 - **Member counts mean people (DL-049).** Every member count counts distinct people, never
-  role seats: a person who owns, stewards, and gardens is one member. A roster lists each person
-  once, with one role chip per role, and each role carries its own remove, named for the role it
-  takes away ("Remove Gardener"), so taking one role leaves the others. Role counts live in one
-  place per surface, the role filter, which folds into a select on a narrow card rather than
-  pushing the people below the fold. Proof: `memberCount` in
+  role seats: a person who owns, stewards, and gardens is one member. Manage Members lists each
+  person once, with one role chip per role, and each role carries its own remove, named for the
+  role it takes away ("Remove Gardener"), so taking one role leaves the others. Other lists of
+  people are person rows (DL-112): the person once, their highest role as its one chip, and how
+  many roles they hold when it is more than one. The lists DL-112 sets apart keep their own rows,
+  the Add Members queue among them: each of its rows shows the role the person is about to be
+  given beside any they hold, so a steward checks every grant before the wallet writes. Counts of
+  people per role live in one place per surface, the role filter, which folds into a select on a
+  narrow card rather than pushing the people below the fold. Proof: `memberCount` in
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
   and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
-- **A commitment row's edge tells its direction (DL-052).** A 3px edge on the row's inline start
-  marks offers in the primary tone and requests in the information tone. The state chip is
-  unchanged, and the direction word stays where the chip does not already say it, so direction
-  never rests on color alone. Markers such as "Needs you" sit at the 12px label size in sentence
-  case. Proof: `CommitmentRow` in
-  [CommitmentRow.tsx](../../../packages/client/src/components/Features/Commitments/CommitmentRow.tsx).
+- **A promise leads with its direction (DL-110).** Every promise in a list is the shared
+  commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or a
+  request's helping hand, named for screen readers, so direction never rests on color and no
+  detail repeats it. Its one pill is the state, or what takes the state's place: "Needs you"
+  when the row waits on the reader, "Past due" when a steward can expire it, and while a
+  queue or act state lasts, "Confirming…", "Not sent" or "Didn't send". The 2px edge follows
+  the pill, as on every row with a status edge. The detail line gives the due date, then the
+  other person (in a steward's list, whoever does it, else whoever asked); a queue or act
+  state's own words lead it instead. This replaces the record row's chips and meta for
+  promises: who is involved and how much live in the promise's dialog, except on a promise
+  still on the device, which has no dialog yet and keeps its units on its row. Proof: the
+  shared `CommitmentRow`, which Offers and Requests and the app's lists render.
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect: encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

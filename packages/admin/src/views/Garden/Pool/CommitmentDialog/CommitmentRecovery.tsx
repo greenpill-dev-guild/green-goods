@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   RiCheckboxCircleLine,
@@ -6,7 +7,6 @@ import {
   RiTimeLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import type { OpenDialog } from "./commitmentDialogPresentation";
 
 /**
@@ -70,10 +70,10 @@ export function CommitmentRecovery({
               </span>
             </span>
           </p>
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={() => onOpenDialog("reconcile-work")}
             disabled={
               actDisabled || !can.syncWorkDecisions || reconciliation.readbackStatus === "pending"
@@ -83,7 +83,7 @@ export function CommitmentRecovery({
               id: "cockpit.garden.pool.commitment.reconciliation.confirm",
               defaultMessage: "Count Linked Work",
             })}
-          </AdminButton>
+          </Button>
           {blockedReason ? (
             <p className="basis-full type-meta text-warning-dark">{blockedReason}</p>
           ) : null}
@@ -186,10 +186,10 @@ export function CommitmentRecovery({
                     })}
               </span>
             </p>
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onOpenDialog("mark-ready")}
               disabled={actDisabled || !can.markReady}
             >
@@ -197,7 +197,7 @@ export function CommitmentRecovery({
                 id: "cockpit.garden.pool.commitment.act.markReady",
                 defaultMessage: "Mark Ready…",
               })}
-            </AdminButton>
+            </Button>
           </div>
           {can.attachAssessment ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
@@ -216,10 +216,10 @@ export function CommitmentRecovery({
                   })}
                 </span>
               </p>
-              <AdminButton
+              <Button
                 type="button"
-                variant="outlined"
-                size="sm"
+                emphasis="secondary"
+                size="compact"
                 onClick={() => onOpenDialog("attach-assessment")}
                 disabled={actDisabled}
               >
@@ -227,7 +227,7 @@ export function CommitmentRecovery({
                   id: "cockpit.garden.pool.commitment.act.attachAssessment",
                   defaultMessage: "Attach Assessment…",
                 })}
-              </AdminButton>
+              </Button>
             </div>
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft px-3 py-2">
@@ -246,10 +246,10 @@ export function CommitmentRecovery({
               </span>
             </p>
             {/* Outlined where it sits; the red is for the confirm inside its dialog. */}
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => onOpenDialog("cancel")}
               disabled={actDisabled || !can.cancel}
             >
@@ -257,7 +257,7 @@ export function CommitmentRecovery({
                 id: "cockpit.garden.pool.commitment.act.cancel",
                 defaultMessage: "Cancel Promise…",
               })}
-            </AdminButton>
+            </Button>
           </div>
         </>
       ) : null}

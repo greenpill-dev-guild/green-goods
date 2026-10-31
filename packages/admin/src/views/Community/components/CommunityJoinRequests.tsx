@@ -1,4 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
@@ -10,8 +12,8 @@ import {
 } from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
-  type GardenJoinRequestQueueItem,
   type GardenJoinRequestKind,
+  type GardenJoinRequestQueueItem,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
@@ -19,7 +21,6 @@ import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-cl
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -148,17 +149,18 @@ function CommunityJoinRequestQueue({
               })}
             </p>
           </div>
-          <AdminButton
+          <Button
+            type="button"
             className="ml-auto"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             loading={join.queueState.isLoading}
             onClick={() => void load()}
           >
             {formatMessage({
               id: loaded ? "app.common.refresh" : "cockpit.community.joinRequests.load",
             })}
-          </AdminButton>
+          </Button>
         </div>
 
         <div aria-live="polite" className="space-y-2">
@@ -181,14 +183,15 @@ function CommunityJoinRequestQueue({
         </div>
 
         {loaded && queue.length === 0 && !join.queueState.isLoading ? (
-          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft p-4 type-meta text-text-sub">
-            <RiInbox2Line className="h-5 w-5" />
-            {formatMessage({
+          <EmptyState
+            placement="list"
+            icon={<RiInbox2Line />}
+            title={formatMessage({
               id: stewardRequest
                 ? "cockpit.community.stewardRequests.empty"
                 : "cockpit.community.joinRequests.empty",
             })}
-          </div>
+          />
         ) : null}
 
         <AdminCard variant="outlined" density="none" className="divide-y divide-stroke-soft">
@@ -226,10 +229,11 @@ function CommunityJoinRequestQueue({
                 ) : null}
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                <AdminButton
-                  variant="outlined"
-                  size="sm"
-                  leadingIcon={<RiCloseLine />}
+                <Button
+                  type="button"
+                  emphasis="secondary"
+                  size="compact"
+                  leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
                   disabled={Boolean(activeId)}
                   onClick={() => {
                     setDeclineError(undefined);
@@ -237,11 +241,12 @@ function CommunityJoinRequestQueue({
                   }}
                 >
                   {formatMessage({ id: "cockpit.community.joinRequests.decline" })}
-                </AdminButton>
-                <AdminButton
-                  variant="filled"
-                  size="sm"
-                  leadingIcon={<RiCheckLine />}
+                </Button>
+                <Button
+                  type="button"
+                  emphasis="primary"
+                  size="compact"
+                  leadingIcon={<RiCheckLine className="h-4 w-4" aria-hidden="true" />}
                   loading={activeId === request.id || operations.isLoading}
                   onClick={() => void welcome(request)}
                 >
@@ -250,21 +255,22 @@ function CommunityJoinRequestQueue({
                       ? "cockpit.community.stewardRequests.approve"
                       : "cockpit.community.joinRequests.welcome",
                   })}
-                </AdminButton>
+                </Button>
               </div>
             </article>
           ))}
         </AdminCard>
 
         {join.nextCursor ? (
-          <AdminButton
-            variant="text"
-            size="sm"
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
             loading={join.queueState.isLoading}
             onClick={() => void load(join.nextCursor)}
           >
             {formatMessage({ id: "app.common.loadMore" })}
-          </AdminButton>
+          </Button>
         ) : null}
       </AdminCard>
 

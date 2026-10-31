@@ -34,9 +34,10 @@ between a treasury and a kitchen tin everyone trusts each other to dip into.
   <figcaption>Campaign jars appear on the public Cookies page; garden jars are claimed in the installed app.</figcaption>
 </figure>
 
-The jars come from [1Hive's Cookie Jar](https://github.com/1Hive/cookie-jar) protocol. When a
+The jars use [Greenpill Dev Guild's Cookie Jar fork](https://github.com/greenpill-dev-guild/cookie-jar),
+derived from [Cookie-Jar DAO's v3 contracts](https://github.com/Cookie-Jar-DAO/cookie-jar-v3). When a
 garden is minted, the mint asks the Green Goods Cookie Jar module to deploy one jar per supported
-asset through 1Hive's `CookieJarFactory`. That call is best-effort: with no module configured it
+asset through `CookieJarFactory`. That call is best-effort: with no module configured it
 is skipped, and a failing factory call is caught so the garden still mints. A garden can therefore
 exist with no jars, so read them from the module (`getGardenJars`) and handle an empty list rather
 than assuming an address per asset. Only people wearing the garden's gardener [hat](./hats) can
@@ -45,7 +46,7 @@ the jar checks the hat directly. Each asset also has its own per-claim limit.
 
 ## Two kinds of jar
 
-The same 1Hive contracts back two separate surfaces, and they do not share a data path:
+The same Cookie Jar contracts back two separate surfaces, and they do not share a data path:
 
 - **Garden jars** are the ones this page describes: created by the module at mint, owned by the
   garden, gated by the gardener hat, claimed from the installed app's wallet, and funded from the
@@ -64,7 +65,7 @@ a little at a time by the people doing the work.
 ```mermaid
 flowchart LR
   mint["Garden minted"] --> module["Cookie Jar module<br/>(best-effort call)"]
-  module -->|one jar per asset| factory["1Hive CookieJarFactory"]
+  module -->|one jar per asset| factory["CookieJarFactory"]
   factory --> jar["Garden jar"]
   funders([Funders]) -->|deposit| jar
   gardeners([Gardener hat wearers]) -->|claim up to the limit| jar
@@ -82,7 +83,7 @@ flowchart LR
 | Garden jar writes | `useCookieJarDeposit.ts`, `useCookieJarWithdraw.ts`, and `useCookieJarAdmin.ts` in the same folder |
 | Campaign jar reads | `packages/shared/src/modules/data/campaign-cookie-jars.ts` (indexed `CampaignCookieJar` records from trusted creators) with `useCampaignCookieJar.ts` and `useCampaignCookieJarCampaigns.ts` |
 
-The jars themselves are 1Hive's contracts. The module above is the Green Goods side that creates
+The jars themselves come from that fork. The module above is the Green Goods side that creates
 and configures a garden's jars; campaign jars never pass through it.
 
 <IntegrationProjection id="cookie-jar" />
@@ -93,11 +94,11 @@ The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a l
 Arbitrum One with the factory and module present, so jar creation and claim flows run locally
 without real funds.
 
-## Canonical upstream docs
+## Implementation and upstream sources {#canonical-upstream-docs}
 
-- [1Hive Cookie Jar](https://github.com/1Hive/cookie-jar) is the upstream protocol behind every
-  jar.
-- [1hive.org](https://1hive.org) for the community that maintains the protocol.
+- [Greenpill Dev Guild Cookie Jar](https://github.com/greenpill-dev-guild/cookie-jar) is the
+  implementation used by Green Goods.
+- [Cookie-Jar DAO v3](https://github.com/Cookie-Jar-DAO/cookie-jar-v3) is that fork's upstream.
 - [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155), the multi-token standard behind a jar's
   membership gating.
 

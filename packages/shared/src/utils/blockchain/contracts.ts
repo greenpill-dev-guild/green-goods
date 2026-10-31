@@ -23,11 +23,8 @@ import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.js
 import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
 import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
 import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
-import GreenWillABIJson from "@green-goods/contracts/abis/GreenWill.json";
-import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 import ICommitmentPoolingModuleABIJson from "@green-goods/contracts/abis/ICommitmentPoolingModule.json";
 import ICommitmentRegistryABIJson from "@green-goods/contracts/abis/ICommitmentRegistry.json";
-import ISettlementModuleABIJson from "@green-goods/contracts/abis/ISettlementModule.json";
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
 import deployment42161 from "@green-goods/contracts/deployments/42161-latest.json";
@@ -35,17 +32,17 @@ import deployment42220 from "@green-goods/contracts/deployments/42220-latest.jso
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
 
-// Export the ABIs for viem compatibility
+// Export the ABIs for viem compatibility. Every ABI declared here rides with the contract
+// addresses in the chunk the installed app starts with, so an ABI only some screens use is a
+// module of its own in `./contract-abis`, imported from there: GreenWill, Hats, the core module's
+// service offers and the settlement module.
 export const GardenTokenABI = GardenTokenABIJson as Abi;
 export const GardenAccountABI = GardenAccountABIJson as Abi;
 export const ActionRegistryABI = ActionRegistryABIJson as Abi;
 export const EASABI = EASABIJson as Abi;
 export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
-export const HatsABI = IHatsABIJson as Abi;
-export const GreenWillABI = GreenWillABIJson as Abi;
 export const CommitmentPoolingModuleABI = ICommitmentPoolingModuleABIJson as Abi;
 export const CommitmentRegistryABI = ICommitmentRegistryABIJson as Abi;
-export const SettlementModuleABI = ISettlementModuleABIJson as Abi;
 
 // Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
 export { ERC20_ALLOWANCE_ABI } from "./abis/erc20";

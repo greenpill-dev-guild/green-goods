@@ -30,6 +30,7 @@ export const CLIENT_ROUTE_IDS = {
   publicReportingPermissions: "public-reporting-permissions",
   login: "login",
   home: "home",
+  homeExplore: "home-explore",
   garden: "garden",
   gardenSubmit: "garden-submit",
   profile: "profile",
@@ -165,7 +166,7 @@ const combinedAppRoutes = [
               }),
             },
           ]),
-          // The reporting ceremony pages use the focused shell and are drawn as the app draws.
+          // The reporting ceremony pages use the focused shell and take the website's look (DL-121).
           errorFrame("ceremony", [
             // Static before dynamic: the permissions page must never be read as a locator.
             {
@@ -255,6 +256,14 @@ const combinedAppRoutes = [
                       loader: homeLoader,
                       lazy: async () => ({ Component: (await import("@/views/Home")).default }),
                       children: [
+                        {
+                          // Declared before the garden's id, so "explore" is never read as one.
+                          id: CLIENT_ROUTE_IDS.homeExplore,
+                          path: APP_ROUTES.explore.slice(APP_ROUTES.home.length + 1),
+                          lazy: async () => ({
+                            Component: (await import("@/views/Home/Explore")).Explore,
+                          }),
+                        },
                         {
                           id: CLIENT_ROUTE_IDS.garden,
                           path: ":id",

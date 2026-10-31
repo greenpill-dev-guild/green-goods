@@ -6,12 +6,12 @@
  * the wrong person. Both shipped before, and neither typechecked its way out.
  */
 
-import { describe, expect, it } from "vitest";
-
 import { canLinkWork } from "@green-goods/shared/commitment-pooling";
+import { describe, expect, it } from "vitest";
 import {
   canJoinTeam,
   selectCommitmentAct,
+  takeUpMode,
 } from "../../views/Home/Garden/Commitment/commitmentActions";
 import { selectStatusBand } from "../../views/Home/Garden/Commitment/statusBand";
 
@@ -111,6 +111,7 @@ describe("selectCommitmentAct", () => {
         commitment: { ...base, derivedState: "OFFERED", claimMode: "APPROVAL_GATED" },
         seat: "bystander",
         isMember: true,
+        clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
       })?.kind
     ).toBe("askToTakeUp");
     expect(
@@ -118,6 +119,7 @@ describe("selectCommitmentAct", () => {
         commitment: { ...base, derivedState: "OFFERED" },
         seat: "bystander",
         isMember: true,
+        clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
       })?.kind
     ).toBe("takeUp");
   });
@@ -167,6 +169,47 @@ describe("selectCommitmentAct", () => {
   it("withholds the act while one is already waiting to send", () => {
     expect(
       selectCommitmentAct({ commitment: base, seat: "provider", hasPendingJob: true })
+    ).toBeNull();
+  });
+
+  it("keeps creator request recreation separate from a member's reviewed take-up", () => {
+    const recreate = selectCommitmentAct({
+      commitment: { ...base, derivedState: "EXPIRED", direction: "REQUEST" },
+      seat: "confirmer",
+      isCreator: true,
+    });
+    expect(recreate?.kind).toBe("askAgain");
+    expect(takeUpMode(recreate)).toBeNull();
+    const memberRequest = selectCommitmentAct({
+      commitment: {
+        ...base,
+        derivedState: "REQUESTED",
+        direction: "REQUEST",
+        claimMode: "APPROVAL_GATED",
+      },
+      seat: "bystander",
+      isMember: true,
+      clock: { now: 1_800_000_000n, cycleEndTimes: new Map() },
+    });
+    expect(memberRequest?.kind).toBe("askToTakeUp");
+    expect(takeUpMode(memberRequest)).toBe("reviewed");
+  });
+});
+
+describe("reward agreement for an existing queued claim", () => {
+  it("offers only agreement-blocked claims a recovery mode", () => {
+    for (const queued of [
+      { kind: "workLink", waitingReason: "reward-agreement-required" },
+      { kind: "claim", waitingReason: "awaiting-confirmation" },
+      { kind: "claim", waitingReason: "reward-paused" },
+    ])
+      expect(takeUpMode(null, queued, "OPEN")).toBeNull();
+    expect(
+      takeUpMode(
+        { kind: "askAgain", labelId: "" },
+        { kind: "claim", waitingReason: "reward-agreement-required" },
+        "OPEN"
+      )
     ).toBeNull();
   });
 });

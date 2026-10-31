@@ -32,7 +32,8 @@ describe("AddressDisplay protocol identity", () => {
       wrapper: createTestWrapper(),
     });
     expect(screen.getByText("river")).toBeInTheDocument();
-    expect(hooks.protocol).toHaveBeenCalledWith(first);
+    // A display on its own reads its name on its own; a list's rows read theirs in a batch.
+    expect(hooks.protocol).toHaveBeenCalledWith(first, { list: false });
 
     rerender(<AddressDisplay address={second} interactive={false} />);
     expect(screen.getByText("forest")).toBeInTheDocument();
@@ -61,6 +62,17 @@ describe("AddressDisplay protocol identity", () => {
       wrapper: createTestWrapper(),
     });
     expect(screen.getByText("ordinary.eth")).toBeInTheDocument();
+  });
+
+  it("hands the name it resolves to a caller that renders it, with no popover or copy", () => {
+    hooks.protocol.mockReturnValue({ data: "river.greengoods.eth" });
+    hooks.ens.mockReturnValue({ data: "other.eth" });
+    render(
+      <AddressDisplay address={first}>{(name) => <h3>{`Row for ${name}`}</h3>}</AddressDisplay>,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByRole("heading")).toHaveTextContent("Row for river");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("uses a public role label until the account has a name", () => {

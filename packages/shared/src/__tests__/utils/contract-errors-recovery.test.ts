@@ -21,8 +21,29 @@ import pt from "../../i18n/pt.json";
 import { WalletChainMismatchError } from "../../modules/transactions/chain-guard";
 import { parseAndFormatError, parseContractError } from "../../utils/errors/contract-errors";
 import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import { VOUCHER_ENTITLEMENT_ERRORS } from "../../utils/errors/voucher-entitlement-errors";
 
 describe("contract error recovery fields", () => {
+  it.each(
+    Object.entries(VOUCHER_ENTITLEMENT_ERRORS)
+  )("localizes entitlement error %s and its recovery", (selector, info) => {
+    const parsed = parseContractError(
+      new Error(`reverted with the following signature: ${selector}`)
+    );
+    expect(parsed.name).toBe(info.name);
+    expect(parsed.messageKey).toBe(info.messageKey);
+    expect(parsed.messageKey).toBeTruthy();
+    for (const catalog of [en, es, pt]) {
+      const messages = catalog as Record<string, string>;
+      expect(messages[parsed.messageKey!]).toBeTruthy();
+      if (info.action) {
+        expect(parsed.actionKey).toBeTruthy();
+        expect(messages[parsed.actionKey!]).toBeTruthy();
+      }
+    }
+    expect((es as Record<string, string>)[parsed.messageKey!]).not.toBe(info.message);
+    expect((pt as Record<string, string>)[parsed.messageKey!]).not.toBe(info.message);
+  });
   describe("recoverable field", () => {
     it("should mark NotGardenMember as not recoverable", () => {
       const result = parseContractError("0x8cb4ae3b");

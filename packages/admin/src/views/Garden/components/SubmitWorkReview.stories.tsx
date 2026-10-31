@@ -1,6 +1,6 @@
 import { type Action, Domain } from "@green-goods/shared/types/domain";
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiUploadCloudLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminDialog } from "@/components/AdminDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
@@ -104,7 +104,9 @@ function ReviewInFlow(args: ReviewStoryArgs) {
             isLast
             phase={phase}
             sendLabel="Submit Work"
-            sendButtonProps={{ leadingIcon: <RiUploadCloudLine /> }}
+            sendButtonProps={{
+              leadingIcon: <RiUploadCloudLine className="h-[18px] w-[18px]" aria-hidden="true" />,
+            }}
             note={<SingleSendNote phase={phase} />}
             another={{ label: "Submit Another", onClick: noop }}
             onCancel={noop}

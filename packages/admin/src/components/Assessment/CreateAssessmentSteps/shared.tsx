@@ -1,7 +1,6 @@
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode } from "react";
-import { type IntlShape, useIntl } from "react-intl";
+import type { IntlShape } from "react-intl";
 
 // ─── Domain Display Constants ────────────────────────────
 
@@ -221,44 +220,5 @@ export function Section({
       </div>
       {children}
     </section>
-  );
-}
-
-/**
- * One answer on the Review step: its label over its value, wrapped in full so
- * nothing the attestation carries is cut short. A list of answers goes in as
- * children; an answer left empty reads "Not provided". Rows sit in a `<dl>`.
- */
-export function ReviewRow({
-  label,
-  value,
-  wide = false,
-  children,
-}: {
-  label: string;
-  value?: string | null;
-  /** Long text: the row takes the section's full width. */
-  wide?: boolean;
-  children?: ReactNode;
-}) {
-  const intl = useIntl();
-  const provided = Boolean(children) || Boolean(value && value.trim().length > 0);
-  return (
-    <div className={cn("min-w-0", wide && "sm:col-span-2")}>
-      <dt className="type-label-sm text-text-soft">{label}</dt>
-      <dd
-        className={cn(
-          "mt-0.5 whitespace-pre-wrap break-words type-body",
-          provided ? "text-text-strong" : "text-text-soft"
-        )}
-      >
-        {provided
-          ? (children ?? value)
-          : intl.formatMessage({
-              id: "admin.assessment.review.notProvided",
-              defaultMessage: "Not provided",
-            })}
-      </dd>
-    </div>
   );
 }

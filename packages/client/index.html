@@ -211,6 +211,40 @@
         if (color) meta.content = color;
       })();
     </script>
+    <script id="boot-language">
+      // Declare the reader's language before the first paint. The browser judges a page's
+      // language while it loads, and a page that says English while a Spanish or Portuguese
+      // catalogue loads gets that reader offered, or auto-run, a translation that rewrites text
+      // React still owns. The choice is the app's own (resolveRequestedLocale in shared
+      // locale-messages): the stored language, else the first browser language the app has copy
+      // for, else English; a stored language without copy reads English. Once the app runs it owns
+      // the page's language, and corrects it to English if the reader's catalogue cannot load.
+      (function () {
+        var supported = ["en", "es", "pt"];
+        var stored = null;
+        try {
+          stored = window.localStorage.getItem("gg-language");
+        } catch (error) {
+          // Storage can be blocked. The browser language still applies.
+        }
+        var browser =
+          navigator.languages && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language];
+        var candidates = stored ? [stored] : browser;
+        var language = "en";
+        for (var index = 0; index < candidates.length; index += 1) {
+          var tag = String(candidates[index] || "")
+            .toLowerCase()
+            .split("-")[0];
+          if (supported.indexOf(tag) !== -1) {
+            language = tag;
+            break;
+          }
+        }
+        document.documentElement.lang = language;
+      })();
+    </script>
     <script id="boot-presentation-detector">
       (function () {
         var LOCAL_QUERY_PARAM = "presentation";
@@ -1244,32 +1278,14 @@
           },
         };
 
-        // The choice the app makes once it runs: the stored language, else the first
-        // browser language with copy here, else English.
-        function bootLanguage() {
-          var stored = null;
-          try {
-            stored = window.localStorage.getItem("gg-language");
-          } catch (error) {
-            // Storage can be blocked. The browser language still applies.
-          }
-          var browser =
-            navigator.languages && navigator.languages.length
-              ? navigator.languages
-              : [navigator.language];
-          var candidates = stored ? [stored] : browser;
-          for (var index = 0; index < candidates.length; index += 1) {
-            var tag = String(candidates[index] || "")
-              .toLowerCase()
-              .slice(0, 2);
-            if (Object.prototype.hasOwnProperty.call(copy, tag)) return tag;
-          }
-          return "en";
-        }
-
-        var language = bootLanguage();
+        // boot-language chose the reader's language for the page; this shell speaks it too.
+        var pageLanguage = document.documentElement.lang;
+        var language = Object.prototype.hasOwnProperty.call(copy, pageLanguage)
+          ? pageLanguage
+          : "en";
         var labels = copy[language];
-        // This shell declares the language of its own copy. The page's language is not its to set.
+        // This shell also declares the language of its own copy on its own root: the app owns the
+        // page's language once it runs, and can correct it to English while this shell is showing.
         if (fallback) fallback.lang = language;
         var timer;
         var updateTimer;

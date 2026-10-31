@@ -1,9 +1,9 @@
+import { Button } from "@green-goods/shared/components/Button";
 import {
   CREATION_BUNDLE_SIZE,
   type CreationSendMode,
 } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import type { SeedStatusView } from "./seedStatus";
 
 export interface SeedFlowFooterProps {
@@ -127,19 +127,26 @@ export function SeedFlowFooter({
   if (!isLast) {
     return (
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
+        <Button
           type="button"
-          variant={stepIndex === 0 ? "text" : "outlined"}
+          emphasis={stepIndex === 0 ? "tertiary" : "secondary"}
+          size="sm"
           onClick={() => (stepIndex === 0 ? onCancel() : onBack())}
           className="self-start sm:self-auto"
         >
           {stepIndex === 0
             ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
             : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        <AdminButton type="button" variant="filled" onClick={onNext} className="w-full sm:w-auto">
+        </Button>
+        <Button
+          type="button"
+          emphasis="primary"
+          size="sm"
+          onClick={onNext}
+          className="w-full sm:w-auto"
+        >
           {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-        </AdminButton>
+        </Button>
       </div>
     );
   }
@@ -147,9 +154,15 @@ export function SeedFlowFooter({
   if (status.phase === "created" || status.phase === "finishLater") {
     return (
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
+        <Button
+          type="button"
+          emphasis="primary"
+          size="sm"
+          onClick={onDone}
+          className="w-full sm:w-auto"
+        >
           {formatMessage({ id: "app.common.done", defaultMessage: "Done" })}
-        </AdminButton>
+        </Button>
       </div>
     );
   }
@@ -168,19 +181,21 @@ export function SeedFlowFooter({
         />
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
+        <Button
           type="button"
-          variant="outlined"
+          emphasis="secondary"
+          size="sm"
           onClick={onBack}
           disabled={busy || backDisabled}
           className="self-start sm:self-auto"
         >
           {formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
+        </Button>
         {canAddAnother && !retrying ? (
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
+            emphasis="secondary"
+            size="sm"
             onClick={onAddAnother}
             disabled={busy || addAnotherDisabled}
             className="w-full sm:w-auto"
@@ -189,11 +204,12 @@ export function SeedFlowFooter({
               id: "cockpit.garden.pool.seed.addAnother",
               defaultMessage: "Add Another Like This",
             })}
-          </AdminButton>
+          </Button>
         ) : null}
-        <AdminButton
+        <Button
           type="button"
-          variant="filled"
+          emphasis="primary"
+          size="sm"
           onClick={onCreate}
           disabled={busy || createDisabled}
           loading={busy}
@@ -219,7 +235,7 @@ export function SeedFlowFooter({
                 },
                 { count: total }
               )}
-        </AdminButton>
+        </Button>
       </div>
     </div>
   );

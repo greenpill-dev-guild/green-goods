@@ -102,24 +102,24 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
   const mutation = useMutation({
     mutationFn: async (params: OctantVaultRedeemParams) => {
       if (params.chainId !== OCTANT_V2_ETHEREUM_CHAIN_ID) {
-        throw new Error("Octant vault redeem requires Ethereum mainnet chain ID 1");
+        throw new Error("Octant vault withdrawals require Ethereum mainnet chain ID 1");
       }
       if (!sender) {
         throw new Error("TransactionSender not available — auth not initialized");
       }
       if (authMode !== "wallet" || sender.authMode !== "wallet" || !primaryAddress) {
-        throw new Error("Octant vault redeem requires a connected wallet");
+        throw new Error("Octant vault withdrawals require a connected wallet");
       }
 
       const owner = (params.owner ?? primaryAddress) as Address;
       if (!addressesEqual(owner, primaryAddress)) {
-        throw new Error("Octant vault redeem owner must be the connected wallet");
+        throw new Error("Octant vault withdrawal owner must be the connected wallet");
       }
       const receiver = (params.receiver ?? owner) as Address;
       const maxLossBps = params.maxLossBps ?? DEFAULT_WITHDRAW_MAX_LOSS_BPS;
 
       if (params.shares <= 0n) {
-        throw new Error("Redeem shares must be greater than zero");
+        throw new Error("Withdrawal must be greater than zero");
       }
 
       // Pre-check redeemable shares at this slippage so we fail clearly before the
@@ -132,10 +132,10 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
       });
 
       if (maxRedeemable.shares <= 0n) {
-        throw new Error("Vault is not accepting redemptions right now");
+        throw new Error("Vault is not accepting withdrawals right now");
       }
       if (params.shares > maxRedeemable.shares) {
-        throw new Error("Redeem shares exceed the available share balance");
+        throw new Error("Withdrawal exceeds the available share balance");
       }
 
       const redeemShape = getOctantVaultRedeemCallShape(maxRedeemable.variant);

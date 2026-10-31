@@ -5,7 +5,7 @@
  * dev-only mock-auth seam; real wagmi connector behaviour runs on an anvil fork.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
@@ -30,6 +30,22 @@ test.describe("Admin Authentication", () => {
   });
 
   test.describe("Dev mock-auth flow", () => {
+    // Each test boots the signed-in cockpit one to three times. A boot shows "Opening your
+    // workspace…" for 10 to 20 seconds on a quiet clean-room dev server, and the first also
+    // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never
+    // reaches. On a busy machine a boot outlasts the helper's 30s wait for `main`, so every
+    // signed-in boot here waits for it on a boot-sized budget first, and each test has room for
+    // three such loads. The helper's checks and every assertion still run after it.
+    const SIGNED_IN_BOOT_MS = 60_000;
+    // A whole signed-in load: the boot's wait for `main`, plus the navigation and the helper's checks.
+    const SIGNED_IN_LOAD_MS = SIGNED_IN_BOOT_MS + 20_000;
+    test.describe.configure({ timeout: 3 * SIGNED_IN_LOAD_MS });
+
+    async function waitForSignedInBoot(page: Page, helper: AdminTestHelper) {
+      await page.getByRole("main").waitFor({ state: "visible", timeout: SIGNED_IN_BOOT_MS });
+      await helper.waitForPageLoad();
+    }
+
     // Real wagmi reconnection coverage belongs to the anvil-fork project. This
     // clean-room check exercises the deterministic dev-auth persistence seam.
     test("maintains mock auth state across page reloads", async ({ page }) => {
@@ -39,15 +55,15 @@ test.describe("Admin Authentication", () => {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
-      await helper.waitForPageLoad();
+      await waitForSignedInBoot(page, helper);
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
 
       // DevAuthProvider persists the URL role, so the unparameterized reload
       // remains authenticated as the mocked steward.
       await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
-      await helper.waitForPageLoad();
+      await waitForSignedInBoot(page, helper);
       await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
-      await helper.waitForPageLoad();
+      await waitForSignedInBoot(page, helper);
 
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
       await expect(page.locator("#root")).not.toBeEmpty();
@@ -58,7 +74,7 @@ test.describe("Admin Authentication", () => {
 
       await helper.enableMockAuth("deployer");
       await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
-      await helper.waitForPageLoad();
+      await waitForSignedInBoot(page, helper);
 
       await expect(page).toHaveURL(/\/hub(?:\?.*)?$/);
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
@@ -74,7 +90,7 @@ test.describe("Admin Authentication", () => {
         waitUntil: "domcontentloaded",
         timeout: 45000,
       });
-      await helper.waitForPageLoad();
+      await waitForSignedInBoot(page, helper);
       await expect(page.getByText("Connect to continue")).toHaveCount(0);
 
       await page.goto(helper.buildMockAuthPath("/hub", "disconnected"), {
@@ -101,14 +117,14 @@ test.describe("Admin Authentication", () => {
       await helper1.enableMockAuth("steward");
 
       await page1.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
-      await helper1.waitForPageLoad();
+      await waitForSignedInBoot(page1, helper1);
       await expect(page1.getByText("Connect to continue")).toHaveCount(0);
 
       // Open a second tab after context-level initialization.
       const page2 = await context.newPage();
       await page2.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });
       const helper2 = new AdminTestHelper(page2);
-      await helper2.waitForPageLoad();
+      await waitForSignedInBoot(page2, helper2);
       await expect(page2.getByText("Connect to continue")).toHaveCount(0);
 
       // Close tabs

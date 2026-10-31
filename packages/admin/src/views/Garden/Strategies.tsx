@@ -1,5 +1,8 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
 import { useSetConvictionStrategies } from "@green-goods/shared/hooks/conviction/useSetConvictionStrategies";
@@ -8,11 +11,10 @@ import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGarden
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { RiDeleteBinLine } from "@remixicon/react";
+import { RiDeleteBinLine, RiLoader4Line, RiScales3Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
@@ -150,13 +152,16 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
         <div className="p-4 sm:p-6">
           {strategiesLoading ? (
-            <p className="py-4 text-center type-body text-text-soft">
-              {formatMessage({ id: "app.conviction.loadingStrategies" })}
-            </p>
+            <EmptyState
+              busy
+              icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+              title={formatMessage({ id: "app.conviction.loadingStrategies" })}
+            />
           ) : strategies.length === 0 ? (
-            <p className="py-4 text-center type-body text-text-soft">
-              {formatMessage({ id: "app.conviction.noStrategies" })}
-            </p>
+            <EmptyState
+              icon={<RiScales3Line />}
+              title={formatMessage({ id: "app.conviction.noStrategies" })}
+            />
           ) : (
             <div className="space-y-2">
               {strategies.map((strategy, index) => (
@@ -166,14 +171,16 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 >
                   <AddressDisplay address={strategy} className="min-w-0 flex-1" />
                   {canManage && (
-                    <AdminIconButton
-                      variant="danger"
+                    <IconButton
+                      emphasis="tertiary"
+                      tone="danger"
+                      size="sm"
                       onClick={() => setConfirmRemoveIndex(index)}
                       disabled={isSaving}
-                      label={formatMessage({ id: "app.conviction.removeStrategy" })}
-                    >
-                      <RiDeleteBinLine />
-                    </AdminIconButton>
+                      aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      title={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      icon={<RiDeleteBinLine />}
+                    />
                   )}
                 </div>
               ))}
@@ -182,10 +189,9 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
           {/* Add strategy form */}
           {canManage && (
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start">
               <AdminTextField
                 label={formatMessage({ id: "app.conviction.strategyAddress" })}
-                variant="outlined"
                 value={newAddress}
                 onChange={(e) => {
                   setNewAddress(e.target.value);
@@ -195,16 +201,17 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 error={addressError || undefined}
                 className="min-w-0 flex-1"
               />
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                className="w-full sm:w-auto"
+                emphasis="primary"
+                size="sm"
+                className="w-full sm:mt-6 sm:w-auto"
                 onClick={handleAddStrategy}
                 disabled={isSaving || !newAddress.trim()}
                 loading={isSaving}
               >
                 {formatMessage({ id: "app.conviction.addStrategy" })}
-              </AdminButton>
+              </Button>
             </div>
           )}
         </div>

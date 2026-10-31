@@ -7,6 +7,7 @@
  * @module hooks/client-ui/commitment/useGardenCommitmentController
  */
 
+import { useMemo } from "react";
 import type { Hex } from "viem";
 
 import {
@@ -14,6 +15,7 @@ import {
   canLinkWork,
   selectCommitmentActKind,
 } from "../../../modules/commitment-pooling/acts";
+import { isPastDue } from "../../../modules/commitment-pooling/due-dates";
 import { isCommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
 import {
   isCommitmentCreator,
@@ -35,6 +37,7 @@ import {
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
 import { useCommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import { useCommitmentWorkDecisions } from "../../commitment-pooling/useCommitmentWorkDecisions";
+import { useDueClock } from "../../commitment-pooling/useDueClock";
 import { useWorks } from "../../work/useWorks";
 import type {
   GardenCommitmentActs,
@@ -88,6 +91,9 @@ export function useGardenCommitmentController(input: {
 
   const detail = commitmentQuery.detail;
   const commitment = detail?.commitment;
+  // The chain's clock, ticking when the promise falls due: past it, nothing offers a take-up.
+  const clocked = useMemo(() => (commitment ? [commitment] : []), [commitment]);
+  const due = useDueClock({ chainId, poolId: commitment?.poolId ?? null, commitments: clocked });
   const workDecisions = useCommitmentWorkDecisions({
     chainId,
     garden: commitment?.providerGarden ?? routeGarden,
@@ -171,6 +177,8 @@ export function useGardenCommitmentController(input: {
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
         isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
         isMember: canClaimHere === null ? undefined : canClaimHere,
+        // Until the end of the cycle it falls due with is read, its due date is unknown.
+        clock: due.known ? due.clock : undefined,
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;
@@ -229,7 +237,16 @@ export function useGardenCommitmentController(input: {
           gardenAddress: context.garden,
         },
       }),
-    claimPersonal: () => {
+    claimPersonal: async () => {
+      const queued = queueState.pendingActs.get(queueKey);
+      if (queued?.kind === "claim" && queued.waitingReason === "reward-agreement-required") {
+        await jobs.sendQueued({
+          jobId: queued.jobId,
+          commitmentId: requireCommitment().commitmentId,
+          keepDeclined: true,
+        });
+        return queued.jobId;
+      }
       const garden = requireRouteGarden();
       return jobs.enqueue({
         act: "claim",
@@ -336,7 +353,10 @@ export function useGardenCommitmentController(input: {
         !pending &&
         !queueState.isUnavailable &&
         // Every take-up entry point honours the members-only rule, asking again included.
-        canClaimHere === true
+        canClaimHere === true &&
+        // Asking again is a take-up: never past due, and not before the due date is known.
+        due.known &&
+        !isPastDue(commitment, due.clock)
     ),
     claimNeedsContext: isProtocolPool,
     membership,
@@ -364,6 +384,10 @@ export function useGardenCommitmentController(input: {
     isQueueing: jobs.isPending,
     isSending: mutation.isPending,
     acts,
-    refetch: commitmentQuery.refetch,
+    refetch: async () => {
+      // A failed read of the cycle the promise falls due with is retried with the page.
+      if (due.isError) due.retry();
+      return commitmentQuery.refetch();
+    },
   };
 }

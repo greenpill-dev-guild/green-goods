@@ -13,8 +13,9 @@ const reviewedSafeBindings = path.resolve(
 
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });
 
-// The proof consumes the planner's own artifact, so the fixture is regenerated first and the fork
-// runs against the exact condition tree the release would install.
+// The proofs consume the planner's own artifact, so the fixture is regenerated first and the fork
+// runs against the exact condition tree the release would install. The personal service deposit
+// proof reads the same fixture. Keep this path in step with the garden-roles shard glob.
 const networks = new NetworkManager();
 const environment = {
   ...process.env,
@@ -36,6 +37,14 @@ run(
 );
 run(
   "forge",
-  ["test", "--isolate", "--match-path", "test/fork/CeloGardenRolesPermission.t.sol", "--threads", "1", "-vvv"],
-  "running the pinned Celo Roles permission fork proof",
+  [
+    "test",
+    "--isolate",
+    "--match-path",
+    "test/fork/{CeloGardenRolesPermission,CeloPersonalServiceDeposit}.t.sol",
+    "--threads",
+    "1",
+    "-vvv",
+  ],
+  "running the pinned Celo Roles permission and personal service deposit fork proofs",
 );

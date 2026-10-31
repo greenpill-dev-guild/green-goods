@@ -1,6 +1,6 @@
 # `scripts/`
 
-Repo-level scripts, organized by purpose. Each one has a durable caller — root `package.json`, a `.github/workflows/*.yml`, `ecosystem.config.cjs`, or a Claude skill / planning harness. If a script doesn't fit those, it doesn't live here. See the policy in [CLAUDE.md](../CLAUDE.md) and [AGENTS.md](../AGENTS.md) before adding a new one.
+Repo-level scripts, organized by purpose. The inventory records executable callers, helpers reached through those callers, and retained manual tools whose ownership needs to remain explicit. New scripts must meet the durable-caller policy in [AGENTS.md](../AGENTS.md#scripts); a manual command in this inventory does not establish a durable caller.
 
 ## Layout
 
@@ -10,6 +10,7 @@ scripts/
 ├── mcp/            project-scoped MCP server launchers
 ├── quality/        CI gates / consistency checks
 ├── design/         design system enforcement
+├── docs/           deterministic documentation projections
 ├── contracts/      contract audits + deploy verification
 ├── ops/            chain ops, release artifact uploads, Actions cache upkeep
 ├── agents/         durable agent query surfaces used by routines / skills
@@ -84,11 +85,102 @@ no signer, sends no transaction, and is safe to repeat. The separate
 `verify reporting-kernel --network arbitrum --mode simulate` command owns the real-fork
 compatibility gate.
 
+The voucher endpoint preparation path is `bun run contracts -- release vouchers --mode preflight`.
+Its handler is `packages/contracts/script/deploy/voucher-release.ts`, with public draft inputs in
+`packages/contracts/config/voucher-pilot-release.json`. Preflight compiles exact production artifacts
+and reports missing inputs without RPC. After the public inputs and sources are committed, `--mode plan`
+writes eleven nonce-bound paused deployment boundaries to `.generated/voucher-release/`.
+`--mode simulate --plan .generated/voucher-release/<release-id>.plan.json` rehearses them on owned
+Arbitrum/Gnosis forks using configured RPCs; Gnosis requires explicit `GNOSIS_RPC_URL`. These modes
+perform no live broadcasts, Safe creation, issuer approvals or activation, and do not promote
+canonical deployment or dependent app/indexer configuration. The full live pilot also needs the
+published CLC pool preparation and separate activation operations described below.
+
+The Tech and Sun steward Safe preparation path is
+`bun run contracts -- release steward-safe --mode preflight`, handled by
+`packages/contracts/script/deploy/steward-safe-release.ts`. Its public draft is
+`packages/contracts/config/steward-safe-release.json`. Preflight reports missing inputs without RPC.
+With committed sources and complete inputs, `--mode plan` binds two CREATE deployments and separate
+HatsModule-owner observer-registration calldata; `--mode simulate --plan
+.generated/steward-safe/<release-id>.plan.json` rehearses deployments on owned Arbitrum/Gnosis forks.
+The Gnosis receiver creates a new Tech and Sun Safe with locked Hats Signer Gate v2, a dedicated
+receiver-controlled signer Hat and two required valid steward signatures. It leaves the existing
+Green Goods pool/reserve Safe unchanged. No live broadcast, observer registration, Hat delivery or
+activation occurs in these modes. Upgrade the source HatsModule through the existing reviewed
+`upgrade hats-module` operation before separately registering its observer.
+
+Role hooks refresh canonical changes and automatically dispatch when the publisher has enough native
+transport fuel. Fund that Arbitrum address only for CCIP fees; it has no withdrawal or arbitrary
+spending path. No fuel, quoting failure or send failure restores a revoked source role. Anyone can
+retry with `syncSteward(account)`, or pay exactly `quoteSteward(account)` to
+`dispatchSteward(account)`. Initial existing stewards need one refresh after observer registration.
+The receiver reconciles owners after authenticated CCIP delivery; failed cleanup can be retried
+with `reconcile(account)`.
+Revocation takes effect on Gnosis when delivered; source changes outside HatsModule hooks require
+refreshing the affected account. Below two owners, Safe's displayed threshold can be one while HSG
+still blocks spending. Activate only after two confirmed steward accounts are valid on Gnosis.
+
+Published CLC preparation is `bun run contracts -- release clc --mode preflight`, handled by
+`packages/contracts/script/deploy/clc-release.ts` with `config/clc-pilot-release.json`.
+With committed inputs, `--mode plan` prepares two issuer-controlled upgrade timelocks and eight
+atomically initialized factory proxies. Tokens start with zero supply; the shared pool starts
+empty, with no registered tokens or allowances. Configuration and issuance are separate review
+drafts. `--mode simulate --plan .generated/clc-release/<release-id>.plan.json` checks the pinned
+Gnosis dependencies, Safes, exact deployments and empty post-state on an owned fork. It does not
+mint, deposit, approve, configure assets or activate transport. The Green Goods Safe controls its
+issuer reserve and the shared pool; Tech and Sun retains its separate issuer authority.
+
+Existing source upgrades use `bun run contracts -- release source-upgrades --mode preflight`,
+handled by `packages/contracts/script/deploy/source-upgrade-release.ts` with
+`config/source-upgrade-release.json`. `--mode plan` prepares linked production libraries and
+implementations plus separate owner-Safe pause/upgrade calls for the actual Pooling proxy and
+optional Settlement proxy. `--mode simulate --plan
+.generated/source-upgrades/<release-id>.plan.json` rehearses those calls on an owned Arbitrum
+fork, preserving the checked state and ending paused. Local owner impersonation proves no Safe
+signature. This operation does not replace `upgrade hats-module` or the existing integration-only
+`upgrade commitment-pooling` operation.
+
+Source execution adds `--mode prepare-execution` with the exact `--plan`, `--rehearsal`, committed
+`--safe-pins` JSON and explicit `--other-reserved-wei`. It binds full compiler jobs, constructor
+immutables, gas limits, canonical Safe/source state and the shared Arbitrum budget. Safe outer gas
+limits are conservative maxima, not estimates containing real owner signatures. `--mode broadcast`
+requires that plan, rehearsal and `--envelope`, plus one `--step` and `--expected-nonce`; it submits
+only that CREATE through the fixed operator keystore. The signer must match the approved deployer.
+
+For the four original owner-Safe calls, use `--mode export-safe` at the next boundary, obtain the
+normal owner signatures externally, then `--mode adopt --receipt <transaction-hash>` with the same
+execution inputs. Adoption never sends. The fixed chain journal preserves paid attempts and
+pending intent; uncertain submission blocks automatic retry. Only explicit receipt adoption with
+`--recover-lock` can recover a dead process's original lock. A surviving recovery guard requires
+operator resolution. Do not delete or reset the shared journal to replan. These modes leave the
+source proxies paused with their original owner and do not configure issuers or activate routes.
+
+`bun run contracts -- release pilot --mode preflight` reports the combined public input inventory
+offline. `--mode plan` requires `--source-upgrades-plan`, `--steward-safe-plan`, `--vouchers-plan`
+and `--clc-plan`, each pointing into its component's generated directory. The handler
+`packages/contracts/script/deploy/live-pilot-package.ts` validates all four plans, current committed
+inputs and production artifacts, then writes `.generated/live-pilot/<release-id>.package.json`.
+Every stage is review-only and the package reports `executionReady: false`. It has no compound
+simulation or broadcast mode. The source Pooling upgrade and protocol readback must precede
+VoucherRedemption initialization. Stop there and refreeze downstream nonces; owner transactions
+can consume a deployment sender's nonce. Confirm all deployment-bound inputs before sending any
+transaction, since changing them changes plan hashes and can change predicted addresses.
+
+Tech and Sun signer identities can remain pending during preparation. Live issuer capacity,
+terms references, source authorities, member signing/funding, transport delivery and explicit
+activation authorization remain separate gates. A twenty-unit issuance ceiling is an operator
+budget, not a hard cap enforced by the published token. Pool holding caps must leave incoming
+swap headroom before activation. The 48-hour timelocks govern later upgrades; they impose no
+waiting period on fresh construction or initial configuration.
+
 ## Inventory
 
 ### `dev/` — local dev workflow
 | Script | Caller | Purpose |
 |---|---|---|
+| `browser.js` | `bun run browser` | Dispatch E2E presets, route proof, and Lighthouse commands through their existing runners |
+| `test.js` | `bun run test` | Select the root test scope and forward package suites through Turbo, with explicit cache mode |
+| `package-commands.mjs` | Root/package format, package typecheck/test, and Indexer dev/docker scripts | Resolve package commands and preserve their test leases, environment, and toolchain wrappers |
 | `setup.js` | `npm run setup -- --profile host`, `npm run setup -- --profile isolated`, `npm run setup -- --profile cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
 | `clean.js` | `bun run dev:clean`, `bun run dev:clean -- --dry-run` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
 | `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles), including warning-only personal skill availability and effective worktree pre-push chain diagnostics |
@@ -105,9 +197,9 @@ compatibility gate.
 | `tunnel.js` | `node scripts/dev/tunnel.js`, `ecosystem.config.cjs` | Cloudflared tunnel(s) for client + admin device testing. Spawns one tunnel per `--port` arg (defaults to client 3001 + admin 3002); writes `.tunnel-url` (client) and `.tunnel-url-admin` (admin) |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
 | `test-e2e.js` | `bun run browser e2e --preset all` | Qualified `passkey`, `explore --seed <integer>`, and `pwa-preview` presets additionally require complete fresh JSON proof with no retries or skips. Run Playwright with owned Client/Admin test servers on Sepolia; refuse occupied ports and let Playwright clean up its own processes. The `passkey` preset also owns the Agent's loopback reporting driver on port 3016. The `ui` and `fork` presets use explicitly started services; `fork` leaves Anvil lifecycle to its fixture and cannot mix with owned Sepolia projects. |
-| `seed-test-data.ts` | `bun scripts/dev/seed-test-data.ts` / `seed:anvil` | Seed local/anvil chain with test fixtures |
-| `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/canceled results, and opt-in exact passing receipts. Final diagnostics preserve the first failure, selected scope, unrun checks, manual proof and lease blocks; host load is advisory. Clears the repository binding a git hook exports before any check runs, fails when a check changes the git config shared by all worktrees, and refuses publication intents while that config carries a test-fixture identity |
-| `ci-local.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
+| `seed-test-data.ts` | Manual fork fixture setup; `.plans/active/commitment-pooling/prompt-qa-functional.md` | Seed local Anvil gardens, actions, and work via `bun scripts/dev/seed-test-data.ts` |
+| `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/canceled results, and opt-in exact passing receipts. A push plan lists the builds, Storybook build, browser presets and whole suites it leaves to PR CI. Final diagnostics preserve the first failure, selected scope, unrun checks, manual proof and lease blocks. A saturated host (1-minute load above 1.5× the host CPU count, sampled at the start and again when the deadline fires) suspends the push deadline, so it stops no check. Clears the repository binding a git hook exports before any check runs, fails when a check changes the git config shared by all worktrees, and refuses publication intents while that config carries a test-fixture identity |
+| `ci-local.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, the load-suspended deadline, and exact passing-receipt behavior |
 | `playwright-setup.test.mjs` | Design CI guardrail tests | Exercise privileged installer timeout ownership, bounded retry/recovery, and caller timeout budgets |
 | `stack.test.mjs` | `bun run check --only validation-system-test` | Default service selection and startup failure/readiness behavior |
 | `surface-leases.mjs` | `stack.js`, `doctor.js` | Coordinate port/service ownership, compatible reuse, stale-claim cleanup, and owner-only release for concurrent development sessions |
@@ -155,9 +247,10 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-react-patterns.js` | `bun run check --only react-patterns`, root `bun lint` | Blocks high-confidence state/import violations; `--report` exposes noisier cleanup heuristics without flooding normal lint |
 | `check-browser-verification-policy.mjs` | `bun run check --only browser-verification-policy`, `bun run check --only agentic-readiness` | Keep `AGENTS.md § Browser Evidence` present with its three rules, make the other agent entry points link to it instead of restating it, and reject the "report QA as blocked" dead end |
 | `browser-evidence-label.mjs` | `bun run browser routes` | Print the clean-room evidence label before route proof so it is reported as non-authenticated evidence; never blocks |
+| `agentic-browser-proof.mjs` | `bun run browser routes` | Serve the built client, admin, and docs, then prove each route in headless stable Brave: route entry, console and page errors, an accessibility summary, horizontal overflow, `llms.txt`, and WebMCP tool registration on Brave's native `document.modelContext`. `GREEN_GOODS_BROWSER_PROOF_WEBMCP=injected` swaps the native registry for a recording shim, and `GREEN_GOODS_BROWSER_PROOF_WIDTHS` sets the widths (default `375,1024,1440`). Writes `.codex-artifacts/agentic-browser-proof/report.json` |
 | `classify-supply-chain-changes.mjs` | Supply Chain Guardrails | Route ordinary source, guidance, dependency/toolchain, and validation/workflow changes to independent workflow jobs |
 | `summarize-test-churn.mjs` | Supply Chain Guardrails | Informational pull-request source/test line churn, changed-line ratio, and added/deleted file summary |
-| `select-validation.mjs` | `bun run check --plan`, `bun run check`, CI Gate | Shared intent/path/dependency/risk selector for agent plans, local execution, and expected PR workflows |
+| `select-validation.mjs` | `bun run check --plan`, `bun run check`, CI Gate | Shared intent/path/dependency/risk selector for agent plans, local execution, and expected PR workflows. A push is a thin pre-check: it leaves builds, the Storybook build, the browser presets and whole package suites to the PR workflow that runs them, when that workflow is expected for the change |
 | `select-validation.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture matrix for validation intent, risk overrides, dirty-tree freshness, toolchain blocking, budgets, and workflow routing; also fails when a Shared file that signs, sends, moves funds, or changes auth, session or queue state is not critical by policy, or the policy lists one that no longer does |
 | `shared-mutation-surface.mjs` | `select-validation.mjs` | Dependency-free reader of Shared source that finds the files reaching a primitive in the policy's `sharedMutationPrimitives`, following re-exports, aliases, namespace and dynamic imports; the selector escalates such files to critical |
 | `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR aggregate that consumes the shared selector, fails immediately on terminal non-success, and keeps strict missing-workflow protection |
@@ -181,6 +274,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
 |---|---|---|
+| `build-story-gallery.mjs` | `packages/shared build-storybook` | Build the static gallery after Storybook and its assets have been emitted |
 | `check-tokens.sh` | `bun run check --only design-tokens` | DesignMD ↔ `theme.css` drift + `data/design-token-usage-baseline.tsv` audit + installed-app guard against raw `env(safe-area-inset-bottom)` |
 | `check-guidance-examples.mjs` | `bun run check --only design-tokens`, Design CI | Code-fence-aware guard against hardcoded motion, color, radius, and shadow values in design implementation examples |
 | `check-guidance-examples.test.mjs` | `bun run check --only review-guardrails-test`, Design CI | Fixture tests for design-example token allowances and hardcoded-value failures |
@@ -199,7 +293,6 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 ### `contracts/` — contract audits + verification
 | Script | Caller | Purpose |
 |---|---|---|
-| `check-contract-lint.mjs` | `packages/contracts lint:check`, root `bun run lint`, production contract verifier | Run the pinned Foundry format check and Solhint through the repository's real-Node wrapper so nested Bun workspace scripts do not lose access to their temporary directory |
 | `check-foundry-version.mjs` | critical contract Push Gate, contracts format/lint wrappers, production verifier, Contracts CI | Require the exact Forge version pinned in `.mise.toml` before formatter-sensitive commands |
 | `check-foundry-version.test.mjs` | `bun run check --only review-guardrails-test` | Fixture tests for the pinned Foundry version parser and comparison guard |
 | `check-test-realism.sh` | `contracts.yml`, `packages/contracts test:audit:realism` | Audit fork/E2E tests for mocks, generic reverts, CI skip-returns |
@@ -215,9 +308,9 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 ### `ops/` — chain operations + release artifacts
 | Script | Caller | Purpose |
 |---|---|---|
-| `garden-rename-batch.ts` | `APP_ENV=development bun scripts/ops/garden-rename-batch.ts -- --chain 42161 --dry-run` | Build Safe txs to rename gardens in batch |
+| `garden-rename-batch.ts` | Manual historical garden-name repair; completion and owning operation record unverified | Build Safe transaction JSON for the initialization-order repair; retain until its completion evidence establishes whether to remove it or move it to the owning plan |
 | `ipfs-repin.ts` | `APP_ENV=development bun scripts/ops/ipfs-repin.ts` | Re-pin / audit Pinata content |
-| `upload-action-images.ts` | `APP_ENV=development bun scripts/ops/upload-action-images.ts` | Upload action images to IPFS |
+| `upload-action-images.ts` | Manual contract action-metadata maintenance: `APP_ENV=development bun scripts/ops/upload-action-images.ts` | Upload configured action images to IPFS and update contract action metadata; `--dry-run` avoids uploads |
 | `upload-sourcemaps.js` | `APP_ENV=production node scripts/ops/upload-sourcemaps.js --env production`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
 | `bump-version.mjs` | `node scripts/ops/bump-version.mjs <x.y.z> [--dry-run]`, `node scripts/ops/bump-version.mjs --check <x.y.z>` | Keep root + 6 package versions and the supported release in `SECURITY.md` aligned; release CI uses check mode to block stale release metadata |
 | `dependabot-sync.mjs` | `dependabot-sync.yml`, through `node trusted/scripts/ops/dependabot-sync.mjs candidate trusted sync.json`; `dependabot-sync-publish.yml` through its exported publisher | Validate a dependency-only Dependabot PR; align root and matching workspace pins, regenerate root `bun.lock` with the pinned Bun toolchain and release-age policy, and run the existing docs generator. Actions PRs accept only pinned action commit replacements and regenerate docs. The separate publisher validates the successful origin run, associated PR and live head before writing a fast-forward repair |
@@ -257,6 +350,7 @@ workflow does not merge PRs or change required checks.
 ### `agents/` — agent query surfaces
 | Script | Caller | Purpose |
 |---|---|---|
+| `qa.mjs` | `bun run qa` | Dispatch workbook, report, status, and state commands to the QA tools below |
 | `posthog-query.ts` | `bug-intake` routine / debug skill | Read-only PostHog HogQL query surface for recent errors, error details, user sessions, recurring patterns, and bug-report matching; writes JSON to stdout and keeps replay links/user identifiers out of public issue evidence |
 | `posthog-query.test.ts` | `bun run check --only agent-tools-test` (root package.json) | Fixture coverage for the curated read-only commands, request shaping, cache behavior, and public-evidence privacy boundary |
 | `qa-sheet-append.ts` | `qa-triage` skill (Phase 6 write path) | Thin client that POSTs Defects rows + Test-tab Defect Link backfills + column bootstrap to an Apps Script Web App deployed on the Green Goods v1.1 QA workbook. No Google Cloud Console, no OAuth, no service account — the Apps Script writes under the user's Google identity. Webhook URL + secrets cached at `~/.config/qa-triage/{webhook,webhook-secret,webhook-admin-secret}.txt`. Canonical Apps Script source at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer: [`qa-sheet-webhook-setup.md`](agents/qa-sheet-webhook-setup.md) |
@@ -293,6 +387,7 @@ workflow does not merge PRs or change required checks.
 | `fix-multiformats.js` | `npm`/`bun` postinstall | Patches `multiformats/basics`, `uint8arrays`, and walletconnect bundles to keep the Node CJS resolver happy in vitest workers; also synchronizes `.bun/react@*` cache slots with the override-pinned root React version |
 
 ### `lib/`
+- `command-runner.mjs` — shared option parsing, repository paths, and cancellable subprocess execution for the browser, QA, and package command dispatchers.
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
 - `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, loopback URL probes for local smoke checks, and the git isolation helpers: `fixtureGitEnvironment()` for any test that builds a throwaway repository (`cwd` alone does not isolate git under a hook), plus the shared-config leak checks `ci-local.js` runs.
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks, and the sync-safety check `dev/env-sync.js` runs on `env.schema` before `op inject`.
@@ -313,7 +408,9 @@ workflow does not merge PRs or change required checks.
 
 - `.claude/scripts/` — Claude harness scripts (skill frontmatter check, codex lane dispatch, agent gates)
 - `docs/scripts/` — Docusaurus-specific authority audit tooling and its failure fixtures (`docs-audit.mjs`, `docs-audit.test.mjs`); builder projection generators live in `scripts/docs/`
-- `packages/*/scripts/` — package-local scripts (e.g. `packages/indexer/scripts/`)
+- `packages/*/scripts/` — package-local tools; folder size does not determine ownership. Client's `check-pwa-precache-budget.mjs` runs in every client build and owns startup/offline budgets.
+- `packages/shared/scripts/simulate-upload-all.ts` — retained manual bundler simulation for the batch limits in `src/modules/work/upload-queued-work.ts`. It estimates without signing or sending; calibration is still cited as pending. Register a durable diagnostic caller if it will be maintained, or move it into the owning plan after deciding its lifetime.
+- `packages/shared/.storybook/capture-admin-stories.mjs` — manual capture tool used by the active [Commitment Pooling walk](../.plans/active/commitment-pooling/commitment-walk-artifact.build.ts); keep its generator separate from disposable capture output.
 - `packages/contracts/script/deploy/single-attestation-policy.ts`, `DeploySingleAttestationPolicy.s.sol` — durable `contracts deploy single-attestation-policy` and `contracts verify single-attestation-policy` handlers; production preflight, reviewed CREATE plan, signer-free RPC simulation, keystore broadcast, receipt reconciliation, and standalone bytecode pin. Helpers in `utils/single-attestation-{deployment,operation}.ts` own bytecode/provenance and operation persistence. `script/reporting-kernel-compatibility.ts` is the separate `contracts verify reporting-kernel` fork gate.
 - `packages/contracts/script/` — Foundry scripts and their Bun CLIs. Commitment Pooling deploys in four ordered steps, each step's output being the next step's input: `deploy/commitment-schemas.ts` + `DeployCommitmentSchemas.s.sol` **preparation** (CREATE2-deploys the testimony resolver via `lib/TestimonyResolverDeployment.sol`, registers assessment v3, and PINS the community testimony UID while the resolver stays inert), `deploy/release.ts` + `DeployPooling.s.sol` (module + register, deployed paused), `deploy/pooling-configure.ts` + `ConfigurePooling.s.sol` (three resolver calls; without the work-approval bridge the module is inert), and the same `commitment-schemas` target with `--finalize-community-testimony` (**finalization**: registers the exact record, then activates the resolver against the artifact-recorded module as the last action). The ordering is enforced by `lib/CommitmentSchemaRecovery.sol`, a pure classifier over the five recovery states — preparation accepts two, finalization exactly the three ordered ones, everything else fails closed. Shared logic: `utils/pooling-release.ts` (deterministic schema UIDs, grouped upgrade keys, configuration planning, live `owner()` preflight), `lib/PoolingConfiguration.sol` (the re-runnable configure sequence, driven by both the deploy script and the fork rehearsal), and `lib/NetworkSelectors.sol` (the single CCIP selector parser). The release rehearsal is `test/fork/ArbitrumCommitmentPooling.t.sol` on an Arbitrum One fork, not a testnet; callers select the pooling targets through the package-owned contracts CLI. The settlement lane's transport check is `test/fork/CrossChainSettlementLane.t.sol` via `APP_ENV=development bun run --cwd packages/contracts test:shard run settlement-lane` — read-only proof that the Arbitrum One ↔ Celo Mainnet CCIP lane is live, priced, and matches `deployments/networks.json`; no broadcast, no funds
 

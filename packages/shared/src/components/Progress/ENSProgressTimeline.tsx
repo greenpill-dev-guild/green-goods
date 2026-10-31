@@ -7,8 +7,8 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import type { ENSRegistrationData } from "../../types/domain";
 import { useTimeout } from "../../hooks/utils/useTimeout";
+import type { ENSRegistrationData } from "../../types/domain";
 import { copyToClipboard } from "../../utils/app/clipboard";
 import { IconButton } from "../IconButton";
 import { toastService } from "../toast";
@@ -197,6 +197,7 @@ export function ENSProgressTimeline({
               {data.ccipMessageId}
             </code>
             <IconButton
+              data-piece-control
               size="sm"
               aria-label={intl.formatMessage({
                 id: "ens.timeline.copyMessageId",

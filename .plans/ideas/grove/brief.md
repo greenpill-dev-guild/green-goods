@@ -1,10 +1,10 @@
 # Grove by Green Goods
 
-**Slug:** `grove` · **Stage:** ideas · **Updated:** 2026-10-16
+**Slug:** `grove` · **Stage:** ideas · **Updated:** 2026-10-23
 
 *Your garden’s living knowledge.*
 
-**Linear tracker:** [RESR-103 · Grove by Green Goods roadmap](https://linear.app/greenpill-dev-guild/issue/RESR-103/grove-by-green-goods-roadmap). Research backlog; parent-only visibility, with implementation checkpoints owned by this hub.
+**Linear:** [Grove — Garden Knowledge](https://linear.app/green-goods/project/grove-garden-knowledge-8582c2970974), a focused project within [Community Evidence Mesh](https://linear.app/green-goods/initiative/community-evidence-mesh-f7bdee530343). [RESR-103](https://linear.app/green-goods/issue/RESR-103/grove-by-green-goods-roadmap) remains the Backlog parent; this hub owns the implementation checkpoints. Five undated project milestones mirror A0–A4.
 
 Grove preserves useful research and connects it to a garden’s work, evidence and resources. Its main interface is a living graph: inspect nodes and relationships, see what is new, filter and query, review suggested connections, and view earlier knowledge states.
 
@@ -12,6 +12,12 @@ The MVP serves one active garden view on one desktop browser profile, with isola
 
 ## Read this plan
 
+- [Prototype: four parts, one loop](prototype.md): the smallest build that shows Gemma, KOI, Pi Durable and WebMCP together, with its decisions, code and demo checks.
+- [Prototype architecture](prototype-architecture.md): packages, dependencies, where the code runs, module layers, the types that cross boundaries, UI components and data flows.
+- [Prototype design brief](prototype-design.md): Grove as the cockpit's dialect on a graph; the shared core, the dials, the garden tone, the canvas legend, states, copy and the Storybook proof.
+- [Mesh alignment and evidence boundary](mesh-alignment.md): accepted project relationship, authority mapping and conformance gates.
+- [Continue in another session](handoffs/next-session.md): current state, next bounded step and portable source locations.
+- [Interactive design demos](artifacts/demos/README.md): five standalone HTML studies, including public-safe TAS/Vida Verde scenarios and timelines.
 - [Pi Durable execution contract](durable-execution.md): browser storage, task ownership, graph-command receipts, recovery and privacy.
 - [KOI integration and evidence](koi-integration.md): partial/full-node boundary, identity, signatures, durable recovery and reuse limits.
 - [Vida Verde and TAS spike](first-spike.md): public-source fixtures, walkthrough, scope and exit conditions.
@@ -31,4 +37,4 @@ Connect Vida Verde, receive a KOI resource and save its source, open Soil care, 
 
 ## Boundaries
 
-`packages/extension` remains the proposed code package; Grove is the brand. A controlled full-node exchange is included in the spike; general multi-user synchronization, private API credentials, onchain writes, autonomous crawling, sensor integration and public Commons publishing are deferred. This PR publishes the plan only; dependencies and runtime work are not authorized by publishing it.
+`packages/extension` remains the proposed code package; Grove is the brand. A controlled full-node exchange is included in the spike; general multi-user synchronization, private API credentials, onchain writes, autonomous crawling, sensor integration and public Commons publishing are deferred. This alignment publishes the plan and design-demo source; dependencies and runtime work remain gated by the implementation start contract.

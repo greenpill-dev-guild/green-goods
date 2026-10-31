@@ -1,7 +1,15 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import enMessages from "@green-goods/shared/i18n/en.json";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
-import { daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { IntlProvider } from "react-intl";
+import { expect, screen, userEvent, within } from "storybook/test";
+import { buildCommitmentMetadata } from "@green-goods/shared/modules/commitment-pooling/metadata";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+import { daysAgo, daysFromNow } from "../../../../../shared/.storybook/fixtures";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import {
   type PoolCommitmentFocus,
   type PoolCommitmentScope,
@@ -14,8 +22,73 @@ import {
   STORY_GROUP_TITLES,
   storyPoolConsole,
 } from "./poolStoryFixtures";
+import { STORY_STEWARD } from "./poolStoryActors";
+import {
+  nameVoucherMembers,
+  STORY_GREEN_GOODS_COMMITMENTS,
+  STORY_GREEN_GOODS_RETURN_FAILED,
+  STORY_GREEN_GOODS_SAFE,
+  STORY_GREEN_GOODS_VOUCHERS,
+  STORY_MARA_VISIT,
+  STORY_MARA_VISIT_ENDED,
+  STORY_TECH_AND_SUN_COMMITMENTS,
+  STORY_TECH_AND_SUN_SAFE,
+  STORY_TECH_AND_SUN_VOUCHERS,
+  STORY_VOUCHER_TITLES,
+  storyVoucherConsole,
+} from "./poolStoryVouchers";
 
 const GROUP_TITLES = new Map([...STORY_TITLES, ...STORY_GROUP_TITLES]);
+
+/** Three hub days Tech and Sun made together; Mara booked the first, and her visit is under way. */
+const HUB_DAYS_CID = "bafy-hub-days";
+const HUB_DAY_TITLES = new Map([
+  ...STORY_VOUCHER_TITLES,
+  [
+    HUB_DAYS_CID,
+    buildCommitmentMetadata({
+      title: "Hub day, up to 4 hours",
+      displayGroup: { version: 1, id: "group-hubdays01" },
+    }),
+  ],
+]);
+const hubDay = (id: number, overrides: Partial<CommitmentReadModel> = {}) =>
+  storyCommitment({
+    id: `${DEFAULT_CHAIN_ID}-${id}`,
+    commitmentId: BigInt(id),
+    onchainState: "OFFERED",
+    derivedState: "OFFERED",
+    state: "OFFERED",
+    direction: "OFFER",
+    creator: STORY_STEWARD,
+    leadProvider: STORY_STEWARD,
+    counterparty: null,
+    unitLabel: "booking",
+    targetUnits: 1n,
+    dueDate: BigInt(daysFromNow(36)),
+    requirements: [],
+    poolId: 7n,
+    commitmentSeriesId: 0n,
+    claimType: "INDIVIDUAL",
+    contributorPolicy: "LEAD_MANAGED",
+    needUID: null,
+    counterCommitmentId: 0n,
+    considerationSource: null,
+    considerationToken: null,
+    claimMode: "APPROVAL_GATED",
+    metadataCID: HUB_DAYS_CID,
+    ...overrides,
+  });
+const HUB_DAY_COPIES = [
+  hubDay(61, {
+    onchainState: "ACCEPTED",
+    derivedState: "ACTIVE",
+    state: "ACCEPTED",
+    counterparty: STORY_MARA_VISIT.holder,
+  }),
+  hubDay(62),
+  hubDay(63),
+];
 
 /** The card owns no filter state; the story does, so the chips work. */
 function PoolCommitmentsCardWithScope(props: ComponentProps<typeof PoolCommitmentsCard>) {
@@ -53,6 +126,8 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     canSeed: true,
     scope: "open",
     focus: null,
+    vouchers: storyVoucherConsole(),
+    target: { gardenName: "Rio Rainforest Lab", isProtocol: false },
   },
   render: (args) => <PoolCommitmentsCardWithScope {...args} />,
 };
@@ -221,6 +296,114 @@ export const Empty: Story = {
   args: { console: storyPoolConsole({ commitments: [], claims: [] }) },
 };
 
+const CATALOGS = { en: enMessages, es: esMessages, pt: ptMessages } as const;
+
+/** A queued promise of each kind beside the pool's own, one of them past due. */
+const PHONE_QUEUE = storyPoolConsole({
+  pendingCreates: [
+    {
+      jobId: "job-1",
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER",
+      title: "Compost workshop",
+      unitLabel: "workshop",
+      targetUnits: "1",
+      waitingForMembership: false,
+      discardable: true,
+      failed: false,
+      createdAt: daysAgo(0) * 1000,
+    },
+    {
+      jobId: "job-2",
+      chainId: 42161,
+      poolId: "7",
+      direction: "OFFER",
+      title: "Repair the tool library",
+      unitLabel: "repair",
+      targetUnits: "1",
+      waitingForMembership: false,
+      discardable: true,
+      failed: true,
+      createdAt: daysAgo(0) * 1000,
+    },
+    {
+      jobId: "job-3",
+      chainId: 42161,
+      poolId: "7",
+      direction: "REQUEST",
+      title: "Seed swap afternoon",
+      unitLabel: "session",
+      targetUnits: "2",
+      waitingForMembership: true,
+      discardable: true,
+      failed: false,
+      createdAt: daysAgo(0) * 1000,
+    },
+  ],
+});
+
+/**
+ * The cockpit's phone columns (296, 336 and 366px: a 320, 360 and 390px screen less the
+ * shell's 12px phone gutters) in English, Spanish and Portuguese. A row's act is its icon
+ * there, and a queued row's two acts stack, so every row keeps its pill and its due date
+ * whole beside the tile and the acts, and every act keeps its whole finger box in the row.
+ */
+export const PhoneFitsEveryLanguage: Story = {
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "desktop" } },
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <div className="flex flex-col gap-8 p-4" data-tone="garden">
+      {(Object.keys(CATALOGS) as (keyof typeof CATALOGS)[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={CATALOGS[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            {[296, 336, 366].map((width) => (
+              <div key={width} style={{ inlineSize: width }} data-fit-width={width}>
+                <PoolCommitmentsCard {...args} console={PHONE_QUEUE} />
+              </div>
+            ))}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+    const rows = [...canvasElement.querySelectorAll<HTMLElement>(".gg-item-row")];
+    const isCut = (element: HTMLElement | null) =>
+      element ? element.scrollWidth > element.clientWidth + 0.5 : false;
+    const pillOf = (row: HTMLElement) =>
+      row.querySelector<HTMLElement>(".gg-item-row-body .truncate");
+    // The pill is the row's state, so it never ends in an ellipsis.
+    const cutPills = rows.filter((row) => isCut(pillOf(row)));
+    await expect(cutPills.map((row) => row.textContent)).toEqual([]);
+    // An act's finger box is the button and its block margin. Stacked acts must keep the
+    // whole box inside the 88px row, which clips what overflows.
+    const clippedActs = rows.flatMap((row) => {
+      const box = row.getBoundingClientRect();
+      return [...row.querySelectorAll<HTMLElement>(".gg-item-row-action button")].filter(
+        (button) => {
+          // The form a row's width hides (Expire Now…'s words below 480px) takes no room.
+          if (button.getClientRects().length === 0) return false;
+          const rect = button.getBoundingClientRect();
+          const style = getComputedStyle(button);
+          return (
+            rect.top - Number.parseFloat(style.marginTop) < box.top - 0.5 ||
+            rect.bottom + Number.parseFloat(style.marginBottom) > box.bottom + 0.5
+          );
+        }
+      );
+    });
+    await expect(clippedActs.map((button) => button.getAttribute("aria-label"))).toEqual([]);
+    // A promise's due date leads its line whole.
+    const cutDates = rows.filter((row) =>
+      isCut(row.querySelector<HTMLElement>("time.gg-item-row-detail-text"))
+    );
+    await expect(cutDates.map((row) => row.textContent)).toEqual([]);
+  },
+};
+
 /** A pre-update reward stays visible, without an impossible send. */
 export const RewardDeferred: Story = {
   args: {
@@ -289,5 +472,130 @@ export const DocumentationPartial: Story = {
         },
       ],
     }),
+  },
+};
+
+/**
+ * Tech and Sun's hub days (PRD-1297 surface 6): Mara's visit is under way, so
+ * its row offers Report Visit…; the two offers still being booked say how far
+ * each booking has come.
+ */
+export const VoucherBookings: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_TECH_AND_SUN_COMMITMENTS,
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole(STORY_TECH_AND_SUN_VOUCHERS),
+    target: { gardenName: "Tech and Sun", isProtocol: false },
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Report Visit…" })).toBeVisible();
+    await expect(canvas.getByText("Booking: deposit confirmed")).toBeVisible();
+    await expect(canvas.getByText("Booking asked")).toBeVisible();
+  },
+};
+
+/** Green Goods' Claude access: Lina's stopped after 12 days, so her row needs a return proposed. */
+export const VoucherEndedEarly: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_GREEN_GOODS_COMMITMENTS,
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_VOUCHERS),
+    target: { gardenName: "Green Goods Community Garden", isProtocol: true },
+    safe: STORY_GREEN_GOODS_SAFE,
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Ended early · 12 of 30 days")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Propose Return…" }));
+    await expect(await screen.findByText("Propose a Return to Lina")).toBeVisible();
+  },
+};
+
+/** The 6 back to Lina didn't arrive: the row needs recovery, and anyone can retry the same transfer. */
+export const VoucherTransferFailed: Story = {
+  args: {
+    ...VoucherEndedEarly.args,
+    vouchers: storyVoucherConsole(STORY_GREEN_GOODS_RETURN_FAILED),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Needs recovery (1)" })).toBeVisible();
+  },
+};
+
+/** Mara's hub day stopped after 2 of its 4 usable hours: the row counts hours and needs a return. */
+export const VoucherVisitEndedEarly: Story = {
+  args: {
+    ...VoucherBookings.args,
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      bookings: [STORY_MARA_VISIT_ENDED],
+    }),
+    safe: STORY_TECH_AND_SUN_SAFE,
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Ended early · 2 of 4 hours")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Propose Return…" }));
+    await expect(await screen.findByText("Propose a Return to Mara")).toBeVisible();
+  },
+};
+
+/**
+ * Lina's access is past its due date and the 6 back to her didn't arrive: the
+ * row keeps Retry Transfer, since expiring it would return nothing.
+ */
+export const VoucherTransferFailedPastDue: Story = {
+  args: {
+    ...VoucherTransferFailed.args,
+    console: storyPoolConsole({
+      commitments: STORY_GREEN_GOODS_COMMITMENTS.map((row) =>
+        row.commitmentId === 51n ? { ...row, dueDate: BigInt(daysAgo(2)) } : row
+      ),
+      claims: [],
+      titles: STORY_VOUCHER_TITLES,
+    }),
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("button", { name: "Retry Transfer" })).toBeEnabled();
+    await expect(canvas.queryByRole("button", { name: "Expire Now…" })).toBeNull();
+  },
+};
+
+/** Copies made together fold into one row, and Mara's visit on one of them keeps its own, with its act. */
+export const VoucherGroupedBooking: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: HUB_DAY_COPIES,
+      claims: [],
+      titles: HUB_DAY_TITLES,
+    }),
+    vouchers: storyVoucherConsole({
+      ...STORY_TECH_AND_SUN_VOUCHERS,
+      asks: [],
+      bookings: [{ ...STORY_MARA_VISIT, commitmentId: 61n }],
+    }),
+    target: { gardenName: "Tech and Sun", isProtocol: false },
+  },
+  beforeEach: nameVoucherMembers,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByTestId("pool-group-group-hubdays01")).toBeVisible();
+    await expect(canvas.getByTestId("pool-commitment-61")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Report Visit…" })).toBeVisible();
   },
 };

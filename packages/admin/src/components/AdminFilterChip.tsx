@@ -1,5 +1,6 @@
-import { type ComponentType } from "react";
+import { Chip } from "@green-goods/shared/components/Chip";
 import { cn } from "@green-goods/shared/utils/styles/cn";
+import { type ComponentType } from "react";
 
 // ============================================================================
 // Types
@@ -19,17 +20,21 @@ export interface AdminFilterChipProps {
 // ============================================================================
 
 /**
- * AdminFilterChip — M3 Filter Chip
+ * AdminFilterChip — the cockpit's filter chip, Shared's `Chip` (DL-116)
  *
- * Implements Material Design 3 filter chip anatomy:
- * - Height: 32dp visual (h-8) with a 44px effective touch target (admin-hit-target)
- * - Shape: corner-small (8dp) via --m3-shape-sm
- * - Unselected: transparent fill, outline ring, on-surface-variant text
- * - Selected: secondary-container fill, no outline, on-secondary-container text
+ * The installed app's chip at the cockpit's density (F4, DL-101):
+ * - Height: 32px with a 44px hit area, a capsule, the shared chip's own; the
+ *   cockpit also reserves the 44px finger box in its layout (DL-011), as its
+ *   other 32px controls do, so a row of chips keeps its height
+ * - Unselected: the shared chip's outline and fill
+ * - Selected: the app's selected look in the workspace tone, a solid
+ *   --tone-action fill with --tone-on-action text (the shared recipe reads the
+ *   tone where the chip sits, and the app's action pair where there is none)
+ * - Focus: the shared chip's one solid 2px ring in the tone, 2px off the chip
+ *   (DL-098)
  * - Selection shows by fill and `aria-pressed` alone, with no leading check mark,
  *   so choosing a chip never changes its width or moves the chips after it
- *   (PRD-1022 D6). An optional leadingIcon shows in both states for the same reason.
- * - Disabled: pointer-events-none opacity-38
+ *   (DL-065). An optional leadingIcon shows in both states for the same reason.
  */
 export function AdminFilterChip({
   label,
@@ -40,48 +45,17 @@ export function AdminFilterChip({
   className,
 }: AdminFilterChipProps) {
   return (
-    <button
+    <Chip
       data-component="AdminFilterChip"
-      type="button"
-      aria-pressed={selected}
+      selected={selected}
       onClick={onToggle}
       disabled={disabled}
-      className={cn(
-        // Shape & layout
-        "inline-flex items-center gap-1.5 px-3",
-        "h-8 rounded-[var(--m3-shape-sm)]",
-        // Typography
-        "type-label font-medium whitespace-nowrap",
-        // State layer + expanded 44px hit area (visual stays 32px)
-        "m3-state-layer admin-hit-target",
-        // Focus ring
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
-        // Motion
-        "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-        // Disabled
-        disabled && "pointer-events-none opacity-[0.38]",
-        // State-based styles
-        selected
-          ? [
-              // Selected: secondary-container fill, no outline
-              "border border-transparent",
-              "bg-[rgb(var(--m3-secondary-container))]",
-              "text-[rgb(var(--m3-on-secondary-container))]",
-              "[--state-layer-color:var(--m3-on-secondary-container)]",
-            ]
-          : [
-              // Unselected: transparent fill with outline
-              "border border-[rgb(var(--m3-outline))]",
-              "bg-transparent",
-              "text-[rgb(var(--m3-on-surface-variant))]",
-              "[--state-layer-color:var(--m3-on-surface-variant)]",
-            ],
-        className
-      )}
+      leadingIcon={
+        LeadingIcon ? <LeadingIcon className="h-[18px] w-[18px] shrink-0" aria-hidden /> : undefined
+      }
+      className={cn("admin-hit-target", className)}
     >
-      {LeadingIcon ? <LeadingIcon className="h-[18px] w-[18px] shrink-0" aria-hidden /> : null}
-
       <span>{label}</span>
-    </button>
+    </Chip>
   );
 }

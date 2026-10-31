@@ -59,6 +59,7 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     source: "queued",
     commitmentId: 7n,
     garden: "0x2222222222222222222222222222222222222222",
+    savedGarden: "0x2222222222222222222222222222222222222222",
     commitment: null,
     title: "Repair the north fence panel",
     savedAt: Date.now(),
@@ -201,5 +202,50 @@ describe("Pending rows", () => {
     });
     expect(card(offline, sent)?.status).toBe("Checks again when you're connected");
     expect(card({ ...wallet, ...offline }, sent)?.status).toBe("Check again when you're connected");
+  });
+});
+
+describe("a work for a promise taken up in the same tap (decision 18)", () => {
+  const held = (stage: "pending" | "failed"): PendingRowContext => ({
+    ...context,
+    takeUpStage: () => stage,
+  });
+
+  it("says the take-up goes first while it is on its way, and how a wallet reader sends it", () => {
+    const row = submissionRow(queuedWork("ready"), true, held("pending"));
+    expect(row.type === "work" && row.card).toMatchObject({
+      kind: "upload",
+      pill: "To upload",
+      status: "Takes up the promise first",
+    });
+
+    const wallet = submissionRow(queuedWork("ready"), true, {
+      ...held("pending"),
+      sendsFromTap: true,
+    });
+    expect(wallet.type === "work" && wallet.card.status).toBe("Open it to take up the promise");
+  });
+
+  it("names the take-up as the stage that failed, and keeps the work discardable", () => {
+    const row = submissionRow(queuedWork("ready"), true, held("failed"));
+
+    expect(row).toMatchObject({ kind: "needs", discardable: true });
+    expect(row.type === "work" && row.card).toMatchObject({
+      pill: "Can't upload",
+      status: "Couldn't take up the promise",
+      statusTone: "error",
+    });
+  });
+
+  it("names the link as the stage that failed once the work is in review", () => {
+    const sent: Work = { ...queuedWork("none"), id: "0xwork", status: "pending" };
+    const row = submissionRow(sent, false, { ...context, linkFailed: () => true });
+
+    expect(row.type === "work" && row.card).toMatchObject({
+      kind: "review",
+      pill: "In review",
+      status: "Couldn't link it to the promise",
+      statusTone: "error",
+    });
   });
 });

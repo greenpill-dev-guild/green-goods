@@ -1,9 +1,9 @@
-import type { TabBadgeSeverity, TabBadgeState } from "@green-goods/shared/types/garden-detail";
+import { Button } from "@green-goods/shared/components/Button";
+import type { TabBadgeSeverity } from "@green-goods/shared/types/garden-detail";
 import { RiAlertLine, RiArrowRightSLine, RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardTitle } from "@/components/AdminCard";
-import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
+import { ALERT_LABEL_CLASSES } from "./gardenDetail.constants";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -24,20 +24,6 @@ export function formatReviewTime(
   );
 }
 
-export function TabBadge({ badge }: { badge: TabBadgeState }) {
-  if (badge.severity === "none" || !badge.count) {
-    return null;
-  }
-
-  return (
-    <span
-      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 type-meta-sm font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
-    >
-      {badge.count}
-    </span>
-  );
-}
-
 interface SectionStateProps {
   title: string;
   description: string;
@@ -53,9 +39,15 @@ export function SectionStateCard({ title, description, closeLabel, onClose }: Se
           <AdminCardTitle>{title}</AdminCardTitle>
           <p className="mt-1 type-body text-text-sub">{description}</p>
         </div>
-        <AdminButton variant="text" size="sm" onClick={onClose} aria-label={closeLabel}>
+        <Button
+          type="button"
+          emphasis="tertiary"
+          size="compact"
+          onClick={onClose}
+          aria-label={closeLabel}
+        >
           <RiCloseLine className="h-4 w-4" />
-        </AdminButton>
+        </Button>
       </AdminCardBody>
     </AdminCard>
   );
@@ -79,10 +71,16 @@ export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowPro
         <RiAlertLine className={`mt-0.5 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
         <p className="type-body text-text-sub">{label}</p>
       </div>
-      <AdminButton type="button" variant="text" size="sm" onClick={onAction} className="gap-1 px-0">
+      <Button
+        type="button"
+        emphasis="tertiary"
+        size="compact"
+        onClick={onAction}
+        className="gap-1 px-0"
+      >
         {actionLabel}
         <RiArrowRightSLine className="h-4 w-4" />
-      </AdminButton>
+      </Button>
     </AdminCard>
   );
 }

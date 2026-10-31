@@ -75,6 +75,7 @@ function ViewerControl({
   }
   return (
     <IconButton
+      data-piece-control
       onClick={onClick}
       emphasis="secondary"
       data-slot="control"
@@ -388,6 +389,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                       </button>
                     ) : (
                       <IconButton
+                        data-piece-control
                         emphasis="secondary"
                         data-slot="control"
                         aria-label={resolvedLabels.closePreview}

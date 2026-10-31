@@ -2,8 +2,9 @@ import { RiAlertLine, RiCloseLine, RiRefreshLine } from "@remixicon/react";
 import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "../../modules/app/logger";
-import { cn } from "../../utils/styles/cn";
+import { Button } from "../Button";
 import { ErrorBoundary } from "../ErrorBoundary/ErrorBoundary";
+import { EmptyState } from "../ListPrimitives";
 
 export interface SheetErrorBoundaryProps {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ export interface SheetErrorBoundaryProps {
 /**
  * Error boundary designed for dialog / inspector panel contexts.
  *
- * Renders a compact error card within sheet dimensions instead of a full-page
+ * Renders the state block within sheet dimensions instead of a full-page
  * fallback. Errors are caught and logged but never propagate to the parent,
  * keeping the toolbar functional.
  *
@@ -76,51 +77,28 @@ function SheetErrorFallback({
   titleLabel,
 }: SheetErrorFallbackProps) {
   return (
-    <div
-      role="alert"
-      className={cn(
-        "mx-4 my-6 flex flex-col items-center gap-4 rounded-xl",
-        "border border-stroke-soft bg-bg-weak p-6 text-center"
-      )}
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error-lighter">
-        <RiAlertLine className="h-5 w-5 text-error-base" />
-      </div>
-
-      <p className="text-sm font-medium text-text-strong">{titleLabel}</p>
-
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onRetry}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-lg px-4 py-2",
-            "bg-bg-strong text-sm font-medium text-text-white",
-            "transition-colors hover:bg-bg-strong/90",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+    <EmptyState
+      tone="error"
+      icon={<RiAlertLine />}
+      title={titleLabel}
+      action={
+        <div className="flex items-center gap-3">
+          <Button data-piece-control size="sm" leadingIcon={<RiRefreshLine />} onClick={onRetry}>
+            {retryLabel}
+          </Button>
+          {onClose && (
+            <Button
+              data-piece-control
+              size="sm"
+              emphasis="secondary"
+              leadingIcon={<RiCloseLine />}
+              onClick={onClose}
+            >
+              {closeLabel}
+            </Button>
           )}
-        >
-          <RiRefreshLine className="h-4 w-4" />
-          {retryLabel}
-        </button>
-
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2",
-              "bg-bg-weak text-sm font-medium text-text-sub",
-              "border border-stroke-soft",
-              "transition-colors hover:bg-bg-soft",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-            )}
-          >
-            <RiCloseLine className="h-4 w-4" />
-            {closeLabel}
-          </button>
-        )}
-      </div>
-    </div>
+        </div>
+      }
+    />
   );
 }

@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withCanvasFrame, withRouter } from "../../../../shared/.storybook/decorators";
-import { AdminButton } from "../AdminButton";
 import { AdminTabRail } from "../AdminTabRail";
 import { CanvasRouteContent, CanvasRouteFrame, CanvasRouteHeader } from "./CanvasRouteFrame";
 
@@ -58,10 +58,12 @@ export const StateCatalog: Story = {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <AdminButton size="sm">Primary action</AdminButton>
-          <AdminButton size="sm" variant="outlined">
+          <Button type="button" size="compact">
+            Primary action
+          </Button>
+          <Button type="button" emphasis="secondary" size="compact">
             Secondary action
-          </AdminButton>
+          </Button>
         </div>
       </CanvasRouteContent>
     </CanvasRouteFrame>

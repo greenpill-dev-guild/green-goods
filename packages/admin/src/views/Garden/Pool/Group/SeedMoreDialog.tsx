@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 
@@ -65,12 +65,12 @@ export function SeedMoreDialog({
       })}
       actions={
         <>
-          <AdminButton type="button" variant="text" onClick={onClose}>
+          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
             {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton type="button" variant="filled" onClick={() => onContinue(choice)}>
+          </Button>
+          <Button type="button" emphasis="primary" size="sm" onClick={() => onContinue(choice)}>
             {formatMessage({ id: "app.common.continue", defaultMessage: "Continue" })}
-          </AdminButton>
+          </Button>
         </>
       }
     >

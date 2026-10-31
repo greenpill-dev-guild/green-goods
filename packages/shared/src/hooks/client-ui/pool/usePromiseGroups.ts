@@ -6,6 +6,7 @@
  * to (`usePromiseGroupOf`). Both use the projection the admin uses,
  * `groupCommitmentsForDisplay`: counts come from published copies, unreadable
  * metadata leaves a row ordinary, and an edited reward never splits a group.
+ * The tab counts a group's copies on the chain's clock, as the group's page does.
  *
  * @module hooks/client-ui/pool/usePromiseGroups
  */
@@ -14,6 +15,7 @@ import { useMemo } from "react";
 
 import { groupCommitmentsForDisplay } from "../../../modules/commitment-pooling/display-groups";
 import {
+  groupCountsOnClock,
   isViewerCopy,
   type PoolListEntry,
   selectPoolListEntries,
@@ -23,6 +25,7 @@ import type { CommitmentReadModel } from "../../../modules/commitment-pooling/ty
 import type { Address } from "../../../types/domain";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitments } from "../../commitment-pooling/useCommitmentPooling";
+import { useDueClock } from "../../commitment-pooling/useDueClock";
 
 export type { PoolListEntry };
 
@@ -30,22 +33,40 @@ export type { PoolListEntry };
  * The Promises tab's entries. `rows` are what Status and Kind let through;
  * `commitments` are every copy in scope, so a group counts the copies the
  * filters leave out. The reader's own copies stay ordinary rows.
+ *
+ * A group counts its copies on the chain's clock (`groupCountsOnClock`): a copy
+ * past due but still offered or requested on chain is ended, so the row never
+ * says a copy is available that the group's page counts as ended.
  */
 export function usePoolPromiseEntries<R extends { commitment: CommitmentReadModel }>(input: {
+  chainId: number;
+  /** The pool the promises are in: a copy without a due date falls due as its cycle there ends. */
+  poolId: bigint;
   rows: readonly R[];
   commitments: readonly CommitmentReadModel[];
   viewer: Address | null | undefined;
 }): PoolListEntry<R>[] {
-  const { rows, commitments, viewer } = input;
+  const { chainId, poolId, rows, commitments, viewer } = input;
   const { byCID } = useCommitmentMetadata(commitments);
-  return useMemo(
-    () =>
-      selectPoolListEntries({
-        rows,
-        grouped: groupCommitmentsForDisplay({ commitments, metadataByCID: byCID }),
-        viewer,
-      }),
-    [rows, commitments, byCID, viewer]
+  const { entries, listedCopies } = useMemo(() => {
+    const listed = selectPoolListEntries({
+      rows,
+      grouped: groupCommitmentsForDisplay({ commitments, metadataByCID: byCID }),
+      viewer,
+    });
+    return {
+      entries: listed,
+      listedCopies: listed.flatMap((entry) => (entry.kind === "group" ? entry.group.children : [])),
+    };
+  }, [rows, commitments, byCID, viewer]);
+  // Ticks when a listed copy falls due, and reads the pool's cycles only for a listed copy without
+  // a due date of its own. A set whose cycle's end is still unread has no due date to pass yet, so
+  // it keeps the chain's counts, and no other set waits for it.
+  const due = useDueClock({ chainId, poolId, commitments: listedCopies });
+  return entries.map((entry) =>
+    entry.kind === "group"
+      ? { ...entry, group: { ...entry.group, counts: groupCountsOnClock(entry.group, due.clock) } }
+      : entry
   );
 }
 

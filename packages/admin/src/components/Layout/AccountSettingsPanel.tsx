@@ -1,4 +1,5 @@
 import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { getChainName } from "@green-goods/shared/config/chains";
@@ -7,7 +8,6 @@ import { type Locale, useApp } from "@green-goods/shared/providers/App";
 import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
-import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
@@ -58,15 +58,6 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
       <span>{label}</span>
       <RiExternalLinkLine className="h-4 w-4 shrink-0 text-text-soft" aria-hidden="true" />
     </a>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2">
-      <span className="type-body font-medium text-text-strong">{label}</span>
-      <span className="type-body tabular-nums text-text-sub">{value}</span>
-    </div>
   );
 }
 
@@ -136,7 +127,12 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
         <SettingsSectionHeader
           title={formatMessage({ id: "cockpit.settings.chainInfo", defaultMessage: "Network" })}
         />
-        <InfoRow label={chainName} value={`Chain ID ${DEFAULT_CHAIN_ID}`} />
+        <FactList frame="inset">
+          <FactRow
+            label={chainName}
+            value={<span className="tabular-nums">{`Chain ID ${DEFAULT_CHAIN_ID}`}</span>}
+          />
+        </FactList>
         <ExternalLinkRow
           href={getBlockExplorer(DEFAULT_CHAIN_ID)}
           label={formatMessage({
@@ -153,10 +149,12 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
         <SettingsSectionHeader
           title={formatMessage({ id: "cockpit.settings.about", defaultMessage: "About" })}
         />
-        <InfoRow
-          label={formatMessage({ id: "cockpit.settings.version", defaultMessage: "Version" })}
-          value={appVersion}
-        />
+        <FactList frame="inset">
+          <FactRow
+            label={formatMessage({ id: "cockpit.settings.version", defaultMessage: "Version" })}
+            value={<span className="tabular-nums">{appVersion}</span>}
+          />
+        </FactList>
         <ExternalLinkRow
           href={DOCS_URL}
           label={formatMessage({ id: "cockpit.settings.docs", defaultMessage: "Documentation" })}

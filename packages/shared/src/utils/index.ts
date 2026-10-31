@@ -50,11 +50,7 @@ export {
 // ============================================================================
 export { copyToClipboard } from "./app/clipboard";
 export type { GardenMemberLike } from "./app/garden";
-export {
-  buildGardenMemberSets,
-  gardenHasMember,
-  resolveGardenMemberKey,
-} from "./app/garden";
+export { buildGardenMemberSets, resolveGardenMemberKey } from "./app/garden";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================
@@ -162,10 +158,10 @@ export {
   GreenGoodsENSABI,
   getMarketplaceReadiness,
   getNetworkContracts,
-  HatsABI,
   MARKETPLACE_READINESS_REQUIRED_FIELDS,
-  SettlementModuleABI,
 } from "./blockchain/contracts";
+export { HatsABI } from "./blockchain/contract-abis/hats";
+export { SettlementModuleABI } from "./blockchain/contract-abis/settlement-module";
 export type {
   ResolveEnsAddressOptions,
   ResolveEnsOptions,

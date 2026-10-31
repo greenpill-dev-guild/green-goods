@@ -46,8 +46,8 @@ const config: KnipConfig = {
       ignore: [
         // Passed to vitest as `--config` by scripts/dev/run-storybook-vitest-ci.mjs
         "vitest.storybook.config.ts",
-        // Manually-invoked Storybook screenshot pipeline for design exports.
-        // No durable caller by design — see .plans/archive/admin-claude-design-export/.
+        // Manually invoked by the active Commitment Pooling walk's capture instructions:
+        // .plans/active/commitment-pooling/commitment-walk-artifact.build.ts.
         ".storybook/capture-admin-stories.mjs",
       ],
       entry: [
@@ -93,6 +93,16 @@ const config: KnipConfig = {
         // Declared in packages/shared, resolved here through workspace hoisting
         "@storybook/react",
         "storybook",
+      ],
+    },
+    "packages/extension": {
+      // WXT discovers entrypoints by convention; the g0 rig is run by hand from the package
+      // (`bun run --cwd packages/extension g0`), never imported.
+      entry: ["entrypoints/**/*.{ts,tsx}", "wxt.config.ts", "g0/*.mjs"],
+      ignoreDependencies: [
+        // Transitive companions Pi Durable requires at matching versions (prototype decision 17).
+        "@earendil-works/chord",
+        "@earendil-works/pi-ai",
       ],
     },
     "packages/qa": {

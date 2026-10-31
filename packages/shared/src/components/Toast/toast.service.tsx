@@ -6,8 +6,8 @@ import { useUIStore } from "../../stores/useUIStore";
 import { capitalize } from "../../utils/app/text";
 import { cn } from "../../utils/styles/cn";
 import { Button } from "../Button";
-import { createToastDismissQueue } from "./toast.queue";
 import { ToastStatusIcon } from "./ToastStatusIcon";
+import { createToastDismissQueue } from "./toast.queue";
 
 type ToastFn = typeof toast.success;
 
@@ -592,6 +592,7 @@ function ToastMessage({
       <div className="flex items-center gap-3" style={{ flexWrap: "wrap" }}>
         {action ? (
           <Button
+            data-piece-control
             type="button"
             emphasis="tertiary"
             size="sm"
@@ -605,13 +606,11 @@ function ToastMessage({
         {/* Debug mode: copy error button */}
         {onCopyError ? (
           <Button
+            data-piece-control
             type="button"
             emphasis="tertiary"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering dismiss
-              onCopyError();
-            }}
+            onClick={onCopyError}
             style={ACTION_BUTTON_STYLE}
             data-testid="toast-copy-error"
           >

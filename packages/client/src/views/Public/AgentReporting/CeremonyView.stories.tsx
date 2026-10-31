@@ -11,7 +11,7 @@ import { Confidence, VerificationMethod } from "@green-goods/shared/types/domain
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { HelmetProvider } from "react-helmet-async";
 import { IntlProvider } from "react-intl";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import {
   FIXTURE_IMAGE_AGROFORESTRY,
@@ -159,8 +159,8 @@ const meta: Meta<typeof CeremonyView> = {
     withLocale,
   ],
   parameters: {
-    // The focused shell renders without the website surface: app corners for fields and buttons.
-    surface: "app",
+    // The focused shell carries the website surface (DL-121), as the route does.
+    surface: "website",
     layout: "fullscreen",
     docs: {
       description: {
@@ -180,6 +180,34 @@ export default meta;
 type Story = StoryObj<typeof CeremonyView>;
 
 export const Intro: Story = {};
+/**
+ * The page opens on the account this browser last used. Before Continue, the profile names it
+ * and signs the browser out of it, with nothing to sign, in each language.
+ */
+export const IntroConnected: Story = {
+  args: { account: ACCOUNT },
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement, parameters }) => {
+    const messages = MESSAGES[(parameters.locale as Locale | undefined) ?? "en"];
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: messages["public.reporting.account.title"] })
+    );
+    const sheet = within(await within(canvasElement.ownerDocument.body).findByRole("dialog"));
+    await expect(sheet.getByTitle(ACCOUNT)).toBeVisible();
+    await expect(
+      sheet.getByRole("button", { name: messages["public.reporting.account.signOut"] })
+    ).toBeVisible();
+    await expect(
+      sheet.queryByRole("button", { name: messages["public.reporting.leave"] })
+    ).not.toBeInTheDocument();
+  },
+};
+export const IntroConnectedSpanish: Story = { ...IntroConnected, parameters: { locale: "es" } };
+export const IntroConnectedPortuguese: Story = {
+  ...IntroConnected,
+  parameters: { locale: "pt" },
+};
 export const Opening: Story = { args: { stage: "opening" } };
 export const Loading: Story = {
   args: { stage: "loading", purpose: "publish_work", account: ACCOUNT, sessionAccount: ACCOUNT },
@@ -452,6 +480,24 @@ export const GrantReady: Story = {
       bar.getBoundingClientRect().top
     );
     view.scrollTo({ top: 0, behavior: "instant" });
+    // The page is the website's (DL-121), and its limits are the website receipt's rows: each
+    // value at weight 500 ends at its row's end, and a date stays on one line, where a column of
+    // values would start it mid-row and wrap it on a phone.
+    const limits = within(canvasElement).getByRole("region", { name: "Limits" });
+    const shell = limits.closest("main")?.parentElement;
+    await expect(shell?.dataset.site).toBe("website");
+    for (const label of ["Starts", "Maximum publications"]) {
+      const term = within(limits).getByText(label).closest("dt") as HTMLElement;
+      const value = term.nextElementSibling as HTMLElement;
+      const text = view.document.createRange();
+      text.selectNodeContents(value);
+      const drawn = text.getBoundingClientRect();
+      const rowEnd = (term.parentElement as HTMLElement).getBoundingClientRect().right;
+      await expect(Math.abs(rowEnd - drawn.right)).toBeLessThanOrEqual(1);
+      const line = Number.parseFloat(view.getComputedStyle(value).lineHeight);
+      await expect(drawn.height).toBeLessThan(line * 1.5);
+      await expect(view.getComputedStyle(value).fontWeight).toBe("500");
+    }
   },
 };
 export const GrantSigning: Story = { args: { ...GrantReady.args, stage: "grant_signing" } };

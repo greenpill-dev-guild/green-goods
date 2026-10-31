@@ -274,6 +274,8 @@ export interface DraftWorkLink {
   commitmentTitle: string;
   requirementLabel: string;
   returnTo: string;
+  /** The promise is an Open ask that Submit takes up first (decision 18), so Pending says so. */
+  takesUp?: true;
 }
 
 export interface WorkDraftRecord {

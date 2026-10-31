@@ -69,6 +69,15 @@ const ALLOWED_CONTRACT_EVENTS = {
     "ConsiderationDeclared",
     "ValueDeclared",
     "ConfirmerRuleSet",
+    "EarnedVoucherModulePinned",
+    "VoucherServiceSetupModulePinned",
+    "EarnedVoucherTermsBound",
+    "EarnedVoucherAcceptanceRecorded",
+    "VoucherServiceAcceptanceRecorded",
+    "ServiceOfferTermsSet",
+    "ServiceClaimConsentRequested",
+    "ServiceClaimConsentAccepted",
+    "ServiceClaimConsentWithdrawn",
     "ClaimRequested",
     "ClaimDeclined",
     "CommitmentAccepted",
@@ -109,6 +118,10 @@ const ALLOWED_CONTRACT_EVENTS = {
   SettlementModule: new Set([
     "SettlementDeploymentPinned",
     "FundingConfigurationLocked",
+    "PersonalServicePurchasePledged",
+    "PersonalServiceDepositVerified",
+    "PersonalServicePurchaseOutcomeSelected",
+    "PersonalServicePurchaseOutcomeCompleted",
     "FundingPledged",
     "FundingDepositRecorded",
     "FundingConsumed",
@@ -181,6 +194,36 @@ const ALLOWED_CONTRACT_EVENTS = {
   ]),
 };
 
+// The 24 October pilot pinned these endpoints. The source module is discovered on Arbitrum from the
+// core's immutable pin event; the Gnosis escrow address comes from 100-pilot-downstream.json.
+ALLOWED_CONTRACT_EVENTS.VoucherRedemptionModule = new Set([
+  "VoucherSetupPrepared", "VoucherSetupDecisionSelected", "VoucherSetupDispatched", "VoucherSetupResultRecorded", "VoucherFinalResultRecorded", "VoucherHolderAbortRequested",
+  "VoucherEndpointPinned", "VoucherPauseChanged", "RedemptionPrepared", "RedemptionDispatched", "RedemptionResultRecorded",
+]);
+ALLOWED_CONTRACT_EVENTS.GnosisVoucherEscrow = new Set([
+  "VoucherSetupAuthorizationRecorded", "VoucherSetupDecisionApplied", "VoucherSetupResultRecorded", "VoucherSetupActionResult", "VoucherSetupHolderAbortRequested", "FinalAllocationFrozen", "FinalLegResult", "VoucherEscrowFinanciallyClosed", "VoucherServiceAcknowledgmentSent", "VoucherServiceAcknowledgmentFailed",
+  "VoucherEndpointPinned", "VoucherPauseChanged", "RedemptionAuthorizationRecorded", "RedemptionIssuerApproved",
+  "VoucherPresented", "HolderDeliveryApproved", "RedemptionReturnAuthorized", "HolderReturnApproved",
+  "RedemptionActionResult", "RedemptionAcknowledgmentSent", "RedemptionAcknowledgmentFailed",
+]);
+
+ALLOWED_CONTRACT_EVENTS.VoucherEntitlementModule = new Set([
+  "IssuerAuthorityConfigured", "VoucherEndpointPinned", "VoucherPauseChanged", "VoucherTermsRegistered",
+  "VoucherTermsApproved", "VoucherTermsConsented", "VoucherDistributionPrepared", "VoucherDistributionDispatched",
+  "VoucherResultRecorded", "VoucherDispatchClosed",
+]);
+ALLOWED_CONTRACT_EVENTS.GnosisVoucherAdapter = new Set([
+  "AssetConfigured", "VoucherEndpointPinned", "VoucherPauseChanged", "CommandRecorded", "DistributionResult",
+  "AcknowledgmentSent", "AcknowledgmentFailed",
+]);
+ALLOWED_CONTRACT_EVENTS.CLCSwapPool = new Set(["SwapSettlement"]);
+// Steward Safe roster mirroring is role transport, not token movement.
+ALLOWED_CONTRACT_EVENTS.StewardRolePublisher = new Set(["StewardQueued", "StewardDispatched", "DispatchDeferred"]);
+ALLOWED_CONTRACT_EVENTS.StewardSafeReceiver = new Set([
+  "StewardMirrored", "StewardReconciled", "ReconciliationDeferred", "BootstrapFinalized",
+]);
+const GNOSIS_PILOT_CONTRACTS = ["GnosisVoucherAdapter", "GnosisVoucherEscrow", "CLCSwapPool", "StewardSafeReceiver"];
+
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
 const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
   [
@@ -199,6 +242,9 @@ const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
       "GreenWill",
       "CookieJarFactory",
       "CommitmentPoolingModule",
+      "VoucherEntitlementModule",
+      "VoucherRedemptionModule",
+      "StewardRolePublisher",
       "CommitmentRegistry",
       "SettlementModule",
       "CreditRegistry",
@@ -220,11 +266,14 @@ const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
     ]),
   ],
   [42220, new Set(["CeloSettlementExecutor"])],
+  [100, new Set(GNOSIS_PILOT_CONTRACTS)],
 ]);
 const REQUIRED_CHAIN_BOUNDARIES = new Map([
   [42161, { startBlock: 433_713_812, endBlock: undefined }],
   [11155111, { startBlock: 10_243_363, endBlock: undefined }],
   [42220, { startBlock: 74_691_430, endBlock: undefined }],
+  // First Gnosis pilot deployment receipt in 100-pilot-downstream.json.
+  [100, { startBlock: 48_925_690, endBlock: undefined }],
 ]);
 
 const DISALLOWED_SCHEMA_ENTITIES = [
@@ -357,7 +406,13 @@ async function main() {
       }
     }
 
-    if (chainId !== 42220) {
+    if (chainId === 100) {
+      for (const name of GNOSIS_PILOT_CONTRACTS) {
+        if (!chainContracts.find((contract) => contract?.name === name)?.address) {
+          errors.push(`Chain 100 is missing the ${name} pilot deployment address`);
+        }
+      }
+    } else if (chainId !== 42220) {
       const octantVault = chainContracts.find((contract) => contract?.name === "OctantVault");
       if (!octantVault) {
         errors.push(`Chain ${chainId} is missing the dynamic OctantVault contract`);

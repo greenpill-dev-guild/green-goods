@@ -1,12 +1,13 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook as renderBareHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGardenCommitmentController } from "../../../hooks/client-ui/commitment/useGardenCommitmentController";
 import type { CommitmentJobInput } from "../../../hooks/commitment-pooling/useCommitmentJobs";
 import type { CommitmentMutationInput } from "../../../hooks/commitment-pooling/useCommitmentMutations";
 import { CommitmentReasonPinError } from "../../../modules/commitment-pooling/reasons";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
@@ -16,6 +17,7 @@ import {
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
 import type {
   CommitmentClaimRequestRecord,
+  CommitmentCycleRecord,
   CommitmentDetail,
   CommitmentPoolRecord,
 } from "../../../modules/commitment-pooling/types";
@@ -25,11 +27,16 @@ import {
   claimFixture,
   commitmentDetailFixture,
   commitmentFixture,
+  cycleFixture,
   poolFixture,
 } from "../../test-utils/commitment-pooling-fixtures";
 
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 type Mutate = (input: CommitmentMutationInput) => Promise<`0x${string}`>;
+
+// The due clock reads the chain's time through the query cache, as every screen provides it.
+const renderHook: typeof renderBareHook = (callback, options) =>
+  renderBareHook(callback, { wrapper: createTestWrapper(), ...options });
 
 const work = (overrides: Partial<Work> = {}): Work => ({
   id: "0xaaaa",
@@ -71,6 +78,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
   enqueue: vi.fn<Enqueue>(),
+  sendQueued: vi.fn().mockResolvedValue("queued"),
   jobsPending: false,
   queue: {
     pendingCommitmentIds: new Set<string>(),
@@ -82,6 +90,8 @@ const mocks = vi.hoisted(() => ({
     pendingCreates: [],
     proofJobs: [],
     linkedWorkIds: new Set<string>(),
+    takeUpIds: new Set<string>(),
+    failedLinkWorkIds: new Set<string>(),
     isUnavailable: false,
     refresh: vi.fn(),
   },
@@ -91,6 +101,8 @@ const mocks = vi.hoisted(() => ({
   mutationError: null as unknown,
   works: [] as Work[],
   pool: null as CommitmentPoolRecord | null,
+  /** The pool's cycles; undefined while unread. */
+  cycles: [] as CommitmentCycleRecord[] | undefined,
   roleAnswers: new Map<string, boolean>(),
   gardens: [] as Array<{
     id: string;
@@ -161,6 +173,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitment: () => mocks.commitmentQuery,
   useCommitmentPool: () => ({ pool: mocks.pool, isError: false, refetch: vi.fn() }),
+  useCommitmentCycles: () => ({ data: mocks.cycles, isError: false, refetch: vi.fn() }),
   useCommitmentClaimRequests: () => ({ claimRequests: mocks.claimRequests }),
   useLinkedWorkUIDs: () => ({ linked: mocks.linked }),
 }));
@@ -180,6 +193,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentWorkDecisions", () => ({
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   useCommitmentJobs: () => ({
     enqueue: mocks.enqueue,
+    sendQueued: mocks.sendQueued,
     isPending: mocks.jobsPending,
     error: null,
     viewer: mocks.viewer,
@@ -223,6 +237,8 @@ beforeEach(() => {
   mocks.works = [work(), work({ id: "0xbbbb", status: "rejected" })];
   mocks.linked = new Set();
   mocks.pool = poolFixture({ poolType: "PROTOCOL" });
+  // The fixture promise carries no due date, so it falls due with its season: read, and open.
+  mocks.cycles = [cycleFixture({ endTime: BigInt(Math.floor(Date.now() / 1000)) + 86_400n })];
   mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:steward`, true]]);
   mocks.gardens = [
     {
@@ -391,6 +407,30 @@ describe("useGardenCommitmentController", () => {
       isUnavailable: true,
       refresh: mocks.queue.refresh,
     });
+  });
+
+  it("resumes the exact claim waiting for reward agreement without enqueueing another", async () => {
+    mocks.queue.pendingActs.set("1001", {
+      jobId: "held-claim",
+      kind: "claim",
+      waitingReason: "reward-agreement-required",
+    });
+    const { result } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    await act(async () => {
+      await expect(result.current.acts.claimPersonal()).resolves.toBe("held-claim");
+    });
+    expect(mocks.sendQueued).toHaveBeenCalledWith({
+      jobId: "held-claim",
+      commitmentId: 1001n,
+      keepDeclined: true,
+    });
+    expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
   it("maps queue and online acts to their authoritative arguments and returns their promises", async () => {
@@ -630,6 +670,45 @@ describe("useGardenCommitmentController", () => {
     );
     expect(result.current.actKind).toBeNull();
     expect(result.current.membership).toMatchObject({ isMember: null, garden: null });
+  });
+
+  it("offers no take-up on an undated promise once its cycle has ended, or while that end is unread", () => {
+    // Without a due date of its own it falls due when its season ends (`_effectiveDueDate`).
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({
+        derivedState: "OFFERED",
+        onchainState: "OFFERED",
+        creator: MARIA,
+        leadProvider: MARIA,
+        claimMode: "OPEN",
+      }),
+      contributors: [],
+    });
+    mocks.pool = poolFixture({ poolType: "GARDEN", garden: DEMO_GARDEN });
+    mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:gardener`, true]]);
+    mocks.gardens = [{ id: DEMO_GARDEN, name: "Host Garden", gardeners: [TUNDE], stewards: [] }];
+    mocks.cycles = undefined;
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const { result, rerender } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.actKind).toBeNull();
+    // Asking again is a take-up too, so it waits for the due date and stops at it.
+    expect(result.current.canAskAgain).toBe(false);
+
+    mocks.cycles = [cycleFixture({ endTime: now + 3_600n })];
+    rerender();
+    expect(result.current.actKind).toBe("takeUp");
+    expect(result.current.canAskAgain).toBe(true);
+
+    mocks.cycles = [cycleFixture({ endTime: now - 60n })];
+    rerender();
+    expect(result.current.actKind).toBeNull();
+    expect(result.current.canAskAgain).toBe(false);
   });
 
   it("offers Ask Again only while the reader may still take the commitment up", () => {

@@ -110,8 +110,8 @@ describe("Display mode — AppBar visibility", () => {
     const nav = screen.getByTestId("authenticated-nav");
     expect(nav.className).toMatch(/translate-y-full/);
 
-    expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
-    expect(screen.getByRole("link", { name: /garden/i }).className).toContain("tab-active");
+    expect(screen.getByRole("link", { name: /home/i })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /garden/i })).toHaveAttribute("aria-current", "page");
   });
 
   it("standalone PWA: a commitment detail or composer hides the bottom nav under its action bar", () => {
@@ -131,6 +131,18 @@ describe("Display mode — AppBar visibility", () => {
     expect(nav).toHaveAttribute("inert");
   });
 
+  // Explore is a route under Home, not a garden's id: the bar stays, on Home (DL-125).
+  it("standalone PWA: Explore keeps the bottom nav, with Home active", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/explore");
+
+    const nav = screen.getByTestId("authenticated-nav");
+    expect(nav.className).not.toMatch(/translate-y-full/);
+    expect(nav).not.toHaveAttribute("inert");
+    expect(screen.getByRole("link", { name: /home/i })).toHaveAttribute("aria-current", "page");
+  });
+
   it("standalone PWA: any open sheet or dialog hides the bottom nav (DL-015)", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
@@ -148,7 +160,7 @@ describe("Display mode — AppBar visibility", () => {
 
     expect(screen.getByTestId("authenticated-nav").className).not.toMatch(/translate-y-full/);
     expect(screen.getByTestId("authenticated-nav")).not.toHaveAttribute("inert");
-    expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
-    expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
+    expect(screen.getByRole("link", { name: /home/i })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /profile/i })).toHaveAttribute("aria-current", "page");
   });
 });

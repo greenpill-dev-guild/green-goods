@@ -1,6 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import type { PoolSetupIntent } from "./setupFlowModel";
 
@@ -63,14 +63,21 @@ export function SetupFlowFooter({
         ) : null}
       </div>
       {complete ? (
-        <AdminButton type="button" variant="filled" onClick={onDone} className="w-full sm:w-auto">
+        <Button
+          type="button"
+          emphasis="primary"
+          size="sm"
+          onClick={onDone}
+          className="w-full sm:w-auto"
+        >
           {formatMessage({ id: "cockpit.garden.pool.setup.done.close", defaultMessage: "Done" })}
-        </AdminButton>
+        </Button>
       ) : (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <AdminButton
+          <Button
             type="button"
-            variant={stepIndex === 0 ? "text" : "outlined"}
+            emphasis={stepIndex === 0 ? "tertiary" : "secondary"}
+            size="sm"
             onClick={onBack}
             disabled={submitting}
             className="self-start sm:self-auto"
@@ -78,13 +85,14 @@ export function SetupFlowFooter({
             {stepIndex === 0
               ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
               : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-          </AdminButton>
+          </Button>
           {isLast ? (
             retryable ? (
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
-                leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+                emphasis="primary"
+                size="sm"
+                leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
                 onClick={onRetry}
                 disabled={submitting || !isOnline}
                 loading={submitting}
@@ -94,11 +102,12 @@ export function SetupFlowFooter({
                   id: "cockpit.garden.pool.setup.retry",
                   defaultMessage: "Try Again",
                 })}
-              </AdminButton>
+              </Button>
             ) : (
-              <AdminButton
+              <Button
                 type="button"
-                variant="filled"
+                emphasis="primary"
+                size="sm"
                 onClick={onSubmit}
                 disabled={!canContinue || (failed && !retryable)}
                 loading={submitting}
@@ -118,18 +127,19 @@ export function SetupFlowFooter({
                         id: "cockpit.garden.pool.setup.openSeason",
                         defaultMessage: "Open to the Garden",
                       })}
-              </AdminButton>
+              </Button>
             )
           ) : (
-            <AdminButton
+            <Button
               type="button"
-              variant="filled"
+              emphasis="primary"
+              size="sm"
               onClick={onNext}
               disabled={!canContinue}
               className="w-full sm:w-auto"
             >
               {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-            </AdminButton>
+            </Button>
           )}
         </div>
       )}

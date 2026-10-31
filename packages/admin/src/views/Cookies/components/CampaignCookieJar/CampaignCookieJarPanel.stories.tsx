@@ -1,6 +1,8 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -11,8 +13,6 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../../shared/.storybook/decorators";
-import { fn } from "storybook/test";
-import { AdminButton } from "@/components/AdminButton";
 import { CampaignCookieJarPanel } from "./index";
 
 const EMPTY_CAMPAIGN_PANEL_SEEDS = [
@@ -54,9 +54,9 @@ export const Default: Story = {};
 export const OnPayouts: Story = {
   args: {
     headerAction: (
-      <AdminButton type="button" variant="tonal" size="sm" onClick={fn()}>
+      <Button type="button" emphasis="secondary" size="compact" onClick={fn()}>
         Create Cookie Jar
-      </AdminButton>
+      </Button>
     ),
   },
 };

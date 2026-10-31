@@ -7,7 +7,9 @@ import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
-import { FormCard, FormInfo, GardenCard, GardenCardSkeleton } from "@/components/Cards";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { gardenMemberCount } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
+import { FormCard, FormInfo } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
 
 export type WorkViewAction = {
@@ -63,6 +65,47 @@ type WorkViewProps = {
   onMediaError?: (mediaUrl: string, index: number) => void;
 };
 
+/**
+ * The garden the work belongs to, as facts: its name, how many members and where. The work's
+ * own photos are the pictures on this screen, so the garden shows none.
+ */
+function WorkGardenFacts({ garden }: { garden: Garden }) {
+  const intl = useIntl();
+  const place = garden.location?.trim();
+  return (
+    <FactList frame="card" data-component="WorkGarden">
+      <FactRow
+        label={intl.formatMessage({
+          id: "app.home.workApproval.gardenName",
+          defaultMessage: "Name",
+        })}
+        value={garden.name}
+      />
+      <FactRow
+        label={intl.formatMessage({
+          id: "app.home.workApproval.gardenMembers",
+          defaultMessage: "Members",
+        })}
+        value={gardenMemberCount(garden).toLocaleString(intl.locale)}
+      />
+      {place ? (
+        <FactRow
+          label={intl.formatMessage({
+            id: "app.home.workApproval.gardenPlace",
+            defaultMessage: "Place",
+          })}
+          value={place}
+        />
+      ) : null}
+    </FactList>
+  );
+}
+
+/** The garden's facts while the garden is read, in the space they take. */
+function WorkGardenFactsSkeleton() {
+  return <div aria-hidden="true" className="h-32 rounded-2xl bg-bg-weak-50 animate-pulse" />;
+}
+
 export const WorkView: React.FC<WorkViewProps> = ({
   title,
   info,
@@ -112,19 +155,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
       <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
       </h6>
-      {garden ? (
-        <GardenCard
-          garden={garden}
-          media="small"
-          height="default"
-          showStewards={true}
-          selected={false}
-          showDescription={false}
-          showBanner={false}
-        />
-      ) : (
-        <GardenCardSkeleton media="small" height="default" showBanner={false} />
-      )}
+      {garden ? <WorkGardenFacts garden={garden} /> : <WorkGardenFactsSkeleton />}
 
       {missingOriginals && (
         <p role="status" className="text-sm text-text-sub-600">
@@ -312,7 +343,7 @@ export const WorkViewSkeleton: React.FC<WorkViewSkeletonProps> = ({
 
       {/* Garden section */}
       <div className="h-4 w-28 bg-bg-soft-200 rounded" />
-      <GardenCardSkeleton media="small" height="default" showBanner={false} />
+      <WorkGardenFactsSkeleton />
 
       {/* Media section */}
       {showMedia && (

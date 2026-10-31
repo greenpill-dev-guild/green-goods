@@ -101,7 +101,7 @@ export const ElevationGallery: Story = {
           <div className="space-y-2">
             <div className="type-label text-text-strong-950 capitalize">{elevation}</div>
             <div className="type-label-sm text-text-sub-600">
-              Tonal elevation and shadow treatment for {elevation} surfaces.
+              A solid {elevation} surface: an opaque fill, its depth from the shadow.
             </div>
           </div>
         </Surface>

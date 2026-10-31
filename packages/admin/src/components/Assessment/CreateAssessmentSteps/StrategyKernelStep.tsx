@@ -1,14 +1,14 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DOMAIN_METRICS } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
 import { RiAddLine } from "@remixicon/react";
 import { type KeyboardEvent, useId, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { AdminButton } from "../../AdminButton";
 import { AdminSelectableCard } from "../../AdminSelectableCard";
 import { AdminTextArea } from "../../AdminTextField";
-import { formatDomainGuidance, knownDomain, Section } from "./shared";
 import { AssessmentOutcomeFields, AssessmentOutcomeHelp } from "./AssessmentOutcomeFields";
+import { formatDomainGuidance, knownDomain, Section } from "./shared";
 
 const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.CLEAR]: "clear",
@@ -353,19 +353,19 @@ export function StrategyKernelStep({
             "Each outcome needs a metric and a target for the end of the reporting period (SMART outcomes)",
         })}
         action={
-          <AdminButton
+          <Button
             type="button"
-            variant="outlined"
-            size="sm"
+            emphasis="secondary"
+            size="compact"
             onClick={addOutcome}
             disabled={isSubmitting}
-            leadingIcon={<RiAddLine />}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
           >
             {formatMessage({
               id: "app.admin.assessment.strategyKernel.addOutcome",
               defaultMessage: "Add Outcome",
             })}
-          </AdminButton>
+          </Button>
         }
       >
         <AssessmentOutcomeHelp helpIds={outcomeHelpIds} />

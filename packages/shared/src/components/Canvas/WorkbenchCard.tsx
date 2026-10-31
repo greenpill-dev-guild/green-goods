@@ -1,6 +1,7 @@
 import { type ComponentType } from "react";
 import { cn } from "../../utils/styles/cn";
-import { getStatusToneClasses, type WorkbenchTone } from "./WorkbenchRow";
+
+export type WorkbenchTone = "pending" | "approved" | "certify" | "history";
 
 export interface WorkbenchCardProps {
   eyebrow: string;
@@ -21,13 +22,21 @@ export interface WorkbenchCardProps {
   className?: string;
 }
 
+function getStatusToneClasses(tone: WorkbenchTone) {
+  // Base `bg-*-lighter`, not a `/95` opacity variant: on an already-pale color
+  // the 95%→100% delta is imperceptible, so the plain tint is enough.
+  if (tone === "pending") return "bg-warning-lighter text-warning-dark";
+  if (tone === "approved") return "bg-success-lighter text-success-dark";
+  if (tone === "certify") return "bg-primary-alpha-10 text-text-strong";
+  return "bg-bg-soft text-text-sub shadow-[var(--edge-rest)]";
+}
+
 /**
- * WorkbenchCard — the card-shaped presentation of a registry item. Same data
- * model and visual vocabulary as {@link WorkbenchRow} (icon tile, status pill,
- * meta chips) so list and grid layouts of the same registry stay coherent. The
- * grid container itself is authored in the consuming view (admin), which
- * decides the columns: Actions uses `grid-cols-*` breakpoints, the Hub an
- * auto-fill grid.
+ * WorkbenchCard: a registry item (the Actions workspace's actions) as a card on
+ * the shared card surface (`.gg-card`, DL-102), with an icon tile or thumbnail,
+ * a status pill and meta chips. The grid container itself is authored in the
+ * consuming view (admin), which decides the columns with `grid-cols-*`
+ * breakpoints.
  */
 export function WorkbenchCard({
   eyebrow,
@@ -102,8 +111,8 @@ export function WorkbenchCard({
   );
 
   const sharedClassName = cn(
-    "workbench-card relative flex h-full flex-col gap-3 rounded-2xl p-4 text-left",
-    "glass-raised",
+    // The card takes its fill, edge and corner from `.gg-card`, never a `rounded-*` utility.
+    "workbench-card gg-card relative flex h-full flex-col gap-3 p-4 text-left",
     selected && "shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&

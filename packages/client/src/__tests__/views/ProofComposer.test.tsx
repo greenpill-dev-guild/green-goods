@@ -7,8 +7,8 @@
  * @vitest-environment happy-dom
  */
 
-import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -65,6 +65,7 @@ function PromiseDestination() {
     <>
       <p>Back on the promise</p>
       {state?.from === "dashboard" ? <p>Its Back reopens Your Work</p> : null}
+      {state?.proofDirectEntry ? <p>Its Back goes to the garden</p> : null}
       <button onClick={() => navigate(-1)}>Native Back</button>
     </>
   );
@@ -79,6 +80,7 @@ const ENTRIES = {
     { pathname: PROOF, state: { proofOrigin: `/home/${GARDEN}/commitments/9` } },
   ],
   dashboard: [{ pathname: PROOF, state: { from: "dashboard" } }],
+  home: ["/origin", { pathname: PROOF, state: { from: "home" } }],
 };
 
 const render = (openedFrom: keyof typeof ENTRIES = "direct") =>
@@ -322,8 +324,20 @@ describe("ProofComposer", () => {
     render();
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
+    expect(screen.getByText("Its Back goes to the garden")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Native Back" }));
     expect(screen.queryByText("Nothing added yet")).not.toBeInTheDocument();
+  });
+
+  it("hands a draft reopened from Home to its promise, whose Back returns Home", async () => {
+    const user = userEvent.setup();
+    controller = { ...controller, landing: "queued" };
+    render("home");
+
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
+    expect(screen.queryByText("Its Back goes to the garden")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Native Back" }));
+    expect(screen.getByText("Real origin")).toBeInTheDocument();
   });
 
   it("hands a draft reopened from Your Work to its promise, whose Back reopens Your Work", async () => {
@@ -332,6 +346,20 @@ describe("ProofComposer", () => {
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     expect(screen.getByText("Its Back reopens Your Work")).toBeInTheDocument();
+  });
+
+  it("goes back a step with Back, and leaves for the promise from Media", async () => {
+    const user = userEvent.setup();
+    render("promise");
+    await user.click(forward("Details"));
+    expect(screen.getByText("Enter Details", { selector: "h6" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(screen.getByText("Show What Was Done", { selector: "h6" })).toBeInTheDocument();
+    expect(forward("Details")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go back" }));
+    expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
   });
 
   it("opens the promise from the pinned card and returns to the same step", async () => {

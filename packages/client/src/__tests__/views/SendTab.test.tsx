@@ -170,6 +170,18 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsAvatar", async (importOrigin
   };
 });
 
+// Each recipient row is a person row: its name comes from the shared address display and
+// its avatar from the person's profile photo, neither of which this test reads.
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
+}));
+
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", async (importOriginal) => {
   return {
     ...(await importOriginal()),
@@ -389,7 +401,10 @@ describe("SendTab", () => {
     // The "To" row is the first tappable "Change" affordance on the review step.
     await user.click(screen.getAllByRole("button", { name: "Change" })[0]);
 
-    expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
+    // The recipient you chose is still chosen, and reads as pressed, not as an open record.
+    expect(
+      await screen.findByRole("button", { name: /alice\.eth/i, pressed: true })
+    ).not.toHaveAttribute("aria-current");
   });
 
   it("opens on the Balance view listing ordinary holdings without governance", async () => {

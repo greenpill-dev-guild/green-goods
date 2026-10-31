@@ -1,6 +1,8 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type ComponentType,
+  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
   useCallback,
@@ -48,19 +50,28 @@ function railOverflow(rail: HTMLElement): RailOverflow {
 }
 
 /**
- * AdminTabRail — underline tabs (Cockpit M3 1a).
+ * AdminTabRail — the installed app's equal-width tabs at the cockpit's 36px
+ * height (F8).
  *
  * Anatomy:
- * - Rail: flex row, 4px gap, hairline bottom rule on the warm stone border
- *   step; the active underline overlaps it (-1px bottom margin).
- * - Tab: 7px 16px padding on a 20px line, 14px text — 36px with the underline (DL-011). Active: weight 600 in the workspace
- *   accent + 2px underline in the same color — tone use 1 of 3. Inactive:
- *   weight 500 sub ink; hover darkens the text only (never a hue or bg shift).
- * - Count badge: 1px 8px pill, 12px/600. Active rides tone-primary-container /
- *   on-primary-container; inactive is the neutral chip pair.
- * - Overflow: a rail wider than its box fades the edge that clips tabs and
- *   snaps tabs as it scrolls, so it reads as scrollable (D18). A selected tab
- *   lands clear of the fades.
+ * - Rail: a row of equal cells on a hairline rule in the warm stone border
+ *   step, drawn inside the rail so the active underline covers it.
+ * - Cell: every tab takes an equal share of the row and never less than its
+ *   own icon, label and count on one line, so a label never clips. Below 640px
+ *   the row fills the phone's width; from 640px the row is at most 180px per
+ *   tab, so each cell stops at 180px, and it keeps to the left. 36px tall
+ *   (DL-011); the label is 12px with 4px gaps and 6px sides on a phone, 14px
+ *   with 8px gaps and 12px sides from 640px, weight 500 in both states, as the
+ *   app sets its tabs.
+ * - Active: a 10% tint of the tone's on-surface accent fills the cell, and the
+ *   label and a 2px underline take the accent itself, all one tone use (Rule
+ *   18). Inactive: sub ink; hover darkens the text only (never a hue or bg
+ *   shift).
+ * - Count badge: the shared `CountBadge` (F10), 16px with 11px/600 numerals on
+ *   the workspace tone's accent, the same on every tab.
+ * - Overflow: a row that cannot hold its cells scrolls; the edge that clips
+ *   tabs fades and tabs snap as it scrolls, so it reads as scrollable (D18).
+ *   A selected tab lands clear of the fades.
  */
 export function AdminTabRail({
   tabs,
@@ -172,9 +183,15 @@ export function AdminTabRail({
       aria-label={ariaLabel}
       data-overflow={overflow}
       onScroll={syncOverflow}
+      // From 640px the row, rule included, is at most 180px per tab and keeps
+      // to the left; equal shares then hold each cell to 180px.
+      style={{ "--tab-rail-count": tabs.length } as CSSProperties}
       className={cn(
-        "flex w-full min-w-0 gap-1 overflow-x-auto",
-        "border-b border-[color:rgb(var(--stroke-sub-300))]",
+        "flex w-full min-w-0 overflow-x-auto sm:max-w-[calc(var(--tab-rail-count)*11.25rem)]",
+        // The rule is an inset line, not a border: the scrollport clips a tab
+        // that reaches into its border, so the active underline could not
+        // cover a border-drawn rule.
+        "shadow-[inset_0_-1px_0_rgb(var(--stroke-sub-300))]",
         className
       )}
     >
@@ -207,13 +224,18 @@ export function AdminTabRail({
             }}
             onKeyDown={(event) => handleKeyDown(event, tab.id)}
             className={cn(
-              "relative -mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 bg-transparent px-4 py-1.75",
-              "type-label leading-5",
+              // Equal shares of the row, never narrower than the content
+              // (min-w-max), so a label never clips; a cell that needs more
+              // than its share takes it from the others.
+              "relative inline-flex min-h-9 min-w-max flex-1 cursor-pointer items-center justify-center gap-1 px-1.5 sm:gap-2 sm:px-3",
+              "type-label-sm font-medium sm:type-label",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] motion-reduce:transition-none",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
+              // Inset: the rail is a scroll container, which clips a ring
+              // drawn outside the cell at its top and bottom.
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
               active
-                ? "border-[color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))] font-semibold text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                : "border-transparent font-medium text-[rgb(var(--m3-on-surface-variant))] hover:text-[rgb(var(--m3-on-surface))]",
+                ? "bg-[rgb(var(--tone-on-surface-accent,var(--m3-primary))/0.1)] text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
+                : "bg-transparent text-[rgb(var(--m3-on-surface-variant))] hover:text-[rgb(var(--m3-on-surface))]",
               tab.disabled && "pointer-events-none cursor-not-allowed opacity-[0.38]"
             )}
           >
@@ -227,22 +249,22 @@ export function AdminTabRail({
                     role-less span is not reliably exposed, and the bare number
                     announces without units. The count reaches the tab's
                     accessible name through the visually hidden span below. */}
-                <span
+                <CountBadge
+                  count={tab.count}
                   aria-hidden="true"
-                  className={cn(
-                    "pointer-events-none inline-flex shrink-0 select-none items-center justify-center rounded-full px-2 py-px",
-                    "type-label-sm font-semibold leading-4 tabular-nums",
-                    active
-                      ? "bg-[rgb(var(--tone-primary-container,var(--m3-secondary-container)))] text-[rgb(var(--tone-on-primary-container,var(--m3-on-secondary-container)))]"
-                      : "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]"
-                  )}
-                >
-                  {tab.count > 99 ? "99+" : tab.count}
-                </span>
+                  className="pointer-events-none select-none"
+                />
                 <span className="sr-only">
                   {formatMessage({ id: "cockpit.tabRail.itemCount" }, { count: tab.count })}
                 </span>
               </>
+            ) : null}
+
+            {active ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
+              />
             ) : null}
           </button>
         );

@@ -213,7 +213,9 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
       renderGate();
 
       const approvingButton = screen.getByRole("button", { name: /approve all/i });
-      expect(approvingButton).toBeDisabled();
+      // Held while granting but focusable: aria-disabled and aria-busy (DL-115).
+      expect(approvingButton).toHaveAttribute("aria-disabled", "true");
+      expect(approvingButton).toHaveAttribute("aria-busy", "true");
     });
   });
 

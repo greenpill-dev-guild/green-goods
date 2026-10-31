@@ -1,6 +1,7 @@
-import { Domain, type Garden } from "../../types/domain";
-import { gardenHasMember } from "../../utils/app/garden";
+import { isGardenMembersOnly } from "../../config/garden-visibility";
+import { Domain, type Address, type Garden } from "../../types/domain";
 import { expandDomainMask } from "../../utils/domain";
+import { gardenMembership, isMyGarden } from "./membership";
 
 /** "open" keeps gardens anyone can join without an invitation, whether or not the viewer belongs. */
 export type GardenFilterScope = "all" | "mine" | "open";
@@ -15,6 +16,14 @@ export interface GardenFiltersState {
 
 /** What Home shows before anyone filters, and what Reset returns to. */
 export const DEFAULT_GARDEN_FILTERS: GardenFiltersState = { scope: "all", sort: "recent" };
+
+/**
+ * Whether the app may list a garden for an account: a family garden kept for its members is
+ * listed only when the account is one of them (DL-126); every other garden is listed for anyone.
+ */
+export function isGardenListedFor(garden: { id: string }, isMember: boolean): boolean {
+  return isMember || !isGardenMembersOnly(garden.id as Address);
+}
 
 /**
  * Read filters saved on the device. Saved input is untrusted: anything that is
@@ -39,7 +48,7 @@ export function parseGardenFilters(value: unknown): GardenFiltersState {
 export interface FilteredGardensResult {
   /** The filtered and sorted gardens */
   filteredGardens: Garden[];
-  /** Count of gardens where the user is a member */
+  /** Count of the account's own gardens (`modules/garden/membership`) */
   myGardensCount: number;
   /** Count of gardens anyone can join, whatever the current scope */
   openGardensCount: number;
@@ -75,27 +84,16 @@ export function filterGardens(
   userAddress: string | null
 ): FilteredGardensResult {
   const { scope, sort, domains = [] } = filters;
+  const isMine = (garden: Garden) => isMyGarden(gardenMembership(garden, userAddress));
+  const visibleGardens = gardens.filter((garden) => isGardenListedFor(garden, isMine(garden)));
 
-  // Count user's gardens
-  const myGardensCount = userAddress
-    ? gardens.reduce(
-        (count, garden) =>
-          count + (gardenHasMember(userAddress, garden.gardeners, garden.stewards) ? 1 : 0),
-        0
-      )
-    : 0;
-  const openGardens = gardens.filter((garden) => garden.openJoining === true);
+  const myGardens = visibleGardens.filter(isMine);
+  const openGardens = visibleGardens.filter((garden) => garden.openJoining === true);
 
   // Filter by scope
-  let working = gardens;
+  let working = visibleGardens;
   if (scope === "mine") {
-    if (!userAddress) {
-      working = [];
-    } else {
-      working = gardens.filter((garden) =>
-        gardenHasMember(userAddress, garden.gardeners, garden.stewards)
-      );
-    }
+    working = myGardens;
   } else if (scope === "open") {
     working = openGardens;
   }
@@ -128,7 +126,7 @@ export function filterGardens(
 
   return {
     filteredGardens,
-    myGardensCount,
+    myGardensCount: myGardens.length,
     openGardensCount: openGardens.length,
     isFilterActive,
     activeFilterCount,

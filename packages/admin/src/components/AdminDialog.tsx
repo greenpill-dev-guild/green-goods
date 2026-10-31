@@ -1,20 +1,22 @@
-import { RiAlertLine, RiCloseLine } from "@remixicon/react";
+import { RiCloseLine } from "@remixicon/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   type ComponentType,
   type KeyboardEventHandler,
   type ReactNode,
   type RefObject,
-  isValidElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { SheetActions } from "@green-goods/shared/components/Dialog/SheetActions";
+import { SheetGrip } from "@green-goods/shared/components/Dialog/SheetHeader";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { AdminButton } from "./AdminButton";
+import { AdminDialogHeader } from "./AdminDialogHeader";
 import { releaseStuckDialogArtifacts } from "./Layout/dialogCloseSafetyNet";
 
 // ============================================================================
@@ -33,6 +35,7 @@ export interface AdminDialogProps {
    */
   target?: ReactNode;
   description?: ReactNode;
+  /** Accepted for existing callers and not drawn: the shared header carries no icon (DL-028, DL-117). */
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
   actions?: ReactNode;
@@ -79,6 +82,7 @@ export interface AdminConfirmDialogProps {
   /** Disables only the confirm action (cancel/close stay usable), e.g. while
    * the data the confirmation describes is still being refreshed. */
   confirmDisabled?: boolean;
+  /** Accepted for existing callers and not drawn: the tone lives in the confirm and the role (DL-028). */
   icon?: ReactNode;
   /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
   tone?: AdminDialogProps["tone"];
@@ -133,6 +137,15 @@ const mobileSheetClasses = cn(
   "sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-full sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2"
 );
 
+// The centered dialog's own surface: page-container corners, the warm
+// container step and elevation 2. Below 640px the shared bottom sheet's
+// material (`[data-sheet-surface]`, shared utilities.css) takes its place.
+const dialogSurfaceClasses = cn(
+  "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
+  "bg-[rgb(var(--m3-surface-container-high))]",
+  "shadow-[var(--m3-elevation-2)]"
+);
+
 const closeButtonClasses = cn(
   // Centered on the compact header title row (py-3 + the 28px title-large line).
   "absolute right-3 top-1.5 z-10",
@@ -157,14 +170,22 @@ const closeButtonClasses = cn(
  * same product as the flows:
  * - Shape: page-container radius (16dp) via --m3-shape-lg; surface-container-high;
  *   elevation 2 over the scrim (the ladder tops out at level 2)
- * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
- *   an optional inline icon, title-large title, type-body description
+ * - Header: the shared `SheetHeader` (DL-117): the title-large title, the
+ *   target line, the type-body description and the close button on the
+ *   title's line, with no icon and no rule; the body shows a hairline only
+ *   while it scrolls under it
  * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
  * - Actions: pinned footer bar — hairline top border on --surface-raised
  *   (the SheetFooter anatomy the flows use), buttons right-aligned
- * - Close button: absolute top-right, centered on the title row
- * - palette/flow suppress the structured header/padding and own their chrome
+ * - palette/flow suppress the structured header/padding and own their chrome,
+ *   beside an absolute close button
  * - Animations: sheet slide-up (mobile) / zoom (desktop) on open/close
+ *
+ * Below 640px every variant is the installed app's bottom sheet in look (F5):
+ * the shared sheet material and grip (`SheetGrip`, visual only: the sheet does
+ * not drag), under the same header. Radix still owns opening, closing, focus
+ * and dismissal at every width, which is why the dialog keeps its own surface
+ * rather than rendering `DialogShell` (DL-117).
  */
 export function AdminDialog({
   open,
@@ -172,7 +193,6 @@ export function AdminDialog({
   title,
   target,
   description,
-  icon: Icon,
   children,
   actions,
   size = "md",
@@ -194,8 +214,12 @@ export function AdminDialog({
   tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
+  const closeLabel = formatMessage({ id: "app.common.close" });
   const rendersAsSheet = useMediaQuery("(max-width: 639px)");
   const mobileSheetSize = rendersAsSheet ? sheetSize : undefined;
+  // The control that had focus when the dialog opened. Radix hands focus back
+  // only to a Dialog.Trigger, which these controlled dialogs do not have.
+  const openedFrom = useRef<HTMLElement | null>(null);
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence keeps the
   // exit node (and its body pointer-events lock) forever. Closing with
@@ -230,12 +254,6 @@ export function AdminDialog({
   // structured header (icon/title/description) is suppressed and the title is
   // kept screen-reader-only for the Radix dialog a11y contract.
   const hasStructuredHeader = variant !== "palette" && variant !== "flow";
-  const iconNode =
-    typeof Icon === "function" ? (
-      <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
-    ) : isValidElement(Icon) ? (
-      Icon
-    ) : null;
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -262,6 +280,7 @@ export function AdminDialog({
           data-variant={variant}
           data-tone={tone}
           data-mobile="sheet"
+          data-sheet-surface={rendersAsSheet ? "" : undefined}
           data-sheet-size={mobileSheetSize}
           data-size={size}
           data-instant-exit={instantExit || undefined}
@@ -269,11 +288,8 @@ export function AdminDialog({
           className={cn(
             // Every mobile variant spans the viewport; desktop sizing remains variant-specific.
             mobileSheetClasses,
-            "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
-            // Surface
-            "bg-[rgb(var(--m3-surface-container-high))]",
-            // Elevation 2
-            "shadow-[var(--m3-elevation-2)]",
+            // Below 640px the shared sheet material paints the surface instead.
+            !rendersAsSheet && dialogSurfaceClasses,
             // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
             // the [data-component="AdminDialog"][data-slot="surface"][data-state]
             // rules in admin-m3-components.css. Those keyframes animate only
@@ -298,18 +314,32 @@ export function AdminDialog({
             if (preventClose) event.preventDefault();
           }}
           onKeyDown={onKeyDown}
+          onOpenAutoFocus={() => {
+            const active = document.activeElement;
+            openedFrom.current =
+              active instanceof HTMLElement && active !== document.body ? active : null;
+          }}
           onCloseAutoFocus={(event) => {
-            if (!finalFocusRef?.current) return;
+            // Focus returns to the opener: the caller's ref, else the control
+            // that had focus when the dialog opened, if it is still on the page.
+            const target = finalFocusRef?.current ?? openedFrom.current;
+            openedFrom.current = null;
+            if (!target?.isConnected) return;
             event.preventDefault();
-            finalFocusRef.current.focus();
+            target.focus();
           }}
         >
-          {/* Close button - absolute top-right */}
-          {!hideCloseButton ? (
+          {/* Below 640px the sheet's grip tops the surface. It marks the
+              sheet only: the cockpit's sheet does not drag. */}
+          {rendersAsSheet ? <SheetGrip /> : null}
+
+          {/* Close button - absolute top-right for palette and flow, under the
+              grip below 640px. A structured dialog's close sits in its header. */}
+          {!hideCloseButton && !hasStructuredHeader ? (
             <Dialog.Close
               data-slot="close"
-              className={closeButtonClasses}
-              aria-label={formatMessage({ id: "app.common.close" })}
+              className={cn(closeButtonClasses, rendersAsSheet && "top-7")}
+              aria-label={closeLabel}
               disabled={preventClose}
             >
               <RiCloseLine className="h-6 w-6" aria-hidden />
@@ -317,40 +347,17 @@ export function AdminDialog({
           ) : null}
 
           {hasStructuredHeader ? (
-            <header
-              data-slot="header"
-              className={cn(
-                "shrink-0 border-b border-stroke-soft px-4 py-3 sm:px-6",
-                // Clearance for the absolute close button on the title row.
-                !hideCloseButton && "pr-14"
-              )}
-            >
-              <div className="flex items-start gap-3">
-                {iconNode ? (
-                  <span className="mt-0.5 shrink-0" aria-hidden="true">
-                    {iconNode}
-                  </span>
-                ) : null}
-                <div className="min-w-0">
-                  <Dialog.Title className="type-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">
-                    {title}
-                  </Dialog.Title>
-                  {target ? (
-                    <div data-slot="target" className="mt-2">
-                      {target}
-                    </div>
-                  ) : null}
-                  <Dialog.Description
-                    className={cn(
-                      description ? "mt-0.5 type-body" : "sr-only",
-                      "text-[rgb(var(--m3-on-surface-variant))]"
-                    )}
-                  >
-                    {description ?? title}
-                  </Dialog.Description>
-                </div>
-              </div>
-            </header>
+            <AdminDialogHeader
+              title={title}
+              target={target}
+              description={description}
+              rendersAsSheet={rendersAsSheet}
+              closeLabel={closeLabel}
+              onClose={() => handleOpenChange(false)}
+              closeDisabled={preventClose}
+              hideCloseButton={hideCloseButton}
+              closeTestId="admin-dialog-close"
+            />
           ) : (
             <>
               <Dialog.Title className="sr-only">{title}</Dialog.Title>
@@ -361,6 +368,9 @@ export function AdminDialog({
           <div
             data-slot="body"
             data-testid="admin-dialog-body"
+            // Under the shared header, a hairline shows only while the body
+            // scrolls under it (DL-028).
+            data-scroll-edge={hasStructuredHeader ? "top" : undefined}
             className={cn(
               "min-h-0 flex-1 overflow-y-auto type-body",
               "text-[rgb(var(--m3-on-surface-variant))]",
@@ -411,7 +421,6 @@ export function AdminConfirmDialog({
   variant = "default",
   isLoading = false,
   confirmDisabled = false,
-  icon,
   tone,
   target,
   children,
@@ -421,13 +430,6 @@ export function AdminConfirmDialog({
   const resolvedCancelLabel = cancelLabel ?? formatMessage({ id: "app.common.cancel" });
   const isDanger = variant === "danger";
   const isWarning = variant === "warning";
-  const iconNode =
-    icon ??
-    (isDanger || isWarning ? (
-      <RiAlertLine
-        className={cn("h-6 w-6", isDanger ? "text-[rgb(var(--m3-error))]" : "text-warning-dark")}
-      />
-    ) : null);
 
   const handleCancel = async () => {
     try {
@@ -465,27 +467,26 @@ export function AdminConfirmDialog({
       title={title}
       target={target}
       description={description}
-      icon={iconNode}
       variant="confirm"
       tone={tone}
       role={isDanger || isWarning ? "alertdialog" : "dialog"}
       preventClose={isLoading}
       hideCloseButton={isLoading}
       actions={
-        <>
-          <AdminButton type="button" variant="text" onClick={handleCancel} disabled={isLoading}>
-            {resolvedCancelLabel}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant={isDanger ? "danger" : "filled"}
-            onClick={handleConfirm}
-            disabled={isLoading || confirmDisabled}
-            loading={isLoading}
-          >
-            {resolvedConfirmLabel}
-          </AdminButton>
-        </>
+        // The shared action bar (DL-016): Cancel outlined, the confirm filled,
+        // in the warning or danger fill when the dialog warns, its one tone cue
+        // now the header has no icon. A loading confirm stays focusable and
+        // ignores activation.
+        <SheetActions
+          primary={{
+            label: resolvedConfirmLabel,
+            onClick: handleConfirm,
+            loading: isLoading,
+            disabled: !isLoading && confirmDisabled,
+            tone: variant,
+          }}
+          secondary={{ label: resolvedCancelLabel, onClick: handleCancel, disabled: isLoading }}
+        />
       }
     >
       {description ? null : (

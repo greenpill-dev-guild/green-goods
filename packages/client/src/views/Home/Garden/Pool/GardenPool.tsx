@@ -1,5 +1,6 @@
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   type GardenPoolDirection,
   type GardenPoolLiveness,
@@ -10,27 +11,29 @@ import {
   type CommitmentCycleRecord,
   type CommitmentPoolRecord,
   usePoolCharter,
+  useServiceOfferLines,
 } from "@green-goods/shared/commitment-pooling";
-import { RiInformationLine } from "@remixicon/react";
-import { useState } from "react";
+import { RiFilterOffLine, RiInformationLine } from "@remixicon/react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 import { formatSavedAt } from "@/components/Communication/Offline/formatSavedAt";
 import {
-  CommitmentRow,
   CommitmentStateLadder,
+  CycleDetailsSheet,
+  CycleRail,
+  PendingCreationRow,
   PromiseGroupRow,
+  PromiseRow,
 } from "@/components/Features/Commitments";
 import {
   GardenListHeader,
   GardenListHeaderLoading,
   GardenListHeaderSpace,
 } from "@/components/Features/Garden";
+import { serviceOfferDetail } from "@/components/Features/Commitments/serviceOfferDetail";
 import { AppSheet } from "@/components/Sheets/AppSheet";
-import { CycleDetailsSheet } from "./CycleDetailsSheet";
-import { CycleRail } from "./CycleRail";
-import { PendingCreationRow } from "./PendingCreationRow";
 import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
 import { PoolLifecycleNotice } from "./PoolLifecycleNotice";
 
@@ -72,12 +75,22 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const { formatMessage } = intl;
   const navigate = useNavigate();
   const controller = useGardenPoolController(pool);
-  // Copies of one set fold into a group row; the reader's own stay ordinary rows.
+  // Copies of one set fold into a group row, counted on the chain's clock as the group's page
+  // counts them; the reader's own stay ordinary rows.
   const entries = usePoolPromiseEntries({
+    chainId: controller.chainId,
+    poolId: pool.poolId,
     rows: controller.rows,
     commitments: controller.commitments.commitments,
     viewer: controller.viewer,
   });
+  // A service offer says what booking takes first and who promises it, as on the garden's list
+  // over Home (PRD-1299, decision 12): the same row for a visitor.
+  const serviceOffers = useMemo(
+    () => controller.rows.map(({ commitment }) => commitment),
+    [controller.rows]
+  );
+  const serviceLines = useServiceOfferLines({ chainId: controller.chainId, offers: serviceOffers });
   const [charterOpen, setCharterOpen] = useState(false);
   // The last cycle stays drawn while its sheet closes.
   const [details, setDetails] = useState<{ cycle: CommitmentCycleRecord | null; open: boolean }>({
@@ -227,7 +240,10 @@ export function GardenPool({ pool }: GardenPoolProps) {
           }}
         >
           {controller.shownCreations.length > 0 ? (
-            <div className="mb-2 space-y-2" data-component="PoolPendingCreations">
+            <div
+              className="mb-(--gg-list-gap) flex flex-col gap-(--gg-list-gap)"
+              data-component="PoolPendingCreations"
+            >
               {controller.shownCreations.map((creation) => (
                 <PendingCreationRow
                   key={creation.jobId}
@@ -243,18 +259,24 @@ export function GardenPool({ pool }: GardenPoolProps) {
 
           {controller.rows.length === 0 ? (
             controller.shownCreations.length === 0 ? (
-              <p className="py-6 text-center text-sm text-text-sub-600">
-                {formatMessage({ id: "app.commitments.filter.noMatches" })}
-              </p>
+              <EmptyState
+                placement="list"
+                icon={<RiFilterOffLine />}
+                title={formatMessage({ id: "app.commitments.filter.noMatches" })}
+              />
             ) : null
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-col gap-(--gg-list-gap)">
               {entries.map((entry) =>
                 entry.kind === "single" ? (
-                  <CommitmentRow
+                  <PromiseRow
                     key={entry.row.commitment.id}
                     row={entry.row}
                     title={controller.titleOf(entry.row.commitment.metadataCID)}
+                    service={serviceOfferDetail(
+                      intl,
+                      serviceLines.get(entry.row.commitment.commitmentId.toString())
+                    )}
                     onOpen={(id) => navigate(`commitments/${id.toString()}`)}
                   />
                 ) : (

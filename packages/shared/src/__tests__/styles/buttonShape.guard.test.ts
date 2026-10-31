@@ -278,12 +278,26 @@ describe("field shape guard (DL-022, DL-023)", () => {
     );
   });
 
-  it("gives the upload well and the field label their own shared classes (DL-031)", () => {
+  it("gives the upload well, the field label and the message line their own shared classes (DL-031)", () => {
     expect(declaration(block(".gg-control-dropzone"), "border-style")).toBe("dashed");
     expect(declaration(block(".gg-field-label"), "font-size")).toBe("var(--gg-label-sm)");
     expect(declaration(block(".gg-field-label"), "font-weight")).toBe(
       "var(--text-label-md--font-weight, 500)"
     );
+    // The message line reserves the surface's lines, two unless a surface sets its own (F3).
+    expect(declaration(block(".gg-field-message"), "min-block-size")).toBe(
+      "calc(var(--gg-field-message-lines, 2) * 1lh)"
+    );
+    expect(declaration(block(".gg-field-help"), "font-size")).toBe("var(--gg-type-meta-size)");
+  });
+
+  it("rings a message line a reader reaches by Tab in the one focus role (DL-098)", () => {
+    // FormField's and FormattedAmountInput's message line is a Tab stop; without a ring
+    // of its own it showed the browser's.
+    const focused = block(".gg-field-message:focus-visible");
+    expect(declaration(focused, "outline")).toBe("2px solid rgb(var(--gg-focus-ring))");
+    expect(declaration(focused, "outline-offset")).toBe("2px");
+    expect(theme).toMatch(/:where\([^)]*\.gg-field-message\)\s*\{\s*--gg-focus-ring:/);
   });
 });
 

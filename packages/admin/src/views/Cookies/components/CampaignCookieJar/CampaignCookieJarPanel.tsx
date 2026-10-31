@@ -9,7 +9,6 @@ import { useCampaignCookieJarCampaigns } from "@green-goods/shared/hooks/cookie-
 import { useCookieJarFactoryAddress } from "@green-goods/shared/hooks/cookie-jar/useCookieJarFactoryAddress";
 import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import type { Garden } from "@green-goods/shared/types/domain";
 import {
   aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarMetadata,
@@ -75,14 +74,6 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
     setSyncCampaignImage(draft.image);
     setSyncCampaignImageFile(null);
   }, [selectedCampaign, syncJar.jar?.metadata]);
-
-  const gardensByAddress = useMemo(() => {
-    const map = new Map<string, Garden>();
-    for (const garden of gardens) {
-      map.set(garden.id.toLowerCase(), garden);
-    }
-    return map;
-  }, [gardens]);
 
   const visibleCampaigns = useMemo(
     () => filterCampaignCookieJarCampaigns(campaigns, campaignSearch),
@@ -279,7 +270,6 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
         campaignSearch,
         setCampaignSearch,
         visibleCampaigns,
-        gardensByAddress,
         setSelectedCampaign,
         selectedCampaign,
         selectedCampaignTitle,

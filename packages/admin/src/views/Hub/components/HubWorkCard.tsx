@@ -1,3 +1,4 @@
+import { MediaCard, type MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Domain, Work } from "@green-goods/shared/types/domain";
@@ -5,10 +6,10 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime, normalizeTimestamp } from "@green-goods/shared/utils/time";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { adminCardVariants } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
+import { hubWorkTitle } from "./hubWorkTitle";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -33,6 +34,11 @@ export interface HubWorkCardProps {
    * success, everything else neutral.
    */
   statusTone?: HubWorkCardStatusTone;
+  /**
+   * `wide` lays the mosaic on the left with the text beside it, the desktop
+   * queue's card (F12); `stacked` puts it on top.
+   */
+  layout?: MediaCardLayout;
   selected?: boolean;
   /** true for first 6 cards (above the fold) */
   eagerImages?: boolean;
@@ -109,6 +115,63 @@ function DomainGradientFallback({ domain, className }: { domain?: Domain; classN
 }
 
 // ---------------------------------------------------------------------------
+// WorkMosaic — the work's own picture: up to three of its photos, or its
+// domain's gradient. It fills the media card's frame at either layout.
+// ---------------------------------------------------------------------------
+
+function WorkMosaic({
+  mediaUrls,
+  title,
+  eager,
+  domain,
+}: {
+  mediaUrls: string[];
+  title: string;
+  eager?: boolean;
+  domain?: Domain;
+}) {
+  const photo = (index: number, className = "h-full") => (
+    <ImageCell
+      key={index}
+      src={mediaUrls[index]}
+      alt={mediaUrls.length === 1 ? title : `${title} — ${index + 1}`}
+      eager={eager}
+      domain={domain}
+      className={className}
+    />
+  );
+
+  let photos: ReactNode;
+  if (mediaUrls.length === 0) {
+    photos = <DomainGradientFallback domain={domain} className="h-full" />;
+  } else if (mediaUrls.length === 1) {
+    photos = photo(0);
+  } else if (mediaUrls.length === 2) {
+    photos = (
+      <div className="grid h-full grid-cols-2 gap-px bg-stroke-soft">
+        {photo(0)}
+        {photo(1)}
+      </div>
+    );
+  } else {
+    photos = (
+      <div className="grid h-full grid-cols-[1.35fr_1fr] grid-rows-2 gap-px bg-stroke-soft">
+        {photo(0, "row-span-2 h-full")}
+        {photo(1)}
+        {photo(2)}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {photos}
+      <div className="admin-media-readability-overlay pointer-events-none absolute inset-0" />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // HubWorkCard
 // ---------------------------------------------------------------------------
 
@@ -120,6 +183,7 @@ export function HubWorkCard({
   gardenerDisplayName,
   statusLabel,
   statusTone,
+  layout = "stacked",
   selected = false,
   eagerImages,
   onClick,
@@ -161,153 +225,50 @@ export function HubWorkCard({
     ? localizeCanonicalActionTitle(actionDisplayTitle, formatMessage)
     : undefined;
   // A work whose own title is generated or missing reads as its action.
-  const title = localizeCanonicalActionTitle(
-    toWorkDisplayTitle(
-      work.title,
-      actionDisplayTitle ||
-        formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" })
-    ),
-    formatMessage
-  );
+  const title = hubWorkTitle(work.title, actionTitle, formatMessage);
   const visibleActionTitle =
     localizedActionTitle && localizedActionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
       ? localizedActionTitle
       : undefined;
 
   return (
-    <button
-      type="button"
+    <MediaCard
+      layout={layout}
+      selected={selected}
       onClick={onClick}
-      data-selected={selected ? "true" : "false"}
-      className={cn(
-        adminCardVariants({ variant: "elevated", density: "none", interactive: true }),
-        "hub-work-card group block h-full w-full overflow-hidden text-left",
-        "active:translate-y-0 motion-reduce:hover:translate-y-0 motion-reduce:active:translate-y-0 motion-reduce:transition-none",
-        "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-primary,var(--primary-base))))] focus-visible:ring-offset-2"
-      )}
-    >
-      <div className="relative overflow-hidden border-b border-stroke-soft">
-        {totalMedia === 0 ? (
-          <DomainGradientFallback domain={actionDomain} className="aspect-[16/9]" />
-        ) : totalMedia === 1 ? (
-          <ImageCell
-            src={mediaUrls[0]}
-            alt={title}
-            eager={eagerImages}
-            domain={actionDomain}
-            className="aspect-[16/9]"
-          />
-        ) : totalMedia === 2 ? (
-          <div className="grid aspect-[16/9] grid-cols-2 gap-px bg-stroke-soft">
-            <ImageCell
-              src={mediaUrls[0]}
-              alt={`${title} — 1`}
-              eager={eagerImages}
-              domain={actionDomain}
-              className="h-full"
-            />
-            <ImageCell
-              src={mediaUrls[1]}
-              alt={`${title} — 2`}
-              eager={eagerImages}
-              domain={actionDomain}
-              className="h-full"
-            />
-          </div>
-        ) : (
-          <div className="grid aspect-[16/9] grid-cols-[1.35fr_1fr] gap-px bg-stroke-soft">
-            <ImageCell
-              src={mediaUrls[0]}
-              alt={`${title} — 1`}
-              eager={eagerImages}
-              domain={actionDomain}
-              className="h-full"
-            />
-            <div className="grid h-full gap-px">
-              <ImageCell
-                src={mediaUrls[1]}
-                alt={`${title} — 2`}
-                eager={eagerImages}
-                domain={actionDomain}
-                className="h-full"
-              />
-              <ImageCell
-                src={mediaUrls[2]}
-                alt={`${title} — 3`}
-                eager={eagerImages}
-                domain={actionDomain}
-                className="h-full"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="admin-media-readability-overlay pointer-events-none absolute inset-0" />
-
-        {/* Domain chip — 1a spec: white/90 pill bottom-left, 11px/600 neutral ink
-            (never domain- or tone-colored on the card surface). */}
-        {domainConfig && (
-          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] type-meta-sm font-semibold text-text-sub">
-            {formatMessage({ id: domainConfig.labelId })}
-          </span>
-        )}
-
-        {totalMedia > 1 && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-static-black/60 px-2 py-1 type-meta-sm font-medium text-static-white">
-            1 / {totalMedia}
-          </span>
-        )}
-      </div>
-
-      {/* Body — 14px padding, 10px column gap (1a card anatomy). */}
-      <div
-        className="space-y-2.5 p-3.5"
-        title={localizedActionTitle ? `${localizedActionTitle} · ${gardenName}` : gardenName}
-      >
-        <div className="flex items-start justify-between gap-2.5">
-          <h3
-            className="min-w-0 flex-1 type-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
-            // The hover reveals a clamped title, so it reads the same clean title.
-            title={title}
-          >
-            {title}
-          </h3>
-          <span
-            className={cn(
-              "inline-flex shrink-0 rounded-full px-2.5 py-[3px] type-meta-sm font-semibold",
-              STATUS_CHIP_TONE_CLASSES[resolvedStatusTone]
-            )}
-          >
-            {resolvedStatusLabel}
-          </span>
-        </div>
-
-        {/* Action title — the Work tab's search matches on it
-            (filterWorksByScope), so it has to stay visible or a hit renders a
-            card with no matching text. Suppressed when the work title already
-            carries it, which is the common generated-title case. */}
-        {visibleActionTitle && (
-          <p className="truncate type-label-sm text-text-sub" title={visibleActionTitle}>
-            {visibleActionTitle}
-          </p>
-        )}
-
-        {/* Meta row — gardener (500, sub ink) · relative timestamp (soft ink).
-            Garden name lives in the hover title only; chrome declares garden
-            context (Frontend Rule 17). */}
-        <div className="flex items-center justify-between gap-3 type-label-sm">
-          <p className="min-w-0 truncate font-medium text-text-sub" title={gardenerDisplayName}>
-            {gardenerDisplayName}
-          </p>
-          <time
-            className="shrink-0 text-text-soft"
-            dateTime={submittedAtIso}
-            title={submittedAtExact}
-          >
-            {submittedAgoText}
-          </time>
-        </div>
-      </div>
-    </button>
+      media={
+        <WorkMosaic mediaUrls={mediaUrls} title={title} eager={eagerImages} domain={actionDomain} />
+      }
+      // The domain and the photo count are marks on the picture (one pill per
+      // card): the domain a neutral chip, never a domain or tone color.
+      mediaLabel={domainConfig ? formatMessage({ id: domainConfig.labelId }) : undefined}
+      mediaCount={totalMedia > 1 ? `1 / ${totalMedia}` : undefined}
+      title={title}
+      status={
+        <span
+          className={cn(
+            "inline-flex shrink-0 rounded-full px-2.5 py-0.75 type-meta-sm font-semibold",
+            STATUS_CHIP_TONE_CLASSES[resolvedStatusTone]
+          )}
+        >
+          {resolvedStatusLabel}
+        </span>
+      }
+      // Action title — the Work tab's search matches on it (filterWorksByScope),
+      // so it has to stay visible or a hit renders a card with no matching text.
+      // Suppressed when the work title already carries it, which is the common
+      // generated-title case; the empty line keeps stacked cards one height.
+      subtitle={visibleActionTitle ?? ""}
+      // Detail line — gardener (500, sub ink) · relative timestamp (soft ink).
+      // Garden name lives in the hover title only; chrome declares garden
+      // context (Frontend Rule 17).
+      details={<span title={gardenerDisplayName}>{gardenerDisplayName}</span>}
+      detailsEnd={
+        <time dateTime={submittedAtIso} title={submittedAtExact}>
+          {submittedAgoText}
+        </time>
+      }
+      detailsTitle={localizedActionTitle ? `${localizedActionTitle} · ${gardenName}` : gardenName}
+    />
   );
 }

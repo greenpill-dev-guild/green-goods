@@ -58,6 +58,22 @@ describe("presentation route trees", () => {
     expect(ids).not.toContain(CLIENT_ROUTE_IDS.publicHome);
   });
 
+  // Explore lives under Home, so Home stays mounted and the bottom bar stays on it (DL-125).
+  it("opens Explore under Home, declared before the garden route so it is never an id", () => {
+    const home = findRoute(pwaAppRoutes, CLIENT_ROUTE_IDS.home);
+    const childIds = (home?.children ?? []).map((route) => route.id);
+    expect(childIds.indexOf(CLIENT_ROUTE_IDS.homeExplore)).toBeGreaterThanOrEqual(0);
+    expect(childIds.indexOf(CLIENT_ROUTE_IDS.homeExplore)).toBeLessThan(
+      childIds.indexOf(CLIENT_ROUTE_IDS.garden)
+    );
+
+    const explore = matchRoutes(pwaAppRoutes, "/home/explore")?.map(({ route }) => route.id);
+    expect(explore).toContain(CLIENT_ROUTE_IDS.home);
+    expect(explore?.at(-1)).toBe(CLIENT_ROUTE_IDS.homeExplore);
+    const garden = matchRoutes(pwaAppRoutes, "/home/0x1111111111111111111111111111111111111111");
+    expect(garden?.at(-1)?.route.id).toBe(CLIENT_ROUTE_IDS.garden);
+  });
+
   it("never sets an error state on a route whose own code can fail to load", () => {
     // React Router does not render a route whose `lazy` import failed, its `errorElement`
     // included: the page would be blank. A state therefore sits on a route with no code of its
@@ -85,7 +101,7 @@ describe("presentation route trees", () => {
     // The shell has no state of its own: with the header gone, only the site's can be trusted.
     expect(errorView(shell)).toBeUndefined();
     expect((shell?.children ?? []).map(errorView)).toEqual(["page", "ceremony"]);
-    // The reporting pages are drawn as the app draws, so they fail as it does; nothing else does.
+    // The reporting pages fail inside their focused bar (the ceremony screen); nothing else does.
     expect(ceremony.children?.map((route) => isReporting(route))).toEqual([true, true, true]);
     expect(pages.children?.some(isReporting)).toBe(false);
     expect(collectRouteIds(pages.children ?? [])).toEqual(

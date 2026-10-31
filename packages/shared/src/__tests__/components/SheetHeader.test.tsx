@@ -3,7 +3,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { describe, expect, it, vi } from "vitest";
-import { SheetHeader } from "../../components/Dialog/SheetHeader";
+import { SheetGrip, SheetHeader } from "../../components/Dialog/SheetHeader";
 
 describe("SheetHeader (DL-028)", () => {
   it("renders the title, description, and a borderless Close button, and no icon slot", () => {
@@ -68,5 +68,50 @@ describe("SheetHeader (DL-028)", () => {
     expect(dialog.querySelector('[data-slot="title"]')).toHaveAttribute("id");
     expect(dialog.querySelector('[data-slot="root"]')).toHaveAttribute("data-standalone");
     expect(screen.getByTestId("dialog-shell-close")).toHaveAccessibleName("Close");
+  });
+
+  it("names what the act writes to between the title and the description, outside the description", () => {
+    render(
+      <div role="dialog" aria-labelledby="title" aria-describedby="description">
+        <SheetHeader
+          title="Close This Pool"
+          titleId="title"
+          target={<p>Writing to Rocinha’s pool</p>}
+          description="Closing ends participation for every member."
+          descriptionId="description"
+          closeLabel="Close"
+          onClose={vi.fn()}
+        />
+      </div>
+    );
+    const dialog = screen.getByRole("dialog", { name: "Close This Pool" });
+    expect(dialog).toHaveAccessibleDescription("Closing ends participation for every member.");
+    const order = Array.from(dialog.querySelectorAll("[data-slot]"), (node) =>
+      node.getAttribute("data-slot")
+    );
+    expect(order.indexOf("target")).toBeGreaterThan(order.indexOf("title"));
+    expect(order.indexOf("target")).toBeLessThan(order.indexOf("description"));
+    expect(screen.getByText("Writing to Rocinha’s pool").parentElement).toHaveAttribute(
+      "data-slot",
+      "target"
+    );
+  });
+
+  it("makes the grip a grab area only when a sheet binds the gesture to it", () => {
+    const onPointerDown = vi.fn();
+    render(
+      <>
+        <SheetGrip testId="marks-only" />
+        <SheetGrip testId="drags" dragHandlers={{ onPointerDown }} />
+      </>
+    );
+    const marksOnly = screen.getByTestId("marks-only");
+    expect(marksOnly).not.toHaveAttribute("data-drag-region");
+    expect(marksOnly.style.touchAction).toBe("");
+    const drags = screen.getByTestId("drags");
+    expect(drags).toHaveAttribute("data-drag-region");
+    expect(drags.style.touchAction).toBe("none");
+    fireEvent.pointerDown(drags);
+    expect(onPointerDown).toHaveBeenCalledOnce();
   });
 });

@@ -1,10 +1,16 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
 import { usePromiseGroupController } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroupController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import {
+  groupRewardsOf,
+  promiseRewardText,
+  rewardsNeedPrice,
+} from "@/components/Features/Commitments";
 import { type ClaimContext, ClaimContextSheet } from "../Commitment/ClaimContextSheet";
 import { CommitmentDetailState } from "../Commitment/CommitmentDetailShell";
 import { JoinToAct, MembershipCheckFailed } from "../Commitment/JoinToAct";
@@ -29,12 +35,18 @@ export function GardenPromiseGroup() {
   const [contextOpen, setContextOpen] = useState(false);
   const [context, setContext] = useState<ClaimContext | null>(null);
   const { state: takeUpState, reset } = controller.takeUp;
+  // Today's G$ price is read only for a reward whose dollars can't be read from its record.
+  const { rewards, open } = controller.group
+    ? groupRewardsOf(controller.group.children, controller.metadata)
+    : { rewards: [], open: false };
+  const price = useGoodDollarPrice({ enabled: rewardsNeedPrice(rewards) });
   const back = () => navigate(-1);
   const openCopy = (commitmentId: bigint) =>
     navigate(`/home/${gardenAddress}/commitments/${commitmentId.toString()}`);
 
-  // The act landed, or is on its way from this phone: the copy's own page is next.
-  const doneCopy = takeUpState.step === "done" ? takeUpState.copyId : null;
+  // The copy's page owns reward review as well as recovery of an admitted take-up.
+  const doneCopy =
+    takeUpState.step === "done" || takeUpState.step === "review" ? takeUpState.copyId : null;
   useEffect(() => {
     if (doneCopy === null) return;
     setSheetOpen(false);
@@ -70,6 +82,13 @@ export function GardenPromiseGroup() {
         { month: "short", day: "numeric", year: "numeric" }
       )}`
     : null;
+  // With no copy left to take up, each copy's payout stands apart, so the page gives amounts alone.
+  const reward = promiseRewardText({
+    intl,
+    rewards,
+    price: price.state,
+    payout: open ? "afterKept" : "unstated",
+  });
   const inFlight = takeUpState.step === "checking" || takeUpState.step === "sending";
   const closeSheet = () => {
     if (inFlight) return;
@@ -84,6 +103,7 @@ export function GardenPromiseGroup() {
         title={title}
         sample={sample}
         note={controller.metadata?.note ?? null}
+        reward={reward}
         counts={controller.counts}
         availabilityKnown={controller.availabilityKnown}
         cap={controller.cap}
@@ -129,6 +149,7 @@ export function GardenPromiseGroup() {
           actLabelId={GROUP_ACT_LABEL[controller.bar.act]}
           title={title}
           terms={[units, due].filter(Boolean).join(" · ") || null}
+          reward={reward}
           state={takeUpState}
           onTakeUp={() => controller.takeUp.start(context)}
           onTakeUpNext={controller.takeUp.confirm}

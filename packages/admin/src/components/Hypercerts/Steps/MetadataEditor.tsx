@@ -1,3 +1,4 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { DatePicker } from "@green-goods/shared/components/DatePicker/DatePicker";
 import { selectHypercertTimeframeOrder } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { GardenAssessment } from "@green-goods/shared/types/domain";
@@ -13,7 +14,6 @@ import {
 } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
@@ -206,20 +206,20 @@ export function MetadataEditor({
             </p>
           </div>
           {suggestedStart && suggestedEnd && (
-            <AdminButton
+            <Button
               type="button"
-              variant="outlined"
-              size="sm"
+              emphasis="secondary"
+              size="compact"
               onClick={() => {
                 onUpdate({
                   workTimeframeStart: suggestedStart,
                   workTimeframeEnd: suggestedEnd,
                 });
               }}
-              leadingIcon={<RiSparklingLine />}
+              leadingIcon={<RiSparklingLine className="h-4 w-4" aria-hidden="true" />}
             >
               {formatMessage({ id: "app.hypercerts.metadata.useSuggested" })}
-            </AdminButton>
+            </Button>
           )}
         </div>
 
