@@ -51,7 +51,8 @@ const withLocale =
   );
 
 /**
- * The bell's sheet (DL-130): a tall sheet over Home with the garden named beneath its title,
+ * The bell's sheet (DL-130, DL-133): a full sheet over Home with All, Work and Promises tabs and
+ * Clear All in its bar, the garden named beneath its title,
  * listing the garden's events for the member, one item row each, newest first: own work approved,
  * or rejected with the review's feedback; a promise of theirs taken up; and, for whoever may act
  * on them, a new submission and a take-up request. Opening it marks the listed events seen.
@@ -73,19 +74,22 @@ const meta: Meta<typeof NotificationsSheet> = {
     isLoading: false,
     isError: false,
     isIncomplete: false,
-    markAllSeen: fn(),
+    markSeen: fn(),
+    clearAll: fn(),
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof NotificationsSheet>;
 
-async function expectEvents(sheetName: string, gardenLine: string, markAllSeen: unknown) {
+async function expectEvents(sheetName: string, gardenLine: string, markSeen: unknown) {
   const sheet = await screen.findByRole("dialog", { name: sheetName });
   await waitFor(() => expect(sheet).toBeVisible());
-  await expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+  await expect(sheet).toHaveAttribute("data-sheet-size", "full");
+  // All, Work and Promises (DL-133); the labels follow the locale.
+  await expect(within(sheet).getAllByRole("tab")).toHaveLength(3);
   await expect(within(sheet).getByText(gardenLine)).toBeVisible();
-  await expect(markAllSeen).toHaveBeenCalled();
+  await expect(markSeen).toHaveBeenCalled();
   const rows = within(sheet).getAllByRole("listitem");
   await expect(rows.map((row) => row.querySelector(".gg-item-row-title")?.textContent)).toEqual(
     ROW_TITLES
@@ -98,7 +102,7 @@ async function expectEvents(sheetName: string, gardenLine: string, markAllSeen: 
 export const Events: Story = {
   tags: ["storybook-ci"],
   play: async ({ args }) => {
-    await expectEvents("Notifications", "In TAS HUB", args.markAllSeen);
+    await expectEvents("Notifications", "In TAS HUB", args.markSeen);
   },
 };
 
@@ -106,7 +110,7 @@ export const Events: Story = {
 export const EventsAt375: Story = {
   globals: { viewport: { value: "mobile" } },
   play: async ({ args }) => {
-    await expectEvents("Notifications", "In TAS HUB", args.markAllSeen);
+    await expectEvents("Notifications", "In TAS HUB", args.markSeen);
   },
 };
 
@@ -114,7 +118,7 @@ export const EventsAt375: Story = {
 export const EventsSpanish: Story = {
   decorators: [withLocale("es")],
   play: async ({ args }) => {
-    await expectEvents("Notificaciones", "En TAS HUB", args.markAllSeen);
+    await expectEvents("Notificaciones", "En TAS HUB", args.markSeen);
   },
 };
 
@@ -122,7 +126,7 @@ export const EventsSpanish: Story = {
 export const EventsPortuguese: Story = {
   decorators: [withLocale("pt")],
   play: async ({ args }) => {
-    await expectEvents("Notificações", "Em TAS HUB", args.markAllSeen);
+    await expectEvents("Notificações", "Em TAS HUB", args.markSeen);
   },
 };
 

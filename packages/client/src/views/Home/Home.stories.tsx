@@ -121,7 +121,8 @@ function homeState(
       isLoading: false,
       isError: false,
       isIncomplete: false,
-      markAllSeen: fn(),
+      markSeen: fn(),
+      clearAll: fn(),
     });
     return resetHookMocks(
       useActiveGarden,

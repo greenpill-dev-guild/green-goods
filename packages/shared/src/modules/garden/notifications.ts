@@ -78,6 +78,11 @@ export interface GardenNotificationsSeen {
   seenThrough: number;
   /** The events after `seenThrough` the member was shown: each id with the event's time. */
   seen: Record<string, number>;
+  /**
+   * The events the member cleared from the sheet on this device (DL-133), by id, with when.
+   * Never trimmed with the week: an older event the garden's page still lists would come back.
+   */
+  cleared?: Record<string, number>;
 }
 
 /** What seen state needs of an event. */
@@ -167,7 +172,30 @@ export function markNotificationsSeen(
   const seen: Record<string, number> = {};
   for (const [id, at] of Object.entries(record?.seen ?? {})) if (at > seenThrough) seen[id] = at;
   for (const { id, at } of notifications) if (at > seenThrough) seen[id] = at;
-  return { seenThrough, seen };
+  return record?.cleared ? { seenThrough, seen, cleared: record.cleared } : { seenThrough, seen };
+}
+
+/** Whether this device has cleared an event from the bell's sheet (DL-133). */
+export function isNotificationCleared(
+  notification: SeenNotification,
+  record: GardenNotificationsSeen | undefined
+): boolean {
+  return Boolean(record?.cleared && Object.hasOwn(record.cleared, notification.id));
+}
+
+/**
+ * The record after the member cleared these events on this device (DL-133): each counts as
+ * seen and stays out of the sheet. A later event is new and listed as before.
+ */
+export function clearNotifications(
+  record: GardenNotificationsSeen | undefined,
+  notifications: readonly SeenNotification[],
+  now: number
+): GardenNotificationsSeen {
+  const seen = markNotificationsSeen(record, notifications, now);
+  const cleared: Record<string, number> = { ...(record?.cleared ?? {}) };
+  for (const { id } of notifications) cleared[id] = now;
+  return { ...seen, cleared };
 }
 
 /** The scope a seen record belongs to: `${chainId}:${account}:${garden}`, null without either. */

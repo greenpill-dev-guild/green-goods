@@ -1,7 +1,7 @@
 /**
  * Home's notifications bell and its sheet (PWA Home step 15, DL-130): the last launcher, whose
- * badge counts the events this device has not shown, and the tall sheet of the garden's events,
- * one row each, newest first, that opens the work or the promise and marks the listed events
+ * badge counts the events this device has not shown, and the full sheet of the garden's events,
+ * one row each, newest first, that opens the work or the promise and marks the open tab's events
  * seen. The read model is step 14's hook, mocked here; the rows, the sheet and its states run.
  */
 
@@ -31,6 +31,7 @@ const NOW = Math.floor(Date.now() / 1000);
 const TITLES: Record<string, string> = {
   "bafy-workday": "Weekend workday",
   "bafy-seedlings": "Seedlings for the school",
+  "bafy-mulch": "Mulch delivery",
 };
 
 /** A work as the garden's reads list it, in the active garden. */
@@ -211,7 +212,8 @@ const EVENTS: GardenNotification[] = [
   },
 ];
 
-const markAllSeen = vi.fn();
+const markSeen = vi.fn();
+const clearAll = vi.fn();
 const onClose = vi.fn();
 
 function setBell(overrides: Partial<GardenNotifications> = {}) {
@@ -224,7 +226,8 @@ function setBell(overrides: Partial<GardenNotifications> = {}) {
     isLoading: false,
     isError: false,
     isIncomplete: false,
-    markAllSeen,
+    markSeen,
+    clearAll,
     ...overrides,
   };
 }
@@ -247,18 +250,21 @@ function Host({ initialOpen = false }: { initialOpen?: boolean }) {
   });
 }
 
-function renderBell({ initialOpen = false }: { initialOpen?: boolean } = {}) {
-  return render(
+const bellTree = ({ initialOpen = false }: { initialOpen?: boolean } = {}) =>
+  createElement(
+    MemoryRouter,
+    { initialEntries: ["/home"] },
     createElement(
-      MemoryRouter,
-      { initialEntries: ["/home"] },
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: en },
-        createElement(Host, { initialOpen })
-      )
+      IntlProvider,
+      { locale: "en", messages: en },
+      createElement(Host, { initialOpen })
     )
   );
+
+function renderBell(options: { initialOpen?: boolean } = {}) {
+  const view = render(bellTree(options));
+  // The hook's next answer reaches the mounted sheet, as a read landing would.
+  return { ...view, refresh: () => view.rerender(bellTree(options)) };
 }
 
 const bellButton = () => screen.getByTestId("notifications-button");
@@ -275,6 +281,15 @@ const workOfEvent = (index: number) => {
 const titleOf = (row: HTMLElement) => row.querySelector(".gg-item-row-title")?.textContent;
 const detailsOf = (row: HTMLElement) =>
   [...row.querySelectorAll(".gg-item-row-detail-text")].map((detail) => detail.textContent);
+const idsOf = (events: readonly GardenNotification[]) => events.map(({ id }) => id);
+/** The events the sheet last marked seen. */
+const markedIds = () => idsOf(markSeen.mock.lastCall?.[0] as readonly GardenNotification[]);
+const WORK_KINDS = new Set<GardenNotification["kind"]>([
+  "workApproved",
+  "workRejected",
+  "workSubmitted",
+]);
+const workEvents = EVENTS.filter(({ kind }) => WORK_KINDS.has(kind));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -303,13 +318,14 @@ describe("the bell", () => {
 });
 
 describe("the sheet", () => {
-  it("opens tall, named for the garden, lists the events newest first as rows of one anatomy, and marks them seen", () => {
+  it("opens full, named for the garden, lists the events newest first as rows of one anatomy, and marks them seen", () => {
     renderBell();
     const sheet = openSheet();
 
-    expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+    expect(sheet).toHaveAttribute("data-sheet-size", "full");
     expect(within(sheet).getByText("In TAS HUB")).toBeInTheDocument();
-    expect(markAllSeen).toHaveBeenCalledTimes(1);
+    expect(markSeen).toHaveBeenCalledTimes(1);
+    expect(markedIds()).toEqual(idsOf(EVENTS));
 
     const rows = rowsOf(sheet);
     expect(rows.map(titleOf)).toEqual([
@@ -337,6 +353,63 @@ describe("the sheet", () => {
     for (const row of rows) {
       expect(row.querySelector(".gg-item-row")).not.toBeNull();
     }
+  });
+
+  it("splits the events under All, Work and Promises, marks seen only what a tab shows, and Clear All hides them on this device (DL-133)", () => {
+    const view = renderBell();
+    const sheet = openSheet();
+
+    expect(
+      within(sheet)
+        .getAllByRole("tab")
+        .map((tab) => tab.textContent)
+    ).toEqual(["All", "Work", "Promises"]);
+    // Each tab scrolls on its own: Work opens at its top however far All was scrolled.
+    const scroller = () => {
+      const node = within(sheet)
+        .getByRole("tabpanel")
+        .querySelector<HTMLElement>(".overflow-y-auto");
+      if (!node) throw new Error("the open tab has no scroller of its own");
+      return node;
+    };
+    const allScroller = scroller();
+    allScroller.scrollTop = 120;
+    fireEvent.click(within(sheet).getByRole("tab", { name: "Work" }));
+    expect(scroller()).not.toBe(allScroller);
+    expect(scroller().scrollTop).toBe(0);
+    expect(rowsOf(sheet).map(titleOf)).toEqual(["Hedge Planting", "Compost Turn", "Seed Swap"]);
+    // A tab marks seen only what it shows.
+    expect(markedIds()).toEqual(idsOf(workEvents));
+
+    // A promise event that lands while Work is open is not shown, so it stays new.
+    const landed: GardenNotification = {
+      kind: "promiseTakenUp",
+      id: `takenUp:12:${NOW}`,
+      at: NOW,
+      commitment: promise({
+        commitmentId: 12n,
+        creator: ALICE,
+        leadProvider: ALICE,
+        counterparty: CAROL,
+        acceptanceAt: NOW,
+        metadataCID: "bafy-mulch",
+      }),
+    };
+    setBell({ notifications: [landed, ...EVENTS].map((event) => ({ ...event, isNew: true })) });
+    view.refresh();
+    expect(rowsOf(sheet).map(titleOf)).toEqual(["Hedge Planting", "Compost Turn", "Seed Swap"]);
+    expect(markedIds()).toEqual(idsOf(workEvents));
+
+    fireEvent.click(within(sheet).getByRole("tab", { name: "Promises" }));
+    expect(rowsOf(sheet).map(titleOf)).toEqual([
+      "Mulch delivery",
+      "Weekend workday",
+      "Seedlings for the school",
+    ]);
+    expect(markedIds()).toContain(landed.id);
+
+    fireEvent.click(within(sheet).getByRole("button", { name: "Clear All" }));
+    expect(clearAll).toHaveBeenCalledTimes(1);
   });
 
   it("opens the work from a work event and the promise from a promise event, closing first", () => {
@@ -379,13 +452,27 @@ describe("the sheet", () => {
     expect(
       within(sheet).getByText("What happens in this garden shows up here.")
     ).toBeInTheDocument();
-    expect(markAllSeen).toHaveBeenCalledTimes(1);
+    expect(markSeen).toHaveBeenCalledTimes(1);
 
     view.unmount();
     setBell({ notifications: [], isLoading: true });
-    renderBell();
+    const loading = renderBell();
     sheet = openSheet();
 
+    expect(sheet.querySelector("[data-skeleton='item-row']")).not.toBeNull();
+    expect(within(sheet).queryByRole("heading", { name: "Nothing New" })).toBeNull();
+
+    // The work and promise reads answer apart: a tab with nothing yet stays busy while any read
+    // runs, instead of reporting an empty inbox its own read has not answered.
+    loading.unmount();
+    setBell({
+      notifications: workEvents.map((event) => ({ ...event, isNew: true })),
+      isLoading: true,
+    });
+    renderBell();
+    sheet = openSheet();
+    expect(rowsOf(sheet).map(titleOf)).toEqual(["Hedge Planting", "Compost Turn", "Seed Swap"]);
+    fireEvent.click(within(sheet).getByRole("tab", { name: "Promises" }));
     expect(sheet.querySelector("[data-skeleton='item-row']")).not.toBeNull();
     expect(within(sheet).queryByRole("heading", { name: "Nothing New" })).toBeNull();
   });
@@ -394,11 +481,21 @@ describe("the sheet", () => {
     online.value = false;
     try {
       setBell({ notifications: [] });
-      renderBell();
+      const view = renderBell();
       const sheet = openSheet();
 
       expect(within(sheet).getByRole("heading", { name: "You are offline" })).toBeInTheDocument();
       expect(within(sheet).queryByRole("heading", { name: "Nothing New" })).toBeNull();
+
+      // A tab with no cached rows says the same, whatever the other tab holds.
+      view.unmount();
+      setBell({ notifications: workEvents.map((event) => ({ ...event, isNew: false })) });
+      renderBell();
+      const cached = openSheet();
+      expect(rowsOf(cached)).toHaveLength(3);
+      fireEvent.click(within(cached).getByRole("tab", { name: "Promises" }));
+      expect(within(cached).getByRole("heading", { name: "You are offline" })).toBeInTheDocument();
+      expect(within(cached).queryByRole("heading", { name: "Nothing New" })).toBeNull();
     } finally {
       online.value = true;
     }
