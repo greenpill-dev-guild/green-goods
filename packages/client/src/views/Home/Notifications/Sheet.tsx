@@ -65,8 +65,8 @@ const LOADING_ROWS = 3;
  * device, as does switching to a tab, while an event under another tab stays new; Clear All in
  * the shared bar hides every listed event here for good. With nothing to list it shows the
  * shared state block, and a read that failed or answered only in part says so in one quiet line
- * while the rows it did find stay. Offline the reads pause rather than fail: with nothing cached
- * the block says the events cannot be checked instead of reporting an empty inbox, and the rows
+ * while the rows it did find stay. Offline the reads pause rather than fail: a tab with nothing
+ * cached says the events cannot be checked instead of reporting an empty inbox, and the rows
  * that were cached keep the partial-read line above them.
  */
 export function NotificationsSheet({
@@ -136,7 +136,9 @@ export function NotificationsSheet({
   // listed is only part of the garden's events.
   const partial = isError || isIncomplete || !isOnline;
   const partialNotice = formatMessage({ id: "app.home.notifications.partial" });
-  const unavailableOffline = !isOnline && notifications.length === 0 && !isLoading && !isError;
+  // An open tab with no cached rows cannot tell an empty inbox from a paused read, so it says the
+  // events cannot be checked, whatever the other tab holds.
+  const unavailableOffline = !isOnline && shown.length === 0 && !isLoading && !isError;
   // A read still running speaks only while the open tab has nothing to show. The work and
   // promise reads answer apart, so an empty tab stays busy until every read has settled instead
   // of reporting an empty inbox its own read has not answered yet.

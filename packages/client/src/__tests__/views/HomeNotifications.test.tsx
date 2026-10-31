@@ -469,11 +469,21 @@ describe("the sheet", () => {
     online.value = false;
     try {
       setBell({ notifications: [] });
-      renderBell();
+      const view = renderBell();
       const sheet = openSheet();
 
       expect(within(sheet).getByRole("heading", { name: "You are offline" })).toBeInTheDocument();
       expect(within(sheet).queryByRole("heading", { name: "Nothing New" })).toBeNull();
+
+      // A tab with no cached rows says the same, whatever the other tab holds.
+      view.unmount();
+      setBell({ notifications: workEvents.map((event) => ({ ...event, isNew: false })) });
+      renderBell();
+      const cached = openSheet();
+      expect(rowsOf(cached)).toHaveLength(3);
+      fireEvent.click(within(cached).getByRole("tab", { name: "Promises" }));
+      expect(within(cached).getByRole("heading", { name: "You are offline" })).toBeInTheDocument();
+      expect(within(cached).queryByRole("heading", { name: "Nothing New" })).toBeNull();
     } finally {
       online.value = true;
     }
