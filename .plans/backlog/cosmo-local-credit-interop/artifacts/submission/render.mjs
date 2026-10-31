@@ -118,9 +118,12 @@ if (problems.length) {
 // halfway removes every promoted name and puts the backup back.
 const backup = mkdtempSync(join(out, ".previous-"));
 const names = readdirSync(staging);
+// The render replaces the whole set, so a run without the demo link leaves no earlier submission
+// page behind, with that link in it, to be shared by mistake.
+const stale = readdirSync(out).filter((name) => /\.(pdf|png)$/.test(name) && !names.includes(name));
 // The backup completes before any output is touched: a copy that fails leaves output/ as it was.
 try {
-  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+  for (const name of [...names, ...stale]) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
 } catch (error) {
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; nothing in output/ was replaced`);
@@ -130,6 +133,7 @@ try {
 const promoted = [];
 try {
   for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); console.log(join(out, name)); }
+  for (const name of stale) rmSync(join(out, name), { force: true });
 } catch (error) {
   // A restore that fails keeps the backup folder and names it, so the last good output is never lost.
   const unrestored = [];

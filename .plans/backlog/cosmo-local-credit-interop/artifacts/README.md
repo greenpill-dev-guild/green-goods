@@ -499,7 +499,7 @@ Given in chat on the evening of 26 October and applied as proposed, after the pr
 - **Impact certificates.** The full term is used in every label and first mention: slide 13's
   circle, the architecture's services box, Data out line and endowment box, the brief's
   contracts table and endowment split. The canvas already used it.
-- **Endowment split.** Slide 13 shows the default split under the endowment (48.65% to the
+- **Endowment split.** Slide 13 of the 18-slide deck shows the default split under the endowment (48.65% to the
   garden's shared fund, 48.65% to impact certificates, 2.7% to Green Goods, being switched on),
   and slide 14 names the 2.7% share. Afo had listed this as his own step at the Tech and Sun sync.
 - **Slide 17.** Three rows name who we are looking for: institutional funders who want to pilot
@@ -524,7 +524,7 @@ Given in chat on the evening of 26 October and applied as proposed, after the pr
 ## Endowment yield context · 27 October 2026
 
 At Afo's request, each document now says where endowment earnings come from: DeFi strategies for
-ETH and stablecoins that typically earn 2 to 7% a year, never as a promise. Slide 13's endowment
+ETH and stablecoins that typically earn 2 to 7% a year, never as a promise. Slide 13's endowment (slide 12 since the 17-slide rebuild)
 column and its note, the brief's endowment box on page 5, the canvas revenue line and the
 architecture's endowment box carry it. To keep page 5 inside its footer, the brief's fee paragraph
 now says "before central costs" and lists the fee as "$3,000 setup, $7,000 support and reporting".
@@ -636,10 +636,8 @@ presenting copies, and the Drive deck PDF replaced in place.
   technical roadmap left the slides and lives on the brief's last page.
 - **Text:** slide text fell from about 1,250 words to about 600, and the confirmation rule now
   appears once, on the loop.
-- **The builder:** one member's journey from Afo's 21 October career call, the strongest of the
-  four calls with notes: skills without proof of his work, the hub that keeps him building, a
-  shared project, his first record and his wish to offer his skills to others. The repository
-  holds only the role text; see [Photos and screens](#photos-and-screens) for the private file.
+- **The builder:** one member's needs, drawn from Afo's career calls: skills without proof of his
+  work and the hub that keeps him building. The repository holds only the role text; see [Photos and screens](#photos-and-screens) for the private file.
   Nothing else from the calls enters git.
 - **Notes:** rewritten to 8:00. Slide 2's note keeps a bracketed space for Afo's own moment. The
   claims list adds the builder and points the screens and partners at their new places.
@@ -742,7 +740,7 @@ artifact has an authenticated surface, so authenticated Brave proof does not app
    2026 to 31 January 2027 with one promise in progress; the brief (pages 1 and 6) and note 15 say
    "open", never "planned".
 6. **Slot length.** Settled: the submission brief says to plan for eight minutes a team, which
-   the notes run; the five-minute cut stays as a fallback.
+   the notes run; the shorter cut in the notes stays as a fallback.
 7. **Cohort facts.** Participants, services, capacity, prices and rewards; a first sponsor; the
    gift method (the Omo Yoruba donate page has no payment form).
 8. **Live counts.** Slide 12's Fund sheet is the live Fund page as of 27 October: 14 members, 16

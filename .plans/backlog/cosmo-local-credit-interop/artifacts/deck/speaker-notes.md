@@ -55,7 +55,7 @@ A garden runs as a loop, season after season. Needs: what the place needs, from 
 
 ## 9. One builder, one community · 0:45
 
-[His name, with his agreement, and the career call you had with him on 21 October.] He's a 20-year-old front-end developer at the hub. He tried freelancing, but clients wanted proof of work he couldn't show. In Awka the power can go out for days; the hub's solar keeps him building, and he builds with other members on a shared hub project. Those are his needs: proof, power and people. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.
+[His name, with his agreement, and what he told you.] A developer at the hub has the skills, but no proof of his work to show. In Awka the power can go out for days; the hub's solar keeps him building, and he builds with other members. Those are his needs: proof, power and people. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.
 
 ## 10. Commitment pooling · 0:35
 
@@ -91,8 +91,8 @@ Let's grow together. I am because we are.
 
 ## Fitting the slot
 
-- **A five-minute version.** Keep slides 1, 2, 3, 4, 9, 10, 12, 15, 16 and 17 at full length. Say
-  one line each for slides 5, 6, 7, 8, 11, 13 and 14, and click through without stopping.
+- **A six-minute version.** Keep slides 1, 2, 3, 4, 9, 10, 12, 15, 16 and 17 at full length, 5:10
+  in all. Say one line each for slides 5, 6, 7, 8, 11, 13 and 14, and click through without stopping.
 - **The demo.** If a judge asks to see the product, open the clickable demo from the submission
   page; it is real app screens with demo data.
 - **Questions.** Judges weigh the business model. Keep the brief's worked example ready: a
@@ -157,8 +157,9 @@ Let's grow together. I am because we are.
   Protocol Economics Explorer presets are scenarios, never forecasts. Never a supporter's deposit,
   never a garden's shared fund. The 2.7% appears once in the deck, on slide 15.
 - **Screens.** The two phone screens on slide 10 come from the clickable demo: Tech and Sun's real
-  season and course request, with invented member names. Slide 12 shows the hub's Fund sheet, the
-  demo's `funding-2` capture: the real hub page in the app with Donate and Endow. Say so if asked.
+  season and course request, with invented member names. Slide 12 shows the hub's Fund sheet,
+  `assets/screens/fund-sheet.jpg`, a phone-sized capture of the live Fund page with Donate and
+  Endow. Say so if asked.
 - **Hub reach.** Say "more than 300 people" have used the Awka hub. Tech and Sun gave the figure at
   its 26 October weekly sync; its public post with the hub's statistics is still to come.
 - **The hub's needs (slides 9 and 10).** Climate-course seats, workshops and weekly discussions come
@@ -179,12 +180,11 @@ Let's grow together. I am because we are.
   networks" and "rehearsed end to end with demo accounts", so the submitted PDF carries the status
   without a presenter. Say vouchers are live only if the live-pilot handoff records a real member's
   booking before the pitch. Never call the flow live before it is.
-- **The builder (slides 9 and 10), revised 27 October.** One member's needs, from the founder's
-  career call with him on 21 October. The deck names and quotes nobody; Afo says his name and
-  their conversation aloud, with the member's agreement. Keep to the beats on the slide: skills
-  without proof, power cuts, building with other members, his finished climate course. Everything
-  else from the call stays private. "Starts his record" assumes his finished climate course is
-  logged on Green Goods: confirm it before the pitch.
+- **The builder (slides 9 and 10), revised 30 October.** One member's needs, from the founder's
+  career calls. The deck names and quotes nobody; Afo says his name and their conversation aloud,
+  with the member's agreement. Keep to the beats on the slide: skills without proof, power cuts,
+  building with other members. Everything else from the call stays private. Slide 10's note treats
+  his climate course as a next step, because that promise was still in progress when last read.
 - **Confirmation.** The person who did the work never confirms it, and the person served does. A
   steward can confirm only as a fallback, and the record labels it one, so never say every kept
   promise was confirmed by the person served. The rule is on slide 7 and nowhere else.
