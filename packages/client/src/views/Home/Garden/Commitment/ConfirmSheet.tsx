@@ -61,6 +61,13 @@ export interface ConfirmSheetProps {
    * the pool's own garden. With no way to say Not yet, the sheet says so.
    */
   canNotYet: boolean;
+  /**
+   * Whether the page offers this reader the confirm act, which goes only to someone the chain
+   * would take a confirmation from. Report a Problem also opens this sheet for people who can
+   * only dispute, such as the person who asked when the promise names other confirmers, and
+   * they stay on the Not yet form.
+   */
+  canConfirm: boolean;
   onConfirm: () => void;
   onNotYet: (reason: string) => void;
   onDone: () => void;
@@ -86,6 +93,7 @@ export function ConfirmSheet({
   isPending,
   notYetFailed,
   canNotYet,
+  canConfirm,
   onConfirm,
   onNotYet,
   onDone,
@@ -94,7 +102,9 @@ export function ConfirmSheet({
 }: ConfirmSheetProps) {
   const { formatMessage } = useIntl();
   const cast = selectConfirmCast(commitment);
-  const [mode, setMode] = useState<"ask" | "notYet">("ask");
+  const [chosenMode, setMode] = useState<"ask" | "notYet">("ask");
+  // A reader who can only report has no ask: its words and its action are for confirmers.
+  const mode = canConfirm ? chosenMode : "notYet";
   // Each opening starts where it was asked to, however the last one closed: Report a Problem on
   // the Not yet form, Confirm It Was Kept on its ask.
   useEffect(() => {
@@ -115,6 +125,19 @@ export function ConfirmSheet({
   ).length;
   const provider = commitment.leadProvider ?? commitment.creator ?? null;
   const excludedCount = contributors.filter((entry) => entry.active).length;
+  // Named confirmers replace the default confirmer on the contract, so a named reader confirms
+  // because they were named, even if they also asked, and asking alone seats nobody.
+  const readerNamed = named.some((address) => address.toLowerCase() === viewer?.toLowerCase());
+  const summaryAfter =
+    readerNamed && cast === "request"
+      ? "app.confirm.summary.request.afterNamed"
+      : readerNamed && cast === "request-work"
+        ? "app.confirm.summary.request-work.afterNamed"
+        : `app.confirm.summary.${cast}.after`;
+  const exclusion =
+    named.length > 0 && cast !== "offer"
+      ? "app.confirm.exclusion.named"
+      : `app.confirm.exclusion.${cast}`;
 
   const title =
     phase === "confirmed"
@@ -164,7 +187,7 @@ export function ConfirmSheet({
               secondary: {
                 label: formatMessage({ id: "app.confirm.notYet.back" }),
                 disabled: isPending,
-                onClick: () => setMode("ask"),
+                onClick: () => (canConfirm ? setMode("ask") : onOpenChange(false)),
               },
             }
           : {
@@ -236,10 +259,10 @@ export function ConfirmSheet({
               <span className="flex flex-wrap items-center gap-1">
                 {formatMessage({ id: `app.confirm.summary.${cast}.before` })}
                 <AddressDisplay address={provider} showCopyButton={false} interactive={false} />
-                {formatMessage({ id: `app.confirm.summary.${cast}.after` })}
+                {formatMessage({ id: summaryAfter })}
               </span>
             ) : (
-              formatMessage({ id: `app.confirm.summary.${cast}.after` })
+              formatMessage({ id: summaryAfter })
             )}
           </div>
 
@@ -325,9 +348,7 @@ export function ConfirmSheet({
 
           <p className="flex items-start gap-2 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-xs text-text-sub-600">
             <RiShieldCheckLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {service
-              ? service.note
-              : formatMessage({ id: `app.confirm.exclusion.${cast}` }, { count: excludedCount })}
+            {service ? service.note : formatMessage({ id: exclusion }, { count: excludedCount })}
           </p>
 
           {!canNotYet ? (

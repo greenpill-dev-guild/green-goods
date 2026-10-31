@@ -108,6 +108,7 @@ const meta: Meta<typeof ConfirmSheet> = {
     // dispute from them. A steward acting only for a claiming garden is the
     // case that hides it; that is the detail screen's call, not the sheet's.
     canNotYet: true,
+    canConfirm: true,
     onConfirm: fn(),
     onNotYet: fn(),
     onDone: fn(),
@@ -193,6 +194,26 @@ export const NamedGroup: Story = {
       confirmationCount: 1,
       confirmationThreshold: 2,
     }),
+  },
+};
+
+/**
+ * A request a steward seeded with named confirmers, read by one of them. They did not ask for
+ * it, and the person who asked does not confirm by asking, so the sheet says neither.
+ */
+export const NamedGroupRequest: Story = {
+  args: {
+    commitment: commitment({
+      direction: "REQUEST",
+      creator: STEWARD,
+      leadProvider: PROVIDER,
+      counterparty: PROVIDER,
+      confirmers: [VIEWER, STEWARD],
+    }),
+  },
+  play: async () => {
+    await expect(await screen.findByText(/The named people do\./)).toBeVisible();
+    await expect(screen.queryByText(/You asked/)).not.toBeInTheDocument();
   },
 };
 
