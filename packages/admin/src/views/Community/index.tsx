@@ -76,6 +76,7 @@ export default function CommunityView() {
         isSignalPoolRoute={community.isSignalPoolRoute}
         vaultAction={community.vaultAction}
         poolType={community.poolType}
+        selectedItem={community.selectedItem}
         gardenAddress={community.selectedGardenAddress}
       />
 

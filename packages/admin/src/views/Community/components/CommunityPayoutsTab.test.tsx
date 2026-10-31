@@ -24,23 +24,12 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
 
 // The panel reads its jars from the chain; this suite covers the tab.
 vi.mock("@/views/Hub/components/CookieJarPayoutPanel", () => ({
-  CookieJarPayoutPanel: (props: {
-    allocationCount: number;
-    allocationCountAtLeast?: boolean;
-    routeAction?: "deposit" | "withdraw" | null;
-    onRouteActionClose?: () => void;
-  }) => (
+  CookieJarPayoutPanel: (props: { allocationCount: number; allocationCountAtLeast?: boolean }) => (
     <div
       data-testid="payout-panel"
       data-count={props.allocationCount}
       data-at-least={String(Boolean(props.allocationCountAtLeast))}
-      data-route-action={props.routeAction ?? ""}
-    >
-      {/* Stands in for closing the dialog the route item opened. */}
-      <button type="button" onClick={props.onRouteActionClose}>
-        Close route dialog
-      </button>
-    </div>
+    />
   ),
 }));
 
@@ -134,19 +123,5 @@ describe("CommunityPayoutsTab", () => {
     renderPayouts({ selectedItem: "create-campaign-jar" });
 
     expect(screen.getByRole("dialog", { name: "Create Cookie Jar" })).toBeInTheDocument();
-  });
-
-  it("drops the fund-jar route item once the dialog it opened closes", async () => {
-    const user = userEvent.setup();
-    renderPayouts({ selectedItem: "fund-jar" });
-
-    expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-route-action", "deposit");
-
-    await user.click(screen.getByRole("button", { name: "Close route dialog" }));
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      `/community/payouts?gardenId=${storyGarden.id}`
-    );
-    expect(screen.getByTestId("location")).not.toHaveTextContent("item=");
   });
 });

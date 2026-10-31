@@ -13,6 +13,8 @@ const cookieJarMutationState = vi.hoisted(() => ({
   depositReset: vi.fn(),
   withdrawReset: vi.fn(),
   jarOverrides: {} as Record<string, unknown>,
+  extraJars: [] as Record<string, unknown>[],
+  readOverrides: {} as Record<string, unknown>,
 }));
 
 const GARDEN_ADDRESS = "0x1111111111111111111111111111111111111111" as Address;
@@ -60,9 +62,11 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
         emergencyWithdrawalEnabled: false,
         ...cookieJarMutationState.jarOverrides,
       },
+      ...cookieJarMutationState.extraJars,
     ],
     isLoading: false,
     moduleConfigured: true,
+    ...cookieJarMutationState.readOverrides,
   }),
 }));
 
@@ -85,6 +89,8 @@ describe("CookieJar payout modals", () => {
     cookieJarMutationState.depositPending = false;
     cookieJarMutationState.withdrawPending = false;
     cookieJarMutationState.jarOverrides = {};
+    cookieJarMutationState.extraJars = [];
+    cookieJarMutationState.readOverrides = {};
   });
 
   it("warns before funding a jar whose claim limit is low, and offers the fix first", () => {
@@ -129,6 +135,51 @@ describe("CookieJar payout modals", () => {
 
     expect(screen.queryByText(/per claim/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+  });
+
+  it("starts on the garden's first jar when the caller names none", () => {
+    cookieJarMutationState.extraJars = [
+      {
+        jarAddress: "0x4444444444444444444444444444444444444444",
+        assetAddress: ASSET_ADDRESS,
+        balance: 7_000_000n,
+        decimals: 6,
+        maxWithdrawal: 1_000_000n,
+        withdrawalInterval: 3600n,
+      },
+    ];
+
+    renderWithProviders(
+      <CookieJarDepositModal isOpen onClose={vi.fn()} gardenAddress={GARDEN_ADDRESS} />
+    );
+
+    // The balance tile is the first jar's 5, not the second jar's 7.
+    expect(screen.getByText("Jar Balance").parentElement).toHaveTextContent(/^Jar Balance5\b/);
+  });
+
+  // An unread currency would parse a 6-decimal deposit with the 18-decimal fallback.
+  it.each([
+    ["reading", { jars: [] }, /Checking which cookie jars/],
+    ["waiting on decimals", { hasUnreadDecimals: true }, /Checking which cookie jars/],
+    ["offline", { jars: [], isPaused: true }, /Cookie jars need a connection/],
+    ["failing", { jars: [], error: new Error("RPC timeout") }, /Couldn't read this garden's/],
+    ["finding no jar", { jars: [], hasNoJar: true }, /No cookie jars found for this garden/],
+    ["unconfigured", { jars: [], moduleConfigured: false }, /Cookie jars aren't available/],
+  ])("offers no amount while the jar read is %s, and Cancel still closes", (_state, read, notice) => {
+    cookieJarMutationState.readOverrides = read;
+    const onClose = vi.fn();
+
+    renderWithProviders(
+      <CookieJarDepositModal isOpen onClose={onClose} gardenAddress={GARDEN_ADDRESS} />
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Fund Cookie Jar" });
+    expect(dialog).toHaveTextContent(notice);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("prevents closing the deposit modal while the deposit mutation is pending", () => {
