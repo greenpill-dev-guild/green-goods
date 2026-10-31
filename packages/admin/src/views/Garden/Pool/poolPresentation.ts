@@ -403,7 +403,10 @@ export function confirmEligibilityChip(
  * and a wait for membership.
  */
 export function queuedCreationPill(
-  row: Pick<PendingCommitmentCreation, "settlementDeferred" | "failed" | "waitingForMembership">,
+  row: Pick<
+    PendingCommitmentCreation,
+    "settlementDeferred" | "failed" | "waitingForMembership" | "waitingForSettlementAccount"
+  >,
   phase: TxActPhase["status"],
   formatMessage: FormatMessage
 ): { pending?: CommitmentRowPending; status?: { label: string; tone: ChipVariant } } {
@@ -438,6 +441,17 @@ export function queuedCreationPill(
         label: formatMessage({
           id: "cockpit.garden.pool.queued.waiting",
           defaultMessage: "Needs membership",
+        }),
+        tone: "info",
+      },
+    };
+  }
+  if (row.waitingForSettlementAccount) {
+    return {
+      status: {
+        label: formatMessage({
+          id: "cockpit.garden.pool.queued.needsSettlement",
+          defaultMessage: "Needs settlement account",
         }),
         tone: "info",
       },

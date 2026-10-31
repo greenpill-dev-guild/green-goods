@@ -68,7 +68,13 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
               })
             : row.settlementDeferred
               ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
-              : null);
+              : row.waitingForSettlementAccount
+                ? formatMessage({
+                    id: "cockpit.garden.pool.reward.needsSettlement",
+                    defaultMessage:
+                      "A reward is paid through this garden's settlement account, which isn't active.",
+                  })
+                : null);
         // A failed act says so in the error color, as its phase line did.
         const note =
           said && phase.status === "failed" ? { text: said, tone: "error" as const } : said;
