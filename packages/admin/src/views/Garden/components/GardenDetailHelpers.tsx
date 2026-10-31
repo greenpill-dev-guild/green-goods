@@ -65,7 +65,10 @@ export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowPro
     <AdminCard
       variant="outlined"
       density="compact"
-      className="flex items-start justify-between gap-3"
+      // The View act centres on the label's line: the compact button carries the
+      // cockpit's 6px block reserve, so a top-aligned row set it 10px under the
+      // text (qa-session 2026-10-30 OBS-07). The icon still sits on the first line.
+      className="flex items-center justify-between gap-3"
     >
       <div className="flex min-w-0 items-start gap-2">
         <RiAlertLine className={`mt-0.5 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
