@@ -249,12 +249,13 @@ vi.mock("@/components/Features/Work", async (importOriginal) => ({
 }));
 
 vi.mock("@/components/Navigation", () => ({
-  TopNav: ({ steps, onBackClick }: { steps?: React.ReactNode; onBackClick?: () => void }) =>
+  // The flow's step markers ride the bar's centred children slot (DL-132).
+  TopNav: ({ children, onBackClick }: { children?: React.ReactNode; onBackClick?: () => void }) =>
     createElement(
       "nav",
       { "data-testid": "top-nav" },
       createElement("button", { type: "button", onClick: onBackClick }, "Go back"),
-      steps
+      children
     ),
 }));
 

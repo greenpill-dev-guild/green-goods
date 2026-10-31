@@ -72,14 +72,11 @@ interface FlowTopBarProps {
   offline?: boolean;
 }
 
-/** The one submission flow spreads its markers beside Back (decision 31); compose centres them. */
-const spreads = (flow: keyof typeof FLOW_STEPS) => flow !== "compose";
-
+/** Every flow centres its markers in the bar (DL-132). */
 function FlowSteps({ flow, currentStep }: Pick<FlowTopBarProps, "flow" | "currentStep">) {
   const { formatMessage } = useIntl();
   return (
     <FormProgress
-      layout={spreads(flow) ? "spread" : "compact"}
       currentStep={currentStep}
       steps={FLOW_STEPS[flow].map((id) => formatMessage({ id }))}
     />
@@ -88,17 +85,12 @@ function FlowSteps({ flow, currentStep }: Pick<FlowTopBarProps, "flow" | "curren
 
 /** The real top bar with a flow's tracker in it, as the flow's page mounts them. */
 function FlowTopBar({ flow, currentStep, locale = "en", offline = false }: FlowTopBarProps) {
-  const steps = <FlowSteps flow={flow} currentStep={currentStep} />;
   return (
     <IntlProvider locale={locale} messages={MESSAGES[locale]}>
       {offline ? <OfflineIndicator testState="offline" /> : null}
-      {spreads(flow) ? (
-        <TopNav onBackClick={fn()} overlay data-testid="flow-top-bar" steps={steps} />
-      ) : (
-        <TopNav onBackClick={fn()} overlay data-testid="flow-top-bar">
-          {steps}
-        </TopNav>
-      )}
+      <TopNav onBackClick={fn()} overlay data-testid="flow-top-bar">
+        <FlowSteps flow={flow} currentStep={currentStep} />
+      </TopNav>
     </IntlProvider>
   );
 }
@@ -127,28 +119,22 @@ const markerOf = (step: HTMLElement, number: number) =>
 
 /**
  * Where the tracker sits in the bar: every marker centres on Back's line, the step names hang
- * below it inside the bar, and nothing reaches into the bar's top padding. Compose centres its
- * markers in the bar; the one submission flow spreads them from 16px past Back to a 16px end
- * gutter (decision 31).
+ * below it inside the bar, and nothing reaches into the bar's top padding. Every flow centres
+ * its markers in the bar (DL-132).
  */
-const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement, args }) => {
+const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
   const bar = canvas.getByTestId("flow-top-bar");
   const back = canvas.getByRole("button", { name: "Go back" });
   const tracker = canvas.getByRole("list");
   const steps = within(tracker).getAllByRole("listitem");
 
-  if (spreads(args.flow)) {
-    await expect(box(steps[0]).left - box(back).right).toBeCloseTo(16, 0);
-    await expect(box(bar).right - box(steps.at(-1)!).right).toBeCloseTo(16, 0);
-  } else {
-    const firstMarker = box(markerOf(steps[0], 1));
-    const lastMarker = box(markerOf(steps.at(-1)!, steps.length));
-    await expect((firstMarker.left + lastMarker.right) / 2).toBeCloseTo(
-      (box(bar).left + box(bar).right) / 2,
-      0
-    );
-  }
+  const firstMarker = box(markerOf(steps[0], 1));
+  const lastMarker = box(markerOf(steps.at(-1)!, steps.length));
+  await expect((firstMarker.left + lastMarker.right) / 2).toBeCloseTo(
+    (box(bar).left + box(bar).right) / 2,
+    0
+  );
   for (let index = 1; index < steps.length; index++) {
     await expect(box(steps[index - 1].lastElementChild!).right).toBeLessThan(
       box(steps[index].lastElementChild!).left
@@ -171,7 +157,7 @@ const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement
 };
 
 /**
- * Submit Work's tracker beside Back in the fixed top bar. The controls switch
+ * Submit Work's tracker centred in the fixed top bar. The controls switch
  * the flow and the language; every flow keeps its markers on Back's centre line.
  */
 export const InTopBar: FlowStory = {
