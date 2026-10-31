@@ -28,7 +28,11 @@
 | AC-20 | Deposit group | The group holds only the calls needed, for the exact amount; the reset appears only when the allowance is nonzero and too low; passkeys and atomic wallets use one request; plain wallets keep two visible signatures | state_api |
 | AC-21 | Deposit outcome | Only a matching `Deposit` event confirms; a reverted atomic group leaves no allowance; an unknown outcome stays pending across a reload and holds the next deposit into that vault or jar; a confirmed deposit holds nothing | state_api |
 | AC-22 | Deposit interaction | The signature count is stated up front and matches what the wallet asks for; each signature is shown landing; an unknown outcome never reads as failed; client and admin surfaces agree in en, es, and pt | ui |
-| AC-23 | Held operations | A closed signing prompt never holds items for good: a passkey record with no reference reopens after reload, a wallet record needs a fresh domain read and the user's confirmation, and a group with a reference is never released; a reference that arrives after a lapsed lease is still saved | state_api |
+| AC-23 | Held operations | A closed signing prompt never holds items for good: a passkey record with no reference reopens after reload, and any other hold ends only through a release that reads the chain first and keeps the evidence; a reference that arrives after a lapsed lease or a release is still saved and holds the items | state_api |
+| AC-24 | Pool writes | A first run takes 2 prompts on passkeys, the opening still follows its seeding receipt, a seeded season opens in 1, and an unlisted combination sends as it does today | state_api |
+| AC-25 | Creations and rewards | Passkeys create copies in one request per measured group, Edit Reward works on passkeys, and no copy is sent twice after a reload | ui/state_api |
+| AC-26 | Admin actions | Karma reconcile, marketplace approvals, campaign jar sync, and action edit each send one request per group, confirm each item by its own event or read, and show no change the chain does not hold | ui/state_api |
+| AC-27 | Checkout and proof | Octant checkout sends one request on atomic wallets and keeps plain-wallet steps; if batched, add and send proof still keeps the proof when its send fails | ui/state_api |
 
 ## Proof strategy
 
@@ -62,7 +66,7 @@ For a terminal implementation lane, record RED/GREEN with `plan-hub.mjs record-t
 
 Capture per feature and authentication rail: selection size, submitted groups, application signer requests, confirmed/failed/unresolved item counts, recovery attempts, time to first request, and time to verified completion. Compare the same representative operations before and after, with median/tail latency when a meaningful sample exists. Do not log member addresses, decision text, media, or raw calldata in product analytics.
 
-Expected interaction targets: one application request for settings within a supported budget; one per member group for supported accounts; one per deposit for passkeys and atomic wallets; one per EAS approval group for both rails. Ordinary wallets retain sequential settings, member, and deposit requests. These are conditional product targets, not measured results or universal single-signature guarantees.
+Expected interaction targets: one application request for settings within a supported budget; one per `grantRoles` group on every wallet; one per deposit for passkeys and atomic wallets; one per EAS approval group for both rails. Ordinary wallets retain sequential settings and deposit requests. These are conditional product targets, not measured results or universal single-signature guarantees.
 
 Enable phases in order with existing rollout controls. Any confirmed duplicate resubmission, false completion, metadata loss, or account/chain crossover blocks further enablement until fixed. Disable new batch submissions independently from journal reads and recovery. Pending operations retain their original transport and identity after a rollback.
 
