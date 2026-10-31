@@ -10,12 +10,13 @@ import {
   useFilteredGardens,
 } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
+import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Domain, Garden } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine, RiFilterLine } from "@remixicon/react";
-import { lazy, Suspense, useCallback, useEffect, useMemo } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
@@ -26,8 +27,9 @@ import { GardenList } from "../GardenList";
 import { StickyTopBar } from "../StickyTopBar";
 import { type ExploreTag, exploreGardens } from "../homeGardens";
 
+const loadGardensFilterSheet = () => import("../GardenFilters");
 const GardensFilterSheet = lazy(() =>
-  import("../GardenFilters").then(({ GardensFilterSheet }) => ({ default: GardensFilterSheet }))
+  loadGardensFilterSheet().then(({ GardensFilterSheet }) => ({ default: GardensFilterSheet }))
 );
 
 const TAG_IDS: Record<ExploreTag, string> = {
@@ -69,6 +71,20 @@ export function Explore() {
   // The sheet stays mounted until its exit has played.
   const isGardenFilterPresent = useExitPresence(isGardenFilterOpen, getPwaSheetExitMs);
   useEffect(() => closeGardenFilter, [closeGardenFilter]);
+  // Filters fetches its sheet's code as Explore mounts and waits for it, disabled and busy, so
+  // its first tap opens the sheet (DL-132); a reconnect asks again for a chunk that could not load.
+  const [isFilterReady, setIsFilterReady] = useState(false);
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      try {
+        await loadGardensFilterSheet();
+      } catch {
+        return;
+      }
+      if (isMounted()) setIsFilterReady(true);
+    },
+    [isOnline]
+  );
 
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
   const {
@@ -125,6 +141,8 @@ export function Explore() {
           emphasis="secondary"
           size="compact"
           onClick={openGardenFilter}
+          disabled={!isFilterReady}
+          aria-busy={!isFilterReady}
           // Active filters tint the outline and icon, and count on the badge.
           className={
             isFilterActive

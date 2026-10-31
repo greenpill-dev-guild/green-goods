@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useWorkPreviewUrls } from "@green-goods/shared/hooks/work/useWorkImages";
 import { track } from "@green-goods/shared/modules/app/posthog";
@@ -18,7 +19,6 @@ import { RiImageFill, RiLoader4Line } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
-import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Display";
 import {
   MediaRulePill,
@@ -69,6 +69,29 @@ const getPlatformContext = () => {
 
   return { platform, isStandalone, isOnline: navigator.onLine };
 };
+
+/** The items an action lists as needed or optional: a label, then one neutral tag each (DL-132). */
+function MediaItems({ label, items }: { label: string; items: readonly string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="type-label-sm text-text-sub-600">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((item) => (
+          <StatusBadge
+            key={item}
+            size="xs"
+            variant="neutral"
+            showIcon={false}
+            className="capitalize"
+          >
+            {String(item).replace(/_/g, " ")}
+          </StatusBadge>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** Format seconds as m:ss */
 function formatTime(seconds: number): string {
@@ -475,37 +498,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         </MediaRulePill>
       ) : null}
 
-      {/* Required items */}
-      {neededItems.length > 0 && (
-        <div>
-          <div className="text-xs tracking-tight mb-1 uppercase">
-            {intl.formatMessage({ id: "app.garden.upload.needed", defaultMessage: "Needed" })}
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {neededItems.map((item) => (
-              <Badge key={item} className="capitalize" variant="pill" tint="primary">
-                {String(item).replace("_", " ")}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Optional items */}
-      {optionalItems.length > 0 && (
-        <div>
-          <div className="text-xs tracking-tight mb-1 uppercase">
-            {intl.formatMessage({ id: "app.garden.upload.optional", defaultMessage: "Optional" })}
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {optionalItems.map((item) => (
-              <Badge key={item} className="capitalize" variant="pill" tint="primary">
-                {String(item).replace("_", " ")}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* What the action asks for, as quiet tags under one label each (DL-132). */}
+      <MediaItems
+        label={intl.formatMessage({ id: "app.garden.upload.needed", defaultMessage: "Needed" })}
+        items={neededItems}
+      />
+      <MediaItems
+        label={intl.formatMessage({ id: "app.garden.upload.optional", defaultMessage: "Optional" })}
+        items={optionalItems}
+      />
 
       {/* Hidden file inputs (2: media + camera) */}
       <div className="hidden">

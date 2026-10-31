@@ -1,8 +1,11 @@
 import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 import { RiHandHeartLine } from "@remixicon/react";
-import type React from "react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
+import { preloadCommitmentsSheet } from "../DeferredSurfaces";
 
 export interface CommitmentsSheetIconProps {
   onClick: () => void;
@@ -15,6 +18,10 @@ export interface CommitmentsSheetIconProps {
   className?: string;
 }
 
+/**
+ * The Promises launcher. It fetches the sheet's code as it mounts and waits for it, disabled and
+ * busy, so its first tap opens a sheet with something to show (DL-132).
+ */
 export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
   onClick,
   actCount = 0,
@@ -22,12 +29,29 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
 }) => {
   const intl = useIntl();
   const hasActs = actCount > 0;
+  const isOnline = useOnlineStatus();
+  const [isReady, setIsReady] = useState(false);
+
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      try {
+        await preloadCommitmentsSheet();
+      } catch {
+        // A reconnect changes isOnline and asks for the chunk again.
+        return;
+      }
+      if (isMounted()) setIsReady(true);
+    },
+    [isOnline]
+  );
 
   return (
     <IconButton
       emphasis="secondary"
       size="compact"
       onClick={onClick}
+      disabled={!isReady}
+      aria-busy={!isReady}
       className={className}
       aria-label={
         hasActs

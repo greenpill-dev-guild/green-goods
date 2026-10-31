@@ -6,7 +6,7 @@
 
 import messages from "@green-goods/shared/i18n/en.json";
 import type { Garden } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -163,7 +163,11 @@ describe("Explore", () => {
     renderExplore();
 
     expect(screen.getByRole("heading", { level: 1, name: "Explore Gardens" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    // Filters waits for its sheet's code before it can be pressed (DL-132); the first import
+    // of that code is slow on a loaded host.
+    const filters = screen.getByRole("button", { name: "Filters" });
+    await waitFor(() => expect(filters).toBeEnabled(), { timeout: 10_000 });
+    fireEvent.click(filters);
 
     expect(await screen.findByRole("dialog", { name: "Filter Gardens" })).toBeInTheDocument();
   });

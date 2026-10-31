@@ -195,7 +195,7 @@ function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
             },
             showGardener: true,
           },
-          // Your Work, Completed: whose work it was, then the age, or feedback in its place.
+          // Your Work, Completed: whose work it was, then the age (DL-132).
           {
             work: { ...mockWork, title: TITLES[locale][1], status: "approved" },
             contextLabel: text("app.workDashboard.badge.yourWorkReviewed"),
@@ -208,7 +208,6 @@ function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
               createdAt: hoursAgo(26),
             },
             contextLabel: text("app.workDashboard.badge.reviewedByYou"),
-            supportingText: text("app.workCard.feedback"),
           },
         ]
       : [
