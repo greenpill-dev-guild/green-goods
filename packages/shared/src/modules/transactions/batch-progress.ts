@@ -1,6 +1,21 @@
 import { logger } from "../app/logger";
 import type { BatchJournal } from "./batch-journal";
-import type { BatchGroup, BatchRecord } from "./batch-types";
+import type { BatchGroup, BatchReceipt, BatchRecord } from "./batch-types";
+
+/** Evidence is never dropped: a later read can see less, or report the same transaction differently. */
+export function mergeReceipts(
+  saved: readonly BatchReceipt[],
+  observed: readonly BatchReceipt[]
+): BatchReceipt[] {
+  return [
+    ...new Map(
+      [...saved, ...observed].map((receipt) => [
+        `${receipt.transactionHash.toLowerCase()}:${receipt.status}`,
+        receipt,
+      ])
+    ).values(),
+  ];
+}
 
 /** A lease fences writers while the durable intent continues to fence sends after a crash. */
 export async function withBatchProgress(
@@ -42,13 +57,10 @@ export async function withBatchProgress(
       itemStates,
       status,
       reference: group.reference,
-      receipts: [
-        ...new Map(
-          groups
-            .flatMap((candidate) => candidate.receipts)
-            .map((receipt) => [receipt.transactionHash, receipt])
-        ).values(),
-      ],
+      receipts: mergeReceipts(
+        [],
+        groups.flatMap((candidate) => candidate.receipts)
+      ),
     };
     record = await journal.checkpoint(record.id, token, record);
   };

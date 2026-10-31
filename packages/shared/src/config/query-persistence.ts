@@ -326,6 +326,9 @@ export function createShouldDehydrateQuery({
     // Reporting ceremony state (pairing codes, publication status) is private and short-lived.
     if (key[1] === "agent-reporting") return false;
 
+    // The batch journal owns a save's outcome: a restored copy could show a hold that has ended.
+    if (key[1] === "garden-settings-batch") return false;
+
     // The due clock's calibration belongs to the page that read it: restored after the device
     // clock moved, it would move the chain's clock with it.
     if (key[1] === "commitment-pooling" && key[3] === "chain-clock") return false;

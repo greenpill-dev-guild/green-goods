@@ -154,10 +154,12 @@ The installed Kernel 0.3.1/0.3.3 recipes passed software P-256-signed deployment
 
 ## Recovery rules added on 2026-10-30
 
-Reading the merged source found two gaps, and review of #1208 raised them independently. PR 1D closes both.
+Reading the merged source found two gaps, and review of #1208 raised them independently. PRs 1D and 1E close them and the races review found next.
 
 - **A hold can end.** A record with no reference and a `user-operation` quote reopens on reconcile. `batches.release` ends any other hold. A wallet's prompt can still be approved after its tab closes, and its status can expire, so neither case proves anything by itself. Release accepts that risk at a person's request, after a fresh read, and it keeps the evidence on the record.
-- **A lapsed lease loses nothing.** Expiry lets another tab take over; until one does, the holder is still the only writer. An accepted reference is saved by `recordSubmission`, which needs no lease and can only add identity.
+- **A lapsed lease loses nothing.** Expiry lets another tab take over; until one does, the holder is still the only writer. An accepted reference is saved by `recordSubmission`, which needs no lease and can only add identity. A checkpoint from a writer that read before that cannot erase it.
+- **A release needs current facts.** It stops if a reference appeared after its read, because the person releasing has not seen that news.
+- **Evidence stays.** `executionConfirmed` is saved before verification starts, so recovery can finish after a wallet's status expires. Unresolved receipts never count as that proof. A later read that contradicts a saved receipt keeps the group unresolved, with both on the record.
 
 Operation IDs are minted per attempt and are unique in the browser. Reusing one across accounts fails closed with `batch-intent-changed`, because the fingerprint covers account and chain.
 

@@ -10,11 +10,12 @@ import {
   type BatchRecord,
   type BatchReference,
   type PreparedBatch,
+  UNKNOWN_BATCH_STATES as waiting,
   type VerifyBatchItems,
 } from "./batch-types";
 import { assertBatchQuote } from "./batch-budget";
 import type { BatchJournal } from "./batch-journal";
-import { withBatchProgress } from "./batch-progress";
+import { mergeReceipts, withBatchProgress } from "./batch-progress";
 import type { BroadcastReference, TransactionSender } from "./types";
 import { isCanonicalTransactionHash } from "./confirmation";
 
@@ -28,7 +29,6 @@ interface ExecutionInput extends RecoveryInput {
   /** Domain/transport preflight must simulate the exact reviewed group and enforce its budget. */
   preflight: (prepared: PreparedBatch, itemIds: readonly string[]) => Promise<void>;
 }
-const waiting = new Set(["awaiting-approval", "submitted", "unresolved"]);
 
 async function owned(sender: TransactionSender, prepared: PreparedBatch) {
   await sender.assertOwnership?.(prepared.account, prepared.chainId);
@@ -50,16 +50,15 @@ function assertExecutionReference(
     throw new Error("batch-reference-mismatch");
 }
 
-/** A later read can expire or see less, so evidence already saved is never dropped. */
-function mergeReceipts(
-  saved: readonly BatchReceipt[],
-  observed: readonly BatchReceipt[]
-): BatchReceipt[] {
-  return [
-    ...new Map(
-      [...saved, ...observed].map((receipt) => [receipt.transactionHash.toLowerCase(), receipt])
-    ).values(),
-  ];
+/** The same transaction reported two ways is unknown, whichever report came last. */
+function receiptsContradict(receipts: readonly BatchReceipt[]): boolean {
+  const seen = new Map<string, BatchReceipt["status"]>();
+  return receipts.some((receipt) => {
+    const hash = receipt.transactionHash.toLowerCase();
+    const earlier = seen.get(hash);
+    seen.set(hash, receipt.status);
+    return earlier !== undefined && earlier !== receipt.status;
+  });
 }
 
 async function settle(
@@ -75,8 +74,10 @@ async function settle(
     reference: execution.reference ?? group.reference,
     receipts: mergeReceipts(group.receipts, execution.receipts),
   };
+  if (receiptsContradict(next.receipts)) return { ...next, status: "unresolved" };
   if (execution.status !== "confirmed")
-    return group.confirmedItemIds?.length && execution.status === "reverted"
+    return (group.confirmedItemIds?.length || group.executionConfirmed) &&
+      execution.status === "reverted"
       ? { ...next, status: "unresolved" }
       : next;
   if (
@@ -150,7 +151,11 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           reference.account.toLowerCase() !== prepared.account.toLowerCase()
         )
           throw new Error("batch-reference-scope-mismatch");
-        next = { ...next, status: accepted ? "submitted" : next.status, reference };
+        next = {
+          ...next,
+          reference,
+          ...(accepted ? { status: "submitted", accepted: true } : {}),
+        };
         // Once a send is accepted its identity is saved, even if this tab has lost its claim.
         if (accepted) await journal.recordSubmission(prepared.id, next.itemIds, reference);
         await save(next);
@@ -210,6 +215,7 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           reference: execution.reference ?? next.reference,
           receipts: [...execution.receipts],
           status: execution.status === "reverted" ? "reverted" : "submitted",
+          ...(execution.status === "confirmed" ? { executionConfirmed: true } : {}),
         };
         await save(next);
         next = await settle(input, prepared, next, execution);
@@ -230,6 +236,8 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           status: declined ? "declined" : notSubmitted ? "prepared" : "unresolved",
         };
         await save(next).catch(() => undefined);
+        // Proven never sent: the caller gets the reason, and its items stay free to send.
+        if (notSubmitted && !declined) throw error;
         return { ...current(), status: next.status };
       }
       if (next.status !== "confirmed") return current();
@@ -266,11 +274,14 @@ export async function reconcileBatchOperation(
           const execution = await input.sender.reconcileBatch?.(group.reference);
           if (execution) {
             assertExecutionReference(record.prepared, next, execution);
-            next = { ...next, receipts: mergeReceipts(next.receipts, execution.receipts) };
+            next = {
+              ...next,
+              receipts: mergeReceipts(next.receipts, execution.receipts),
+              ...(execution.status === "confirmed" ? { executionConfirmed: true } : {}),
+            };
             await save(next);
             // Execution proven once stays proven when a later wallet read has expired or sees less.
-            const proven =
-              group.confirmedItemIds !== undefined && execution.status === "unresolved";
+            const proven = next.executionConfirmed === true && execution.status === "unresolved";
             next = await settle(
               input,
               record.prepared,
@@ -299,7 +310,12 @@ export async function releaseBatchOperation(
 ): Promise<BatchRecord> {
   const record = await reconcileBatchOperation(input);
   if (!waiting.has(record.status)) return record;
+  const identity = (group: BatchGroup) =>
+    `${group.accepted ? "accepted" : "candidate"}:${group.reference ? batchReferenceKey(group.reference) : ""}`;
   return withBatchProgress(input.journal, record, true, async (save, current) => {
+    // A send accepted after that read is news this person has not seen, so the hold stays.
+    if (current().groups.some((group, index) => identity(group) !== identity(record.groups[index])))
+      return current();
     for (const group of current().groups)
       if (waiting.has(group.status)) await save({ ...group, status: "released" });
     return current();
