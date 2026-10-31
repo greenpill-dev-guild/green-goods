@@ -216,13 +216,17 @@ export function resolveCommand(input) {
     env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
   }
   if (isUpgrade && mode === 'plan' && ['assessment-resolver', 'commitment-pooling'].includes(target)) env.UPGRADE_PLAN_OUTPUT_DIR = '.generated/release-upgrades';
-  const senderDefault = (isUpgrade && ['plan', 'broadcast'].includes(mode) && ['deployment-registry', 'assessment-resolver', 'commitment-pooling', 'hats-module', 'cookie-jar-module', 'signal-pool-yield-wiring'].includes(target)) || (isUpgrade && target === 'signal-pool-yield-wiring' && mode === 'simulate') || (operation.command === 'migrate vaults' && mode === 'broadcast') || (operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling-configure'].includes(target) && ['plan', 'broadcast'].includes(mode));
+  const senderDefault = (isUpgrade && ['plan', 'broadcast'].includes(mode) && ['deployment-registry', 'assessment-resolver', 'commitment-pooling', 'hats-module', 'cookie-jar-module', 'yield-resolver', 'signal-pool-yield-wiring'].includes(target)) || (isUpgrade && target === 'signal-pool-yield-wiring' && mode === 'simulate') || (operation.command === 'migrate vaults' && mode === 'broadcast') || (operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling-configure'].includes(target) && ['plan', 'broadcast'].includes(mode));
   if (senderDefault && !values.sender) values.sender = OPERATOR;
   if ((target === 'commitment-pooling' && ['plan', 'broadcast'].includes(mode)) || target === 'pooling-configure' && mode === 'broadcast') env.SENDER_ADDRESS = values.sender;
   if (isUpgrade && mode === 'broadcast' && target === 'assessment-resolver') checks.push({ command: 'bun', args: ['run', 'check:storage-layout'] });
   if (isUpgrade && mode === 'broadcast' && target === 'cookie-jar-module') {
     checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'CookieJarModule'] });
     if (network === 'arbitrum') checks.push({ command: 'bun', args: ['script/utils/fork-shards.mjs', 'run', 'cookie-jar-module-upgrade-arbitrum'] });
+  }
+  if (isUpgrade && mode === 'broadcast' && target === 'yield-resolver') {
+    checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'YieldResolver'] });
+    if (network === 'arbitrum') checks.push({ command: 'bun', args: ['script/utils/fork-shards.mjs', 'run', 'yield-resolver-upgrade-arbitrum'] });
   }
   if (isUpgrade && mode === 'broadcast' && target === 'hats-module') {
     checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'HatsModule'] });

@@ -94,6 +94,13 @@ test('CookieJarModule upgrade is storage-gated and rehearsed against live Arbitr
   assert.deepEqual(resolve('upgrade cookie-jar-module --network arbitrum --mode simulate').checks, []);
   assert.deepEqual(resolve('upgrade cookie-jar-module --network sepolia --mode broadcast').checks.map((check) => check.args), [['script/check-storage-layout.sh', '--contract', 'CookieJarModule']]);
 });
+test('YieldResolver upgrade is storage-gated and rehearsed against live Arbitrum before broadcast', () => {
+  const resolver = resolve('upgrade yield-resolver --network arbitrum --mode broadcast');
+  assert.deepEqual(resolver.checks.map((check) => [check.command, ...check.args]), [['bash', 'script/check-storage-layout.sh', '--contract', 'YieldResolver'], ['bun', 'script/utils/fork-shards.mjs', 'run', 'yield-resolver-upgrade-arbitrum']]);
+  assert.ok(resolver.args.includes(OPERATOR));
+  assert.deepEqual(resolve('upgrade yield-resolver --network arbitrum --mode simulate').checks, []);
+  assert.deepEqual(resolve('upgrade yield-resolver --network sepolia --mode broadcast').checks.map((check) => check.args), [['script/check-storage-layout.sh', '--contract', 'YieldResolver']]);
+});
 test('operator boundary resolution is fixed and cannot recurse or override network', () => {
   const roles = resolveOperatorBoundary('garden-roles', ['--plan', 'reviewed.json', '--step', '1', '--broadcast', 'true']);
   assert.deepEqual(roles.args, ['script/deploy/garden-roles.ts', 'deploy', '--broadcast', '--plan', 'reviewed.json', '--step', '1']);
