@@ -158,3 +158,28 @@ it("rejects restored group boundaries that split the approved atomic operation",
   });
   await expect(db.get(prepared.id)).rejects.toThrow("batch-invalid-record");
 });
+
+it.each([
+  "reverted",
+  "declined",
+  "released",
+  "prepared",
+] as const)("rejects a stored %s status over a group that may still be live", async (status) => {
+  const db = journal();
+  const record = await db.prepare(batch());
+  await db.table("operations").put({
+    ...record,
+    status,
+    groups: record.groups.map((group) => ({ ...group, status: "submitted" })),
+  });
+  await expect(db.get("operation")).rejects.toThrow("batch-invalid-record");
+  await expect(db.prepare(batch("other", "member:bob"))).resolves.toBeDefined();
+  await expect(db.claim("other")).rejects.toThrow("batch-invalid-record");
+});
+
+it("rejects a stored terminal status that no group carries", async () => {
+  const db = journal();
+  const record = await db.prepare(batch());
+  await db.table("operations").put({ ...record, status: "reverted" });
+  await expect(db.get("operation")).rejects.toThrow("batch-invalid-record");
+});

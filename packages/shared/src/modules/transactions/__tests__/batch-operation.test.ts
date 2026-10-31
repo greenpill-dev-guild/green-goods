@@ -2,20 +2,28 @@ import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BatchJournal } from "../batch-journal";
 import { prepareBatch } from "../prepared-batch";
-import { executeBatchOperation, reconcileBatchOperation } from "../batch-operation";
+import {
+  executeBatchOperation,
+  reconcileBatchOperation,
+  releaseBatchOperation,
+} from "../batch-operation";
 import {
   createMockContractCall,
   createMockBatchBudget,
 } from "../../../__tests__/test-utils/transaction-fakes";
-import { BatchNotSubmittedError } from "../batch-types";
+import { BatchNotSubmittedError, type BatchQuote } from "../batch-types";
 import type { TransactionSender } from "../types";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
 const hash = `0x${"a".repeat(64)}` as const;
 const reference = { kind: "wallet-calls", id: "proposal:123", account, chainId: 42161 } as const;
 const databases: BatchJournal[] = [];
-function setup(mode: "atomic" | "sequential" | "single-call" = "atomic", reviewed = true) {
-  const journal = new BatchJournal(`test-operation-${crypto.randomUUID()}`);
+function setup(
+  mode: "atomic" | "sequential" | "single-call" = "atomic",
+  reviewed = true,
+  now?: () => number
+) {
+  const journal = new BatchJournal(`test-operation-${crypto.randomUUID()}`, now);
   databases.push(journal);
   const prepared = prepareBatch({
     id: "operation",
@@ -316,4 +324,294 @@ it("requires a transport quote before recording a signing intent", async () => {
     executeBatchOperation({ journal, prepared: reviewed, sender, preflight, verify })
   ).rejects.toThrow("batch-preflight-unavailable");
   expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+});
+
+describe("ending a hold", () => {
+  const scope = { account, chainId: 42161 };
+  const walletQuote: BatchQuote = {
+    gas: "300000",
+    maxFeePerGas: "2000000",
+    maxFee: "600000000000",
+    sponsored: false,
+    authority: "wallet",
+  };
+  const passkeyQuote: BatchQuote = { ...walletQuote, sponsored: true, authority: "user-operation" };
+  const userOperation = { kind: "user-operation", hash, chainId: 42161 } as const;
+
+  function passkeySetup() {
+    const { journal, sender } = setup();
+    const prepared = prepareBatch({
+      id: "operation",
+      ...scope,
+      domain: "settings",
+      budget: createMockBatchBudget({ sponsorship: "required" }),
+      mode: "atomic",
+      items: ["name", "description"].map((id) => ({
+        id,
+        call: createMockContractCall({ account }),
+      })),
+    });
+    vi.mocked(sender.preflightBatch!).mockResolvedValue(passkeyQuote);
+    return { journal, prepared, sender };
+  }
+
+  /** What a closed tab leaves behind: the prompt opened and nothing came back. */
+  async function closeTabDuringPrompt(
+    journal: BatchJournal,
+    prepared: ReturnType<typeof prepareBatch>,
+    quote: BatchQuote
+  ) {
+    const record = await journal.prepare(prepared);
+    const token = await journal.claim(prepared.id);
+    await journal.checkpoint(prepared.id, token, {
+      status: "awaiting-approval",
+      groups: record.groups.map((group) => ({ ...group, quote, status: "awaiting-approval" })),
+    });
+    await journal.release(prepared.id, token);
+  }
+
+  const conflicting = (id = "retry") =>
+    prepareBatch({
+      id,
+      ...scope,
+      domain: "settings",
+      budget: createMockBatchBudget(),
+      mode: "atomic",
+      items: ["name", "description"].map((item) => ({
+        id: item,
+        call: createMockContractCall({ account }),
+      })),
+    });
+
+  it("reopens a passkey operation that never saved a reference, without sending", async () => {
+    const { journal, prepared, sender } = passkeySetup();
+    await closeTabDuringPrompt(journal, prepared, passkeyQuote);
+    expect(
+      (
+        await reconcileBatchOperation({
+          journal,
+          operationId: prepared.id,
+          ...scope,
+          sender,
+          verify,
+        })
+      ).status
+    ).toBe("prepared");
+    expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+
+    vi.mocked(sender.submitAtomicBatch!).mockImplementation(async (_calls, options = {}) => {
+      await options.onBeforeBroadcast?.(userOperation);
+      return {
+        status: "confirmed",
+        reference: { ...userOperation, account },
+        receipts: [{ transactionHash: hash, status: "success" }],
+        sponsored: true,
+      };
+    });
+    expect(
+      (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
+    ).toBe("confirmed");
+    expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
+  });
+
+  it("refuses a passkey broadcast whose reference was not saved first", async () => {
+    const { journal, prepared, sender } = passkeySetup();
+    vi.mocked(sender.submitAtomicBatch!).mockImplementation(async (_calls, options = {}) => {
+      try {
+        await options.onBeforeBroadcast?.();
+      } catch (error) {
+        throw new BatchNotSubmittedError(error);
+      }
+      throw new Error("the send must stop before this line");
+    });
+    const result = await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+    expect(result.status).toBe("prepared");
+  });
+
+  it("keeps holding a wallet operation, whose open prompt could still be approved", async () => {
+    const { journal, prepared, sender } = setup();
+    await closeTabDuringPrompt(journal, prepared, walletQuote);
+    expect(
+      (
+        await reconcileBatchOperation({
+          journal,
+          operationId: prepared.id,
+          ...scope,
+          sender,
+          verify,
+        })
+      ).status
+    ).toBe("unresolved");
+    await expect(
+      executeBatchOperation({ journal, prepared: conflicting(), sender, preflight, verify })
+    ).rejects.toThrow("batch-items-held");
+    expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+  });
+
+  it("ends a hold only on request, frees its items, and keeps its evidence", async () => {
+    const { journal, prepared, sender } = setup();
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+      status: "unresolved",
+      reference,
+      receipts: [],
+      sponsored: false,
+    });
+    vi.mocked(sender.submitAtomicBatch!).mockImplementationOnce(async (_calls, options = {}) => {
+      await options.onBatchReference?.(reference);
+      throw new Error("lost receipt response");
+    });
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+
+    const released = await releaseBatchOperation({
+      journal,
+      operationId: prepared.id,
+      ...scope,
+      sender,
+      verify,
+    });
+    expect(released).toMatchObject({ status: "released", reference });
+    expect(released.itemStates).toEqual({ name: "released", description: "released" });
+    expect(
+      (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
+    ).toBe("released");
+    expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
+    expect(
+      (await executeBatchOperation({ journal, prepared: conflicting(), sender, preflight, verify }))
+        .status
+    ).toBe("confirmed");
+  });
+
+  it("reads the chain first, so a landed operation is confirmed instead of released", async () => {
+    const { journal, prepared, sender } = setup();
+    vi.mocked(sender.submitAtomicBatch!).mockImplementationOnce(async (_calls, options = {}) => {
+      await options.onBatchReference?.(reference);
+      throw new Error("lost receipt response");
+    });
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+    expect(
+      (await releaseBatchOperation({ journal, operationId: prepared.id, ...scope, sender, verify }))
+        .status
+    ).toBe("confirmed");
+  });
+
+  it("refuses to release an operation that is not held", async () => {
+    const { journal, prepared, sender } = setup();
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+    await expect(
+      releaseBatchOperation({ journal, operationId: prepared.id, ...scope, sender, verify })
+    ).resolves.toMatchObject({ status: "confirmed" });
+    const fresh = conflicting("fresh");
+    await journal.prepare(fresh);
+    await expect(
+      releaseBatchOperation({ journal, operationId: fresh.id, ...scope, sender, verify })
+    ).resolves.toMatchObject({ status: "prepared" });
+  });
+
+  it("holds the items again when a reference arrives after a release", async () => {
+    const { journal, prepared, sender } = setup();
+    vi.mocked(sender.submitAtomicBatch!).mockRejectedValueOnce(new Error("connection lost"));
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+    await releaseBatchOperation({ journal, operationId: prepared.id, ...scope, sender, verify });
+
+    await journal.recordSubmission(prepared.id, ["name", "description"], reference);
+    expect(await journal.get(prepared.id)).toMatchObject({ status: "unresolved", reference });
+    await expect(
+      executeBatchOperation({ journal, prepared: conflicting(), sender, preflight, verify })
+    ).rejects.toThrow("batch-items-held");
+  });
+
+  it("keeps an accepted wallet ID after another tab took the claim during the prompt", async () => {
+    let now = 0;
+    const { journal, prepared, sender } = setup("atomic", true, () => now);
+    vi.mocked(sender.submitAtomicBatch!).mockImplementationOnce(async (_calls, options = {}) => {
+      now += 120_000;
+      await journal.claim(prepared.id, true);
+      // The adapter keeps going when this checkpoint fails, as it must once a wallet has accepted.
+      await options.onBatchReference?.(reference).catch(() => undefined);
+      return { status: "unresolved", reference, receipts: [], sponsored: false };
+    });
+    expect(
+      (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
+    ).toBe("unresolved");
+    expect((await journal.get(prepared.id))?.reference).toEqual(reference);
+
+    now += 120_000;
+    expect(
+      (
+        await reconcileBatchOperation({
+          journal,
+          operationId: prepared.id,
+          ...scope,
+          sender,
+          verify,
+        })
+      ).status
+    ).toBe("confirmed");
+    expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
+  });
+
+  it("lets the holder finish after its lease lapsed, when no other tab took over", async () => {
+    let now = 0;
+    const { journal, prepared, sender } = setup("atomic", true, () => now);
+    vi.mocked(sender.submitAtomicBatch!).mockImplementationOnce(async (_calls, options = {}) => {
+      now += 120_000;
+      await options.onBatchReference?.(reference);
+      return {
+        status: "confirmed",
+        reference,
+        receipts: [{ transactionHash: hash, status: "success" }],
+        sponsored: false,
+      };
+    });
+    expect(
+      (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
+    ).toBe("confirmed");
+  });
+});
+
+it("finishes verification from saved receipts after the wallet's status expires", async () => {
+  const { journal, prepared, sender } = setup();
+  const first = await executeBatchOperation({
+    journal,
+    prepared,
+    sender,
+    preflight,
+    verify: async () => ["name"],
+  });
+  expect(first).toMatchObject({ status: "unresolved", receipts: [{ transactionHash: hash }] });
+  vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+    status: "unresolved",
+    reference,
+    receipts: [],
+    sponsored: false,
+  });
+  const recovered = await reconcileBatchOperation({
+    journal,
+    operationId: prepared.id,
+    account,
+    chainId: 42161,
+    sender,
+    verify,
+  });
+  expect(recovered).toMatchObject({ status: "confirmed", receipts: [{ transactionHash: hash }] });
+});
+
+it("keeps saved receipts when a later read sees less and the items stay unverified", async () => {
+  const { journal, prepared, sender } = setup();
+  await executeBatchOperation({ journal, prepared, sender, preflight, verify: async () => [] });
+  vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+    status: "unresolved",
+    reference,
+    receipts: [],
+    sponsored: false,
+  });
+  const recovered = await reconcileBatchOperation({
+    journal,
+    operationId: prepared.id,
+    account,
+    chainId: 42161,
+    sender,
+    verify: async () => [],
+  });
+  expect(recovered).toMatchObject({ status: "unresolved", receipts: [{ transactionHash: hash }] });
 });

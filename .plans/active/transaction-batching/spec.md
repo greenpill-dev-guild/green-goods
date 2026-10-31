@@ -67,8 +67,9 @@ Preserve unresolved records during cleanup. Phase 1 retires terminal payloads af
 | Reverted | Authoritative failed-execution evidence | Explicit retry after revalidation |
 | Unresolved | A send may have happened; status is missing or contradictory | Check status/reconnect; hold affected items |
 | Declined before send | Explicit evidence no broadcast occurred | Keep unsent draft editable |
+| Released | A person saw fresh domain state and chose to move on | Items are free; evidence stays; a late reference holds them again |
 
-A disconnect, RPC error, missing indexer row, elapsed time, or expired wallet status does not prove absence of execution. Never automatically resend, split, or switch transports after an ambiguous send. If a supposedly atomic wallet response shows partial execution, preserve evidence and reconcile items; do not label everything reverted.
+A disconnect, RPC error, missing indexer row, elapsed time, or expired wallet status does not prove absence of execution. Never automatically resend, split, or switch transports after an ambiguous send. The one proof of absence is a passkey record with no reference, because that reference is saved before the operation can be sent; such a record reopens. Every other hold ends only through a person's release, which reads the chain first. If a supposedly atomic wallet response shows partial execution, preserve evidence and reconcile items; do not label everything reverted.
 
 Atomicity applies to each submitted group. Sequential calls or multiple groups can leave an operation partly complete. Show any split and expected application request count before signing. After rejection or uncertainty, later groups remain unsent until an explicit resume.
 
@@ -92,7 +93,7 @@ Submit one atomic group when supported and within budget. Ordinary wallets keep 
 
 Resolve ENS before review and freeze resolved addresses. Normalize/deduplicate `(garden, address, role)` rows. Reuse `createGardenOperation` permissions, authoritative role checks, and rollback behavior. Existing roles become visible no-ops. Invalid rows show reasons; the user confirms any reduced valid selection.
 
-Use bounded atomic groups or a preselected sequential fallback. Keep person/role outcomes and earlier successes when a later group fails. Refresh authoritative membership and exclude confirmed rows from retries. Allow correction of failed rows. Do not expand caller permissions or include removals.
+Send one `grantRoles` call per bounded group through `single-call` mode, which gives every wallet one signature. Where it is unavailable, use a preselected sequential fallback. Keep person/role outcomes and earlier successes when a later group fails. Refresh authoritative membership and exclude confirmed rows from retries. Allow correction of failed rows. Do not expand caller permissions or include removals.
 
 ## Phase 4: deposits
 
@@ -102,11 +103,11 @@ Finish the existing limit, preview, balance, and allowance reads first, then fre
 
 A deposit moves money, so recovery matters more here than the prompt count. Today a receipt timeout reaches the funder as a failed deposit with a suggestion to try again, although the deposit may have landed. An unknown outcome must stay pending, survive a reload, and hold the next deposit into that vault or jar from the same account and chain until it is reconciled. Each attempt gets a new operation ID, and a confirmed deposit holds nothing.
 
-Confirm a deposit only from a receipt whose `Deposit` event matches the vault or jar, depositor, receiver, and amount. A slow indexer leaves it pending.
+Confirm a vault deposit only from a receipt whose `Deposit` event matches the vault, depositor, receiver, and amount. The jar's ABI shows no such event, so read a real deposit's logs before fixing its rule. A slow indexer leaves it pending.
 
 The vault's `deposit(amount, receiver)` takes no minimum shares, so its slippage check can only run before signing. Today it runs after the approval lands. In an atomic group it runs last before signing, and nothing can land between the approval and the deposit. The window between signing and inclusion stays as it is today.
 
-Enable only the account, chain, and asset combinations with recorded evidence. Three flows stay out: Octant checkout (wallet only, mainnet, with its own wrap step), voucher deposits (one reviewed approval per call by design), and card endowment (thirdweb already batches it).
+Enable only the account, chain, and asset combinations with recorded evidence. Octant checkout gets its own later slice because it is wallet only, on mainnet, with its own wrap step. Voucher deposits (one reviewed approval per call by design) and card endowment (thirdweb already batches it) stay out.
 
 ## Phase 5: bulk work approvals
 
@@ -151,9 +152,15 @@ The existing work queue keeps its own persistence and claim authority. Bundled s
 
 The installed Kernel 0.3.1/0.3.3 recipes passed software P-256-signed deployment, ordered groups of 2/5/10 calls, and revert rollback on an isolated Arbitrum fork. This proves the actual account/validator/EntryPoint execution fixture, not authenticated device signing or configured paymaster acceptance. Passkey gas/sponsorship ceilings are checked before signing; wallet quotes enforce ordered simulation ceilings because EIP-5792 leaves final fees to the wallet. Representative feature limits and live gates remain pending. See [the follow-up evidence](handoffs/phase-1-compatibility.md). No new batch UI is enabled by Phase 1.
 
-## Recovery gaps found on 2026-10-30
+## Recovery rules added on 2026-10-30
 
-Reading the merged source turned up two gaps in the rules above. Checkpoints 1.9 and 1.10 close them before anything calls this code.
+Reading the merged source found two gaps, and review of #1208 raised them independently. PR 1D closes both.
 
-- **A held operation has no exit.** The state table says to hold items while a send may have happened, but `BatchOperations` offers nothing to end that hold when no reference was saved. A reference is saved before a passkey operation can reach the network, so a passkey record with no reference is provably unsent and can reopen. A wallet record with no reference is truly unknown, because an open prompt can still be approved. Ending that hold takes a fresh read of domain state and the user's confirmation.
-- **A lapsed lease loses a reference.** The lease fences writers, but it also fences the one write that must not fail. Filling an empty reference cannot conflict with another writer, so it should not need the lease.
+- **A hold can end.** A record with no reference and a `user-operation` quote reopens on reconcile. `batches.release` ends any other hold. A wallet's prompt can still be approved after its tab closes, and its status can expire, so neither case proves anything by itself. Release accepts that risk at a person's request, after a fresh read, and it keeps the evidence on the record.
+- **A lapsed lease loses nothing.** Expiry lets another tab take over; until one does, the holder is still the only writer. An accepted reference is saved by `recordSubmission`, which needs no lease and can only add identity.
+
+Operation IDs are minted per attempt and are unique in the browser. Reusing one across accounts fails closed with `batch-intent-changed`, because the fingerprint covers account and chain.
+
+## Remaining actions
+
+Phases 6 to 12 follow the same rules. Each caller supplies its domain preflight, its reviewed budget, and how to confirm each item, and each stays off until the enablement list names it. [The plan](plan.todo.md#slices) lists what each slice covers, and the actions that will not batch.
