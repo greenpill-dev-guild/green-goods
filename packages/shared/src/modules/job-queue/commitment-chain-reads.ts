@@ -11,7 +11,11 @@ import {
 import { decodeEventLog, type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
-import { CommitmentPoolingModuleABI, GardenAccountABI } from "../../utils/blockchain/contracts";
+import {
+  CommitmentPoolingModuleABI,
+  GardenAccountABI,
+  getNetworkContracts,
+} from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
 import { logger } from "../app/logger";
 import type { CommitmentJobExecutionDependencies } from "../commitment-pooling/jobs";
@@ -27,6 +31,7 @@ export type CommitmentChainReads = Pick<
   | "readEvidenceAttached"
   | "readWorkLinkPayloadHash"
   | "readWorkLinkCommitmentState"
+  | "readSettlementAccountActive"
   | "hasMembership"
 > &
   SendChainReads & {
@@ -70,6 +75,33 @@ export type CommitmentChainReads = Pick<
   };
 
 const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
+
+/** The one settlement read a queued reward needs, so the queue doesn't load the module's ABI. */
+const SETTLEMENT_ACCOUNT_ABI = [
+  {
+    type: "function",
+    name: "settlementAccountOf",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "chainId", type: "uint64" },
+          { name: "account", type: "address" },
+          { name: "active", type: "bool" },
+          { name: "recoveryOwners", type: "address[3]" },
+          { name: "rolesModifier", type: "address" },
+          { name: "roleKey", type: "bytes32" },
+          { name: "allowanceKey", type: "bytes32" },
+          { name: "permissionsConfigHash", type: "bytes32" },
+          { name: "recoveryConfigHash", type: "bytes32" },
+          { name: "recoveryThreshold", type: "uint8" },
+        ],
+      },
+    ],
+  },
+] as const;
 
 export interface CommitmentChainReadOptions {
   chainId: number;
@@ -195,6 +227,24 @@ export function createCommitmentChainReads({
         chainId,
       })) as { state: number; contributorsFrozen: boolean };
       return { state: value.state, contributorsFrozen: value.contributorsFrozen };
+    },
+    readSettlementAccountActive: async (garden) => {
+      try {
+        const account = await readContract(wagmiConfig, {
+          address: getNetworkContracts(chainId).settlementModule,
+          abi: SETTLEMENT_ACCOUNT_ABI,
+          functionName: "settlementAccountOf",
+          args: [garden],
+          chainId,
+        });
+        return account.active === true;
+      } catch (error) {
+        logger.warn("Settlement account read failed closed", {
+          chainId,
+          errorType: error instanceof Error ? error.name : "UnknownError",
+        });
+        return null;
+      }
     },
     simulateSend: async (call) => {
       await simulateContract(wagmiConfig, {

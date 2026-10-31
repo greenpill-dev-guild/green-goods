@@ -71,6 +71,22 @@ describe("useCommitmentQueueState", () => {
     expect(result.current.pendingCreates[0]?.settlementDeferred).toBe(false);
   });
 
+  it("says a reward is waiting on the settlement account, and leaves it free to send again", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "reward",
+        payload: { poolId: 7n, consideration: { rail: 2 } },
+        meta: { waitingReason: "settlement-unavailable" },
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(1));
+    expect(result.current.pendingCreates[0]).toMatchObject({
+      waitingForSettlementAccount: true,
+      settlementDeferred: false,
+    });
+  });
+
   it("marks unsent rewards deferred before a flush when settlement is off, but leaves recorded sends recoverable", async () => {
     mocks.settlementEnabled = false;
     const payload = { poolId: 7n, consideration: { rail: 2 } };

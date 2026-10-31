@@ -131,8 +131,63 @@ describe("useCommitmentSettlementController", () => {
     mocks.canDispatchOrRetry = true;
     mocks.canRequeueOrCancel = true;
     mocks.isPending = false;
-    mocks.mutateAsync.mockResolvedValue("0xabc");
+    mocks.mutateAsync.mockResolvedValue({ hash: "0xabc", sponsored: false });
     mocks.pinReason.mockResolvedValue("ipfs://reason");
+  });
+
+  it("holds a step a Safe took as a proposal until the chain shows it ran", async () => {
+    mocks.readChain.mockResolvedValue(chainState());
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const commitment = beneficiaryCommitment();
+    const { result } = renderHookWithProviders(() =>
+      useCommitmentSettlementController({ chainId: 42161, commitment, detail: null })
+    );
+    await waitFor(() =>
+      expect(result.current.workflow.nextAction).toEqual({ kind: "create-plan" })
+    );
+
+    await act(async () => {
+      await result.current.acts.createPlan();
+    });
+    // Never "confirmed": nothing has run, and the same step can't be proposed twice.
+    expect(result.current.lastAct).toMatchObject({ kind: "create-plan", phase: "proposed" });
+    expect(result.current.workflow.nextAction).toBeNull();
+    expect(result.current.workflow.blockers).toEqual(["proposal-pending"]);
+
+    mocks.readChain.mockResolvedValue(
+      chainState({
+        payoutPlanId: 7n,
+        plan: {
+          payoutPlanId: 7n,
+          payoutKind: "GARDEN_BENEFICIARY",
+          status: "DRAFT",
+          finalized: false,
+          source: PAYER_SAFE,
+          token: null,
+          declaredAmount: 250n * G,
+          gardenRetainedAmount: 0n,
+          contributorPayoutTotal: 0n,
+          beneficiaryGarden: PROVIDER,
+          beneficiaryRecipient: PROVIDER_SAFE,
+          beneficiaryAmount: 250n * G,
+          beneficiaryDisbursementId: null,
+          payablePayoutCount: 1,
+          preparedPayoutCount: 0,
+          confirmedPayoutCount: 0,
+          failedPayoutCount: 0,
+          cancelledPayoutCount: 0,
+        },
+      })
+    );
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("confirmed"));
+    expect(result.current.workflow.nextAction).toEqual({ kind: "finalize-plan", payoutPlanId: 7n });
   });
 
   it("reads the chain for an eligible commitment and offers plan creation to the payer steward", async () => {

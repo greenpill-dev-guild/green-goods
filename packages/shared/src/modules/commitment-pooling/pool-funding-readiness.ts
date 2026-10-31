@@ -1,6 +1,7 @@
 import type {
   PoolFundingCalculationInput,
   PoolFundingSnapshot,
+  PoolFundingTransferBlock,
   PoolFundingTransferLimit,
   PoolFundingUnavailableReason,
   SettlementUnavailableReason,
@@ -182,21 +183,50 @@ export function deriveSettlementUnavailableReasons(
   return [...new Set(reasons)];
 }
 
+interface TransferFundingRead {
+  snapshot: Pick<PoolFundingSnapshot, "balance" | "limits"> | null;
+  isError: boolean;
+  hasStaleBalance: boolean;
+}
+
+/**
+ * Whether every limit a new transfer out of this Safe is checked against came
+ * back from the current read. The Arbitrum queue takes any amount and Celo only
+ * refuses after the CCIP fee is spent, so a send waits for a whole read: no
+ * snapshot, one kept from before a failed refresh, a stale balance standing in
+ * for one that could not be read, or any limit left unread all say no.
+ */
+export function selectTransferLimitsRead(funding: TransferFundingRead): boolean {
+  if (!funding.snapshot || funding.isError || funding.hasStaleBalance) return false;
+  const { balance, limits } = funding.snapshot;
+  return (
+    Boolean(balance) &&
+    limits.maxTransferAmount !== null &&
+    limits.periodAllowanceRemaining !== null &&
+    limits.rolesAllowanceRemaining !== null
+  );
+}
+
+/** Why a transfer of `amount` out of this Safe can't go yet; null when a whole read says it fits. */
+export function selectTransferBlock(
+  funding: TransferFundingRead,
+  amount: bigint
+): PoolFundingTransferBlock | null {
+  return selectTransferLimitsRead(funding)
+    ? selectExceededTransferLimit(funding, amount)
+    : "limits_unread";
+}
+
 /**
  * The smallest limit a new transfer of `amount` out of this Safe is over, so one
  * correction clears every limit it broke; null when it fits all that were read.
- * Only what the current read returned counts. A limit that was not read never
- * blocks, and neither does a snapshot kept from before a failed refresh, nor a
- * stale balance, which stands in for one that could not be read. The Celo
- * executor compares the amount plus any sender-paid G$ fee, so an amount within
- * that fee of a limit fits here and can still fail there.
+ * Only what the current read returned counts: `selectTransferLimitsRead` says
+ * whether that read is whole. The Celo executor compares the amount plus any
+ * sender-paid G$ fee, so an amount within that fee of a limit fits here and can
+ * still fail there.
  */
 export function selectExceededTransferLimit(
-  funding: {
-    snapshot: Pick<PoolFundingSnapshot, "balance" | "limits"> | null;
-    isError: boolean;
-    hasStaleBalance: boolean;
-  },
+  funding: TransferFundingRead,
   amount: bigint
 ): PoolFundingTransferLimit | null {
   if (!funding.snapshot || funding.isError) return null;

@@ -9,6 +9,7 @@ import {
   settlementDisbursementFixture,
   settlementPlanFixture,
 } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { HexString } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -114,9 +115,29 @@ describe("CommitmentSettlement", () => {
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(mocks.toastSuccess).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Settlement step confirmed" })
+        expect.objectContaining({ title: "Settlement step sent" })
       )
     );
+  });
+
+  it("says a Safe proposal is waiting, not confirmed, and lets the steward read again", () => {
+    const refetch = vi.fn(async () => undefined);
+    renderWithProviders(
+      <CommitmentSettlement
+        settlement={commitmentSettlementControllerFixture({
+          refetch,
+          lastAct: { kind: "create-plan", phase: "proposed", hash: "0xsafe" as HexString },
+        })}
+        tone="garden"
+      />
+    );
+
+    expect(screen.getByTestId("settlement-act-status")).toHaveTextContent(
+      "Sent to your Safe. This step reopens once the chain shows it ran."
+    );
+    expect(screen.queryByText(/Confirmed on chain/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Read Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("resumes from an existing plan and never offers creation again", () => {

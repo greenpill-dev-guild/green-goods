@@ -365,6 +365,21 @@ describe("useSettlementMutation", () => {
     );
   });
 
+  it("hands back a Safe proposal as pending, not as a confirmed step", async () => {
+    mocks.sender.sendContractCall.mockResolvedValue({
+      hash: "0xsafe",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const { result } = renderHookWithProviders(() => useSettlementMutation({ chainId: 42161 }));
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ action: "setGardenerDeliveryEnabled", enabled: true })
+      ).resolves.toMatchObject({ hash: "0xsafe", confirmation: "pending" });
+    });
+  });
+
   it("reconciles pool funding after the 2, 5, and 15 second indexer windows", async () => {
     vi.useFakeTimers();
     try {

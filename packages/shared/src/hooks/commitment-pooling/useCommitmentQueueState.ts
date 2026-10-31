@@ -68,6 +68,8 @@ export interface PendingCommitmentCreation {
   waitingForMembership: boolean;
   /** An unsent reward is retained for a later release; recorded sends still reconcile. */
   settlementDeferred?: boolean;
+  /** An unsent reward held because the garden's settlement account isn't active. */
+  waitingForSettlementAccount?: boolean;
   /** Gave up after its attempts; retry or discard are the member's call. */
   failed: boolean;
   /**
@@ -360,6 +362,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
             !SETTLEMENT_ENABLED &&
             payload.consideration?.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT &&
             isDiscardableJob(job),
+          waitingForSettlementAccount:
+            SETTLEMENT_ENABLED && !failed && job.meta?.waitingReason === "settlement-unavailable",
           failed,
           discardable: isDiscardableJob(job),
           ...(payload.metadata?.displayGroup && payload.dueDate

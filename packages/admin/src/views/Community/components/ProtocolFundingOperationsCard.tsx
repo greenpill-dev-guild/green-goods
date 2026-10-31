@@ -8,8 +8,8 @@ import type {
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
-  type PoolFundingTransferLimit,
   selectExceededTransferLimit,
+  selectTransferLimitsRead,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import type { Address } from "@green-goods/shared/types/domain";
 import { type ReactNode, useState } from "react";
@@ -21,32 +21,9 @@ import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import { type TransferAct, TransferReviewDialog } from "@/views/Garden/Pool/TransferReviewDialog";
-import { ProtocolFundingRows } from "./ProtocolFundingRows";
+import { OVER_LIMIT_MESSAGES, ProtocolFundingRows } from "./ProtocolFundingRows";
 
 type GardenOption = { id: Address; name: string };
-
-/** What the amount field says for each limit, in the words of the facts listed under it. */
-const OVER_LIMIT_MESSAGES: Record<
-  PoolFundingTransferLimit,
-  { id: string; defaultMessage: string }
-> = {
-  transfer_cap: {
-    id: "cockpit.community.protocolFunding.amount.overTransferCap",
-    defaultMessage: "More than the per-transfer cap.",
-  },
-  period_allowance: {
-    id: "cockpit.community.protocolFunding.amount.overPeriodAllowance",
-    defaultMessage: "More than the period allowance left.",
-  },
-  roles_allowance: {
-    id: "cockpit.community.protocolFunding.amount.overSafeAllowance",
-    defaultMessage: "More than the Safe allowance left.",
-  },
-  balance: {
-    id: "cockpit.community.protocolFunding.amount.overBalance",
-    defaultMessage: "More than the protocol Safe holds.",
-  },
-};
 
 export function ProtocolFundingOperationsCard({
   operations,
@@ -82,10 +59,13 @@ export function ProtocolFundingOperationsCard({
   const source = operations.sourceFunding.snapshot;
   const target = operations.targetFunding.snapshot;
   // The Arbitrum queue takes any amount; these limits are enforced only on Celo,
-  // after the CCIP fee is spent. The review and its confirm both refuse on this.
+  // after the CCIP fee is spent. The review and its confirm both refuse on this,
+  // and on limits nobody could read. The send itself reads them once more.
+  const limitsRead = selectTransferLimitsRead(operations.sourceFunding);
   const exceededLimit = amountValue
     ? selectExceededTransferLimit(operations.sourceFunding, amountValue)
     : null;
+  const proposalWaiting = operations.lastAct?.phase === "proposed";
   const amountError =
     amount.length > 0 && amountValue === null
       ? formatMessage({
@@ -95,7 +75,9 @@ export function ProtocolFundingOperationsCard({
       : exceededLimit
         ? formatMessage(OVER_LIMIT_MESSAGES[exceededLimit])
         : undefined;
-  const canReview = Boolean(targetGarden && amountValue && !exceededLimit);
+  const canReview = Boolean(
+    targetGarden && amountValue && !exceededLimit && limitsRead && !proposalWaiting
+  );
 
   const gardenName = (garden: Address | null | undefined) =>
     garden
@@ -104,6 +86,7 @@ export function ProtocolFundingOperationsCard({
 
   const submit = async (act: () => Promise<string>) => {
     const identifier = await act();
+    // The status line says whether it went out or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
         id: "cockpit.community.protocolFunding.submitted",
@@ -142,6 +125,14 @@ export function ProtocolFundingOperationsCard({
           {formatMessage({
             id: "cockpit.community.protocolFunding.readError",
             defaultMessage: "Couldn't read protocol funding",
+          })}
+        </Alert>
+      ) : !limitsRead && !operations.sourceFunding.isLoading ? (
+        <Alert variant="warning">
+          {formatMessage({
+            id: "cockpit.community.protocolFunding.limitsUnread",
+            defaultMessage:
+              "The protocol Safe's balance and limits haven't been read, so nothing can be queued or dispatched. Refresh to try again.",
           })}
         </Alert>
       ) : null}
@@ -288,10 +279,16 @@ export function ProtocolFundingOperationsCard({
                   defaultMessage:
                     "The transaction failed or was rejected. Nothing changed on chain.",
                 })
-              : formatMessage({
-                  id: "cockpit.community.protocolFunding.status.submitted",
-                  defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
-                })}
+              : operations.lastAct.phase === "proposed"
+                ? formatMessage({
+                    id: "cockpit.community.protocolFunding.status.proposed",
+                    defaultMessage:
+                      "Sent to your Safe. Queuing and dispatching stay closed until the transfer list changes. If your Safe rejected it, reload this page.",
+                  })
+                : formatMessage({
+                    id: "cockpit.community.protocolFunding.status.submitted",
+                    defaultMessage: "Submitted. Refresh to follow the indexed settlement state.",
+                  })}
         </p>
       ) : null}
 
@@ -323,13 +320,23 @@ export function ProtocolFundingOperationsCard({
         confirmDisabled={!canReview || !operations.canQueueFunding}
         isLoading={operations.isActing}
         onConfirm={async () => {
-          if (!targetGarden || !amountValue || exceededLimit) return;
+          if (!targetGarden || !amountValue || !canReview) return;
           await submit(() => operations.queueFunding(targetGarden, amountValue));
           setConfirmQueue(false);
         }}
       >
-        {/* A refresh can lower a limit while the review is open. */}
-        {exceededLimit ? <Alert variant="error">{amountError}</Alert> : null}
+        {/* A refresh can lower a limit, or lose them, while the review is open. */}
+        {exceededLimit ? (
+          <Alert variant="error">{amountError}</Alert>
+        ) : !limitsRead ? (
+          <Alert variant="error">
+            {formatMessage({
+              id: "cockpit.community.protocolFunding.limitsUnread",
+              defaultMessage:
+                "The protocol Safe's balance and limits haven't been read, so nothing can be queued or dispatched. Refresh to try again.",
+            })}
+          </Alert>
+        ) : null}
       </AdminConfirmDialog>
 
       <TransferReviewDialog

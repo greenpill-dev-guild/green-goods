@@ -28,6 +28,7 @@ import type {
 import { STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { readCommitmentSettlementChainState } from "../../../modules/commitment-pooling/data-settlement-chain";
+import { selectTransferBlock } from "../../../modules/commitment-pooling/pool-funding";
 import { pinCommitmentReason } from "../../../modules/commitment-pooling/reasons";
 import {
   hashRecognitionSnapshot,
@@ -36,6 +37,7 @@ import {
 import {
   selectSettlementEligibility,
   selectSettlementWorkflow,
+  settlementProgressKey,
 } from "../../../modules/commitment-pooling/settlement-workflow";
 import { isPoolSteward } from "../../../modules/commitment-pooling/steward-selectors";
 import type {
@@ -115,6 +117,12 @@ export function useCommitmentSettlementController(input: {
   );
   const mutation = useSettlementMutation({ chainId });
   const [lastAct, setLastAct] = useState<SettlementActStatus | null>(null);
+  // Where the chain stood when a Safe took a step as a proposal. The step stays
+  // closed while the chain still reads the same, so it can't be proposed twice.
+  // This lasts as long as the panel: reopening it is how a rejected proposal is sent again.
+  const [proposedAt, setProposedAt] = useState<string | null>(null);
+  const proposalPending =
+    proposedAt !== null && chain !== null && settlementProgressKey(chain) === proposedAt;
 
   const refetch = useCallback(
     () => Promise.all([chainQuery.refetch(), fundingQuery.refetch()]),
@@ -124,9 +132,16 @@ export function useCommitmentSettlementController(input: {
   const run = useCallback(
     async (kind: SettlementActKind, call: SettlementMutationInput): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
+      const before = chainQuery.data ? settlementProgressKey(chainQuery.data) : null;
       try {
-        const hash = (await mutation.mutateAsync(call)) as HexString;
-        setLastAct({ kind, phase: "confirmed", hash });
+        const result = await mutation.mutateAsync(call);
+        const hash = result.hash as HexString;
+        if (result.confirmation === "pending") {
+          setProposedAt(before);
+          setLastAct({ kind, phase: "proposed", hash });
+        } else {
+          setLastAct({ kind, phase: "confirmed", hash });
+        }
         await refetch();
         return hash;
       } catch (error) {
@@ -137,7 +152,7 @@ export function useCommitmentSettlementController(input: {
         throw error;
       }
     },
-    [mutation, refetch]
+    [chainQuery.data, mutation, refetch]
   );
 
   const acts = useMemo<CommitmentSettlementActs>(
@@ -236,6 +251,8 @@ export function useCommitmentSettlementController(input: {
     isOnline,
     chainRead,
     isActing: mutation.isPending,
+    proposalPending,
+    transferBlock: (amount) => selectTransferBlock(fundingQuery, amount),
   });
 
   const funding = useMemo(
@@ -292,7 +309,11 @@ export function useCommitmentSettlementController(input: {
       resolved: !payerRoles.isLoading && !capabilities.isLoading,
     },
     acts,
-    lastAct,
+    // Once the chain moves, the proposal ran: the read says so, never the wallet.
+    lastAct:
+      lastAct?.phase === "proposed" && !proposalPending
+        ? { ...lastAct, phase: "confirmed" }
+        : lastAct,
     isActing: mutation.isPending,
     refetch,
   };

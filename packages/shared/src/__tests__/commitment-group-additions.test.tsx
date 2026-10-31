@@ -36,6 +36,7 @@ const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 const chain = vi.hoisted(() => ({
   creator: "0x1111111111111111111111111111111111111111",
   rail: 0,
+  settlementAccountActive: true as boolean | Error,
 }));
 const send = vi.hoisted(() => ({
   script: (_copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
@@ -101,10 +102,15 @@ vi.mock("../hooks/commitment-pooling/useCommitmentPoolMutations", () => ({
 }));
 vi.mock("../utils/blockchain/contracts", () => ({
   CommitmentPoolingModuleABI: [],
+  getNetworkContracts: () => ({ settlementModule: "0x8888888888888888888888888888888888888888" }),
   createClients: () => ({
     publicClient: {
-      readContract: async ({ functionName }: { functionName: string }) =>
-        functionName === "getConfirmers"
+      readContract: async ({ functionName }: { functionName: string }) => {
+        if (functionName === "settlementAccountOf") {
+          if (chain.settlementAccountActive instanceof Error) throw chain.settlementAccountActive;
+          return { active: chain.settlementAccountActive };
+        }
+        return functionName === "getConfirmers"
           ? []
           : {
               poolId: 7n,
@@ -129,7 +135,8 @@ vi.mock("../utils/blockchain/contracts", () => ({
               consideration: { rail: chain.rail, source: GARDEN, token: GARDEN, amount: 0n },
               declaredUnitValue: 0n,
               declaredValueBasis: "",
-            },
+            };
+      },
     },
   }),
 }));
@@ -139,6 +146,7 @@ beforeEach(() => {
   send.script = () => ({ status: "created" });
   chain.creator = STEWARD;
   chain.rail = 0;
+  chain.settlementAccountActive = true;
   releaseScope.settlementEnabled = true;
 });
 
@@ -293,6 +301,20 @@ describe("useAddToGroup", () => {
     releaseScope.settlementEnabled = true;
     expect(await setup().add(3)).toBe("sent");
     expect(send.inputs[0]?.copies).toHaveLength(3);
+  });
+
+  it("won't promise more of a reward the garden's settlement account can't pay", async () => {
+    chain.rail = 2;
+    chain.settlementAccountActive = false;
+    expect(await setup().add(3)).toBe("no-settlement-account");
+
+    chain.settlementAccountActive = new Error("rpc down");
+    expect(await setup().add(3)).toBe("blocked");
+    expect(send.inputs).toEqual([]);
+
+    // A group with no reward owes nothing through that account.
+    chain.rail = 0;
+    expect(await setup().add(3)).toBe("sent");
   });
 
   it("checks the deadline again on Try Again, and sends nothing once it has passed", async () => {

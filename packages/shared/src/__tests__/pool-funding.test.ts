@@ -8,6 +8,7 @@ import {
   type PoolFundingDisbursement,
   selectExceededTransferLimit,
   selectPoolFundingSnapshot,
+  selectTransferBlock,
 } from "../modules/commitment-pooling/pool-funding";
 
 const SAFE = "0x1111111111111111111111111111111111111111" as const;
@@ -666,5 +667,20 @@ describe("selectExceededTransferLimit", () => {
     ["passes before the first read", { unread: true }, 1n, null],
   ] as const)("%s", (_name, read, amount, expected) => {
     expect(selectExceededTransferLimit(fundingRead(read), amount)).toBe(expected);
+  });
+
+  // Celo refuses only after the CCIP fee is spent, so a send waits for a whole read.
+  it.each([
+    ["a whole read that fits", {}, 1_000n, null],
+    ["a limit the amount is over", { cap: 500n }, 501n, "transfer_cap"],
+    ["no read yet", { unread: true }, 1n, "limits_unread"],
+    ["a snapshot left by a failed refresh", { isError: true }, 1n, "limits_unread"],
+    ["a stale balance", { hasStaleBalance: true }, 1n, "limits_unread"],
+    ["an unread balance", { balance: null }, 1n, "limits_unread"],
+    ["an unread cap", { cap: null }, 1n, "limits_unread"],
+    ["an unread period allowance", { period: null }, 1n, "limits_unread"],
+    ["an unread Safe allowance", { roles: null }, 1n, "limits_unread"],
+  ] as const)("selectTransferBlock: %s", (_name, read, amount, expected) => {
+    expect(selectTransferBlock(fundingRead(read), amount)).toBe(expected);
   });
 });
