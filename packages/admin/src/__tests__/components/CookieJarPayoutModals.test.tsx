@@ -161,6 +161,7 @@ describe("CookieJar payout modals", () => {
   it.each([
     ["reading", { jars: [] }, /Checking which cookie jars/],
     ["waiting on decimals", { hasUnreadDecimals: true }, /Checking which cookie jars/],
+    ["back without decimals", { hasDecimalsReadFailure: true }, /Couldn't read this garden's/],
     ["offline", { jars: [], isPaused: true }, /Cookie jars need a connection/],
     ["failing", { jars: [], error: new Error("RPC timeout") }, /Couldn't read this garden's/],
     ["finding no jar", { jars: [], hasNoJar: true }, /No cookie jars found for this garden/],

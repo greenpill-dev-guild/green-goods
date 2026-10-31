@@ -105,7 +105,8 @@ export function CookieJarDepositModal({
     }
   }, [defaultJarAddress, depositJar, isOpen, jars]);
 
-  // A jar whose decimals are unread has a fallback in their place, which would misread the amount.
+  // A jar whose decimals are unread or failed has a fallback in their place, which would misread
+  // the amount.
   const selectedDepositJar = useMemo(
     () => (readState === "ready" ? jars.find((j) => j.jarAddress === depositJar) : undefined),
     [jars, depositJar, readState]
