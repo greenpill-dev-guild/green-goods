@@ -1,6 +1,6 @@
 # Transaction Batching and Recovery Evaluation
 
-**Current state:** The Phase 1 checkpoint is isolated on develop. Its clean implementation commit passed 203 focused tests with six existing skips; current-head push/CI validation remains pending. Settings, member batching, and the bulk review UI are not implemented. [Publication handoff](handoffs/publication.md) owns current evidence. Earlier handoffs and artifacts describe the original parent branch and remain historical.
+**Current state:** `develop` at `974b69ac9` was merged into the Phase 1 checkpoint on 2026-10-30. [The continuation handoff](handoffs/continuation.md) records the focused results on that merge, and the PR records the gate and CI results for its final head. Settings, member batching, deposits, and the bulk review UI are not implemented. Earlier handoffs and artifacts describe earlier bases and remain historical.
 
 ## Acceptance matrix
 
@@ -25,6 +25,10 @@
 | AC-17 | Interaction/accessibility | Keyboard selection, explicit scope/counts, focus recovery, localized states, and non-color-only outcomes work in existing responsive layouts | ui |
 | AC-18 | Compatibility | Single reviews, client Upload all/offline flow, pool creation/setup/reward editing, and embedded sender retain their supported behavior | qa_pass_2 |
 | AC-19 | Rollout/measurement | Evidence identifies enabled account/chain combinations; per-rail requests and latency are compared; disabling new batches leaves recovery available | qa_pass_1/qa_pass_2 |
+| AC-20 | Deposit group | The group holds only the calls needed, for the exact amount; the reset appears only when the allowance is nonzero and too low; passkeys and atomic wallets use one request; plain wallets keep two visible signatures | state_api |
+| AC-21 | Deposit outcome | Only a matching `Deposit` event confirms; a reverted atomic group leaves no allowance; an unknown outcome stays pending across a reload and holds the next deposit into that vault or jar; a confirmed deposit holds nothing | state_api |
+| AC-22 | Deposit interaction | The signature count is stated up front and matches what the wallet asks for; each signature is shown landing; an unknown outcome never reads as failed; client and admin surfaces agree in en, es, and pt | ui |
+| AC-23 | Held operations | A closed signing prompt never holds items for good: a passkey record with no reference reopens after reload, a wallet record needs a fresh domain read and the user's confirmation, and a group with a reference is never released; a reference that arrives after a lapsed lease is still saved | state_api |
 
 ## Proof strategy
 
@@ -50,7 +54,7 @@ Known existing Shared tests for Phase 1, run from `packages/shared`:
 bun run test -- src/modules/transactions/__tests__/passkey-sender.test.ts src/modules/transactions/__tests__/wallet-sender.test.ts src/__tests__/modules/work/upload-queued-work.test.ts
 ```
 
-Add the new journal/conformance tests and affected commitment, settings, members, approval, and UI tests as each checkpoint introduces behavior. Do not run the entire suite repeatedly for documentation or unchanged code. Run selector-required type, format, lint, source-structure, and cross-package checks with full critical overrides. Use checkpoint/push/release intents only when the corresponding action is authorized. No push or release is authorized by the current Phase 1 implementation request.
+Add the new journal/conformance tests and affected commitment, settings, members, approval, and UI tests as each checkpoint introduces behavior. Do not run the entire suite repeatedly for documentation or unchanged code. Run selector-required type, format, lint, source-structure, and cross-package checks with full critical overrides. Use checkpoint/push/release intents only when the corresponding action is authorized. A push or release needs the user's current instruction.
 
 For a terminal implementation lane, record RED/GREEN with `plan-hub.mjs record-tdd`, then a fresh receipt containing tested full SHA, UTC timestamp, exact command/result, validated paths, and empty path-scoped worktree status. Follow the repository's evidence-only continuation rules. Never attribute uncommitted code to HEAD or recycle the earlier review's tests as implementation proof.
 
@@ -58,7 +62,7 @@ For a terminal implementation lane, record RED/GREEN with `plan-hub.mjs record-t
 
 Capture per feature and authentication rail: selection size, submitted groups, application signer requests, confirmed/failed/unresolved item counts, recovery attempts, time to first request, and time to verified completion. Compare the same representative operations before and after, with median/tail latency when a meaningful sample exists. Do not log member addresses, decision text, media, or raw calldata in product analytics.
 
-Expected interaction targets: one application request for settings within a supported budget; one per member group for supported accounts; one per EAS approval group for both rails. Ordinary wallets retain sequential settings/member requests. These are conditional product targets, not measured results or universal single-signature guarantees.
+Expected interaction targets: one application request for settings within a supported budget; one per member group for supported accounts; one per deposit for passkeys and atomic wallets; one per EAS approval group for both rails. Ordinary wallets retain sequential settings, member, and deposit requests. These are conditional product targets, not measured results or universal single-signature guarantees.
 
 Enable phases in order with existing rollout controls. Any confirmed duplicate resubmission, false completion, metadata loss, or account/chain crossover blocks further enablement until fixed. Disable new batch submissions independently from journal reads and recovery. Pending operations retain their original transport and identity after a rollback.
 

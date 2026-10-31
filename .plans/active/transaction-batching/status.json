@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-24T02:17:00Z"
+    "updated_at": "2026-10-31T04:46:17.233Z"
   },
   "links": {
     "brief": "brief.md",
@@ -20,7 +20,7 @@
   },
   "linear": {
     "parentIssue": "PRD-1344",
-    "project": "Green Goods v2.1.0 QA & Release",
+    "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
@@ -29,7 +29,7 @@
   },
   "taxonomy": {
     "initiative": "engineering-quality",
-    "tracks": ["shared", "admin"],
+    "tracks": ["shared", "admin", "client"],
     "work_types": ["implementation", "hardening"],
     "surfaces": ["shared-transactions", "shared-work", "admin-garden", "admin-hub"],
     "depends_on_features": []
@@ -40,7 +40,9 @@
     "Phase 1 batching/recovery/budget source is isolated on develop. Clean implementation commit 382cdc08ec1a4264168ebef0d1741e39ee5933df passed 203 focused tests with six existing skips. Current-head push/CI validation remains pending; earlier full-suite failures and auth-policy violations describe the original base only. Settings, members, and bulk review UI remain unimplemented.",
     "Existing source-structure and test-quality failures are recorded in handoffs/phase-1.md; unrelated auth, contract tests, and governance baselines remain untouched.",
     "No production contract/schema or dependency versions changed. Worktree dependencies reuse existing installed packages through ignored local links.",
-    "User scope correction: further live Gnosis/account/profile QA belongs to another session. Owned standalone probes stopped and tabs closed; continue only batching source, required validation, and local evidence."
+    "User scope correction: further live Gnosis/account/profile QA belongs to another session. Owned standalone probes stopped and tabs closed; continue only batching source, required validation, and local evidence.",
+    "2026-10-30: the user added deposits as Phase 4, after members; bulk work approvals move to Phase 5. Other actions with several prompts are listed in plan.todo.md and not scheduled.",
+    "2026-10-30: develop at 974b69ac9 merged into the PR branch; see handoffs/continuation.md. Reading the source found two recovery gaps, now checkpoints 1.9 and 1.10, to close before anything calls this code."
   ],
   "lanes": {
     "ui": {
@@ -64,10 +66,10 @@
       },
       "skill_tags": ["ui", "frontend-design", "react"],
       "manual_blocked": true,
-      "blocked_reason": "Phases 2\u20134 are not authorized for implementation by the current Phase 1 request."
+      "blocked_reason": "Phases 2–5 wait for the Phase 1 merge and the recovery gaps, and need their own authorization."
     },
     "state_api": {
-      "owner": "codex",
+      "owner": "claude",
       "status": "in_progress",
       "branch": "feature/transaction-batching-foundation",
       "depends_on": [],
@@ -77,7 +79,7 @@
         "status": "green_recorded",
         "red": {
           "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts",
-          "evidence": "2026-10-24 approximately 00:47\u201300:48 UTC: 3 genuine failures (18 pass) for missing frozen/fingerprinted budget, unbudgeted sending, and missing transport quote. Historical journal/adapter RED evidence remains in handoffs/phase-1.md."
+          "evidence": "2026-10-24 approximately 00:47–00:48 UTC: 3 genuine failures (18 pass) for missing frozen/fingerprinted budget, unbudgeted sending, and missing transport quote. Historical journal/adapter RED evidence remains in handoffs/phase-1.md."
         },
         "green": {
           "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-budget.test.ts src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/modules/transactions/__tests__/batch-journal.test.ts src/modules/transactions/__tests__/batch-senders.test.ts src/modules/transactions/__tests__/wallet-sender.test.ts src/modules/transactions/__tests__/passkey-sender.test.ts src/modules/transactions/__tests__/sender-conformance.test.ts src/__tests__/modules/work/send-with-checkpoint.test.ts",
@@ -252,23 +254,47 @@
       "status": "in_progress",
       "branch": "feature/transaction-batching-foundation",
       "note": "Prepared isolated develop-based batching checkpoint 382cdc08ec1a4264168ebef0d1741e39ee5933df with 203 passing focused tests and six existing skips. Thirty-five unrelated unpublished parent commits were excluded; push and draft PR pending."
+    },
+    {
+      "timestamp": "2026-10-31T04:46:17.233Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/transaction-batching-foundation",
+      "note": "Merged develop at 974b69ac9 into the PR branch. The 24 Oct CI failures clear on the merged tree. Final gate and CI results belong in the PR."
+    },
+    {
+      "timestamp": "2026-10-31T04:46:17.233Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scope_changed",
+      "branch": null,
+      "note": "Added deposits as Phase 4 and moved bulk work approvals to Phase 5. Added checkpoints 1.9 and 1.10 for two recovery gaps."
     }
   ],
   "execution_sub_lanes": {
     "phase_1_shared": {
       "machine_lane": "state_api",
-      "owner": "codex",
+      "owner": "claude",
       "status": "in_progress",
       "branch": "feature/transaction-batching-foundation",
       "depends_on": [],
       "handoff": "handoffs/publication.md"
+    },
+    "phase_1_recovery_gaps": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_1_shared"],
+      "handoff": "handoffs/continuation.md"
     },
     "phase_2_settings": {
       "machine_lane": "ui",
       "owner": "codex",
       "status": "todo",
       "branch": null,
-      "depends_on": ["phase_1_shared"],
+      "depends_on": ["phase_1_shared", "phase_1_recovery_gaps"],
       "handoff": "handoffs/ui.md"
     },
     "phase_3_members": {
@@ -279,12 +305,20 @@
       "depends_on": ["phase_2_settings"],
       "handoff": "handoffs/ui.md"
     },
-    "phase_4_work_approvals": {
+    "phase_4_deposits": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_3_members"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_5_work_approvals": {
       "machine_lane": "ui",
       "owner": "codex",
       "status": "todo",
       "branch": null,
-      "depends_on": ["phase_3_members"],
+      "depends_on": ["phase_4_deposits"],
       "handoff": "handoffs/ui.md"
     }
   }

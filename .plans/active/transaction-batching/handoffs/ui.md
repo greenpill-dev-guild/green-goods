@@ -4,7 +4,7 @@
 
 ## Scope
 
-Admin settings, member additions, staged work review, progress/recovery, localization, and accessible interactions in phases 2–4. React hooks remain in Shared.
+Admin settings, member additions, deposit progress on client and admin surfaces, staged work review, progress/recovery, localization, and accessible interactions in phases 2–5. React hooks remain in Shared.
 
 Follow [the plan](../plan.todo.md), [specification](../spec.md), and [acceptance matrix](../eval.md). Phase dependencies apply even though canonical lanes summarize the whole feature. Read the implementation start gate before code changes. Do not complete this lane from planning validation.
 

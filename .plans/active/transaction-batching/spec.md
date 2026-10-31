@@ -94,7 +94,21 @@ Resolve ENS before review and freeze resolved addresses. Normalize/deduplicate `
 
 Use bounded atomic groups or a preselected sequential fallback. Keep person/role outcomes and earlier successes when a later group fails. Refresh authoritative membership and exclude confirmed rows from retries. Allow correction of failed rows. Do not expand caller permissions or include removals.
 
-## Phase 4: bulk work approvals
+## Phase 4: deposits
+
+A vault deposit can take three prompts today (reset the allowance, approve, deposit) and a cookie jar deposit two. [`useVaultDeposit`](../../../packages/shared/src/hooks/vault/useVaultDeposit.ts) and [`useCookieJarDepositMutation`](../../../packages/shared/src/hooks/cookie-jar/useCookieJarDepositMutation.ts) own their whole flows, so the client funding cards and endowment sheet and the admin deposit modals get the change through those hooks.
+
+Finish the existing limit, preview, balance, and allowance reads first, then freeze one group for one account and chain. Reset the allowance only when the vault flow needs it (nonzero and too low), approve the exact amount, and deposit. Never approve more than the amount. Passkeys and wallets that report atomic `supported` send the group as one request, so a reverted group leaves no allowance behind. Other wallets keep today's approve then deposit in sequential mode, and the interface says up front that two signatures are coming.
+
+A deposit moves money, so recovery matters more here than the prompt count. Today a receipt timeout reaches the funder as a failed deposit with a suggestion to try again, although the deposit may have landed. An unknown outcome must stay pending, survive a reload, and hold the next deposit into that vault or jar from the same account and chain until it is reconciled. Each attempt gets a new operation ID, and a confirmed deposit holds nothing.
+
+Confirm a deposit only from a receipt whose `Deposit` event matches the vault or jar, depositor, receiver, and amount. A slow indexer leaves it pending.
+
+The vault's `deposit(amount, receiver)` takes no minimum shares, so its slippage check can only run before signing. Today it runs after the approval lands. In an atomic group it runs last before signing, and nothing can land between the approval and the deposit. The window between signing and inclusion stays as it is today.
+
+Enable only the account, chain, and asset combinations with recorded evidence. Three flows stay out: Octant checkout (wallet only, mainnet, with its own wrap step), voucher deposits (one reviewed approval per call by design), and card endowment (thirdweb already batches it).
+
+## Phase 5: bulk work approvals
 
 Add staged review selection to the Hub **Work** queue and existing review flow. `HubConfirmQueue` handles commitment confirmations and is outside this change. Opening details and selecting for submission remain distinct interactions.
 
@@ -136,3 +150,10 @@ Domain verification is required before every logical item becomes confirmed. A s
 The existing work queue keeps its own persistence and claim authority. Bundled senders forward scoped batch references and recovery methods to each job; a missing/expired wallet status cannot fall through to absence-based retry. Legacy consumers that require one canonical hash remain pending for a multi-receipt result rather than assigning an arbitrary receipt to every item. Individual domain handlers continue to verify their own outcomes.
 
 The installed Kernel 0.3.1/0.3.3 recipes passed software P-256-signed deployment, ordered groups of 2/5/10 calls, and revert rollback on an isolated Arbitrum fork. This proves the actual account/validator/EntryPoint execution fixture, not authenticated device signing or configured paymaster acceptance. Passkey gas/sponsorship ceilings are checked before signing; wallet quotes enforce ordered simulation ceilings because EIP-5792 leaves final fees to the wallet. Representative feature limits and live gates remain pending. See [the follow-up evidence](handoffs/phase-1-compatibility.md). No new batch UI is enabled by Phase 1.
+
+## Recovery gaps found on 2026-10-30
+
+Reading the merged source turned up two gaps in the rules above. Checkpoints 1.9 and 1.10 close them before anything calls this code.
+
+- **A held operation has no exit.** The state table says to hold items while a send may have happened, but `BatchOperations` offers nothing to end that hold when no reference was saved. A reference is saved before a passkey operation can reach the network, so a passkey record with no reference is provably unsent and can reopen. A wallet record with no reference is truly unknown, because an open prompt can still be approved. Ending that hold takes a fresh read of domain state and the user's confirmation.
+- **A lapsed lease loses a reference.** The lease fences writers, but it also fences the one write that must not fail. Filling an empty reference cannot conflict with another writer, so it should not need the lease.

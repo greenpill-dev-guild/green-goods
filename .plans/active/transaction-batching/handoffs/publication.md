@@ -18,7 +18,7 @@ The validation-system suite then identified missing critical classifications for
 
 ## Next session
 
-Read [continuation.md](continuation.md), `../status.json`, and `../plan.todo.md`. Finish remaining Phase 1 validation/composition work, then implement garden settings, adding members, and bulk work reviews in order when assigned. Keep the hub active. Live Gnosis/account/profile/device work belongs to another session; do not resume the stopped probes. Publication of this draft authorizes no merge, deployment, or live transaction.
+Read [continuation.md](continuation.md), `../status.json`, and `../plan.todo.md`. Finish remaining Phase 1 validation/composition work, then implement garden settings, adding members, deposits, and bulk work reviews in order when assigned. Keep the hub active. Live Gnosis/account/profile/device work belongs to another session; do not resume the stopped probes. Publication of this draft authorizes no merge, deployment, or live transaction.
 
 ## Task/phase record
 
