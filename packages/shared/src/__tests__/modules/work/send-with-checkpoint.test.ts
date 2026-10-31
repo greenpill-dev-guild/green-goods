@@ -4,7 +4,7 @@ import {
   TransactionReplacementError,
   TransactionRevertedError,
 } from "../../../modules/transactions/types";
-import { sendWithCheckpoint } from "../../../modules/work/send-with-checkpoint";
+import { sendWithCheckpoint, settleRecordedSend } from "../../../modules/work/send-with-checkpoint";
 import {
   forgetWorkBroadcast,
   retainedTransactionReplaced,
@@ -360,5 +360,70 @@ describe("sending one call while recording how far it got", () => {
     await expect(send(sender, record as never)).resolves.toMatchObject({ status: "may-have-sent" });
     for (const id of JOBS)
       expect(retainedWorkBroadcastReference(id)).toEqual({ kind: "transaction", hash: TX });
+  });
+});
+
+describe("opaque batch reference checkpoints", () => {
+  it("retains an accepted wallet ID before a wait fails and recovers without another send", async () => {
+    const { record, current } = recorder();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const reference = {
+      kind: "wallet-calls",
+      id: "wallet:accepted/proposal",
+      chainId: 42161,
+      account: "0x1111111111111111111111111111111111111111",
+    } as const;
+    sender.sendContractCall.mockImplementation(async (_call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBatchReference?.(reference);
+      throw new Error("receipt timeout");
+    });
+    expect((await send(sender, record as never)).status).toBe("may-have-sent");
+    expect(current()).toMatchObject({ batchReference: reference });
+    sender.reconcileBatch = vi.fn<
+      NonNullable<import("../../../modules/transactions/types").TransactionSender["reconcileBatch"]>
+    >(async () => ({
+      status: "confirmed",
+      reference,
+      receipts: [{ transactionHash: TX, status: "success" }],
+      sponsored: false,
+    }));
+    const settleStranded = vi.fn();
+    expect(
+      await settleRecordedSend({
+        jobId: JOBS[0],
+        checkpoint: current(),
+        chainId: 42161,
+        sender,
+        clear: vi.fn(),
+        settleStranded,
+      })
+    ).toBe(TX);
+    expect(settleStranded).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("never treats missing batch status as a stranded send eligible for resubmission", async () => {
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+    const settleStranded = vi.fn();
+    await expect(
+      settleRecordedSend({
+        jobId: "unknown-batch",
+        checkpoint: {
+          batchReference: {
+            kind: "wallet-calls",
+            id: "expired:proposal",
+            chainId: 42161,
+            account: "0x1111111111111111111111111111111111111111",
+          },
+        },
+        chainId: 42161,
+        sender,
+        clear: vi.fn(),
+        settleStranded,
+      })
+    ).rejects.toThrow("awaiting-confirmation");
+    expect(settleStranded).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });

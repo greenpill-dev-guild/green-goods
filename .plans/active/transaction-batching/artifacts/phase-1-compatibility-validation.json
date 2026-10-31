@@ -1,0 +1,96 @@
+{
+  "observedAt": "2026-10-24T01:40:34Z",
+  "implementationCommit": null,
+  "sourceBaseline": "73f05a9177125d6509105659f5a724472343cc31",
+  "sourceFingerprint": "phase-1-compatibility-worktree.json",
+  "overall": "not passing; full Shared failures and inherited source-policy drift remain unresolved",
+  "focusedBatchTests": {
+    "files": 9,
+    "passed": 180,
+    "skipped": 6,
+    "observedStart": "2026-10-24T01:04:40Z"
+  },
+  "firstCheckpoint": {
+    "command": "phase-1-compatibility-checkpoint-command.json",
+    "exitCode": 1,
+    "freshPasses": 4,
+    "reusedPasses": 0,
+    "firstFailure": "shared-test",
+    "shared": {
+      "filesPassed": 635,
+      "filesFailed": 5,
+      "filesSkipped": 2,
+      "passed": 7736,
+      "failed": 7,
+      "skipped": 16
+    },
+    "notRun": [
+      "client-test-typecheck",
+      "client-test",
+      "admin-test-typecheck",
+      "admin-test",
+      "agent-typecheck",
+      "agent-test",
+      "source-structure",
+      "ontology"
+    ],
+    "manualPending": ["browser-proof"]
+  },
+  "failureRecheck": {
+    "command": "VITEST_MAX_WORKERS=2 bun run --cwd packages/shared test -- src/__tests__/credit-register.test.ts src/__tests__/components/FileUploadField.test.tsx src/__tests__/providers/AppProvider.language.test.tsx src/__tests__/hooks/client-ui/useDashboardNavigation.test.tsx src/__tests__/hooks/work/useWorkApprovalLifecycle.test.ts",
+    "files": 5,
+    "passed": 39,
+    "changedSubjects": false,
+    "note": "Focused success does not waive the full-suite failure."
+  },
+  "secondCheckpoint": {
+    "command": "phase-1-compatibility-recheck-command.json",
+    "exitCode": 130,
+    "status": "interrupted by agent after a reproduced failure; not a passing or completed Shared suite",
+    "observedFailure": "src/__tests__/providers/AppProvider.language.test.tsx: declares a stored language once its copy is on screen",
+    "passedChecks": ["format", "lint", "shared-typecheck", "shared-test-typecheck"],
+    "notRun": [
+      "client-test-typecheck",
+      "client-test",
+      "admin-test-typecheck",
+      "admin-test",
+      "agent-typecheck",
+      "agent-test",
+      "source-structure",
+      "ontology"
+    ],
+    "userCancelledValidation": false,
+    "reason": "The unchanged language failure recurred. The agent stopped the known-failing rerun and scheduled no more package suites; unrelated feature changes remain outside scope."
+  },
+  "independentChecks": {
+    "sourceStructure": {
+      "exitCode": 1,
+      "failures": [
+        "packages/shared/src/modules/auth/session.ts: unused clearStoredAccountProfiles export",
+        "packages/shared/src/modules/auth/pilot-account-proof.ts: internal-barrel import"
+      ],
+      "inherited": true
+    },
+    "ontologyTests": {
+      "passed": 73,
+      "failed": 0
+    },
+    "ontology": "passed all guards; 7 baselined findings",
+    "sourceFingerprints": "33 matched; no unexpected changed paths",
+    "localLinks": "passed; 64 resolved",
+    "gitDiffCheck": "passed",
+    "finalRepositoryFormat": "passed; 4145 files",
+    "planSchema": "passed; 33 feature hubs",
+    "privateEvidenceBoundary": "passed; supplied account identifiers absent from the hub"
+  },
+  "executionProof": "phase-1-kernel-fork.json",
+  "browserProof": "phase-1-browser-signing.json",
+  "publicQuoteProof": "phase-1-public-quotes.json",
+  "limitations": [
+    "Uncommitted source: baseline SHA is context, not attribution of this implementation.",
+    "The previous foundation package-suite receipts are historical after runtime budget changes.",
+    "Positive live atomic-wallet execution/recovery and configured sponsorship acceptance remain unproved.",
+    "Further Gnosis/account/profile/device QA belongs outside this batching lane following user scope clarification.",
+    "No product bulk UI, live transaction, deployment, dependency, manifest, lockfile, or validation-baseline change."
+  ]
+}

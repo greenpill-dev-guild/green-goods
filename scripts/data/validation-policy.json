@@ -1821,6 +1821,8 @@
         "packages/shared/src/modules/garden/join-garden-command.ts",
         "packages/shared/src/modules/marketplace/client.ts",
         "packages/shared/src/modules/marketplace/signing.ts",
+        "packages/shared/src/modules/transactions/batch-operation.ts",
+        "packages/shared/src/modules/transactions/batch-service.ts",
         "packages/shared/src/modules/transactions/bundling-sender.ts",
         "packages/shared/src/modules/transactions/chain-guard.ts",
         "packages/shared/src/modules/transactions/confirmation.ts",

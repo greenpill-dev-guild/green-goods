@@ -322,6 +322,8 @@ describe("WalletSender", () => {
           trace.push("status");
           return {
             status: "success",
+            atomic: true,
+            chainId: 42161,
             receipts: [{ status: "success", transactionHash: BATCH_HASH }],
           };
         }),
@@ -436,6 +438,8 @@ describe("WalletSender", () => {
     it("says a reverted batch wrote nothing, and an unanswered one is unknown", async () => {
       vi.mocked(batchDeps.waitForCallsStatus!).mockResolvedValueOnce({
         status: "failure",
+        atomic: true,
+        chainId: 42161,
         receipts: [{ status: "reverted", transactionHash: BATCH_HASH }],
       });
       await expect(sender.sendAtomicBatch([TEST_CALL, SECOND_CALL])).rejects.toBeInstanceOf(
