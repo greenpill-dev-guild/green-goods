@@ -223,8 +223,8 @@ export const CreatorAddsProof: Story = {
 };
 
 /**
- * Nobody has taken it up, so the chain takes no proof yet: she can withdraw it, and the page only
- * says how much proof there is (DL-151).
+ * Nobody has taken it up, so the chain takes no proof yet: she can withdraw it, and the page says
+ * when her proof can come (DL-151).
  */
 export const CreatorBeforeTakeUp: Story = {
   tags: ["storybook-ci"],
@@ -234,7 +234,9 @@ export const CreatorBeforeTakeUp: Story = {
     await expect(canvas.getByRole("button", { name: "Withdraw This" })).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Add Proof" })).toBeNull();
     const progress = canvas.getByRole("region", { name: "Progress and proof" });
-    await expect(progress).toHaveTextContent("No proof added yet.");
+    await expect(progress).toHaveTextContent(
+      "No proof added yet. You can add it once someone takes this up."
+    );
     await expect(progress).not.toHaveTextContent("Proof is what moves this forward");
   },
 };

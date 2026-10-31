@@ -627,7 +627,9 @@ describe("GardenCommitment", () => {
         "CommitmentActionBar"
       );
       expect(screen.queryByRole("button", { name: "Add Proof" })).not.toBeInTheDocument();
-      expect(progress()).toHaveTextContent("No proof added yet.");
+      expect(progress()).toHaveTextContent(
+        "No proof added yet. You can add it once someone takes this up."
+      );
       expect(progress()).not.toHaveTextContent("Proof is what moves this forward");
     });
 

@@ -23,13 +23,19 @@ export interface CommitmentProgressProps {
    */
   delivery?: { label: string; done: number; of: number } | { none: string } | null;
   /**
-   * The reader has the act that adds proof. Only then does the line say proof moves this
-   * forward; before take-up the chain takes none, so it just gives the count (DL-151).
+   * When the reader can add proof. Only a reader who can now is told proof moves this forward;
+   * the chain takes none before take-up, so an offer's creator hears when they can (DL-151).
    */
-  canAddProof?: boolean;
+  addProof?: "now" | "afterTakeUp" | "no";
   /** The proof itself, shown under the progress in the same section. */
   children?: ReactNode;
 }
+
+const EMPTY_PROOF_LINE = {
+  now: "app.commitment.progress.proofOnly",
+  afterTakeUp: "app.commitment.progress.proofAfterTakeUp",
+  no: "app.commitment.progress.proofCount",
+} as const;
 
 /**
  * Progress and proof: what has actually been done toward this promise, and the
@@ -48,7 +54,7 @@ export function CommitmentProgress({
   requirements,
   onPhone = null,
   delivery = null,
-  canAddProof = false,
+  addProof = "no",
   children,
 }: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
@@ -93,9 +99,7 @@ export function CommitmentProgress({
     // but a settled record has stopped moving, so its copy just counts.
     const emptyLineId = isTerminalCommitmentState(commitment.derivedState)
       ? "app.commitment.progress.proofOnlySettled"
-      : canAddProof
-        ? "app.commitment.progress.proofOnly"
-        : "app.commitment.progress.proofCount";
+      : EMPTY_PROOF_LINE[addProof];
     return (
       <section
         className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"

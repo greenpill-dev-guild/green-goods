@@ -80,7 +80,7 @@ export function ProofForSheet({
           commitment={commitment}
           requirements={requirements}
           // The sheet opens from the proof being added.
-          canAddProof
+          addProof="now"
         >
           <CommitmentEvidence
             attributions={detail.evidenceAttributions}
