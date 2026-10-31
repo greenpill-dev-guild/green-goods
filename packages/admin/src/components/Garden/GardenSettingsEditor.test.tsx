@@ -446,6 +446,37 @@ describe("GardenSettingsEditor explicit save", () => {
     await waitFor(() => expect(mockUpdateName).toHaveBeenCalledTimes(1));
   });
 
+  it("keeps what the person typed while the first read ran, once each read", async () => {
+    const user = userEvent.setup();
+    settingsBatch.isSettlingHold = true;
+    const { rerender } = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Typed during the read");
+
+    settingsBatch.isSettlingHold = false;
+    read(rerender, {
+      hold: {
+        operationIds: ["a"],
+        fields: ["name", "location"],
+        attempted: [
+          { field: "name", value: "Renamed Garden" },
+          { field: "location", value: "Lisbon, Portugal" },
+        ],
+        onChain: [],
+      },
+    });
+
+    expect(nameInput).toHaveValue("Typed during the read");
+    expect(nameInput).toBeDisabled();
+    expect(screen.getByLabelText("Location")).toHaveValue("Lisbon, Portugal");
+
+    // The same read seen again changes nothing.
+    rerender(<EditorHarness overrides={{ garden: { ...GARDEN, name: "Refreshed" } }} />);
+    expect(nameInput).toHaveValue("Typed during the read");
+  });
+
   it("frees held fields when the person moves on, with their values ready to send", async () => {
     const user = userEvent.setup();
     settingsBatch.hold = {

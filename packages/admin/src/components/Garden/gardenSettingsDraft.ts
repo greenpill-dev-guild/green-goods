@@ -190,13 +190,7 @@ export function adoptRefreshedGarden(
   return next;
 }
 
-/**
- * The draft with what a save sent back in it, so a reload does not lose what the
- * person typed, and a save that landed while they were away shows. A removed
- * banner comes back, but a new one does not: what it held was a file, and only
- * its uploaded address was kept.
- */
-export function withSentValues(
+function withSentValues(
   current: SettingsDraft,
   sent: readonly GardenSettingsChange[]
 ): SettingsDraft {
@@ -225,6 +219,37 @@ export function withSentValues(
     }
   }
   return next;
+}
+
+/**
+ * The draft after a read of held saves. What they sent comes back, so a reload
+ * does not lose what the person typed and a save that landed while they were
+ * away shows, except over a field they have edited since, so typing while a read
+ * runs is never lost. A removed banner comes back, but a new one does not: what
+ * it held was a file, and only its uploaded address was kept.
+ */
+export function draftAfterRead(
+  current: SettingsDraft,
+  {
+    garden,
+    landed,
+    saved,
+    held,
+  }: {
+    garden: GardenSettingsValues;
+    landed: LandedValues;
+    saved: readonly GardenSettingsChange[];
+    held: readonly GardenSettingsChange[];
+  }
+): SettingsDraft {
+  const edited = dirtyFieldsOf(current, garden, landed);
+  const next = withSentValues(
+    current,
+    [...saved, ...held].filter((change) => !edited.includes(change.field))
+  );
+  return saved.some((change) => change.field === "banner")
+    ? { ...next, bannerFile: null, bannerRemoved: false }
+    : next;
 }
 
 /** What `LandedValues` remembers for changes a read has proven landed. */
