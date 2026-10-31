@@ -28,6 +28,8 @@ Review of #1400 found five real gaps, fixed in `a68a454a6`. Another account coul
 
 A second review round found six more, fixed in `301cc1fc7`: another casing of the same wallet cleared a draft, Remove took every row for an address, a typed person did not retry one signature, the footer's count could overstate, two tabs both counted a proven add, and the selector missed batch modules. `batches` is now a mutation primitive, which marks `members-batch`, `settings-batch` and `batch-hold` critical and will catch every later slice. Their tests failed first at 20:42 UTC, 7 on behavior. Green at 20:45:38 UTC (Shared 7 files, 93 passed) and 20:45:57 UTC (Admin 7 files, 115 passed), with 31 stories passing at 20:44 UTC.
 
+A third round found one more real gap, fixed in `a84afd07e`: a send that finished after an account change put its rows into the new draft. Its test failed first at 20:58 UTC, and Admin passed 7 files with 116 tests at 20:58:51 UTC. Its other finding, duplicate rows from concurrent holds, cannot happen: `BatchJournal.claim` refuses a second open operation on an item inside one transaction.
+
 Still open for that slice, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T20:46:11.679Z"
+    "updated_at": "2026-10-31T20:59:23.022Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,11 +58,11 @@
         "status": "green_recorded",
         "red": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx",
-          "evidence": "2026-10-31 20:42:43 UTC: 5 failed on behavior from the second review of #1400: another casing cleared a draft, Remove took every row for an address, a typed person did not retry one signature, and the count did not read as a maximum."
+          "evidence": "2026-10-31 20:58:11 UTC: 1 failed on behavior from the third review of #1400: a send that finished after an account change put its rows into the new draft."
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx src/components/Garden src/views/Community/components/CommunityMembersTab.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 20:45:57 UTC: 7 files, 115 passed, at the tree committed as 301cc1fc7."
+          "evidence": "2026-10-31 20:58:51 UTC: 7 files, 116 passed, at the tree committed as a84afd07e."
         },
         "note": ""
       },
@@ -522,6 +522,14 @@
     },
     {
       "timestamp": "2026-10-31T20:46:11.681Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:59:23.023Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",
