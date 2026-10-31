@@ -10,6 +10,7 @@
  */
 
 import type { Address } from "../../types/domain";
+import type { PoolFundingTransferBlock } from "./pool-funding";
 import type { IndexedDisbursementState } from "./settlement";
 import type { SettlementPayoutKind } from "./settlement-eligibility";
 
@@ -35,7 +36,10 @@ export type SettlementActionBlocker =
   | "recognition-unready"
   | "chain-read-pending"
   | "chain-read-failed"
-  | "acting";
+  | "acting"
+  | "proposal-pending"
+  | "funding-unread"
+  | "funding-over-limit";
 
 export type SettlementPlanStatus = "DRAFT" | "PENDING" | "PARTIAL" | "COMPLETE" | "FAILED";
 
@@ -108,6 +112,10 @@ export interface SettlementWorkflowInput {
   isOnline: boolean;
   chainRead: "ready" | "pending" | "failed";
   isActing: boolean;
+  /** A Safe proposal for the last act is out: nothing is offered until the chain shows it ran. */
+  proposalPending: boolean;
+  /** Why the paying Safe can't send this yet (`selectQueuedTransferBlock`). */
+  transferBlock: (disbursement: SettlementChainDisbursement) => PoolFundingTransferBlock | null;
   /** Unix seconds; defaults to the wall clock. */
   now?: number;
   /** A dispatch older than this without acknowledgement reads as delayed. */

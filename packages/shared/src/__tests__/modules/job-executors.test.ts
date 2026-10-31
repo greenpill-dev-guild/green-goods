@@ -1659,6 +1659,27 @@ describe("commitment chain reads", () => {
     await expect(chainReads.hasMembership?.(GARDEN, USER)).resolves.toBeNull();
   });
 
+  it("reads a garden's settlement account, and fails closed when it can't", async () => {
+    const readContract = vi.fn();
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      readContract: readContract as never,
+      config: {} as Config,
+    });
+
+    readContract.mockResolvedValueOnce({ active: true });
+    await expect(chainReads.readSettlementAccountActive?.(GARDEN)).resolves.toBe(true);
+    expect(readContract.mock.calls[0]?.[1]).toMatchObject({
+      functionName: "settlementAccountOf",
+      args: [GARDEN],
+    });
+    readContract.mockResolvedValueOnce({ active: false });
+    await expect(chainReads.readSettlementAccountActive?.(GARDEN)).resolves.toBe(false);
+    readContract.mockRejectedValueOnce(new Error("rpc down"));
+    await expect(chainReads.readSettlementAccountActive?.(GARDEN)).resolves.toBeNull();
+  });
+
   it("reads the chain's head: its latest block and that block's time", async () => {
     const getBlock = vi.fn().mockResolvedValue({ number: 100n, timestamp: 1_700_000_000n });
     const chainReads = createCommitmentChainReads({
