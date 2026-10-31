@@ -68,6 +68,13 @@ export type BatchItemState =
   | "declined"
   | "released";
 
+/** A send in one of these may be live or landed, so its items stay held. */
+export const UNKNOWN_BATCH_STATES: ReadonlySet<string> = new Set([
+  "awaiting-approval",
+  "submitted",
+  "unresolved",
+]);
+
 export interface PreparedBatch {
   /** Minted per attempt and unique in this browser; a retry gets a new one. */
   id: string;

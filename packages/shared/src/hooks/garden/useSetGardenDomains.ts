@@ -4,6 +4,7 @@ import { toastService } from "../../components/toast";
 import type { Address, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { gardensKeys } from "../../config/query-keys/garden";
+import { domainMaskOf } from "../../utils/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
@@ -38,13 +39,11 @@ export function useSetGardenDomains() {
       if (params.domains.length === 0) {
         throw new Error("At least one domain is required");
       }
-      const domainMask = params.domains.reduce((mask, d) => mask | (1 << d), 0);
-
       return sendContractTx({
         address: contracts.actionRegistry,
         abi: ActionRegistryABI,
         functionName: "setGardenDomains",
-        args: [params.gardenAddress, domainMask],
+        args: [params.gardenAddress, domainMaskOf(params.domains)],
       });
     },
     onMutate: () => {

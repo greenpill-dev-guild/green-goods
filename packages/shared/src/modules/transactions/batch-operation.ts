@@ -10,6 +10,7 @@ import {
   type BatchRecord,
   type BatchReference,
   type PreparedBatch,
+  UNKNOWN_BATCH_STATES as waiting,
   type VerifyBatchItems,
 } from "./batch-types";
 import { assertBatchQuote } from "./batch-budget";
@@ -28,7 +29,6 @@ interface ExecutionInput extends RecoveryInput {
   /** Domain/transport preflight must simulate the exact reviewed group and enforce its budget. */
   preflight: (prepared: PreparedBatch, itemIds: readonly string[]) => Promise<void>;
 }
-const waiting = new Set(["awaiting-approval", "submitted", "unresolved"]);
 
 async function owned(sender: TransactionSender, prepared: PreparedBatch) {
   await sender.assertOwnership?.(prepared.account, prepared.chainId);

@@ -12,11 +12,11 @@ import {
   type BatchRecord,
   type BatchReference,
   type PreparedBatch,
+  UNKNOWN_BATCH_STATES as uncertain,
 } from "./batch-types";
 
 const LEASE_MS = 60_000;
 const TERMINAL_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const uncertain = new Set(["awaiting-approval", "submitted", "unresolved"]);
 /** What a group becomes once its send is known to be accepted, whatever was assumed before. */
 function afterAcceptance(status: BatchItemState): BatchItemState {
   if (status === "prepared" || status === "awaiting-approval") return "submitted";

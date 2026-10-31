@@ -14,6 +14,17 @@ export const gardensKeys = {
     ["greengoods", "gardens", "maxGardeners", gardenId, chainId] as const,
 } as const;
 
+/**
+ * A settings batch's wallet capability and unknown outcomes. Apart from `gardensKeys`, because a
+ * save refreshes the garden and reading a hold can settle it.
+ */
+export const gardenSettingsBatchKeys = {
+  capability: (account: string, chainId: number) =>
+    ["greengoods", "garden-settings-batch", "capability", account, chainId] as const,
+  hold: (gardenId: string, account: string, chainId: number) =>
+    ["greengoods", "garden-settings-batch", "hold", gardenId, account, chainId] as const,
+} as const;
+
 export const actionsKeys = {
   all: ["greengoods", "actions"] as const,
   byChain: (chainId: number) => ["greengoods", "actions", chainId] as const,

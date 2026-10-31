@@ -8,7 +8,8 @@ import type { EmbeddedSenderDeps } from "../../modules/transactions/embedded-sen
 import type { ContractCall, TransactionSender, TxResult } from "../../modules/transactions/types";
 import type { WalletSender, WalletSenderDeps } from "../../modules/transactions/wallet-sender";
 import type { Address } from "../../types/domain";
-import type { BatchBudget } from "../../modules/transactions/batch-types";
+import { withBatchRecovery } from "../../modules/transactions/batch-service";
+import type { BatchBudget, BatchExecution } from "../../modules/transactions/batch-types";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "./mock-factories";
 
 export const MOCK_CONTRACT_ABI = [
@@ -218,4 +219,37 @@ export function createMockBatchBudget(overrides: Partial<BatchBudget> = {}): Bat
     sponsorship: "wallet",
     ...overrides,
   };
+}
+
+/**
+ * A passkey sender over the real batch engine and a real journal, whose send ends with `execution`.
+ * The journal outlives each test, so give every test its own account.
+ */
+export function createFakeBatchingSender(
+  account: Address,
+  execution: Partial<BatchExecution> = {}
+) {
+  const hash = `0x${"ab".repeat(32)}` as const;
+  const reference = { kind: "user-operation", hash, account, chainId: 42161 } as const;
+  const outcome = { status: "unresolved", reference, receipts: [], sponsored: true, ...execution };
+  return withBatchRecovery({
+    authMode: "passkey",
+    supportsSponsorship: true,
+    supportsBatching: true,
+    sendContractCall: vi.fn(),
+    getBatchCapability: vi.fn(async (scope) => ({ ...scope, atomic: "supported" })),
+    preflightBatch: async () => ({
+      gas: "1600000",
+      maxFeePerGas: "30000000",
+      maxFee: "48000000000000",
+      sponsored: true,
+      authority: "user-operation",
+    }),
+    submitAtomicBatch: vi.fn(async (_calls, options) => {
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash });
+      await options?.onBatchReference?.(reference);
+      return outcome as BatchExecution;
+    }),
+    reconcileBatch: vi.fn(async () => outcome as BatchExecution),
+  } as TransactionSender);
 }

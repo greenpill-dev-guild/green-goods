@@ -1,9 +1,10 @@
+import type { GardenSettingsChange } from "@green-goods/shared/hooks/garden/useUpdateGarden";
 import { Domain } from "@green-goods/shared/types/domain";
 import { expandDomainMask } from "@green-goods/shared/utils/domain";
 
 /**
  * The garden settings a save writes, in the order it sends them. Each is its
- * own transaction, so each asks the wallet once.
+ * own call: its own transaction, unless the whole save goes as one batch.
  */
 const GARDEN_SETTINGS_FIELDS = [
   "name",
@@ -187,6 +188,52 @@ export function adoptRefreshedGarden(
     }
   }
   return next;
+}
+
+/**
+ * The draft with what a save sent back in it, so a reload does not lose what the
+ * person typed, and a save that landed while they were away shows. The banner
+ * stays out: what it held was a file, and only its uploaded address was kept.
+ */
+export function withSentValues(
+  current: SettingsDraft,
+  sent: readonly GardenSettingsChange[]
+): SettingsDraft {
+  if (sent.length === 0) return current;
+  const next = { ...current };
+  for (const change of sent) {
+    switch (change.field) {
+      case "name":
+      case "description":
+      case "location":
+        next[change.field] = change.value;
+        break;
+      case "openJoining":
+        next.openJoining = change.value;
+        break;
+      case "maxGardeners":
+        next.limitGardeners = change.value > 0;
+        next.maxGardeners = change.value > 0 ? String(change.value) : "";
+        break;
+      case "domains":
+        next.domains = [...change.value];
+        break;
+    }
+  }
+  return next;
+}
+
+/** What `LandedValues` remembers for changes a read has proven landed. */
+export function landedValuesOf(saved: readonly GardenSettingsChange[]): LandedValues {
+  const draft = withSentValues(
+    draftFromGarden({ name: "", description: "", location: "", bannerImage: "" }),
+    saved
+  );
+  const landed: LandedValues = {};
+  for (const { field } of saved) {
+    if (field !== "banner") landed[field] = fieldValueKey(draft, field);
+  }
+  return landed;
 }
 
 /** What a field writes, as text: the form `LandedValues` remembers it in. */
