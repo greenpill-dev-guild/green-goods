@@ -103,12 +103,19 @@ button.garden-stat-row:hover {
     gap: 1.5rem;
   }
 
-  /* A lone child keeps its own height. The only-child rule that stretched it to
-   * the rail made Garden Health a 667px card around 347px of content, because
-   * the grid stretches the main column to the taller rail (qa-session
-   * 2026-10-30 OBS-05). A card that should fill opts in with flex-1, as the
-   * activity feed does. */
+  /* A tab's lone main card fills the column, as the member directory does
+   * (the MembersFillCanvas story). */
+  .garden-tab-main > :only-child {
+    flex: 1 1 auto;
+  }
 
+  /* Garden Health opts out and keeps its own height (DL-141): the fill wrapped
+   * its 347px of content in a 667px card at every desktop width, because the
+   * grid stretches the main column to the taller rail (qa-session 2026-10-30
+   * OBS-05). */
+  .garden-tab-main > .garden-tab-main-own-height:only-child {
+    flex: 0 0 auto;
+  }
 }
 
 @layer utilities {

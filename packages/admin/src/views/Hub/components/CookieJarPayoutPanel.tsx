@@ -79,6 +79,9 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     // Fund Cookie Jar opens the dialog again.
     if (!routeAction) {
       handledRouteActionRef.current = null;
+      // The route no longer owns a dialog: one still open closes without touching
+      // the route, so it cannot erase a later same-tab item.
+      routeOwnedDialogRef.current = null;
       return;
     }
     if (handledRouteActionRef.current === routeAction) return;

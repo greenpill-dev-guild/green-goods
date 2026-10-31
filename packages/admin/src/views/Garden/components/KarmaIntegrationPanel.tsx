@@ -130,12 +130,13 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
       aria-labelledby={titleId}
       data-component="KarmaIntegrationPanel"
     >
-      {/* The status shares the title's line and never wraps; the description
-          takes the card's full width under them, so a two-word status such as
-          "Migration needed" stays one line in the rail (qa-session 2026-10-30
-          OBS-06). */}
+      {/* The status sits on the title's first line (centred on its 24px line,
+          however many lines a translated title takes) and never wraps; the
+          description takes the card's full width under them, so a two-word
+          status such as "Migration needed" stays one line in the rail
+          (qa-session 2026-10-30 OBS-06). */}
       <div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <AdminCardTitle id={titleId} className="min-w-0">
             {formatMessage({
               id: "cockpit.garden.karma.title",
