@@ -180,6 +180,10 @@ In `HatsModule`, revocation transfers to a unique nonce-derived burn address ins
 - Rebuild role membership by replaying `RoleGranted` and `RoleRevoked` events in order
 - Ignore holder counts that include burn recipients when presenting active member metrics
 
+### Leaving a garden
+
+`leaveGarden(garden)` gives up every role the caller wears in a garden through the same revocation path a steward's removal uses, so indexers and strategies see the usual `RoleRevoked` events and syncs. It reverts with `OwnerCannotLeave` for anyone wearing the Owner hat: they hand over first, because phantom wearers stop the module from counting a garden's owners. A departure does not lower the garden account's `gardenMemberCount`, which only counts self-joins, so on a capped garden each leave and rejoin uses another slot.
+
 ### Conviction power sync gas stipend
 
 `HatsModule` calls conviction strategies with a defensive gas stipend (`SYNC_POWER_GAS_STIPEND = 100_000`). This isolates role changes from downstream strategy complexity by making sync best-effort.

@@ -81,6 +81,20 @@ interface IHatsModule {
     function revokeRoles(address garden, address[] calldata accounts, GardenRole[] calldata roles) external;
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Leaving a Garden (any member)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// @notice Leave a garden by giving up every role the caller wears in it
+    /// @dev Lives on the module, not the garden account, so one upgrade reaches every existing garden.
+    ///      Each hat goes through the same revocation path as a steward's removal, so the indexer,
+    ///      conviction power, Karma access and the steward observer follow a departure the same way.
+    ///      Only hats the caller wears take that path, so someone with no role can't fire its hooks.
+    ///      Owners hand over first: revoked hats stay in a hat's supply, so the module cannot tell a
+    ///      garden's last owner from any other.
+    /// @param garden The garden to leave
+    function leaveGarden(address garden) external;
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Conviction Strategy Sync (Owner or Operator)
     // ═══════════════════════════════════════════════════════════════════════════
 

@@ -96,6 +96,8 @@ contract HatsModule is
     error TooManyStrategies(uint256 count, uint256 max);
     error InvalidStrategyAddress(address strategy);
     error DuplicateStrategy(address strategy);
+    error NotGardenMember();
+    error OwnerCannotLeave(address garden);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
@@ -213,37 +215,31 @@ contract HatsModule is
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the gardener hat for msg.sender (the garden)
     function isGardener(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Gardener);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the operator hat for msg.sender (the garden)
     function isOperator(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Steward);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the evaluator hat for msg.sender (the garden)
     function isEvaluator(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Evaluator);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the owner hat for msg.sender (the garden)
     function isOwner(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Owner);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the funder hat for msg.sender (the garden)
     function isFunder(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Funder);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the community hat for msg.sender (the garden)
     function isCommunity(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Community);
     }
@@ -446,6 +442,18 @@ contract HatsModule is
         for (uint256 i = 0; i < accounts.length; i++) {
             _revokeRole(garden, accounts[i], roles[i]);
         }
+    }
+
+    /// @inheritdoc IHatsModule
+    function leaveGarden(address garden) external override nonReentrant {
+        if (isOwnerOf(garden, msg.sender)) revert OwnerCannotLeave(garden);
+        bool wasMember;
+        for (uint256 i = 0; i <= uint256(GardenRole.Community); i++) {
+            if (!_checkRole(garden, msg.sender, GardenRole(i))) continue;
+            _revokeRole(garden, msg.sender, GardenRole(i));
+            wasMember = true;
+        }
+        if (!wasMember) revert NotGardenMember();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

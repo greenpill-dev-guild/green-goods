@@ -115,6 +115,8 @@ contract MockHatsModule is IHatsModule {
 
     function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
 
+    function leaveGarden(address) external { }
+
     function setConvictionStrategies(address, address[] calldata) external { }
 
     function getConvictionStrategies(address) external pure returns (address[] memory) {

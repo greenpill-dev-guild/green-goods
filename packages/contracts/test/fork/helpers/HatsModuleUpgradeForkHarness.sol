@@ -5,10 +5,21 @@ import { Test } from "forge-std/Test.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IERC6551Registry } from "../../../src/interfaces/IERC6551Registry.sol";
+import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { HatsModule } from "../../../src/modules/Hats.sol";
 
 interface IERC721OwnerOf {
     function ownerOf(uint256 tokenId) external view returns (address);
+}
+
+/// @notice What a deployed garden account already exposes. Its code cannot change with the module.
+interface ILiveGardenAccount {
+    function isGardener(address account) external view returns (bool);
+    function isOperator(address account) external view returns (bool);
+    function openJoining() external view returns (bool);
+    function maxGardeners() external view returns (uint256);
+    function gardenMemberCount() external view returns (uint256);
+    function joinGarden() external;
 }
 
 /// @notice Shared current-state rehearsal for a deployed HatsModule UUPS proxy.
@@ -104,6 +115,56 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
                 proxy.isOperatorOf(gardensAfter[i].garden, gardenOwner),
                 string.concat("Steward alias mismatch for token ", vm.toString(i))
             );
+        }
+    }
+
+    /// @notice Every deployed garden must support leaving through the module alone.
+    function _rehearseLeavingLiveGardens() internal {
+        HatsModule proxy = HatsModule(hatsModule);
+        HatsModule newImplementation = new HatsModule();
+        vm.prank(proxy.owner());
+        UUPSUpgradeable(hatsModule).upgradeTo(address(newImplementation));
+
+        GardenSnapshot[] memory gardens = _snapshotGardens(proxy);
+        address member = makeAddr("leavingMember");
+        for (uint256 i = 0; i < gardens.length; i++) {
+            address garden = gardens[i].garden;
+            ILiveGardenAccount account = ILiveGardenAccount(garden);
+            address gardenOwner = IERC721OwnerOf(gardenToken).ownerOf(i);
+
+            vm.prank(gardenOwner);
+            vm.expectRevert(abi.encodeWithSelector(HatsModule.OwnerCannotLeave.selector, garden));
+            proxy.leaveGarden(garden);
+
+            vm.startPrank(gardenOwner);
+            proxy.grantRole(garden, member, IHatsModule.GardenRole.Steward);
+            proxy.grantRole(garden, member, IHatsModule.GardenRole.Funder);
+            proxy.grantRole(garden, member, IHatsModule.GardenRole.Community);
+            vm.stopPrank();
+            assertTrue(account.isOperator(member), string.concat("grant did not land for token ", vm.toString(i)));
+
+            vm.prank(member);
+            proxy.leaveGarden(garden);
+
+            assertFalse(account.isOperator(member), string.concat("account still sees a steward: ", vm.toString(i)));
+            assertFalse(account.isGardener(member), string.concat("account still sees a gardener: ", vm.toString(i)));
+            assertFalse(proxy.isEvaluatorOf(garden, member), string.concat("evaluator hat stayed: ", vm.toString(i)));
+            assertFalse(proxy.isFunderOf(garden, member), string.concat("funder hat stayed: ", vm.toString(i)));
+            assertFalse(proxy.isCommunityOf(garden, member), string.concat("community hat stayed: ", vm.toString(i)));
+
+            if (!account.openJoining() || account.maxGardeners() != 0) continue;
+
+            // The account's join counter only counts up, so a departure leaves it where it was.
+            uint256 countBeforeRejoining = account.gardenMemberCount();
+            vm.prank(member);
+            account.joinGarden();
+            assertTrue(account.isGardener(member), string.concat("could not rejoin token ", vm.toString(i)));
+            assertEq(account.gardenMemberCount(), countBeforeRejoining + 1, "rejoining should count as a join");
+
+            vm.prank(member);
+            proxy.leaveGarden(garden);
+            assertFalse(account.isGardener(member), string.concat("could not leave again: ", vm.toString(i)));
+            assertEq(account.gardenMemberCount(), countBeforeRejoining + 1, "leaving should not change the count");
         }
     }
 
