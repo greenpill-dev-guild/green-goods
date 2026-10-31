@@ -52,7 +52,7 @@ const mocks = vi.hoisted(() => ({
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
   askAgain: vi.fn(),
-  holdsContent: null as null | (() => boolean),
+  resumeWork: null as unknown,
   formFeedback: "",
   activeDraftId: null as string | null,
   activeTab: "Intro" as "Intro" | "Media" | "Details" | "Review",
@@ -190,8 +190,8 @@ vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
 }));
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
-  useDraftResume: ({ holdsContent }: { holdsContent: () => boolean }) => {
-    mocks.holdsContent = holdsContent;
+  useDraftResume: ({ work }: { work: unknown }) => {
+    mocks.resumeWork = work;
     return {
       showDraftSheet: false,
       isResumingFromUrl: mocks.isResumingFromUrl,
@@ -463,13 +463,15 @@ describe("useWorkSubmissionFlowController", () => {
     exitPath = "";
   });
 
-  it("tells the draft's entry what the form still holds, which outlives a visit", () => {
-    const { rerender } = enterFlow();
-    expect(mocks.holdsContent?.()).toBe(false);
-
+  it("hands the draft's entry what the form still holds, which outlives a visit", () => {
     mocks.formFeedback = "Turned the east beds";
-    rerender();
-    expect(mocks.holdsContent?.()).toBe(true);
+    enterFlow();
+    expect(mocks.resumeWork).toMatchObject({
+      feedback: "Turned the east beds",
+      images: [],
+      audioNotes: [],
+      details: {},
+    });
   });
 
   it("waits for draft reconciliation before applying or saving an incoming promise", () => {

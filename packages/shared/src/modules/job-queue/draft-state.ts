@@ -29,20 +29,23 @@ export function hasMeaningfulDraftDetails(details: Record<string, unknown> | und
   return details ? Object.values(details).some(isMeaningfulDraftValue) : false;
 }
 
-/**
- * Whether work holds anything of the member's own (DL-148): an attachment (a photo, a video or a
- * voice note) or a filled field. Its garden and action do not count: the flow or one tap chooses
- * those before the member has done anything, so a draft starts with the first content and carries
- * them.
- */
-export function workHoldsContent(work: {
+/** What the member can put into a work, as opposed to the garden and action it is for. */
+export interface WorkContent {
   images: readonly File[];
   audioNotes: readonly File[];
   feedback: string;
   details: Record<string, unknown>;
   timeSpentMinutes?: number;
   location?: unknown;
-}): boolean {
+}
+
+/**
+ * Whether work holds anything of the member's own (DL-148): an attachment (a photo, a video or a
+ * voice note) or a filled field. Its garden and action do not count: the flow or one tap chooses
+ * those before the member has done anything, so a draft starts with the first content and carries
+ * them.
+ */
+export function workHoldsContent(work: WorkContent): boolean {
   return (
     work.images.length > 0 ||
     work.audioNotes.length > 0 ||

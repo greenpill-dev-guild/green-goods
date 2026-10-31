@@ -6,11 +6,16 @@ import {
   validateWorkVideo,
 } from "../../modules/work/work-attachments";
 import { normalizeWorkMediaFiles } from "../../modules/work/media-processing";
-import { queueDraftWrite, returnChangedWorkToDraft } from "../../modules/work/draft-lifecycle";
+import {
+  deleteWorkDraft,
+  queueDraftWrite,
+  returnChangedWorkToDraft,
+} from "../../modules/work/draft-lifecycle";
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Address, ApproximateWorkLocation } from "../../types/domain";
 import type { DraftStep, DraftWorkLink, WorkDraftRecord } from "../../types/job-queue";
+import { logger } from "../../modules/app/logger";
 import { draftDB } from "../../modules/job-queue/draft-db";
 import { workHoldsContent } from "../../modules/job-queue/draft-state";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
@@ -237,6 +242,27 @@ export function useDraftAutoSave(
       flush();
     };
   }, [saveOnExit]);
+
+  // A draft emptied and left is no draft (DL-148). While the flow is open it stays, since taking
+  // out the only photo is often the way to a better one, and an attachment that could not be read
+  // still counts: the member has not given it up.
+  const leaving = useRef({ enabled, userAddress, chainId });
+  leaving.current = { enabled, userAddress, chainId };
+  useEffect(
+    () => () => {
+      const { enabled: saves, userAddress: account, chainId: chain } = leaving.current;
+      const state = useWorkFlowStore.getState();
+      const draftId = state.activeDraftId;
+      if (!saves || !account || !draftId || state.draftMissingAttachments.length > 0) return;
+      const { formData } = latest.current;
+      if (workHoldsContent({ ...formData, images: state.images, audioNotes: state.audioNotes }))
+        return;
+      void deleteWorkDraft(draftId)
+        .then(() => queryClient.invalidateQueries({ queryKey: draftsKeys.list(account, chain) }))
+        .catch((error) => logger.warn("[WorkDrafts] Could not remove an emptied draft", { error }));
+    },
+    [queryClient]
+  );
 
   return {
     saveOnExit,

@@ -29,6 +29,7 @@ import {
 import { jobQueueDB } from "../../../modules/job-queue/db";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { draftDB } from "../../../modules/job-queue/draft-db";
+import type { WorkContent } from "../../../modules/job-queue/draft-state";
 import { queueDraftWrite } from "../../../modules/work/draft-lifecycle";
 import { WorkSubmissionError } from "../../../modules/work/wallet-submission/types";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
@@ -96,7 +97,7 @@ vi.mock("../../../modules/work/wallet-submission", () => ({
  */
 function openWizard(
   query = "",
-  { strict = false, holdsContent }: { strict?: boolean; holdsContent?: () => boolean } = {}
+  { strict = false, work }: { strict?: boolean; work?: WorkContent } = {}
 ) {
   const setSearchParams = vi.fn();
   const restoreForm = vi.fn();
@@ -106,7 +107,7 @@ function openWizard(
       setSearchParams.mockImplementation((next: URLSearchParams) => applySearchParams(next));
       const promise = parseWorkLinkIntent(searchParams);
       const linkIntent = promise ? toDraftWorkLink(promise) : undefined;
-      return useWizard({ searchParams, setSearchParams, restoreForm, holdsContent, linkIntent });
+      return useWizard({ searchParams, setSearchParams, restoreForm, work, linkIntent });
     },
     { reactStrictMode: strict }
   );
@@ -117,20 +118,20 @@ function useWizard({
   searchParams,
   setSearchParams,
   restoreForm,
-  holdsContent,
+  work,
   linkIntent,
 }: {
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams) => void;
   restoreForm: () => void;
-  holdsContent?: () => boolean;
+  work?: WorkContent;
   linkIntent: ReturnType<typeof toDraftWorkLink> | undefined;
 }) {
   const resume = useDraftResume({
     searchParams,
     setSearchParams,
     restoreForm,
-    holdsContent,
+    work,
   });
   const gardenAddress = useWorkFlowStore((state) => state.gardenAddress);
   const actionUID = useWorkFlowStore((state) => state.actionUID);
@@ -287,6 +288,53 @@ describe("a flow with nothing in it (DL-148)", () => {
     expect(next.restoreForm).not.toHaveBeenCalled();
   });
 
+  it("takes a draft away once it is emptied and left, and only then", async () => {
+    const wizard = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+
+    // Swapping the only photo is not leaving: the draft stays while the flow is open.
+    act(() => useWorkFlowStore.getState().setImages([]));
+    await act(async () => {
+      expect(await wizard.result.current.saveOnExit()).toBe(draftId);
+    });
+    expect(await draftDB.getDraft(draftId as string)).toBeDefined();
+
+    await leave(wizard);
+    expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
+    expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
+    expect(useWorkFlowStore.getState()).toMatchObject({ activeDraftId: null, actionUID: null });
+    const badge = countYourWork();
+    await waitFor(() => expect(badge.result.current.answered).toBe(true));
+    expect(badge.result.current.count).toBe(0);
+  });
+
+  it("keeps a draft left with an attachment it could not read", async () => {
+    const wizard = await openedWizard();
+    act(() => useWorkFlowStore.getState().setFeedback("Turned the east beds"));
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+    act(() => {
+      useWorkFlowStore.getState().setFeedback("");
+      useWorkFlowStore.setState({
+        draftMissingAttachments: [{ id: "lost", name: "beds.jpg", order: 0, kind: "media" }],
+      });
+    });
+
+    await leave(wizard);
+    expect(await draftDB.getDraft(draftId as string)).toBeDefined();
+  });
+
   it("does not wipe what the form still holds when no save could take it", async () => {
     // Autosave is off while photos from before an account wait to be recovered, so what the
     // member typed is only in the form.
@@ -294,7 +342,9 @@ describe("a flow with nothing in it (DL-148)", () => {
     tapActionTile();
     await leave(first);
 
-    const next = await openedWizard({ holdsContent: () => true });
+    const next = await openedWizard({
+      work: { images: [], audioNotes: [], feedback: "Turned the east beds", details: {} },
+    });
     expect(useWorkFlowStore.getState()).toMatchObject({ actionUID: 5, activeTab: WorkTab.Media });
     expect(next.restoreForm).not.toHaveBeenCalled();
   });

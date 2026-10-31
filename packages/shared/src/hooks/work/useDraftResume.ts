@@ -13,6 +13,7 @@ import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { draftDB } from "../../modules/job-queue/draft-db";
+import { type WorkContent, workHoldsContent } from "../../modules/job-queue/draft-state";
 import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
 import {
   fromDraftWorkLink,
@@ -34,8 +35,8 @@ interface UseDraftResumeOptions {
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void;
   restoreForm?: (values: WorkFormData) => void;
-  /** The form and its attachments, which outlive a visit as the store does, hold content (DL-148). */
-  holdsContent?: () => boolean;
+  /** What the form and its attachments hold, which outlives a visit as the store does (DL-148). */
+  work?: WorkContent;
 }
 const LEGACY_KEY = LEGACY_MEDIA_KEY;
 
@@ -54,7 +55,7 @@ export function useDraftResume({
   searchParams,
   setSearchParams,
   restoreForm,
-  holdsContent,
+  work,
 }: UseDraftResumeOptions) {
   const { resumeDraft, clearActiveDraft } = useDrafts();
   const { primaryAddress: userAddress } = useUser();
@@ -72,8 +73,8 @@ export function useDraftResume({
   const [entryResolved, setEntryResolved] = useState(false);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
   const explicitId = searchParams.get("draftId");
-  const latest = useRef({ resumeDraft, restoreForm, holdsContent, searchParams, setSearchParams });
-  latest.current = { resumeDraft, restoreForm, holdsContent, searchParams, setSearchParams };
+  const latest = useRef({ resumeDraft, restoreForm, work, searchParams, setSearchParams });
+  latest.current = { resumeDraft, restoreForm, work, searchParams, setSearchParams };
   // Whether the page's promise came back from the resumed draft rather than the page's own link.
   const restoredLink = useRef(false);
 
@@ -90,7 +91,7 @@ export function useDraftResume({
       state.activeDraftId ||
       explicitId ||
       parseWorkLinkIntent(latest.current.searchParams) ||
-      latest.current.holdsContent?.()
+      (latest.current.work && workHoldsContent(latest.current.work))
     )
       return;
     state.reset();

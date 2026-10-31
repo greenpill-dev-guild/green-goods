@@ -107,16 +107,6 @@ describe("complete draft autosave", () => {
     expect(mocks.save).toHaveBeenCalledTimes(1);
     expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 7 });
   });
-  it("keeps saving a draft whose content is taken out, so the member's choices stay with it", async () => {
-    useWorkFlowStore.setState({ activeDraftId: "resumed" });
-    const { result } = renderHookWithQueryClient(() =>
-      useDraftAutoSave({ ...base, feedback: "", actionUID: 7 }, emptyImages)
-    );
-    await act(async () => {
-      await result.current.saveOnExit();
-    });
-    expect(mocks.save.mock.calls[0][2]).toBe("resumed");
-  });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
       ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),

@@ -13,7 +13,6 @@ import {
   dependentWorkLinkPayload,
   type WorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
-import { workHoldsContent } from "../../../modules/job-queue/draft-state";
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
 import { useShareTargetIntake } from "./useShareTargetIntake";
@@ -35,13 +34,8 @@ import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
 import { useCommunityGardenOnramp } from "./useCommunityGardenOnramp";
-import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
+import { type MediaJourneyEvent, useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
-
-type MediaJourneyEvent =
-  | "work_media_preview_failed"
-  | "work_media_removed"
-  | "work_broken_media_removed";
 
 interface PendingLinkRecovery {
   intent: WorkLinkIntent;
@@ -165,15 +159,7 @@ export function useWorkSubmissionFlowController({
     searchParams,
     setSearchParams,
     restoreForm: form.reset,
-    holdsContent: () =>
-      workHoldsContent({
-        images,
-        audioNotes,
-        feedback,
-        details,
-        timeSpentMinutes,
-        location: formLocation,
-      }),
+    work: { ...form, details, audioNotes, location: formLocation },
   });
   const [retirementAttempt, setRetirementAttempt] = useState(0);
   const { saveOnExit } = useDraftAutoSave(
