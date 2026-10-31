@@ -178,9 +178,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
       const submission = retainSubmission ? retainedSubmission.current : null;
       origin.clientWorkId = submission?.id;
-      // A draft names its work, but autosave keeps none when there is nothing to save, as when the
-      // flow chose a garden's only action and nothing was added. Such work keeps one identity for
-      // its journey, so a Submit after a declined prompt reaches the work the queue already holds
+      // A draft names its work, but autosave keeps none when there is nothing to save, as when an
+      // action was chosen and nothing was added (DL-148). Such work keeps one identity for its
+      // journey, so a Submit after a declined prompt reaches the work the queue already holds
       // instead of admitting a second copy that could also be sent.
       let journeyWorkId: string | undefined;
       if (completeClientFlow && !submission && !persistedDraft?.clientWorkId) {

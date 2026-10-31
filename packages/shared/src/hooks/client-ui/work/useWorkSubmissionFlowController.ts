@@ -13,6 +13,7 @@ import {
   dependentWorkLinkPayload,
   type WorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
+import { workHoldsContent } from "../../../modules/job-queue/draft-state";
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
 import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
 import { useShareTargetIntake } from "./useShareTargetIntake";
@@ -160,7 +161,20 @@ export function useWorkSubmissionFlowController({
     clearActiveDraft,
     legacyRecovery,
     retryHydration,
-  } = useDraftResume({ searchParams, setSearchParams, restoreForm: form.reset });
+  } = useDraftResume({
+    searchParams,
+    setSearchParams,
+    restoreForm: form.reset,
+    holdsContent: () =>
+      workHoldsContent({
+        images,
+        audioNotes,
+        feedback,
+        details,
+        timeSpentMinutes,
+        location: formLocation,
+      }),
+  });
   const [retirementAttempt, setRetirementAttempt] = useState(0);
   const { saveOnExit } = useDraftAutoSave(
     {

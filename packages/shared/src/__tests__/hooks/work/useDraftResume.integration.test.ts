@@ -16,8 +16,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAddress } from "viem";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
+import { useDrafts } from "../../../hooks/work/useDrafts";
 import { useWorkDraftRetirement } from "../../../hooks/work/useWorkDraftRetirement";
 import { useWorkMutation } from "../../../hooks/work/useWorkMutation";
+import { useYourWorkCount } from "../../../hooks/work/useYourWorkCount";
 import {
   parseWorkLinkIntent,
   toDraftWorkLink,
@@ -60,6 +62,11 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: ACCOUNT }),
 }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => CHAIN }));
+// The Your Work badge reads the real drafts and queue; which garden is active is its edge.
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => ACCOUNT }));
+vi.mock("../../../hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ inScope: () => true }),
+}));
 // Submit's queue and drafts share one chain, as they do in the app.
 vi.mock("../../../config/default-chain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../config/default-chain")>()),
@@ -87,7 +94,10 @@ vi.mock("../../../modules/work/wallet-submission", () => ({
  * a promise written into it is the promise the next save carries. `strict` mounts it as the app's
  * development build does, where the first load is interrupted and run again.
  */
-function openWizard(query = "", { strict = false } = {}) {
+function openWizard(
+  query = "",
+  { strict = false, holdsContent }: { strict?: boolean; holdsContent?: () => boolean } = {}
+) {
   const setSearchParams = vi.fn();
   const restoreForm = vi.fn();
   const view = renderHookWithQueryClient(
@@ -96,7 +106,7 @@ function openWizard(query = "", { strict = false } = {}) {
       setSearchParams.mockImplementation((next: URLSearchParams) => applySearchParams(next));
       const promise = parseWorkLinkIntent(searchParams);
       const linkIntent = promise ? toDraftWorkLink(promise) : undefined;
-      return useWizard({ searchParams, setSearchParams, restoreForm, linkIntent });
+      return useWizard({ searchParams, setSearchParams, restoreForm, holdsContent, linkIntent });
     },
     { reactStrictMode: strict }
   );
@@ -107,17 +117,20 @@ function useWizard({
   searchParams,
   setSearchParams,
   restoreForm,
+  holdsContent,
   linkIntent,
 }: {
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams) => void;
   restoreForm: () => void;
+  holdsContent?: () => boolean;
   linkIntent: ReturnType<typeof toDraftWorkLink> | undefined;
 }) {
   const resume = useDraftResume({
     searchParams,
     setSearchParams,
     restoreForm,
+    holdsContent,
   });
   const gardenAddress = useWorkFlowStore((state) => state.gardenAddress);
   const actionUID = useWorkFlowStore((state) => state.actionUID);
@@ -185,6 +198,106 @@ afterEach(async () => {
   await draftDB.setActiveDraft(ACCOUNT, CHAIN, null);
   for (const job of await jobQueueDB.getJobs({ userAddress: ACCOUNT }))
     await jobQueueDB.deleteJob(job.id);
+});
+
+describe("a flow with nothing in it (DL-148)", () => {
+  /** One action tile tapped on Start, which moves the flow on to Media. */
+  const tapActionTile = () =>
+    act(() => {
+      const store = useWorkFlowStore.getState();
+      store.setGardenAddress(GARDEN);
+      store.setActionUID(5);
+      store.setActiveTab(WorkTab.Media);
+    });
+  const openedWizard = async (options?: Parameters<typeof openWizard>[1]) => {
+    const wizard = openWizard("", options);
+    await waitFor(() => expect(wizard.result.current.isResumingFromUrl).toBe(false));
+    return wizard;
+  };
+  const leave = async (wizard: { unmount: () => void }) => {
+    wizard.unmount();
+    await queueDraftWrite(async () => undefined);
+  };
+  /** The Your Work badge, and whether the draft list behind it has answered. */
+  const countYourWork = () =>
+    renderHookWithQueryClient(() => ({
+      count: useYourWorkCount().count,
+      answered: !useDrafts().isLoading,
+    }));
+
+  it("leaves no draft and no badge after a tile is tapped, and the next visit starts over", async () => {
+    const first = await openedWizard();
+    tapActionTile();
+    expect(await first.result.current.saveOnExit()).toBeNull();
+    await leave(first);
+
+    expect(await draftDB.getDraftsForUser(ACCOUNT, CHAIN)).toEqual([]);
+    expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
+    const badge = countYourWork();
+    await waitFor(() => expect(badge.result.current.answered).toBe(true));
+    expect(badge.result.current.count).toBe(0);
+
+    const next = await openedWizard();
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      gardenAddress: null,
+      actionUID: null,
+      activeTab: WorkTab.Intro,
+      activeDraftId: null,
+    });
+    expect(next.restoreForm).toHaveBeenLastCalledWith({ feedback: "" });
+  });
+
+  it("leaves no draft after a promise's page is opened and left", async () => {
+    const wizard = openWizard(ANOTHER_PROMISE_PAGE);
+    await waitFor(() => expect(useWorkFlowStore.getState().actionUID).toBe(PROMISE.actionUID));
+    expect(await wizard.result.current.saveOnExit()).toBeNull();
+    await leave(wizard);
+
+    expect(await draftDB.getDraftsForUser(ACCOUNT, CHAIN)).toEqual([]);
+  });
+
+  it("keeps the same flow as a draft once it holds a photo, counted and back on the next visit", async () => {
+    const first = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await first.result.current.saveOnExit();
+    });
+    await leave(first);
+
+    expect(await draftDB.getDraft(draftId as string)).toMatchObject({
+      gardenAddress: GARDEN,
+      actionUID: 5,
+    });
+    const badge = countYourWork();
+    await waitFor(() => expect(badge.result.current.count).toBe(1));
+
+    const next = await openedWizard();
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: draftId,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      activeTab: WorkTab.Media,
+    });
+    expect(next.restoreForm).not.toHaveBeenCalled();
+  });
+
+  it("does not wipe what the form still holds when no save could take it", async () => {
+    // Autosave is off while photos from before an account wait to be recovered, so what the
+    // member typed is only in the form.
+    const first = await openedWizard();
+    tapActionTile();
+    await leave(first);
+
+    const next = await openedWizard({ holdsContent: () => true });
+    expect(useWorkFlowStore.getState()).toMatchObject({ actionUID: 5, activeTab: WorkTab.Media });
+    expect(next.restoreForm).not.toHaveBeenCalled();
+  });
 });
 
 describe("Start Fresh on a saved work draft", () => {

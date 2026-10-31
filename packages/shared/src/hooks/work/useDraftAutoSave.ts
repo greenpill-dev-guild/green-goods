@@ -11,9 +11,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Address, ApproximateWorkLocation } from "../../types/domain";
 import type { DraftStep, DraftWorkLink, WorkDraftRecord } from "../../types/job-queue";
-import { draftDB, hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
+import { draftDB } from "../../modules/job-queue/draft-db";
+import { workHoldsContent } from "../../modules/job-queue/draft-state";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
-import { compareAddresses } from "../../utils/blockchain/address";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -117,22 +117,12 @@ export function useDraftAutoSave(
     if (committed?.generation === generation && committed.snapshot === snapshot)
       return committed.draftId;
     const { audioNotes = [], ...fields } = snapshot.formData;
-    // A garden alone is not work: Submit Work chooses one before the member does anything (the
-    // active garden), so a draft starts with the first action, photo or word and carries it. Nor
-    // is the action the flow chose when it skipped Start (the garden's only one).
-    const skipped = state.startSkipAction;
-    const flowChoseAction =
-      skipped !== null &&
-      skipped.actionUID === fields.actionUID &&
-      compareAddresses(skipped.garden, fields.gardenAddress);
-    const meaningful =
-      snapshot.images.length > 0 ||
-      audioNotes.length > 0 ||
-      (fields.actionUID !== null && !flowChoseAction) ||
-      fields.feedback.trim() ||
-      hasMeaningfulDraftDetails(fields.details) ||
-      (fields.timeSpentMinutes ?? 0) > 0;
-    if (!state.activeDraftId && !meaningful) {
+    // Opening the flow and tapping an action is not work yet (DL-148): nothing is written until
+    // the work holds something of the member's own, and then the draft carries its garden and action.
+    if (
+      !state.activeDraftId &&
+      !workHoldsContent({ ...fields, images: snapshot.images, audioNotes })
+    ) {
       useWorkFlowStore.setState({ draftSaveState: "idle" });
       return null;
     }

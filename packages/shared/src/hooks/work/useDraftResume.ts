@@ -6,7 +6,7 @@ import {
   discardUnrecoveredLegacy,
 } from "../../modules/work/legacy-draft-recovery";
 import type { MissingDraftAttachment, WorkDraftRecord } from "../../types/job-queue";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { get } from "idb-keyval";
 import { useDrafts } from "./useDrafts";
 import { useUser } from "../auth/useUser";
@@ -34,6 +34,8 @@ interface UseDraftResumeOptions {
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void;
   restoreForm?: (values: WorkFormData) => void;
+  /** The form and its attachments, which outlive a visit as the store does, hold content (DL-148). */
+  holdsContent?: () => boolean;
 }
 const LEGACY_KEY = LEGACY_MEDIA_KEY;
 
@@ -52,6 +54,7 @@ export function useDraftResume({
   searchParams,
   setSearchParams,
   restoreForm,
+  holdsContent,
 }: UseDraftResumeOptions) {
   const { resumeDraft, clearActiveDraft } = useDrafts();
   const { primaryAddress: userAddress } = useUser();
@@ -69,10 +72,30 @@ export function useDraftResume({
   const [entryResolved, setEntryResolved] = useState(false);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
   const explicitId = searchParams.get("draftId");
-  const latest = useRef({ resumeDraft, restoreForm, searchParams, setSearchParams });
-  latest.current = { resumeDraft, restoreForm, searchParams, setSearchParams };
+  const latest = useRef({ resumeDraft, restoreForm, holdsContent, searchParams, setSearchParams });
+  latest.current = { resumeDraft, restoreForm, holdsContent, searchParams, setSearchParams };
   // Whether the page's promise came back from the resumed draft rather than the page's own link.
   const restoredLink = useRef(false);
+
+  // A visit that left no draft leaves nothing else (DL-148): the garden, action and step it chose
+  // on the way go, so this visit starts over instead of carrying on with them, in whichever garden
+  // is active now. Before paint, so the earlier step never shows for a frame.
+  useLayoutEffect(() => {
+    if (!userAddress) return;
+    const state = useWorkFlowStore.getState();
+    if (
+      state.draftScope !== `${userAddress.toLowerCase()}:${chainId}` ||
+      !state.draftHydrated ||
+      state.draftChoicePending ||
+      state.activeDraftId ||
+      explicitId ||
+      parseWorkLinkIntent(latest.current.searchParams) ||
+      latest.current.holdsContent?.()
+    )
+      return;
+    state.reset();
+    latest.current.restoreForm?.({ feedback: "" });
+  }, [userAddress, chainId, explicitId]);
 
   useEffect(() => {
     setEntryResolved(false);

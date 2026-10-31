@@ -84,10 +84,13 @@ export function commitmentProofDraftPrefix(chainId: number, viewer: string): str
 }
 
 /**
- * Whether a draft holds anything. Opening the composer saves its empty words,
- * so a draft only counts once it has words, links or files.
+ * Whether a draft holds anything: words, a link or a file (DL-148). Opening the
+ * composer writes nothing until it does, and a record saved empty before that
+ * rule never counts.
  */
-export function proofDraftHasContent(draft: CommitmentProofDraft): boolean {
+export function proofDraftHasContent(
+  draft: Pick<CommitmentProofDraft, "note" | "links" | "files">
+): boolean {
   const files = draft.files;
   return (
     draft.note.trim().length > 0 ||

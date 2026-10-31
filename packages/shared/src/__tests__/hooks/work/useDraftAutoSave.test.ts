@@ -24,7 +24,6 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({ jobQueue: mocks.
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 11155111 }));
 vi.mock("../../../modules/job-queue/draft-db", () => ({
   draftDB: { saveSnapshot: mocks.save },
-  hasMeaningfulDraftDetails: (data: object) => Object.keys(data).length > 0,
 }));
 vi.mock("../../../utils/storage/quota", () => ({ requestPersistentStorageOnce: mocks.persistent }));
 const emptyImages: File[] = [];
@@ -69,51 +68,54 @@ describe("complete draft autosave", () => {
     });
     expect(mocks.save.mock.calls[0][2]).toBe("resumed");
   });
-  it("starts no draft for a garden alone, and carries it into the draft the first action starts", async () => {
-    // The flow chooses a garden before the member does anything (the active garden), so
-    // opening Submit Work and leaving must not leave a draft behind.
+  it.each([
+    ["a photo", { images: [new File(["jpeg"], "photo.jpg", { type: "image/jpeg" })] }],
+    ["a video", { images: [new File(["mp4"], "clip.mp4", { type: "video/mp4" })] }],
+    ["a voice note", { audioNotes: [new File(["audio"], "note.webm", { type: "audio/webm" })] }],
+    ["words", { feedback: "Turned the east beds" }],
+    ["an answer", { details: { plants: "12" } }],
+    ["time spent", { timeSpentMinutes: 30 }],
+    ["a shared location", { location: { lat: 6.2, lng: 7.1 } }],
+  ])("starts no draft for a garden and an action alone, then one with %s and carries them", async (_content, content) => {
+    // The flow chooses a garden and one tap an action before the member has done anything, so
+    // opening Submit Work, tapping a tile and leaving must not leave a draft behind (DL-148).
     const garden = "0x2222222222222222222222222222222222222222";
+    const { images = emptyImages, ...fields } = content as Record<string, never> & {
+      images?: File[];
+    };
     const { rerender } = renderHookWithQueryClient(
-      ({ actionUID }) =>
-        useDraftAutoSave({ ...base, feedback: "", gardenAddress: garden, actionUID }, emptyImages),
-      { initialProps: { actionUID: null as number | null } }
+      ({ added }) =>
+        useDraftAutoSave(
+          { ...base, feedback: "", gardenAddress: garden, actionUID: 7, ...(added ? fields : {}) },
+          added ? images : emptyImages
+        ),
+      { initialProps: { added: false } }
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     expect(mocks.save).not.toHaveBeenCalled();
-    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
-
-    rerender({ actionUID: 3 });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1);
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: null,
+      draftSaveState: "idle",
     });
-    expect(mocks.save).toHaveBeenCalledTimes(1);
-    expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 3 });
-  });
-  it("starts no draft for the action the flow chose when it skipped Start, until the member adds work", async () => {
-    // A garden with one action and nothing owed opens Media with that action (DL-131): the
-    // member chose nothing yet, so leaving must not leave a draft behind either.
-    const garden = "0x2222222222222222222222222222222222222222";
-    useWorkFlowStore.setState({ startSkipAction: { garden, actionUID: 7 } });
-    const photo = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
-    const { rerender } = renderHookWithQueryClient(
-      ({ images }) =>
-        useDraftAutoSave({ ...base, feedback: "", gardenAddress: garden, actionUID: 7 }, images),
-      { initialProps: { images: emptyImages } }
-    );
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
-    });
-    expect(mocks.save).not.toHaveBeenCalled();
-    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
 
-    rerender({ images: [photo] });
+    rerender({ added: true });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     expect(mocks.save).toHaveBeenCalledTimes(1);
     expect(mocks.save.mock.calls[0][3]).toMatchObject({ gardenAddress: garden, actionUID: 7 });
+  });
+  it("keeps saving a draft whose content is taken out, so the member's choices stay with it", async () => {
+    useWorkFlowStore.setState({ activeDraftId: "resumed" });
+    const { result } = renderHookWithQueryClient(() =>
+      useDraftAutoSave({ ...base, feedback: "", actionUID: 7 }, emptyImages)
+    );
+    await act(async () => {
+      await result.current.saveOnExit();
+    });
+    expect(mocks.save.mock.calls[0][2]).toBe("resumed");
   });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
