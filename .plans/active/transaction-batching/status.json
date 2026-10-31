@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T06:18:29.153Z"
+    "updated_at": "2026-10-31T07:38:17.181Z"
   },
   "links": {
     "brief": "brief.md",
@@ -43,7 +43,8 @@
     "User scope correction: further live Gnosis/account/profile QA belongs to another session. Owned standalone probes stopped and tabs closed; continue only batching source, required validation, and local evidence.",
     "2026-10-30: the user added deposits as Phase 4, after members; bulk work approvals move to Phase 5. Other actions with several prompts are listed in plan.todo.md and not scheduled.",
     "2026-10-30: develop at 974b69ac9 merged into the PR branch; see handoffs/continuation.md. Reading the source found two recovery gaps, now checkpoints 1.9 and 1.10, to close before anything calls this code.",
-    "2026-10-30: PR #1208 merged as 2376e5b84. The user asked to finish every action that can batch, one slice per PR; plan.todo.md owns the slice table. Slice 1D, on fix/batch-recovery-gaps, answers the six review findings on #1208."
+    "2026-10-30: PR #1208 merged as 2376e5b84. The user asked to finish every action that can batch, one slice per PR; plan.todo.md owns the slice table. Slice 1D, on fix/batch-recovery-gaps, answers the six review findings on #1208.",
+    "2026-10-31: slice 1D merged as a2fdc723a. Slice 1E, on fix/batch-recovery-races, fixes the four findings from review of #1396."
   ],
   "lanes": {
     "ui": {
@@ -72,19 +73,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "fix/batch-recovery-gaps",
+      "branch": "fix/batch-recovery-races",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/batch-journal.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts",
-          "evidence": "2026-10-31 05:58:45 UTC: 8 failures, 4 on behavior and 4 on the missing release function. 06:03:48 UTC: 8 more, covering per-group budgets, stored terminal statuses and receipts kept across reads."
+          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/batch-journal.test.ts",
+          "evidence": "2026-10-31 07:35:27 UTC: 4 failures on behavior: a stale checkpoint erased a reference, a release ran past a late reference, verification could not resume after an expired status, and a contradicting read overwrote a saved receipt. Guard tests already passed."
         },
         "green": {
           "command": "bun run --cwd packages/shared test -- <the 13 focused files named in handoffs/continuation.md>",
-          "evidence": "2026-10-31 06:05:07 UTC: 13 files, 228 passed, 6 existing skips, on working-copy source later committed as 9e0f17600. The PR records the gate and CI results for its final head."
+          "evidence": "2026-10-31 07:37:31 UTC: 13 files, 234 passed, 6 existing skips, on the working copy later committed for slice 1E. Shared typechecks passed. The PR records the gate and CI results for its final head."
         },
         "note": ""
       },
@@ -287,6 +288,22 @@
       "status": "tdd_recorded",
       "branch": "fix/batch-recovery-gaps",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T07:38:17.126Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "fix/batch-recovery-races",
+      "note": "Slice 1D merged as a2fdc723a. Started 1E for the four review findings on #1396."
+    },
+    {
+      "timestamp": "2026-10-31T07:38:17.182Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-recovery-races",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -302,7 +319,7 @@
       "machine_lane": "state_api",
       "owner": "claude",
       "status": "in_progress",
-      "branch": "fix/batch-recovery-gaps",
+      "branch": "fix/batch-recovery-races",
       "depends_on": ["phase_1_shared"],
       "handoff": "handoffs/continuation.md"
     },

@@ -7,6 +7,7 @@ import { assertBatchQuote } from "./batch-budget";
 import { assertPreparedBatch } from "./prepared-batch";
 import {
   batchReferenceKey,
+  type BatchGroup,
   type BatchItemState,
   type BatchRecord,
   type BatchReference,
@@ -20,6 +21,43 @@ const uncertain = new Set(["awaiting-approval", "submitted", "unresolved"]);
 function afterAcceptance(status: BatchItemState): BatchItemState {
   if (status === "prepared" || status === "awaiting-approval") return "submitted";
   return status === "confirmed" || status === "submitted" ? status : "unresolved";
+}
+function withAcceptedReference(
+  record: BatchRecord,
+  group: BatchGroup,
+  reference: BatchReference
+): BatchRecord {
+  const status = afterAcceptance(group.status);
+  return {
+    ...record,
+    reference,
+    status: status === "confirmed" ? record.status : status,
+    groups: record.groups.map((candidate) =>
+      candidate === group ? { ...group, reference, status } : candidate
+    ),
+    itemStates: {
+      ...record.itemStates,
+      ...Object.fromEntries(
+        group.itemIds.map((item) => [
+          item,
+          group.confirmedItemIds?.includes(item) ? "confirmed" : status,
+        ])
+      ),
+    },
+  };
+}
+/** A writer that read before a send was accepted cannot erase it: its group goes back to held. */
+function keepAcceptedReferences(stored: BatchRecord, next: BatchRecord): BatchRecord {
+  return stored.groups.reduce((result, saved) => {
+    if (!saved.reference || saved.status === "prepared" || saved.status === "awaiting-approval")
+      return result;
+    const incoming = result.groups.find(
+      (group) => group.itemIds.join("\0") === saved.itemIds.join("\0")
+    );
+    return incoming && !incoming.reference
+      ? withAcceptedReference(result, incoming, saved.reference)
+      : result;
+  }, next);
 }
 interface RetiredOperation {
   id: string;
@@ -259,25 +297,7 @@ export class BatchJournal extends Dexie {
         if (batchReferenceKey(group.reference) === batchReferenceKey(reference)) return;
         throw new Error("batch-reference-mismatch");
       }
-      const status = afterAcceptance(group.status);
-      const next: BatchRecord = {
-        ...record,
-        reference,
-        status: status === "confirmed" ? record.status : status,
-        groups: record.groups.map((candidate) =>
-          candidate === group ? { ...group, reference, status } : candidate
-        ),
-        itemStates: {
-          ...record.itemStates,
-          ...Object.fromEntries(
-            group.itemIds.map((item) => [
-              item,
-              group.confirmedItemIds?.includes(item) ? "confirmed" : status,
-            ])
-          ),
-        },
-        updatedAt: this.now(),
-      };
+      const next = { ...withAcceptedReference(record, group, reference), updatedAt: this.now() };
       this.validate(next);
       await this.operations.put(next);
     });
@@ -292,7 +312,7 @@ export class BatchJournal extends Dexie {
       await this.assertClaim(id, token);
       const record = await this.operations.get(id);
       if (!record) throw new Error("batch-not-found");
-      const next = {
+      const next = keepAcceptedReferences(record, {
         ...record,
         ...patch,
         id: record.id,
@@ -300,7 +320,7 @@ export class BatchJournal extends Dexie {
         scope: record.scope,
         version: record.version,
         updatedAt: this.now(),
-      };
+      });
       this.validate(next);
       await this.operations.put(next);
       return next;

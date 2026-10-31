@@ -30,7 +30,7 @@ Execute in the user's order: **shared batching and recovery → garden settings 
 | Requirement | Checkpoints | Acceptance | Status |
 |---|---|---|---|
 | Both passkey and wallet execution | 1.1–1.8 | AC-01–08 | Pending |
-| Durable recovery and no blind resend | 1.1–1.12 | AC-02–07, AC-23 | Pending |
+| Durable recovery and no blind resend | 1.1–1.13 | AC-02–07, AC-23 | Pending |
 | Save changed settings together | 2.1–2.3 | AC-09–10 | Pending |
 | Add reviewed member list | 3.1–3.3 | AC-11–12 | Pending |
 | Approve and deposit together, with no double deposit | 4.1–4.4 | AC-20–22 | Pending |
@@ -54,13 +54,14 @@ Each slice is one PR. Signatures read "today, then after" for passkeys and atomi
 | Slice | Actions | Signatures | Depends on | Why it stands alone |
 |---|---|---|---|---|
 | 1 | Batch engine (PR #1208, merged) | No change | | Nothing calls it |
-| 1D | Recovery gaps and review findings | No change | 1 | Must land before anything calls the engine |
-| 2 | Garden settings, enablement list, first live proof | 1–7, then 1 | 1D | No funds at risk; first live batches |
+| 1D | Recovery gaps and review findings (PR #1396, merged) | No change | 1 | Must land before anything calls the engine |
+| 1E | Remaining recovery races | No change | 1D | Must land before anything calls the engine |
+| 2 | Garden settings, enablement list, first live proof | 1–7, then 1 | 1E | No funds at risk; first live batches |
 | 3 | Add members | N, then 1, on every wallet | 2 | Uses `grantRoles`; Arbitrum only |
 | 4 | Vault and cookie jar deposits | 1–3 and 1–2, then 1 | 3 | Moves money |
 | 5A | Bulk review execution | No UI yet | 4 | Strict execution before any UI |
 | 5B | Staged reviews in the Hub | 1 per work, then 1 per group, on every wallet | 5A | Largest UI change |
-| 6 | Pool setup on passkeys, opening a seeded season | Up to 6, then 2; 2, then 1 | 2 | Adds the passkey path pool callers use |
+| 6 | Pool setup on passkeys, opening a seeded season | Up to 6, then 2; 1–2, then 1 | 2 | Adds the passkey path pool callers use |
 | 7 | Seed set, Add to Group, Finish Creating, Edit Reward on passkeys | 1 per copy, then 1 per group; Edit Reward starts working | 6 | These share `creationSendMode` |
 | 8 | Karma reconcile, marketplace approvals | 1 + N, then 1 per group; 1–2, then 1 | 2 | Fixed calls, confirmed by reads |
 | 9 | Campaign jar sync | 1–3, then 1 | 2 | Changes who can withdraw |
@@ -103,6 +104,10 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 - [x] **1.10 Always save an accepted reference.** A lapsed lease no longer stops its holder until another tab takes over. An accepted reference is saved by a write that needs no lease and can only add identity.
 - [x] **1.11 Give the wallet's atomic batch code its own module.** Capability, atomic submit, and reconcile moved to `wallet-atomic-batch.ts`, which let `wallet-sender.ts` get its reasoning comments and debug log back. Behavior stays the same.
 - [x] **1.12 Close the review findings on #1208.** A budget now applies per submitted group, saved receipts survive a later read that sees less, and a stored status that frees its items cannot sit over a live send. Operation IDs stay unscoped: they are minted per attempt, and reusing one across accounts fails closed with `batch-intent-changed`.
+
+**PR 1E: close the remaining races.** Depends on 1D. Raised by review of #1396, and all narrow.
+
+- [x] **1.13 Settle the races around a late reference and saved receipts.** A checkpoint keeps a reference another writer added while it was reading, and a release stops if a reference appeared after its read. Execution proven by a receipt is recorded before verification starts, so recovery can finish it after a wallet's status expires. A saved receipt and a later read that disagree keep the group unresolved, with both on the record.
 
 **Phase exit:** AC-01–08 and AC-23 pass for both adapters; selected real account/chain combinations have recorded compatibility evidence or remain disabled. Existing sender, commitment, and work-upload regression proof is current. No later feature can bypass this boundary.
 
