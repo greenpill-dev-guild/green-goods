@@ -23,7 +23,7 @@ import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
-import { commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
@@ -363,15 +363,12 @@ export function GardenCommitment() {
           commitment={commitment}
           requirements={requirements}
           delivery={service.delivery}
-          addProof={
+          addProof={addProofReach(
             // The bar's own act, or the one beside required work; a service's own bar has neither.
-            selectedAct?.kind === "addProof" && !service.bar
-              ? "now"
-              : // Only an offer's creator reads as provider before anyone takes it up.
-                controller.seat === "provider" && commitment.derivedState === "OFFERED"
-                ? "afterTakeUp"
-                : "no"
-          }
+            service.bar ? null : selectedAct,
+            controller.seat,
+            commitment.derivedState
+          )}
           onPhone={
             controller.queue.proofOnItsWay
               ? {
