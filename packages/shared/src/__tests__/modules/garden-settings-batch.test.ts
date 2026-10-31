@@ -233,6 +233,20 @@ describe("sendGardenSettingsBatch", () => {
     await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });
 
+  it("goes another way only on a definite no, not when the check itself failed", async () => {
+    const { input, sender } = setup();
+
+    sender.getBatchCapability = vi.fn(async (scope) => ({
+      ...scope,
+      atomic: "unsupported" as const,
+    }));
+    await expect(send(input)).resolves.toEqual({ status: "not-batchable" });
+
+    sender.getBatchCapability = vi.fn(async (scope) => ({ ...scope, atomic: "unknown" as const }));
+    await expect(send(input)).rejects.toThrow("batch-capability-unknown");
+    expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+  });
+
   it("gives the reason when a send fails for another reason before going out", async () => {
     const { input, sender } = setup();
     sender.submitAtomicBatch = vi.fn(async () => {
@@ -391,6 +405,30 @@ describe("holding a save whose outcome is unknown", () => {
     const ended = await moveOnFromGardenSettingsHold(input, partial.hold!);
     expect(ended).toEqual({ hold: null, saved: [{ field: "name", value: "Tech and Sun" }] });
 
+    await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
+  });
+
+  it("tells a tab what landed when another tab proved it first", async () => {
+    const { input, sender, batches, update, scope } = setup();
+    await send(input);
+    const { hold: shown } = await readGardenSettingsHold(input);
+    sender.reconcileBatch = vi.fn(async () => ({
+      status: "confirmed" as const,
+      receipts: [{ transactionHash: hash, status: "success" as const }],
+      sponsored: true,
+    }));
+    update({ name: "Tech and Sun", openJoining: true });
+    await batches.reconcile(shown!.operationIds[0], scope, async () => ["name", "openJoining"]);
+
+    await expect(readGardenSettingsHold(input, shown)).resolves.toEqual({
+      hold: null,
+      saved: NAME_AND_JOINING,
+    });
+    await expect(moveOnFromGardenSettingsHold(input, shown!)).resolves.toEqual({
+      hold: null,
+      saved: NAME_AND_JOINING,
+    });
+    // A tab that was not showing it has nothing to catch up on.
     await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });
 

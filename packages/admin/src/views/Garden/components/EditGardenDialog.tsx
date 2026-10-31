@@ -144,7 +144,9 @@ export function EditGardenDialog({
               emphasis="primary"
               size="sm"
               onClick={() => save(true)}
-              disabled={!settingsForm.isDirty || settingsForm.isSaving}
+              disabled={
+                !settingsForm.isDirty || settingsForm.isSaving || settingsForm.isSettlingHold
+              }
               loading={settingsForm.isSaving}
             >
               {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
@@ -170,7 +172,10 @@ export function EditGardenDialog({
           size="sm"
           onClick={() => save(false)}
           disabled={
-            !settingsForm.isDirty || settingsForm.hasValidationError || settingsForm.isSaving
+            !settingsForm.isDirty ||
+            settingsForm.hasValidationError ||
+            settingsForm.isSaving ||
+            settingsForm.isSettlingHold
           }
           loading={settingsForm.isSaving}
         >

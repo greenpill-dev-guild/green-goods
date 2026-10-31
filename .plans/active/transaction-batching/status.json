@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T09:22:19.289Z"
+    "updated_at": "2026-10-31T10:51:50.608Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,19 +50,19 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-garden-settings",
+      "branch": "fix/batch-settings-findings",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/components/Garden/gardenSettingsDraft.test.ts",
-          "evidence": "2026-10-31 09:19:49 UTC: 1 failure on behavior from the second review round on #1398: a banner removal did not come back after a reload. Earlier proof is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/admin test src/components/Garden/gardenSettingsDraft.test.ts src/components/Garden/gardenSettingsRun.test.ts",
+          "evidence": "2026-10-31 10:50:06 UTC: 3 failures: a read cleared a different file and a removal chosen while it ran, and the uploader could not say where a file went. Earlier proof is in handoffs/continuation.md."
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/components/Garden src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 09:20:17 UTC: 5 files, 80 passed, at the tree committed as 1f6e06511."
+          "evidence": "2026-10-31 10:50:31 UTC: 5 files, 88 passed, at the tree committed as a334fab3b."
         },
         "note": ""
       },
@@ -72,19 +72,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-garden-settings",
+      "branch": "fix/batch-settings-findings",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-settings-batch.test.ts src/modules/transactions/__tests__/batch-operation.test.ts",
-          "evidence": "2026-10-31 09:19:49 UTC: 3 failures on behavior from the second review round on #1398: a batch refused by the last check before signing failed instead of falling back, and the reason for a batch proven never sent was dropped. Earlier RED is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/shared test src/modules/transactions/__tests__/batch-senders.test.ts",
+          "evidence": "2026-10-31 10:50:06 UTC: 1 failure on behavior: a wallet reporting no atomic capability read as a check that failed. Earlier RED is in handoffs/continuation.md."
         },
         "green": {
           "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/hooks/garden/useSetGardenDomains.test.ts src/__tests__/modules/update-garden-command.test.ts src/__tests__/i18n/locale-coverage.test.ts src/modules/transactions/__tests__/",
-          "evidence": "2026-10-31 09:20:17 UTC: 24 files, 369 passed, 6 existing skips, at the tree committed as 1f6e06511."
+          "evidence": "2026-10-31 10:50:31 UTC: 24 files, 377 passed, 6 existing skips, at the tree committed as a334fab3b."
         },
         "note": ""
       },
@@ -383,6 +383,70 @@
       "status": "tdd_recorded",
       "branch": "feature/batch-garden-settings",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:19:40.881Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "fix/batch-settings-findings",
+      "note": "#1398 merged as 92d1ab74f. Closing its last three review findings before any rail is listed."
+    },
+    {
+      "timestamp": "2026-10-31T10:19:41.921Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/batch-settings-findings",
+      "note": "Save waits for the first read of held saves."
+    },
+    {
+      "timestamp": "2026-10-31T10:19:42.959Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:19:44.087Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:29:57.920Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:36:45.568Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:51:49.718Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:51:50.609Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -406,7 +470,7 @@
       "machine_lane": "ui",
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-garden-settings",
+      "branch": "fix/batch-settings-findings",
       "depends_on": ["phase_1_shared", "phase_1_recovery_gaps"],
       "handoff": "handoffs/continuation.md"
     },

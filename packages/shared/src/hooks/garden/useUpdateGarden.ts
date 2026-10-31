@@ -354,7 +354,10 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
 
   const holdQuery = useQuery({
     queryKey: holdKey,
-    queryFn: async () => noteSettlement(await readGardenSettingsHold(batchInput())),
+    queryFn: async () => {
+      const shown = queryClient.getQueryData<GardenSettingsSettlement>(holdKey)?.hold;
+      return noteSettlement(await readGardenSettingsHold(batchInput(), shown));
+    },
     // This tab's own send is in flight, not unknown.
     enabled: Boolean(batches && account) && !sendBatch.isPending,
     // Read on opening and when the person asks. The journal is the durable copy.
