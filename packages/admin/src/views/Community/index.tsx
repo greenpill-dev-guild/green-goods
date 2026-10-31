@@ -106,8 +106,9 @@ export default function CommunityView() {
                 id: "cockpit.community.members",
                 defaultMessage: "Members",
               }),
-              // Only join requests wait on the steward on this rail (DL-134).
-              count: community.joinRequestsWaiting,
+              // Only join requests wait on the steward on this rail (DL-134), and only
+              // someone who can open their queue sees the last check's number.
+              count: community.canManage ? community.joinRequestsWaiting : undefined,
             },
             ...(showCoordination
               ? [

@@ -116,6 +116,7 @@ describe("Community tab badges (DL-134)", () => {
       endowmentByAsset: [],
       memberCount: 11,
       desktopActions: [],
+      canManage: true,
       hasVaults: true,
       joinRequestsWaiting: 0,
       mode: "members",
@@ -142,6 +143,12 @@ describe("Community tab badges (DL-134)", () => {
         <CommunityView />
       </MemoryRouter>
     );
+    expect(screen.getByRole("tab", { name: "Members" })).toBeInTheDocument();
+  });
+
+  it("hides the last check's number from someone who can no longer open the queue", () => {
+    mocks.workspace = { ...mocks.workspace!, canManage: false, joinRequestsWaiting: 3 };
+    renderCommunity();
     expect(screen.getByRole("tab", { name: "Members" })).toBeInTheDocument();
   });
 });
