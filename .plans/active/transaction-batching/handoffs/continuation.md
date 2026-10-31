@@ -32,6 +32,8 @@ A third round found one more real gap, fixed in `a84afd07e`: a send that finishe
 
 A fourth round found one more real gap, fixed in `71c52b405`: one person took the one-at-a-time path, which skips the journal, so a row another tab still held could go twice. On a listed rail, one person now takes the batch path too. Its tests failed first at 21:08 UTC, 2 on behavior. Green at 21:11:04 UTC (Shared 7 files, 94 passed) and 21:11:28 UTC (Admin 7 files, 116 passed).
 
+CodeRabbit's one finding is fixed in `db712a741`: the "Nothing to sign" toast could fire with rows still left to do. Its test failed first at 21:14 UTC, and on that tree Shared passed 7 files with 95 tests at 21:15 UTC and Admin 7 files with 116.
+
 Still open for that slice, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here
