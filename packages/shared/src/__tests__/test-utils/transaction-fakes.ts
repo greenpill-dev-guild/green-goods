@@ -81,6 +81,7 @@ export type FakeSmartAccountClient = SmartAccountClient & {
   waitForUserOperationReceipt: ReturnType<
     typeof vi.fn<SmartAccountClient["waitForUserOperationReceipt"]>
   >;
+  getUserOperationReceipt: ReturnType<typeof vi.fn<SmartAccountClient["getUserOperationReceipt"]>>;
 };
 
 export interface FakeSmartAccountClientOptions {

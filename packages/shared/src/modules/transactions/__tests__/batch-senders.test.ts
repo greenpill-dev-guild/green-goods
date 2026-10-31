@@ -320,7 +320,7 @@ it.each([
             },
           ]
         : [],
-  } as NonNullable<typeof receipt>);
+  } as unknown as NonNullable<typeof receipt>);
   await expect(
     sender.reconcileBatch({
       kind: "user-operation",
