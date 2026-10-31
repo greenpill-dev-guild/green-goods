@@ -1829,6 +1829,7 @@
         "packages/shared/src/modules/transactions/embedded-sender.ts",
         "packages/shared/src/modules/transactions/factory.ts",
         "packages/shared/src/modules/transactions/passkey-sender.ts",
+        "packages/shared/src/modules/transactions/wallet-atomic-batch.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
         "packages/shared/src/providers/AuthGate.tsx"
       ],

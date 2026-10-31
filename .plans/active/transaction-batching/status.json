@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T04:46:17.233Z"
+    "updated_at": "2026-10-31T06:18:29.153Z"
   },
   "links": {
     "brief": "brief.md",
@@ -42,7 +42,8 @@
     "No production contract/schema or dependency versions changed. Worktree dependencies reuse existing installed packages through ignored local links.",
     "User scope correction: further live Gnosis/account/profile QA belongs to another session. Owned standalone probes stopped and tabs closed; continue only batching source, required validation, and local evidence.",
     "2026-10-30: the user added deposits as Phase 4, after members; bulk work approvals move to Phase 5. Other actions with several prompts are listed in plan.todo.md and not scheduled.",
-    "2026-10-30: develop at 974b69ac9 merged into the PR branch; see handoffs/continuation.md. Reading the source found two recovery gaps, now checkpoints 1.9 and 1.10, to close before anything calls this code."
+    "2026-10-30: develop at 974b69ac9 merged into the PR branch; see handoffs/continuation.md. Reading the source found two recovery gaps, now checkpoints 1.9 and 1.10, to close before anything calls this code.",
+    "2026-10-30: PR #1208 merged as 2376e5b84. The user asked to finish every action that can batch, one slice per PR; plan.todo.md owns the slice table. Slice 1D, on fix/batch-recovery-gaps, answers the six review findings on #1208."
   ],
   "lanes": {
     "ui": {
@@ -66,24 +67,24 @@
       },
       "skill_tags": ["ui", "frontend-design", "react"],
       "manual_blocked": true,
-      "blocked_reason": "Phases 2–5 wait for the Phase 1 merge and the recovery gaps, and need their own authorization."
+      "blocked_reason": "Phases 2–12 wait for slice 1D and need their own authorization where they broadcast live."
     },
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/transaction-batching-foundation",
+      "branch": "fix/batch-recovery-gaps",
       "depends_on": [],
-      "handoff": "handoffs/publication.md",
+      "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts",
-          "evidence": "2026-10-24 approximately 00:47–00:48 UTC: 3 genuine failures (18 pass) for missing frozen/fingerprinted budget, unbudgeted sending, and missing transport quote. Historical journal/adapter RED evidence remains in handoffs/phase-1.md."
+          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/batch-journal.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts",
+          "evidence": "2026-10-31 05:58:45 UTC: 8 failures, 4 on behavior and 4 on the missing release function. 06:03:48 UTC: 8 more, covering per-group budgets, stored terminal statuses and receipts kept across reads."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test -- src/modules/transactions/__tests__/batch-budget.test.ts src/modules/transactions/__tests__/batch-operation.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/modules/transactions/__tests__/batch-journal.test.ts src/modules/transactions/__tests__/batch-senders.test.ts src/modules/transactions/__tests__/wallet-sender.test.ts src/modules/transactions/__tests__/passkey-sender.test.ts src/modules/transactions/__tests__/sender-conformance.test.ts src/__tests__/modules/work/send-with-checkpoint.test.ts",
-          "evidence": "2026-10-24 01:04:40 UTC: 9 files, 180 tests passed, 6 existing skips on frozen uncommitted source. Both Shared typechecks passed. Eight actual Kernel software-signed fork execution outcomes also passed. This is working-copy behavioral proof, not a clean-SHA, authenticated device, or live sponsorship receipt."
+          "command": "bun run --cwd packages/shared test -- <the 13 focused files named in handoffs/continuation.md>",
+          "evidence": "2026-10-31 06:05:07 UTC: 13 files, 228 passed, 6 existing skips, on working-copy source later committed as 9e0f17600. The PR records the gate and CI results for its final head."
         },
         "note": ""
       },
@@ -270,6 +271,22 @@
       "status": "scope_changed",
       "branch": null,
       "note": "Added deposits as Phase 4 and moved bulk work approvals to Phase 5. Added checkpoints 1.9 and 1.10 for two recovery gaps."
+    },
+    {
+      "timestamp": "2026-10-31T06:18:29.060Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scope_changed",
+      "branch": null,
+      "note": "Merged PR #1208 and asked to finish every action that can batch, in well-defined slices. Phases 6 to 12 added."
+    },
+    {
+      "timestamp": "2026-10-31T06:18:29.154Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-recovery-gaps",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -277,15 +294,15 @@
       "machine_lane": "state_api",
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/transaction-batching-foundation",
+      "branch": null,
       "depends_on": [],
-      "handoff": "handoffs/publication.md"
+      "handoff": "handoffs/continuation.md"
     },
     "phase_1_recovery_gaps": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "todo",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "fix/batch-recovery-gaps",
       "depends_on": ["phase_1_shared"],
       "handoff": "handoffs/continuation.md"
     },
@@ -319,6 +336,62 @@
       "status": "todo",
       "branch": null,
       "depends_on": ["phase_4_deposits"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_6_pool_writes": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_2_settings"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_7_creations_rewards": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_6_pool_writes"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_8_karma_marketplace": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_2_settings"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_9_campaign_jar": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_2_settings"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_10_action_edit": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_2_settings"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_11_octant_checkout": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["phase_4_deposits"],
+      "handoff": "handoffs/ui.md"
+    },
+    "phase_12_add_and_send_proof": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["phase_7_creations_rewards"],
       "handoff": "handoffs/ui.md"
     }
   }

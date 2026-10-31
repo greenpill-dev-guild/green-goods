@@ -339,10 +339,6 @@ export class PasskeySender implements TransactionSender {
       throw new Error("batch-atomic-unavailable");
     let reference: BatchReference | undefined;
     let beforeBroadcastFailed = false;
-    const keep = async (broadcast: BroadcastReference) => {
-      reference = { ...broadcast, account, chainId };
-      await options.onBatchReference?.(reference);
-    };
     try {
       const result = await this.executeCalls(
         calls,
@@ -354,15 +350,18 @@ export class PasskeySender implements TransactionSender {
           },
           onBeforeBroadcast: async (broadcast) => {
             try {
-              if (broadcast) await keep(broadcast);
+              if (broadcast) reference = { ...broadcast, account, chainId };
               await options.onBeforeBroadcast?.(broadcast);
             } catch (error) {
               beforeBroadcastFailed = true;
               throw error;
             }
           },
+          // Only the bundler's answer proves the send was accepted; signing does not.
           onBroadcastReference: async (broadcast) => {
-            await keep(broadcast);
+            const accepted = { ...broadcast, account, chainId };
+            reference = accepted;
+            await options.onBatchReference?.(accepted);
             await options.onBroadcastReference?.(broadcast);
           },
         },
