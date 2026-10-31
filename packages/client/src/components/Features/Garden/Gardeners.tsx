@@ -4,11 +4,17 @@ import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/Person
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import {
+  isGardenMember,
+  usePendingJoinsVersion,
+} from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import {
   RiFileCopyLine,
@@ -17,7 +23,7 @@ import {
   RiUserLine,
   RiWallet3Fill,
 } from "@remixicon/react";
-import { forwardRef, memo, useState } from "react";
+import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -39,9 +45,71 @@ interface GardenGardenersProps {
 /** The app's own picture for someone who has no photo, as the profile shows it. */
 const DEFAULT_AVATAR = "/images/avatar.png";
 
+/** The most stewards the leave line names; the list under it shows them all. */
+const LEAVE_LINE_STEWARDS = 3;
+
 /** A name to show for a member who has published none, before their short address. */
 function contactName(member: GardenMember) {
   return member.username || member.email || member.phone || undefined;
+}
+
+/**
+ * How a member leaves the garden today: a steward removes them in the admin. It goes when members
+ * can leave from the app themselves (PRD-1084). Membership is the garden page's own answer, a
+ * join still on its way included, and a garden's only steward has nobody to ask, so they don't
+ * see it. Each name reads as that steward's row does.
+ */
+function GardenLeaveLine({
+  garden,
+  members,
+  canManageRequests,
+}: {
+  garden: Garden;
+  members: GardenMember[];
+  canManageRequests: boolean;
+}) {
+  const intl = useIntl();
+  const { primaryAddress } = useUser();
+  // The version counter refreshes membership as in-tab joins confirm or expire.
+  const pendingJoinsVersion = usePendingJoinsVersion();
+  const isMember = useMemo(() => {
+    const { gardeners, stewards, id } = garden;
+    return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
+  }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
+  const stewards = members.filter(
+    (member) => member.isSteward && !compareAddresses(member.account, primaryAddress)
+  );
+
+  if (!isMember || (canManageRequests && stewards.length === 0)) return null;
+
+  const names = stewards.slice(0, LEAVE_LINE_STEWARDS).map((steward) => (
+    <AddressDisplay
+      key={steward.account}
+      address={steward.account}
+      fallbackLabel={contactName(steward)}
+      list
+    >
+      {(name) => (
+        <span className="inline-block max-w-full truncate align-bottom" title={name}>
+          {name}
+        </span>
+      )}
+    </AddressDisplay>
+  ));
+
+  return (
+    <li className="mb-3 list-none" role="presentation">
+      <p className="type-body text-text-sub-600">
+        {names.length > 0
+          ? intl.formatMessage(
+              { id: "app.garden.gardeners.leaveNamed" },
+              { stewards: intl.formatList(names, { type: "disjunction" }) }
+            )
+          : intl.formatMessage({ id: "app.garden.gardeners.leave" })}
+      </p>
+    </li>
+  );
 }
 
 /**
@@ -157,6 +225,13 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           <li className="list-none" role="presentation">
             <GardenJoinRequestsQueue gardenAddress={garden.id as Address} />
           </li>
+        ) : null}
+        {garden ? (
+          <GardenLeaveLine
+            garden={garden}
+            members={members}
+            canManageRequests={canManageRequests}
+          />
         ) : null}
         {members.length ? (
           shouldVirtualize ? (

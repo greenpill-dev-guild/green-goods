@@ -2413,6 +2413,8 @@
   "app.garden.gardeners": "Gardeners",
   "app.garden.gardeners.noGardeners": "No gardeners have joined this garden yet.",
   "app.garden.gardeners.gardenerSince": "Gardener since {date}",
+  "app.garden.gardeners.leave": "To leave this garden, ask a steward to remove you.",
+  "app.garden.gardeners.leaveNamed": "To leave this garden, ask a steward like {stewards} to remove you.",
   "app.garden.insights": "Insights",
   "app.garden.share": "Share Garden",
   "app.garden.shareFailed": "Couldn't share garden",

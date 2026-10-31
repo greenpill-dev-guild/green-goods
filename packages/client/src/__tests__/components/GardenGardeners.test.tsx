@@ -1,8 +1,14 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { forgetListedPendingJoins } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import en from "@green-goods/shared/i18n/en.json";
+import es from "@green-goods/shared/i18n/es.json";
+import pt from "@green-goods/shared/i18n/pt.json";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -20,6 +26,10 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
 }));
 
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: vi.fn(() => ({ primaryAddress: null })),
+}));
+
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: vi.fn(() => ({ avatarUri: "/images/avatar.png", isLoading: false })),
 }));
@@ -34,6 +44,10 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
 
 vi.mock("@/components/Inputs", () => ({
   AddressCopy: ({ address }: { address: string }) => <span>{address}</span>,
+}));
+
+vi.mock("../../components/Features/Garden/GardenJoinRequestsQueue", () => ({
+  GardenJoinRequestsQueue: () => null,
 }));
 
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
@@ -63,10 +77,14 @@ const members: GardenMember[] = Array.from({ length: 41 }, (_, index) => ({
 
 afterEach(() => {
   vi.restoreAllMocks();
+  localStorage.clear();
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useUser).mockImplementation(
+    () => ({ primaryAddress: null }) as ReturnType<typeof useUser>
+  );
   vi.mocked(useGreenGoodsEnsName).mockImplementation(
     () => ({ data: null }) as ReturnType<typeof useGreenGoodsEnsName>
   );
@@ -228,5 +246,82 @@ describe("GardenGardeners", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector(".gg-item-row-avatar")).toBeEmptyDOMElement();
+  });
+
+  describe("how a member leaves the garden", () => {
+    const [ana, bo, caio, dee, reader] = ["Ana", "Bo", "Caio", "Dee", "Reader"].map(
+      (username, index) => ({ ...members[index], username, isSteward: index < 4 })
+    );
+    const GARDEN_ID = "0x00000000000000000000000000000000000000aa";
+    const record = (roster: Partial<Garden>) => ({ id: GARDEN_ID, ...roster }) as Garden;
+    const readAs = (account: string | null) =>
+      vi
+        .mocked(useUser)
+        .mockImplementation(() => ({ primaryAddress: account }) as ReturnType<typeof useUser>);
+    const renderSection = (
+      garden: Garden,
+      roster: GardenMember[],
+      { canManageRequests = false, locale = "en", catalog = en as Record<string, string> } = {}
+    ) =>
+      render(
+        <IntlProvider locale={locale} messages={catalog}>
+          <GardenGardeners members={roster} garden={garden} canManageRequests={canManageRequests} />
+        </IntlProvider>
+      );
+    const leaveLine = () => screen.queryByText(/leave this garden/i);
+
+    it.each([
+      ["en", en, "To leave this garden, ask a steward like Ana or Bo to remove you."],
+      ["es", es, "Para salir de este jardín, pide a un responsable como Ana o Bo que te retire."],
+      ["pt", pt, "Para sair deste jardim, peça a um responsável como Ana ou Bo para remover você."],
+    ])("tells a gardener in %s, naming the garden's stewards", (locale, catalog, line) => {
+      readAs(reader.account);
+      const garden = record({ stewards: [ana.account, bo.account], gardeners: [reader.account] });
+
+      const { container } = renderSection(garden, [ana, bo, reader], { locale, catalog });
+
+      expect(container.querySelector("li p")).toHaveTextContent(line);
+    });
+
+    it("names other stewards to a steward, three at most, and leaves the rest to the list", () => {
+      readAs(ana.account);
+      const stewards = [ana, bo, caio, dee].map((steward) => steward.account);
+
+      renderSection(record({ stewards, gardeners: [] }), [ana, bo, caio, dee], {
+        canManageRequests: true,
+      });
+
+      expect(leaveLine()).toHaveTextContent(
+        "To leave this garden, ask a steward like Bo, Caio, or Dee to remove you."
+      );
+    });
+
+    it.each([
+      ["a signed-out reader", null, false],
+      ["a reader with no role here", dee.account, false],
+      ["the garden's only steward, who has nobody to ask", ana.account, true],
+    ])("stays away from %s", (_reader, account, canManageRequests) => {
+      readAs(account);
+
+      const garden = record({ stewards: [ana.account], gardeners: [reader.account] });
+
+      renderSection(garden, [ana, reader], { canManageRequests });
+
+      expect(leaveLine()).toBeNull();
+    });
+
+    it("shows from the moment a join lands, before the roster lists it, and follows it if it lapses", () => {
+      readAs(reader.account);
+      localStorage.setItem(
+        "greengoods:pending-joins",
+        JSON.stringify({ [GARDEN_ID]: { address: reader.account, timestamp: Date.now() } })
+      );
+
+      renderSection(record({ stewards: [], gardeners: [] }), []);
+      expect(leaveLine()).toHaveTextContent("To leave this garden, ask a steward to remove you.");
+
+      act(() => forgetListedPendingJoins(reader.account, [GARDEN_ID]));
+      expect(leaveLine()).toBeNull();
+    });
   });
 });
