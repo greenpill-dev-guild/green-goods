@@ -1,22 +1,20 @@
 # Continue transaction batching
 
-Finish the remaining plan from this batching checkpoint. Read `status.json`, `plan.todo.md`, and `spec.md` first. The completed work is Phase 1 shared transport, recovery, reviewed budgets, and queue-reference compatibility. Product UI batching for settings, member additions, deposits, and bulk work review is not implemented.
+Finish the remaining plan from this batching checkpoint. Read `status.json`, `plan.todo.md`, and `spec.md` first. The completed work is Phase 1 shared transport, recovery, reviewed budgets, and queue-reference compatibility. No product action calls the new batch API yet.
 
-## Refresh on 2026-10-30
+## State on 2026-10-30
 
-`develop` at `974b69ac9` is merged into this branch, 182 merges later than the last base. Conflicts were two import hunks in `passkey-sender.ts`, one seam fingerprint, and four generated digests. `develop` had already adopted the Kernel receipt guards this PR ported, so the seam's inputs now match `develop` and its entry needed no new review.
+PR #1208 merged to `develop` as `2376e5b84`, with six open review findings on code nothing calls yet. Slice 1D, on branch `fix/batch-recovery-gaps`, answers them. Five are fixed; operation IDs stay unscoped, with the reason in [the spec](../spec.md#recovery-rules-added-on-2026-10-30).
 
-The 24 Oct CI failures are gone on the merged tree. The type error in `batch-senders.test.ts` needed a fix. `useContractTxSender` and `HomeGarden` passed once `develop`'s fixtures came in. Sixteen focused Shared files passed 272 tests with six existing skips, `HomeGarden` passed 14, and both Shared typechecks passed. These ran on the merge before the follow-up commits; the PR records the gate and CI results for its final head.
+Proof for 1D, with RED first. The first run, at 05:58:45 UTC, had 8 failures: 4 assertions on real behavior and 4 on the missing release function. The second, at 06:03:48 UTC, had 8 more: 7 assertions on the same round of behavior and a budget test corrected once to fail for the right reason. At 06:05:07 UTC, 13 focused files passed 228 tests with 6 existing skips, and both Shared typechecks passed. The PR records the gate and CI results for its final head.
 
-The same pass restored `wallet-sender.ts`'s null check on `value`. The port had also removed that file's reasoning comments to stay under the 500-line cap for a modified file, so checkpoint 1.11 moves its atomic batch code out and brings them back.
-
-Next: merge this PR once it is green and the user agrees, then checkpoints 1.9 to 1.11, then garden settings.
+Next: garden settings (slice 2). It needs the user's passkey and approval to broadcast for its live proof. [The plan](../plan.todo.md#slices) defines every slice after that.
 
 ## Start here
 
 1. Start with [publication.md](publication.md) for the isolated `develop` base, implementation commit, and current proof. Confirm the PR head, clean working tree, and validation status. The original 35 unpublished parent commits were excluded from this branch.
 2. Read [the Phase 1 foundation](phase-1.md) and [limits follow-up](phase-1-compatibility.md) as historical evidence for that source snapshot. Current source/receipt evidence must be refreshed after any base migration. Do not infer that old full-suite results establish current readiness.
-3. Finish checkpoints 1.9 to 1.11, then implement garden settings, adding members, deposits, and bulk work reviews in that order. Garden settings also proves the first live batches (decision 14), which closes checkpoint 1.6. Follow the plan skill start gate and repository validation selector. Later-phase checkboxes remain open.
+3. Work through [the slices](../plan.todo.md#slices) in order. Garden settings also proves the first live batches (decision 14), which closes checkpoint 1.6. Follow the plan skill start gate and repository validation selector. Later-phase checkboxes remain open.
 
 ## Boundaries
 

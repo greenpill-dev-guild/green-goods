@@ -62,16 +62,23 @@ export function prepareBatch(
     )
   )
     throw new Error("batch-single-call-mismatch");
-  const calls = input.mode === "single-call" ? items.slice(0, 1) : items;
-  const bytes = calls.reduce((total, item) => total + (item.call.data.length - 2) / 2, 0);
+  // A budget is per submitted group, and a sequential operation submits each item as its own.
+  const groups =
+    input.mode === "sequential"
+      ? items.map((item) => [item])
+      : [input.mode === "single-call" ? items.slice(0, 1) : items];
   if (
     input.budget &&
     (!Number.isSafeInteger(input.budget.maxCalls) ||
       input.budget.maxCalls < 1 ||
       !Number.isSafeInteger(input.budget.maxCalldataBytes) ||
       input.budget.maxCalldataBytes < 0 ||
-      calls.length > input.budget.maxCalls ||
-      bytes > input.budget.maxCalldataBytes)
+      groups.some(
+        (group) =>
+          group.length > input.budget!.maxCalls ||
+          group.reduce((total, item) => total + (item.call.data.length - 2) / 2, 0) >
+            input.budget!.maxCalldataBytes
+      ))
   )
     throw new Error("batch-budget-exceeded");
   const fingerprint = keccak256(

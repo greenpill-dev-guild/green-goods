@@ -1,4 +1,18 @@
-/** Wallet single-call and explicit atomic-batch adapters, scoped to the connected signer. */
+/**
+ * External Wallet Transaction Sender
+ *
+ * Sends transactions via wagmi's writeContractAsync (from useWriteContract).
+ * The user pays gas directly. Handles Safe wallet non-canonical hashes
+ * by skipping the receipt wait.
+ *
+ * A wallet that reports EIP-5792 atomic support can also take several calls
+ * as one approval and one transaction; `wallet-atomic-batch.ts` owns that path.
+ *
+ * Future enhancement: try EIP-5792 sendCalls with paymasterService first,
+ * falling back to direct writeContractAsync when the wallet doesn't support it.
+ *
+ * @module modules/transactions/wallet-sender
+ */
 
 import {
   signTypedData as defaultSignTypedData,
@@ -12,7 +26,7 @@ import {
   waitForTransactionReceipt as defaultWaitForReceipt,
   type Config,
 } from "@wagmi/core";
-import type { Abi, Hex } from "viem";
+import type { Hex } from "viem";
 import {
   BatchConfirmationPendingError,
   BatchNotSubmittedError,
@@ -23,11 +37,17 @@ import {
   type BatchReference,
   type BatchScope,
 } from "./batch-types";
+import {
+  readWalletBatchCapability,
+  reconcileWalletBatch,
+  sendWalletAtomicBatch,
+  type WalletBatchDeps,
+  type WalletBatchPort,
+} from "./wallet-atomic-batch";
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { quoteWalletBatch } from "./wallet-batch-preflight";
-import { walletBatchExecution, type WalletBatchStatus } from "./wallet-batch-status";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -49,27 +69,8 @@ import {
   type TxResult,
 } from "./types";
 
-/** How long a wallet may take to say what it can do before we assume it can't batch. */
-const CAPABILITY_TIMEOUT_MS = 4_000;
-/** How long an accepted batch may take to reach a receipt before its outcome is unknown. */
-const BATCH_STATUS_TIMEOUT_MS = 180_000;
-
-async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("wallet-capabilities-timeout")), ms);
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
-}
-
 /** Injectable dependency for testability */
-export interface WalletSenderDeps {
+export interface WalletSenderDeps extends WalletBatchDeps {
   preflightBatch?: (calls: readonly ContractCall[], budget: BatchBudget) => Promise<BatchQuote>;
   reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
@@ -81,37 +82,6 @@ export interface WalletSenderDeps {
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
-  getAccount?: () => { address?: Address };
-  assertWriteSafety?: () => Promise<void>;
-  ensureWalletChain?: (
-    chainId: number,
-    reason?: WalletNetworkSwitchReason,
-    beforeSwitch?: () => void | Promise<void>
-  ) => Promise<void>;
-  getCapabilities?: (
-    config: Config,
-    params: { chainId: number; account?: Address }
-  ) => Promise<{ atomic?: { status?: string } } | undefined>;
-  sendCalls?: (
-    config: Config,
-    params: {
-      account?: Address;
-      chainId: number;
-      forceAtomic: true;
-      calls: readonly {
-        to: Address;
-        abi: Abi;
-        functionName: string;
-        args: readonly unknown[];
-        value?: bigint;
-      }[];
-    }
-  ) => Promise<{ id: string }>;
-  getCallsStatus?: (config: Config, params: { id: string }) => Promise<WalletBatchStatus>;
-  waitForCallsStatus?: (
-    config: Config,
-    params: { id: string; timeout: number; throwOnFailure: false }
-  ) => Promise<WalletBatchStatus>;
 }
 
 export class WalletSender implements TransactionSender {
@@ -191,20 +161,37 @@ export class WalletSender implements TransactionSender {
   reconcileBroadcast: NonNullable<TransactionSender["reconcileBroadcast"]> = (reference) =>
     this.deps.reconcileBroadcast!(reference);
 
-  /** Bind a call to the connected signer before any asynchronous preparation. */
+  /**
+   * The call with the address it is for: the one it names, or else the one
+   * connected when its send starts. The send belongs to that address from then
+   * on, so a wallet that takes the connection over is asked neither to change
+   * network nor to sign it. A send that starts with no wallet connected is for
+   * nobody, and is refused here: waiting to see who connects would let that
+   * wallet sign it.
+   */
   private forSigner(call: ContractCall): ContractCall {
     const account = call.account ?? this.deps.getAccount?.().address;
     if (!account) throw new ConnectorNotConnectedError();
     return { ...call, account };
   }
 
-  /** Recheck the action owner, then read the connected signer last. */
+  /**
+   * Who signs: the act's own ownership check, then the account the call is
+   * for. The account is read last, with nothing awaited after it.
+   */
   private async assertSigner(call: ContractCall, options: TransactionSendOptions): Promise<void> {
     await options.assertOwnership?.();
     if (call.account) assertWalletAccount(call.account, this.deps.getAccount?.().address);
   }
 
-  /** Check network, local-fork safety, and ownership again after any switch prompt. */
+  /**
+   * What must hold before the wallet is asked: its network, the fork check, and
+   * who signs. The guard asks who signs right before it asks the wallet to
+   * change network, so a wallet that took the connection over while the act
+   * was being prepared is refused, not switched. Who signs is asked again once
+   * the wallet is on the network, because a switch prompt can stay open long
+   * enough for the account to change.
+   */
   private async readyWallet(
     call: ContractCall,
     chainId: number,
@@ -237,6 +224,9 @@ export class WalletSender implements TransactionSender {
     named: ContractCall,
     options: TransactionSendOptions = {}
   ): Promise<TxResult> {
+    // TODO: Try EIP-5792 sendCalls with paymasterService first when available.
+    // Fall back to direct writeContractAsync if the wallet doesn't support it.
+
     const call = this.forSigner(named);
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
@@ -320,40 +310,33 @@ export class WalletSender implements TransactionSender {
     return { hash: confirmedHash, sponsored: false };
   }
 
+  // sendBatch (one call after another) is intentionally not implemented for
+  // wallet mode. The atomic path below is the only batch a wallet is offered.
+
+  private batchPort(): WalletBatchPort {
+    return {
+      config: this.config,
+      deps: this.deps,
+      assertOwnership: (address, chainId) => this.assertOwnership?.(address, chainId),
+      preflightBatch: (calls, budget) => this.preflightBatch(calls, budget),
+      reconcileBroadcast: this.reconcileBroadcast,
+    };
+  }
+
   preflightBatch(calls: readonly ContractCall[], budget: BatchBudget): Promise<BatchQuote> {
     if (!this.deps.preflightBatch) throw new Error("batch-preflight-unavailable");
     return this.deps.preflightBatch(calls, budget);
   }
 
-  async getBatchCapability(scope: BatchScope): Promise<BatchCapability> {
-    const connected = this.deps.getAccount?.().address;
-    if (!connected || connected.toLowerCase() !== scope.account.toLowerCase())
-      return { ...scope, atomic: "unknown" };
-    if (!this.deps.getCapabilities) return { ...scope, atomic: "unsupported" };
-    try {
-      await this.assertOwnership?.(scope.account, scope.chainId);
-      const capabilities = await withinMs(
-        this.deps.getCapabilities(this.config, { chainId: scope.chainId, account: scope.account }),
-        CAPABILITY_TIMEOUT_MS
-      );
-      if (this.deps.getAccount?.().address?.toLowerCase() !== scope.account.toLowerCase())
-        return { ...scope, atomic: "unknown" };
-      const status = capabilities?.atomic?.status;
-      return {
-        ...scope,
-        atomic:
-          status === "supported" || status === "ready" || status === "unsupported"
-            ? status
-            : "unknown",
-      };
-    } catch {
-      return { ...scope, atomic: "unknown" };
-    }
+  getBatchCapability(scope: BatchScope): Promise<BatchCapability> {
+    return readWalletBatchCapability(this.batchPort(), scope);
   }
 
   async canSendAtomicBatch(chainId: number): Promise<boolean> {
     const account = this.deps.getAccount?.().address;
-    // "ready" would first ask to upgrade the account, so only "supported" counts.
+    // "ready" means the wallet would first ask to upgrade the account to a
+    // smart account. A pool setup is not the place to start that, so only an
+    // account that already runs batches counts.
     return (
       !!account && (await this.getBatchCapability({ account, chainId })).atomic === "supported"
     );
@@ -364,114 +347,11 @@ export class WalletSender implements TransactionSender {
     options: AtomicBatchOptions = {}
   ): Promise<BatchExecution> {
     if (!options.batchBudget) throw new BatchNotSubmittedError(new Error("batch-budget-required"));
-    return this.executeAtomicBatch(calls, options);
+    return sendWalletAtomicBatch(this.batchPort(), calls, options);
   }
 
-  private async executeAtomicBatch(
-    calls: readonly ContractCall[],
-    options: AtomicBatchOptions = {}
-  ): Promise<BatchExecution> {
-    if (calls.length === 0) throw new Error("Cannot send empty batch");
-    const chainId = calls[0]!.chainId ?? DEFAULT_CHAIN_ID;
-    if (calls.some((call) => (call.chainId ?? DEFAULT_CHAIN_ID) !== chainId))
-      throw new Error("An atomic batch runs on one chain");
-    const account = calls.find((call) => call.account)?.account ?? this.deps.getAccount?.().address;
-    if (!account) throw new ConnectorNotConnectedError();
-    const assertSigner = async () => {
-      await this.assertOwnership?.(account, chainId);
-      await options.assertOwnership?.();
-      const connected = this.deps.getAccount?.().address;
-      for (const expected of [account, ...calls.map((call) => call.account)])
-        if (expected) assertWalletAccount(expected, connected);
-    };
-    try {
-      await assertSigner();
-      if (
-        !this.deps.sendCalls ||
-        !this.deps.waitForCallsStatus ||
-        (await this.getBatchCapability({ account, chainId })).atomic !== "supported"
-      )
-        throw new Error("batch-atomic-unavailable");
-      await this.deps.ensureWalletChain?.(chainId, "write", assertSigner);
-      await this.deps.assertWriteSafety?.();
-      if (options.batchBudget)
-        await this.preflightBatch(
-          calls.map((call) => ({ ...call, account, chainId })),
-          options.batchBudget
-        );
-      await assertSigner();
-      await options.onBeforeBroadcast?.();
-      await assertSigner();
-    } catch (error) {
-      throw new BatchNotSubmittedError(error);
-    }
-    const { id } = await this.deps.sendCalls!(this.config, {
-      account,
-      chainId,
-      forceAtomic: true,
-      calls: calls.map((call) => ({
-        to: call.address,
-        abi: call.abi,
-        functionName: call.functionName,
-        args: call.args,
-        ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
-      })),
-    });
-    const reference: BatchReference = { kind: "wallet-calls", id, account, chainId };
-    try {
-      if (typeof id !== "string" || !id) throw new Error("batch-invalid-wallet-id");
-      await options.onBatchReference?.(reference);
-      await options.onAccepted?.();
-      const result = await this.deps.waitForCallsStatus(this.config, {
-        id,
-        timeout: BATCH_STATUS_TIMEOUT_MS,
-        throwOnFailure: false,
-      });
-      return walletBatchExecution(reference, result);
-    } catch {
-      return { status: "unresolved", reference, receipts: [], sponsored: false };
-    }
-  }
-
-  async reconcileBatch(reference: BatchReference): Promise<BatchExecution> {
-    const unresolved: BatchExecution = {
-      status: "unresolved",
-      reference,
-      receipts: [],
-      sponsored: false,
-    };
-    if (reference.account.toLowerCase() !== this.deps.getAccount?.().address?.toLowerCase())
-      return unresolved;
-    await this.assertOwnership?.(reference.account, reference.chainId);
-    if (reference.kind === "user-operation") return unresolved;
-    try {
-      if (reference.kind === "wallet-calls") {
-        if (!this.deps.getCallsStatus) return unresolved;
-        return walletBatchExecution(
-          reference,
-          await this.deps.getCallsStatus(this.config, { id: reference.id })
-        );
-      }
-      const broadcast =
-        reference.kind === "wallet-transaction"
-          ? {
-              kind: "transaction" as const,
-              hash: reference.id as Hex,
-              account: reference.account,
-              chainId: reference.chainId,
-            }
-          : reference;
-      const result = await this.reconcileBroadcast(broadcast);
-      return result.status === "confirmed"
-        ? {
-            ...unresolved,
-            status: "confirmed",
-            receipts: [{ transactionHash: result.transactionHash, status: "success" }],
-          }
-        : { ...unresolved, status: result.status };
-    } catch {
-      return unresolved;
-    }
+  reconcileBatch(reference: BatchReference): Promise<BatchExecution> {
+    return reconcileWalletBatch(this.batchPort(), reference);
   }
 
   /** Preserve the confirmed-hash API for existing callers without selecting an arbitrary receipt. */
@@ -481,14 +361,20 @@ export class WalletSender implements TransactionSender {
   ): Promise<TxResult> {
     let execution: BatchExecution;
     try {
-      execution = await this.executeAtomicBatch(calls, options);
+      execution = await sendWalletAtomicBatch(this.batchPort(), calls, options);
     } catch (error) {
       if (error instanceof BatchNotSubmittedError) throw error.cause;
       throw error;
     }
     const receipt = execution.receipts[0];
-    if (execution.status === "confirmed" && execution.receipts.length === 1)
+    if (execution.status === "confirmed" && execution.receipts.length === 1) {
+      logger.debug("Wallet atomic batch confirmed", {
+        source: "WalletSender",
+        calls: calls.map((call) => call.functionName),
+        hash: receipt.transactionHash,
+      });
       return { hash: receipt.transactionHash, sponsored: false };
+    }
     if (execution.status === "reverted" && receipt)
       throw new TransactionRevertedError(
         receipt.transactionHash,
