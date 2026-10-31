@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T19:52:33.203Z"
+    "updated_at": "2026-10-31T20:02:58.479Z"
   },
   "links": {
     "brief": "brief.md",
@@ -62,7 +62,7 @@
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx src/components/Garden src/views/Community/components/CommunityMembersTab.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 19:50:37 UTC: 7 files, 110 passed, at the tree committed as c5ae0bf92."
+          "evidence": "2026-10-31 20:02:12 UTC: 7 files, 110 passed, at the tree committed as 01799502c."
         },
         "note": ""
       },
@@ -84,7 +84,7 @@
         },
         "green": {
           "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts src/__tests__/hooks/useGardenOperations.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-10-31 19:50:18 UTC: 7 files, 89 passed, at the tree committed as c5ae0bf92."
+          "evidence": "2026-10-31 20:02:28 UTC: 7 files, 89 passed, at the tree committed as 01799502c."
         },
         "note": ""
       },
@@ -474,6 +474,22 @@
     },
     {
       "timestamp": "2026-10-31T19:52:33.206Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:02:57.330Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-add-members",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T20:02:58.480Z",
       "actor": "claude",
       "lane": "ui",
       "status": "tdd_recorded",
