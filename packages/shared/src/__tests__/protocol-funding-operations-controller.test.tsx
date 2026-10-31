@@ -68,7 +68,7 @@ function snapshot(
     expectedFeeBuffer: 0n,
     feeBuffer: 0n,
     quotedFees: 0n,
-    feeQuotes: [],
+    feeQuotes: [{ id: "42161-8", amount: 2n, fee: 0n, senderPays: false, recipient: TARGET_SAFE }],
     available: 0n,
     shortfall: 0n,
     suggestedTopUp: 0n,
@@ -155,6 +155,21 @@ describe("useProtocolFundingOperationsController", () => {
       canCancel: true,
       sendBlock: block,
     });
+  });
+
+  it("holds dispatch when the transfer's fee is over a limit or has no quote", () => {
+    mocks.capabilities = dispatcher;
+    const overCap = snapshot("QUEUED", { maxTransferAmount: 3n });
+    overCap.feeQuotes = [
+      { id: "42161-8", amount: 2n, fee: 2n, senderPays: true, recipient: TARGET_SAFE },
+    ];
+    mocks.sourceSnapshot = overCap;
+    expect(renderController().result.current.rows[0]?.sendBlock).toBe("transfer_cap");
+
+    const unquoted = snapshot();
+    unquoted.feeQuotes = [];
+    mocks.sourceSnapshot = unquoted;
+    expect(renderController().result.current.rows[0]?.sendBlock).toBe("limits_unread");
   });
 
   it("holds dispatch on a snapshot kept from a failed refresh", () => {

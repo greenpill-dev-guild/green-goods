@@ -8,6 +8,7 @@ import {
   type PoolFundingDisbursement,
   selectExceededTransferLimit,
   selectPoolFundingSnapshot,
+  selectQueuedTransferBlock,
   selectTransferBlock,
 } from "../modules/commitment-pooling/pool-funding";
 
@@ -682,5 +683,53 @@ describe("selectExceededTransferLimit", () => {
     ["an unread Safe allowance", { roles: null }, 1n, "limits_unread"],
   ] as const)("selectTransferBlock: %s", (_name, read, amount, expected) => {
     expect(selectTransferBlock(fundingRead(read), amount)).toBe(expected);
+  });
+
+  // A dispatch spends the CCIP fee, so it also needs the transfer's own quote: Celo debits
+  // the amount plus a sender-paid fee, and refuses one the receiver would pay.
+  it.each([
+    ["a quote with no fee", { fee: 0n, senderPays: false }, { cap: 1_000n }, null],
+    ["a debit that just fits", { fee: 100n, senderPays: true }, { cap: 1_000n }, null],
+    ["a fee over the cap", { fee: 101n, senderPays: true }, { cap: 1_000n }, "transfer_cap"],
+    ["a fee over the balance", { fee: 101n, senderPays: true }, { balance: 1_000n }, "balance"],
+    [
+      "a fee over the period",
+      { fee: 101n, senderPays: true },
+      { period: 1_000n },
+      "period_allowance",
+    ],
+    ["a fee beside the Safe allowance", { fee: 101n, senderPays: true }, { roles: 900n }, null],
+    ["a receiver-paid fee", { fee: 1n, senderPays: false }, {}, "limits_unread"],
+    ["an unread fee", { fee: null, senderPays: true }, {}, "limits_unread"],
+    ["unread fee terms", { fee: 1n, senderPays: null }, {}, "limits_unread"],
+    ["no quote", null, {}, "limits_unread"],
+  ] as const)("selectQueuedTransferBlock: %s", (_name, quote, limits, expected) => {
+    const read = fundingRead({
+      cap: 2_000n,
+      period: 2_000n,
+      roles: 2_000n,
+      balance: 2_000n,
+      ...limits,
+    });
+    const funding = {
+      ...read,
+      snapshot: {
+        ...read.snapshot!,
+        disbursements: [{ id: "42161-8", disbursementId: 8n }] as PoolFundingDisbursement[],
+        feeQuotes: quote ? [{ id: "42161-8", amount: 900n, recipient: null, ...quote }] : [],
+      },
+    };
+    expect(selectQueuedTransferBlock(funding, { disbursementId: 8n, amount: 900n })).toBe(expected);
+  });
+
+  it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {
+    const read = fundingRead({});
+    const funding = {
+      ...read,
+      snapshot: { ...read.snapshot!, disbursements: [], feeQuotes: [] },
+    };
+    expect(selectQueuedTransferBlock(funding, { disbursementId: 8n, amount: 1n })).toBe(
+      "limits_unread"
+    );
   });
 });

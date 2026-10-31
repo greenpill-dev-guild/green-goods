@@ -120,7 +120,7 @@ function disbursementView(
     input.chainRead === "ready";
   // A dispatch or resend spends the CCIP fee before Celo can refuse, so it needs a
   // read that says the Safe can send this. A requeue or a cancel moves nothing.
-  const sendable = input.transferBlock(disbursement.amount) === null;
+  const sendable = input.transferBlock(disbursement) === null;
   const actions = selectSettlementActions({
     state: disbursement.state,
     isBatch: false,
@@ -253,7 +253,7 @@ export function selectSettlementWorkflow(input: SettlementWorkflowInput): Settle
   const anyDispatched = states.some((state) => state === "DISPATCHED");
   const fundingBlockers = views.flatMap((view): SettlementActionBlocker[] => {
     if (view.disbursement.state !== "QUEUED") return [];
-    const block = input.transferBlock(view.disbursement.amount);
+    const block = input.transferBlock(view.disbursement);
     if (block === null) return [];
     return [block === "limits_unread" ? "funding-unread" : "funding-over-limit"];
   });

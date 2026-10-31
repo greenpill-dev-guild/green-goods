@@ -248,6 +248,7 @@ export {
 } from "./pool-funding-calculations";
 export {
   selectExceededTransferLimit,
+  selectQueuedTransferBlock,
   selectTransferBlock,
   selectTransferLimitsRead,
 } from "./pool-funding-readiness";

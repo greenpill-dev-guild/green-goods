@@ -197,6 +197,39 @@ describe("ProtocolFundingOperationsCard", () => {
     expect(queueFunding).not.toHaveBeenCalled();
   });
 
+  it("won't open the review until the receiving garden can take the transfer", () => {
+    const snapshot = storyPoolFunding().snapshot!;
+    const card = (targetFunding: PoolFundingControllerView) => (
+      <ProtocolFundingOperationsCard
+        operations={controller({ sourceFunding: storyProtocolSafeFunding(), targetFunding })}
+        gardens={gardens}
+        targetGarden={AIYELOJA}
+        onTargetGardenChange={vi.fn()}
+      />
+    );
+    const { rerender } = renderWithProviders(
+      card(
+        storyPoolFunding({
+          snapshot: { ...snapshot, fundingUnavailableReasons: ["inactive_account"] },
+        })
+      )
+    );
+    const review = screen.getByRole("button", { name: "Review Seed or Top-Up…" });
+    expect(review).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The receiving garden has no active settlement account."
+    );
+
+    // Not read yet, or a failed read: no message to give, and still no review.
+    rerender(card(storyPoolFunding({ snapshot: null })));
+    expect(review).toBeDisabled();
+    rerender(card(storyPoolFunding({ isError: true })));
+    expect(review).toBeDisabled();
+
+    rerender(card(storyPoolFunding()));
+    expect(review).toBeEnabled();
+  });
+
   it("shuts the review while a Safe proposal is out, and says why a transfer is held", () => {
     renderWithProviders(
       <ProtocolFundingOperationsCard

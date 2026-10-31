@@ -218,28 +218,58 @@ export function selectTransferBlock(
 }
 
 /**
- * The smallest limit a new transfer of `amount` out of this Safe is over, so one
+ * Why a queued transfer can't be dispatched or resent yet. Celo debits the amount
+ * plus any sender-paid G$ fee and refuses a fee the receiver would pay, so this
+ * also needs the read's own quote for the transfer: none, or one Celo would
+ * refuse, leaves nothing to show it fits.
+ */
+export function selectQueuedTransferBlock(
+  funding: Omit<TransferFundingRead, "snapshot"> & {
+    snapshot: Pick<
+      PoolFundingSnapshot,
+      "balance" | "limits" | "disbursements" | "feeQuotes"
+    > | null;
+  },
+  transfer: { disbursementId: bigint; amount: bigint }
+): PoolFundingTransferBlock | null {
+  const { snapshot } = funding;
+  if (!snapshot || !selectTransferLimitsRead(funding)) return "limits_unread";
+  const row = snapshot.disbursements.find(
+    (entry) => entry.disbursementId === transfer.disbursementId
+  );
+  const quote = row && snapshot.feeQuotes.find((entry) => entry.id === row.id);
+  if (!quote || quote.fee === null || quote.senderPays === null) return "limits_unread";
+  if (quote.fee > 0n && !quote.senderPays) return "limits_unread";
+  return selectExceededTransferLimit(funding, transfer.amount, quote.fee);
+}
+
+/**
+ * The smallest limit a transfer of `amount` out of this Safe is over, so one
  * correction clears every limit it broke; null when it fits all that were read.
  * Only what the current read returned counts: `selectTransferLimitsRead` says
  * whether that read is whole. The Celo executor compares the amount plus any
- * sender-paid G$ fee, so an amount within that fee of a limit fits here and can
- * still fail there.
+ * sender-paid G$ fee. A transfer not queued yet has no quote, so an amount within
+ * that fee of a limit fits here; `selectQueuedTransferBlock` checks the quoted
+ * debit before a dispatch can spend the CCIP fee.
  */
 export function selectExceededTransferLimit(
   funding: TransferFundingRead,
-  amount: bigint
+  amount: bigint,
+  fee = 0n
 ): PoolFundingTransferLimit | null {
   if (!funding.snapshot || funding.isError) return null;
   const { balance, limits } = funding.snapshot;
-  const maxima: [PoolFundingTransferLimit, bigint | null][] = [
-    ["transfer_cap", limits.maxTransferAmount],
-    ["period_allowance", limits.periodAllowanceRemaining],
-    ["roles_allowance", limits.rolesAllowanceRemaining],
-    ["balance", funding.hasStaleBalance ? null : (balance?.value ?? null)],
+  const debit = amount + fee;
+  const maxima: [PoolFundingTransferLimit, bigint | null, bigint][] = [
+    ["transfer_cap", limits.maxTransferAmount, debit],
+    ["period_allowance", limits.periodAllowanceRemaining, debit],
+    // The Safe's allowance covers the transfer itself, as the settlement readiness counts it.
+    ["roles_allowance", limits.rolesAllowanceRemaining, amount],
+    ["balance", funding.hasStaleBalance ? null : (balance?.value ?? null), debit],
   ];
   let exceeded: { limit: PoolFundingTransferLimit; max: bigint } | null = null;
-  for (const [limit, max] of maxima) {
-    if (max === null || amount <= max) continue;
+  for (const [limit, max, needed] of maxima) {
+    if (max === null || needed <= max) continue;
     if (!exceeded || max < exceeded.max) exceeded = { limit, max };
   }
   return exceeded?.limit ?? null;

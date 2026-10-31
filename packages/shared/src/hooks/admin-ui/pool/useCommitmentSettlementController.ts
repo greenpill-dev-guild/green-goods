@@ -28,7 +28,7 @@ import type {
 import { STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { readCommitmentSettlementChainState } from "../../../modules/commitment-pooling/data-settlement-chain";
-import { selectTransferBlock } from "../../../modules/commitment-pooling/pool-funding";
+import { selectQueuedTransferBlock } from "../../../modules/commitment-pooling/pool-funding";
 import { pinCommitmentReason } from "../../../modules/commitment-pooling/reasons";
 import {
   hashRecognitionSnapshot,
@@ -123,6 +123,8 @@ export function useCommitmentSettlementController(input: {
   const [proposedAt, setProposedAt] = useState<string | null>(null);
   const proposalPending =
     proposedAt !== null && chain !== null && settlementProgressKey(chain) === proposedAt;
+  // From the first tap: a dispatch reads the Safe again before the wallet is asked.
+  const isActing = mutation.isPending || lastAct?.phase === "signing";
 
   const refetch = useCallback(
     () => Promise.all([chainQuery.refetch(), fundingQuery.refetch()]),
@@ -130,10 +132,29 @@ export function useCommitmentSettlementController(input: {
   );
 
   const run = useCallback(
-    async (kind: SettlementActKind, call: SettlementMutationInput): Promise<HexString> => {
+    async (
+      kind: SettlementActKind,
+      call: SettlementMutationInput,
+      /** The disbursement this sends, when the send can spend the CCIP fee. */
+      sends?: bigint
+    ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
       const before = chainQuery.data ? settlementProgressKey(chainQuery.data) : null;
       try {
+        if (sends !== undefined) {
+          // The panel's funding read can be 30 seconds old; the send reads again.
+          const transfer = chainQuery.data?.disbursements.find(
+            (row) => row.disbursementId === sends
+          );
+          const fresh = await fundingQuery.refetch();
+          const block = transfer
+            ? selectQueuedTransferBlock(
+                { snapshot: fresh.data ?? null, isError: fresh.isError, hasStaleBalance: false },
+                transfer
+              )
+            : "limits_unread";
+          if (block) throw new Error(`The paying Safe can't send this transfer: ${block}`);
+        }
         const result = await mutation.mutateAsync(call);
         const hash = result.hash as HexString;
         if (result.confirmation === "pending") {
@@ -152,7 +173,7 @@ export function useCommitmentSettlementController(input: {
         throw error;
       }
     },
-    [chainQuery.data, mutation, refetch]
+    [chainQuery.data, fundingQuery, mutation, refetch]
   );
 
   const acts = useMemo<CommitmentSettlementActs>(
@@ -198,8 +219,9 @@ export function useCommitmentSettlementController(input: {
         });
       },
       dispatch: (disbursementId: bigint) =>
-        run("dispatch", { action: "dispatchDisbursement", disbursementId }),
-      retry: (disbursementId: bigint) => run("retry", { action: "retryCommand", disbursementId }),
+        run("dispatch", { action: "dispatchDisbursement", disbursementId }, disbursementId),
+      retry: (disbursementId: bigint) =>
+        run("retry", { action: "retryCommand", disbursementId }, disbursementId),
       requeue: (disbursementId: bigint) => run("requeue", { action: "requeue", disbursementId }),
       cancel: async (disbursementId: bigint, reason: string) => {
         const reasonCID = await pinCommitmentReason({
@@ -250,9 +272,9 @@ export function useCommitmentSettlementController(input: {
     },
     isOnline,
     chainRead,
-    isActing: mutation.isPending,
+    isActing,
     proposalPending,
-    transferBlock: (amount) => selectTransferBlock(fundingQuery, amount),
+    transferBlock: (disbursement) => selectQueuedTransferBlock(fundingQuery, disbursement),
   });
 
   const funding = useMemo(
@@ -314,7 +336,7 @@ export function useCommitmentSettlementController(input: {
       lastAct?.phase === "proposed" && !proposalPending
         ? { ...lastAct, phase: "confirmed" }
         : lastAct,
-    isActing: mutation.isPending,
+    isActing,
     refetch,
   };
 }

@@ -66,6 +66,14 @@ export function ProtocolFundingOperationsCard({
     ? selectExceededTransferLimit(operations.sourceFunding, amountValue)
     : null;
   const proposalWaiting = operations.lastAct?.phase === "proposed";
+  // The module refuses a garden with no active settlement account, and a garden can be
+  // listed without one, so the review waits for a read that shows the recipient can take it.
+  const recipientInactive = Boolean(
+    target?.fundingUnavailableReasons.some(
+      (reason) => reason === "missing_account" || reason === "inactive_account"
+    )
+  );
+  const recipientReady = Boolean(target) && !operations.targetFunding.isError && !recipientInactive;
   const amountError =
     amount.length > 0 && amountValue === null
       ? formatMessage({
@@ -76,7 +84,12 @@ export function ProtocolFundingOperationsCard({
         ? formatMessage(OVER_LIMIT_MESSAGES[exceededLimit])
         : undefined;
   const canReview = Boolean(
-    targetGarden && amountValue && !exceededLimit && limitsRead && !proposalWaiting
+    targetGarden &&
+      amountValue &&
+      !exceededLimit &&
+      limitsRead &&
+      recipientReady &&
+      !proposalWaiting
   );
 
   const gardenName = (garden: Address | null | undefined) =>
@@ -148,6 +161,14 @@ export function ProtocolFundingOperationsCard({
               value={targetGarden ?? ""}
               onChange={(event) =>
                 onTargetGardenChange(event.target.value ? (event.target.value as Address) : null)
+              }
+              error={
+                recipientInactive
+                  ? formatMessage({
+                      id: "cockpit.garden.pool.settlement.blocker.beneficiary-account-inactive",
+                      defaultMessage: "The receiving garden has no active settlement account.",
+                    })
+                  : undefined
               }
             >
               <option value="">

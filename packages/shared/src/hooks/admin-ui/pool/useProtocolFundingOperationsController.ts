@@ -19,7 +19,11 @@ import type {
   SettlementActKind,
   SettlementActStatus,
 } from "./controller.types";
-import { selectTransferBlock } from "../../../modules/commitment-pooling/pool-funding";
+import {
+  type PoolFundingTransferBlock,
+  selectQueuedTransferBlock,
+  selectTransferBlock,
+} from "../../../modules/commitment-pooling/pool-funding";
 import { selectSettlementActions } from "../../../modules/commitment-pooling/settlement";
 import { pinCommitmentReason } from "../../../modules/commitment-pooling/reasons";
 import type { HexString } from "../../../modules/commitment-pooling/types-core";
@@ -120,7 +124,7 @@ export function useProtocolFundingOperationsController(input: {
         // A dispatch or resend spends the CCIP fee before Celo can refuse it.
         const dispatchable = actions.dispatch && !row.batchId;
         const resendable = actions.retrySameCommand && execution?.status !== "SUCCESS";
-        const sendBlock = selectTransferBlock(funding, row.amount);
+        const sendBlock = selectQueuedTransferBlock(funding, row);
         const state: ProtocolFundingRow["state"] =
           row.state === "DISPATCHED" &&
           execution?.status === "SUCCESS" &&
@@ -162,19 +166,22 @@ export function useProtocolFundingOperationsController(input: {
         | { action: "queueFunding"; garden: Address; amount: bigint }
         | { action: "dispatchDisbursement" | "retryCommand" | "requeue"; disbursementId: bigint }
         | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string },
-      /** What this send takes out of the protocol Safe, when it can spend the CCIP fee. */
-      sendAmount?: bigint
+      /** Asks the latest read why this can't go, when the send can spend the CCIP fee. */
+      blockOf?: (
+        funding: Parameters<typeof selectQueuedTransferBlock>[0]
+      ) => PoolFundingTransferBlock | null
     ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
       let before = transfersKey(sourceQuery.snapshot);
       try {
-        if (sendAmount !== undefined) {
+        if (blockOf) {
           // The rows and the review read a snapshot up to 30 seconds old; the send reads again.
           const fresh = await sourceQuery.refetch();
-          const block = selectTransferBlock(
-            { snapshot: fresh.data ?? null, isError: fresh.isError, hasStaleBalance: false },
-            sendAmount
-          );
+          const block = blockOf({
+            snapshot: fresh.data ?? null,
+            isError: fresh.isError,
+            hasStaleBalance: false,
+          });
           if (block) throw new Error(`The protocol Safe can't send this transfer: ${block}`);
           before = transfersKey(fresh.data ?? null);
         }
@@ -197,13 +204,14 @@ export function useProtocolFundingOperationsController(input: {
     [mutation, refetch, sourceQuery]
   );
 
-  /** What a queued or dispatched transfer carries; a row the read no longer holds is not sent. */
-  const amountOf = (disbursementId: bigint): bigint => {
+  /** A queued or dispatched transfer as the read holds it; one it no longer holds is not sent. */
+  const transferOf = (disbursementId: bigint) => {
     const row = sourceQuery.snapshot?.disbursements.find(
       (entry) => entry.disbursementId === disbursementId
     );
     if (!row) throw new Error(`Transfer #${disbursementId.toString()} is not in the latest read`);
-    return row.amount;
+    return (funding: Parameters<typeof selectQueuedTransferBlock>[0]) =>
+      selectQueuedTransferBlock(funding, row);
   };
 
   return {
@@ -227,11 +235,17 @@ export function useProtocolFundingOperationsController(input: {
         : lastAct,
     isActing,
     queueFunding: (garden, amount) =>
-      run("queue-funding", { action: "queueFunding", garden, amount }, amount),
+      run("queue-funding", { action: "queueFunding", garden, amount }, (funding) =>
+        selectTransferBlock(funding, amount)
+      ),
     dispatch: async (disbursementId) =>
-      run("dispatch", { action: "dispatchDisbursement", disbursementId }, amountOf(disbursementId)),
+      run(
+        "dispatch",
+        { action: "dispatchDisbursement", disbursementId },
+        transferOf(disbursementId)
+      ),
     retry: async (disbursementId) =>
-      run("retry", { action: "retryCommand", disbursementId }, amountOf(disbursementId)),
+      run("retry", { action: "retryCommand", disbursementId }, transferOf(disbursementId)),
     requeue: (disbursementId) => run("requeue", { action: "requeue", disbursementId }),
     cancel: async (disbursementId, reason) => {
       const reasonCID = await pinCommitmentReason({
