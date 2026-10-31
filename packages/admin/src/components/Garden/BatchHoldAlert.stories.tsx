@@ -5,7 +5,7 @@ import { BatchHoldAlert } from "./BatchHoldAlert";
 const meta: Meta<typeof BatchHoldAlert> = {
   title: "Admin/Workflows/Garden/BatchHoldAlert",
   component: BatchHoldAlert,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     docs: {
       description: {

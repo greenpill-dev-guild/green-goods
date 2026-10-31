@@ -3,7 +3,7 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { withDataRouter, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { AddMembersDialog, type AddMembersDialogProps } from "./AddMembersDialog";
 import type { StagedMember } from "./addMembersEntry";
@@ -67,7 +67,7 @@ async function stage() {
 const meta: Meta<typeof AddMembersDialog> = {
   title: "Admin/Workflows/Garden/AddMembersDialog",
   component: AddMembersDialog,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [
     // The dirty-close guard blocks navigation through `useBlocker`, which only
     // a data router provides.
@@ -262,9 +262,10 @@ export const UnconfirmedAdd: Story = {
     },
   },
   play: async () => {
-    await expect(
-      await body().findByText("We couldn’t confirm the last people you added.")
-    ).toBeVisible();
+    // Nothing here waits on a press, so the dialog may still be fading in.
+    await waitFor(() =>
+      expect(body().getByText("We couldn’t confirm the last people you added.")).toBeVisible()
+    );
     await expect(await body().findByText("Not confirmed yet · On chain now")).toBeVisible();
     await expect(body().getByText("Not confirmed yet · Not on chain")).toBeVisible();
     await expect(body().getByRole("button", { name: "Move On" })).toBeEnabled();

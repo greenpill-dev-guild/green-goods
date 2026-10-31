@@ -10,7 +10,7 @@ const ROSA = "0x18c4a9f3b2d1e0f9a8b7c6d5e4f3a2b1c0d9ea67" as Address;
 const meta: Meta<typeof AddMembersEntryStatus> = {
   title: "Admin/Workflows/Garden/AddMembersEntryStatus",
   component: AddMembersEntryStatus,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [withSeededQueryClient([[queryKeys.ens.name(ROSA.toLowerCase()), "rosa.eth"]])],
   parameters: {
     docs: {

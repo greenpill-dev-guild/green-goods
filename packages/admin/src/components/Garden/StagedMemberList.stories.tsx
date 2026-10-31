@@ -43,7 +43,7 @@ const withPromotions: StagedMember[] = [
 const meta: Meta<typeof StagedMemberList> = {
   title: "Admin/Workflows/Garden/StagedMemberList",
   component: StagedMemberList,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [
     withSeededQueryClient([
       [queryKeys.ens.name(ROSA.toLowerCase()), "rosa.eth"],
