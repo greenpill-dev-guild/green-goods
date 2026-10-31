@@ -84,8 +84,8 @@ rather than only inside this package.
 - Query keys come from the central `queryKeys`; ad-hoc query arrays break invalidation.
 - Application defaults use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, never wallet chain state.
 - Shared gates decide what the apps may offer, so check them before describing a feature as
-  available. `SETTLEMENT_ENABLED` in `src/config/app.ts` is false, so the shared mutations and job
-  executor refuse settlement writes and new G$ rewards in every app. The voucher pilot reads its
+  available. `SETTLEMENT_ENABLED` in `src/config/app.ts` is on today; when it is false, the shared
+  mutations and job executor refuse settlement writes and new G$ rewards in every app. The voucher pilot reads its
   deployed contracts only for voucher offers, through the receipt-backed `SERVICE_LIVE_ROUTES` in
   `src/modules/commitment-pooling/service-access-live-config.ts`. `SERVICE_ISSUER_ROUTES` in
   `src/modules/commitment-pooling/service-issuer-metadata.ts` stays empty until the issuers confirm

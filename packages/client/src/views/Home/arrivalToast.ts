@@ -14,8 +14,8 @@ export interface ArrivalToastSpec {
   messageId: string;
   /** Values the message names, such as the garden the uploads wait in. */
   values?: Record<string, string>;
-  actionLabelId: string;
-  action: ArrivalActionKind;
+  actionLabelId: string | null;
+  action: ArrivalActionKind | null;
 }
 
 /**
@@ -25,6 +25,14 @@ export interface ArrivalToastSpec {
  * strings so the shared locale-coverage gate's source-usage scan can see them.
  */
 export function arrivalToastSpec(orientation: UploadOrientation): ArrivalToastSpec {
+  if (!orientation) {
+    return {
+      titleId: "app.home.arrival.queue.title",
+      messageId: "app.home.arrival.queue.message",
+      actionLabelId: null,
+      action: null,
+    };
+  }
   if (orientation.target === "switcher") {
     return {
       titleId: "app.home.arrival.queue.title",

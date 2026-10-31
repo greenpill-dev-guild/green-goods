@@ -164,6 +164,8 @@ export function storyCommitmentSettlement(
       isOnline: true,
       chainRead: chain ? "ready" : "pending",
       isActing: false,
+      proposalPending: false,
+      transferBlock: () => null,
       now: Number(STORY_NOW),
     });
   return {

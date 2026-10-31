@@ -87,6 +87,7 @@ export function StartPromise({
     const action = actions.find((each) => parseActionUID(each.id) === choice.actionUID);
     return action ? [{ choice, action }] : [];
   });
+  const selected = rows.filter(({ choice }) => choice.actionUID === selectedActionUID);
 
   return (
     <>
@@ -126,11 +127,12 @@ export function StartPromise({
       ) : (
         <ActionPicker
           actions={rows.map(({ action }) => action)}
-          value={
-            rows.find(({ choice }) => choice.actionUID === selectedActionUID)?.action.id ?? null
-          }
-          onChange={(actionId) => {
-            const picked = rows.find(({ action }) => action.id === actionId);
+          getOptionValue={(_action, index) => String(rows[index].choice.requirementIndex)}
+          value={selected.length === 1 ? String(selected[0].choice.requirementIndex) : null}
+          onChange={(requirementIndex) => {
+            const picked = rows.find(
+              ({ choice }) => String(choice.requirementIndex) === requirementIndex
+            );
             if (picked) onChoose(picked.choice);
           }}
           label={intl.formatMessage({ id: "app.garden.start.promiseActions" })}

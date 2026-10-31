@@ -173,6 +173,28 @@ export const StartTiles: Story = {
   },
 };
 
+/** Different requirements can ask for the same action without sharing a selection identity. */
+export const RepeatedActionRequirements: Story = {
+  ...StartTiles,
+  args: {
+    layout: "tiles",
+    actions: [ACTIONS[0], ACTIONS[0], ACTIONS[1], ACTIONS[2]],
+    getOptionValue: (_action, index) => `requirement-${index}`,
+    value: "requirement-1",
+  },
+  play: async ({ canvasElement, args }) => {
+    const cards = within(canvasElement).getAllByRole("option");
+    await expect(cards[0]).toHaveAttribute("aria-selected", "false");
+    await expect(cards[1]).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(cards[1]);
+    await expect(args.onChange).toHaveBeenCalledWith("requirement-1");
+    await expect(cards[0]).toHaveAttribute("aria-selected", "false");
+    const [first, second, third] = cards.map((card) => card.getBoundingClientRect());
+    await expect(second.top).toBe(first.top);
+    await expect(third.top).toBeGreaterThan(first.bottom);
+  },
+};
+
 /** While the actions load, four empty cards hold their place. */
 export const Loading: Story = {
   args: { layout: "row", loading: true },

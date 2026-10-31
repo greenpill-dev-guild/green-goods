@@ -1228,7 +1228,7 @@ test("community glossary follows human concepts, rejects stale output, and canno
     }
     assert.deepEqual(syncProjections({root, projections: [projection], check: false}), []);
     const glossary = renderProjection(root, projection);
-    assert.match(glossary, /Team membership and contributions are available; contributor payouts remain deferred/);
+    assert.match(glossary, /Team membership, contributions and contributor payouts are available/);
     const seasonEntry = glossary.split("### Season {#season}")[1]?.split("\n### ")[0];
     assert.ok(seasonEntry, "the released season needs a community glossary entry");
     assert.doesNotMatch(seasonEntry, /Still being built|no separate record|Availability:/);

@@ -227,6 +227,11 @@ export interface CommitmentJobExecutionDependencies {
   /** Whether this CID is already attached, so a re-send after a lost receipt recovers. */
   readEvidenceAttached?(commitmentId: bigint, cid: string): Promise<boolean>;
   resolveSeriesId?(clientSeriesId: string): Promise<bigint | null>;
+  /**
+   * Whether this garden's settlement account is active, null when it can't be
+   * read. A reward promise is held unless this says true: absent means no.
+   */
+  readSettlementAccountActive?(garden: Address): Promise<boolean | null>;
   hasMembership?(garden: Address, account: Address): Promise<boolean | null>;
   send(input: {
     kind: CommitmentJobKind;

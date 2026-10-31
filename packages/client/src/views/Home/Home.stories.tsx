@@ -338,6 +338,44 @@ export const ArrivalUploadsInAnotherGardenSpanish: Story = arrivalStory("es");
 
 export const ArrivalUploadsInAnotherGardenPortuguese: Story = arrivalStory("pt");
 
+const unplacedArrivalStory = (locale: keyof typeof MESSAGES): Story => ({
+  ...arrivalStory(locale),
+  beforeEach: () => {
+    const reset = homeState(activeGarden("error", [], TAS_HUB.id))();
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith("greengoods:arrival-shown:")) sessionStorage.removeItem(key);
+    }
+    mocked(useArrivalState).mockReturnValue({ kind: "queue", orientation: null });
+    return reset;
+  },
+  play: async () => {
+    await expect(
+      await screen.findByText(
+        MESSAGES[locale]["app.home.arrival.queue.message"],
+        {},
+        { timeout: 3000 }
+      )
+    ).toBeVisible();
+    await expect(
+      screen.queryByRole("button", { name: MESSAGES[locale]["app.home.arrival.queue.action"] })
+    ).toBeNull();
+  },
+});
+
+/** A failed garden read announces uploads without a potentially misleading Review action. */
+export const ArrivalGardenReadFailed: Story = {
+  ...unplacedArrivalStory("en"),
+  tags: ["storybook-ci"],
+};
+export const ArrivalGardenReadFailedSpanish: Story = {
+  ...unplacedArrivalStory("es"),
+  tags: ["storybook-ci"],
+};
+export const ArrivalGardenReadFailedPortuguese: Story = {
+  ...unplacedArrivalStory("pt"),
+  tags: ["storybook-ci"],
+};
+
 /** A queued upload failed in Vida Verde while the chip shows TAS HUB: the queue's toast names it. */
 const failedStory = (locale: keyof typeof MESSAGES): Story => ({
   beforeEach: homeState(
