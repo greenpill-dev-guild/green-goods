@@ -15,6 +15,8 @@
  */
 
 import type { Hex } from "viem";
+import type { BatchReference } from "../transactions/batch-types";
+import { rememberBatchBroadcast, retainedBatchBroadcast } from "./batch-send-reference";
 import type { SendCheckpoint } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import { intentHead } from "../job-queue/send-chain-reads";
@@ -141,6 +143,15 @@ export async function sendWithCheckpoint({
         }));
         intentRecorded = true;
       },
+      onBatchReference: async (reference: BatchReference) => {
+        broadcastKnown = true;
+        for (const id of jobIds) rememberBatchBroadcast(id, reference);
+        await write((current) => ({
+          ...current,
+          batchReference: reference,
+          broadcastPending: true,
+        }));
+      },
       onBroadcastReference,
       onBroadcast,
     });
@@ -217,6 +228,24 @@ export async function settleRecordedSend(input: {
   settleUnanswered?: (transactionHash: Hex) => Promise<Hex>;
 }): Promise<Hex> {
   const { checkpoint, jobId } = input;
+  const batch = checkpoint?.batchReference ?? retainedBatchBroadcast(jobId);
+  if (batch) {
+    if (batch.chainId !== input.chainId) throw new Error("batch-reference-scope-mismatch");
+    const outcome = await input.sender.reconcileBatch?.(batch);
+    if (
+      outcome?.status === "confirmed" &&
+      outcome.receipts.length === 1 &&
+      outcome.receipts[0].status === "success"
+    )
+      return outcome.receipts[0].transactionHash;
+    if (outcome?.status === "reverted") {
+      forgetWorkBroadcast(jobId);
+      await input.clear();
+      throw new TransactionRevertedError(outcome.receipts[0]?.transactionHash ?? "0x");
+    }
+    // An expired wallet ID or multiple candidate receipts must never fall through to absence-based reopening.
+    throw new AwaitingWorkConfirmation(outcome?.receipts[0]?.transactionHash ?? "0x");
+  }
   const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
   let transactionHash =
     checkpoint?.transactionHash ?? (broadcast?.kind === "transaction" ? broadcast.hash : undefined);

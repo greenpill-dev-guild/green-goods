@@ -1,0 +1,104 @@
+{
+  "observedAt": "2026-10-24T01:03:44.450Z",
+  "forkBlock": 517696117,
+  "forkBlockHash": "0xc3029cde33cd8a9cea98d195765805269d310d7d756e95cb707301793bfce9c3",
+  "proof": "isolated fork; real deployed Kernel/validator/EntryPoint bytecode; software P-256 assertions; self-funded fixture; no live sponsorship or browser assertion",
+  "rows": [
+    {
+      "profile": "kernel-0.3.1-legacy",
+      "label": "ordered-2",
+      "count": 2,
+      "success": true,
+      "undeployed": true,
+      "actualGasUsed": "918160",
+      "actualGasCost": "16087082278160",
+      "outerGasUsed": "791145",
+      "softwareCeremonies": 1
+    },
+    {
+      "profile": "kernel-0.3.1-legacy",
+      "label": "ordered-5",
+      "count": 5,
+      "success": true,
+      "undeployed": false,
+      "actualGasUsed": "702558",
+      "actualGasCost": "10770829580808",
+      "outerGasUsed": "573362",
+      "softwareCeremonies": 2
+    },
+    {
+      "profile": "kernel-0.3.1-legacy",
+      "label": "ordered-10",
+      "count": 10,
+      "success": true,
+      "undeployed": false,
+      "actualGasUsed": "724582",
+      "actualGasCost": "9719917556894",
+      "outerGasUsed": "605966",
+      "softwareCeremonies": 3
+    },
+    {
+      "profile": "kernel-0.3.1-legacy",
+      "label": "reverting-inner-call",
+      "count": 2,
+      "success": false,
+      "undeployed": false,
+      "actualGasUsed": "677215",
+      "actualGasCost": "7948948537145",
+      "outerGasUsed": "543329",
+      "softwareCeremonies": 4
+    },
+    {
+      "profile": "kernel-0.3.3-pilot",
+      "label": "ordered-2",
+      "count": 2,
+      "success": true,
+      "undeployed": true,
+      "actualGasUsed": "904786",
+      "actualGasCost": "9292596469926",
+      "outerGasUsed": "777718",
+      "softwareCeremonies": 1
+    },
+    {
+      "profile": "kernel-0.3.3-pilot",
+      "label": "ordered-5",
+      "count": 5,
+      "success": true,
+      "undeployed": false,
+      "actualGasUsed": "699486",
+      "actualGasCost": "6286056846480",
+      "outerGasUsed": "570220",
+      "softwareCeremonies": 2
+    },
+    {
+      "profile": "kernel-0.3.3-pilot",
+      "label": "ordered-10",
+      "count": 10,
+      "success": true,
+      "undeployed": false,
+      "actualGasUsed": "714975",
+      "actualGasCost": "5622095806350",
+      "outerGasUsed": "596196",
+      "softwareCeremonies": 3
+    },
+    {
+      "profile": "kernel-0.3.3-pilot",
+      "label": "reverting-inner-call",
+      "count": 2,
+      "success": false,
+      "undeployed": false,
+      "actualGasUsed": "690510",
+      "actualGasCost": "4751004338280",
+      "outerGasUsed": "556584",
+      "softwareCeremonies": 4
+    }
+  ],
+  "chainId": 42161,
+  "runnerSha256": "60ca45151c773c5265c508091f95143c7f59ee2a91e0f0cd6150a4235bb8adf2",
+  "command": "bun /private/tmp/transaction-batching-proofs/kernel-fork.ts",
+  "limitations": [
+    "Ephemeral one-off runner uses the existing contracts isolated-fork helper; raw runner and logs stay outside Git.",
+    "Software P-256 WebAuthn assertions and fixture funds; no authenticated device assertion or live paymaster acceptance.",
+    "ERC-20 approve fixture is not a gas ceiling for garden settings, membership, or EAS resolver execution."
+  ]
+}
