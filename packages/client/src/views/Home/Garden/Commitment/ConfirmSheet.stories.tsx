@@ -108,6 +108,7 @@ const meta: Meta<typeof ConfirmSheet> = {
     // dispute from them. A steward acting only for a claiming garden is the
     // case that hides it; that is the detail screen's call, not the sheet's.
     canNotYet: true,
+    canConfirm: true,
     onConfirm: fn(),
     onNotYet: fn(),
     onDone: fn(),

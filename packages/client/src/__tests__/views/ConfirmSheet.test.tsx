@@ -38,13 +38,15 @@ function sheet(
   indexedEvidenceCount: number,
   overrides: Partial<CommitmentReadModel> = {},
   open = true,
-  startInNotYet = false
+  startInNotYet = false,
+  props: { canConfirm?: boolean; onOpenChange?: (open: boolean) => void } = {}
 ) {
   return (
     <ConfirmSheet
       open={open}
       startInNotYet={startInNotYet}
-      onOpenChange={vi.fn()}
+      canConfirm={props.canConfirm ?? true}
+      onOpenChange={props.onOpenChange ?? vi.fn()}
       commitment={commitmentFixture({
         creator: PROVIDER,
         leadProvider: PROVIDER,
@@ -148,9 +150,9 @@ describe("ConfirmSheet words for a request that is not garden work", () => {
 });
 
 describe("ConfirmSheet words for a request with named confirmers", () => {
-  it("says the asker confirms only to the asker, and names the group as who confirms", () => {
-    // A steward can seed a request and name who confirms it. The contract then seats only those
-    // people, so a named reader did not ask for it, and the asker does not confirm by asking.
+  it("says the reader confirms by asking only when nobody is named", () => {
+    // Named confirmers replace the default confirmer on the contract, so a named reader confirms
+    // because they were named, even when they also asked.
     const request = {
       direction: "REQUEST",
       commitmentType: "SUPPORT_SERVICE",
@@ -167,12 +169,29 @@ describe("ConfirmSheet words for a request with named confirmers", () => {
     expect(screen.queryByText(/The person who asked does\./)).toBeNull();
 
     rerender(sheet(1, { ...request, creator: VIEWER, confirmers: [VIEWER, STEWARD] }));
-    expect(summary()).toHaveTextContent("took this up. You asked for it, so you confirm it.");
-    expect(screen.getByText(/The named people do\./)).toBeInTheDocument();
+    expect(summary()).toHaveTextContent("took this up. You are named to confirm it.");
+    expect(summary()).not.toHaveTextContent("You asked");
 
     rerender(sheet(1, { ...request, creator: VIEWER, confirmers: [] }));
     expect(summary()).toHaveTextContent("took this up. You asked for it, so you confirm it.");
     expect(screen.getByText(/The person who asked does\./)).toBeInTheDocument();
+  });
+});
+
+describe("ConfirmSheet for a reader who can only report a problem", () => {
+  it("keeps them on the Not Yet form, and Back closes the sheet", async () => {
+    // Reporting is granted more widely than confirming: the person who asked may report a promise
+    // that names other confirmers, and the contract would reject their confirmation.
+    const onOpenChange = vi.fn();
+    renderWithProviders(sheet(1, {}, true, true, { canConfirm: false, onOpenChange }));
+
+    expect(screen.getByRole("button", { name: "Send to the Stewards" })).toBeInTheDocument();
+    expect(screen.queryByText(/This is yours to confirm/)).toBeNull();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Back" }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("button", { name: "Confirm It Was Kept" })).toBeNull();
   });
 });
 
