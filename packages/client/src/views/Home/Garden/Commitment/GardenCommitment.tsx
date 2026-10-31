@@ -363,6 +363,8 @@ export function GardenCommitment() {
           commitment={commitment}
           requirements={requirements}
           delivery={service.delivery}
+          // The bar's own act, or the one beside required work; a service's own bar has neither.
+          canAddProof={selectedAct?.kind === "addProof" && !service.bar}
           onPhone={
             controller.queue.proofOnItsWay
               ? {

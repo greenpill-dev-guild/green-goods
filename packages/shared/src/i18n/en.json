@@ -1438,6 +1438,7 @@
   "app.commitment.progress.local": "No proof on the promise yet. Yours is still on this phone (see above).",
   "app.commitment.progress.localMore": "Your newest proof is still on this phone (see above).",
   "app.commitment.progress.note": "Each row counts on its own. Rows are never added together, because they count different things.",
+  "app.commitment.progress.proofCount": "{count, plural, =0 {No proof added yet.} one {# piece of proof added.} other {# pieces of proof added.}}",
   "app.commitment.progress.proofOnly": "{count, plural, =0 {No proof added yet. Proof is what moves this forward.} one {# piece of proof added. Proof is what moves this forward.} other {# pieces of proof added. Proof is what moves this forward.}}",
   "app.commitment.progress.proofOnlySettled": "{count, plural, =0 {No proof was added.} one {# piece of proof was added.} other {# pieces of proof were added.}}",
   "app.commitment.progress.row": "Requirement {index}",

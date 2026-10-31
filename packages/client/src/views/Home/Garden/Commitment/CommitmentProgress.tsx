@@ -22,6 +22,11 @@ export interface CommitmentProgressProps {
    * that says who reports it. It takes the proof-only line's place.
    */
   delivery?: { label: string; done: number; of: number } | { none: string } | null;
+  /**
+   * The reader has the act that adds proof. Only then does the line say proof moves this
+   * forward; before take-up the chain takes none, so it just gives the count (DL-151).
+   */
+  canAddProof?: boolean;
   /** The proof itself, shown under the progress in the same section. */
   children?: ReactNode;
 }
@@ -43,6 +48,7 @@ export function CommitmentProgress({
   requirements,
   onPhone = null,
   delivery = null,
+  canAddProof = false,
   children,
 }: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
@@ -85,7 +91,11 @@ export function CommitmentProgress({
   if (requirements.length === 0) {
     // A service commitment names no garden actions, so proof is what moves it —
     // but a settled record has stopped moving, so its copy just counts.
-    const settled = isTerminalCommitmentState(commitment.derivedState);
+    const emptyLineId = isTerminalCommitmentState(commitment.derivedState)
+      ? "app.commitment.progress.proofOnlySettled"
+      : canAddProof
+        ? "app.commitment.progress.proofOnly"
+        : "app.commitment.progress.proofCount";
     return (
       <section
         className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
@@ -128,14 +138,7 @@ export function CommitmentProgress({
         {/* Once proof is on the promise, the proof itself says so. */}
         {delivery || hasProof || onPhone ? null : (
           <p className="mt-2 text-sm text-text-sub-600">
-            {formatMessage(
-              {
-                id: settled
-                  ? "app.commitment.progress.proofOnlySettled"
-                  : "app.commitment.progress.proofOnly",
-              },
-              { count: 0 }
-            )}
+            {formatMessage({ id: emptyLineId }, { count: 0 })}
           </p>
         )}
         {children}
