@@ -394,6 +394,30 @@ describe("holding a save whose outcome is unknown", () => {
     await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
   });
 
+  it("tells a tab what landed when another tab proved it first", async () => {
+    const { input, sender, batches, update, scope } = setup();
+    await send(input);
+    const { hold: shown } = await readGardenSettingsHold(input);
+    sender.reconcileBatch = vi.fn(async () => ({
+      status: "confirmed" as const,
+      receipts: [{ transactionHash: hash, status: "success" as const }],
+      sponsored: true,
+    }));
+    update({ name: "Tech and Sun", openJoining: true });
+    await batches.reconcile(shown!.operationIds[0], scope, async () => ["name", "openJoining"]);
+
+    await expect(readGardenSettingsHold(input, shown)).resolves.toEqual({
+      hold: null,
+      saved: NAME_AND_JOINING,
+    });
+    await expect(moveOnFromGardenSettingsHold(input, shown!)).resolves.toEqual({
+      hold: null,
+      saved: NAME_AND_JOINING,
+    });
+    // A tab that was not showing it has nothing to catch up on.
+    await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
+  });
+
   it("stays in place when a record cannot be claimed, so nothing is sent over it", async () => {
     const { input, batches } = setup();
     await send(input);

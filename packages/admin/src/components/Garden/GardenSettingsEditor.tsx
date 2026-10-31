@@ -330,7 +330,8 @@ export const GardenSettingsEditor = forwardRef<
   };
 
   const handleSave = async () => {
-    if (dirtyFields.length === 0 || hasValidationError || isSaving) return;
+    // A read still running could yet hold one of these fields.
+    if (dirtyFields.length === 0 || hasValidationError || isSaving || isSettlingHold) return;
     setIsSaving(true);
     await runGardenSettingsSave({
       fields: dirtyFields,

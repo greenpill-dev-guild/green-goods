@@ -317,26 +317,36 @@ export class PasskeySender implements TransactionSender {
     }
   }
 
+  /** These run before a batch can reach the bundler, so a refusal here proves it was not sent. */
+  private async assertBatchSendable(calls: readonly ContractCall[], budget: BatchBudget) {
+    try {
+      assertBatchCalls(calls, budget);
+      const account = calls[0]?.account ?? this.client.account?.address;
+      const chainId = calls[0]?.chainId ?? this.client.chain?.id;
+      if (!account || chainId === undefined || calls.length === 0)
+        throw new Error("batch-invalid-intent");
+      prepareBatch({
+        id: "passkey-check",
+        domain: "transport",
+        account,
+        chainId,
+        mode: "atomic",
+        items: calls.map((call, index) => ({ id: String(index), call })),
+      });
+      if ((await this.getBatchCapability({ account, chainId })).atomic !== "supported")
+        throw new Error("batch-atomic-unavailable");
+      return { account, chainId };
+    } catch (error) {
+      throw new BatchNotSubmittedError(error);
+    }
+  }
+
   async submitAtomicBatch(
     calls: readonly ContractCall[],
     options: BatchSendOptions = {}
   ): Promise<BatchExecution> {
     if (!options.batchBudget) throw new BatchNotSubmittedError(new Error("batch-budget-required"));
-    assertBatchCalls(calls, options.batchBudget);
-    const account = calls[0]?.account ?? this.client.account?.address;
-    const chainId = calls[0]?.chainId ?? this.client.chain?.id;
-    if (!account || chainId === undefined || calls.length === 0)
-      throw new Error("batch-invalid-intent");
-    prepareBatch({
-      id: "passkey-check",
-      domain: "transport",
-      account,
-      chainId,
-      mode: "atomic",
-      items: calls.map((call, index) => ({ id: String(index), call })),
-    });
-    if ((await this.getBatchCapability({ account, chainId })).atomic !== "supported")
-      throw new Error("batch-atomic-unavailable");
+    const { account, chainId } = await this.assertBatchSendable(calls, options.batchBudget);
     let reference: BatchReference | undefined;
     let beforeBroadcastFailed = false;
     try {

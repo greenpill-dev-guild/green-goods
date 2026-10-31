@@ -73,6 +73,7 @@ describe("EditGardenDialog", () => {
     vi.clearAllMocks();
     settingsBatch.hold = null;
     settingsBatch.lastReadAt = 0;
+    settingsBatch.isSettlingHold = false;
   });
 
   it("opens a capped garden with Limit gardeners on and its cap shown", async () => {
@@ -114,6 +115,19 @@ describe("EditGardenDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Move On" }));
     expect(settingsBatch.moveOn).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps Save off while held saves are being read", async () => {
+    const user = userEvent.setup();
+    settingsBatch.isSettlingHold = true;
+    renderDialog(CAPPED_GARDEN);
+
+    const nameInput = await screen.findByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Tech and Sun Hub");
+
+    expect(screen.getByText("1 change · 1 wallet confirmation")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
   });
 
   it("keeps Move On off until every held value has been read", async () => {
