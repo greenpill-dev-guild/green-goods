@@ -604,7 +604,7 @@
         {
           "id": "commitment-pooling",
           "maturity": "available",
-          "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
+          "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and where the garden's settlement account is active, a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
           "verified_at": "2026-10-30"
         }
       ]
@@ -858,7 +858,7 @@
         {
           "id": "commitment-pooling",
           "maturity": "available",
-          "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
+          "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and where the garden's settlement account is active, a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
           "verified_at": "2026-10-30"
         },
         {
@@ -950,7 +950,7 @@
           },
           {
             "file": "packages/indexer/schema.graphql",
-            "note": "Release 2.0 kept settlement writes, contributor payouts, and new G$ reward promises off in the app; SETTLEMENT_ENABLED in packages/shared/src/config/app.ts turns them on after it. gardenerDeliveryEnabled() read true on the module on 2026-10-30, and no member payout had been sent. The production indexer held no payout plans on 2026-10-18."
+            "note": "Release 2.0 kept settlement writes, contributor payouts, and new G$ reward promises off in the app; SETTLEMENT_ENABLED in packages/shared/src/config/app.ts turns them on after it. gardenerDeliveryEnabled() read true on the module on 2026-10-30, and no member payout had been sent. Rewards and payouts need the garden's active settlement account: all 18 gardens on the production indexer had one on 2026-10-30, and no app screen registers or changes an account. The production indexer held no payout plans on 2026-10-30."
           }
         ],
         "verified_at": "2026-10-30"

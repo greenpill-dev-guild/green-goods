@@ -7,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:97698b3a85ed52c397b12ec41cd554503d94f3ddc42c318792daceac9f110557"
+source_digest: "sha256:beb30c883b333fb84d9d694e904f171be4c426ef59f641cbed1526c27b0768f5"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
@@ -60,7 +60,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Vault and Cookie Jar modules are deployed. (verified 2026-08-15)
 
-### Gardens can run a commitment pool: members make, take up, and confirm promises, and a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.
+### Gardens can run a commitment pool: members make, take up, and confirm promises, and where the garden's settlement account is active, a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.
 
 **Internal claim:** Green Goods 2.0 lets garden members make, take up, and confirm promises in a commitment pool, and lets stewards set up and run the pool and its seasons.
 
