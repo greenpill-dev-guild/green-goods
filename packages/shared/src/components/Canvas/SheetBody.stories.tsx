@@ -124,7 +124,7 @@ export const HostInset: Story = {
     >
       <SheetBody padded={true}>
         <div className="text-sm text-text-sub">
-          The body starts 24px in, under the header's title.
+          The body starts 24px in, level with the header title.
         </div>
       </SheetBody>
       <SheetFooter>
