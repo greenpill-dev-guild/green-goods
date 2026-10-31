@@ -20,6 +20,12 @@ A second review round found two more. The engine now gives the caller the reason
 
 Next, once that merges: list each rail in a small follow-up and prove one live batch on each. That needs the user's passkey and approval to broadcast, and it is where the ceilings and the RPC's `simulateCalls` answer get checked. [The plan](../plan.todo.md#slices) defines every slice after that.
 
+#1399 merged as `c324f882a`, with its landed tree equal to the tested one.
+
+Add members (slice 3) is built on `feature/batch-add-members`, ahead of the live proof because the user chose it first, with the enablement list still empty, so it changes nothing for anyone yet. It shares the settings batch's recovery, now in `modules/transactions/batch-hold.ts` and `hooks/garden/useHeldBatches.ts`. Shared came RED first: at 19:25:36 UTC its new tests failed on the missing module, and at 19:50:18 UTC 7 files passed with 89 tests. Admin's tests came after the dialog, so they are not RED first: run against the previous dialog at 19:43:05 UTC, 7 of 20 failed, and at 19:50:37 UTC 7 files passed with 110 tests. Both greens are on the tree committed as `c5ae0bf92`. Rendered proof is labeled Storybook, in the built-in browser pane, driven with real clicks: one signature for two people, a refused row with its reason, and held rows with what the chain shows. The stories' play functions could not run there, because that page has no window focus, and the story runner cannot load from this worktree's link mirror, so CI's `test:stories:ci` is their first full run. No passkey, wallet or network was involved.
+
+Still open for that slice, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
+
 ## Start here
 
 1. Start with [publication.md](publication.md) for the isolated `develop` base, implementation commit, and current proof. Confirm the PR head, clean working tree, and validation status. The original 35 unpublished parent commits were excluded from this branch.
