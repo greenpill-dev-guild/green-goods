@@ -353,6 +353,7 @@ export class WalletSender implements TransactionSender {
 
   async canSendAtomicBatch(chainId: number): Promise<boolean> {
     const account = this.deps.getAccount?.().address;
+    // "ready" would first ask to upgrade the account, so only "supported" counts.
     return (
       !!account && (await this.getBatchCapability({ account, chainId })).atomic === "supported"
     );
@@ -413,7 +414,7 @@ export class WalletSender implements TransactionSender {
         abi: call.abi,
         functionName: call.functionName,
         args: call.args,
-        ...(call.value !== undefined ? { value: call.value } : {}),
+        ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
       })),
     });
     const reference: BatchReference = { kind: "wallet-calls", id, account, chainId };
