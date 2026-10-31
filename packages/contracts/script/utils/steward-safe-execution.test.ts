@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -178,6 +179,13 @@ describe("bounded dual-Safe release execution", () => {
     const changed = structuredClone(plan);
     changed.transactions[0].from = address(99);
     expect(() => stewardCreateArgs(changed, execution, "rpc")).toThrow("fixed operator");
+  });
+  it("passes the pinned Cast CREATE parser without unlocking a signer", () => {
+    const { execution } = fixture();
+    const args = stewardCreateArgs(plan, execution, "http://127.0.0.1:1");
+    // --help runs the real parser, then exits before wallet access or RPC.
+    // Parent flags placed after the --create subcommand fail with exit 2.
+    expect(() => execFileSync("cast", [...args, "--help"], { stdio: "ignore" })).not.toThrow();
   });
   it("accepts only the successful canonical exact CREATE within the reviewed budget", () => {
     const { execution } = fixture();

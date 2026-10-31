@@ -101,8 +101,6 @@ export function stewardCreateArgs(plan: StewardPlan, execution: StewardExecution
     throw new Error("Steward broadcast requires the fixed operator and zero-value CREATE");
   return [
     "send",
-    "--create",
-    tx.data,
     "--from",
     tx.from,
     "--value",
@@ -123,6 +121,8 @@ export function stewardCreateArgs(plan: StewardPlan, execution: StewardExecution
     rpc,
     "--async",
     "--json",
+    "--create",
+    tx.data,
   ];
 }
 export function validateStewardReceipt(
