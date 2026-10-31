@@ -615,3 +615,98 @@ it("keeps saved receipts when a later read sees less and the items stay unverifi
   });
   expect(recovered).toMatchObject({ status: "unresolved", receipts: [{ transactionHash: hash }] });
 });
+
+describe("races during recovery", () => {
+  const scope = { account, chainId: 42161 };
+  const held = { status: "unresolved", reference, receipts: [], sponsored: false } as const;
+
+  it("stops a release when a reference appears after its read", async () => {
+    const { journal, prepared, sender } = setup();
+    vi.mocked(sender.submitAtomicBatch!).mockRejectedValueOnce(new Error("connection lost"));
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+
+    const claim = journal.claim.bind(journal);
+    let claims = 0;
+    vi.spyOn(journal, "claim").mockImplementation(async (id, recovery) => {
+      claims += 1;
+      if (claims === 2) await journal.recordSubmission(id, ["name", "description"], reference);
+      return claim(id, recovery);
+    });
+    const result = await releaseBatchOperation({
+      journal,
+      operationId: prepared.id,
+      ...scope,
+      sender,
+      verify,
+    });
+    expect(result.status).not.toBe("released");
+    expect((await journal.get(prepared.id))?.reference).toEqual(reference);
+  });
+
+  it("finishes verification when it failed before anything was confirmed", async () => {
+    const { journal, prepared, sender } = setup();
+    const first = await executeBatchOperation({
+      journal,
+      prepared,
+      sender,
+      preflight,
+      verify: async () => {
+        throw new Error("indexer unavailable");
+      },
+    });
+    expect(first).toMatchObject({ status: "unresolved", receipts: [{ transactionHash: hash }] });
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue(held);
+    const recovered = await reconcileBatchOperation({
+      journal,
+      operationId: prepared.id,
+      ...scope,
+      sender,
+      verify,
+    });
+    expect(recovered).toMatchObject({ status: "confirmed", receipts: [{ transactionHash: hash }] });
+  });
+
+  it("does not treat unresolved receipts as proof of execution", async () => {
+    const { journal, prepared, sender } = setup();
+    vi.mocked(sender.submitAtomicBatch!).mockResolvedValueOnce({
+      ...held,
+      receipts: [{ transactionHash: hash, status: "success" }],
+    });
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify });
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue(held);
+    expect(
+      (
+        await reconcileBatchOperation({
+          journal,
+          operationId: prepared.id,
+          ...scope,
+          sender,
+          verify,
+        })
+      ).status
+    ).toBe("unresolved");
+  });
+
+  it("stays unresolved and keeps both when a later read contradicts a saved receipt", async () => {
+    const { journal, prepared, sender } = setup();
+    await executeBatchOperation({ journal, prepared, sender, preflight, verify: async () => [] });
+    vi.mocked(sender.reconcileBatch!).mockResolvedValue({
+      status: "reverted",
+      reference,
+      receipts: [{ transactionHash: hash, status: "reverted" }],
+      sponsored: false,
+    });
+    const recovered = await reconcileBatchOperation({
+      journal,
+      operationId: prepared.id,
+      ...scope,
+      sender,
+      verify,
+    });
+    expect(recovered.status).toBe("unresolved");
+    expect(recovered.groups[0].receipts.map((receipt) => receipt.status).sort()).toEqual([
+      "reverted",
+      "success",
+    ]);
+  });
+});
