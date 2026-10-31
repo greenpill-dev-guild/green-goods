@@ -13,7 +13,6 @@ import pt from "@green-goods/shared/i18n/pt";
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiInboxLine, RiTaskLine } from "@remixicon/react";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider, useIntl } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -198,36 +197,14 @@ function DashboardFrame({
         intl.formatMessage
       )
     : undefined;
-  const tabs = [
-    {
-      id: "pending",
-      icon: <RiTaskLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.pending" }),
-      count: fixture.onPhone > 0 ? fixture.onPhone : undefined,
-    },
-    ...(toReview
-      ? [
-          {
-            id: "toReview",
-            icon: <RiInboxLine className="w-4 h-4" />,
-            label: intl.formatMessage({ id: "app.workDashboard.tabs.toReview" }),
-            count: toReview.length > 0 && !uncounted ? toReview.length : undefined,
-          },
-        ]
-      : []),
-    {
-      id: "completed",
-      icon: <RiCheckLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.completed" }),
-    },
-  ];
 
   return (
     <WorkDashboardShell
       isClosing={false}
       onRequestClose={fn()}
       gardenName={gardenName}
-      tabs={tabs}
+      pendingCount={fixture.onPhone}
+      toReviewCount={toReview && (uncounted ? 0 : toReview.length)}
       activeTab={tab}
       onTabChange={fn()}
     >

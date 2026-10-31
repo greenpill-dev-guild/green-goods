@@ -29,12 +29,10 @@ import {
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
 import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiInboxLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
-import type { StandardTab } from "@/components/Navigation";
 import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
@@ -45,23 +43,11 @@ import {
   approvalsToCompletedWorks,
   buildWorkMap,
   extractWorkGardenIds,
+  isOnThisDevice,
+  oldestTime,
   receivedApprovalsToWorks,
   resolveWorkNavigation,
 } from "./workDashboardUtils";
-
-/** Work that has not reached the chain yet: queued, sending, or failed to send. */
-function isOnThisDevice(work: Work): boolean {
-  return (
-    ["offline", "uploading", "syncing", "sync_failed"].includes(work.status) ||
-    work.id.startsWith("0xoffline_") ||
-    !work.id.startsWith("0x")
-  );
-}
-
-function oldestTime(...times: Array<number | undefined>): number | undefined {
-  const known = times.filter((time): time is number => typeof time === "number" && time > 0);
-  return known.length > 0 ? Math.min(...known) : undefined;
-}
 
 // Component-specific props (not a domain type)
 export interface WorkDashboardProps {
@@ -392,32 +378,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Only the review history carries its own error text; the other reads use the tab's default.
   const completedErrorMessage = completedFilter === "reviewedByYou" ? errorMessage : undefined;
 
-  const fmt = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
-  const tabs: StandardTab[] = [
-    {
-      id: "pending",
-      icon: <RiTaskLine className="w-4 h-4" />,
-      label: fmt("app.workDashboard.tabs.pending", "Pending"),
-      count: onPhoneCount > 0 ? onPhoneCount : undefined,
-    },
-    ...(reviewsHere || activeTab === "toReview"
-      ? [
-          {
-            id: "toReview",
-            icon: <RiInboxLine className="w-4 h-4" />,
-            label: fmt("app.workDashboard.tabs.toReview", "To Review"),
-            // As Needs Your Attention does, a list that may stop short names no count.
-            count: needsReview.ready && toReview.length > 0 ? toReview.length : undefined,
-          },
-        ]
-      : []),
-    {
-      id: "completed",
-      icon: <RiCheckLine className="w-4 h-4" />,
-      label: fmt("app.workDashboard.tabs.completed", "Completed"),
-    },
-  ];
-
   const finishClose = useCallback(() => {
     if (closeCompletedRef.current) return;
     closeCompletedRef.current = true;
@@ -520,7 +480,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       covered={dashboardNavigation.isDashboardCovered}
       restored={Boolean(returnState)}
       gardenName={activeGarden?.name}
-      tabs={tabs}
+      pendingCount={onPhoneCount}
+      // As Needs Your Attention does, a list that may stop short names no count.
+      toReviewCount={
+        reviewsHere || activeTab === "toReview"
+          ? needsReview.ready
+            ? toReview.length
+            : 0
+          : undefined
+      }
       activeTab={activeTab}
       onTabChange={(tabId: string) => setChosenTab(tabId as WorkDashboardTab)}
     >
