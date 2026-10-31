@@ -184,6 +184,8 @@ export function GardenList({
           key={garden.id}
           garden={garden}
           tag={tagFor?.(garden)}
+          // Two title lines reserved, so a long name wraps and every card keeps one height (DL-133).
+          titleLines={2}
           className="cv-garden-card"
           selected={garden.id === selectedGardenId}
           onClick={() => onCardClick(garden.id)}

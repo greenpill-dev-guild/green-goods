@@ -30,7 +30,7 @@ export interface WorkCardPresentation {
 }
 
 /** The work row's words, in the reader's language: its untitled name and its status pills. */
-export function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
+function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
     untitledWork: formatMessage({
       id: "app.workCard.untitledWork",

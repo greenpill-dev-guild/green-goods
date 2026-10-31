@@ -14,7 +14,6 @@ import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Domain, Garden } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine, RiFilterLine } from "@remixicon/react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -137,14 +136,10 @@ export function Explore() {
           onClick={openGardenFilter}
           disabled={!isFilterReady}
           aria-busy={!isFilterReady}
-          // Active filters tint the outline and icon, and count on the badge.
-          className={
-            isFilterActive
-              ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
-              : undefined
-          }
+          // The glyph is green at rest (DL-133); active filters tint the outline and count on the badge.
+          className={isFilterActive ? pwaStatusStyles.primary.border : undefined}
           aria-label={intl.formatMessage({ id: "app.home.filters.button" })}
-          icon={<RiFilterLine aria-hidden="true" />}
+          icon={<RiFilterLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
           badge={isFilterActive ? <CountBadge count={activeFilterCount} ring /> : undefined}
         />
       </StickyTopBar>

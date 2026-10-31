@@ -50,6 +50,7 @@ export function NotificationsLauncher({
           isError={bell.isError}
           isIncomplete={bell.isIncomplete}
           markAllSeen={bell.markAllSeen}
+          clearAll={bell.clearAll}
         />
       ) : null}
     </>

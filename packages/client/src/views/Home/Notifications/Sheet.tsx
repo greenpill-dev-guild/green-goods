@@ -5,8 +5,8 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import type { GardenNotification } from "@green-goods/shared/hooks/garden/useGardenNotifications";
-import { RiNotificationLine } from "@remixicon/react";
-import { useEffect, useMemo } from "react";
+import { RiHammerLine, RiHandHeartLine, RiNotificationLine } from "@remixicon/react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { APP_ROUTES } from "@/config/pwaRouting";
@@ -26,16 +26,40 @@ export interface NotificationsSheetProps {
   isIncomplete: boolean;
   /** Records that the listed events were shown; the sheet calls it as it opens. */
   markAllSeen: () => void;
+  /** Hides every listed event on this device: the sheet's Clear All (DL-133). */
+  clearAll: () => void;
 }
+
+type NotificationsTab = "all" | "work" | "promises";
+const TABS: readonly NotificationsTab[] = ["all", "work", "promises"];
+const TAB_LABEL_IDS: Record<NotificationsTab, string> = {
+  all: "app.home.notifications.tab.all",
+  work: "app.home.notifications.tab.work",
+  promises: "app.home.notifications.tab.promises",
+};
+const TAB_ICONS: Record<NotificationsTab, React.ReactNode> = {
+  all: <RiNotificationLine aria-hidden="true" />,
+  work: <RiHammerLine aria-hidden="true" />,
+  promises: <RiHandHeartLine aria-hidden="true" />,
+};
+/** The events about work; every other event is about a promise. */
+const WORK_KINDS: ReadonlySet<GardenNotification["kind"]> = new Set([
+  "workApproved",
+  "workRejected",
+  "workSubmitted",
+]);
+const inTab = (notification: GardenNotification, tab: NotificationsTab) =>
+  tab === "all" || (tab === "work") === WORK_KINDS.has(notification.kind);
 
 /** How many empty frames hold the list's place while the first read runs (DL-056). */
 const LOADING_ROWS = 3;
 
 /**
- * The bell's sheet (DL-130): a `tall` sheet over Home with the garden named beneath its title,
- * listing the garden's events for the member, one item row each, newest first. A row opens the
- * work or the promise, closing the sheet first so the screen it opens is not under it. Opening
- * the sheet marks the listed events seen on this device. With nothing to list it shows the
+ * The bell's sheet (DL-130, DL-133): a `full` sheet over Home with the garden named beneath its
+ * title, listing the garden's events for the member, one item row each, newest first, under All,
+ * Work and Promises tabs. A row opens the work or the promise, closing the sheet first so the
+ * screen it opens is not under it. Opening the sheet marks the listed events seen on this device,
+ * and Clear All in the shared bar hides them here for good. With nothing to list it shows the
  * shared state block, and a read that failed or answered only in part says so in one quiet line
  * while the rows it did find stay. Offline the reads pause rather than fail: with nothing cached
  * the block says the events cannot be checked instead of reporting an empty inbox, and the rows
@@ -51,10 +75,16 @@ export function NotificationsSheet({
   isError,
   isIncomplete,
   markAllSeen,
+  clearAll,
 }: NotificationsSheetProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigateToTop();
   const isOnline = useOnlineStatus();
+  const [tab, setTab] = useState<NotificationsTab>("all");
+  const shown = useMemo(
+    () => notifications.filter((notification) => inTab(notification, tab)),
+    [notifications, tab]
+  );
 
   // Opening shows the member every listed event, so the sheet marks them seen as it opens. An
   // event that lands while it is open is shown too, and marked with the render that lists it.
@@ -126,7 +156,7 @@ export function NotificationsSheet({
         description={formatMessage({ id: "app.home.notifications.offline.description" })}
       />
     );
-  } else if (notifications.length === 0) {
+  } else if (shown.length === 0) {
     body = (
       <EmptyState
         placement="sheet"
@@ -145,7 +175,7 @@ export function NotificationsSheet({
       <div className="flex flex-col gap-3">
         {partial ? <Alert variant="warning">{partialNotice}</Alert> : null}
         <ul className="flex flex-col gap-(--gg-list-gap)">
-          {notifications.map((notification) => (
+          {shown.map((notification) => (
             <li key={notification.id}>
               <NotificationRow
                 notification={notification}
@@ -167,7 +197,21 @@ export function NotificationsSheet({
     <AppSheet
       isOpen={open}
       onClose={onClose}
-      size="tall"
+      size="full"
+      tabs={TABS.map((id) => ({
+        id,
+        label: formatMessage({ id: TAB_LABEL_IDS[id] }),
+        icon: TAB_ICONS[id],
+      }))}
+      activeTab={tab}
+      onTabChange={(id) => setTab(id as NotificationsTab)}
+      actions={{
+        secondary: {
+          label: formatMessage({ id: "app.home.notifications.clearAll" }),
+          onClick: clearAll,
+          disabled: notifications.length === 0,
+        },
+      }}
       header={{
         title: formatMessage({ id: "app.home.notifications.title" }),
         // The garden is named under the title, as the other sheets over Home name it (DL-128).

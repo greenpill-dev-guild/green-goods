@@ -212,6 +212,7 @@ const EVENTS: GardenNotification[] = [
 ];
 
 const markAllSeen = vi.fn();
+const clearAll = vi.fn();
 const onClose = vi.fn();
 
 function setBell(overrides: Partial<GardenNotifications> = {}) {
@@ -225,6 +226,7 @@ function setBell(overrides: Partial<GardenNotifications> = {}) {
     isError: false,
     isIncomplete: false,
     markAllSeen,
+    clearAll,
     ...overrides,
   };
 }
@@ -303,11 +305,11 @@ describe("the bell", () => {
 });
 
 describe("the sheet", () => {
-  it("opens tall, named for the garden, lists the events newest first as rows of one anatomy, and marks them seen", () => {
+  it("opens full, named for the garden, lists the events newest first as rows of one anatomy, and marks them seen", () => {
     renderBell();
     const sheet = openSheet();
 
-    expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+    expect(sheet).toHaveAttribute("data-sheet-size", "full");
     expect(within(sheet).getByText("In TAS HUB")).toBeInTheDocument();
     expect(markAllSeen).toHaveBeenCalledTimes(1);
 
@@ -337,6 +339,24 @@ describe("the sheet", () => {
     for (const row of rows) {
       expect(row.querySelector(".gg-item-row")).not.toBeNull();
     }
+  });
+
+  it("splits the events under All, Work and Promises, and Clear All hides them on this device (DL-133)", () => {
+    renderBell();
+    const sheet = openSheet();
+
+    expect(
+      within(sheet)
+        .getAllByRole("tab")
+        .map((tab) => tab.textContent)
+    ).toEqual(["All", "Work", "Promises"]);
+    fireEvent.click(within(sheet).getByRole("tab", { name: "Work" }));
+    expect(rowsOf(sheet).map(titleOf)).toEqual(["Hedge Planting", "Compost Turn", "Seed Swap"]);
+    fireEvent.click(within(sheet).getByRole("tab", { name: "Promises" }));
+    expect(rowsOf(sheet).map(titleOf)).toEqual(["Weekend workday", "Seedlings for the school"]);
+
+    fireEvent.click(within(sheet).getByRole("button", { name: "Clear All" }));
+    expect(clearAll).toHaveBeenCalledTimes(1);
   });
 
   it("opens the work from a work event and the promise from a promise event, closing first", () => {

@@ -4,6 +4,7 @@ import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 import { RiHandHeartLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { preloadCommitmentsSheet } from "../DeferredSurfaces";
 
 export interface CommitmentsSheetIconProps {
@@ -18,7 +19,7 @@ export interface CommitmentsSheetIconProps {
 }
 
 /**
- * The Promises launcher. It fetches the sheet's code as it mounts and waits for it, disabled and
+ * The Promises launcher, its glyph green at rest (DL-133). It fetches the sheet's code as it mounts and waits for it, disabled and
  * busy, so its first tap opens a sheet with something to show (DL-132). A fetch that fails frees
  * it: the sheet's own lazy import reports the failure through the route's error frame on open.
  */
@@ -50,7 +51,7 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
           : intl.formatMessage({ id: "app.commitments.openButton" })
       }
       data-testid="commitments-sheet-button"
-      icon={<RiHandHeartLine aria-hidden="true" />}
+      icon={<RiHandHeartLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
       badge={
         hasActs ? (
           <CountBadge count={actCount} ring data-testid="commitments-notification-badge" />
