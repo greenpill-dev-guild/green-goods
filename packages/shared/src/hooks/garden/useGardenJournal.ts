@@ -13,11 +13,9 @@
 import { useMemo, useState } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
-  featuredWork,
   JOURNAL_PREVIEW_COUNT,
   type JournalSectionState,
   type OpenCycle,
-  openAsk,
   openCycles,
   poolSectionState,
   type RecentActivityState,
@@ -53,8 +51,6 @@ export type TakePartEntry = JournalTakePartEntry;
 
 export interface GardenRecentActivity {
   state: RecentActivityState;
-  /** The newest of the garden's works with a photo, the carousel's featured update. */
-  featured: Work | null;
   /** The action a work was logged for, which names its row as on the Work tab. */
   actionTitleOf: (work: Work) => string | undefined;
   refetch: () => void;
@@ -68,7 +64,6 @@ export function useGardenRecentActivity(gardenId: string): GardenRecentActivity 
   const result = useMemo(
     () => ({
       state: recentActivityState({ works, availability, isError, isPaused, lastSuccessfulRefresh }),
-      featured: featuredWork(works),
       actionTitleOf: (work: Work) => findActionByUID(actions ?? [], work.actionUID)?.title,
     }),
     [actions, availability, isError, isPaused, lastSuccessfulRefresh, works]
@@ -151,8 +146,6 @@ export interface GardenOpenPromises {
   state: JournalSectionState<TakePartEntry>;
   /** Every entry, from the same read, for the sheet of open promises See All opens. */
   all: JournalSectionState<TakePartEntry>;
-  /** The newest ask open to take up, from every entry, for the carousel. */
-  ask: TakePartEntry | null;
   /** Why `state` is empty, when it is: nothing open, or only the reader's own (DL-132). */
   emptyReason: "none" | "yours";
   /** A promise's own name, once its metadata has resolved. */
@@ -226,7 +219,6 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   return {
     state,
     all,
-    ask: state.status === "ready" ? openAsk(entries) : null,
     emptyReason,
     titleOf: (metadataCID) => (metadataCID ? (byCID.get(metadataCID.trim())?.title ?? null) : null),
     refetch: () => {
