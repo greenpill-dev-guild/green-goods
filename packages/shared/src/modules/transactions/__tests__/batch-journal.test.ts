@@ -183,3 +183,47 @@ it("rejects a stored terminal status that no group carries", async () => {
   await db.table("operations").put({ ...record, status: "reverted" });
   await expect(db.get("operation")).rejects.toThrow("batch-invalid-record");
 });
+
+it("keeps a reference another writer added while a recovery tab was reading", async () => {
+  const db = journal();
+  const record = await db.prepare(batch());
+  const token = await db.claim("operation");
+  const reference = { kind: "wallet-calls", id: "wallet:late", account, chainId: 42161 } as const;
+  await db.recordSubmission("operation", ["member:alice"], reference);
+  const written = await db.checkpoint("operation", token, {
+    status: "unresolved",
+    groups: record.groups.map((group) => ({ ...group, status: "unresolved" })),
+    itemStates: { "member:alice": "unresolved" },
+    reference: undefined,
+  });
+  expect(written).toMatchObject({ status: "unresolved", reference });
+  expect(written.groups[0].reference).toEqual(reference);
+});
+
+it("lets the holder clear a reference that only ever came from signing", async () => {
+  const db = journal();
+  const record = await db.prepare(batch());
+  const token = await db.claim("operation");
+  const signed = {
+    kind: "user-operation",
+    hash: `0x${"c".repeat(64)}`,
+    account,
+    chainId: 42161,
+  } as const;
+  await db.checkpoint("operation", token, {
+    status: "awaiting-approval",
+    reference: signed,
+    groups: record.groups.map((group) => ({
+      ...group,
+      status: "awaiting-approval",
+      reference: signed,
+    })),
+  });
+  const written = await db.checkpoint("operation", token, {
+    status: "prepared",
+    reference: undefined,
+    groups: record.groups.map((group) => ({ ...group, status: "prepared" })),
+  });
+  expect(written.status).toBe("prepared");
+  expect(written.groups[0].reference).toBeUndefined();
+});

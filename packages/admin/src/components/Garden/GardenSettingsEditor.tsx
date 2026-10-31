@@ -8,6 +8,8 @@ import {
 } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
 import { useSetGardenDomains } from "@green-goods/shared/hooks/garden/useSetGardenDomains";
 import {
+  type GardenSettingsHold,
+  useGardenSettingsBatch,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
@@ -15,13 +17,9 @@ import {
   useUpdateGardenLocation,
   useUpdateGardenName,
 } from "@green-goods/shared/hooks/garden/useUpdateGarden";
-import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
-import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { type Address, DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
-import { isTransactionHash } from "@green-goods/shared/utils/eas/explorers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
@@ -38,13 +36,12 @@ import {
   type GardenSettingsValues,
   type LandedValues,
   type SettingsDraft,
+  landedValuesOf,
   withoutReportedValues,
+  withSentValues,
 } from "./gardenSettingsDraft";
-import type {
-  GardenSettingsFieldProgress,
-  GardenSettingsFieldState,
-  GardenSettingsSaveRun,
-} from "./gardenSettingsSave";
+import { createBannerUploader, runGardenSettingsSave } from "./gardenSettingsRun";
+import { type GardenSettingsSaveRun, settleGardenSettingsRun } from "./gardenSettingsSave";
 
 /** What the hosting surface should show as the banner right now. */
 export interface GardenBannerPreview {
@@ -67,12 +64,17 @@ export interface GardenSettingsFormState {
   isSaving: boolean;
   /** True while a field fails validation — Save must stay disabled. */
   hasValidationError: boolean;
-  /** Changed fields still to save, one wallet confirmation each — feeds the footer line. */
+  /** Changed fields still to save — feeds the footer line. */
   dirtyCount: number;
+  /** Those fields go under one signature, not one wallet confirmation each. */
+  oneSignature: boolean;
   /** Whether the steward can edit anything — hides the footer when false. */
   canEdit: boolean;
   /** The latest Save or Try Again and where each of its writes stands; null before one. */
   run: GardenSettingsSaveRun | null;
+  /** An earlier save whose outcome is unknown; its fields stay locked until it is settled. */
+  hold: GardenSettingsHold | null;
+  isSettlingHold: boolean;
 }
 
 /** Imperative surface for the hosting dialog's footer + banner preview card. */
@@ -85,6 +87,10 @@ export interface GardenSettingsEditorHandle {
   undoBannerRemoval: () => void;
   /** Leave a stopped or finished save's progress and show the form again. */
   dismissRun: () => void;
+  /** Read a held save again. */
+  checkHold: () => Promise<void>;
+  /** End a hold for a person who has seen the chain's values. */
+  moveOnFromHold: () => Promise<void>;
 }
 
 interface GardenSettingsEditorProps {
@@ -111,9 +117,10 @@ interface GardenSettingsEditorProps {
  * Explicit-save garden settings form.
  *
  * Every field edits a local draft; nothing reaches IPFS or the chain until
- * Save. Save runs only the dirty fields through their existing per-field
- * mutations (each keeps its own loading/success toast), and the banner file
- * shows a local object-URL preview until Save uploads it. The hosting dialog's
+ * Save. Save sends only the dirty fields: under one signature where the rail
+ * can, otherwise through their per-field mutations (each keeps its own
+ * loading/success toast). The banner file shows a local object-URL preview
+ * until Save uploads it. The hosting dialog's
  * footer drives Save through the imperative handle, and its identity preview
  * card drives banner Remove/Undo through the same handle, so those controls
  * never scroll away with the form.
@@ -134,6 +141,9 @@ export const GardenSettingsEditor = forwardRef<
   const setOpenJoining = useSetOpenJoining();
   const setMaxGardeners = useSetMaxGardeners();
   const setGardenDomains = useSetGardenDomains();
+  const settingsBatch = useGardenSettingsBatch(gardenAddress);
+  const { hold, saved: landedChanges, lastReadAt, isSettlingHold } = settingsBatch;
+  const [uploadBanner] = useState(createBannerUploader);
 
   const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
   const [isSaving, setIsSaving] = useState(false);
@@ -174,8 +184,29 @@ export const GardenSettingsEditor = forwardRef<
   // The garden the draft last synced to: what the steward was shown.
   const shownGardenRef = useRef(garden);
 
-  // Plain per-render computation — compares against what the chain holds.
-  const dirtyFields = dirtyFieldsOf(draft, garden, landed);
+  // Plain per-render computation — compares against what the chain holds. A
+  // held field is not sent again until its last save is settled.
+  const dirtyFields = dirtyFieldsOf(draft, garden, landed).filter(
+    (field) => !hold?.fields.includes(field)
+  );
+
+  // After every read of a held save, whichever way it came about: what landed
+  // joins the landed values, what is still held shows what was sent, and a run
+  // waiting on the outcome learns it.
+  useEffect(() => {
+    if (!lastReadAt) return;
+    const savedFields = landedChanges.map((change) => change.field);
+    setDraft((current) => {
+      const next = withSentValues(current, [...landedChanges, ...(hold?.attempted ?? [])]);
+      return savedFields.includes("banner")
+        ? { ...next, bannerFile: null, bannerRemoved: false }
+        : next;
+    });
+    if (savedFields.length > 0) {
+      setLanded((current) => ({ ...current, ...landedValuesOf(landedChanges) }));
+    }
+    setRun((current) => settleGardenSettingsRun(current, savedFields, hold?.fields ?? []));
+  }, [lastReadAt, landedChanges, hold]);
 
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
@@ -201,6 +232,8 @@ export const GardenSettingsEditor = forwardRef<
   const canEditProfile = canManage;
   const canEditName = isOwner;
   const canEditAnything = canEditProfile || canEditName;
+  const locked = (field: GardenSettingsField) =>
+    !(field === "name" ? canEditName : canEditProfile) || isSaving || hold?.fields.includes(field);
 
   const nameInvalid = canEditName && draft.name.trim().length === 0;
   const nameTooLong = canEditName && !gardenNameFits(draft.name);
@@ -219,7 +252,7 @@ export const GardenSettingsEditor = forwardRef<
   const previewSrc = bannerPreviewUrl ?? resolvedSavedBanner;
   const bannerIsDraft = Boolean(draft.bannerFile);
   const bannerStagedRemoval = draft.bannerRemoved && !draft.bannerFile;
-  const canRemoveBanner = canEditProfile && Boolean(previewSrc);
+  const canRemoveBanner = !locked("banner") && Boolean(previewSrc);
 
   // Keep the hosting surface's identity preview in sync with the draft — the
   // image renders there (once), not inside this form.
@@ -233,6 +266,7 @@ export const GardenSettingsEditor = forwardRef<
   }, [bannerIsDraft, bannerStagedRemoval, canRemoveBanner, onBannerPreviewChange, previewSrc]);
 
   const dirtyCount = dirtyFields.length;
+  const oneSignature = settingsBatch.available && dirtyCount > 1;
 
   useEffect(() => {
     onDirtyStateChange?.({
@@ -240,10 +274,23 @@ export const GardenSettingsEditor = forwardRef<
       isSaving,
       hasValidationError,
       dirtyCount,
+      oneSignature,
       canEdit: canEditAnything,
       run,
+      hold,
+      isSettlingHold,
     });
-  }, [dirtyCount, isSaving, hasValidationError, canEditAnything, run, onDirtyStateChange]);
+  }, [
+    dirtyCount,
+    oneSignature,
+    isSaving,
+    hasValidationError,
+    canEditAnything,
+    run,
+    hold,
+    isSettlingHold,
+    onDirtyStateChange,
+  ]);
 
   // Each field reuses its existing mutation (own toast + cache invalidation)
   // and resolves with the transaction that carried it.
@@ -267,92 +314,46 @@ export const GardenSettingsEditor = forwardRef<
         return setGardenDomains.mutateAsync({ gardenAddress, domains: values.domains });
       case "banner": {
         if (!values.bannerFile) return updateBannerImage.mutateAsync({ gardenAddress, value: "" });
-        let file = values.bannerFile;
-        if (imageCompressor.shouldCompress(file, 1024)) {
-          const result = await imageCompressor.compressImage(file, {
-            maxSizeMB: 0.8,
-            maxWidthOrHeight: 2048,
-          });
-          file = result.file;
-        }
-        const uploadResult = await uploadFileToIPFS(file);
+        const value = await uploadBanner(values.bannerFile);
         onUploaded();
-        return updateBannerImage.mutateAsync({
-          gardenAddress,
-          value: resolveIPFSUrl(uploadResult.cid),
-        });
+        return updateBannerImage.mutateAsync({ gardenAddress, value });
       }
+    }
+  };
+
+  const landField = (field: GardenSettingsField, values: SettingsDraft) => {
+    if (field === "banner") {
+      setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
+    } else {
+      setLanded((current) => ({ ...current, [field]: fieldValueKey(values, field) }));
     }
   };
 
   const handleSave = async () => {
     if (dirtyFields.length === 0 || hasValidationError || isSaving) return;
-
-    // The run writes the draft as it stands now; fields are locked until it ends.
-    const values = draft;
-    const fields = dirtyFields;
-    const progress: Partial<Record<GardenSettingsField, GardenSettingsFieldProgress>> = {};
-    const report = (status: GardenSettingsSaveRun["status"]) =>
-      setRun({ status, fields, progress: { ...progress } });
-    const mark = (
-      field: GardenSettingsField,
-      state: GardenSettingsFieldState,
-      hash: `0x${string}` | null = null
-    ) => {
-      progress[field] = { state, hash };
-      report(state === "failed" ? "stopped" : "running");
-    };
-
     setIsSaving(true);
-    for (const field of fields) progress[field] = { state: "queued", hash: null };
-    // Sequential on purpose: one wallet confirmation at a time, and a failure
-    // stops the run with the rest of the draft intact.
-    for (const field of fields) {
-      let stage: GardenSettingsFieldState =
-        field === "banner" && values.bannerFile ? "uploading" : "waiting";
-      mark(field, stage);
-      try {
-        const hash = await writeField(field, values, () => {
-          stage = "waiting";
-          mark(field, stage);
-        });
-        // A Safe hands back a proposal, not a transaction: the field is sent,
-        // not confirmed, and is not sent again, which would propose it twice.
-        if (isTransactionHash(hash)) mark(field, "saved", hash);
-        else mark(field, "proposed");
-        if (field === "banner") {
-          setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
-        } else {
-          setLanded((current) => ({ ...current, [field]: fieldValueKey(values, field) }));
-        }
-      } catch (error) {
-        mark(field, "failed");
-        logger.error("Garden settings save failed", {
+    await runGardenSettingsSave({
+      fields: dirtyFields,
+      values: draft,
+      sendBatch: settingsBatch.available ? settingsBatch.send : undefined,
+      uploadBanner,
+      writeField,
+      onRun: setRun,
+      onLanded: landField,
+      onUploadFailed: (error) =>
+        toastService.error({
+          title: formatMessage({
+            id: "app.garden.create.uploadFailed",
+            defaultMessage: "Upload failed",
+          }),
+          message: formatMessage({
+            id: "app.garden.settings.saveFailedMessage",
+            defaultMessage: "Your edits are still here. Review the error and save again.",
+          }),
+          context: "garden settings save",
           error,
-          field,
-          source: "GardenSettingsEditor",
-        });
-        // Contract writes toast their own parsed errors; the image upload is
-        // the one step with no toast of its own.
-        if (stage === "uploading") {
-          toastService.error({
-            title: formatMessage({
-              id: "app.garden.create.uploadFailed",
-              defaultMessage: "Upload failed",
-            }),
-            message: formatMessage({
-              id: "app.garden.settings.saveFailedMessage",
-              defaultMessage: "Your edits are still here. Review the error and save again.",
-            }),
-            context: "garden settings save",
-            error,
-          });
-        }
-        setIsSaving(false);
-        return;
-      }
-    }
-    report("complete");
+        }),
+    });
     setIsSaving(false);
   };
 
@@ -369,10 +370,11 @@ export const GardenSettingsEditor = forwardRef<
       })),
     undoBannerRemoval: () => setDraft((current) => ({ ...current, bannerRemoved: false })),
     dismissRun: () => setRun(null),
+    checkHold: settingsBatch.checkAgain,
+    moveOnFromHold: settingsBatch.moveOn,
   }));
 
-  const disabledProfileField = !canEditProfile || isSaving;
-  const capLocked = disabledProfileField || !draft.capRead;
+  const capLocked = locked("maxGardeners") || !draft.capRead;
 
   const toggleDomain = (domain: Domain) => {
     setDraft((current) => {
@@ -407,7 +409,7 @@ export const GardenSettingsEditor = forwardRef<
           }
           value={draft.name}
           onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-          disabled={!canEditName || isSaving}
+          disabled={locked("name")}
           helperText={
             canEditName
               ? undefined
@@ -430,7 +432,7 @@ export const GardenSettingsEditor = forwardRef<
           value={draft.description}
           onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
           rows={5}
-          disabled={disabledProfileField}
+          disabled={locked("description")}
         />
 
         <AdminTextField
@@ -438,7 +440,7 @@ export const GardenSettingsEditor = forwardRef<
           label={formatMessage({ id: "app.garden.settings.location", defaultMessage: "Location" })}
           value={draft.location}
           onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
-          disabled={disabledProfileField}
+          disabled={locked("location")}
         />
 
         <div className="border-t border-stroke-soft" />
@@ -469,7 +471,7 @@ export const GardenSettingsEditor = forwardRef<
               surface="admin"
               accept="image/*"
               showPreview={false}
-              disabled={isSaving}
+              disabled={locked("banner")}
               helpText={formatMessage({
                 id: "app.garden.create.bannerImageHelp",
                 defaultMessage: "Upload a banner image showcasing the garden (optional)",
@@ -499,14 +501,14 @@ export const GardenSettingsEditor = forwardRef<
             })}
             action={
               <Switch
-                disabled={disabledProfileField}
+                disabled={locked("openJoining")}
                 checked={draft.openJoining}
                 onCheckedChange={(checked) =>
                   setDraft((current) => ({ ...current, openJoining: checked === true }))
                 }
                 surface="admin"
                 aria-labelledby="garden-settings-open-joining-label"
-                className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
+                className={cn(locked("openJoining") && "cursor-not-allowed opacity-50")}
               />
             }
           />
@@ -563,7 +565,7 @@ export const GardenSettingsEditor = forwardRef<
               onChange={(e) =>
                 setDraft((current) => ({ ...current, maxGardeners: e.target.value }))
               }
-              disabled={disabledProfileField}
+              disabled={locked("maxGardeners")}
               inputProps={{ min: 1, step: 1, "aria-invalid": maxGardenersInvalid || undefined }}
               className="w-44"
             />
@@ -595,7 +597,7 @@ export const GardenSettingsEditor = forwardRef<
               ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => (
                 <AdminSelectableCard
                   key={value}
-                  disabled={disabledProfileField}
+                  disabled={locked("domains")}
                   onClick={() => toggleDomain(value)}
                   selected={draft.domains.includes(value)}
                   title={formatMessage({ id: labelId, defaultMessage: defaultLabel })}

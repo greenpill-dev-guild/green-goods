@@ -3,6 +3,7 @@ import {
   createMockContractCall,
   createMockBatchBudget,
 } from "../../../__tests__/test-utils/transaction-fakes";
+import { type BatchEnablement, ENABLED_BATCHES, isBatchEnabled } from "../batch-enablement";
 import { prepareBatch, assertPreparedBatch } from "../prepared-batch";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
@@ -102,4 +103,26 @@ it("applies a budget to each sequential group, not to the whole selection", () =
       budget: createMockBatchBudget({ maxCalls: 1, maxCalldataBytes: 67 }),
     })
   ).toThrow("batch-budget-exceeded");
+});
+
+describe("isBatchEnabled", () => {
+  const listed: BatchEnablement = {
+    action: "garden-settings",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+  };
+
+  it("allows nothing until a live batch has been proven", () => {
+    expect(ENABLED_BATCHES).toEqual([]);
+    expect(isBatchEnabled(listed)).toBe(false);
+  });
+
+  it("needs the rail, the account profile, and the chain that were proven", () => {
+    const list = [listed];
+    expect(isBatchEnabled(listed, list)).toBe(true);
+    expect(isBatchEnabled({ ...listed, rail: "wallet", profile: "eip-5792" }, list)).toBe(false);
+    expect(isBatchEnabled({ ...listed, profile: "kernel-0.3.3-pilot" }, list)).toBe(false);
+    expect(isBatchEnabled({ ...listed, chainId: 42220 }, list)).toBe(false);
+  });
 });

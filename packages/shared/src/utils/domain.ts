@@ -16,6 +16,11 @@ export function expandDomainMask(mask: number): Domain[] {
   return domains;
 }
 
+/** The uint8 bitmask `setGardenDomains` takes for these domains; `expandDomainMask` reverses it. */
+export function domainMaskOf(domains: readonly Domain[]): number {
+  return domains.reduce((mask, domain) => mask | (1 << domain), 0);
+}
+
 /**
  * Check if a bitmask includes a specific domain.
  *
