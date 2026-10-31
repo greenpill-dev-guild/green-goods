@@ -164,13 +164,13 @@ describe("Explore", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Explore Gardens" })).toBeInTheDocument();
     // Filters waits for its sheet's code before it can be pressed (DL-132); the first import
-    // of that code is slow on a loaded host.
+    // of that code is slow on a loaded host, so the test's own limit sits above the wait.
     const filters = screen.getByRole("button", { name: "Filters" });
-    await waitFor(() => expect(filters).toBeEnabled(), { timeout: 10_000 });
+    await waitFor(() => expect(filters).toBeEnabled(), { timeout: 15_000 });
     fireEvent.click(filters);
 
     expect(await screen.findByRole("dialog", { name: "Filter Gardens" })).toBeInTheDocument();
-  });
+  }, 20_000);
 
   it("goes back to Home", () => {
     renderExplore();

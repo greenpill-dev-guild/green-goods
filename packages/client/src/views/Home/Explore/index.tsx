@@ -12,6 +12,7 @@ import {
 import { useAwaitingJoinRequests } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Domain, Garden } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -24,8 +25,8 @@ import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import type { GardenVisitState } from "../Garden";
 import { GardenList } from "../GardenList";
-import { StickyTopBar } from "../StickyTopBar";
 import { type ExploreTag, exploreGardens } from "../homeGardens";
+import { StickyTopBar } from "../StickyTopBar";
 
 const loadGardensFilterSheet = () => import("../GardenFilters");
 const GardensFilterSheet = lazy(() =>
@@ -72,11 +73,14 @@ export function Explore() {
   const isGardenFilterPresent = useExitPresence(isGardenFilterOpen, getPwaSheetExitMs);
   useEffect(() => closeGardenFilter, [closeGardenFilter]);
   // Filters fetches its sheet's code as Explore mounts and waits for it, disabled and busy, so
-  // its first tap opens the sheet (DL-132). A fetch that fails frees the button: the sheet's lazy
-  // import then reports the failure through the route's error frame when Filters opens it.
+  // its first tap opens the sheet (DL-132). A fetch that fails is logged and frees the button:
+  // the sheet's lazy import then reports the failure through the route's error frame when
+  // Filters opens it.
   const [isFilterReady, setIsFilterReady] = useState(false);
   useAsyncEffect(async ({ isMounted }) => {
-    await loadGardensFilterSheet().catch(() => undefined);
+    await loadGardensFilterSheet().catch((error: unknown) =>
+      logger.warn("Could not preload the Filter Gardens sheet", { source: "Explore", error })
+    );
     if (isMounted()) setIsFilterReady(true);
   }, []);
 

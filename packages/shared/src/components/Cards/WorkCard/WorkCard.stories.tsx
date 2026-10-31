@@ -67,12 +67,11 @@ export const WithGardener: Story = {
   },
 };
 
-/** A list words feedback as the second detail, in place of the age. */
+/** A rejected row keeps its age; the feedback lives on the work's page (DL-132). */
 export const Rejected: Story = {
   args: {
     work: { ...mockWork, status: "rejected", feedback: "Please add the planting site." },
     contextLabel: "Your work was reviewed",
-    supportingText: "Feedback",
   },
 };
 

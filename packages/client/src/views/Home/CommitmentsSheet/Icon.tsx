@@ -1,6 +1,7 @@
 import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { RiHandHeartLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";
@@ -19,8 +20,9 @@ export interface CommitmentsSheetIconProps {
 
 /**
  * The Promises launcher. It fetches the sheet's code as it mounts and waits for it, disabled and
- * busy, so its first tap opens a sheet with something to show (DL-132). A fetch that fails frees
- * it: the sheet's own lazy import reports the failure through the route's error frame on open.
+ * busy, so its first tap opens a sheet with something to show (DL-132). A fetch that fails is
+ * logged and frees it: the sheet's own lazy import reports the failure through the route's error
+ * frame on open.
  */
 export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
   onClick,
@@ -32,7 +34,9 @@ export const CommitmentsSheetIcon: React.FC<CommitmentsSheetIconProps> = ({
   const [isReady, setIsReady] = useState(false);
 
   useAsyncEffect(async ({ isMounted }) => {
-    await preloadCommitmentsSheet().catch(() => undefined);
+    await preloadCommitmentsSheet().catch((error: unknown) =>
+      logger.warn("Could not preload the promises sheet", { source: "CommitmentsSheetIcon", error })
+    );
     if (isMounted()) setIsReady(true);
   }, []);
 
