@@ -275,6 +275,19 @@ describe("holding an add whose outcome is unknown", () => {
     });
   });
 
+  it("refuses one person another add still holds, so nothing goes twice", async () => {
+    const { input, sender } = setup();
+    const first = row();
+    await add(input, [first, row()]);
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+
+    const outcome = await add(input, [first]);
+
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
+    expect(outcome.notSent).toEqual([first]);
+    expect((outcome.failure as Error).message).toBe("batch-items-held");
+  });
+
   it("will not move on from a row the person could not see", async () => {
     const { input, chain, batches } = setup();
     await add(input, [row(), row()]);

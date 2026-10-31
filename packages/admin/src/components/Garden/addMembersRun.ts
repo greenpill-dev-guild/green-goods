@@ -45,8 +45,9 @@ async function addOneAtATime(
 }
 
 /**
- * Runs one press of Add. Two or more people go through `addBatch` when the
- * person's rail can do that; everything else goes one person at a time. A list
+ * Runs one press of Add. The list goes through `addBatch` when the person's rail
+ * can do that, even for one person, because its journal is what refuses a row
+ * another tab's add still holds. Otherwise it goes one person at a time. A list
  * past its ceilings comes back untried: it was promised fewer signatures, so
  * going one at a time takes another press.
  */
@@ -58,7 +59,7 @@ export async function runAddMembers({
 }: AddMembersRunInput): Promise<AddMembersRun> {
   // Each attempt starts clean: a reason from the last one says nothing about this one.
   const rows = staged.map(({ address, role }): StagedMember => ({ address, role }));
-  if (!addBatch || rows.length < 2) {
+  if (!addBatch) {
     const { failed, thrown } = await addOneAtATime(rows, addOne, onLanded);
     return { remaining: failed, failedCount: failed.length, thrown, needsMoreSignatures: false };
   }

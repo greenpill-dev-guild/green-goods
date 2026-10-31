@@ -455,15 +455,16 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
   });
 
-  it("sends one person the usual way", async () => {
+  it("sends one person through the journal too, so another tab's hold can refuse it", async () => {
     const user = userEvent.setup({ delay: null });
     const batch = batchWith();
     render(createElement(AddMembersDialog, { ...defaultProps, batch }));
 
     await stage(user, ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
-    await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledTimes(1));
-    expect(batch.add).not.toHaveBeenCalled();
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
   });
 
   it("asks before a list past its ceilings takes more signatures than it promised", async () => {
@@ -589,11 +590,13 @@ describe("components/Garden/AddMembersDialog", () => {
     const user = userEvent.setup({ delay: null });
     const reason = "This person can't hold this role";
     const batch = batchWith({
-      add: vi.fn(async () => ({
-        ...NOTHING,
-        refused: [{ ...ROW_A, reason }],
-        notSent: [ROW_B],
-      })),
+      add: vi
+        .fn<AddMembersBatch["add"]>(async () => NOTHING)
+        .mockResolvedValueOnce({
+          ...NOTHING,
+          refused: [{ ...ROW_A, reason }],
+          notSent: [ROW_B],
+        }),
     });
     render(createElement(AddMembersDialog, { ...defaultProps, batch }));
 
@@ -608,8 +611,9 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
     expect(screen.queryByText(reason)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add 1 Gardener" }));
-    await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_B));
-    expect(batch.add).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(batch.add).mock.calls[1][0]).toEqual([ROW_B]);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
   });
 
   it("stays open with an unknown add, and takes off the rows that did land", async () => {
