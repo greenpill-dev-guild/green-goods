@@ -103,10 +103,19 @@ button.garden-stat-row:hover {
     gap: 1.5rem;
   }
 
+  /* A tab's lone main card fills the column, as the member directory does
+   * (the MembersFillCanvas story). */
   .garden-tab-main > :only-child {
     flex: 1 1 auto;
   }
 
+  /* Garden Health opts out and keeps its own height (DL-143): the fill wrapped
+   * its 347px of content in a 667px card at every desktop width, because the
+   * grid stretches the main column to the taller rail (qa-session 2026-10-30
+   * OBS-05). */
+  .garden-tab-main > .garden-tab-main-own-height:only-child {
+    flex: 0 0 auto;
+  }
 }
 
 @layer utilities {
@@ -336,15 +345,16 @@ button.garden-stat-row:hover {
     min-height: 0;
   }
 
+  /* Every stage's empty, loading and failed state keeps the shell's own 24rem
+   * minimum. A child-only override to 100% reached the Work and record tabs,
+   * which render the shell directly, but not Confirm, which renders it inside
+   * its own region, so the four stages sat at different heights (qa-session
+   * 2026-10-30 OBS-02). */
   .hub-results-pane {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     gap: 0.75rem;
     min-height: 0;
-  }
-
-  .hub-results-pane > [data-component="EmptyStateShell"] {
-    --canvas-empty-state-min-height: 100%;
   }
 }

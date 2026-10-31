@@ -415,9 +415,14 @@ export function AddMembersDialog({
                   "aria-describedby": statusId,
                 }}
               />
-              <div className="flex items-center gap-2 pt-1.5 sm:pt-7.5">
+              {/* From 640px the buttons sit beside the field at its control's
+                  height and centre on it: the label (20px) and gap (4px) put the
+                  40px control at 24px, and the 44px finger box of a 40px button
+                  starts 2px above it, so 22px (qa-session 2026-10-30 OBS-15).
+                  Below 640px they stack under the field. */}
+              <div className="flex items-center gap-2 pt-1.5 sm:pt-5.5">
                 <IconButton
-                  size="sm"
+                  size="md"
                   onClick={handlePaste}
                   disabled={busy}
                   aria-label={formatMessage({
@@ -433,7 +438,7 @@ export function AddMembersDialog({
                 <Button
                   type="button"
                   emphasis="secondary"
-                  size="sm"
+                  size="md"
                   onClick={() => handleAddToList()}
                   disabled={busy || !typedEntryCommitReady || resolvingEns}
                   leadingIcon={<RiAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}

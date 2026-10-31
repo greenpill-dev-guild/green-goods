@@ -10,12 +10,7 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiExternalLinkLine,
-  RiLogoutBoxLine,
-  RiSeedlingLine,
-  RiWallet3Line,
-} from "@remixicon/react";
+import { RiExternalLinkLine, RiLogoutBoxLine, RiSeedlingLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
@@ -93,14 +88,13 @@ export function AccountProfilePanel({
           <>
             <SheetDivider />
 
-            {/* Wallet — one address row: copy + explorer. */}
+            {/* Wallet — one address row: copy + explorer. Its heading reads like
+                every other sheet section's, with no leading icon (qa-session
+                2026-10-30 OBS-19). */}
             <section className="space-y-2">
-              <div className="flex items-center gap-2">
-                <RiWallet3Line className="h-4 w-4 text-text-soft" aria-hidden="true" />
-                <h2 className="type-body font-semibold text-text-strong">
-                  {formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" })}
-                </h2>
-              </div>
+              <h2 className="type-body font-semibold text-text-strong">
+                {formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" })}
+              </h2>
               <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2">
                 <AddressDisplay address={primaryAddress as Address} showCopyButton />
                 <a
@@ -128,7 +122,7 @@ export function AccountProfilePanel({
             <h2 className="type-body font-semibold text-text-strong">
               {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your gardens" })}
             </h2>
-            <p className="mt-0.5 type-body text-text-sub">
+            <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: "cockpit.account.gardensDescription",
                 defaultMessage: "Switch the garden this canvas is scoped to.",
