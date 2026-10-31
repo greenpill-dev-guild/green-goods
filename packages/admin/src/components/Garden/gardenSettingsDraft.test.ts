@@ -2,9 +2,9 @@ import { Domain } from "@green-goods/shared/types/domain";
 import { describe, expect, it } from "vitest";
 import {
   dirtyFieldsOf,
+  draftAfterRead,
   draftFromGarden,
   landedValuesOf,
-  withSentValues,
 } from "./gardenSettingsDraft";
 
 const GARDEN = {
@@ -17,16 +17,28 @@ const GARDEN = {
   maxGardeners: 0,
 };
 const draft = draftFromGarden(GARDEN);
+const read = (reading: Partial<Parameters<typeof draftAfterRead>[1]>) => ({
+  garden: GARDEN,
+  landed: {},
+  saved: [],
+  held: [],
+  ...reading,
+});
 
-describe("withSentValues", () => {
-  it("puts back every value a save sent", () => {
+describe("draftAfterRead", () => {
+  it("puts back every value a held save sent", () => {
     expect(
-      withSentValues(draft, [
-        { field: "name", value: "Tech and Sun Hub" },
-        { field: "openJoining", value: false },
-        { field: "maxGardeners", value: 25 },
-        { field: "domains", value: [Domain.SOLAR, Domain.EDU] },
-      ])
+      draftAfterRead(
+        draft,
+        read({
+          held: [
+            { field: "name", value: "Tech and Sun Hub" },
+            { field: "openJoining", value: false },
+            { field: "maxGardeners", value: 25 },
+            { field: "domains", value: [Domain.SOLAR, Domain.EDU] },
+          ],
+        })
+      )
     ).toEqual({
       ...draft,
       name: "Tech and Sun Hub",
@@ -37,26 +49,84 @@ describe("withSentValues", () => {
     });
   });
 
-  it("takes a limit off, and leaves the banner, whose file was not kept", () => {
-    const capped = { ...draft, limitGardeners: true, maxGardeners: "25" };
+  it("takes a limit off, and leaves a new banner, whose file was not kept", () => {
+    const garden = { ...GARDEN, maxGardeners: 25 };
 
     expect(
-      withSentValues(capped, [
-        { field: "maxGardeners", value: 0 },
-        { field: "banner", value: "https://example.org/new.png" },
-      ])
-    ).toEqual({ ...capped, limitGardeners: false, maxGardeners: "" });
+      draftAfterRead(
+        draftFromGarden(garden),
+        read({
+          garden,
+          held: [
+            { field: "maxGardeners", value: 0 },
+            { field: "banner", value: "https://example.org/new.png" },
+          ],
+        })
+      )
+    ).toEqual({ ...draftFromGarden(garden), limitGardeners: false, maxGardeners: "" });
   });
 
   it("brings back a banner removal, which needs no file", () => {
-    expect(withSentValues(draft, [{ field: "banner", value: "" }])).toEqual({
+    expect(draftAfterRead(draft, read({ held: [{ field: "banner", value: "" }] }))).toEqual({
       ...draft,
       bannerRemoved: true,
     });
   });
 
+  it("keeps a field the person edited while the read ran", () => {
+    const edited = { ...draft, name: "Typed during the read" };
+
+    expect(
+      draftAfterRead(
+        edited,
+        read({
+          saved: [{ field: "name", value: "Landed elsewhere" }],
+          held: [{ field: "location", value: "Porto" }],
+        })
+      )
+    ).toEqual({ ...edited, location: "Porto" });
+    expect(draftAfterRead(edited, read({ held: [{ field: "name", value: "Sent" }] }))).toBe(edited);
+  });
+
+  describe("when a banner save has landed", () => {
+    const sent = new File(["sent"], "sent.png", { type: "image/png" });
+    const uploads = {
+      uploadedUrlOf: (file: File) => (file === sent ? "https://example.org/sent.png" : null),
+    };
+    const landedImage = read({
+      saved: [{ field: "banner", value: "https://example.org/sent.png" }],
+    });
+
+    it("clears the file that landed, so it is not sent again", () => {
+      expect(draftAfterRead({ ...draft, bannerFile: sent }, landedImage, uploads)).toEqual(draft);
+    });
+
+    it("keeps a different file chosen while the read ran", () => {
+      const chosen = new File(["chosen"], "chosen.png", { type: "image/png" });
+      const edited = { ...draft, bannerFile: chosen };
+
+      expect(draftAfterRead(edited, landedImage, uploads)).toEqual(edited);
+    });
+
+    it("keeps a removal staged while the read ran", () => {
+      const edited = { ...draft, bannerRemoved: true };
+
+      expect(draftAfterRead(edited, landedImage, uploads)).toEqual(edited);
+    });
+
+    it("ends a removal once that removal has landed", () => {
+      expect(
+        draftAfterRead(
+          { ...draft, bannerRemoved: true },
+          read({ saved: [{ field: "banner", value: "" }] }),
+          uploads
+        )
+      ).toEqual(draft);
+    });
+  });
+
   it("keeps the same draft when nothing was sent, so a read causes no render", () => {
-    expect(withSentValues(draft, [])).toBe(draft);
+    expect(draftAfterRead(draft, read({}))).toBe(draft);
   });
 });
 
@@ -72,6 +142,6 @@ describe("landedValuesOf", () => {
     const landed = landedValuesOf(saved);
 
     expect(landed).not.toHaveProperty("banner");
-    expect(dirtyFieldsOf(withSentValues(draft, saved), GARDEN, landed)).toEqual([]);
+    expect(dirtyFieldsOf(draftAfterRead(draft, read({ saved })), GARDEN, landed)).toEqual([]);
   });
 });

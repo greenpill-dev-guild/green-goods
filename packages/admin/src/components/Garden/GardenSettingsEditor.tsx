@@ -29,6 +29,7 @@ import {
   adoptRefreshedGarden,
   DOMAIN_OPTIONS,
   dirtyFieldsOf,
+  draftAfterRead,
   draftFromGarden,
   effectiveMaxGardeners,
   fieldValueKey,
@@ -38,7 +39,6 @@ import {
   type SettingsDraft,
   landedValuesOf,
   withoutReportedValues,
-  withSentValues,
 } from "./gardenSettingsDraft";
 import { createBannerUploader, runGardenSettingsSave } from "./gardenSettingsRun";
 import { type GardenSettingsSaveRun, settleGardenSettingsRun } from "./gardenSettingsSave";
@@ -143,7 +143,7 @@ export const GardenSettingsEditor = forwardRef<
   const setGardenDomains = useSetGardenDomains();
   const settingsBatch = useGardenSettingsBatch(gardenAddress);
   const { hold, saved: landedChanges, lastReadAt, isSettlingHold } = settingsBatch;
-  const [uploadBanner] = useState(createBannerUploader);
+  const [bannerUploader] = useState(createBannerUploader);
 
   const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
   const [isSaving, setIsSaving] = useState(false);
@@ -190,23 +190,23 @@ export const GardenSettingsEditor = forwardRef<
     (field) => !hold?.fields.includes(field)
   );
 
-  // After every read of a held save, whichever way it came about: what landed
-  // joins the landed values, what is still held shows what was sent, and a run
-  // waiting on the outcome learns it.
+  // Once per read of a held save, whichever way it came about: what landed joins
+  // the landed values, what is still held shows what was sent, and a run waiting
+  // on the outcome learns it. The ref is the real trigger, as with the snapshot.
+  const lastAppliedReadRef = useRef(0);
   useEffect(() => {
-    if (!lastReadAt) return;
+    if (!lastReadAt || lastAppliedReadRef.current === lastReadAt) return;
+    lastAppliedReadRef.current = lastReadAt;
     const savedFields = landedChanges.map((change) => change.field);
-    setDraft((current) => {
-      const next = withSentValues(current, [...landedChanges, ...(hold?.attempted ?? [])]);
-      return savedFields.includes("banner")
-        ? { ...next, bannerFile: null, bannerRemoved: false }
-        : next;
-    });
+    const held = hold?.attempted ?? [];
+    setDraft((current) =>
+      draftAfterRead(current, { garden, landed, saved: landedChanges, held }, bannerUploader)
+    );
     if (savedFields.length > 0) {
       setLanded((current) => ({ ...current, ...landedValuesOf(landedChanges) }));
     }
     setRun((current) => settleGardenSettingsRun(current, savedFields, hold?.fields ?? []));
-  }, [lastReadAt, landedChanges, hold]);
+  }, [lastReadAt, landedChanges, hold, garden, landed, bannerUploader]);
 
   useEffect(() => {
     if (lastSnapshotRef.current === gardenSnapshot) return;
@@ -314,7 +314,7 @@ export const GardenSettingsEditor = forwardRef<
         return setGardenDomains.mutateAsync({ gardenAddress, domains: values.domains });
       case "banner": {
         if (!values.bannerFile) return updateBannerImage.mutateAsync({ gardenAddress, value: "" });
-        const value = await uploadBanner(values.bannerFile);
+        const value = await bannerUploader.upload(values.bannerFile);
         onUploaded();
         return updateBannerImage.mutateAsync({ gardenAddress, value });
       }
@@ -330,13 +330,14 @@ export const GardenSettingsEditor = forwardRef<
   };
 
   const handleSave = async () => {
-    if (dirtyFields.length === 0 || hasValidationError || isSaving) return;
+    // A read still running could yet hold one of these fields.
+    if (dirtyFields.length === 0 || hasValidationError || isSaving || isSettlingHold) return;
     setIsSaving(true);
     await runGardenSettingsSave({
       fields: dirtyFields,
       values: draft,
       sendBatch: settingsBatch.available ? settingsBatch.send : undefined,
-      uploadBanner,
+      uploadBanner: bannerUploader.upload,
       writeField,
       onRun: setRun,
       onLanded: landField,

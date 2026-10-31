@@ -15,7 +15,7 @@ import {
 import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { PasskeySender } from "../passkey-sender";
 import { WalletSender } from "../wallet-sender";
-import type { BatchReference } from "../batch-types";
+import { BatchNotSubmittedError, type BatchReference } from "../batch-types";
 
 const walletBudget = createMockBatchBudget();
 const passkeyBudget = createMockBatchBudget({ sponsorship: "required" });
@@ -86,6 +86,30 @@ function passkey() {
 }
 
 describe("explicit wallet batching", () => {
+  it("takes a wallet reporting no atomic capability as one that cannot batch", async () => {
+    const { sender, deps, calls } = wallet();
+    deps.getCapabilities.mockResolvedValue({} as { atomic: { status: string } });
+
+    const refusal = await sender
+      .submitAtomicBatch(calls, { batchBudget: walletBudget })
+      .catch((error) => error);
+
+    expect(refusal).toBeInstanceOf(BatchNotSubmittedError);
+    expect(refusal.message).toBe("batch-atomic-unavailable");
+    expect(deps.sendCalls).not.toHaveBeenCalled();
+  });
+  it("says so when a wallet cannot tell whether it can batch, which is not a refusal", async () => {
+    const { sender, deps, calls } = wallet();
+    deps.getCapabilities.mockRejectedValue(new Error("wallet did not answer"));
+
+    const failure = await sender
+      .submitAtomicBatch(calls, { batchBudget: walletBudget })
+      .catch((error) => error);
+
+    expect(failure).toBeInstanceOf(BatchNotSubmittedError);
+    expect(failure.message).toBe("batch-capability-unknown");
+    expect(deps.sendCalls).not.toHaveBeenCalled();
+  });
   it("persists the opaque ID before waiting and retains all execution receipts", async () => {
     const { sender, deps, calls } = wallet();
     const onBatchReference = vi.fn(async (reference: BatchReference) => {
@@ -199,6 +223,39 @@ describe("explicit passkey batching", () => {
         batchBudget: passkeyBudget,
       })
     ).rejects.toThrow("batch-atomic-unavailable");
+    expect(client.sendUserOperation).not.toHaveBeenCalled();
+  });
+  it.each([
+    ["the sender can no longer batch", passkeyBudget, "batch-atomic-unavailable"],
+    ["the calls outgrow the ceilings", { ...passkeyBudget, maxCalls: 1 }, "batch-budget-exceeded"],
+  ])("reports a batch as never sent when %s", async (_name, batchBudget, message) => {
+    const { sender, client, calls } = passkey();
+    vi.spyOn(sender, "getBatchCapability").mockResolvedValue({
+      account: client.account!.address,
+      chainId: client.chain!.id,
+      atomic: "unsupported",
+    });
+
+    const refusal = await sender.submitAtomicBatch(calls, { batchBudget }).catch((error) => error);
+
+    expect(refusal).toBeInstanceOf(BatchNotSubmittedError);
+    expect(refusal.message).toBe(message);
+    expect(client.sendUserOperation).not.toHaveBeenCalled();
+  });
+  it("says so when a passkey cannot tell whether it can batch, which is not a refusal", async () => {
+    const { sender, client, calls } = passkey();
+    vi.spyOn(sender, "getBatchCapability").mockResolvedValue({
+      account: client.account!.address,
+      chainId: client.chain!.id,
+      atomic: "unknown",
+    });
+
+    const failure = await sender
+      .submitAtomicBatch(calls, { batchBudget: passkeyBudget })
+      .catch((error) => error);
+
+    expect(failure).toBeInstanceOf(BatchNotSubmittedError);
+    expect(failure.message).toBe("batch-capability-unknown");
     expect(client.sendUserOperation).not.toHaveBeenCalled();
   });
   it("does not report outer-transaction success when the UserOperation failed", async () => {

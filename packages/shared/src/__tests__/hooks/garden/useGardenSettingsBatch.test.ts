@@ -217,6 +217,27 @@ describe("useGardenSettingsBatch", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: gardensKeys.all });
   });
 
+  it("catches up on a save another tab proved while this one was showing it", async () => {
+    const { result, sender } = renderBatch();
+    await act(async () => {
+      await result.current.send(CHANGES);
+    });
+    await waitFor(() => expect(result.current.hold).not.toBeNull());
+
+    sender.reconcileBatch = landing();
+    await sender.batches!.reconcile(
+      result.current.hold!.operationIds[0],
+      { account: auth.primaryAddress as Address, chainId: 42161 },
+      async () => ["name", "openJoining"]
+    );
+    await act(async () => {
+      await result.current.checkAgain();
+    });
+
+    await waitFor(() => expect(result.current.saved).toEqual(CHANGES));
+    expect(result.current.hold).toBeNull();
+  });
+
   it("reports a save the read after sending proves landed, with nobody asking", async () => {
     const { result, sender } = renderBatch();
     sender.reconcileBatch = landing();

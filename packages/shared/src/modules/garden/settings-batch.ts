@@ -285,16 +285,21 @@ const changesOf = (items: PreparedBatch["items"]) =>
 async function settleOpenSaves(
   input: GardenSettingsBatchInput,
   settle: BatchOperations["reconcile"],
-  only?: readonly string[]
+  { shown, onlyShown = false }: { shown?: GardenSettingsHold | null; onlyShown?: boolean } = {}
 ): Promise<GardenSettingsSettlement> {
   const { batches, scope, gardenAddress, chain } = input;
   const domain = gardenSettingsDomain(gardenAddress);
-  const open = (await batches.list(scope)).filter(
+  const records = await batches.list(scope);
+  const open = records.filter(
     (record) => record.prepared.domain === domain && UNKNOWN_BATCH_STATES.has(record.status)
+  );
+  // Another tab can end a save this one is showing, and it would no longer be among the open ones.
+  const endedElsewhere = records.filter(
+    (record) => shown?.operationIds.includes(record.id) && !UNKNOWN_BATCH_STATES.has(record.status)
   );
   const settled = await Promise.all(
     open.map((record) =>
-      only && !only.includes(record.id)
+      onlyShown && !shown?.operationIds.includes(record.id)
         ? record
         : settle(record.id, scope, verifyGardenSettings(record.prepared, input)).catch(
             (error: unknown) => {
@@ -309,7 +314,7 @@ async function settleOpenSaves(
   // read cannot put an old value back over a newer edit.
   const held = settled.filter((record) => UNKNOWN_BATCH_STATES.has(record.status));
   const attempted = held.flatMap((record) => changesOf(record.prepared.items));
-  const saved = settled
+  const saved = [...settled, ...endedElsewhere]
     .filter((record) => !UNKNOWN_BATCH_STATES.has(record.status))
     .flatMap((record) =>
       changesOf(record.prepared.items.filter((item) => record.itemStates[item.id] === "confirmed"))
@@ -333,8 +338,12 @@ async function settleOpenSaves(
   };
 }
 
-export function readGardenSettingsHold(input: GardenSettingsBatchInput) {
-  return settleOpenSaves(input, input.batches.reconcile);
+/** `shown` is the hold this tab last showed, so a save another tab ended still reports here. */
+export function readGardenSettingsHold(
+  input: GardenSettingsBatchInput,
+  shown?: GardenSettingsHold | null
+) {
+  return settleOpenSaves(input, input.batches.reconcile, { shown });
 }
 
 /** Call only for a person who has just seen the chain's values and chosen to move on. */
@@ -343,6 +352,6 @@ export function moveOnFromGardenSettingsHold(
   hold: GardenSettingsHold
 ) {
   // A value that could not be read has not been seen, so the hold stands until a read finds it.
-  if (hold.onChain.length < hold.fields.length) return readGardenSettingsHold(input);
-  return settleOpenSaves(input, input.batches.release, hold.operationIds);
+  if (hold.onChain.length < hold.fields.length) return readGardenSettingsHold(input, hold);
+  return settleOpenSaves(input, input.batches.release, { shown: hold, onlyShown: true });
 }

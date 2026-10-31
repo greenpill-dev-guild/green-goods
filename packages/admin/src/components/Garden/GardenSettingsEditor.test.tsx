@@ -232,6 +232,7 @@ describe("GardenSettingsEditor explicit save", () => {
     settingsBatch.hold = null;
     settingsBatch.saved = [];
     settingsBatch.lastReadAt = 0;
+    settingsBatch.isSettlingHold = false;
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:banner-preview");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
   });
@@ -422,6 +423,58 @@ describe("GardenSettingsEditor explicit save", () => {
 
     expect(await screen.findByDisplayValue("Renamed Garden")).toBeEnabled();
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeDisabled();
+  });
+
+  it("sends nothing while held saves are being read, then sends as usual", async () => {
+    const user = userEvent.setup();
+    settingsBatch.isSettlingHold = true;
+    const { rerender } = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(mockUpdateName).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("garden-settings-save")).not.toBeInTheDocument();
+
+    settingsBatch.isSettlingHold = false;
+    settingsBatch.lastReadAt = 1;
+    rerender(<EditorHarness overrides={{}} />);
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => expect(mockUpdateName).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps what the person typed while the first read ran, once each read", async () => {
+    const user = userEvent.setup();
+    settingsBatch.isSettlingHold = true;
+    const { rerender } = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Typed during the read");
+
+    settingsBatch.isSettlingHold = false;
+    read(rerender, {
+      hold: {
+        operationIds: ["a"],
+        fields: ["name", "location"],
+        attempted: [
+          { field: "name", value: "Renamed Garden" },
+          { field: "location", value: "Lisbon, Portugal" },
+        ],
+        onChain: [],
+      },
+    });
+
+    expect(nameInput).toHaveValue("Typed during the read");
+    expect(nameInput).toBeDisabled();
+    expect(screen.getByLabelText("Location")).toHaveValue("Lisbon, Portugal");
+
+    // The same read seen again changes nothing.
+    rerender(<EditorHarness overrides={{ garden: { ...GARDEN, name: "Refreshed" } }} />);
+    expect(nameInput).toHaveValue("Typed during the read");
   });
 
   it("frees held fields when the person moves on, with their values ready to send", async () => {
