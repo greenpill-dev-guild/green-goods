@@ -1,4 +1,5 @@
 import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
+import type { Address } from "@green-goods/shared/types/domain";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
@@ -61,6 +62,7 @@ import { CommunityJoinRequests } from "./CommunityJoinRequests";
 
 const messages = {
   "app.common.cancel": "Cancel",
+  "app.common.refresh": "Refresh",
   "app.garden.joinQueue.membershipAddFailed": "Membership could not be added.",
   "app.garden.joinQueue.rateLimitedNotice": "Some join requests were rate-limited recently.",
   "app.garden.joinRequest.error.conflict":
@@ -86,15 +88,18 @@ const messages = {
   "cockpit.community.stewardRequests.pending": "Steward assignment is pending.",
 };
 
-function renderQueue(onRead: (kind: string, waiting: number) => void = () => {}) {
-  return render(
+const GARDEN = "0x1111111111111111111111111111111111111111";
+
+function queueUi(onRead: (kind: string, waiting: number) => void, gardenAddress: string = GARDEN) {
+  return (
     <IntlProvider locale="en" messages={messages}>
-      <CommunityJoinRequests
-        gardenAddress="0x1111111111111111111111111111111111111111"
-        onRead={onRead}
-      />
+      <CommunityJoinRequests gardenAddress={gardenAddress as Address} onRead={onRead} />
     </IntlProvider>
   );
+}
+
+function renderQueue(onRead: (kind: string, waiting: number) => void = () => {}) {
+  return render(queueUi(onRead));
 }
 
 describe("CommunityJoinRequests", () => {
@@ -141,6 +146,21 @@ describe("CommunityJoinRequests", () => {
 
     await user.click(screen.getByRole("button", { name: "Check Requests" }));
     await waitFor(() => expect(onRead).toHaveBeenCalledWith("garden_membership", 1));
+  });
+
+  it("starts another garden's queue unchecked, so one garden's read never counts for it", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderQueue();
+    await user.click(screen.getByRole("button", { name: "Check Requests" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument()
+    );
+
+    const onRead = vi.fn();
+    rerender(queueUi(onRead, "0x3333333333333333333333333333333333333333"));
+
+    expect(screen.getByRole("button", { name: "Check Requests" })).toBeInTheDocument();
+    expect(onRead).not.toHaveBeenCalled();
   });
 
   it("requires and sends a decline reason", async () => {

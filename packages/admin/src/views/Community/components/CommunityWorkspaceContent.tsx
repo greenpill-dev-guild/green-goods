@@ -1,7 +1,6 @@
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
-import type { GardenJoinRequestKind } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import {
@@ -19,14 +18,9 @@ import { CommunityYieldStatus } from "./CommunityYieldStatus";
 
 interface CommunityWorkspaceContentProps {
   workspace: CommunityWorkspace;
-  /** Tells the Members tab's badge what a read of a join-request queue found. */
-  onJoinRequestsRead: (kind: GardenJoinRequestKind, waiting: number) => void;
 }
 
-export function CommunityWorkspaceContent({
-  workspace,
-  onJoinRequestsRead,
-}: CommunityWorkspaceContentProps) {
+export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceContentProps) {
   const { formatMessage } = useIntl();
 
   if (!workspace.selectedGarden) {
@@ -83,7 +77,7 @@ export function CommunityWorkspaceContent({
         closeMembersModal={workspace.closeMembersModal}
         memberCount={workspace.memberCount}
         memberSearch={workspace.memberSearch}
-        onJoinRequestsRead={onJoinRequestsRead}
+        noteJoinRequestsRead={workspace.noteJoinRequestsRead}
         roleMembers={workspace.roleMembers}
         roleSummary={workspace.roleSummary}
         scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}

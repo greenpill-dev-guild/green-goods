@@ -5,9 +5,8 @@ import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-poolin
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
-import type { GardenJoinRequestKind } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
@@ -24,21 +23,6 @@ export default function CommunityView() {
     gardenId: (community.selectedGardenAddress ?? ZERO_ADDRESS) as Address,
   });
   const showCoordination = Boolean(community.selectedGardenAddress) && isProtocolGarden;
-
-  // Join requests are the one count on this rail, since only they wait on the
-  // steward (DL-134). Their queue reads only through the steward's signature, so
-  // the badge holds what the last read of this garden returned, and nothing
-  // before one: a badge never asks for a signature.
-  const [joinRequestsRead, setJoinRequestsRead] = useState<Record<string, number>>({});
-  const gardenAddress = community.selectedGardenAddress;
-  const noteJoinRequestsRead = useCallback(
-    (kind: GardenJoinRequestKind, waiting: number) =>
-      setJoinRequestsRead((read) => ({ ...read, [`${gardenAddress}:${kind}`]: waiting })),
-    [gardenAddress]
-  );
-  const waitingJoinRequests =
-    (joinRequestsRead[`${gardenAddress}:garden_membership`] ?? 0) +
-    (joinRequestsRead[`${gardenAddress}:steward_access`] ?? 0);
 
   // Paid-out magnitudes by asset: the header cannot add base units across
   // WETH/USDC/etc. as one token total.
@@ -122,7 +106,8 @@ export default function CommunityView() {
                 id: "cockpit.community.members",
                 defaultMessage: "Members",
               }),
-              count: waitingJoinRequests,
+              // Only join requests wait on the steward on this rail (DL-134).
+              count: community.joinRequestsWaiting,
             },
             ...(showCoordination
               ? [
@@ -153,7 +138,7 @@ export default function CommunityView() {
         />
       </CanvasRouteHeader>
 
-      <CommunityWorkspaceContent workspace={community} onJoinRequestsRead={noteJoinRequestsRead} />
+      <CommunityWorkspaceContent workspace={community} />
     </CanvasRouteFrame>
   );
 }

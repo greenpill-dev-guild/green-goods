@@ -1,7 +1,7 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { act, fireEvent, renderWithProviders, screen, within } from "../test-utils";
+import { fireEvent, renderWithProviders, screen, within } from "../test-utils";
 import CommunityView from "@/views/Community";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   protocolGarden: false,
   changeMode: vi.fn(),
   identity: vi.fn(),
-  joinRequestsRead: (() => {}) as (kind: string, waiting: number) => void,
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController", () => ({
@@ -26,12 +25,7 @@ vi.mock("@/views/Community/components/CommunitySheetDescriptor", () => ({
   CommunitySheetDescriptor: () => null,
 }));
 vi.mock("@/views/Community/components/CommunityWorkspaceContent", () => ({
-  CommunityWorkspaceContent: (props: {
-    onJoinRequestsRead: (kind: string, waiting: number) => void;
-  }) => {
-    mocks.joinRequestsRead = props.onJoinRequestsRead;
-    return null;
-  },
+  CommunityWorkspaceContent: () => null,
 }));
 
 function renderCommunity() {
@@ -123,6 +117,7 @@ describe("Community tab badges (DL-134)", () => {
       memberCount: 11,
       desktopActions: [],
       hasVaults: true,
+      joinRequestsWaiting: 0,
       mode: "members",
       handleModeChange: mocks.changeMode,
     } as unknown as CommunityWorkspace;
@@ -136,24 +131,12 @@ describe("Community tab badges (DL-134)", () => {
     }
   });
 
-  it("counts both join-request queues on Members once a read says so, garden by garden", () => {
+  it("counts the join requests waiting on Members, and shows none when none wait", () => {
+    mocks.workspace = { ...mocks.workspace!, joinRequestsWaiting: 3 };
     const { rerender } = renderCommunity();
-
-    act(() => mocks.joinRequestsRead("garden_membership", 2));
-    act(() => mocks.joinRequestsRead("steward_access", 1));
     expect(screen.getByRole("tab", { name: "Members 3 waiting" })).toBeInTheDocument();
 
-    // Answering a request takes it off the count.
-    act(() => mocks.joinRequestsRead("garden_membership", 1));
-    expect(screen.getByRole("tab", { name: "Members 2 waiting" })).toBeInTheDocument();
-
-    // Another garden's rail shows nothing it has not read.
-    const ordinaryGarden = "0x2222222222222222222222222222222222222222";
-    mocks.workspace = {
-      ...mocks.workspace!,
-      selectedGarden: { ...mocks.workspace!.selectedGarden!, id: ordinaryGarden },
-      selectedGardenAddress: ordinaryGarden,
-    };
+    mocks.workspace = { ...mocks.workspace!, joinRequestsWaiting: 0 };
     rerender(
       <MemoryRouter>
         <CommunityView />

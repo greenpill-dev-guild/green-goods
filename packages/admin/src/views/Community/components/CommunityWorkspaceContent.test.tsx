@@ -99,10 +99,7 @@ function renderWorkspace(overrides: Partial<CommunityWorkspace> = {}) {
   render(
     <IntlProvider locale="en" messages={messages}>
       <MemoryRouter>
-        <CommunityWorkspaceContent
-          workspace={{ ...baseWorkspace, ...overrides }}
-          onJoinRequestsRead={noop}
-        />
+        <CommunityWorkspaceContent workspace={{ ...baseWorkspace, ...overrides }} />
       </MemoryRouter>
     </IntlProvider>
   );

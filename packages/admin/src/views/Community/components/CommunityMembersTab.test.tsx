@@ -50,7 +50,7 @@ function MembersHarness({
       closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
       memberCount={memberCount}
       memberSearch=""
-      onJoinRequestsRead={() => {}}
+      noteJoinRequestsRead={() => {}}
       roleMembers={storyRoleMembers}
       roleSummary={roleSummary}
       scheduleBackgroundRefetch={() => {}}

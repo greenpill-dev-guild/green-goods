@@ -19,7 +19,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
@@ -35,8 +35,9 @@ export function CommunityJoinRequests({
   /** Told how many wait in a queue after each read, for the Members tab's badge (DL-134). */
   onRead: JoinRequestsReadHandler;
 }) {
+  // Keyed by garden: one garden's check never stands for another garden's queue.
   return (
-    <>
+    <Fragment key={gardenAddress}>
       <CommunityJoinRequestQueue
         gardenAddress={gardenAddress}
         kind="garden_membership"
@@ -47,7 +48,7 @@ export function CommunityJoinRequests({
         kind="steward_access"
         onRead={onRead}
       />
-    </>
+    </Fragment>
   );
 }
 
