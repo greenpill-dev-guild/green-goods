@@ -1,5 +1,8 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
-import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import {
+  useAddMembersBatch,
+  useGardenOperations,
+} from "@green-goods/shared/hooks/garden/useGardenOperations";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useEffect, useMemo, useState } from "react";
@@ -34,6 +37,7 @@ export function CommunityMembersDialogs({
       ? memberParam
       : undefined;
   const operations = useGardenOperations(garden.id);
+  const addMembersBatch = useAddMembersBatch(garden.id);
   const gardenAddress = garden.id;
 
   useEffect(() => {
@@ -112,6 +116,7 @@ export function CommunityMembersDialogs({
           initialAddress={addMembersPrefill}
           isLoading={operations.isLoading}
           onAdd={(role, address) => addByRole[role](address)}
+          batch={addMembersBatch}
         />
       ) : null}
     </>
