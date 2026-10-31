@@ -9,8 +9,8 @@ import {
   type GardenSettingsBatchOutcome,
   type GardenSettingsChange,
   type GardenSettingsHold,
-  type GardenSettingsSettlement,
   gardenSettingsBudget,
+  gardenSettingsDomain,
   moveOnFromGardenSettingsHold,
   readGardenSettingsHold,
   sendGardenSettingsBatch,
@@ -22,15 +22,14 @@ import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { gardenSettingsBatchKeys, gardensKeys } from "../../config/query-keys/garden";
+import { useHeldBatches } from "./useHeldBatches";
+import { batchKeys, gardensKeys } from "../../config/query-keys/garden";
 
 export type {
   GardenSettingsBatchOutcome,
   GardenSettingsChange,
   GardenSettingsHold,
 } from "../../modules/garden/settings-batch";
-
-const NO_SETTLEMENT: GardenSettingsSettlement = { hold: null, saved: [] };
 
 interface UpdateGardenStringParam {
   gardenAddress: Address;
@@ -275,9 +274,6 @@ export function useSetMaxGardeners() {
  * `available` says a save can go as one batch now: its rail is listed, and the sender reports
  * atomic. Recovery does not depend on that, so a hold from an earlier save still shows after
  * batching is switched off.
- *
- * `hold` and `saved` come from the latest read, and `lastReadAt` marks it. A read follows every
- * send and can settle that send by itself, so act on each read, not on Check Again's result.
  */
 export function useGardenSettingsBatch(gardenAddress: Address) {
   const { formatMessage } = useIntl();
@@ -307,7 +303,7 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
 
   // Asked only once listed: until then no wallet hears from this hook.
   const { data: atomic = false } = useQuery({
-    queryKey: gardenSettingsBatchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
+    queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
     queryFn: async () => {
       const capability = await sender!.getBatchCapability!({ account: account!, chainId });
       return capability.atomic === "supported";
@@ -316,7 +312,8 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
     retry: false,
   });
 
-  const holdKey = gardenSettingsBatchKeys.hold(gardenAddress, account ?? "", chainId);
+  const domain = gardenSettingsDomain(gardenAddress);
+  const holdKey = batchKeys.hold(domain, account ?? "", chainId);
   const batchInput = () => ({
     batches: batches!,
     chain: createGardenSettingsChain(chainId),
@@ -328,10 +325,6 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
     void queryClient.invalidateQueries({
       queryKey: ["readContract", { functionName: "gardenDomains", args: [gardenAddress] }],
     });
-  };
-  const noteSettlement = (settlement: GardenSettingsSettlement) => {
-    if (settlement.saved.length > 0) refreshGarden();
-    return settlement;
   };
 
   const sendBatch = useMutation({
@@ -352,43 +345,20 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
   });
 
-  const holdQuery = useQuery({
-    queryKey: holdKey,
-    queryFn: async () => {
-      const shown = queryClient.getQueryData<GardenSettingsSettlement>(holdKey)?.hold;
-      return noteSettlement(await readGardenSettingsHold(batchInput(), shown));
-    },
-    // This tab's own send is in flight, not unknown.
+  const held = useHeldBatches<GardenSettingsHold, GardenSettingsChange>({
+    domain,
+    account,
+    chainId,
     enabled: Boolean(batches && account) && !sendBatch.isPending,
-    // Read on opening and when the person asks. The journal is the durable copy.
-    gcTime: 0,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-
-  const settlement = holdQuery.data ?? NO_SETTLEMENT;
-
-  const moveOn = useMutation({
-    mutationFn: async (hold: GardenSettingsHold) =>
-      noteSettlement(await moveOnFromGardenSettingsHold(batchInput(), hold)),
-    onSuccess: (settled) => queryClient.setQueryData(holdKey, settled),
+    read: (shown) => readGardenSettingsHold(batchInput(), shown),
+    moveOn: (hold) => moveOnFromGardenSettingsHold(batchInput(), hold),
+    onSaved: refreshGarden,
     onError: (error) => handleError(error, { authMode: rail, gardenAddress }),
   });
 
   return {
+    ...held,
     available: listed && atomic,
-    hold: settlement.hold,
-    saved: settlement.saved,
-    lastReadAt: holdQuery.dataUpdatedAt,
-    isSettlingHold: holdQuery.isFetching || moveOn.isPending,
     send: (changes: readonly GardenSettingsChange[]) => sendBatch.mutateAsync(changes),
-    checkAgain: async () => {
-      const { error } = await holdQuery.refetch();
-      if (error) handleError(error, { authMode: rail, gardenAddress });
-    },
-    moveOn: async () => {
-      if (settlement.hold) await moveOn.mutateAsync(settlement.hold).catch(() => undefined);
-    },
   };
 }
