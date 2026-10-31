@@ -122,7 +122,6 @@ export function recentActivityFixture(
 ): GardenRecentActivity {
   return {
     state,
-    featured: state.status === "ready" ? (state.items.find((item) => item.media.length) ?? null) : null,
     actionTitleOf: (item) => ACTION_TITLES[item.actionUID],
     refetch: () => undefined,
   };
@@ -160,10 +159,7 @@ export function openPromisesFixture(
   return {
     state,
     all: state,
-    ask:
-      state.status === "ready"
-        ? (JOURNAL_ENTRIES.find((entry) => entry.copy.direction === "REQUEST") ?? null)
-        : null,
+    emptyReason: "none",
     titleOf: (cid) => (cid ? (TITLES.get(cid) ?? null) : null),
     refetch: () => undefined,
   };

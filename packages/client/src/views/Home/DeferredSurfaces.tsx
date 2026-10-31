@@ -10,8 +10,9 @@ import type { NotificationsLauncherProps } from "./Notifications/Launcher";
  * ambient adjunct, degrades in place as it says below.
  */
 
+const loadCommitmentsSheet = () => import("./CommitmentsSheet");
 export const CommitmentsSheet = lazy(() =>
-  import("./CommitmentsSheet").then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
+  loadCommitmentsSheet().then(({ CommitmentsSheet }) => ({ default: CommitmentsSheet }))
 );
 export const CommitmentsSheetLauncher = lazy(
   (): Promise<{ default: ComponentType<{ onClick: () => void }> }> =>
@@ -38,9 +39,20 @@ export const NotificationsLauncher = lazy(
         return { default: () => <NotificationsIcon disabled /> };
       })
 );
+const loadWalletSheet = () => import("./WalletSheet");
 export const WalletSheet = lazy(() =>
-  import("./WalletSheet").then(({ WalletSheet }) => ({ default: WalletSheet }))
+  loadWalletSheet().then(({ WalletSheet }) => ({ default: WalletSheet }))
 );
+
+/*
+ * A sheet's code, fetched ahead of its first opening. Its launcher waits for it, disabled and
+ * busy, so a tap never asks for a sheet that has nothing to show yet, as Your Work's launcher
+ * does (DL-132). A fetch that fails frees the launcher instead of holding it: its tap then opens
+ * the sheet through the lazy import above, which reports the failure through the route's error
+ * frame and its reload, as every sheet here does.
+ */
+export const preloadCommitmentsSheet = loadCommitmentsSheet;
+export const preloadWalletSheet = loadWalletSheet;
 // The switcher is a sheet like the others: its code, and the app's sheet frame with it, arrive
 // with its first opening rather than with Home.
 export const GardenSwitcherSheet = lazy(() =>

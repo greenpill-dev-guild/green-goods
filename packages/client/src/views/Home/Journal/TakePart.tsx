@@ -80,6 +80,7 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
       {withCycleLines ? <CycleLines gardenId={gardenId} /> : null}
       <TakePartRows
         state={state}
+        emptyReason={promises.emptyReason}
         titleOf={promises.titleOf}
         onRetry={promises.refetch}
         onOpen={(entry) => navigate(takePartPath(gardenId, entry))}
@@ -95,12 +96,15 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
  */
 export function TakePartRows({
   state,
+  emptyReason = "none",
   titleOf,
   onRetry,
   onOpen,
   serviceOf,
 }: {
   state: GardenOpenPromises["state"];
+  /** Why the list is empty, when it is: the empty row says so (DL-132). */
+  emptyReason?: GardenOpenPromises["emptyReason"];
   titleOf: GardenOpenPromises["titleOf"];
   onRetry: () => void;
   onOpen: (entry: TakePartEntry) => void;
@@ -142,12 +146,23 @@ export function TakePartRows({
         />
       );
     case "empty":
+      // A reader whose own promises are the only open ones hears that, not "nothing open".
       return (
         <JournalStateRow
           kind="empty"
           icon={<RiInboxLine />}
-          title={formatMessage({ id: "app.home.journal.takePart.emptyTitle" })}
-          detail={formatMessage({ id: "app.home.journal.takePart.emptyDetail" })}
+          title={formatMessage({
+            id:
+              emptyReason === "yours"
+                ? "app.home.journal.takePart.yoursTitle"
+                : "app.home.journal.takePart.emptyTitle",
+          })}
+          detail={formatMessage({
+            id:
+              emptyReason === "yours"
+                ? "app.home.journal.takePart.yoursDetail"
+                : "app.home.journal.takePart.emptyDetail",
+          })}
         />
       );
     case "ready":

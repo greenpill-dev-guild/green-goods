@@ -101,7 +101,8 @@ export function GardenPage({ garden, onBack, showHeader = true, children }: Gard
   };
 
   const { name, bannerImage, location, createdAt } = garden;
-  const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${new Date(createdAt).toLocaleDateString()}`;
+  // The app's locale formats the date, as every other date in the app does (DL-132).
+  const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${intl.formatDate(new Date(createdAt), { dateStyle: "medium" })}`;
 
   const tabs = buildGardenTabs(intl, { hasPool: Boolean(commitmentPool) });
 

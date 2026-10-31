@@ -121,6 +121,7 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
         ) : (
           <TakePartRows
             state={inCycle && all.status === "ready" ? { ...all, items: inCycle } : all}
+            emptyReason={promises.emptyReason}
             titleOf={promises.titleOf}
             onRetry={promises.refetch}
             serviceOf={(id) => serviceOfferDetail(intl, serviceLines.get(id.toString()))}

@@ -3,10 +3,14 @@ import type { PasskeyAccountProfileId } from "../auth/account-profile";
 export type BatchRail = "passkey" | "wallet";
 
 export interface BatchEnablement {
-  action: "garden-settings";
+  action: "garden-settings" | "add-members";
   rail: BatchRail;
-  /** A wallet lists as `eip-5792`: this list says it may batch, its own capability says it can. */
-  profile: PasskeyAccountProfileId | "eip-5792";
+  /**
+   * A wallet lists as `eip-5792` when the action needs atomic calls: this list says it may batch,
+   * its own capability says it can. It lists as `contract-call` when one call does the batching, so
+   * every wallet can send it.
+   */
+  profile: PasskeyAccountProfileId | "eip-5792" | "contract-call";
   chainId: number;
 }
 

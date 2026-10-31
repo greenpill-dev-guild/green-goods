@@ -14,11 +14,9 @@ import type {
 } from "../../../modules/commitment-pooling/types-core";
 import {
   cycleDaysLeft,
-  featuredWork,
   type GardenWorkRead,
   JOURNAL_PREVIEW_COUNT,
   type JournalQueryRead,
-  openAsk,
   openCycles,
   type PoolSectionRead,
   poolSectionState,
@@ -27,6 +25,7 @@ import {
   isTakeableBy,
   NO_TAKE_UPS,
   recentActivityState,
+  takePartEmptyReason,
   takePartEntries,
   takePartPromises,
   viewerTakeUps,
@@ -122,11 +121,6 @@ describe("Recent Activity", () => {
     ["offline with a saved read of an empty garden", "empty", workRead([], { isPaused: true })],
   ])("reads %s as %s", (_case, status, read) => {
     expect(recentActivityState(read).status).toBe(status);
-  });
-
-  it("features the newest of the garden's works that has a photo", () => {
-    expect(featuredWork([uploading, approved, rejected, pending])).toBe(pending);
-    expect(featuredWork([approved, uploading])).toBeNull();
   });
 });
 
@@ -262,6 +256,40 @@ describe("Take Part", () => {
     expect(takePartPromises([openOffer, readersOwn], null, NO_TAKE_UPS, CLOCK)).toHaveLength(2);
   });
 
+  it("says why nothing is listed: no open promise, or only the reader's own (DL-132)", () => {
+    const input = (commitments: CommitmentReadModel[]) => ({
+      commitments,
+      metadataByCID: NO_METADATA,
+      viewer: READER,
+      poolOpen: true,
+      takeUps: NO_TAKE_UPS,
+      clock: CLOCK,
+    });
+    const readersOwn = promise(7, { creator: READER, leadProvider: READER });
+    const kept = promise(4, { onchainState: "FULFILLED", derivedState: "FULFILLED" });
+
+    expect(takePartEmptyReason(input([]))).toBe("none");
+    expect(takePartEmptyReason(input([kept]))).toBe("none");
+    expect(takePartEmptyReason(input([readersOwn, kept]))).toBe("yours");
+    // Another's open offer is listed, so there is nothing to explain.
+    expect(takePartEmptyReason(input([readersOwn, promise(9)]))).toBe("none");
+    // Another's ask the reader asked to take up, or has queued, is not the reader's own yet: the
+    // request may be declined and the send may fail, so the row never calls it "yours".
+    const othersAsk = promise(8, {
+      direction: "REQUEST",
+      onchainState: "REQUESTED",
+      derivedState: "REQUESTED",
+    });
+    const requested = { requested: new Set(["8"]), queued: new Set<string>() };
+    const queued = { requested: new Set<string>(), queued: new Set(["8"]) };
+    expect(takePartEmptyReason({ ...input([othersAsk]), takeUps: requested })).toBe("none");
+    expect(takePartEmptyReason({ ...input([othersAsk, readersOwn]), takeUps: queued })).toBe(
+      "none"
+    );
+    // A pool that is not open takes nothing up, whoever made its promises.
+    expect(takePartEmptyReason({ ...input([readersOwn]), poolOpen: false })).toBe("none");
+  });
+
   it("folds copies of one set into one row, as the Pool tab does", () => {
     const metadata = new Map<string, CommitmentMetadataV1>([
       ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
@@ -295,25 +323,6 @@ describe("Take Part", () => {
     });
   });
 
-  it("picks the newest ask for the carousel, or none", () => {
-    const entries = takePartEntries({
-      commitments: [
-        promise(12),
-        promise(11, { direction: "REQUEST", onchainState: "REQUESTED", derivedState: "REQUESTED" }),
-        promise(10, { direction: "REQUEST", onchainState: "REQUESTED", derivedState: "REQUESTED" }),
-      ],
-      metadataByCID: NO_METADATA,
-      viewer: READER,
-      poolOpen: true,
-      clock: CLOCK,
-      takeUps: NO_TAKE_UPS,
-    });
-
-    const ask = openAsk(entries);
-    expect(ask?.kind === "single" && ask.row.commitment.commitmentId).toBe(11n);
-    expect(openAsk(entries.slice(0, 1))).toBeNull();
-  });
-
   it("stands a group for its first copy the reader could take up", () => {
     const metadata = new Map<string, CommitmentMetadataV1>([
       ["cid-set", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "set-1" } }],
@@ -339,7 +348,6 @@ describe("Take Part", () => {
     expect(entries.map((entry) => [entry.kind, entry.copy?.commitmentId])).toEqual([
       ["group", 40n],
     ]);
-    expect(openAsk(entries)?.copy.commitmentId).toBe(40n);
   });
 
   it("takes nothing up while the pool is not open, as the promise page's take-up gate reads it", () => {
@@ -443,19 +451,6 @@ describe("the reader's own take-ups (#1292's review, decision 18)", () => {
 
     expect(listed([ask(9), yours], takeUps)).toEqual([9n]);
     expect(isTakeableBy(yours, READER, takeUps, CLOCK)).toBe(false);
-  });
-
-  it("leaves the carousel's ask out on the same terms as Take Part", () => {
-    const entries = takePartEntries({
-      commitments: [ask(9), ask(8)],
-      metadataByCID: NO_METADATA,
-      viewer: READER,
-      poolOpen: true,
-      clock: CLOCK,
-      takeUps: viewerTakeUps({ viewer: READER, pendingRequests: [], queued: new Set(["9"]) }),
-    });
-
-    expect(openAsk(entries)?.copy.commitmentId).toBe(8n);
   });
 
   it("lists in one tap only the asks the chain hands the reader at once", () => {

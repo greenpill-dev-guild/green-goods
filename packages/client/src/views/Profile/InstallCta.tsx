@@ -53,17 +53,17 @@ export const InstallCta: React.FC = () => {
     if (guidance.manualInstructions) {
       return guidance.manualInstructions
         .map((step) => step.description.replace(/\*\*/g, ""))
-        .join(" → ");
+        .join(" ");
     }
     if (platform === "ios") {
       return intl.formatMessage({
         id: "app.profile.installDescriptionIOS",
-        defaultMessage: "Tap Share → Add to Home Screen in Safari.",
+        defaultMessage: "In Safari, tap Share, then Add to Home Screen.",
       });
     }
     return intl.formatMessage({
       id: "app.profile.installDescriptionAndroid",
-      defaultMessage: "Open in Chrome → Menu → Install app.",
+      defaultMessage: "In Chrome, open the menu and choose Install app.",
     });
   }, [guidance.scenario, guidance.manualInstructions, platform, intl]);
 

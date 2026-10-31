@@ -107,11 +107,6 @@ export function recentActivityState(read: GardenWorkRead): RecentActivityState {
   return answered ? { status: "empty" } : { status: "loading" };
 }
 
-/** The newest of the garden's works with a photo, the carousel's featured update. */
-export function featuredWork(works: readonly Work[]): Work | null {
-  return gardenActivity(works).find((work) => work.media.length > 0) ?? null;
-}
-
 export interface OpenCycle {
   cycle: CommitmentCycleRecord;
   /** Whole days to the cycle's end, the last part of a day counting as one; null without one. */
@@ -325,6 +320,20 @@ export function takePartEntries(input: TakePartInput): TakePartEntry[] {
 }
 
 /**
+ * Why Take Part lists nothing, when it does (DL-132): `yours` when the pool's open promises are
+ * all the reader's own, `none` otherwise. A promise the reader asked to take up, or has a take-up
+ * queued for, is still another's: its request may be declined and its send may fail, so it never
+ * reads as "yours".
+ */
+export function takePartEmptyReason(input: TakePartInput): "none" | "yours" {
+  if (!input.poolOpen) return "none";
+  const viewer = input.viewer ?? undefined;
+  const open = input.commitments.filter((commitment) => isOpenToTakeUp(commitment, input.clock));
+  if (open.length === 0) return "none";
+  return open.every((commitment) => isCommitmentCreator({ commitment, viewer })) ? "yours" : "none";
+}
+
+/**
  * The asks Submit Work's Start step lists beside the reader's own promises (decision 18): Take
  * Part's entries, each standing for its set's first copy the reader could take up, narrowed to
  * the asks the chain hands them in one tap.
@@ -333,9 +342,4 @@ export function oneTapAsks(input: TakePartInput): CommitmentReadModel[] {
   return takePartEntries(input)
     .map((entry) => entry.copy)
     .filter((copy) => isOneTapTakeUp(copy, input.viewer, input.takeUps, input.clock));
-}
-
-/** The newest ask among Take Part's entries, for the carousel's last card. */
-export function openAsk(entries: readonly TakePartEntry[]): TakePartEntry | null {
-  return entries.find((entry) => entry.copy.direction === "REQUEST") ?? null;
 }

@@ -31,7 +31,7 @@ export interface SubmissionFlowProps {
 }
 
 /**
- * The one submission flow's page (DL-131): the top bar with the step markers spread beside Back,
+ * The one submission flow's page (DL-131): the top bar with the step markers centred (DL-132),
  * the stage the kind renders under the body's lead, and the fixed bar with why the step waits,
  * the prompts an Open ask's take-up opens (Review), the media tools on Media, and the one forward
  * act. Start has no forward act, so it has no bar:
@@ -69,17 +69,12 @@ export function SubmissionFlow({
 
   return (
     <>
-      <TopNav
-        onBackClick={flow.back}
-        overlay
-        steps={
-          <FormProgress
-            layout="spread"
-            currentStep={flow.progress}
-            steps={flow.stageLabelIds.map((id) => formatMessage({ id }))}
-          />
-        }
-      />
+      <TopNav onBackClick={flow.back} overlay>
+        <FormProgress
+          currentStep={flow.progress}
+          steps={flow.stageLabelIds.map((id) => formatMessage({ id }))}
+        />
+      </TopNav>
       <form
         id={formId}
         className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"

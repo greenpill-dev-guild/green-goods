@@ -3,9 +3,10 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { withDataRouter, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
-import { AddMembersDialog } from "./AddMembersDialog";
+import { AddMembersDialog, type AddMembersDialogProps } from "./AddMembersDialog";
+import type { StagedMember } from "./addMembersEntry";
 
 // Fictional people. Rosa gardens here; Kofi stewards (which also made him an
 // evaluator and a gardener); the other two are new to the garden.
@@ -23,6 +24,29 @@ const roleMembers: Record<GardenRole, Address[]> = {
   funder: [],
   community: [],
 };
+
+const NOTHING_LANDED = {
+  added: [],
+  alreadyHeld: [],
+  refused: [],
+  notSent: [],
+  notBatchable: [],
+  unknown: [],
+};
+
+// A rail that can send a list under one signature, with nothing unsettled.
+const listedBatch = {
+  account: GARDEN,
+  hold: null,
+  saved: [],
+  lastReadAt: 0,
+  isSettlingHold: false,
+  checkAgain: fn(async () => undefined),
+  moveOn: fn(async () => undefined),
+  available: true,
+  signaturesFor: (count: number) => Math.ceil(count / 10),
+  add: fn(async () => NOTHING_LANDED),
+} satisfies AddMembersDialogProps["batch"];
 
 const body = () => within(document.body);
 
@@ -44,7 +68,7 @@ async function stage() {
 const meta: Meta<typeof AddMembersDialog> = {
   title: "Admin/Workflows/Garden/AddMembersDialog",
   component: AddMembersDialog,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [
     // The dirty-close guard blocks navigation through `useBlocker`, which only
     // a data router provides.
@@ -178,6 +202,100 @@ export const Prefilled: Story = {
 export const HostWriteInFlight: Story = {
   args: {
     isLoading: true,
+  },
+};
+
+/** A listed rail: the footer says the whole list takes one signature. */
+export const OneSignature: Story = {
+  args: { batch: listedBatch },
+  play: async () => {
+    await enter(NEW_A);
+    await stage();
+    await enter(NEW_B);
+    await stage();
+    await expect(await body().findByText("1 signature")).toBeVisible();
+  },
+};
+
+/**
+ * The chain would refuse one row, which would revert the whole call, so nothing
+ * is signed. The reason stays on that row until the person changes the list.
+ */
+export const RefusedRow: Story = {
+  args: {
+    batch: {
+      ...listedBatch,
+      add: fn(async (rows: readonly StagedMember[]) => ({
+        ...NOTHING_LANDED,
+        refused: [{ ...rows[0], reason: "This person can’t hold this role." }],
+        notSent: rows.slice(1),
+      })),
+    },
+  },
+  play: async () => {
+    await enter(NEW_A);
+    await stage();
+    await enter(NEW_B);
+    await stage();
+    await userEvent.click(await body().findByRole("button", { name: "Add 2 Gardeners" }));
+    await expect(await body().findByText("This person can’t hold this role.")).toBeVisible();
+    await expect(body().getByText(/so nothing was sent/)).toBeVisible();
+  },
+};
+
+/**
+ * The list is past its ceilings, which only the last check before signing can
+ * find. Nothing went out, and the footer's count is corrected before anyone
+ * is asked for more signatures than they were promised.
+ */
+export const NeedsMoreSignatures: Story = {
+  args: {
+    batch: {
+      ...listedBatch,
+      add: fn(async (rows: readonly StagedMember[]) => ({
+        ...NOTHING_LANDED,
+        notBatchable: [...rows],
+      })),
+    },
+  },
+  play: async () => {
+    await enter(NEW_A);
+    await stage();
+    await enter(NEW_B);
+    await stage();
+    await userEvent.click(await body().findByRole("button", { name: "Add 2 Gardeners" }));
+    await expect(await body().findByText(/can’t share one signature right now/)).toBeVisible();
+    await expect(body().getByText("Up to 2 signatures")).toBeVisible();
+  },
+};
+
+/** An earlier add has an unknown outcome: its rows stay locked and say what the chain shows. */
+export const UnconfirmedAdd: Story = {
+  args: {
+    batch: {
+      ...listedBatch,
+      lastReadAt: 1,
+      hold: {
+        operationIds: ["held-add"],
+        rows: [
+          { address: NEW_A, role: "gardener" },
+          { address: NEW_B, role: "gardener" },
+        ],
+        onChain: [
+          { address: NEW_A, role: "gardener", wearsRole: true },
+          { address: NEW_B, role: "gardener", wearsRole: false },
+        ],
+      },
+    },
+  },
+  play: async () => {
+    // Nothing here waits on a press, so the dialog may still be fading in.
+    await waitFor(() =>
+      expect(body().getByText("We couldn’t confirm the last people you added.")).toBeVisible()
+    );
+    await expect(await body().findByText("Not confirmed yet · On chain now")).toBeVisible();
+    await expect(body().getByText("Not confirmed yet · Not on chain")).toBeVisible();
+    await expect(body().getByRole("button", { name: "Move On" })).toBeEnabled();
   },
 };
 

@@ -266,6 +266,36 @@ describe("useGardenNotifications", () => {
     expect(reads.takeUpReads.every(({ options }) => options.enabled === false)).toBe(true);
   });
 
+  it("clears the listed events on this device: they leave the list, count seen and stay cleared (DL-133)", async () => {
+    seedGarden({ stewards: [ALICE], gardeners: [BOB] });
+    reads.works.push(
+      createMockWork({
+        id: "0xw4",
+        gardenerAddress: BOB,
+        gardenAddress: GARDEN,
+        status: "rejected",
+        createdAt: now - 20 * HOUR,
+        reviewedAt: now - 5 * HOUR,
+      })
+    );
+    const { result } = renderNotifications();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.newCount).toBe(4));
+    const listed = result.current.notifications.map(({ id }) => id);
+
+    act(() => result.current.clearAll());
+
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.newCount).toBe(0);
+    const record =
+      useGardenNotificationsSeenStore.getState().seenByScope[
+        `${DEFAULT_CHAIN_ID}:${ALICE}:${GARDEN}`
+      ];
+    expect(Object.keys(record?.cleared ?? {}).sort()).toEqual([...listed].sort());
+    // Seen marks still trim with the week; the cleared marks stay with the record.
+    expect(record?.seenThrough).toBeGreaterThan(0);
+  });
+
   it("marks events seen on this device for one account and garden, and writes nothing else", async () => {
     seedGarden({ stewards: [ALICE], gardeners: [BOB] });
     reads.gardens.push(createMockGarden({ id: OTHER_GARDEN, stewards: [ALICE], gardeners: [BOB] }));
@@ -290,7 +320,10 @@ describe("useGardenNotifications", () => {
     const { result, rerender } = renderNotifications();
     await waitFor(() => expect(result.current.newCount).toBe(4));
 
-    act(() => result.current.markAllSeen());
+    // The sheet marks only the rows its open tab shows; the rest stay new (DL-133).
+    act(() => result.current.markSeen(result.current.notifications.slice(0, 2)));
+    expect(result.current.newCount).toBe(2);
+    act(() => result.current.markSeen(result.current.notifications));
 
     expect(result.current.newCount).toBe(0);
     expect(result.current.notifications.every(({ isNew }) => !isNew)).toBe(true);
@@ -467,7 +500,7 @@ describe("useGardenNotifications", () => {
 
       // Two minutes pass with the app open; nothing re-renders the hook.
       vi.spyOn(Date, "now").mockReturnValue((now + 120) * 1000);
-      act(() => result.current.markAllSeen());
+      act(() => result.current.markSeen(result.current.notifications));
 
       expect(result.current.newCount).toBe(0);
       expect(result.current.notifications.map(({ isNew }) => isNew)).toEqual([false]);
