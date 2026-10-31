@@ -48,6 +48,13 @@ describe("withSentValues", () => {
     ).toEqual({ ...capped, limitGardeners: false, maxGardeners: "" });
   });
 
+  it("brings back a banner removal, which needs no file", () => {
+    expect(withSentValues(draft, [{ field: "banner", value: "" }])).toEqual({
+      ...draft,
+      bannerRemoved: true,
+    });
+  });
+
   it("keeps the same draft when nothing was sent, so a read causes no render", () => {
     expect(withSentValues(draft, [])).toBe(draft);
   });

@@ -192,8 +192,9 @@ export function adoptRefreshedGarden(
 
 /**
  * The draft with what a save sent back in it, so a reload does not lose what the
- * person typed, and a save that landed while they were away shows. The banner
- * stays out: what it held was a file, and only its uploaded address was kept.
+ * person typed, and a save that landed while they were away shows. A removed
+ * banner comes back, but a new one does not: what it held was a file, and only
+ * its uploaded address was kept.
  */
 export function withSentValues(
   current: SettingsDraft,
@@ -217,6 +218,9 @@ export function withSentValues(
         break;
       case "domains":
         next.domains = [...change.value];
+        break;
+      case "banner":
+        if (!change.value) next.bannerRemoved = true;
         break;
     }
   }

@@ -225,14 +225,15 @@ it("records several native attestation items with one ordinary wallet contract c
   expect(sender.getBatchCapability).not.toHaveBeenCalled();
 });
 
-it("keeps an adapter-proven pre-broadcast failure editable without an unresolved hold", async () => {
+it("gives the reason for an adapter-proven pre-broadcast failure, with no unresolved hold", async () => {
   const { journal, prepared, sender } = setup();
   vi.mocked(sender.submitAtomicBatch!).mockRejectedValueOnce(
     new BatchNotSubmittedError(new Error("session ended before broadcast"))
   );
-  expect(
-    (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
-  ).toBe("prepared");
+  await expect(
+    executeBatchOperation({ journal, prepared, sender, preflight, verify })
+  ).rejects.toThrow("session ended before broadcast");
+  expect((await journal.get(prepared.id))?.status).toBe("prepared");
   expect(
     (await executeBatchOperation({ journal, prepared, sender, preflight, verify })).status
   ).toBe("confirmed");
@@ -424,8 +425,10 @@ describe("ending a hold", () => {
       }
       throw new Error("the send must stop before this line");
     });
-    const result = await executeBatchOperation({ journal, prepared, sender, preflight, verify });
-    expect(result.status).toBe("prepared");
+    await expect(
+      executeBatchOperation({ journal, prepared, sender, preflight, verify })
+    ).rejects.toThrow("batch-reference-required");
+    expect((await journal.get(prepared.id))?.status).toBe("prepared");
   });
 
   it("keeps holding a wallet operation, whose open prompt could still be approved", async () => {

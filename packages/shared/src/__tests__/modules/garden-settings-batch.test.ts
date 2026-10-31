@@ -11,7 +11,10 @@ import {
   sendGardenSettingsBatch,
   verifyGardenSettings,
 } from "../../modules/garden/settings-batch";
-import type { BatchExecution } from "../../modules/transactions/batch-types";
+import {
+  type BatchExecution,
+  BatchNotSubmittedError,
+} from "../../modules/transactions/batch-types";
 import { type Address, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
@@ -218,6 +221,35 @@ describe("sendGardenSettingsBatch", () => {
     };
     await expect(send(input)).resolves.toEqual({ status: "not-batchable" });
     expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+  });
+
+  it("goes one field at a time when the last check before signing refuses the batch", async () => {
+    const { input, sender } = setup();
+    sender.submitAtomicBatch = vi.fn(async () => {
+      throw new BatchNotSubmittedError(new Error("batch-budget-exceeded"));
+    });
+
+    await expect(send(input)).resolves.toEqual({ status: "not-batchable" });
+    await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
+  });
+
+  it("gives the reason when a send fails for another reason before going out", async () => {
+    const { input, sender } = setup();
+    sender.submitAtomicBatch = vi.fn(async () => {
+      throw new BatchNotSubmittedError(new Error("batch-sponsorship-required"));
+    });
+
+    await expect(send(input)).rejects.toThrow("batch-sponsorship-required");
+    await expect(readGardenSettingsHold(input)).resolves.toEqual({ hold: null, saved: [] });
+  });
+
+  it("reports a declined signature as not saved, with nothing to explain", async () => {
+    const { input, sender } = setup();
+    sender.submitAtomicBatch = vi.fn(async () => {
+      throw new BatchNotSubmittedError(new Error("User rejected the request"));
+    });
+
+    await expect(send(input)).resolves.toEqual({ status: "not-saved" });
   });
 });
 

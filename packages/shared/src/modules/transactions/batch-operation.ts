@@ -236,6 +236,8 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
           status: declined ? "declined" : notSubmitted ? "prepared" : "unresolved",
         };
         await save(next).catch(() => undefined);
+        // Proven never sent: the caller gets the reason, and its items stay free to send.
+        if (notSubmitted && !declined) throw error;
         return { ...current(), status: next.status };
       }
       if (next.status !== "confirmed") return current();
