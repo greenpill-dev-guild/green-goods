@@ -1,7 +1,12 @@
-import { encodeFunctionData, isAddress, keccak256, stringToHex } from "viem";
+import { type Abi, encodeFunctionData, isAddress, keccak256, stringToHex } from "viem";
 import type { BatchBudget, BatchScope, PreparedBatch } from "./batch-types";
 import type { ContractCall } from "./types";
 import { assertBatchBudget } from "./batch-budget";
+
+/** The journal stores every prepared call, so each carries only its own function. */
+export function onlyFunction(abi: Abi, functionName: string): Abi {
+  return abi.filter((item) => item.type === "function" && item.name === functionName);
+}
 
 /** Freeze the reviewed inputs in a fingerprint, independent of any later form edits. */
 export function prepareBatch(

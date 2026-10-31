@@ -20,7 +20,7 @@ import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
-import { actionsKeys, gardenSettingsBatchKeys, gardensKeys } from "../../config/query-keys/garden";
+import { actionsKeys, batchKeys, gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
 
 const shouldDehydrateQuery = createShouldDehydrateQuery({ excludedGroups: ["queue"] });
@@ -64,7 +64,7 @@ describe("durable offline reads", () => {
     source.setQueryData(["greengoods", "queue"], [{ id: "job" }]);
     source.setQueryData(agentReportingKeys.challenge("challenge-1"), "proof_verified");
     // The batch journal owns a save's outcome; a restored copy could show a hold that has ended.
-    source.setQueryData(gardenSettingsBatchKeys.hold("garden", "account", 42161), { hold: null });
+    source.setQueryData(batchKeys.hold("domain", "account", 42161), { hold: null });
     // Restored after the device clock moved, an offset would move the chain's clock with it.
     source.setQueryData(commitmentPoolingKeys.chainClock(42161), -3_600_000);
     expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
