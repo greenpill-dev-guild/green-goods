@@ -336,34 +336,33 @@ export function AddMembersDialog({
           defaultMessage: "Choose a role for each person, then add the whole list.",
         })}
         actions={
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-            <p className="type-meta text-text-soft empty:hidden" aria-live="polite">
+          // One row at every width, so this line appearing never moves the buttons under a finger.
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
               {batchCount > 0
                 ? formatMessage({ id: "admin.addMember.signatureCount" }, { count: signatureCount })
                 : null}
             </p>
-            <div className="flex items-center justify-end gap-2 sm:ml-auto">
-              <Button
-                type="button"
-                emphasis="tertiary"
-                size="sm"
-                onClick={closeAndReset}
-                disabled={busy}
-              >
-                {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
-              </Button>
-              <Button
-                size="sm"
-                type="submit"
-                form={formId}
-                loading={submitResolving || submitting}
-                disabled={
-                  busy || isSettlingHold || batchCount === 0 || typedInputInvalid || resolvingEns
-                }
-              >
-                {submitLabel}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              emphasis="tertiary"
+              size="sm"
+              onClick={closeAndReset}
+              disabled={busy}
+            >
+              {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
+            </Button>
+            <Button
+              size="sm"
+              type="submit"
+              form={formId}
+              loading={submitResolving || submitting}
+              disabled={
+                busy || isSettlingHold || batchCount === 0 || typedInputInvalid || resolvingEns
+              }
+            >
+              {submitLabel}
+            </Button>
           </div>
         }
       >

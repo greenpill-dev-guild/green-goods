@@ -108,7 +108,8 @@ export function StagedMemberList({
                   {note ? (
                     <span
                       className={cn(
-                        "block truncate type-body",
+                        // Two lines, because this is what the person decides from, and a phone has no tooltip.
+                        "line-clamp-2 type-body",
                         held ? "text-warning-dark" : "text-error-dark"
                       )}
                       title={note}
