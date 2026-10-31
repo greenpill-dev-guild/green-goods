@@ -27,7 +27,7 @@ Green Goods helps communities turn good intentions into green outcomes: members 
 
 ## 2. The problem · 0:30
 
-Communities like the one I'll show you do real work every season, and four things around them fail. Funding comes one grant at a time; in one study of national NGOs across ten countries, two thirds of restricted grants didn't even cover a fair share of running costs, so nothing lasts. Reporting means forms and spreadsheets filled in by hand, often more than fifteen hours for a single grant. The record sits on someone else's server, where it can be changed or lost. And nothing follows the need through the work to the outcomes. So inside the community, contribution is thanked but not valued, and outside, supporters can't read it.
+Place-based initiatives like the one I'll show you do real work every season, and four things around them fail. Funding comes one grant at a time and never becomes sustainable: in 2025, on partial data, just 8.7% of reported humanitarian funding reached local and national groups, against a 25% target, and after the 2025 US aid cuts, 83% of the local NGOs in the NEAR network paused programmes. Reporting means forms and spreadsheets filled in by hand. The record sits on someone else's server, where it can be changed or lost. And nothing follows the need through the work to the outcomes. So inside the community, contribution is thanked but not valued, and outside, supporters can't read it.
 
 ## 3. The solution · 0:25
 
@@ -35,7 +35,7 @@ Green Goods answers each one. An endowment keeps a gift invested, so support out
 
 ## 4. Why I build Green Goods · 0:45
 
-I'm building Green Goods to rebuild community bonds and trust: the ones I've seen lost, in myself and in others. [Your moment, in your own words: where you saw those bonds fade, and what that cost.] Bonds grow back when people keep promises to each other and someone notices. So I build for three reasons that are really one. To support the people I care about in the regenerative ecosystem. To build a bridge of trust and transparency for the Nigerian diaspora. And to support the coming generation in Nigeria and across the Global South. These are some of the people I'm building for.
+I'm building Green Goods to rebuild community bonds and trust: the ones I've seen lost, in myself and in others. [Your moment, in your own words: where you saw those bonds fade, and what that cost.] Bonds grow back when people keep promises to each other and someone notices. So I build for three reasons that are really one. To support the people I care about in the regenerative ecosystem, like the Greenpill Network's chapters around the world. To build a bridge of trust and transparency for the Nigerian diaspora. And to support the coming generation in Nigeria and across the Global South. These are some of the people I'm building for.
 
 ## 5. Who we build for · 0:25
 
@@ -47,7 +47,7 @@ We call each place-based initiative a garden: a community doing regenerative wor
 
 ## 7. Ubuntu · 0:25
 
-There's a Southern African word for that: Ubuntu. I am because we are; a person is a person through other people. Trust in Green Goods grows the same way, from the people a promise touches. A promise names who does what for whom, by when. The person served confirms it, never the person who did it; if a steward has to step in, the record says so. Each kept promise is a bond the whole community can see. That is how bonds and trust grow back, one kept promise at a time.
+There's a Southern African word for that: Ubuntu. I am because we are: a person is a person through other people. Trust in Green Goods grows the same way, from the people a promise touches. The person a promise serves confirms it was kept, never the person who did it; if a steward has to step in, the record says so. Each kept promise becomes a bond the whole community can see. That's how bonds and trust grow back: one kept promise at a time.
 
 ## 8. The cycle · 0:20
 
@@ -55,15 +55,15 @@ A garden runs as a loop, season after season. Needs: what the place needs, from 
 
 ## 9. One builder, one community · 0:45
 
-[His name, with his agreement, and the career call you had with him on 21 October.] He's a 20-year-old front-end developer at the hub. He tried freelancing, but clients wanted proof of work he couldn't show. In Awka the power can go out for days; at the hub he keeps building, and he builds with other members on a shared hub project. Those are one builder's needs: proof, power, and people to build with. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.
+[His name, with his agreement, and the career call you had with him on 21 October.] He's a 20-year-old front-end developer at the hub. He tried freelancing, but clients wanted proof of work he couldn't show. In Awka the power can go out for days; the hub's solar keeps him building, and he builds with other members on a shared hub project. Those are his needs: proof, power and people. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.
 
 ## 10. Commitment pooling · 0:35
 
-We built commitment pooling for the Promise step. The hub asks for what it needs: this season asks members to complete a climate course, and it asks for workshops and discussions. The hub offers what it has: desks with power and internet, as hub-visit vouchers. Members offer or ask too, like a career call. Kept promises earn agreed rewards and service vouchers on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics, and members swap them in one shared pool. These screens are the hub's real season in the app. The contracts are deployed on public networks and in pilot with Tech and Sun, rehearsed end to end with demo accounts. Our developer's finished climate course is one of these promises kept, and it starts his record.
+We built commitment pooling for the Promise step. The hub asks for what it needs: this season asks members to complete a climate course, and it asks for workshops and discussions. The hub offers what it has: desks with power and internet, as hub-visit vouchers. Members offer or ask too, like a career call. Kept promises earn agreed rewards and service vouchers on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics, and members swap them in one shared pool. These screens are the hub's real season in the app, and the second is Ubuntu in the app: only the person served can confirm a promise was kept. The contracts are deployed on public networks and in pilot with Tech and Sun, rehearsed end to end with demo accounts. When our developer finishes the climate course, that kept promise starts his record. Here's what keeping promises opens for him.
 
 ## 11. What promises open · 0:25
 
-Keep promises, and doors open, through Green Goods first and then beyond it. Work: in the pilot, a designer, an analyst and an engineer build a website together, and each confirmed part goes into a portfolio the next employer can read. Learning: vouchers earned on projects book career calls and one-to-one help, from members first, then from the diaspora. Tools: hub visits and AI tool seats members can't afford alone. The record carries weight because the person who did the work never confirms it, and it can travel to the networks that count it.
+That's the Work step: once the person served confirms it, the work becomes proof, and doors open, through Green Goods first and then beyond it. Proof: in the pilot, a designer, an analyst and an engineer build a website together, and each confirmed part goes into a portfolio the next employer can read. Power: vouchers open the hub's desks, with steady power and internet, and AI tool seats members can't afford alone. People: vouchers book career calls and one-to-one help, from members first, then from the diaspora. The record carries weight because the person who did the work never confirms it, and it can travel to the networks that count it.
 
 ## 12. Funding · 0:45
 
@@ -122,17 +122,14 @@ Let's grow together. I am because we are.
   approvals and capacity, supporter funds in the exchange pool, endowment earnings routed to the
   exchange pool, integrated milestone funding, certificate purchases in the app, and the combined
   capital passport.
-- **The problem's evidence (slide 2), added 27 October.** The note's figures come from search
-  summaries read on 27 October; the primary pages could not be opened from the build sandbox, so
-  say "in one study" rather than a precise count unless you open the page first. Humentum,
-  *Breaking the Starvation Cycle* (2022): 81 national NGOs in ten countries; of 286 restricted
-  funding agreements from 92 funders, about two thirds paid less than a fair share of
-  administration costs. CEP, *Working Well With Grantees* (2013), cited by PEAK Grantmaking: half
-  of nonprofits surveyed spent more than 15 hours reporting on a single grant. Plinth, citing the
-  Grant Givers' Movement: accountability flows almost entirely upward to funders. IIED: under 10%
-  of the US$17bn committed by dedicated climate funds to 2016 was aimed at the local level, and its
-  November 2025 update found local involvement mentioned in transactions worth 29% of funding.
-  National or sector context, never our market.
+- **The problem's evidence (slide 2), replaced 28 October, updated 30 October.** Both figures were
+  read in ALNAP's original reports. *Global Humanitarian Assistance Report 2026*: direct and indirect
+  funding to local and national actors was 8.7% of reported humanitarian funding in 2025, on partial
+  data, down from 9.5% in 2024, against the Grand Bargain's 25% target. The 2025 edition had put 2024
+  at 7.5%, the figure on the deck of 28 October, so say so if asked. *Report 2025*: a NEAR Network
+  survey found that by 10 February 2025, 83% of its members, local and national NGOs, had paused
+  programmes because of the US funding cuts. The older Humentum (2022), CEP (2013) and IIED (2017)
+  figures are retired as too old. Humanitarian context, never our market.
 - **Outcomes (slides 2 and 3), added 27 October.** The slides say the record follows the need
   through the work to its outcomes. Today evaluators set the baseline and what good evidence looks
   like, and assessing what changed against that baseline is the next step; say so if asked, and

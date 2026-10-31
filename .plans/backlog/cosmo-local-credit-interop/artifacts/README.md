@@ -118,6 +118,15 @@ under stable names (`hub-desks`, `hub-launch-day`, `hub-members-together`, `hub-
 Never use record 15, a letter that names a person. Copy them again only from the same titles in
 `demo/assets/photos/record-photos.tsv`, since a new submission renumbers the list.
 
+Since 28 October slide 4 shows four pictures: `greenpill-network-map`, Afo's screenshot of the
+Greenpill Network site's chapter map, cropped to the map alone (no counters, map controls or
+buttons); Afolabi at the Odunde Festival (`founder-odunde`); and the hub on launch day and during
+its build (`hub-launch-day`, `hub-build-container`). Slide 5's small photos are the hub's rooftop
+solar and power system (`hub-solar-roof`, `hub-power-system`). Afo supplied the five new images
+(the map, `founder-odunde`, `hub-build-container`, `hub-solar-roof` and `hub-power-system`) in
+chat; they stay out of git too. The deck no longer shows `tas-hub-build`, `hub-desks` or
+`hub-bootcamp`.
+
 Since the why-thread rebuild late on 27 October the deck names and quotes nobody: slide 9 keeps
 the role text, and Afo says the builder's name and their conversation aloud, with the member's
 agreement. `deck/assets/private/` stays gitignored but is no longer read, and `?public=1` no
@@ -517,6 +526,33 @@ architecture's endowment box carry it. To keep page 5 inside its footer, the bri
 now says "before central costs" and lists the fee as "$3,000 setup, $7,000 support and reporting".
 An earlier check of the Octant pilot vaults' underlying rate read about 1.4%, below this range, so
 every mention keeps "typically" and the risk line.
+
+## The pitch-day polish · 28 October 2026
+
+Afo's review on the day of the pitch. Each change was outlined and approved before it was made, and
+the deck on Drive was replaced in place, so its links held.
+
+- **Type.** One size per role: 72px headlines on every content slide (the `h1.md` class is gone, and
+  76px would have wrapped slide 15), 30px body text, 42px serif subheads and 44px for the green
+  italic line. Content starts at 340px under a headline and at 400px under a headline with a green
+  line. Slide 14's photos gained the deck's rounded corners, and the captions on slides 5 and 14 now
+  fit one line.
+- **Slide 4.** Four pictures in the order of the three reasons: the Greenpill Network's map across
+  the top, then Afolabi at the Odunde Festival, the hub's launch day and its build.
+- **Slides 7 to 11.** Slide 9 names the builder's needs as proof, power and people. Slide 11 answers
+  with the same three words and icons, which also ends the clash between its old "Work" column and
+  the cycle's Work step. Ubuntu now carries one idea and ends on "one kept promise at a time",
+  calling back to slide 4; its "who does what for whom" line, which repeated slide 8, is gone. The
+  notes hand off between the steps of the cycle. Slide 10's note now says "When our developer
+  finishes the climate course", because the claims list has that promise in progress.
+- **Slide 2.** The headline names place-based initiatives as the communities with the problem, and
+  two figures ground it. Afo asked for figures about the problem rather than Green Goods' own, and
+  for current ones, so the 2013, 2017 and 2022 figures in the notes are retired. Slide 3 is unchanged.
+
+**Corrected on 30 October.** The 28 October deck credited Development Initiatives for the Global
+Humanitarian Assistance report; ALNAP publishes it. It also showed 7.5% for 2024, from the 2025
+edition. ALNAP's 2026 edition revises 2024 to 9.5% and gives 8.7% for 2025 on partial data, so slide
+2, its note and the deck on Drive now use 8.7%. The notes' evidence list records the change.
 
 ## The why-thread rebuild · 27 October 2026
 

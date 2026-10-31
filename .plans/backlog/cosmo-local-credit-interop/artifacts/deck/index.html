@@ -11,7 +11,9 @@
 <style>
   /* Approved style, 24 October 2026: the symbol alone in the corner of every slide, regular-weight
      Fraunces headlines with the website's green italic accent, Inter for everything else, one simple
-     surface style, solid lines only, nothing under 22px, chain names kept for the companion brief. */
+     surface style, solid lines only, nothing under 22px, chain names kept for the companion brief.
+     Since 28 October each role keeps one size: 72px headlines on every content slide, 30px body
+     text, 42px serif subheads and 44px for the green italic line. */
   :root {
     --linen: #FAF8F5; --paper: #FFFFFF; --ink: #292524; --ink-2: #44403C; --sub: #57534E; --stone: #78716C;
     --rule: #E7E1D9; --rule-2: #D9D1C5;
@@ -27,8 +29,7 @@
   .deck { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; margin: -540px 0 0 -960px; transform-origin: center center; background: var(--linen); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
   .slide { position: absolute; inset: 0; padding: 104px var(--px) 0; background: var(--linen); display: none; overflow: hidden; }
   .slide.active { display: block; }
-  h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 76px; line-height: 1.06; letter-spacing: -0.02em; color: var(--ink); text-wrap: balance; max-width: 1664px; position: relative; z-index: 1; }
-  h1.md { font-size: 70px; }
+  h1 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 72px; line-height: 1.06; letter-spacing: -0.02em; color: var(--ink); text-wrap: balance; max-width: 1664px; position: relative; z-index: 1; }
   em.accent { font-style: italic; color: var(--green-action); }
   h2, h3 { font-weight: 400; }
   p { margin: 0; }
@@ -45,8 +46,8 @@
   .grid.c4 { grid-template-columns: repeat(4, 1fr); column-gap: 40px; } /* the four problems and their four answers */
   .grid.c4 .say { font-size: 30px; line-height: 1.38; }
   .item.rule { padding-top: 30px; border-top: 1px solid var(--rule-2); }
-  .item h3 { margin: 22px 0 0; font: 400 40px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
-  .item p { margin: 12px 0 0; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .item h3 { margin: 22px 0 0; font: 400 42px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .item p { margin: 12px 0 0; font: 400 30px/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
   .item .say { margin: 22px 0 0; font: 400 34px/1.35 var(--sans); color: var(--ink-2); }
   .closing { font: italic 400 36px/1.3 var(--serif); color: var(--ink-2); text-wrap: balance; }
   .closing.sm { font-size: 30px; }
@@ -56,6 +57,11 @@
   .stack > h1 { flex: none; }
   .stack .body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-bottom: 136px; }
   .stack .body > .closing { margin-top: 88px; }
+  /* 2 · The problem: two current figures above the four failures, their sources underneath */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; column-gap: 56px; margin-bottom: 48px; }
+  .stats .fig { font: 400 88px/1 var(--serif); letter-spacing: -0.03em; color: var(--ink); }
+  .stats .lab { margin-top: 14px; font: 400 30px/1.4 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+  .stack .body > .src { margin-top: 32px; }
   svg.art { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; overflow: visible; }
 
   /* 1 · Title */
@@ -70,22 +76,23 @@
   .pt { display: grid; grid-template-columns: 48px 1fr; column-gap: 26px; align-items: start; margin-bottom: 34px; }
   .pt p { font: 400 30px/1.4 var(--sans); color: var(--ink-2); text-wrap: pretty; }
 
-  /* 4 · Why I build Green Goods: the founder's reason, three lines beside three photos of the people it is for */
-  .s-why .reasons { position: absolute; left: var(--px); top: 392px; width: 760px; }
+  /* 4 · Why I build Green Goods: the founder's reason, three lines beside four pictures in the order of
+     the reasons: the Greenpill Network's map across the top, then the founder at Odunde and the hub */
+  .s-why .reasons { position: absolute; left: var(--px); top: 400px; width: 760px; }
   .s-why .reasons .pt { margin-bottom: 30px; }
   .s-why .by { margin: 10px 0 0; font: 500 24px/1.3 var(--sans); color: var(--stone); }
-  .why-photos { position: absolute; left: 960px; top: 392px; width: 832px; display: grid; grid-template-columns: 400px 1fr; grid-template-rows: 190px 270px auto; gap: 20px; }
+  .why-photos { position: absolute; left: 960px; top: 400px; width: 832px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 254px 206px auto; gap: 20px; }
   .why-photos figure { margin: 0; overflow: hidden; border-radius: 14px; background: var(--sand); }
-  .why-photos figure.tall { grid-row: 1 / 3; }
+  .why-photos figure.wide { grid-column: 1 / -1; } /* the map needs the width to read as the whole world */
   .why-photos img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .why-photos .strip-cap { grid-column: 1 / -1; margin: 0; font: 400 22px/1.4 var(--sans); color: var(--stone); }
 
   /* 7 · Ubuntu and 9 · One builder, one community: icon lines beside one photo of the hub's people */
-  .side-text { position: absolute; left: var(--px); top: 330px; width: 860px; }
+  .side-text { position: absolute; left: var(--px); top: 340px; width: 860px; }
   .side-text .pt { margin-bottom: 30px; }
   .side-text .sep { border-top: 1px solid var(--rule-2); margin: 4px 0 34px; } /* the builder's needs above, the hub's below */
-  .s-ubuntu .side-text { top: 360px; }
-  .side-photo { position: absolute; left: 1080px; top: 330px; width: 712px; margin: 0; }
+  .s-ubuntu .side-text .closing { margin-top: 44px; } /* the callback to slide 4's bonds and trust */
+  .side-photo { position: absolute; left: 1080px; top: 340px; width: 712px; margin: 0; }
   .side-photo img { display: block; width: 100%; height: 540px; object-fit: cover; border-radius: 14px; }
   .side-photo figcaption { margin-top: 16px; font: 400 22px/1.4 var(--sans); color: var(--stone); }
   /* 6 · Five roles: one row each, as approved on 25 October */
@@ -115,19 +122,19 @@
   .s-cycle .node { fill: var(--green-action); }
   .s-cycle .node-n { font: 600 28px var(--sans); fill: #fff; }
   .s-cycle .centre { font-family: var(--serif); font-style: italic; font-size: 34px; fill: var(--sub); }
-  .s-cycle .step { position: absolute; width: 470px; }
+  .s-cycle .step { position: absolute; width: 520px; }
   .s-cycle .step.left { text-align: right; }
   .s-cycle .step h2 { margin: 0; font: 400 56px/1.05 var(--serif); letter-spacing: -0.02em; color: var(--ink); }
-  .s-cycle .step p { margin: 14px 0 0; font: 400 26px/1.45 var(--sans); color: var(--sub); text-wrap: pretty; }
+  .s-cycle .step p { margin: 14px 0 0; font: 400 30px/1.4 var(--sans); color: var(--sub); text-wrap: pretty; }
 
   /* 5 · Who we build for: three lines and two photos of members beside the Awka photo */
-  .s-hub .hub-text { position: absolute; left: var(--px); top: 324px; width: 660px; } /* first line level with the top of the photo */
+  .s-hub .hub-text { position: absolute; left: var(--px); top: 340px; width: 660px; } /* first line level with the top of the photo */
   .s-hub .hub-text p { font: 400 30px/1.4 var(--sans); color: var(--ink-2); margin-bottom: 26px; text-wrap: pretty; }
   .s-hub .hub-text p.small { font: 400 22px/1.4 var(--sans); color: var(--stone); margin-top: 4px; }
-  .s-hub .minis { position: absolute; left: var(--px); top: 724px; width: 660px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; } /* bottom level with the Awka photo */
+  .s-hub .minis { position: absolute; left: var(--px); top: 740px; width: 660px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; } /* bottom level with the Awka photo */
   .s-hub .minis figure { margin: 0; height: 160px; overflow: hidden; border-radius: 14px; background: var(--sand); }
   .s-hub .minis img { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .hub-photo { position: absolute; left: 880px; top: 324px; width: 912px; margin: 0; }
+  .hub-photo { position: absolute; left: 880px; top: 340px; width: 912px; margin: 0; }
   .hub-photo img { display: block; width: 100%; height: 560px; object-fit: cover; object-position: 50% 45%; border-radius: 14px; }
   .hub-photo figcaption { margin-top: 16px; font: 400 22px/1.4 var(--sans); color: var(--stone); }
 
@@ -150,8 +157,8 @@
   .legend .glyph .sep { stroke: var(--rule-2); stroke-width: 1.5; }
   .legend .glyph .edge { stroke: var(--ink-2); stroke-width: 2; }
   .legend .glyph .core { fill: var(--green-wash); stroke: var(--green); stroke-width: 2; }
-  .legend h3 { margin: 0; font: 400 46px/1.08 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
-  .legend .lv p { margin: 6px 0 0; font: 400 28px/1.4 var(--sans); color: var(--sub); }
+  .legend h3 { margin: 0; font: 400 42px/1.08 var(--serif); letter-spacing: -0.012em; color: var(--ink); }
+  .legend .lv p { margin: 6px 0 0; font: 400 30px/1.4 var(--sans); color: var(--sub); }
   .legend .key { margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--rule); display: grid; gap: 18px; }
   .legend .ki { display: flex; align-items: center; gap: 18px; font: 600 26px/1.2 var(--sans); color: var(--ink); }
   .legend .ki.out { color: var(--green-action); }
@@ -161,10 +168,10 @@
   .s-diaspora .figure { font: 400 132px/1 var(--serif); letter-spacing: -0.03em; color: var(--ink); }
   .s-diaspora .figure-label { margin-top: 14px; font: 400 32px/1.3 var(--sans); color: var(--ink-2); }
   .s-diaspora .small { margin-top: 10px; }
-  .s-diaspora .dia-body { margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--rule-2); font: 400 28px/1.45 var(--sans); color: var(--ink-2); text-wrap: pretty; }
+  .s-diaspora .dia-body { margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--rule-2); font: 400 30px/1.4 var(--sans); color: var(--ink-2); text-wrap: pretty; }
   .s-diaspora .closing { margin-top: 26px; font-size: 32px; }
   .dia-photos { position: absolute; left: 1000px; top: 400px; width: 792px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
-  .dia-photos figure { margin: 0; height: 470px; overflow: hidden; background: var(--sand); }
+  .dia-photos figure { margin: 0; height: 470px; overflow: hidden; border-radius: 14px; background: var(--sand); }
   .dia-photos img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .dia-photos figcaption { grid-column: 1 / -1; margin-top: 16px; font: 400 22px/1.4 var(--sans); color: var(--stone); }
 
@@ -184,7 +191,7 @@
   .s-model .fee { position: absolute; left: 1150px; top: 316px; width: 642px; }
   .s-model .fee .item { margin-bottom: 18px; }
   .s-model .fee .item.rule { padding-top: 20px; }
-  .s-model .fee .item h3 { margin: 0; font-size: 36px; }
+  .s-model .fee .item h3 { margin: 0; }
   .s-model .fee .item p { margin-top: 6px; }
   .s-model .fee .closing { margin-top: 26px; font-size: 32px; }
 
@@ -206,7 +213,7 @@
   /* 17 · Let's grow together: the headline, the Ubuntu line, the code and the link under it; the QR is generated once, see the README */
   .s-thanks .block { position: absolute; left: var(--px); right: var(--px); top: 150px; text-align: center; } /* a fixed offset, for the same print reason as the title */
   .s-thanks h1 { font-size: 112px; line-height: 1.05; letter-spacing: -0.02em; max-width: none; }
-  .s-thanks .line { margin: 26px 0 0; font: italic 400 40px/1.3 var(--serif); color: var(--green-action); }
+  .s-thanks .line { margin: 26px 0 0; font: italic 400 44px/1.3 var(--serif); color: var(--green-action); }
   .s-thanks .qr { width: 462px; margin: 36px auto 0; padding: 28px; background: var(--paper); border: 1px solid var(--rule); border-radius: 22px; box-shadow: 0 22px 44px -24px rgba(41,37,36,.35); }
   .s-thanks .qr svg { display: block; width: 406px; height: 406px; } /* 14px a module, enlarged 27 October so a phone reads it off a shared screen */
   .s-thanks .url { margin: 24px 0 0; font: 400 48px/1.1 var(--serif); letter-spacing: -0.012em; color: var(--green-action); }
@@ -249,8 +256,6 @@
     <symbol id="i-steward" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-3 7.8-7 9.5-4-1.7-7-5.1-7-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
     <symbol id="i-evaluator" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/><path d="M8 10.5h5"/></symbol>
     <symbol id="i-funder" viewBox="0 0 24 24"><path d="M12 20s-7-4.3-7-9.8A3.9 3.9 0 0 1 12 7.8a3.9 3.9 0 0 1 7 2.4C19 15.7 12 20 12 20z"/></symbol>
-    <symbol id="i-work" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/><path d="M3 12.5h18"/></symbol>
-    <symbol id="i-tools" viewBox="0 0 24 24"><rect x="4.5" y="5" width="15" height="10" rx="1.5"/><path d="M2.5 19h19"/><path d="M10 15l-.5 4M14 15l.5 4"/></symbol>
     <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></symbol>
     <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2.5L13 19V5L7.5 9H5a1 1 0 0 0-1 1z"/><path d="M16.5 9a3.5 3.5 0 0 1 0 6"/><path d="M19 6.5a7 7 0 0 1 0 11"/></symbol>
@@ -270,14 +275,19 @@
 
 <!-- 2 · The problem -->
 <section class="slide s-problem stack" data-label="The problem" data-time="0:30">
-  <h1 class="md">Good intentions stall in four places: funding, paperwork, the record and the result.</h1>
+  <h1>Place-based initiatives turn good intentions into work, then stall in four places.</h1>
   <div class="body">
+    <div class="stats">
+      <div><p class="fig">8.7%</p><p class="lab">of humanitarian funding reached local and national groups in 2025 (partial data), against a 25% target.</p></div>
+      <div><p class="fig">83%</p><p class="lab">of local and national NGOs in the NEAR network paused programmes after the 2025 US aid cuts.</p></div>
+    </div>
     <div class="grid c4">
       <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-return"/></svg><p class="say">Funding comes one grant at a time and never becomes sustainable.</p></div>
       <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-office"/></svg><p class="say">Reporting means forms and spreadsheets, filled in by hand.</p></div>
       <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-silo"/></svg><p class="say">The record sits on someone else's server, where it can be changed or lost.</p></div>
       <div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg><p class="say">Nothing follows the need through the work to the outcomes.</p></div>
     </div>
+    <p class="small src">Sources: ALNAP, Global Humanitarian Assistance Report 2026; NEAR Network member survey, February 2025.</p>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">2 / 17</span>
 </section>
@@ -307,17 +317,18 @@
     <p class="by">Afolabi Aiyeloja, founder</p>
   </div>
   <div class="why-photos">
-    <figure class="tall"><img src="assets/photos/founder-odunde.jpg" alt="Afolabi at a sound desk at the Odunde Festival" style="object-position: 36% 50%" /></figure>
+    <figure class="wide"><img src="assets/photos/greenpill-network-map.jpg" alt="The Greenpill Network's world map: its chapters and members around the world, joined by lines" /></figure>
+    <figure><img src="assets/photos/founder-odunde.jpg" alt="Afolabi at a sound desk at the Odunde Festival" style="object-position: 40% 50%" /></figure>
     <figure><img src="assets/photos/hub-launch-day.jpg" alt="Members and guests gathered outside the hub on its launch day" style="object-position: 50% 60%" /></figure>
     <figure><img src="assets/photos/hub-build-container.jpg" alt="The hub's shipping container on its new foundation, with windows and a door cut out" style="object-position: 50% 55%" /></figure>
-    <p class="strip-cap">Afolabi at the Odunde Festival, and Tech and Sun's hub in Awka, Nigeria, on launch day and during its build. Hub photos: Tech and Sun.</p>
+    <p class="strip-cap">The Greenpill Network, Afolabi at the Odunde Festival, and Tech and Sun's hub in Awka at launch and in its build. Hub photos: Tech and Sun.</p>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">4 / 17</span>
 </section>
 
 <!-- 5 · Who we build for -->
 <section class="slide s-hub" data-label="Who we build for" data-time="0:25">
-  <h1 class="md">We're starting with Tech and Sun, which builds solar-powered hubs across Nigeria.</h1>
+  <h1>We're starting with Tech and Sun, which builds solar-powered hubs across Nigeria.</h1>
   <div class="hub-text">
     <p>Its first hub, in Awka, has served more than 300 people with steady power and internet.</p>
     <p>What members need most is opportunity: introductions to work and career calls.</p>
@@ -327,7 +338,7 @@
     <figure><img src="assets/photos/hub-solar-roof.jpg" alt="Solar panels on the hub's roof" style="object-position: 50% 45%" /></figure>
     <figure><img src="assets/photos/hub-power-system.jpg" alt="The hub's inverter and battery on its wall" style="object-position: 50% 42%" /></figure>
   </div>
-  <figure class="hub-photo"><img src="assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together in front of the solar-roofed hub in Awka" /><figcaption>The Awka hub, its members, its rooftop solar and its power system. Photos: Tech and Sun.</figcaption></figure>
+  <figure class="hub-photo"><img src="assets/photos/awka-hub.jpg" alt="Tech and Sun members standing together in front of the solar-roofed hub in Awka" /><figcaption>The Awka hub, its members, rooftop solar and power system. Photos: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">5 / 17</span>
 </section>
 
@@ -350,11 +361,11 @@
 <!-- 7 · Ubuntu -->
 <section class="slide s-ubuntu" data-label="Ubuntu" data-time="0:25">
   <h1>Ubuntu: I am because we are.</h1>
-  <p class="rule-line">Trust in Green Goods grows the same way, from the people a promise touches.</p>
+  <p class="rule-line">A person is a person through other people.</p>
   <div class="side-text">
-    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-agreement"/></svg><p>A promise names who does what for whom, by when.</p></div>
-    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><p>The person served confirms it, never the person who did it.</p></div>
-    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><p>Each kept promise is a bond the whole community can see.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><p>In Green Goods, the person a promise serves confirms it was kept, never the person who did it.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><p>Each kept promise becomes a bond the whole community can see.</p></div>
+    <p class="closing">That's how bonds and trust grow back:<br />one kept promise at a time.</p>
   </div>
   <figure class="side-photo"><img src="assets/photos/hub-members-together.jpg" alt="Members working together at the desks inside the hub" style="object-position: 50% 70%" /><figcaption>Inside the Awka hub. Photo: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">7 / 17</span>
@@ -371,10 +382,10 @@
     <text class="centre" x="960" y="588" text-anchor="middle">shapes the next</text>
     <text class="centre" x="960" y="632" text-anchor="middle">season's needs.</text>
   </svg>
-  <div class="step left" style="left:228px; top:391.4px"><h2>Needs</h2><p>What the place needs, from power to skills.</p></div>
+  <div class="step left" style="left:178px; top:391.4px"><h2>Needs</h2><p>What the place needs, from power to skills.</p></div>
   <div class="step" style="left:1222px; top:391.4px"><h2>Promise</h2><p>Who does what for whom, by when.</p></div>
   <div class="step" style="left:1222px; top:716.6px"><h2>Work</h2><p>Done, with photos and notes as proof.</p></div>
-  <div class="step left" style="left:228px; top:716.6px"><h2>Funding</h2><p>Supporters fund what the record shows.</p></div>
+  <div class="step left" style="left:178px; top:716.6px"><h2>Funding</h2><p>Supporters fund what the record shows.</p></div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">8 / 17</span>
 </section>
 
@@ -383,10 +394,10 @@
   <h1>One builder, one community: the needs a season starts from.</h1>
   <div class="side-text">
     <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-proof"/></svg><p>A developer at the hub has the skills, but no proof of his work to show.</p></div>
-    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><p>Awka's power can go out for days. At the hub, he keeps building with other members.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><p>Awka's power can go out for days. The hub's solar keeps him building.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><p>He needs people too: members to build with and introductions to work.</p></div>
     <div class="sep"></div>
-    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><p>The hub needs climate-course seats, workshops and weekly discussions for its members.</p></div>
-    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-tools"/></svg><p>It needs to keep power, internet and workspace steady, and open to more members.</p></div>
+    <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><p>The hub needs climate-course seats, workshops and weekly discussions, and room for more members.</p></div>
   </div>
   <figure class="side-photo"><img src="assets/photos/hub-workshop.jpg" alt="Members at their laptops during a workshop inside the hub" style="object-position: 50% 58%" /><figcaption>A workshop inside the Awka hub. Photo: Tech and Sun.</figcaption></figure>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">9 / 17</span>
@@ -394,7 +405,7 @@
 
 <!-- 10 · Commitment pooling -->
 <section class="slide s-pool" data-label="Commitment pooling" data-time="0:35">
-  <h1 class="md">We built commitment pooling: promises a community can see, keep and fund.</h1>
+  <h1>We built commitment pooling: promises a community can see, keep and fund.</h1>
   <div class="points">
     <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-agreement"/></svg><p>The hub asks for what it needs: the climate course completed, workshops run, discussions led.</p></div>
     <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-ticket"/></svg><p>The hub offers what it has: desks with power and internet, as hub-visit vouchers.</p></div>
@@ -408,16 +419,16 @@
 
 <!-- 11 · What promises open -->
 <section class="slide s-uses stack" data-label="What promises open" data-time="0:25">
-  <h1>Keep promises, and doors open: through Green Goods first, then beyond it.</h1>
+  <h1>Keep promises, and doors&nbsp;open: proof, power and people.</h1>
   <div class="body">
-    <div class="grid c3"><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-work"/></svg><h3>Work</h3><p>In the pilot, a designer, an analyst and an engineer build a website together. Each confirmed part goes into a portfolio the next employer can read.</p></div><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><h3>Learning</h3><p>Vouchers earned on projects book career calls and one-to-one help, from members first, then from the diaspora.</p></div><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-tools"/></svg><h3>Tools</h3><p>Vouchers open hub visits and AI tool seats members can't afford alone.</p></div></div>
+    <div class="grid c3"><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-proof"/></svg><h3>Proof</h3><p>In the pilot, a designer, an analyst and an engineer build a website together. Each confirmed part goes into a portfolio the next employer can read.</p></div><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><h3>Power</h3><p>Vouchers open the hub's desks, with steady power and internet, and AI tool seats members can't afford alone.</p></div><div class="item rule"><svg class="icon" aria-hidden="true"><use href="#i-people"/></svg><h3>People</h3><p>Vouchers book career calls and one-to-one help, from members first, then from the diaspora.</p></div></div>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">11 / 17</span>
 </section>
 
 <!-- 12 · Funding -->
 <section class="slide s-fund" data-label="Funding" data-time="0:45">
-  <h1 class="md">Capital flows four ways: a shared fund, an endowment, the commitment pool and certificates.</h1>
+  <h1>Capital flows four ways: a shared fund, an endowment, the commitment pool and certificates.</h1>
   <div class="ways">
     <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-funder"/></svg><p>Shared fund: a supporter donates directly to the garden's shared fund, which the garden draws on for its work.</p></div>
     <div class="pt"><svg class="icon" aria-hidden="true"><use href="#i-return"/></svg><p>Endowment: a supporter's gift stays invested, and its earnings, typically 2 to 7% a year, go to the work.</p></div>
@@ -430,7 +441,7 @@
 
 <!-- 13 · Four levels of capital -->
 <section class="slide s-rings" data-label="Four levels of capital" data-time="0:20">
-  <h1 class="md">A hub is rich in capital, but short of money.</h1>
+  <h1>A hub is rich in capital, but short of money.</h1>
   <svg class="art" viewBox="0 0 1920 1080" role="img" aria-label="Rings around the hub. Dark arrows converge on the hub: financial capital flows in. Green rays fade outward: evidence of delivery radiates out.">
     <defs>
       <radialGradient id="ray-fade" gradientUnits="userSpaceOnUse" cx="600" cy="618" r="400"><stop offset="0.38" stop-color="#fff"/><stop offset="0.62" stop-color="#fff" stop-opacity="0.85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
@@ -460,25 +471,25 @@
 
 <!-- 14 · The Nigerian diaspora -->
 <section class="slide s-diaspora" data-label="The Nigerian diaspora" data-time="0:35">
-  <h1 class="md">The Nigerian diaspora brings money, culture and connections home.</h1>
+  <h1>The Nigerian diaspora brings money, culture and connections home.</h1>
   <p class="rule-line">This is the bridge I'm building.</p>
   <div class="dia-text">
     <p class="figure">$22.1bn</p>
     <p class="figure-label">in remittances to Nigeria in 2024</p>
-    <p class="small">World Bank, personal remittances received in 2024, updated 8 October 2026.</p>
+    <p class="small">World Bank, 2024 data, updated 8 October 2026.</p>
     <p class="dia-body">Omo Yoruba of Southern California, our first diaspora community, needs trust and transparency to bring capital home.</p>
   </div>
   <div class="dia-photos">
     <figure><img src="assets/photos/odunde-masquerade.jpg" alt="Omo Yoruba members in traditional dress at a street festival" style="object-position: 38% 50%" /></figure>
     <figure><img src="assets/photos/omo-yoruba-bridge.jpg" alt="A teacher pointing to Yoruba words on a whiteboard" style="object-position: 30% 50%" /></figure>
-    <figcaption>Omo Yoruba of Southern California at the Odunde Festival 2026 in Leimert Park.</figcaption>
+    <figcaption>Omo Yoruba of Southern California at the Odunde Festival 2026.</figcaption>
   </div>
   <img class="corner" src="assets/brand/green-goods-symbol.svg" alt="Green Goods" /><span class="num">14 / 17</span>
 </section>
 
 <!-- 15 · Business model -->
 <section class="slide s-model" data-label="Business model" data-time="0:35">
-  <h1 class="md">Funders pay Green Goods to reach more local initiatives.</h1>
+  <h1>Funders pay Green Goods to reach more local initiatives.</h1>
   <svg class="art" viewBox="0 0 1920 1080" aria-hidden="true">
     <line class="flowline" x1="431.6" y1="585.8" x2="682.8" y2="486.4" marker-end="url(#ah-ink)"/><line class="flowline" x1="431.6" y1="674.2" x2="682.8" y2="773.6" marker-end="url(#ah-ink)"/><line class="supportline" x1="800.0" y1="702.0" x2="800.0" y2="568.0" marker-end="url(#ah-deep)"/>
     <circle class="mech" cx="320" cy="630" r="112"/><text class="mech-name" x="320" y="641" text-anchor="middle">Funder</text>
@@ -500,7 +511,7 @@
 
 <!-- 16 · Needs and roadmap -->
 <section class="slide s-road s-ask" data-label="Needs and roadmap" data-time="0:25">
-  <h1 class="md">Help support the coming season and keep the cycle going and growing.</h1>
+  <h1>Help support the coming season and keep the cycle going and growing.</h1>
   <svg class="art" viewBox="0 0 1920 1080" role="img" aria-label="World map marking Nigeria, where the solar hub runs now; South Africa, next; and Kenya and Brazil, where we are exploring agroforestry."><g transform="translate(277.5 79.9) scale(0.85)"> <!-- the map at 85%, right of the asks -->
     <path class="land" d="M1058 306h0M1070 306h0M1082 306h0M914 318h0M926 318h0M938 318h0M950 318h0M962 318h0M974 318h0M986 318h0M998 318h0M1010 318h0M1022 318h0M1034 318h0M1046 318h0M1058 318h0M1070 318h0M1082 318h0M1094 318h0M1106 318h0M1190 318h0M1202 318h0M1214 318h0M1226 318h0M1406 318h0M1418 318h0M1430 318h0M902 330h0M914 330h0M926 330h0M1010 330h0M1022 330h0M1034 330h0M1046 330h0M1058 330h0M1070 330h0M1082 330h0M1094 330h0M1322 330h0M1334 330h0M1406 330h0M1418 330h0M1430 330h0M1442 330h0M1454 330h0M1550 330h0M1562 330h0M806 342h0M818 342h0M830 342h0M842 342h0M854 342h0M866 342h0M938 342h0M1010 342h0M1022 342h0M1034 342h0M1046 342h0M1058 342h0M1070 342h0M1082 342h0M1094 342h0M1310 342h0M1358 342h0M1382 342h0M1394 342h0M1406 342h0M1418 342h0M1430 342h0M1442 342h0M1454 342h0M1466 342h0M1478 342h0M1490 342h0M1502 342h0M1514 342h0M1550 342h0M1562 342h0M674 354h0M686 354h0M698 354h0M710 354h0M722 354h0M734 354h0M746 354h0M758 354h0M770 354h0M782 354h0M794 354h0M806 354h0M818 354h0M830 354h0M842 354h0M890 354h0M926 354h0M938 354h0M950 354h0M962 354h0M1010 354h0M1022 354h0M1034 354h0M1046 354h0M1058 354h0M1070 354h0M1214 354h0M1226 354h0M1238 354h0M1250 354h0M1262 354h0M1334 354h0M1346 354h0M1358 354h0M1370 354h0M1382 354h0M1394 354h0M1406 354h0M1418 354h0M1430 354h0M1442 354h0M1454 354h0M1466 354h0M1478 354h0M1490 354h0M1502 354h0M1514 354h0M1526 354h0M1538 354h0M1550 354h0M1562 354h0M1574 354h0M1586 354h0M1598 354h0M1610 354h0M1622 354h0M1634 354h0M1646 354h0M1658 354h0M1670 354h0M662 366h0M674 366h0M686 366h0M698 366h0M710 366h0M722 366h0M734 366h0M746 366h0M758 366h0M770 366h0M782 366h0M794 366h0M806 366h0M818 366h0M830 366h0M842 366h0M854 366h0M866 366h0M878 366h0M890 366h0M938 366h0M950 366h0M962 366h0M1010 366h0M1022 366h0M1034 366h0M1094 366h0M1106 366h0M1202 366h0M1214 366h0M1226 366h0M1238 366h0M1250 366h0M1262 366h0M1274 366h0M1286 366h0M1298 366h0M1310 366h0M1322 366h0M1334 366h0M1346 366h0M1358 366h0M1370 366h0M1382 366h0M1394 366h0M1406 366h0M1418 366h0M1430 366h0M1442 366h0M1454 366h0M1466 366h0M1478 366h0M1490 366h0M1502 366h0M1514 366h0M1526 366h0M1538 366h0M1550 366h0M1562 366h0M1574 366h0M1586 366h0M1598 366h0M1610 366h0M1622 366h0M1634 366h0M1646 366h0M1658 366h0M1670 366h0M1682 366h0M1694 366h0M662 378h0M674 378h0M686 378h0M698 378h0M710 378h0M722 378h0M734 378h0M746 378h0M758 378h0M770 378h0M782 378h0M794 378h0M806 378h0M818 378h0M830 378h0M842 378h0M854 378h0M866 378h0M950 378h0M1010 378h0M1022 378h0M1178 378h0M1190 378h0M1202 378h0M1226 378h0M1238 378h0M1250 378h0M1262 378h0M1274 378h0M1286 378h0M1298 378h0M1310 378h0M1322 378h0M1334 378h0M1346 378h0M1358 378h0M1370 378h0M1382 378h0M1394 378h0M1406 378h0M1418 378h0M1430 378h0M1442 378h0M1454 378h0M1466 378h0M1478 378h0M1490 378h0M1502 378h0M1514 378h0M1526 378h0M1538 378h0M1550 378h0M1562 378h0M1574 378h0M1586 378h0M1598 378h0M1610 378h0M1622 378h0M1634 378h0M1646 378h0M1658 378h0M1670 378h0M1682 378h0M1694 378h0M650 390h0M662 390h0M674 390h0M686 390h0M722 390h0M734 390h0M746 390h0M758 390h0M770 390h0M782 390h0M794 390h0M806 390h0M818 390h0M830 390h0M842 390h0M854 390h0M914 390h0M926 390h0M950 390h0M1178 390h0M1202 390h0M1214 390h0M1250 390h0M1262 390h0M1274 390h0M1286 390h0M1298 390h0M1310 390h0M1322 390h0M1334 390h0M1346 390h0M1358 390h0M1370 390h0M1382 390h0M1394 390h0M1406 390h0M1418 390h0M1430 390h0M1442 390h0M1454 390h0M1466 390h0M1478 390h0M1490 390h0M1502 390h0M1514 390h0M1526 390h0M1538 390h0M1550 390h0M1562 390h0M1574 390h0M1586 390h0M1598 390h0M1610 390h0M1622 390h0M1634 390h0M1658 390h0M1670 390h0M650 402h0M734 402h0M746 402h0M758 402h0M770 402h0M782 402h0M794 402h0M806 402h0M818 402h0M830 402h0M842 402h0M854 402h0M914 402h0M926 402h0M938 402h0M950 402h0M1142 402h0M1190 402h0M1202 402h0M1226 402h0M1238 402h0M1250 402h0M1262 402h0M1274 402h0M1286 402h0M1298 402h0M1310 402h0M1322 402h0M1334 402h0M1346 402h0M1358 402h0M1370 402h0M1382 402h0M1394 402h0M1406 402h0M1418 402h0M1430 402h0M1442 402h0M1454 402h0M1466 402h0M1478 402h0M1490 402h0M1502 402h0M1514 402h0M1526 402h0M1538 402h0M1550 402h0M1562 402h0M1574 402h0M1586 402h0M1598 402h0M1658 402h0M1670 402h0M734 414h0M746 414h0M758 414h0M770 414h0M782 414h0M794 414h0M806 414h0M818 414h0M830 414h0M842 414h0M854 414h0M866 414h0M878 414h0M902 414h0M914 414h0M926 414h0M938 414h0M950 414h0M962 414h0M1130 414h0M1154 414h0M1190 414h0M1202 414h0M1214 414h0M1226 414h0M1238 414h0M1250 414h0M1262 414h0M1274 414h0M1286 414h0M1298 414h0M1310 414h0M1322 414h0M1334 414h0M1346 414h0M1358 414h0M1370 414h0M1382 414h0M1394 414h0M1406 414h0M1418 414h0M1430 414h0M1442 414h0M1454 414h0M1466 414h0M1478 414h0M1490 414h0M1502 414h0M1514 414h0M1526 414h0M1538 414h0M1550 414h0M1562 414h0M1574 414h0M1586 414h0M1598 414h0M1610 414h0M1670 414h0M1682 414h0M734 426h0M746 426h0M758 426h0M770 426h0M782 426h0M794 426h0M806 426h0M818 426h0M830 426h0M842 426h0M854 426h0M866 426h0M878 426h0M890 426h0M902 426h0M914 426h0M926 426h0M938 426h0M950 426h0M962 426h0M1142 426h0M1154 426h0M1166 426h0M1178 426h0M1190 426h0M1202 426h0M1214 426h0M1226 426h0M1238 426h0M1250 426h0M1262 426h0M1274 426h0M1286 426h0M1298 426h0M1310 426h0M1322 426h0M1334 426h0M1346 426h0M1358 426h0M1370 426h0M1382 426h0M1394 426h0M1406 426h0M1418 426h0M1430 426h0M1442 426h0M1454 426h0M1466 426h0M1478 426h0M1490 426h0M1502 426h0M1514 426h0M1526 426h0M1538 426h0M1550 426h0M1562 426h0M1574 426h0M1586 426h0M1598 426h0M1610 426h0M1622 426h0M1634 426h0M746 438h0M758 438h0M770 438h0M782 438h0M794 438h0M806 438h0M818 438h0M830 438h0M842 438h0M854 438h0M866 438h0M878 438h0M890 438h0M902 438h0M914 438h0M926 438h0M938 438h0M962 438h0M974 438h0M1142 438h0M1154 438h0M1166 438h0M1178 438h0M1190 438h0M1202 438h0M1214 438h0M1226 438h0M1238 438h0M1250 438h0M1262 438h0M1274 438h0M1286 438h0M1298 438h0M1310 438h0M1322 438h0M1334 438h0M1346 438h0M1358 438h0M1370 438h0M1382 438h0M1394 438h0M1406 438h0M1418 438h0M1430 438h0M1442 438h0M1454 438h0M1466 438h0M1478 438h0M1490 438h0M1502 438h0M1514 438h0M1526 438h0M1538 438h0M1550 438h0M1562 438h0M1574 438h0M1586 438h0M1598 438h0M1610 438h0M1622 438h0M734 450h0M746 450h0M758 450h0M770 450h0M782 450h0M794 450h0M806 450h0M818 450h0M830 450h0M842 450h0M854 450h0M866 450h0M878 450h0M890 450h0M902 450h0M914 450h0M926 450h0M938 450h0M1154 450h0M1166 450h0M1178 450h0M1190 450h0M1214 450h0M1226 450h0M1238 450h0M1250 450h0M1274 450h0M1286 450h0M1298 450h0M1310 450h0M1346 450h0M1358 450h0M1370 450h0M1382 450h0M1394 450h0M1406 450h0M1418 450h0M1430 450h0M1442 450h0M1454 450h0M1466 450h0M1478 450h0M1490 450h0M1502 450h0M1514 450h0M1526 450h0M1538 450h0M1550 450h0M1562 450h0M1574 450h0M1586 450h0M1598 450h0M1610 450h0M1622 450h0M734 462h0M746 462h0M758 462h0M770 462h0M782 462h0M794 462h0M806 462h0M818 462h0M830 462h0M842 462h0M854 462h0M866 462h0M878 462h0M890 462h0M902 462h0M1130 462h0M1142 462h0M1154 462h0M1166 462h0M1202 462h0M1226 462h0M1238 462h0M1250 462h0M1310 462h0M1322 462h0M1346 462h0M1358 462h0M1370 462h0M1382 462h0M1394 462h0M1406 462h0M1418 462h0M1430 462h0M1442 462h0M1454 462h0M1466 462h0M1478 462h0M1490 462h0M1502 462h0M1514 462h0M1526 462h0M1538 462h0M1550 462h0M1562 462h0M1574 462h0M1586 462h0M1598 462h0M1610 462h0M1646 462h0M1658 462h0M722 474h0M734 474h0M746 474h0M758 474h0M770 474h0M782 474h0M794 474h0M806 474h0M818 474h0M830 474h0M842 474h0M854 474h0M866 474h0M878 474h0M890 474h0M1130 474h0M1142 474h0M1154 474h0M1190 474h0M1214 474h0M1238 474h0M1250 474h0M1262 474h0M1274 474h0M1286 474h0M1298 474h0M1310 474h0M1322 474h0M1346 474h0M1358 474h0M1370 474h0M1382 474h0M1394 474h0M1406 474h0M1418 474h0M1430 474h0M1442 474h0M1454 474h0M1466 474h0M1478 474h0M1490 474h0M1502 474h0M1514 474h0M1526 474h0M1538 474h0M1550 474h0M1562 474h0M1574 474h0M1586 474h0M1598 474h0M1610 474h0M722 486h0M734 486h0M746 486h0M758 486h0M770 486h0M782 486h0M794 486h0M806 486h0M818 486h0M830 486h0M842 486h0M854 486h0M866 486h0M878 486h0M1130 486h0M1142 486h0M1238 486h0M1262 486h0M1274 486h0M1286 486h0M1298 486h0M1310 486h0M1322 486h0M1334 486h0M1358 486h0M1370 486h0M1382 486h0M1394 486h0M1406 486h0M1418 486h0M1430 486h0M1442 486h0M1454 486h0M1466 486h0M1478 486h0M1490 486h0M1502 486h0M1514 486h0M1526 486h0M1538 486h0M1550 486h0M1562 486h0M1574 486h0M1586 486h0M1610 486h0M1646 486h0M1658 486h0M734 498h0M746 498h0M758 498h0M770 498h0M782 498h0M794 498h0M806 498h0M818 498h0M830 498h0M842 498h0M854 498h0M866 498h0M878 498h0M1142 498h0M1154 498h0M1166 498h0M1178 498h0M1190 498h0M1286 498h0M1298 498h0M1310 498h0M1322 498h0M1334 498h0M1346 498h0M1358 498h0M1370 498h0M1382 498h0M1394 498h0M1406 498h0M1418 498h0M1430 498h0M1442 498h0M1454 498h0M1466 498h0M1478 498h0M1490 498h0M1502 498h0M1514 498h0M1526 498h0M1538 498h0M1550 498h0M1562 498h0M1574 498h0M1586 498h0M1634 498h0M1646 498h0M734 510h0M746 510h0M758 510h0M770 510h0M782 510h0M794 510h0M806 510h0M818 510h0M830 510h0M842 510h0M854 510h0M1130 510h0M1142 510h0M1154 510h0M1166 510h0M1178 510h0M1190 510h0M1202 510h0M1214 510h0M1238 510h0M1286 510h0M1298 510h0M1310 510h0M1322 510h0M1334 510h0M1346 510h0M1358 510h0M1370 510h0M1382 510h0M1394 510h0M1406 510h0M1418 510h0M1430 510h0M1442 510h0M1454 510h0M1466 510h0M1478 510h0M1490 510h0M1502 510h0M1514 510h0M1526 510h0M1538 510h0M1550 510h0M1562 510h0M1574 510h0M1586 510h0M1634 510h0M758 522h0M770 522h0M782 522h0M794 522h0M806 522h0M854 522h0M1118 522h0M1130 522h0M1142 522h0M1154 522h0M1166 522h0M1178 522h0M1190 522h0M1202 522h0M1214 522h0M1226 522h0M1238 522h0M1250 522h0M1262 522h0M1274 522h0M1286 522h0M1298 522h0M1310 522h0M1322 522h0M1346 522h0M1358 522h0M1370 522h0M1382 522h0M1394 522h0M1406 522h0M1418 522h0M1430 522h0M1442 522h0M1454 522h0M1466 522h0M1478 522h0M1490 522h0M1502 522h0M1514 522h0M1526 522h0M1538 522h0M1550 522h0M1562 522h0M1574 522h0M1586 522h0M1598 522h0M758 534h0M770 534h0M782 534h0M794 534h0M1106 534h0M1118 534h0M1130 534h0M1142 534h0M1154 534h0M1166 534h0M1178 534h0M1190 534h0M1202 534h0M1214 534h0M1226 534h0M1238 534h0M1250 534h0M1262 534h0M1274 534h0M1298 534h0M1310 534h0M1322 534h0M1334 534h0M1370 534h0M1382 534h0M1394 534h0M1406 534h0M1418 534h0M1430 534h0M1442 534h0M1454 534h0M1466 534h0M1478 534h0M1490 534h0M1502 534h0M1514 534h0M1526 534h0M1538 534h0M1550 534h0M1562 534h0M1574 534h0M1586 534h0M1598 534h0M746 546h0M770 546h0M782 546h0M1106 546h0M1118 546h0M1130 546h0M1142 546h0M1154 546h0M1166 546h0M1178 546h0M1190 546h0M1202 546h0M1214 546h0M1226 546h0M1238 546h0M1250 546h0M1262 546h0M1274 546h0M1286 546h0M1310 546h0M1322 546h0M1334 546h0M1346 546h0M1358 546h0M1370 546h0M1418 546h0M1430 546h0M1442 546h0M1454 546h0M1466 546h0M1478 546h0M1490 546h0M1502 546h0M1514 546h0M1526 546h0M1538 546h0M1550 546h0M1562 546h0M1574 546h0M1586 546h0M770 558h0M782 558h0M830 558h0M866 558h0M1094 558h0M1106 558h0M1118 558h0M1130 558h0M1142 558h0M1154 558h0M1166 558h0M1178 558h0M1190 558h0M1202 558h0M1214 558h0M1226 558h0M1238 558h0M1250 558h0M1262 558h0M1274 558h0M1286 558h0M1310 558h0M1322 558h0M1334 558h0M1346 558h0M1358 558h0M1370 558h0M1430 558h0M1442 558h0M1454 558h0M1466 558h0M1478 558h0M1514 558h0M1526 558h0M1538 558h0M1550 558h0M770 570h0M782 570h0M794 570h0M806 570h0M818 570h0M890 570h0M1106 570h0M1118 570h0M1130 570h0M1142 570h0M1154 570h0M1166 570h0M1178 570h0M1190 570h0M1202 570h0M1214 570h0M1226 570h0M1238 570h0M1250 570h0M1262 570h0M1274 570h0M1286 570h0M1298 570h0M1322 570h0M1334 570h0M1346 570h0M1358 570h0M1370 570h0M1442 570h0M1454 570h0M1466 570h0M1514 570h0M1526 570h0M1538 570h0M1550 570h0M806 582h0M818 582h0M830 582h0M1094 582h0M1106 582h0M1118 582h0M1130 582h0M1142 582h0M1154 582h0M1166 582h0M1178 582h0M1190 582h0M1202 582h0M1214 582h0M1226 582h0M1238 582h0M1250 582h0M1262 582h0M1274 582h0M1286 582h0M1298 582h0M1322 582h0M1334 582h0M1346 582h0M1442 582h0M1454 582h0M1526 582h0M1538 582h0M1550 582h0M1562 582h0M830 594h0M1094 594h0M1106 594h0M1118 594h0M1130 594h0M1142 594h0M1154 594h0M1166 594h0M1178 594h0M1190 594h0M1202 594h0M1214 594h0M1226 594h0M1238 594h0M1250 594h0M1262 594h0M1274 594h0M1286 594h0M1298 594h0M1310 594h0M1322 594h0M1442 594h0M1454 594h0M1550 594h0M1562 594h0M842 606h0M878 606h0M890 606h0M902 606h0M914 606h0M1106 606h0M1118 606h0M1130 606h0M1142 606h0M1154 606h0M1166 606h0M1178 606h0M1190 606h0M1202 606h0M1214 606h0M1226 606h0M1238 606h0M1250 606h0M1262 606h0M1274 606h0M1286 606h0M1298 606h0M1310 606h0M1322 606h0M1334 606h0M1346 606h0M1454 606h0M1562 606h0M866 618h0M878 618h0M890 618h0M902 618h0M914 618h0M926 618h0M1118 618h0M1130 618h0M1142 618h0M1154 618h0M1166 618h0M1178 618h0M1190 618h0M1202 618h0M1214 618h0M1226 618h0M1238 618h0M1250 618h0M1262 618h0M1274 618h0M1286 618h0M1298 618h0M1310 618h0M1322 618h0M1334 618h0M1466 618h0M1538 618h0M1634 618h0M866 630h0M878 630h0M890 630h0M902 630h0M914 630h0M926 630h0M938 630h0M950 630h0M1130 630h0M1190 630h0M1202 630h0M1214 630h0M1226 630h0M1238 630h0M1250 630h0M1262 630h0M1274 630h0M1286 630h0M1298 630h0M1310 630h0M1322 630h0M1334 630h0M1526 630h0M1598 630h0M866 642h0M878 642h0M890 642h0M902 642h0M914 642h0M926 642h0M938 642h0M950 642h0M962 642h0M1202 642h0M1214 642h0M1226 642h0M1238 642h0M1250 642h0M1262 642h0M1274 642h0M1286 642h0M1298 642h0M1310 642h0M1322 642h0M1538 642h0M1550 642h0M1586 642h0M1598 642h0M854 654h0M866 654h0M878 654h0M890 654h0M902 654h0M914 654h0M926 654h0M938 654h0M950 654h0M962 654h0M1202 654h0M1214 654h0M1226 654h0M1238 654h0M1250 654h0M1262 654h0M1274 654h0M1286 654h0M1298 654h0M1310 654h0M1550 654h0M1586 654h0M1598 654h0M1622 654h0M854 666h0M866 666h0M878 666h0M890 666h0M902 666h0M914 666h0M926 666h0M938 666h0M950 666h0M962 666h0M974 666h0M986 666h0M998 666h0M1202 666h0M1214 666h0M1226 666h0M1238 666h0M1250 666h0M1262 666h0M1274 666h0M1286 666h0M1298 666h0M1310 666h0M1550 666h0M1598 666h0M1622 666h0M1670 666h0M1682 666h0M1694 666h0M854 678h0M866 678h0M878 678h0M890 678h0M902 678h0M914 678h0M926 678h0M938 678h0M950 678h0M962 678h0M974 678h0M986 678h0M998 678h0M1010 678h0M1022 678h0M1214 678h0M1226 678h0M1238 678h0M1250 678h0M1262 678h0M1274 678h0M1286 678h0M1298 678h0M1562 678h0M1682 678h0M1694 678h0M1706 678h0M1718 678h0M866 690h0M878 690h0M890 690h0M902 690h0M914 690h0M926 690h0M938 690h0M950 690h0M962 690h0M974 690h0M986 690h0M998 690h0M1010 690h0M1022 690h0M1214 690h0M1226 690h0M1238 690h0M1250 690h0M1262 690h0M1274 690h0M1286 690h0M1298 690h0M1634 690h0M1694 690h0M1718 690h0M866 702h0M878 702h0M890 702h0M902 702h0M914 702h0M926 702h0M938 702h0M950 702h0M962 702h0M974 702h0M986 702h0M998 702h0M1010 702h0M1214 702h0M1226 702h0M1238 702h0M1250 702h0M1262 702h0M1274 702h0M1286 702h0M1298 702h0M1310 702h0M878 714h0M890 714h0M902 714h0M914 714h0M926 714h0M938 714h0M950 714h0M962 714h0M974 714h0M986 714h0M998 714h0M1010 714h0M1214 714h0M1226 714h0M1238 714h0M1250 714h0M1262 714h0M1274 714h0M1286 714h0M1298 714h0M1310 714h0M1346 714h0M1646 714h0M1658 714h0M1670 714h0M1694 714h0M890 726h0M902 726h0M914 726h0M926 726h0M938 726h0M950 726h0M962 726h0M974 726h0M986 726h0M998 726h0M1202 726h0M1214 726h0M1226 726h0M1238 726h0M1250 726h0M1262 726h0M1274 726h0M1286 726h0M1298 726h0M1334 726h0M1634 726h0M1646 726h0M1658 726h0M1670 726h0M1694 726h0M1706 726h0M902 738h0M914 738h0M926 738h0M938 738h0M950 738h0M962 738h0M974 738h0M986 738h0M998 738h0M1214 738h0M1226 738h0M1238 738h0M1250 738h0M1262 738h0M1274 738h0M1286 738h0M1322 738h0M1334 738h0M1610 738h0M1622 738h0M1634 738h0M1646 738h0M1658 738h0M1670 738h0M1682 738h0M1694 738h0M1706 738h0M902 750h0M914 750h0M926 750h0M938 750h0M950 750h0M962 750h0M974 750h0M986 750h0M998 750h0M1214 750h0M1226 750h0M1238 750h0M1250 750h0M1262 750h0M1274 750h0M1286 750h0M1322 750h0M1334 750h0M1586 750h0M1598 750h0M1610 750h0M1622 750h0M1634 750h0M1646 750h0M1658 750h0M1670 750h0M1682 750h0M1694 750h0M1706 750h0M902 762h0M914 762h0M926 762h0M938 762h0M950 762h0M962 762h0M974 762h0M1214 762h0M1226 762h0M1238 762h0M1250 762h0M1262 762h0M1274 762h0M1586 762h0M1598 762h0M1610 762h0M1622 762h0M1634 762h0M1646 762h0M1658 762h0M1670 762h0M1682 762h0M1694 762h0M1706 762h0M1718 762h0M902 774h0M914 774h0M926 774h0M938 774h0M950 774h0M962 774h0M974 774h0M1226 774h0M1238 774h0M1250 774h0M1262 774h0M1274 774h0M1586 774h0M1598 774h0M1610 774h0M1622 774h0M1634 774h0M1646 774h0M1658 774h0M1670 774h0M1682 774h0M1694 774h0M1706 774h0M1718 774h0M902 786h0M914 786h0M926 786h0M938 786h0M950 786h0M962 786h0M1226 786h0M1238 786h0M1250 786h0M1262 786h0M1586 786h0M1598 786h0M1610 786h0M1622 786h0M1634 786h0M1646 786h0M1658 786h0M1670 786h0M1682 786h0M1694 786h0M1706 786h0M902 798h0M914 798h0M926 798h0M938 798h0M950 798h0M962 798h0M1226 798h0M1238 798h0M1250 798h0M1586 798h0M1598 798h0M1646 798h0M1658 798h0M1670 798h0M1682 798h0M1694 798h0M1706 798h0M902 810h0M914 810h0M926 810h0M938 810h0M950 810h0M1658 810h0M1670 810h0M1682 810h0M1694 810h0M902 822h0M914 822h0M926 822h0M938 822h0M1778 822h0M902 834h0M914 834h0M926 834h0M1670 834h0M902 846h0M914 846h0M926 846h0M1742 846h0M902 858h0M914 858h0M926 858h0M914 870h0M926 870h0M914 882h0M926 882h0M938 894h0"/>
     <circle class="halo" cx="1183.8" cy="623.7" r="26"/><circle class="stop now" cx="1183.8" cy="623.7" r="13"/>
@@ -532,16 +543,16 @@
 <script type="application/json" id="speaker-notes">
 [
   "Green Goods helps communities turn good intentions into green outcomes: members promise useful work, prove it, and turn the record into support. I'll show you the problem, what we built, why I build it, and how capital can follow at a solar hub in Nigeria.",
-  "Communities like the one I'll show you do real work every season, and four things around them fail. Funding comes one grant at a time; in one study of national NGOs across ten countries, two thirds of restricted grants didn't even cover a fair share of running costs, so nothing lasts. Reporting means forms and spreadsheets filled in by hand, often more than fifteen hours for a single grant. The record sits on someone else's server, where it can be changed or lost. And nothing follows the need through the work to the outcomes. So inside the community, contribution is thanked but not valued, and outside, supporters can't read it.",
+  "Place-based initiatives like the one I'll show you do real work every season, and four things around them fail. Funding comes one grant at a time and never becomes sustainable: in 2025, on partial data, just 8.7% of reported humanitarian funding reached local and national groups, against a 25% target, and after the 2025 US aid cuts, 83% of the local NGOs in the NEAR network paused programmes. Reporting means forms and spreadsheets filled in by hand. The record sits on someone else's server, where it can be changed or lost. And nothing follows the need through the work to the outcomes. So inside the community, contribution is thanked but not valued, and outside, supporters can't read it.",
   "Green Goods answers each one. An endowment keeps a gift invested, so support outlasts the grant. Members prove work with a tap and a photo, in the app or by chat. The record is public and owned by the community, and no one can quietly change it. And one record follows the need through the promise and the work to its outcomes. We call each community a garden. And here's why I'm the one building it.",
-  "I'm building Green Goods to rebuild community bonds and trust: the ones I've seen lost, in myself and in others. [Your moment, in your own words: where you saw those bonds fade, and what that cost.] Bonds grow back when people keep promises to each other and someone notices. So I build for three reasons that are really one. To support the people I care about in the regenerative ecosystem. To build a bridge of trust and transparency for the Nigerian diaspora. And to support the coming generation in Nigeria and across the Global South. These are some of the people I'm building for.",
+  "I'm building Green Goods to rebuild community bonds and trust: the ones I've seen lost, in myself and in others. [Your moment, in your own words: where you saw those bonds fade, and what that cost.] Bonds grow back when people keep promises to each other and someone notices. So I build for three reasons that are really one. To support the people I care about in the regenerative ecosystem, like the Greenpill Network's chapters around the world. To build a bridge of trust and transparency for the Nigerian diaspora. And to support the coming generation in Nigeria and across the Global South. These are some of the people I'm building for.",
   "This is the coming generation I mean. Tech and Sun builds solar-powered hubs across Nigeria. Its first, in Awka, has served more than 300 people with steady power and internet, and its plan names Enugu and Abuja next. What members need most is opportunity: a recent member survey put introductions to work and career calls first. And they want to learn, collaborate and grow their skills in a credible and transparent way. Green Goods works across clean energy, waste management, agroforestry and education; Tech and Sun is clean energy, with solar hub development and education.",
   "We call each place-based initiative a garden: a community doing regenerative work together in one place, like a solar hub, a waste crew, a farm or a class. Five roles keep it going. Gardeners do the work and document it. Stewards run the garden. Evaluators set the baseline. Funders see delivery before and after they give. And community members witness the work and confirm what was done for them. The glue between the roles is trust and transparency.",
-  "There's a Southern African word for that: Ubuntu. I am because we are; a person is a person through other people. Trust in Green Goods grows the same way, from the people a promise touches. A promise names who does what for whom, by when. The person served confirms it, never the person who did it; if a steward has to step in, the record says so. Each kept promise is a bond the whole community can see. That is how bonds and trust grow back, one kept promise at a time.",
+  "There's a Southern African word for that: Ubuntu. I am because we are: a person is a person through other people. Trust in Green Goods grows the same way, from the people a promise touches. The person a promise serves confirms it was kept, never the person who did it; if a steward has to step in, the record says so. Each kept promise becomes a bond the whole community can see. That's how bonds and trust grow back: one kept promise at a time.",
   "A garden runs as a loop, season after season. Needs: what the place needs, from steady power to new skills. Promise: who does what for whom, by when. Work: done, with photos and notes as proof. Funding: supporters fund what the record shows. And what was learned shapes the next season's needs. Let me show you one turn of this loop, starting with its needs.",
-  "[His name, with his agreement, and the career call you had with him on 21 October.] He's a 20-year-old front-end developer at the hub. He tried freelancing, but clients wanted proof of work he couldn't show. In Awka the power can go out for days; at the hub he keeps building, and he builds with other members on a shared hub project. Those are one builder's needs: proof, power, and people to build with. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.",
-  "We built commitment pooling for the Promise step. The hub asks for what it needs: this season asks members to complete a climate course, and it asks for workshops and discussions. The hub offers what it has: desks with power and internet, as hub-visit vouchers. Members offer or ask too, like a career call. Kept promises earn agreed rewards and service vouchers on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics, and members swap them in one shared pool. These screens are the hub's real season in the app. The contracts are deployed on public networks and in pilot with Tech and Sun, rehearsed end to end with demo accounts. Our developer's finished climate course is one of these promises kept, and it starts his record.",
-  "Keep promises, and doors open, through Green Goods first and then beyond it. Work: in the pilot, a designer, an analyst and an engineer build a website together, and each confirmed part goes into a portfolio the next employer can read. Learning: vouchers earned on projects book career calls and one-to-one help, from members first, then from the diaspora. Tools: hub visits and AI tool seats members can't afford alone. The record carries weight because the person who did the work never confirms it, and it can travel to the networks that count it.",
+  "[His name, with his agreement, and the career call you had with him on 21 October.] He's a 20-year-old front-end developer at the hub. He tried freelancing, but clients wanted proof of work he couldn't show. In Awka the power can go out for days; the hub's solar keeps him building, and he builds with other members on a shared hub project. Those are his needs: proof, power and people. The hub has needs at its own scale: climate-course seats, workshops and weekly discussions for its members, and the power, internet and workspace that keep more than 300 people working, open to more. These needs are the first step of the loop. Here's how a garden meets them.",
+  "We built commitment pooling for the Promise step. The hub asks for what it needs: this season asks members to complete a climate course, and it asks for workshops and discussions. The hub offers what it has: desks with power and internet, as hub-visit vouchers. Members offer or ask too, like a career call. Kept promises earn agreed rewards and service vouchers on Cosmo-Local Credit, the open voucher protocol from Grassroots Economics, and members swap them in one shared pool. These screens are the hub's real season in the app, and the second is Ubuntu in the app: only the person served can confirm a promise was kept. The contracts are deployed on public networks and in pilot with Tech and Sun, rehearsed end to end with demo accounts. When our developer finishes the climate course, that kept promise starts his record. Here's what keeping promises opens for him.",
+  "That's the Work step: once the person served confirms it, the work becomes proof, and doors open, through Green Goods first and then beyond it. Proof: in the pilot, a designer, an analyst and an engineer build a website together, and each confirmed part goes into a portfolio the next employer can read. Power: vouchers open the hub's desks, with steady power and internet, and AI tool seats members can't afford alone. People: vouchers book career calls and one-to-one help, from members first, then from the diaspora. The record carries weight because the person who did the work never confirms it, and it can travel to the networks that count it.",
   "Now the funding step. Capital can flow four ways. A supporter can donate directly to the garden's shared fund, which the garden draws on for its work; this is the hub's own page in the app, with Donate and Endow. An endowment keeps a supporter's gift invested, with a claim to withdraw, in DeFi strategies that typically earn about 2 to 7% a year; earnings vary, nothing is guaranteed, and principal can lose value. Nearly all of those earnings go to the garden's shared fund and to impact certificates, after a small default share to Green Goods I'll come to. The commitment pool: kept promises earn agreed rewards and build the record funders read. And impact certificates: a garden turns a season's impact into a certificate, and next, supporters can buy a share.",
   "Step back, and a hub is rich in capital but short of money. Around it, the community adds social, cultural, material and living capital. The diaspora brings money, culture, relationships and expertise, and institutions bring money, knowledge and equipment. Money flows in, and evidence of delivery radiates back out. The ring I belong to is next.",
   "In 2024, 22.1 billion dollars in remittances reached Nigeria, according to the World Bank, and Nigeria is where Tech and Sun builds. The diaspora brings more than money: culture and connections too. This is the bridge I'm building. Our first diaspora community is Omo Yoruba of Southern California, a Yoruba community nonprofit in Los Angeles; here they are at the Odunde Festival in Leimert Park. What they need is trust and transparency to bring capital home, and that is what the record gives: diaspora supporters can sponsor a season, associations can pool members' gifts behind one, and for the first time they can see what the money did.",
