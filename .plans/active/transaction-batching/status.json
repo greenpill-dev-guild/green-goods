@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T10:29:57.916Z"
+    "updated_at": "2026-10-31T10:36:45.563Z"
   },
   "links": {
     "brief": "brief.md",
@@ -57,12 +57,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/components/Garden/GardenSettingsEditor.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 10:17:23 UTC: 2 failures on behavior: Save ran and stayed enabled while held saves were being read. Earlier proof is in handoffs/continuation.md."
+          "command": "bun run --cwd packages/admin test src/components/Garden/gardenSettingsDraft.test.ts src/components/Garden/GardenSettingsEditor.test.tsx",
+          "evidence": "2026-10-31 10:35:27 UTC: the editor test failed on behavior, because a read replaced what someone typed while it ran. The 7 draft tests failed on the new draftAfterRead helper not existing yet. Earlier proof is in handoffs/continuation.md."
         },
         "green": {
           "command": "bun run --cwd packages/admin test src/components/Garden src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 10:18:14 UTC: 5 files, 82 passed, at the tree committed as d4329e3b5."
+          "evidence": "2026-10-31 10:35:53 UTC: 5 files, 85 passed, at the tree committed as 732fd2e01."
         },
         "note": ""
       },
@@ -420,6 +420,14 @@
       "timestamp": "2026-10-31T10:29:57.920Z",
       "actor": "claude",
       "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/batch-settings-findings",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T10:36:45.568Z",
+      "actor": "claude",
+      "lane": "ui",
       "status": "tdd_recorded",
       "branch": "fix/batch-settings-findings",
       "note": "Recorded RED/GREEN TDD proof"
