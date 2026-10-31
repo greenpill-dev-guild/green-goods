@@ -131,7 +131,7 @@ export function useAddMembersBatch(gardenId: string) {
       landRows([...outcome.added, ...outcome.alreadyHeld]);
       // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
       // no attempt, and a list past its ceilings has not been tried yet.
-      const { added, unknown, refused, notSent, failure } = outcome;
+      const { added, unknown, refused, notSent, notBatchable, failure } = outcome;
       for (const row of [...added, ...unknown, ...refused, ...notSent]) trackStarted(row);
       for (const { transactionHash, ...row } of added) trackAdded(row, transactionHash);
       for (const { reason, ...row } of refused) trackFailed(row, reason);
@@ -140,7 +140,10 @@ export function useAddMembersBatch(gardenId: string) {
       if (failure) handleError(failure, { authMode: rail, gardenAddress });
       if (outcome.added.length > 0) {
         announceAdded(outcome.added.length);
-      } else if (outcome.alreadyHeld.length > 0 && outcome.notSent.length === 0) {
+      } else if (
+        outcome.alreadyHeld.length > 0 &&
+        [...notSent, ...refused, ...notBatchable, ...unknown].length === 0
+      ) {
         toastService.info({
           message: formatMessage(
             { id: "app.admin.roles.alreadyHeldCount" },

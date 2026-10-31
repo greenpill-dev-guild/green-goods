@@ -170,6 +170,25 @@ describe("useAddMembersBatch", () => {
     expect(tracking.failed).not.toHaveBeenCalled();
   });
 
+  it("says there is nothing to sign only when nothing else is left to do", async () => {
+    const { result, sender } = renderBatch(CONFIRMED);
+    const [held, other] = rows();
+    wearing.add(`${held.address.toLowerCase()}:${held.role}`);
+    vi.mocked(sender.sendContractCall).mockImplementationOnce(async () => {
+      throw new BatchNotSubmittedError(new Error("batch-budget-exceeded"));
+    });
+
+    await act(async () => {
+      await result.current.add([held, other]);
+    });
+    expect(toasts.info).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.add([held]);
+    });
+    expect(toasts.info).toHaveBeenCalledTimes(1);
+  });
+
   it("leaves a list past its ceilings out of analytics until someone tries it", async () => {
     const { result, sender } = renderBatch(CONFIRMED);
     vi.mocked(sender.sendContractCall).mockImplementationOnce(async () => {
