@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { listMyGardens, type MyGarden } from "../../modules/garden/membership";
-import { forgetListedPendingJoins, pendingJoinGardenIds } from "../../modules/garden/pending-joins";
+import {
+  forgetListedPendingJoins,
+  isOwnJoinEntry,
+  pendingJoinGardenIds,
+} from "../../modules/garden/pending-joins";
 import {
   awaitingJoinRequestScope,
   useAwaitingJoinRequestsStore,
@@ -52,11 +56,9 @@ export function useMyGardens(
   // drop it while the indexer catches up, and the pending join has to stand in then.
   useEffect(() => {
     if (!account) return;
-    const member = account.toLowerCase();
     const listed = gardens
       .filter(
-        ({ garden, membership }) =>
-          membership.roles.length > 0 && garden.optimisticGardener?.toLowerCase() !== member
+        ({ garden, membership }) => membership.roles.length > 0 && !isOwnJoinEntry(garden, account)
       )
       .map(({ garden }) => garden.id);
     if (listed.length === 0) return;

@@ -38,6 +38,7 @@ import {
 import {
   addPendingJoin,
   hasFreshPendingJoin,
+  markOwnJoinEntry,
   removePendingJoin,
   subscribeToPendingJoins,
 } from "../../modules/garden/pending-joins";
@@ -258,11 +259,10 @@ export function useJoinGarden() {
               if (garden.id === gardenAddress) {
                 const currentGardeners = garden.gardeners || [];
                 if (!isAddressInList(targetAddress, currentGardeners)) {
-                  return {
-                    ...garden,
-                    gardeners: [...currentGardeners, targetAddress],
-                    optimisticGardener: targetAddress,
-                  };
+                  return markOwnJoinEntry(
+                    { ...garden, gardeners: [...currentGardeners, targetAddress] },
+                    targetAddress
+                  );
                 }
               }
               return garden;

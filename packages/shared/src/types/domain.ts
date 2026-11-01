@@ -155,11 +155,6 @@ export interface Garden extends GardenCard {
    */
   gardeners: Address[];
   /**
-   * The account this device wrote into `gardeners` after an open join (`useJoinGarden`). That entry
-   * is the join's own, not the indexer's, until the next read of the list replaces this record.
-   */
-  optimisticGardener?: Address;
-  /**
    * Evaluator Ethereum addresses.
    */
   evaluators: Address[];

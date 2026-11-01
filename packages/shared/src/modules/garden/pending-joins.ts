@@ -107,6 +107,21 @@ export function pendingJoinGardenIds(account: string): Set<string> {
 }
 
 /**
+ * Marks a garden in the list this device holds as listing the account only through the join's own
+ * optimistic write, which the next read can drop while the indexer catches up. Other writers keep
+ * the mark, and a read of the list replaces the record.
+ */
+export function markOwnJoinEntry<G extends object>(garden: G, account: string) {
+  return { ...garden, optimisticGardener: account };
+}
+
+/** Whether the garden's roster lists the account only through this device's own join. */
+export function isOwnJoinEntry(garden: object, account: string): boolean {
+  const { optimisticGardener: mark } = garden as { optimisticGardener?: unknown };
+  return typeof mark === "string" && mark.toLowerCase() === account.toLowerCase();
+}
+
+/**
  * Forget this device's open joins for the account in gardens whose roster now lists it, so a
  * role removed later is not masked by the join that came before it. Notifies only on a change.
  */

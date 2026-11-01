@@ -13,6 +13,7 @@ import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { gardensKeys } from "../../../config/query-keys/garden";
 import { gardenJoinRequestKeys } from "../../../config/query-keys/garden-join-requests";
 import { useMyGardens } from "../../../hooks/garden/useMyGardens";
+import { markOwnJoinEntry } from "../../../modules/garden/pending-joins";
 import {
   awaitingJoinRequestScope,
   useAwaitingJoinRequestsStore,
@@ -147,7 +148,7 @@ describe("useMyGardens", () => {
     const key = gardensKeys.byChain(DEFAULT_CHAIN_ID);
     const listed = { ...openJoined, gardeners: [ACCOUNT] };
     savePendingJoins({ [openJoined.id]: { address: ACCOUNT, timestamp: Date.now() } });
-    client.setQueryData(key, [{ ...listed, optimisticGardener: ACCOUNT }]);
+    client.setQueryData(key, [markOwnJoinEntry(listed, ACCOUNT)]);
     await waitFor(() => expect(result.current.gardens[0]?.membership.roles).toEqual(["gardener"]));
     // A later write to the list, such as a steward's approval elsewhere, is no read of this roster.
     await act(async () => {
