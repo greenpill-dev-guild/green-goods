@@ -28,13 +28,24 @@ export function subscribeToPendingJoins(listener: () => void): () => void {
   };
 }
 
+// Gardens whose record storage refused to forget. Such a record reads as gone in this tab, so it
+// stops counting and no reader comes back to it, until a write that lands drops it for good.
+const refusedRemovals = new Set<string>();
+
 function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+    const saved = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+    for (const gardenId of refusedRemovals) delete saved[gardenId];
+    return saved;
   } catch {
     return {};
   }
+}
+
+function savePendingJoins(pending: Record<string, { address: string; timestamp: number }>) {
+  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  refusedRemovals.clear();
 }
 
 export function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.now()) {
@@ -49,7 +60,7 @@ export function addPendingJoin(gardenId: string, userAddress: string, timestamp 
     return;
   }
   pending[gardenId] = { address: userAddress, timestamp };
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  savePendingJoins(pending);
   notifyPendingJoinsChanged();
 }
 
@@ -61,7 +72,12 @@ export function removePendingJoin(gardenId: string) {
   const pending = getPendingJoins();
   if (!(gardenId in pending)) return;
   delete pending[gardenId];
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  try {
+    savePendingJoins(pending);
+  } catch (error) {
+    logger.warn("Could not forget a settled pending join", { source: "removePendingJoin", error });
+    refusedRemovals.add(gardenId);
+  }
   notifyPendingJoinsChanged();
 }
 
@@ -88,22 +104,42 @@ function pendingJoinAccount(record: unknown): string | null {
   return typeof address === "string" ? address.toLowerCase() : null;
 }
 
+/** The last moment a saved pending join counts, or null for a malformed record. */
+function pendingJoinLimit(record: unknown): number | null {
+  const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
+  return typeof joinedAt === "number" ? joinedAt + PENDING_JOIN_TTL : null;
+}
+
 /** The gardens, lower-cased, where this device holds a fresh open join for the account. Reads only. */
 export function pendingJoinGardenIds(account: string): Set<string> {
   const member = account.toLowerCase();
   const now = Date.now();
   const gardenIds = new Set<string>();
   for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
-    const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
-    if (
-      pendingJoinAccount(record) === member &&
-      typeof joinedAt === "number" &&
-      now - joinedAt <= PENDING_JOIN_TTL
-    ) {
+    const limit = pendingJoinLimit(record);
+    if (pendingJoinAccount(record) === member && limit !== null && now <= limit) {
       gardenIds.add(gardenId.toLowerCase());
     }
   }
   return gardenIds;
+}
+
+/**
+ * Forget the joins past their limit, whoever sent them: no reader counts them any more. Returns
+ * how long until the next one lapses, a millisecond past its limit since readers count the limit
+ * itself, or null if none is waiting. A saved timestamp can be anything, so the wait is capped:
+ * past setTimeout's range a delay fires at once, over and over.
+ */
+export function forgetLapsedPendingJoins(): number | null {
+  const now = Date.now();
+  const limits: number[] = [];
+  for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
+    const limit = pendingJoinLimit(record);
+    if (limit === null) continue;
+    if (now > limit) removePendingJoin(gardenId);
+    else limits.push(limit);
+  }
+  return limits.length > 0 ? Math.min(...limits, now + PENDING_JOIN_TTL) + 1 - now : null;
 }
 
 /**
@@ -126,27 +162,11 @@ export function isOwnJoinEntry(garden: object, account: string): boolean {
  * role removed later is not masked by the join that came before it. Notifies only on a change.
  */
 export function forgetListedPendingJoins(account: string, listedGardenIds: readonly string[]) {
-  if (typeof window === "undefined") return;
-  const pending = savedPendingJoins();
   const listed = new Set(listedGardenIds.map((gardenId) => gardenId.toLowerCase()));
   const member = account.toLowerCase();
-  let changed = false;
-  for (const [gardenId, record] of Object.entries(pending)) {
+  for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
     if (listed.has(gardenId.toLowerCase()) && pendingJoinAccount(record) === member) {
-      delete pending[gardenId];
-      changed = true;
+      removePendingJoin(gardenId);
     }
   }
-  if (!changed) return;
-  try {
-    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
-  } catch (error) {
-    // Storage can refuse the write; the record then lapses with its time limit.
-    logger.warn("Could not forget a settled pending join", {
-      source: "forgetListedPendingJoins",
-      error,
-    });
-    return;
-  }
-  notifyPendingJoinsChanged();
 }

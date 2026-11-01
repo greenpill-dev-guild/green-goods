@@ -13,6 +13,8 @@
  *   (`useSheetOrchestratorStore.clearAll`);
  * - the recent send recipients (`clearRecentRecipients`) and a work approval
  *   whose receipt it was still waiting on (`clearPendingWorkApproval`);
+ * - this browser's grants to read join-request counts
+ *   (`useJoinRequestCountGrantStore.clearAll`), which also end at sign-out;
  * - every cached read whose query key names the previous account;
  * - the screens themselves: the hook returns a session generation, and
  *   `AuthGate` keys the app under it, so no screen keeps the last account's
@@ -54,6 +56,7 @@ import { clearRecentRecipients } from "../blockchain/useRecentRecipients";
 import { clearPendingWorkApproval } from "../work/useWorkApprovalLifecycle";
 import { getLastAccount, setLastAccount } from "../../modules/auth/session";
 import { useGardenStateStore } from "../../stores/useGardenStateStore";
+import { useJoinRequestCountGrantStore } from "../../stores/useJoinRequestCountGrantStore";
 import { useSheetOrchestratorStore } from "../../stores/useSheetOrchestratorStore";
 import { useUIStore } from "../../stores/useUIStore";
 
@@ -101,6 +104,7 @@ function forgetAccount(account: string): void {
     () => useUIStore.getState().resetForAccountChange(),
     () => useGardenStateStore.getState().clearAll(),
     () => useSheetOrchestratorStore.getState().clearAll(),
+    () => useJoinRequestCountGrantStore.getState().clearAll(),
     clearRecentRecipients,
     clearPendingWorkApproval,
     () =>

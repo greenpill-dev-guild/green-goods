@@ -67,6 +67,7 @@ function MembersHarness({
         memberCount={memberCount}
         memberSearch=""
         noteJoinRequestsRead={() => {}}
+        keepJoinRequestCountGrant={() => {}}
         roleSummary={roleSummary}
         setMemberSearch={() => {}}
         visibleDirectory={storyDirectory}

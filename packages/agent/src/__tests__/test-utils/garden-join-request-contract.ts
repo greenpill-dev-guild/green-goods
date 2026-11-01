@@ -141,6 +141,44 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
       ).toBe(true);
     });
 
+    it("counts pending requests of every kind, leaving out answered and lapsed ones", async () => {
+      const { store } = createStore();
+      const request = {
+        gardenAddress: garden,
+        accountAddress: account,
+        displayName: "Maya",
+        requestedVia: "garden_detail" as const,
+        requestedAt,
+        expiresAt,
+      };
+      await store.create(request);
+      await store.create({ ...request, kind: "steward_access", requestedVia: "admin_access" });
+      await store.create({
+        ...request,
+        gardenAddress: "0x7777777777777777777777777777777777777777",
+      });
+      const answered = await store.create({
+        ...request,
+        accountAddress: "0x3333333333333333333333333333333333333333",
+      });
+      expect(await store.countPending(garden, readAt)).toBe(3);
+      if (answered.created !== true) {
+        throw new Error("Expected the garden join request to be created");
+      }
+
+      await store.resolve({
+        gardenAddress: garden,
+        requestId: answered.request.id,
+        expectedRevision: 0,
+        state: "declined",
+        reason: "Please attend one garden gathering first.",
+        resolvedAt: readAt,
+      });
+
+      expect(await store.countPending(garden, readAt)).toBe(2);
+      expect(await store.countPending(garden, expiresAt)).toBe(0);
+    });
+
     it("requires revision consistency and preserves the decline reason for the requester", async () => {
       const { store } = createStore();
       const created = await store.create({

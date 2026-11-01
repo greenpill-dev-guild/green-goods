@@ -71,6 +71,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
       memberCount={workspace.memberCount}
       memberSearch={workspace.memberSearch}
       noteJoinRequestsRead={workspace.noteJoinRequestsRead}
+      keepJoinRequestCountGrant={workspace.keepJoinRequestCountGrant}
       roleSummary={workspace.roleSummary}
       setMemberSearch={workspace.setMemberSearch}
       visibleDirectory={workspace.visibleDirectory}

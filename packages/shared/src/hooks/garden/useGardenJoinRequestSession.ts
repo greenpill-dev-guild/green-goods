@@ -24,7 +24,7 @@ type Status = {
   outcomeUnknown: boolean;
 };
 const EMPTY: Status = { request: null, hasCheckedStatus: false, outcomeUnknown: false };
-// Authorization never enters query data, browser persistence, URLs or telemetry.
+// A proof never enters query data, browser persistence, URLs or telemetry.
 const sessions = new WeakMap<Query, { proof?: GardenJoinProofEnvelope; operation: number }>();
 
 /**

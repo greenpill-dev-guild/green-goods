@@ -38,6 +38,7 @@ const meta = {
   args: {
     garden: storyGarden,
     canManage: true,
+    keepJoinRequestCountGrant: fn(),
     memberCount: storyDirectory.length,
     memberSearch: "",
     noteJoinRequestsRead: fn(),

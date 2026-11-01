@@ -53,6 +53,7 @@ import {
   createGardenJoinRequestCipher,
   createSqliteGardenJoinRequestStore,
 } from "./services/garden-join-requests";
+import { createGardenJoinRequestCountGrants } from "./services/garden-join-request-count-grants";
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
 import { createPasskeyDirectory } from "./services/passkey-directory";
@@ -225,6 +226,11 @@ async function main(): Promise<void> {
             chain: config.chain,
             rpcUrl: agentRpcUrl,
           }),
+          ...(joinRequestCipher
+            ? {
+                gardenJoinRequestCountGrants: createGardenJoinRequestCountGrants(joinRequestCipher),
+              }
+            : {}),
         }
       : {}),
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {

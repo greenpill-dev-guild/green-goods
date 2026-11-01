@@ -1,6 +1,7 @@
 import type { GardenJoinProofContent, GardenJoinProofEnvelope } from "./join-requests";
 
 const AUTHORIZATION_PREFIX = "GG-JoinProof ";
+const COUNT_AUTHORIZATION_PREFIX = "GG-JoinCount ";
 
 function escapeProofField(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\r/g, "\\r").replace(/\n/g, "\\n");
@@ -69,4 +70,16 @@ export function decodeGardenJoinAuthorization(value: string | null | undefined):
   } catch {
     return null;
   }
+}
+
+export function encodeGardenJoinCountAuthorization(token: string): string {
+  return `${COUNT_AUTHORIZATION_PREFIX}${token}`;
+}
+
+export function decodeGardenJoinCountAuthorization(
+  value: string | null | undefined
+): string | null {
+  return value?.startsWith(COUNT_AUTHORIZATION_PREFIX)
+    ? value.slice(COUNT_AUTHORIZATION_PREFIX.length)
+    : null;
 }

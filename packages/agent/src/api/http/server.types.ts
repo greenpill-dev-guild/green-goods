@@ -28,6 +28,7 @@ import type {
   GardenJoinRequestRateLimitPressure,
   GardenJoinRequestStore,
 } from "../../services/garden-join-requests";
+import type { GardenJoinRequestCountGrants } from "../../services/garden-join-request-count-grants";
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 import type { PasskeyDirectory } from "../../services/passkey-directory";
 import type { MessagingRouteDeps } from "../routes/messaging";
@@ -105,6 +106,7 @@ export interface ServerDeps {
   gardenJoinRequestChainId?: number;
   gardenJoinRequestChainReader?: GardenJoinRequestChainReader;
   gardenJoinRequestSignatureVerifier?: AccountSignatureVerifier;
+  gardenJoinRequestCountGrants?: GardenJoinRequestCountGrants;
   /** Defaults to 24 hours; zero disables the retention sweep. */
   gardenJoinRequestSweepIntervalMs?: number;
   /** Issues passkeys under one domain for every site; absent unless the directory is enabled. */
