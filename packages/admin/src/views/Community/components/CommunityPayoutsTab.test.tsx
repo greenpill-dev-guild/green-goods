@@ -24,23 +24,12 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
 
 // The panel reads its jars from the chain; this suite covers the tab.
 vi.mock("@/views/Hub/components/CookieJarPayoutPanel", () => ({
-  CookieJarPayoutPanel: (props: {
-    allocationCount: number;
-    allocationCountAtLeast?: boolean;
-    routeAction?: "deposit" | "withdraw" | null;
-    onRouteActionClose?: () => void;
-  }) => (
+  CookieJarPayoutPanel: (props: { allocationCount: number; allocationCountAtLeast?: boolean }) => (
     <div
       data-testid="payout-panel"
       data-count={props.allocationCount}
       data-at-least={String(Boolean(props.allocationCountAtLeast))}
-      data-route-action={props.routeAction ?? ""}
-    >
-      {/* Stands in for closing the dialog the route item opened. */}
-      <button type="button" onClick={props.onRouteActionClose}>
-        Close route dialog
-      </button>
-    </div>
+    />
   ),
 }));
 
@@ -88,22 +77,31 @@ describe("CommunityPayoutsTab", () => {
     access.isProtocolGarden = false;
   });
 
-  it("counts payouts so far as at least the list when the list filled its limit", () => {
-    renderPayouts({ allocationCount: 20, allocationsAtLimit: true });
+  // The jars panel's header line says the total (DL-134), so the rail does not say it again.
+  it.each([
+    { allocationCount: 3, allocationsAtLimit: false, atLeast: "false" },
+    // The history stops at its limit, so a full list is a lower bound.
+    { allocationCount: 20, allocationsAtLimit: true, atLeast: "true" },
+  ])("leaves the payout total to the jars panel: $allocationCount", ({ atLeast, ...counts }) => {
+    renderPayouts(counts);
 
-    expect(screen.getByText("Payouts so far").closest("dt")?.nextElementSibling).toHaveTextContent(
-      "20+"
-    );
-    expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-at-least", "true");
+    const panel = screen.getByTestId("payout-panel");
+    expect(panel).toHaveAttribute("data-count", String(counts.allocationCount));
+    expect(panel).toHaveAttribute("data-at-least", atLeast);
+    expect(screen.queryByText("Payouts so far")).not.toBeInTheDocument();
   });
 
-  it("counts payouts so far exactly below the limit", () => {
-    renderPayouts({ allocationCount: 3 });
+  it("shows Payout readiness only while it has a split to report", () => {
+    renderPayouts({ allocationCount: 1 });
+    expect(screen.getByRole("heading", { name: "Payout readiness" })).toBeInTheDocument();
+    expect(screen.getByText("How yield is distributed")).toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Payouts so far").closest("dt")?.nextElementSibling).toHaveTextContent(
-      /^3$/
-    );
-    expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-at-least", "false");
+  it("gives the jars the width when there is no split to report", () => {
+    renderPayouts({ allocationCount: 0 });
+    expect(screen.queryByRole("heading", { name: "Payout readiness" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(screen.getByTestId("payout-panel")).toBeInTheDocument();
   });
 
   it("holds the campaign cookie jars for a deployer in the protocol garden (DL-046)", async () => {
@@ -134,19 +132,5 @@ describe("CommunityPayoutsTab", () => {
     renderPayouts({ selectedItem: "create-campaign-jar" });
 
     expect(screen.getByRole("dialog", { name: "Create Cookie Jar" })).toBeInTheDocument();
-  });
-
-  it("drops the fund-jar route item once the dialog it opened closes", async () => {
-    const user = userEvent.setup();
-    renderPayouts({ selectedItem: "fund-jar" });
-
-    expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-route-action", "deposit");
-
-    await user.click(screen.getByRole("button", { name: "Close route dialog" }));
-
-    expect(screen.getByTestId("location")).toHaveTextContent(
-      `/community/payouts?gardenId=${storyGarden.id}`
-    );
-    expect(screen.getByTestId("location")).not.toHaveTextContent("item=");
   });
 });
