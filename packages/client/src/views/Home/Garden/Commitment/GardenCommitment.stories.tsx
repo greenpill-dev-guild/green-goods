@@ -186,6 +186,7 @@ const asOfferCreator =
     return {
       ...page,
       linkable: false,
+      takeUpOpen: !taken,
       actKind: taken ? "addProof" : "withdraw",
       detail: {
         ...detail,

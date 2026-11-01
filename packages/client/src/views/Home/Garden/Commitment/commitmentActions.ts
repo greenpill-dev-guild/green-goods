@@ -65,15 +65,15 @@ export function takeUpMode(
  * When the reader can add proof, which is what the page says while none is on the promise
  * (DL-151). Pass the act the page's bar offers, or null if another bar stands in for it. The chain
  * takes no proof before someone takes the promise up, and until then only an offer's creator reads
- * as its provider, so they are the one told it comes later.
+ * as its provider, so they are the one told it comes later, for as long as someone still can.
  */
 export function addProofReach(
   act: CommitmentAct | null,
   seat: CommitmentSeat | null,
-  state: CommitmentReadModel["derivedState"]
+  takeUpOpen: boolean
 ): "now" | "afterTakeUp" | "no" {
   if (act?.kind === "addProof") return "now";
-  return seat === "provider" && state === "OFFERED" ? "afterTakeUp" : "no";
+  return seat === "provider" && takeUpOpen ? "afterTakeUp" : "no";
 }
 
 export function selectCommitmentAct(input: {

@@ -70,6 +70,8 @@ const CYCLE_NAMES = new Map([
 const HUB_DAY = "Four-hour hub day";
 const HUB_DAY_CID = "bafy-hub-day";
 const HUB_DAY_METADATA = new Map([[HUB_DAY_CID, { version: 1, title: HUB_DAY }]]);
+/** The promises' words as read so far. */
+let mockMetadata = HUB_DAY_METADATA;
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -172,7 +174,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentSeries: () => ({ series: [] }),
   useCommitmentCycles: (...args: unknown[]) => mockUseCommitmentCycles(...args),
   useCommitmentCycleNames: () => ({ byCycleId: CYCLE_NAMES, isLoading: false }),
-  useCommitmentMetadata: () => ({ byCID: HUB_DAY_METADATA, isLoading: false }),
+  useCommitmentMetadata: () => ({ byCID: mockMetadata, isLoading: false }),
   useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
   useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
 }));
@@ -207,6 +209,7 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
     mockActiveGarden = null;
     navigatesForReal = false;
+    mockMetadata = HUB_DAY_METADATA;
   });
 
   describe("identical open copies (DL-150)", () => {
@@ -250,6 +253,25 @@ describe("CommitmentsSheet", () => {
         `/home/${GARDEN}/commitments/65`,
         expect.objectContaining({ viewTransition: false })
       );
+    });
+
+    it("keeps the list open when the copies' words arrive after it opened", async () => {
+      const user = userEvent.setup();
+      mockMetadata = new Map();
+      const onClose = vi.fn();
+      const view = render(<CommitmentsSheet isOpen onClose={onClose} />);
+      await user.click(screen.getByRole("button", { name: /A group of 10 separate promises/ }));
+      expect(screen.getByRole("dialog", { name: "A promise" })).toBeInTheDocument();
+
+      // The words change what folds the copies, not which copies the reader opened.
+      mockMetadata = HUB_DAY_METADATA;
+      view.rerender(
+        <MemoryRouter>
+          <CommitmentsSheet isOpen onClose={onClose} />
+        </MemoryRouter>
+      );
+
+      expect(copyRows()).toHaveLength(10);
     });
 
     it("reopens the list on top, with focus and Escape its own, on the way back from a copy", async () => {

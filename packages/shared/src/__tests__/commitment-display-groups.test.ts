@@ -292,7 +292,9 @@ describe("identical open copies made apart (DL-150)", () => {
     ["reward rail", { considerationRail: "NONE" }],
     ["words", { metadataCID: "cid-water" }],
   ])("keeps apart another %s", (_term, change) => {
-    expect(keyOf(change)).not.toBe(keyOf());
+    const key = keyOf(change);
+    expect(key).not.toBeNull();
+    expect(key).not.toBe(keyOf());
   });
 
   it.each<[string, Partial<GroupableCommitment>]>([

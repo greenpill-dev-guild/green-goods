@@ -579,7 +579,7 @@ describe("GardenCommitment", () => {
   describe("a creator's proof (DL-151)", () => {
     const PROOF_MOVES_IT = "No proof added yet. Proof is what moves this forward.";
     /** The page as the controller reads this record, through the real seat and act rules. */
-    const open = (overrides: Partial<CommitmentReadModel>) => {
+    const open = (overrides: Partial<CommitmentReadModel>, takeUpOpen = false) => {
       const record = commitment({ commitmentType: "SUPPORT_SERVICE", ...overrides });
       const seat = selectCommitmentSeat({ commitment: record, contributors: [], viewer: VIEWER });
       const actKind = selectCommitmentActKind({
@@ -588,10 +588,24 @@ describe("GardenCommitment", () => {
         isCreator: isCommitmentCreator({ commitment: record, viewer: VIEWER }),
       });
       mockUseController.mockReturnValue(
-        controller({ detail: detail({ commitment: record }), seat, actKind, linkable: false })
+        controller({
+          detail: detail({ commitment: record }),
+          seat,
+          actKind,
+          linkable: false,
+          takeUpOpen,
+        })
       );
       render();
     };
+    const untakenOffer = {
+      direction: "OFFER",
+      creator: VIEWER,
+      leadProvider: null,
+      counterparty: null,
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+    } as const;
     const progress = () => screen.getByRole("region", { name: "Progress and proof" });
 
     it("leads with Add Proof when the creator is the provider and proof can land", () => {
@@ -612,15 +626,16 @@ describe("GardenCommitment", () => {
       expect(progress()).not.toHaveTextContent("Proof is what moves this forward");
     });
 
+    it("promises no proof on an offer past due, which nobody can take up any more", () => {
+      open(untakenOffer, false);
+
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+      expect(progress()).toHaveTextContent("No proof added yet.");
+      expect(progress()).not.toHaveTextContent("once someone takes this up");
+    });
+
     it("keeps Withdraw before anyone takes it up, when the chain takes no proof", () => {
-      open({
-        direction: "OFFER",
-        creator: VIEWER,
-        leadProvider: null,
-        counterparty: null,
-        onchainState: "OFFERED",
-        derivedState: "OFFERED",
-      });
+      open(untakenOffer, true);
 
       expect(screen.getByRole("button", { name: "Withdraw This" })).toHaveAttribute(
         "data-component",

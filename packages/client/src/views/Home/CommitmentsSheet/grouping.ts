@@ -25,7 +25,7 @@ export interface GardenGroup {
 /** One line of the Live list: a promise, or its identical open copies as one (DL-150). */
 export type LiveEntry =
   | { kind: "row"; row: InboxCommitment }
-  | { kind: "copies"; key: string; rows: InboxCommitment[] };
+  | { kind: "copies"; rows: InboxCommitment[] };
 
 /**
  * Fold identical open copies into one entry that takes the place of its first copy. The display
@@ -50,7 +50,7 @@ export function foldIdenticalCopies(
     const key = keys[index];
     const fold = key ? copies.get(key) : undefined;
     if (!key || !fold || fold.length < 2) return [{ kind: "row", row }];
-    return fold[0] === row ? [{ kind: "copies", key, rows: fold }] : [];
+    return fold[0] === row ? [{ kind: "copies", rows: fold }] : [];
   });
 }
 

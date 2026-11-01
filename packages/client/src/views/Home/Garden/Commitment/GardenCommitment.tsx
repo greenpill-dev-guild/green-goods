@@ -367,7 +367,7 @@ export function GardenCommitment() {
             // The bar's own act, or the one beside required work; a service's own bar has neither.
             service.bar ? null : selectedAct,
             controller.seat,
-            commitment.derivedState
+            controller.takeUpOpen
           )}
           onPhone={
             controller.queue.proofOnItsWay

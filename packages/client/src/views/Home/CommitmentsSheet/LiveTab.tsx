@@ -48,7 +48,8 @@ export interface LiveTabProps {
 
 /** The copies a folded row opens: drawn while they close, and already in place on the way back. */
 interface OpenCopies {
-  key: string | null;
+  /** Their fold is found again by its copies: what folds them shifts as their words are read. */
+  ids: ReadonlySet<bigint>;
   open: boolean;
   entryMotion: "slide" | "instant";
 }
@@ -84,7 +85,7 @@ export function LiveTab({
     useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live])
   );
   const [openCopies, setOpenCopies] = useState<OpenCopies>({
-    key: null,
+    ids: new Set(),
     open: false,
     entryMotion: "slide",
   });
@@ -153,7 +154,8 @@ export function LiveTab({
     .flatMap((group) => group.entries)
     .find(
       (entry): entry is Extract<LiveEntry, { kind: "copies" }> =>
-        entry.kind === "copies" && entry.key === openCopies.key
+        entry.kind === "copies" &&
+        entry.rows.some((row) => openCopies.ids.has(row.commitment.commitmentId))
     );
 
   return (
@@ -253,12 +255,16 @@ export function LiveTab({
                 const [first] = entry.rows;
                 return (
                   <PromiseRow
-                    key={entry.key}
+                    key={first.commitment.id}
                     row={first}
                     title={titleOf(first)}
                     copies={entry.rows.length}
                     onOpen={() =>
-                      setOpenCopies({ key: entry.key, open: true, entryMotion: "slide" })
+                      setOpenCopies({
+                        ids: new Set(entry.rows.map((row) => row.commitment.commitmentId)),
+                        open: true,
+                        entryMotion: "slide",
+                      })
                     }
                   />
                 );
