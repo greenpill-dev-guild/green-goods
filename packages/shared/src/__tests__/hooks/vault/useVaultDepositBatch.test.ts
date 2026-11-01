@@ -23,6 +23,8 @@ const { auth, chainState, sending, toasts, listing } = vi.hoisted(() => ({
   auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
   chainState: {
     allowance: 0n,
+    /** Holds the allowance read open, or fails it. */
+    allowanceRead: Promise.resolve() as Promise<void>,
     previews: [] as bigint[],
     held: 250n as bigint | null,
     logs: [] as Partial<Log>[],
@@ -49,7 +51,10 @@ vi.mock("../../../modules/transactions/batch-enablement", () => ({
 }));
 vi.mock("@wagmi/core", () => ({
   readContract: vi.fn(async (_config, { functionName }: { functionName: string }) => {
-    if (functionName === "allowance") return chainState.allowance;
+    if (functionName === "allowance") {
+      await chainState.allowanceRead;
+      return chainState.allowance;
+    }
     if (functionName === "maxDeposit") return 10_000n;
     if (functionName === "previewDeposit") return chainState.previews.shift() ?? 100n;
     if (functionName === "convertToAssets") {
@@ -120,6 +125,7 @@ describe("useVaultDeposit on a listed rail", () => {
     listing.enabled = true;
     listing.walletProfile = "eip-5792";
     chainState.allowance = 0n;
+    chainState.allowanceRead = Promise.resolve();
     chainState.previews = [];
     chainState.held = 250n;
     chainState.logs = [];
@@ -256,6 +262,56 @@ describe("useVaultDeposit on a listed rail", () => {
     expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledTimes(2);
   });
+
+  it("stops without offering another press when one step alone is past its ceilings", async () => {
+    listing.walletProfile = "sequential";
+    const { sender, deposit, renderDeposit } = setup(CONFIRMED, "wallet");
+    vi.mocked(sender.getBatchCapability!).mockImplementation(async (scope) => ({
+      ...scope,
+      atomic: "unsupported",
+    }));
+    const quote = (gas: string) => ({
+      gas,
+      maxFeePerGas: "100000000",
+      maxFee: String(BigInt(gas) * 100000000n),
+      sponsored: false,
+      authority: "wallet" as const,
+    });
+    // The approval fits and lands. The deposit, with its strategy's allocation, does not.
+    sender.preflightBatch = vi
+      .fn()
+      .mockResolvedValueOnce(quote("100000"))
+      .mockResolvedValue(quote("9000000"));
+    chainState.logs = [
+      {
+        address: deposit.assetAddress,
+        topics: encodeEventTopics({
+          abi: parseAbi([
+            "event Approval(address indexed owner, address indexed spender, uint256 value)",
+          ]),
+          eventName: "Approval",
+          args: { owner: auth.primaryAddress as Address, spender: deposit.vaultAddress },
+        }) as Log["topics"],
+        data: encodeAbiParameters([{ type: "uint256" }], [100n]),
+      },
+    ];
+    const { result } = renderDeposit();
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(
+        (error) => classifyTxError(error).kind === "pastCeilings"
+      );
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+
+    chainState.allowance = 100n;
+    await act(async () => {
+      await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(
+        (error) => classifyTxError(error).kind === "pastCeilings"
+      );
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
 });
 
 describe("useDepositPlan", () => {
@@ -264,6 +320,7 @@ describe("useDepositPlan", () => {
     listing.enabled = false;
     listing.walletProfile = "eip-5792";
     chainState.allowance = 0n;
+    chainState.allowanceRead = Promise.resolve();
     chainState.previews = [];
     chainState.held = 250n;
     chainState.logs = [];
@@ -424,6 +481,32 @@ describe("useDepositPlan", () => {
     await waitFor(() => expect(result.current.isHeld).toBe(true));
   });
 
+  it("pauses a deposit until its count is read, and a failed read doesn't lock anyone out", async () => {
+    let finishRead = () => {};
+    chainState.allowanceRead = new Promise<void>((resolve) => {
+      finishRead = resolve;
+    });
+    chainState.allowance = 100n;
+    const { renderPlan } = setup();
+    const { result } = renderPlan();
+
+    await waitFor(() => expect(result.current.isPaused).toBe(true));
+    await act(async () => {
+      finishRead();
+    });
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+    expect(result.current.isPaused).toBe(false);
+
+    chainState.allowanceRead = Promise.reject(new Error("rpc down"));
+    chainState.allowanceRead.catch(() => {});
+    const failing = setup();
+    const { result: failed } = failing.renderPlan();
+
+    await waitFor(() => expect(failed.current.isPaused).toBe(false));
+    expect(failed.current.signatures).toBeNull();
+    expect(failed.current.signatureLine).toBeNull();
+  });
+
   it("says when a held deposit proves it landed, once, and refreshes", async () => {
     listing.enabled = true;
     const { deposit, renderDeposit, vault, account, sender, queryClient } = setup();
@@ -435,6 +518,7 @@ describe("useDepositPlan", () => {
     chainState.logs = [depositLog(vault, account, 100n)];
     sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const onLanded = vi.fn();
 
     const target: DepositTarget = {
       kind: "vault",
@@ -450,6 +534,7 @@ describe("useDepositPlan", () => {
           decimals: 0,
           symbol: "DAI",
           gardenAddress: deposit.gardenAddress,
+          onLanded,
         }),
       { queryClient }
     );
@@ -459,5 +544,7 @@ describe("useDepositPlan", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: queryKeys.vaults.deposits(deposit.gardenAddress, 42161),
     });
+    // The form can clear the amount, so the same deposit isn't one press away.
+    expect(onLanded).toHaveBeenCalledOnce();
   });
 });

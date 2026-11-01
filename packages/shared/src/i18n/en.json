@@ -3924,6 +3924,8 @@
   "app.txFeedback.unconfirmed.message": "It could still go through, so wait a moment and check before you try again.",
   "app.txFeedback.overCeilings.title": "This needs more signatures right now",
   "app.txFeedback.overCeilings.message": "Nothing was sent. Press again to sign each step.",
+  "app.txFeedback.pastCeilings.title": "This deposit is too big to send right now",
+  "app.txFeedback.pastCeilings.message": "It’s over the limit we set for one transaction, so the deposit wasn’t sent. Try a smaller amount.",
   "app.update.applying.description": "Restarting the app.",
   "app.update.button": "Update",
   "app.update.check.description": "Check for a newer version.",

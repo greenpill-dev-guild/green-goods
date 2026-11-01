@@ -125,4 +125,15 @@ describe("isBatchEnabled", () => {
     expect(isBatchEnabled({ ...listed, profile: "kernel-0.3.3-pilot" }, list)).toBe(false);
     expect(isBatchEnabled({ ...listed, chainId: 42220 }, list)).toBe(false);
   });
+
+  it("lists a deposit for one asset only, and a listing that names none allows none", () => {
+    const dai = "0xdA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
+    const deposit: BatchEnablement = { ...listed, action: "vault-deposit", asset: dai };
+
+    expect(isBatchEnabled({ ...deposit, asset: dai.toLowerCase() }, [deposit])).toBe(true);
+    expect(isBatchEnabled({ ...deposit, asset: account }, [deposit])).toBe(false);
+
+    const namesNone = { ...deposit, asset: undefined } as unknown as BatchEnablement;
+    expect(isBatchEnabled(deposit, [namesNone])).toBe(false);
+  });
 });

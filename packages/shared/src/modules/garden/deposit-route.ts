@@ -1,6 +1,7 @@
 import {
   type BatchEnablement,
   type BatchRail,
+  type DepositAction,
   isBatchEnabled,
 } from "../transactions/batch-enablement";
 import type { BatchBudget } from "../transactions/batch-types";
@@ -36,7 +37,7 @@ export function depositBudget(rail: BatchRail, chainId: number): BatchBudget | n
  * unlisted action.
  */
 export function depositRoute(input: {
-  action: BatchEnablement["action"];
+  action: DepositAction;
   rail: BatchRail | null;
   passkeyProfile: BatchEnablement["profile"] | null | undefined;
   walletAtomic: boolean | undefined;
@@ -52,9 +53,11 @@ export function depositRoute(input: {
 }
 
 /** Whether a wallet's capability can change the route: asked only then. */
-export function walletRouteListed(
-  input: Pick<BatchEnablement, "action" | "chainId" | "asset">
-): boolean {
+export function walletRouteListed(input: {
+  action: DepositAction;
+  chainId: number;
+  asset: string;
+}): boolean {
   return (["eip-5792", "sequential"] as const).some((profile) =>
     isBatchEnabled({ ...input, rail: "wallet", profile })
   );

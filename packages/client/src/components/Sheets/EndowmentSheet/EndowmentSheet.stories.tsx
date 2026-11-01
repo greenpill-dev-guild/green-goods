@@ -74,7 +74,7 @@ const QUIET_PLAN: ReturnType<typeof useDepositPlan> = {
   signatures: null,
   signatureLine: null,
   isHeld: false,
-  isSettlingHold: false,
+  isPaused: false,
   unconfirmedIsHeld: false,
   holdFeedback: null,
 };
@@ -82,7 +82,7 @@ const HELD_PLAN: ReturnType<typeof useDepositPlan> = {
   signatures: 2,
   signatureLine: "2 signatures",
   isHeld: true,
-  isSettlingHold: false,
+  isPaused: true,
   unconfirmedIsHeld: false,
   holdFeedback: {
     title: "We couldn’t confirm your last deposit.",

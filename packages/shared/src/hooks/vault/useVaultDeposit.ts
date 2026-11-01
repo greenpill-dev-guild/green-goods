@@ -21,6 +21,7 @@ import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import {
   classifyTxError,
+  DEPOSIT_PAST_CEILINGS,
   isRecoverableAllowanceReadError,
   isUnconfirmedTxError,
 } from "../../utils/errors/tx-error-classifier";
@@ -273,10 +274,11 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
             showDepositing();
           },
         }).catch((error: unknown) => {
+          if (classifyTxError(error).kind !== "overCeilings") throw error;
+          // Step by step, an earlier approval may already have landed and no press will help.
+          if (!tookOneSignature) throw new Error(DEPOSIT_PAST_CEILINGS);
           // It was promised one signature, so going step by step takes another press.
-          if (tookOneSignature && classifyTxError(error).kind === "overCeilings") {
-            queryClient.setQueryData(overCeilingsKey, true);
-          }
+          queryClient.setQueryData(overCeilingsKey, true);
           throw error;
         });
         if (outcome.status === "deposited") return outcome.transactionHash;

@@ -59,8 +59,12 @@ export {
 export { Surface, surfaceVariants } from "./Surface";
 export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
-export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
-export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
+export type {
+  TxHoldFeedbackProps,
+  TxInlineFeedbackProps,
+  TxInlineFeedbackSeverity,
+} from "./feedback/TxInlineFeedback";
+export { TxHoldFeedback, TxInlineFeedback } from "./feedback/TxInlineFeedback";
 export type {
   TransactionSuccessAffordanceProps,
   TransactionSuccessMode,

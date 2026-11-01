@@ -4,7 +4,7 @@
  * @vitest-environment happy-dom
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type Dispatch, type SetStateAction } from "react";
 import { IntlProvider } from "react-intl";
@@ -208,7 +208,7 @@ const QUIET_PLAN = {
   signatures: null,
   signatureLine: null,
   isHeld: false,
-  isSettlingHold: false,
+  isPaused: false,
   unconfirmedIsHeld: false,
   holdFeedback: null,
 };
@@ -347,6 +347,7 @@ describe("PublicFundingCard", () => {
     mockDepositPlan.mockReturnValue({
       ...QUIET_PLAN,
       isHeld: true,
+      isPaused: true,
       holdFeedback: {
         title: "We couldn’t confirm your last deposit.",
         message: "Deposits here are paused.",
@@ -366,6 +367,19 @@ describe("PublicFundingCard", () => {
     expect(screen.getByText(/You have 3 WETH in this vault now/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    const user = userEvent.setup();
+    renderCard("endow");
+    const amount = await screen.findByLabelText("Amount");
+    await user.type(amount, "5");
+    expect(amount).toHaveValue("5");
+
+    act(() => mockDepositPlan.mock.lastCall?.[0].onLanded());
+
+    await waitFor(() => expect(amount).toHaveValue(""));
+    expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
   });
 
   it("leaves an unknown outcome to the hold notice on a route that holds it", async () => {

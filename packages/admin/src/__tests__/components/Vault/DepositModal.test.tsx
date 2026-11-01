@@ -12,11 +12,12 @@ const mockUseBalance = vi.fn();
 const mockUseEstimateGas = vi.fn();
 const mockUseGasPrice = vi.fn();
 const mockUseDepositPlan = vi.fn();
+const mockResetAmount = vi.fn();
 const QUIET_PLAN = {
   signatures: null,
   signatureLine: null,
   isHeld: false,
-  isSettlingHold: false,
+  isPaused: false,
   unconfirmedIsHeld: false,
   holdFeedback: null,
 };
@@ -83,7 +84,7 @@ vi.mock("@green-goods/shared/hooks/vault/useDepositForm", () => ({
     amountBigInt: 1_000_000_000_000_000_000n,
     amountErrorKey: null,
     hasBlockingError: false,
-    resetAmount: vi.fn(),
+    resetAmount: () => mockResetAmount(),
   }),
 }));
 
@@ -265,6 +266,7 @@ describe("DepositModal", () => {
     mockUseDepositPlan.mockReturnValue({
       ...QUIET_PLAN,
       isHeld: true,
+      isPaused: true,
       holdFeedback: {
         title: "We couldn’t confirm your last deposit.",
         message: "Deposits here are paused.",
@@ -297,8 +299,17 @@ describe("DepositModal", () => {
     expect(Boolean(screen.queryByRole("alert"))).toBe(shown);
   });
 
-  it("keeps the deposit paused while a check is running", () => {
-    mockUseDepositPlan.mockReturnValue({ ...QUIET_PLAN, isSettlingHold: true });
+  it("clears the amount when a held deposit proves it landed", () => {
+    renderOpenModal();
+    mockResetAmount.mockClear();
+
+    mockUseDepositPlan.mock.lastCall?.[0].onLanded();
+
+    expect(mockResetAmount).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the deposit paused while the plan is being read", () => {
+    mockUseDepositPlan.mockReturnValue({ ...QUIET_PLAN, isPaused: true });
     renderOpenModal();
 
     expect((screen.getByRole("button", { name: "Deposit" }) as HTMLButtonElement).disabled).toBe(

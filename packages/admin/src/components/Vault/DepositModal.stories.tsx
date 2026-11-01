@@ -108,7 +108,7 @@ export const HeldDeposit: Story = {
       signatures: 2,
       signatureLine: "2 signatures",
       isHeld: true,
-      isSettlingHold: false,
+      isPaused: true,
       unconfirmedIsHeld: false,
       holdFeedback: {
         title: "We couldn’t confirm your last deposit.",

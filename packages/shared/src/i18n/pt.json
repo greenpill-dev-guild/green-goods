@@ -3924,6 +3924,8 @@
   "app.txFeedback.unconfirmed.message": "Ainda pode ser concluído, então aguarde um momento e confira antes de tentar de novo.",
   "app.txFeedback.overCeilings.title": "Isto precisa de mais assinaturas agora",
   "app.txFeedback.overCeilings.message": "Nada foi enviado. Pressione de novo para assinar cada etapa.",
+  "app.txFeedback.pastCeilings.title": "Este depósito é grande demais para enviar agora",
+  "app.txFeedback.pastCeilings.message": "Ele passa do limite que definimos para uma transação, então o depósito não foi enviado. Tente um valor menor.",
   "app.update.applying.description": "Reiniciando o app.",
   "app.update.button": "Atualizar",
   "app.update.check.description": "Busque uma versão nova.",
