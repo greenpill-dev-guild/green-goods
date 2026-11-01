@@ -6,6 +6,7 @@ import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { clear as clearDraftStorage } from "idb-keyval";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
@@ -17,7 +18,9 @@ import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
 import { useHypercertWizardStore } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
-import CreateHypercert from "@/views/Hub/CreateHypercert";
+// Loaded up front, so the flow's lazy boundary resolves at once.
+import "@/views/Hub/CreateHypercert";
+import { HubFlowHarness } from "../hubFlowHarness";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
@@ -95,8 +98,19 @@ const authContextValue: AuthContextValue = {
   disconnectWallet: vi.fn(),
 };
 
-function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } = {}) {
+const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=create-hypercert`;
+const FLOW_URL = `/hub/certify${FLOW_SEARCH}`;
+
+function renderCreateHypercert({
+  seedGarden = true,
+  entry = FLOW_URL,
+}: {
+  seedGarden?: boolean;
+  entry?: string;
+} = {}) {
   const queryClient = createTestQueryClient();
+  // The first render waits on the flow's lazy chunk, with no observer on the seeded reads yet.
+  queryClient.setDefaultOptions({ queries: { gcTime: Number.POSITIVE_INFINITY } });
   queryClient.setQueryData(
     queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
     seedGarden ? [SELECTED_GARDEN] : []
@@ -115,12 +129,11 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
   );
   const router = createMemoryRouter(
     [
-      { path: "/hub/certify/create", element: <CreateHypercert /> },
-      { path: "/hub/*", element: <div /> },
+      { path: "/hub/*", element: <HubFlowHarness /> },
       { path: "/garden/*", element: <div /> },
     ],
     {
-      initialEntries: [`/hub/certify/create?gardenId=${SELECTED_GARDEN.id}`],
+      initialEntries: [entry],
     }
   );
 
@@ -270,8 +283,34 @@ describe("CreateHypercert dialog", () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(router?.state.location.pathname).toBe("/hub/work"));
+    await waitFor(() => expect(router?.state.location.search).not.toContain("item="));
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("opens over the stage it was pressed from and returns there on close (DL-140)", async () => {
+    const user = userEvent.setup();
+    const stageUrl = `/hub/work?gardenId=${SELECTED_GARDEN.id}`;
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert({ entry: stageUrl });
+      await Promise.resolve();
+    });
+    const url = () => `${router?.state.location.pathname}${router?.state.location.search}`;
+    const opener = await screen.findByRole("button", { name: /create hypercert/i });
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "app.hypercerts.create.title" });
+    expect(url()).toBe(`${stageUrl}&item=create-hypercert`);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(url()).toBe(stageUrl));
+    await waitFor(() => expect(opener).toHaveFocus());
+
+    // The handled item is gone, so the next press opens it again.
+    await user.click(opener);
+    expect(
+      await screen.findByRole("dialog", { name: "app.hypercerts.create.title" })
+    ).toBeInTheDocument();
   });
 
   it("prompts before closing a dirty hypercert wizard and discards on confirmation", async () => {
@@ -290,14 +329,14 @@ describe("CreateHypercert dialog", () => {
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Discard" }));
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(router?.state.location.pathname).toBe("/hub/work"));
+    await waitFor(() => expect(router?.state.location.search).not.toContain("item="));
     expect(useHypercertWizardStore.getState().selectedAttestationIds).toEqual([]);
   });
 
@@ -318,8 +357,7 @@ describe("CreateHypercert dialog", () => {
       await Promise.resolve();
     });
 
-    expect(router?.state.location.pathname).toBe("/hub/certify/create");
-    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
   });
 
   it("locks the shell close path while hypercert minting is pending", async () => {
@@ -342,7 +380,7 @@ describe("CreateHypercert dialog", () => {
 
     fireEvent.keyDown(dialog, { key: "Escape" });
 
-    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
     expect(dialog).toBeInTheDocument();
   });
 
@@ -363,8 +401,7 @@ describe("CreateHypercert dialog", () => {
 
     fireEvent.keyDown(dialog, { key: "Escape" });
 
-    expect(router?.state.location.pathname).toBe("/hub/certify/create");
-    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
     expect(dialog).toBeInTheDocument();
 
     await act(async () => {
@@ -372,8 +409,7 @@ describe("CreateHypercert dialog", () => {
       await Promise.resolve();
     });
 
-    expect(router?.state.location.pathname).toBe("/hub/certify/create");
-    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
   });
 
   // DL-080: the flow ends on its Review, where the mint shows in the status row
@@ -434,7 +470,7 @@ describe("CreateHypercert dialog", () => {
         screen.getByRole("heading", { name: "app.hypercerts.wizard.step.preview.title" })
       ).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
-      expect(router?.state.location.pathname).toBe("/hub/certify/create");
+      expect(router?.state.location.search).toBe(FLOW_SEARCH);
 
       const dialog = screen.getByRole("dialog", { name: "app.hypercerts.create.title" });
       await act(async () => {
@@ -492,7 +528,7 @@ describe("CreateHypercert dialog", () => {
         screen.getByRole("heading", { name: "app.hypercerts.wizard.step.preview.title" })
       ).toBeInTheDocument();
       expect(screen.queryByText("Hypercert minted")).not.toBeInTheDocument();
-      expect(router?.state.location.pathname).toBe("/hub/certify/create");
+      expect(router?.state.location.search).toBe(FLOW_SEARCH);
     });
 
     it("keeps a mint refused before the wallet on the Review with its error and Try Again", async () => {

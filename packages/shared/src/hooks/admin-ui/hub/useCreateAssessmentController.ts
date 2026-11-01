@@ -18,6 +18,7 @@ import {
   useCreateAssessmentForm,
 } from "../../assessment/useCreateAssessmentForm";
 import { useCreateAssessmentWorkflow } from "../../assessment/useCreateAssessmentWorkflow";
+import { useRouteItemClose } from "../../navigation/useCanvasSearchParams";
 import { useGardens } from "../../blockchain/useBaseLists";
 import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
 import { useGardenDomains } from "../../garden/useGardenDomains";
@@ -338,6 +339,8 @@ export function useCreateAssessmentController() {
   // The answers the latest send carried. A sent assessment leaves the store at
   // once, so the Review reads them from here while it shows the done state.
   const [submittedForm, setSubmittedForm] = useState<CreateAssessmentFormState | null>(null);
+  // Mounted only while its route item is in the URL.
+  const closeFlow = useRouteItemClose(true);
 
   // The flow stays on its Review once the send lands (DL-080): nothing
   // navigates and nothing asks to discard. The sent draft leaves the store, and
@@ -348,12 +351,11 @@ export function useCreateAssessmentController() {
   }, [isSent, resetStore]);
 
   const handleClose = () => {
-    // A sent assessment closes onto the Hub tab that lists it. Any other close
-    // returns to the Hub the flow was launched from: closing a Hub create flow
-    // must not jump workspaces.
-    navigate(
-      isSent ? adminRoutes.hubAssess(gardenRouteContext) : adminRoutes.hub(gardenRouteContext)
-    );
+    // A sent assessment closes onto the Hub tab that lists it, replacing the
+    // flow's entry so Back cannot reopen it. Any other close returns to the
+    // stage the flow opened over (DL-140).
+    if (isSent) navigate(adminRoutes.hubAssess(gardenRouteContext), { replace: true });
+    else closeFlow();
   };
 
   // Wired to useDirtyClose's onDiscard (parity with useWizardData's
