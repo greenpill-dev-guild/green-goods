@@ -96,7 +96,7 @@ function WorkDetailRoute() {
 const workSnapshot = {
   kind: "work" as const,
   tab: "completed" as const,
-  pendingFilter: "needsReview" as const,
+  pendingFilter: "upload" as const,
   completedFilter: "reviewedByYou" as const,
   timeFilter: "week" as const,
   scrollTop: 288,
@@ -208,7 +208,7 @@ describe("AppShell", () => {
     expect(useUIStore.getState()).toMatchObject({
       isWorkDashboardOpen: true,
       workDashboardInitialTab: "completed",
-      workDashboardInitialPendingFilter: "needsReview",
+      workDashboardInitialPendingFilter: "upload",
       workDashboardReturnState: workSnapshot,
     });
   });

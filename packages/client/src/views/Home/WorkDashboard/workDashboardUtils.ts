@@ -4,6 +4,20 @@ import { compareAddresses, ZERO_ADDRESS } from "@green-goods/shared/utils/blockc
 /**
  * Build a lookup map of work by ID for efficient access.
  */
+/** Work that has not reached the chain yet: queued, sending, or failed to send. */
+export function isOnThisDevice(work: Work): boolean {
+  return (
+    ["offline", "uploading", "syncing", "sync_failed"].includes(work.status) ||
+    work.id.startsWith("0xoffline_") ||
+    !work.id.startsWith("0x")
+  );
+}
+
+export function oldestTime(...times: Array<number | undefined>): number | undefined {
+  const known = times.filter((time): time is number => typeof time === "number" && time > 0);
+  return known.length > 0 ? Math.min(...known) : undefined;
+}
+
 export function buildWorkMap(works: Work[]): Map<string, Work> {
   const map = new Map<string, Work>();
   works.forEach((w) => map.set(w.id, w));
