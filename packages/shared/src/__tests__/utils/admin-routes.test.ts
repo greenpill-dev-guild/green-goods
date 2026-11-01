@@ -51,6 +51,12 @@ describe("adminRoutes", () => {
     expect(adminRoutes.hubWork(legacyContext)).toBe("/hub/work?sort=newest");
   });
 
+  it("keeps a create flow's item, the one thing a Hub URL's item may hold (DL-140)", () => {
+    expect(adminRoutes.hubAssess({ sort: "newest", item: "create-assessment" })).toBe(
+      "/hub/assess?sort=newest&item=create-assessment"
+    );
+  });
+
   // A work opened from the Approved scope closes back onto it, so the scope
   // rides the list and detail links; Pending is the bare URL.
   it.each([

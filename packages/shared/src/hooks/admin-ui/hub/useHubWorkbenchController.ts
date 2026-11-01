@@ -2,7 +2,11 @@ import { useRefreshAction } from "../../../components/Canvas/RefreshActionContex
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
-import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import {
+  type AdminHubRouteContext,
+  adminRoutes,
+  parseHubFlowItem,
+} from "../../../utils/navigation/admin-routes";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
@@ -58,6 +62,8 @@ export function useHubWorkbenchController() {
     commitmentId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
+  // A create flow open over the stage, named in the URL (DL-140).
+  const routeItem = parseHubFlowItem(searchParams.get("item"));
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const gardenStateKey = selectedGarden?.id ?? "";
@@ -156,8 +162,8 @@ export function useHubWorkbenchController() {
   useEffect(() => {
     if (!selectedGarden) return;
     if (requestedStage === stage) return;
-    navigate(adminRoutes.hubMode(stage, hubContext), { replace: true });
-  }, [hubContext, navigate, requestedStage, selectedGarden, stage]);
+    navigate(adminRoutes.hubMode(stage, { ...hubContext, item: routeItem }), { replace: true });
+  }, [hubContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
@@ -441,6 +447,7 @@ export function useHubWorkbenchController() {
     routeSheetCloseTo,
     routeCertificationId,
     routeCommitmentId,
+    routeItem,
     routeWorkId,
     scopedWorks,
     searchPlaceholder,

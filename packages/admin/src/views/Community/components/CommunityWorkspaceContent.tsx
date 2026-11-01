@@ -10,6 +10,7 @@ import {
 } from "@/components/Layout/CanvasRouteState";
 import { CommunityCoordinationTab } from "./CommunityCoordinationTab";
 import { CommunityEndowmentTab } from "./CommunityEndowmentTab";
+import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import { CommunityPayoutsTab } from "./CommunityPayoutsTab";
 import { CommunityPools } from "./CommunityPools";
@@ -61,75 +62,75 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         ? workspace.vaultsLoading
         : workspace.mode === "payouts" && workspace.allocationsLoading;
 
-  if (isLoading) {
-    return (
-      <div className="mt-4 flex min-h-0 flex-1 flex-col">
-        <CommunityTabSkeleton mode={workspace.mode} />
-      </div>
-    );
-  }
-
-  const tab =
-    workspace.mode === "members" ? (
-      <CommunityMembersTab
-        garden={workspace.garden}
-        canManage={workspace.canManage}
-        closeMembersModal={workspace.closeMembersModal}
-        memberCount={workspace.memberCount}
-        memberSearch={workspace.memberSearch}
-        noteJoinRequestsRead={workspace.noteJoinRequestsRead}
-        roleMembers={workspace.roleMembers}
-        roleSummary={workspace.roleSummary}
-        scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
-        selectedItem={workspace.selectedItem}
-        setMemberSearch={workspace.setMemberSearch}
-        visibleDirectory={workspace.visibleDirectory}
-      />
-    ) : workspace.mode === "coordination" ? (
-      // Commitment pooling remains available while conviction governance is disabled.
-      <div className="garden-tab-shell">
-        {GOVERNANCE_ENABLED && (
-          <CommunityCoordinationTab
-            garden={workspace.garden}
-            gardenId={workspace.gardenId}
-            canManage={workspace.canManage}
-            community={workspace.community}
-            pools={workspace.pools}
-            createPools={workspace.createPools}
-            isCreatingPools={workspace.isCreatingPools}
-          />
-        )}
-        <CommunityPools
-          railContent={
-            <CommunityYieldStatus
-              gardenId={workspace.gardenId as Address}
-              enabled={Boolean(workspace.community) && workspace.pools.length > 0}
-            />
-          }
-          chainId={workspace.garden.chainId}
-          garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
+  const tab = isLoading ? (
+    <CommunityTabSkeleton mode={workspace.mode} />
+  ) : workspace.mode === "members" ? (
+    <CommunityMembersTab
+      garden={workspace.garden}
+      canManage={workspace.canManage}
+      memberCount={workspace.memberCount}
+      memberSearch={workspace.memberSearch}
+      noteJoinRequestsRead={workspace.noteJoinRequestsRead}
+      roleSummary={workspace.roleSummary}
+      setMemberSearch={workspace.setMemberSearch}
+      visibleDirectory={workspace.visibleDirectory}
+    />
+  ) : workspace.mode === "coordination" ? (
+    // Commitment pooling remains available while conviction governance is disabled.
+    <div className="garden-tab-shell">
+      {GOVERNANCE_ENABLED && (
+        <CommunityCoordinationTab
+          garden={workspace.garden}
+          gardenId={workspace.gardenId}
           canManage={workspace.canManage}
+          community={workspace.community}
+          pools={workspace.pools}
+          createPools={workspace.createPools}
+          isCreatingPools={workspace.isCreatingPools}
         />
-      </div>
-    ) : workspace.mode === "endowment" ? (
-      <CommunityEndowmentTab
-        garden={workspace.garden}
-        hasVaults={workspace.hasVaults}
-        treasurySeverity={workspace.treasurySeverity}
-        endowmentByAsset={workspace.endowmentByAsset}
+      )}
+      <CommunityPools
+        railContent={
+          <CommunityYieldStatus
+            gardenId={workspace.gardenId as Address}
+            enabled={Boolean(workspace.community) && workspace.pools.length > 0}
+          />
+        }
+        chainId={workspace.garden.chainId}
+        garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
+        canManage={workspace.canManage}
       />
-    ) : (
-      <CommunityPayoutsTab
-        garden={workspace.garden}
-        allocations={workspace.allocations}
-        allocationsAtLimit={workspace.allocationsAtLimit}
-        selectedItem={workspace.selectedItem}
-      />
-    );
+    </div>
+  ) : workspace.mode === "endowment" ? (
+    <CommunityEndowmentTab
+      garden={workspace.garden}
+      hasVaults={workspace.hasVaults}
+      treasurySeverity={workspace.treasurySeverity}
+      endowmentByAsset={workspace.endowmentByAsset}
+    />
+  ) : (
+    <CommunityPayoutsTab
+      garden={workspace.garden}
+      allocations={workspace.allocations}
+      allocationsAtLimit={workspace.allocationsAtLimit}
+      selectedItem={workspace.selectedItem}
+    />
+  );
 
   return (
     <div className="mt-4 flex min-h-0 flex-1 flex-col">
-      <ErrorBoundary context="GardenDetail.CommunityIA">{tab}</ErrorBoundary>
+      <ErrorBoundary context="GardenDetail.CommunityIA">
+        {/* Add Member opens over any tab, so its dialog outlives a tab's loading state (DL-140). */}
+        <CommunityMembersDialogs
+          garden={workspace.garden}
+          canManage={workspace.canManage}
+          closeMembersModal={workspace.closeMembersModal}
+          roleMembers={workspace.roleMembers}
+          scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
+          selectedItem={workspace.selectedItem}
+        />
+        {tab}
+      </ErrorBoundary>
     </div>
   );
 }
