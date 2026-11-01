@@ -12,7 +12,7 @@ export type ExploreTag = "member" | "awaiting" | "open";
 /**
  * Explore's list (DL-125): the gardens the app lists, as the member's filters leave them, with
  * the member's own first and the rest in the listed order. Each card carries one tag: Member, a
- * request Awaiting review, or Open when anyone can join. Ids in both sets are lowercase.
+ * request Waiting for approval, or Open when anyone can join. Ids in both sets are lowercase.
  */
 export function exploreGardens(
   listed: readonly Garden[],
@@ -69,11 +69,11 @@ export const STANDING_LABEL_IDS = {
   steward: "app.roles.steward",
   evaluator: "app.roles.evaluator",
   gardener: "app.roles.gardener",
-  awaiting: "app.home.awaitingReview",
+  awaiting: "app.home.awaitingApproval",
 } as const satisfies Record<SwitcherRow["standing"], string>;
 
 /**
- * The rows of the switcher (DL-125) and the first-login page (DL-146): one per garden of the
+ * The rows of the switcher (DL-125) and the first-login page (DL-155): one per garden of the
  * member's in their list's order, each with the member's first role, then the gardens awaiting
  * review. An open join just sent stands in for the gardener role until the roster lists the
  * account.

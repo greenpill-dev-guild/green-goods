@@ -11,13 +11,14 @@ export const ProfileAccount: React.FC = () => {
   const primaryAddress = usePrimaryAddress() as Address | undefined;
 
   return (
-    <>
+    // The tab measures itself, so each card answers the width it actually has (DL-159).
+    <div className="@container flex flex-col gap-6">
       <InstallCta />
       <AppSettings />
       <GardensList primaryAddress={primaryAddress} />
       <ENSSection key={primaryAddress} primaryAddress={primaryAddress} />
       <ServiceAssets />
       <AccountInfo />
-    </>
+    </div>
   );
 };

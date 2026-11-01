@@ -19,8 +19,9 @@ export interface HighlightsCarouselProps {
  * What's Open (DL-133): the garden's open season and campaigns, one 280×112 card each in a row
  * that scrolls sideways with the next card peeking, each opening the cycle's details sheet.
  * Work stays with Recent Activity and open asks with Take Part, so nothing here repeats a list
- * below. One open cycle is one card at the row's full width. With none, or while the cycles
- * load or their read failed, the section is absent, as on the Pool tab's rail.
+ * below. One open cycle is one card at the row's full width. It leads the journal, so while the
+ * cycles load it holds its height and nothing under it jumps as they land (DL-156). With none,
+ * or once their read failed, the section is absent.
  */
 export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   const { formatMessage } = useIntl();
@@ -35,6 +36,18 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
 
+  if (state.status === "loading") {
+    return (
+      <JournalSection
+        data-component="HighlightsCarousel"
+        title={formatMessage({ id: "app.home.journal.highlights" })}
+        layout="rows"
+        busy
+      >
+        <li aria-hidden="true" className="h-28 rounded-[var(--gg-card-radius)] bg-bg-soft-200" />
+      </JournalSection>
+    );
+  }
   if (state.status !== "ready" || state.items.length === 0) return null;
   const single = state.items.length === 1;
 

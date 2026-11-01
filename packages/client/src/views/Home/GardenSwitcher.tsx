@@ -83,7 +83,7 @@ function GardenBanner({ garden }: { garden: Garden }) {
  * member's (its banner, its place and the member's role; a long name wraps to two lines while
  * every row keeps one height, DL-133), the active one a tinted row with a ring on its picture and
  * no check mark, so every role keeps one slot; then the gardens the
- * member asked to join, Awaiting review, and Explore Gardens last. Only a pick among the
+ * member asked to join, Waiting for approval, and Explore Gardens last. Only a pick among the
  * member's own gardens switches; a garden awaiting review is a visit.
  */
 export function GardenSwitcherSheet({

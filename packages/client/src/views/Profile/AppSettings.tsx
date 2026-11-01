@@ -1,4 +1,3 @@
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -15,10 +14,10 @@ import { capitalize } from "@green-goods/shared/utils/app/text";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line, RiVolumeVibrateLine } from "@remixicon/react";
 import { type ReactNode, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Card } from "@/components/Cards";
+import { Avatar } from "@/components/Display";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/Inputs";
 import { OfflineContentRow } from "./OfflineContentRow";
-import { SETTING_CONTROL_WIDTH } from "./settingControls";
-import { SettingTitle } from "./SettingTitle";
 
 interface ApplicationSettings {
   title: string;
@@ -40,6 +39,19 @@ interface UpdateRow {
 }
 
 /**
+ * One width for every control in the settings column. 120px fits the busiest
+ * button label with its spinner; the subtitle beside it gives up every pixel
+ * this grows by.
+ */
+const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
+
+/**
+ * The control's slot: beside the title, and under it on a phone too narrow for both, so a title
+ * or hint is never cut to make room (DL-159). The tab under 328px is a phone under 360px.
+ */
+const SETTING_CONTROL_SLOT = "shrink-0 @max-[328px]:basis-full @max-[328px]:[&>*]:w-full";
+
+/**
  * A select keeps its value on one line. The trigger leaves 66px for the text,
  * and "Português" is about 69px in Plus Jakarta Sans at 14px. The shared trigger
  * wraps a value that does not fit, which broke it across two lines; held on
@@ -49,10 +61,47 @@ interface UpdateRow {
 const SETTING_SELECT_TRIGGER = `${SETTING_CONTROL_WIDTH} [&>span]:whitespace-nowrap`;
 
 /**
- * Every hint reserves two lines whether or not it wraps, so the settings rows
- * stay the same height and a status change never moves the row.
+ * Every subtitle reserves two lines whether or not it wraps, so the settings
+ * cards stay the same height and a status change never moves the row.
  */
-const SETTING_DESCRIPTION = "min-h-8 line-clamp-2";
+const SETTING_DESCRIPTION = "min-h-8 text-xs text-text-sub-600 line-clamp-2";
+
+/** One settings row: an icon, a fixed title, its two-line description, and one control. */
+function SettingRow({
+  icon,
+  title,
+  titleId,
+  description,
+  control,
+  compact = false,
+}: {
+  icon: ReactNode;
+  title: string;
+  titleId?: string;
+  description: ReactNode;
+  control: ReactNode;
+  /** A control small enough to stay beside the title at any width: a switch. */
+  compact?: boolean;
+}) {
+  return (
+    <Card>
+      <div className="flex flex-row flex-wrap items-center gap-3 w-full">
+        <Avatar>
+          <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
+            {icon}
+          </div>
+        </Avatar>
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1 basis-0">
+          <div id={titleId} className="text-sm font-medium truncate">
+            {title}
+          </div>
+          {description}
+        </div>
+        <div className={compact ? "shrink-0" : SETTING_CONTROL_SLOT}>{control}</div>
+      </div>
+    </Card>
+  );
+}
 
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
@@ -305,89 +354,82 @@ export const AppSettings: React.FC = () => {
   const updateRow = resolveUpdateRow();
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.settings",
           defaultMessage: "Settings",
         })}
       </h5>
-      {/* One setting per row: its title and hint, and its control in the right slot (DL-109). */}
-      <FactList>
-        {applicationSettings.map(({ title, Icon, description, Option }) => (
-          <FactRow
-            key={title}
-            icon={Icon}
-            label={<SettingTitle>{title}</SettingTitle>}
-            description={<span className={SETTING_DESCRIPTION}>{description}</span>}
-            action={<Option />}
-          />
-        ))}
+      {applicationSettings.map(({ title, Icon, description, Option }) => (
+        <SettingRow
+          key={title}
+          icon={Icon}
+          title={title}
+          description={<div className={SETTING_DESCRIPTION}>{description}</div>}
+          control={<Option />}
+        />
+      ))}
 
-        {canVibrate ? (
-          <FactRow
-            icon={<RiVolumeVibrateLine className="w-4" />}
-            label={
-              <SettingTitle>
-                {intl.formatMessage({ id: "app.settings.vibration", defaultMessage: "Vibration" })}
-              </SettingTitle>
-            }
-            labelId={vibrationTitleId}
-            description={
-              <span className={SETTING_DESCRIPTION}>
-                {intl.formatMessage({
-                  id: "app.settings.vibrationDescription",
-                  defaultMessage: "Vibrate lightly when you tap",
-                })}
-              </span>
-            }
-            action={
-              <Switch
-                checked={vibrationOn}
-                onCheckedChange={handleVibrationChange}
-                aria-labelledby={vibrationTitleId}
-              />
-            }
-          />
-        ) : null}
-
-        <OfflineContentRow controlClassName={SETTING_CONTROL_WIDTH} />
-
-        {/* Always present: with nothing pending there was no way to check (PWA-041). */}
-        <FactRow
-          icon={<RiRefreshLine className="w-4" />}
-          label={
-            <SettingTitle>
-              {intl.formatMessage({ id: "app.update.check.title", defaultMessage: "Update" })}
-            </SettingTitle>
-          }
+      {canVibrate ? (
+        <SettingRow
+          icon={<RiVolumeVibrateLine className="w-4" />}
+          title={intl.formatMessage({ id: "app.settings.vibration", defaultMessage: "Vibration" })}
+          titleId={vibrationTitleId}
+          compact
           description={
-            <span
-              role="status"
-              aria-label={intl.formatMessage({
-                id: "app.update.check.title",
-                defaultMessage: "Update",
+            <div className={SETTING_DESCRIPTION}>
+              {intl.formatMessage({
+                id: "app.settings.vibrationDescription",
+                defaultMessage: "Vibrate lightly when you tap",
               })}
-              className={SETTING_DESCRIPTION}
-            >
-              {updateRow.status}
-            </span>
+            </div>
           }
-          action={
-            <Button
-              type="button"
-              emphasis="secondary"
-              size="sm"
-              loading={updateRow.busy}
-              disabled={phase === "waiting" && activationBlocked}
-              onClick={updateRow.onClick}
-              className={SETTING_CONTROL_WIDTH}
-            >
-              {updateRow.label}
-            </Button>
+          control={
+            <Switch
+              checked={vibrationOn}
+              onCheckedChange={handleVibrationChange}
+              aria-labelledby={vibrationTitleId}
+            />
           }
         />
-      </FactList>
-    </>
+      ) : null}
+
+      <OfflineContentRow controlClassName={SETTING_CONTROL_WIDTH} />
+
+      {/* Always present: with nothing pending there was no way to check (PWA-041). */}
+      <SettingRow
+        icon={<RiRefreshLine className="w-4" />}
+        title={intl.formatMessage({
+          id: "app.update.check.title",
+          defaultMessage: "Update",
+        })}
+        description={
+          <div
+            role="status"
+            aria-label={intl.formatMessage({
+              id: "app.update.check.title",
+              defaultMessage: "Update",
+            })}
+            className={SETTING_DESCRIPTION}
+          >
+            {updateRow.status}
+          </div>
+        }
+        control={
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            loading={updateRow.busy}
+            disabled={phase === "waiting" && activationBlocked}
+            onClick={updateRow.onClick}
+            className={SETTING_CONTROL_WIDTH}
+          >
+            {updateRow.label}
+          </Button>
+        }
+      />
+    </section>
   );
 };

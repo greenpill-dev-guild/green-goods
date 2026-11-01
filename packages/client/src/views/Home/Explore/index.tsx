@@ -34,7 +34,7 @@ const GardensFilterSheet = lazy(() =>
 
 const TAG_IDS: Record<ExploreTag, string> = {
   member: "app.home.explore.tag.member",
-  awaiting: "app.home.awaitingReview",
+  awaiting: "app.home.awaitingApproval",
   open: "app.home.explore.tag.open",
 };
 

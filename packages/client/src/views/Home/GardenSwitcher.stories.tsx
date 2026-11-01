@@ -32,7 +32,7 @@ const ROWS: SwitcherRow[] = [
  * The garden switcher (DL-125): a half sheet, Your Gardens, that the chip opens with one garden
  * too. One row per garden of the member's with its banner, place and role; the active garden is
  * a tinted row with a ring on its picture and no check mark, so every role keeps one slot. A
- * garden the member asked to join shows Awaiting review and visits instead of switching, and
+ * garden the member asked to join shows Waiting for approval and visits instead of switching, and
  * Explore Gardens is last.
  */
 const meta: Meta<typeof GardenSwitcherSheet> = {
@@ -64,7 +64,7 @@ export const YourGardens: Story = {
       "TAS HUBAccra, GhanaSteward",
       "Green Goods Community GardenEverywhereSteward",
       "Aiyeloja Family GardenÌbàdàn, NigeriaGardener",
-      "Vida VerdeSão Paulo, BrazilAwaiting review",
+      "Vida VerdeSão Paulo, BrazilWaiting for approval",
       "Explore GardensFind a garden to join",
     ]);
     // Every role ends at the same edge: the active row carries no check mark.
