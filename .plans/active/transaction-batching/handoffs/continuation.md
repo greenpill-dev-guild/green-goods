@@ -38,6 +38,8 @@ CodeRabbit's one finding is fixed in `db712a741`: the "Nothing to sign" toast co
 
 Deposits (slice 4) start with `fix/deposit-unknown-outcome`, which reaches everyone on merge and lists nothing: a deposit nobody can confirm now says so, in place of "Deposit failed" or, for a Safe proposal, "Deposit completed successfully". Its tests failed first at 22:33:53 UTC, 12 on behavior, and Shared passed 9 files with 117 tests at 22:46:16 UTC on `04e90c72b`. The batch path follows, with its rails unlisted.
 
+The vault batch path is on `feature/batch-vault-deposits`, with no rail listed, so only the signature line on the three deposit forms reaches anyone on merge. Its tests were written alongside the code, not RED first, so they were proven afterwards by breaking one behavior at a time: 34 breaks, of which 7 first survived, and each survivor got a case. Shared passed 5 files with 113 tests, admin 11 and client 27 at 03:19:19 UTC on 2026-11-01, on `6e2467d0f`. The jars come next, on the same path: `useCookieJarDepositMutation`, `app.treasury.hold.jar`, `CookieJarDepositModal`, `PublicCookieJarCard`, and the donate side of `PublicFundingCard`. Every Green Goods jar has a zero deposit fee (`CookieJar.sol`), so its `Deposit` event carries the amount that was called.
+
 Still open for add members, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here
