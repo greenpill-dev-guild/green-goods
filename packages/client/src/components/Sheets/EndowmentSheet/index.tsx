@@ -139,6 +139,7 @@ export function EndowmentSheet({
     symbol: balance?.symbol ?? "",
     gardenAddress,
     enabled: isOpen,
+    onLanded: () => setAmountInput(""),
   });
 
   const onDeposit = () => {
@@ -170,8 +171,7 @@ export function EndowmentSheet({
             loading: depositMutation.isPending,
             disabled:
               !isOnline ||
-              plan.isHeld ||
-              plan.isSettlingHold ||
+              plan.isPaused ||
               !selectedVault ||
               !primaryAddress ||
               amount <= 0n ||

@@ -5,6 +5,7 @@ export type TxErrorKind =
   | "cancelled"
   | "unconfirmed"
   | "overCeilings"
+  | "pastCeilings"
   | "passkeyUnavailable"
   | "wrongChain"
   | "reverted"
@@ -175,6 +176,9 @@ function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
   return includesAny(normalizedMessage, CANCELLED_PATTERNS);
 }
 
+/** One step is past its ceilings on its own, so there is no smaller send to fall back on. */
+export const DEPOSIT_PAST_CEILINGS = "deposit-past-ceilings";
+
 export function classifyTxError(error: unknown): TxErrorView {
   // The send went out and nobody can say whether it landed, so it must not read as failed or invite
   // another send. No raw text, because every surface prefers a meaningful raw message to the key.
@@ -197,6 +201,16 @@ export function classifyTxError(error: unknown): TxErrorView {
       severity: "warning",
       titleKey: "app.txFeedback.overCeilings.title",
       messageKey: "app.txFeedback.overCeilings.message",
+      rawMessage: "",
+    };
+  }
+
+  if (normalizedMessage === DEPOSIT_PAST_CEILINGS) {
+    return {
+      kind: "pastCeilings",
+      severity: "warning",
+      titleKey: "app.txFeedback.pastCeilings.title",
+      messageKey: "app.txFeedback.pastCeilings.message",
       rawMessage: "",
     };
   }

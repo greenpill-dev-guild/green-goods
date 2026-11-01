@@ -43,7 +43,7 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
     signatures: null,
     signatureLine: null,
     isHeld: false,
-    isSettlingHold: false,
+    isPaused: false,
     unconfirmedIsHeld: false,
     holdFeedback: null,
   }),

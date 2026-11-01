@@ -17,6 +17,7 @@ import {
   readDepositHold,
 } from "../../modules/garden/deposit-batch";
 import { depositRoute, walletRouteListed } from "../../modules/garden/deposit-route";
+import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -36,10 +37,12 @@ export function useDepositPlan(input: {
   decimals: number;
   symbol: string;
   /** Whose lists to refresh when a held deposit proves it landed. A campaign jar has no garden. */
-  gardenAddress?: string;
+  gardenAddress?: Address;
   enabled?: boolean;
+  /** A held deposit proved it landed, so the same amount mustn't stay one press from going again. */
+  onLanded?: () => void;
 }) {
-  const { target, amount, decimals, symbol, gardenAddress, enabled = true } = input;
+  const { target, amount, decimals, symbol, gardenAddress, enabled = true, onLanded } = input;
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
@@ -63,7 +66,7 @@ export function useDepositPlan(input: {
     walletRouteListed({ action, chainId, asset });
 
   // Asked only when it can change the route: until then no wallet hears from this hook.
-  const { data: walletAtomic } = useQuery({
+  const { data: walletAtomic, isLoading: isAskingWallet } = useQuery({
     queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
     queryFn: async () => {
       const capability = await sender!.getBatchCapability!({ account: account!, chainId });
@@ -83,7 +86,7 @@ export function useDepositPlan(input: {
       })
     : null;
 
-  const { data: allowance } = useQuery({
+  const { data: allowance, isLoading: isReadingAllowance } = useQuery({
     queryKey: batchKeys.allowance(asset, account ?? "", target?.address ?? "", chainId),
     queryFn: () => createDepositChain(chainId).allowance(account!, target!),
     // Read once there's something to count: a page can hold a form per jar.
@@ -156,6 +159,7 @@ export function useDepositPlan(input: {
       });
       refreshDeposits();
       scheduleFollowUp();
+      onLanded?.();
     },
     onError: (error) =>
       handleError(error, { authMode: rail, metadata: { target: target?.address } }),
@@ -171,7 +175,8 @@ export function useDepositPlan(input: {
         ? formatMessage({ id: "app.treasury.signatures" }, { count: signatures })
         : null,
     isHeld: hold !== null,
-    isSettlingHold: held.isSettlingHold,
+    /** The next deposit waits on a hold, a check, or how many signatures it takes. */
+    isPaused: hold !== null || held.isSettlingHold || isAskingWallet || isReadingAllowance,
     /** On this route an unknown outcome is held, so the hold notice says it, not an error line. */
     unconfirmedIsHeld: route !== null,
     /** What a form shows while held. Spread it onto `TxHoldFeedback`. */

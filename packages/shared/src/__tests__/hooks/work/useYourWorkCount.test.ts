@@ -118,6 +118,8 @@ describe("useYourWorkCount", () => {
         [key(1)]: proofDraft({ note: "   ", files: { photos: 0, videos: 0, voiceNotes: 0 } }),
         [key(2, "0x2222222222222222222222222222222222222222")]: proofDraft({ note: "Theirs" }),
         [key(3, VIEWER, 11155111)]: proofDraft({ note: "Other chain" }),
+        // A credit choice alone is kept for the composer, and is no draft.
+        [key(4)]: proofDraft({ credited: [VIEWER] }),
       },
     });
     expect(count()).toBe(0);

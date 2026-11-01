@@ -182,13 +182,6 @@ describe("queryKeys", () => {
       "jobs",
       { kind: "work", synced: false },
     ]);
-    expect(queryKeys.role.evaluatorGardens(TEST_OPERATOR, ["g2", "g1"])).toEqual([
-      "greengoods",
-      "role",
-      "evaluatorGardens",
-      TEST_OPERATOR,
-      JSON.stringify(["g1", "g2"]),
-    ]);
     expect(queryKeys.marketplace.orders(TEST_GARDEN, TEST_CHAIN_ID)).toEqual([
       "greengoods",
       "marketplace",

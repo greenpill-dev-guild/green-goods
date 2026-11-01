@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { within } from "@testing-library/react";
+import { act, within } from "@testing-library/react";
 import { renderWithProviders as render, screen } from "../test-utils";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
@@ -10,12 +10,13 @@ const QUIET_PLAN = {
   signatures: null as number | null,
   signatureLine: null as string | null,
   isHeld: false,
-  isSettlingHold: false,
+  isPaused: false,
   unconfirmedIsHeld: false,
   holdFeedback: null as null | Record<string, unknown>,
 };
 const mocks = vi.hoisted(() => ({
   plan: {} as Record<string, unknown>,
+  planInput: {} as { onLanded?: () => void },
   online: true,
   pending: false,
   maxWithdraw: 100000n,
@@ -81,7 +82,10 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
   },
 }));
 vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
-  useDepositPlan: () => mocks.plan,
+  useDepositPlan: (input: { onLanded?: () => void }) => {
+    mocks.planInput = input;
+    return mocks.plan;
+  },
   useVaultDeposit: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
@@ -146,6 +150,7 @@ describe("Depositing from the endowment sheet", () => {
     mocks.plan = {
       ...QUIET_PLAN,
       isHeld: true,
+      isPaused: true,
       holdFeedback: {
         title: "We couldn’t confirm your last deposit.",
         message: "Deposits here are paused.",
@@ -159,6 +164,19 @@ describe("Depositing from the endowment sheet", () => {
     expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    mocks.plan = QUIET_PLAN;
+    render(sheet());
+    const amount = screen.getByRole("textbox", { name: "Amount to deposit" });
+    await userEvent.setup().type(amount, "1");
+    expect(amount).toHaveValue("1");
+
+    act(() => mocks.planInput.onLanded?.());
+
+    expect(amount).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
   });
 });
 

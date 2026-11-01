@@ -34,7 +34,7 @@ const QUIET_PLAN = {
   signatures: null,
   signatureLine: null,
   isHeld: false,
-  isSettlingHold: false,
+  isPaused: false,
   unconfirmedIsHeld: false,
   holdFeedback: null,
 };
@@ -499,6 +499,7 @@ describe("CookiesPage", () => {
       ...QUIET_PLAN,
       signatureLine: "2 signatures",
       isHeld: true,
+      isPaused: true,
       holdFeedback: {
         title: "We couldn’t confirm your last deposit.",
         message: "Deposits here are paused.",
@@ -523,6 +524,20 @@ describe("CookiesPage", () => {
         target: { kind: "jar", address: TEST_JAR, asset: TEST_TOKEN },
       })
     );
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    const user = userEvent.setup();
+
+    renderPage();
+
+    const amount = await screen.findByLabelText("Deposit amount");
+    await user.type(amount, "2.5");
+    expect(amount).toHaveValue("2.5");
+
+    act(() => mockDepositPlan.mock.lastCall?.[0].onLanded());
+
+    expect(amount).toHaveValue("");
   });
 
   it("leaves an unknown deposit to the hold notice, but not an unknown claim", async () => {

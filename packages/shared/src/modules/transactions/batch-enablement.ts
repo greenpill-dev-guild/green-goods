@@ -2,8 +2,9 @@ import type { PasskeyAccountProfileId } from "../auth/account-profile";
 
 export type BatchRail = "passkey" | "wallet";
 
-export interface BatchEnablement {
-  action: "garden-settings" | "add-members" | "vault-deposit" | "jar-deposit";
+export type DepositAction = "vault-deposit" | "jar-deposit";
+
+interface RailListing {
   rail: BatchRail;
   /**
    * A wallet lists as `eip-5792` when the action needs atomic calls: this list says it may batch,
@@ -13,9 +14,14 @@ export interface BatchEnablement {
    */
   profile: PasskeyAccountProfileId | "eip-5792" | "contract-call" | "sequential";
   chainId: number;
-  /** Only the assets with recorded evidence, for an action that moves money. */
-  asset?: string;
 }
+
+/** A deposit moves money, so its listing names the one asset with recorded evidence. */
+export type BatchEnablement = RailListing &
+  (
+    | { action: "garden-settings" | "add-members"; asset?: never }
+    | { action: DepositAction; asset: string }
+  );
 
 /**
  * What may send as one batch. `getBatchCapability` only checks an encoding, so a listing waits for
@@ -34,6 +40,6 @@ export function isBatchEnabled(
       entry.rail === query.rail &&
       entry.profile === query.profile &&
       entry.chainId === query.chainId &&
-      (entry.asset === undefined || entry.asset.toLowerCase() === query.asset?.toLowerCase())
+      entry.asset?.toLowerCase() === query.asset?.toLowerCase()
   );
 }

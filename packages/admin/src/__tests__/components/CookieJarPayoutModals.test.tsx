@@ -1,4 +1,4 @@
-import { fireEvent } from "@testing-library/react";
+import { act, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -9,7 +9,7 @@ const QUIET_PLAN = {
   signatures: null,
   signatureLine: null,
   isHeld: false,
-  isSettlingHold: false,
+  isPaused: false,
   unconfirmedIsHeld: false,
   holdFeedback: null,
 };
@@ -185,6 +185,7 @@ describe("CookieJar payout modals", () => {
     cookieJarMutationState.plan.mockReturnValue({
       ...QUIET_PLAN,
       isHeld: true,
+      isPaused: true,
       holdFeedback: {
         title: "We couldn’t confirm your last deposit.",
         message: "Deposits here are paused.",
@@ -233,6 +234,24 @@ describe("CookieJar payout modals", () => {
     );
 
     expect(Boolean(screen.queryByRole("alert") ?? screen.queryByRole("status"))).toBe(shown);
+  });
+
+  it("clears the amount when a held deposit proves it landed", () => {
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+    const amount = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.change(amount, { target: { value: "1" } });
+    expect(amount.value).toBe("1");
+
+    act(() => cookieJarMutationState.plan.mock.lastCall?.[0].onLanded());
+
+    expect(amount.value).toBe("");
   });
 
   it("starts on the garden's first jar when the caller names none", () => {

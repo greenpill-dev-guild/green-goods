@@ -11,7 +11,7 @@ import { depositRoute, walletRouteListed } from "../../modules/garden/deposit-ro
 import { assertBatchCapabilityKnown } from "../../modules/transactions/batch-types";
 import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
-import { classifyTxError } from "../../utils/errors/tx-error-classifier";
+import { classifyTxError, DEPOSIT_PAST_CEILINGS } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -69,10 +69,11 @@ export function useDepositRoute(action: "vault-deposit" | "jar-deposit") {
         chain: createDepositChain(chainId),
         scope: { account, chainId },
       }).catch((error: unknown) => {
+        if (classifyTxError(error).kind !== "overCeilings") throw error;
+        // Step by step, an earlier approval may already have landed and no press will help.
+        if (!tookOneSignature) throw new Error(DEPOSIT_PAST_CEILINGS);
         // It was promised one signature, so going step by step takes another press.
-        if (tookOneSignature && classifyTxError(error).kind === "overCeilings") {
-          queryClient.setQueryData(overCeilingsKey, true);
-        }
+        queryClient.setQueryData(overCeilingsKey, true);
         throw error;
       });
       if (outcome.status === "unknown") throw new TransactionConfirmationPendingError();

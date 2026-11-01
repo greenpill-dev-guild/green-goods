@@ -194,7 +194,11 @@ export function useCookieJarDepositMutation({
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       const view = classifyTxError(error);
-      if (view.kind === "unconfirmed" || view.kind === "overCeilings") {
+      if (
+        view.kind === "unconfirmed" ||
+        view.kind === "overCeilings" ||
+        view.kind === "pastCeilings"
+      ) {
         if (showErrorToast) {
           toastService.info({
             title: formatMessage({ id: view.titleKey }),

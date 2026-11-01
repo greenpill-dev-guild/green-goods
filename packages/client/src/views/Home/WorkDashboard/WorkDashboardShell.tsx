@@ -1,4 +1,5 @@
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { RiCheckLine, RiInboxLine, RiTaskLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
@@ -12,7 +13,13 @@ interface WorkDashboardShellProps {
   restored?: boolean;
   /** The active garden, whose work the sheet lists (DL-129); unset for a member with none. */
   gardenName?: string;
-  tabs: StandardTab[];
+  /** What Pending counts, the Home badge's number; none shows at zero. */
+  pendingCount: number;
+  /**
+   * What To Review counts, none at zero. Unset leaves the tab out: it is for whoever may review
+   * the garden's work (DL-149).
+   */
+  toReviewCount?: number;
   activeTab: string;
   onTabChange: (tabId: string) => void;
   children: React.ReactNode;
@@ -34,12 +41,36 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   covered = false,
   restored = false,
   gardenName,
-  tabs,
+  pendingCount,
+  toReviewCount,
   activeTab,
   onTabChange,
   children,
 }) => {
   const intl = useIntl();
+  const tabs: StandardTab[] = [
+    {
+      id: "pending",
+      icon: <RiTaskLine className="w-4 h-4" />,
+      label: intl.formatMessage({ id: "app.workDashboard.tabs.pending" }),
+      count: pendingCount > 0 ? pendingCount : undefined,
+    },
+    ...(toReviewCount === undefined
+      ? []
+      : [
+          {
+            id: "toReview",
+            icon: <RiInboxLine className="w-4 h-4" />,
+            label: intl.formatMessage({ id: "app.workDashboard.tabs.toReview" }),
+            count: toReviewCount > 0 ? toReviewCount : undefined,
+          },
+        ]),
+    {
+      id: "completed",
+      icon: <RiCheckLine className="w-4 h-4" />,
+      label: intl.formatMessage({ id: "app.workDashboard.tabs.completed" }),
+    },
+  ];
 
   return (
     <PwaSheet

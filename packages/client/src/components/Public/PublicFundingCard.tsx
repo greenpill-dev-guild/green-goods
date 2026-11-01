@@ -285,8 +285,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     amount: tokenAmountWei,
     decimals: selected?.decimals ?? 18,
     symbol: selected?.symbol ?? "",
-    gardenAddress: garden.id,
+    gardenAddress: garden.id as Address,
     enabled: open,
+    onLanded: () => {
+      setUsdInput("");
+      setWethInput("");
+    },
   });
 
   const handleSubmit = useCallback(() => {
@@ -643,8 +647,7 @@ function IdleBody(props: IdleBodyProps) {
 
   const submitDisabled =
     isSubmitting ||
-    depositPlan.isHeld ||
-    depositPlan.isSettlingHold ||
+    depositPlan.isPaused ||
     (!primaryAddress && isConnecting) ||
     Boolean(primaryAddress && (tokenAmountWei <= 0n || conversionUnavailable));
 

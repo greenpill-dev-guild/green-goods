@@ -469,14 +469,14 @@ function CampaignCookieJarInlineActions({
     amount: parsedDeposit,
     decimals,
     symbol,
+    onLanded: () => setDepositAmount(""),
   });
   const depositDisabled =
     !primaryAddress ||
     parsedDeposit <= 0n ||
     Boolean(depositError) ||
     depositMutation.isPending ||
-    plan.isHeld ||
-    plan.isSettlingHold;
+    plan.isPaused;
 
   const { data: walletBalance } = useBalance({
     chainId,

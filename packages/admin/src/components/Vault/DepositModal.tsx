@@ -172,14 +172,17 @@ export function DepositModal({
     symbol: assetSymbol,
     gardenAddress,
     enabled: isOpen,
+    onLanded: () => {
+      resetAmount();
+      resetDepositMutation();
+    },
   });
-  const isDepositPaused = plan.isHeld || plan.isSettlingHold;
   const showTxError =
     Boolean(depositMutation.error) &&
     !(plan.unconfirmedIsHeld && txError.view.kind === "unconfirmed");
 
   const onSubmit = () => {
-    if (!vaultAcceptingDeposits || isDepositPaused) return;
+    if (!vaultAcceptingDeposits || plan.isPaused) return;
     if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
 
     depositMutation.mutate(
@@ -229,7 +232,7 @@ export function DepositModal({
                 hasBlockingError ||
                 !decimalsReady ||
                 !vaultAcceptingDeposits ||
-                isDepositPaused ||
+                plan.isPaused ||
                 depositMutation.isPending
               }
               loading={depositMutation.isPending}

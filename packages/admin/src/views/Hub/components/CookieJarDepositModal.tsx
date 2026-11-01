@@ -161,8 +161,11 @@ export function CookieJarDepositModal({
       : "",
     gardenAddress,
     enabled: isOpen,
+    onLanded: () => {
+      setDepositAmount("");
+      resetDepositMutation();
+    },
   });
-  const isDepositPaused = plan.isHeld || plan.isSettlingHold;
   const showTxError =
     Boolean(depositMutation.error) &&
     !(plan.unconfirmedIsHeld && depositTxError.view.kind === "unconfirmed");
@@ -175,7 +178,7 @@ export function CookieJarDepositModal({
       ? selectedDepositJar
       : null;
   const handleDeposit = () => {
-    if (!selectedDepositJar || parsedDepositAmount <= 0n || isDepositPaused) return;
+    if (!selectedDepositJar || parsedDepositAmount <= 0n || plan.isPaused) return;
     depositMutation.mutate(
       {
         jarAddress: selectedDepositJar.jarAddress,
@@ -225,7 +228,7 @@ export function CookieJarDepositModal({
                   emphasis="secondary"
                   size="sm"
                   loading={isPending}
-                  disabled={parsedDepositAmount <= 0n || isDepositPaused}
+                  disabled={parsedDepositAmount <= 0n || plan.isPaused}
                   onClick={handleDeposit}
                 >
                   {formatMessage({ id: "app.cookieJar.depositAnyway" })}
@@ -254,7 +257,7 @@ export function CookieJarDepositModal({
                   size="sm"
                   type="button"
                   loading={isPending}
-                  disabled={!selectedDepositJar || parsedDepositAmount <= 0n || isDepositPaused}
+                  disabled={!selectedDepositJar || parsedDepositAmount <= 0n || plan.isPaused}
                   onClick={handleDeposit}
                 >
                   {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
