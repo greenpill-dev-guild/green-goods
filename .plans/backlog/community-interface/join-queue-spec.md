@@ -18,6 +18,15 @@ The first shipped source is `garden_detail`, matching the requested PWA garden-d
 
 Production activation remains blocked until the Fly.io secret is installed, the backup operator is named, the operator recovery path is rehearsed, and authenticated Brave proof is recorded. No contract or indexer change is part of this slice.
 
+## 2026-10-31 waiting-count lock
+
+Afo chose a count-only read so the cockpit's Members tab can show how many requests wait without asking for a signature to paint a badge (DL-134). It is one deliberate exception to the rule that a browser keeps no join-request credential. Proofs that can read names and notes are still never stored, and the proof rules and the signed queue are unchanged.
+
+- **How it works:** a signed `list` read also returns a count grant, a token signed with the join-request key under its own label. The browser keeps it for 30 days, per chain, account and garden, and sends it on arrival. The agent checks the token, re-reads the on-chain steward role, and returns one total across both queues from plain columns, without decrypting anything. Only a signed read issues a grant, so using one never extends it. Sign-out and an account change clear it, and rotating the key ends every grant.
+- **What it reveals:** the steward sees a total they can already read. Whoever steals the token from that browser sees that one garden's total and its changes, until it expires or the steward loses the role, and no name, note or address. A former steward gets nothing, because the role is read on every request. A bad token gets one answer before any read, so it says nothing about the garden.
+- **Limits accepted:** the first visit on each browser, per garden, shows nothing until one signed check. The number can run high after someone is added by hand, until the next signed read reconciles the row, because matching it would mean decrypting on a passive path. A captured `list` proof, which dies in five minutes, could be exchanged for a 30-day count read; proofs travel only in the `Authorization` header and stay in memory.
+- **Rejected:** a public count, or a role check on a claimed address, which is the same thing because steward addresses are public: anyone could watch a garden's queue and, paired with public role grants, date when a member asked or spot a decline. Storing or extending the `list` proof, which also reads names and notes. A long-lived count-only signature, which adds a prompt per garden and browser, a proof-rule change, and an RPC signature check on every arrival for the same exposure. Notifications stay excluded.
+
 ## 1. Decision and ownership
 
 **NET-NEW decision:** a closed-garden join request is one small, garden-scoped record on the agent service. It is not a protocol permission, an on-chain request registry, or a job-queue item. Community Needs & Signals owns its lifecycle, personal-data rules, and RESR-64 operating gate because its first-action flow creates the same membership wait (`spec.md:245-249`).
@@ -83,6 +92,7 @@ Existing browser contracts are framework-free shared types (`packages/shared/src
 | `POST /public/gardens/:garden/join-requests` | Member create proof in `Authorization` | Body: display name, optional note, and `requestedVia: garden_detail`. Returns `201` for a new request or `200` when a newly signed request converges on the existing active row. |
 | `GET /public/gardens/:garden/join-requests/me` | Member `JoinQueueAccessV1` proof in `Authorization` | Returns only the caller's request ID, state, reason when declined, timestamps, and `canAskAgain`. No background polling or stored bearer token. |
 | `GET /public/gardens/:garden/join-requests?state=pending&cursor=…&limit=…` | Operator/owner list proof in `Authorization` | Returns only that garden's rows plus `nextCursor`. Default 25, maximum 100; cursor encodes `(requestedAt,id)`, never an address. |
+| `GET /public/gardens/:garden/join-requests/count` | Count grant from a signed `list` read, in `Authorization`, plus a current operator/owner role read | Returns only `{ ok: true, waiting }`, the pending total across both kinds. Never decrypts. See the 2026-10-31 lock. |
 | `POST /public/gardens/:garden/join-requests/:id/resolve` | Operator/owner `JoinQueueAccessV1` proof | Body is either `{ action: "welcome", expectedRevision }` or `{ action: "decline", reason, expectedRevision }`. Welcome returns `202` until a current gardener-role read succeeds, then `200` welcomed; decline is `200`. |
 | `DELETE /public/gardens/:garden/join-requests/me` | Member withdrawal proof in `Authorization` | Withdraws only a pending request and returns `{ ok: true }`; welcomed/declined history remains readable until its retention window ends. |
 
@@ -149,6 +159,7 @@ The browser API already checks allowed origins and derives public rate-limit key
 - [ ] A request manually fulfilled while the agent is unavailable becomes welcomed on the next member or operator queue read.
 - [ ] Pending, resolved, and withdrawn records follow the accepted expiry/deletion policy; no personal request field reaches logs or analytics.
 - [ ] Rate limits, queue cap, and the aggregate operator spam signal are testable.
+- [x] After one signed check, a steward's browser reads the waiting total on arrival without a signature; the read reveals no personal field and stops when the role is lost or the grant lapses.
 - [ ] Every string is added in en/es/pt and avoids the banned-vocabulary policy (`scripts/data/banned-vocabulary.json`).
 - [x] API, database, and UI implementation is authorized locally; production request collection remains blocked by the activation checklist in `status.json`.
 
