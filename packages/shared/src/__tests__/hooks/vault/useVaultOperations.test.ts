@@ -227,8 +227,9 @@ describe("hooks/vault/useVaultOperations", () => {
       expect(toastService.error).not.toHaveBeenCalled();
       expect(mockErrorHandler).not.toHaveBeenCalled();
       expect(toastService.info).toHaveBeenCalledOnce();
-      // It may have landed, so the balances are worth reading again.
-      expect(invalidate).toHaveBeenCalled();
+      // It may have landed, so what the forms read straight from the chain is worth reading again.
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["balance"] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["readContract"] });
     });
 
     it("stops before the deposit when an approval has no receipt", async () => {
