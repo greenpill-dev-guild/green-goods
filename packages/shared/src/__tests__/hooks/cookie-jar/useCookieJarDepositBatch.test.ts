@@ -8,6 +8,7 @@ import { act, waitFor } from "@testing-library/react";
 import { encodeAbiParameters, encodeEventTopics, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../../../config/query-keys";
+import { batchKeys } from "../../../config/query-keys/garden";
 import { useCookieJarDeposit } from "../../../hooks/cookie-jar/useCookieJarDeposit";
 import { useDepositPlan } from "../../../hooks/vault/useDepositPlan";
 import type { DepositTarget } from "../../../modules/garden/deposit-batch";
@@ -101,10 +102,8 @@ function setup(
     }) as Log["topics"],
     data: encodeAbiParameters([{ type: "uint256" }], [100n]),
   };
-  const renderDeposit = () =>
-    renderHookWithProviders(() => useCookieJarDeposit(garden, { errorMode: "inline" }), {
-      queryClient,
-    });
+  const renderDeposit = (errorMode: "inline" | "toast" = "inline") =>
+    renderHookWithProviders(() => useCookieJarDeposit(garden, { errorMode }), { queryClient });
   const renderPlan = (gardenAddress?: string) =>
     renderHookWithProviders(
       () => useDepositPlan({ target, amount: 100n, decimals: 0, symbol: "DAI", gardenAddress }),
@@ -235,6 +234,93 @@ describe("useCookieJarDeposit on a listed rail", () => {
     expect(sender.submitAtomicBatch).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledTimes(2);
   });
+
+  it("says in a toast that a deposit past its ceilings takes another press", async () => {
+    const { sender, deposit, renderDeposit } = setup(CONFIRMED);
+    vi.mocked(sender.submitAtomicBatch!).mockRejectedValueOnce(
+      new BatchNotSubmittedError(new Error("batch-budget-exceeded"))
+    );
+    const { result } = renderDeposit("toast");
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(
+        (error) => classifyTxError(error).kind === "overCeilings"
+      );
+    });
+
+    expect(toasts.info).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Nothing was sent. Press again to sign each step." })
+    );
+  });
+
+  it("stops without offering another press when one step alone is past its ceilings", async () => {
+    listing.walletProfile = "sequential";
+    const { sender, deposit, renderDeposit } = setup(CONFIRMED, "wallet");
+    vi.mocked(sender.getBatchCapability!).mockImplementation(async (scope) => ({
+      ...scope,
+      atomic: "unsupported",
+    }));
+    sender.preflightBatch = async () => ({
+      gas: "9000000",
+      maxFeePerGas: "100000000",
+      maxFee: "900000000000000",
+      sponsored: false,
+      authority: "wallet",
+    });
+    chainState.allowance = 100n;
+    const { result } = renderDeposit("toast");
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(
+        (error) => classifyTxError(error).kind === "pastCeilings"
+      );
+    });
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(toasts.info).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "This deposit is too big to send right now" })
+    );
+  });
+
+  it("reads no hold while this tab's send is in flight, and reads it once the send ends", async () => {
+    const { account, jar, deposit, renderDeposit, renderPlan, sender, queryClient } = setup();
+    chainState.allowance = 100n;
+    const submit = vi.mocked(sender.submitAtomicBatch!);
+    const send = submit.getMockImplementation()!;
+    let wake = () => {};
+    const woken = new Promise<void>((resolve) => {
+      wake = resolve;
+    });
+    submit.mockImplementationOnce(async (...args) => {
+      await woken;
+      return send(...args);
+    });
+    const list = vi.spyOn(sender.batches!, "list");
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const { result: deposits } = renderDeposit();
+
+    let sent = Promise.resolve();
+    act(() => {
+      sent = deposits.current.mutateAsync(deposit).then(
+        () => undefined,
+        () => undefined
+      );
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+
+    const { result } = renderPlan();
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+    expect(list).not.toHaveBeenCalled();
+
+    await act(async () => {
+      wake();
+      await sent;
+    });
+    await waitFor(() => expect(result.current.isHeld).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: batchKeys.allowance(deposit.assetAddress, account, jar, 42161),
+    });
+  });
 });
 
 describe("useDepositPlan for a jar", () => {
@@ -274,7 +360,7 @@ describe("useDepositPlan for a jar", () => {
     ["a campaign jar's lists", false],
   ])("refreshes %s when a held deposit proves it landed", async (_case, inGarden) => {
     const context = setup();
-    const { account, jar, garden, deposit, depositLog, renderDeposit, renderPlan } = context;
+    const { account, jar, garden, deposit, depositLog, renderDeposit } = context;
     const { result: send } = renderDeposit();
     await act(async () => {
       await expect(send.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
@@ -282,8 +368,20 @@ describe("useDepositPlan for a jar", () => {
     chainState.logs = [depositLog];
     context.sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
     const invalidate = vi.spyOn(context.queryClient, "invalidateQueries");
+    const onLanded = vi.fn();
 
-    const { result } = renderPlan(inGarden ? garden : undefined);
+    const { result } = renderHookWithProviders(
+      () =>
+        useDepositPlan({
+          target: { kind: "jar", address: jar, asset: deposit.assetAddress },
+          amount: 100n,
+          decimals: 0,
+          symbol: "DAI",
+          gardenAddress: inGarden ? garden : undefined,
+          onLanded,
+        }),
+      { queryClient: context.queryClient }
+    );
 
     await waitFor(() => expect(toasts.success).toHaveBeenCalledOnce());
     expect(result.current.isHeld).toBe(false);
@@ -295,5 +393,6 @@ describe("useDepositPlan for a jar", () => {
         ? queryKeys.cookieJar.byGarden(garden, 42161)
         : queryKeys.cookieJar.campaign(jar, account, 42161),
     });
+    expect(onLanded).toHaveBeenCalledOnce();
   });
 });
