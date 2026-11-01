@@ -149,6 +149,20 @@ export function listPendingGardenJoinRequests(
   };
 }
 
+/** Reads plain columns only: the waiting total never needs the cipher. */
+export function countPendingGardenJoinRequests(
+  db: Database,
+  gardenAddress: Address,
+  nowIso: string
+): number {
+  const { count } = db
+    .query(
+      "SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt > ?"
+    )
+    .get(gardenAddress, nowIso) as { count: number };
+  return count;
+}
+
 export function resolveGardenJoinRequest(
   db: Database,
   cipher: GardenJoinRequestCipher,

@@ -23,7 +23,9 @@ import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
-import SubmitWork from "@/views/Garden/SubmitWork";
+// Loaded up front, so the flow's lazy boundary resolves at once.
+import "@/views/Garden/SubmitWork";
+import { HubFlowHarness } from "../hubFlowHarness";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
@@ -291,7 +293,10 @@ const authContextValue: AuthContextValue = {
   disconnectWallet: vi.fn(),
 };
 
-function renderSubmitWork(actions: Action[] = []) {
+const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=submit-work`;
+const FLOW_URL = `/hub/work${FLOW_SEARCH}`;
+
+function renderSubmitWork(actions: Action[] = [], entry = FLOW_URL) {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), actions);
@@ -305,11 +310,10 @@ function renderSubmitWork(actions: Action[] = []) {
   );
   const router = createMemoryRouter(
     [
-      { path: "/hub/work/submit", element: <SubmitWork /> },
-      { path: "/hub/*", element: <div /> },
+      { path: "/hub/*", element: <HubFlowHarness /> },
       { path: "/garden/*", element: <div /> },
     ],
-    { initialEntries: [`/hub/work/submit?gardenId=${SELECTED_GARDEN.id}`] }
+    { initialEntries: [entry] }
   );
 
   render(
@@ -336,13 +340,9 @@ function renderSubmitWorkTree() {
     queryKeys.role.deploymentPermissions(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     { isOwner: false, isInAllowlist: false, canDeploy: false }
   );
-  const router = createMemoryRouter(
-    [
-      { path: "/hub/work/submit", element: <SubmitWork /> },
-      { path: "/hub/*", element: <div /> },
-    ],
-    { initialEntries: [`/hub/work/submit?gardenId=${SELECTED_GARDEN.id}`] }
-  );
+  const router = createMemoryRouter([{ path: "/hub/*", element: <HubFlowHarness /> }], {
+    initialEntries: [FLOW_URL],
+  });
 
   const tree = (
     <QueryClientProvider client={queryClient}>
@@ -427,7 +427,33 @@ describe("SubmitWork dialog", () => {
     expect(
       screen.queryByRole("dialog", { name: "app.admin.work.submit.title" })
     ).not.toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work");
+    expect(router?.state.location.search).not.toContain("item=");
+  });
+
+  it("opens over the stage it was pressed from and returns there on close (DL-140)", async () => {
+    const user = userEvent.setup();
+    const stageUrl = `/hub/assess?gardenId=${SELECTED_GARDEN.id}`;
+    let router: ReturnType<typeof renderSubmitWork> | undefined;
+    await act(async () => {
+      router = renderSubmitWork([], stageUrl);
+      await Promise.resolve();
+    });
+    const url = () => `${router?.state.location.pathname}${router?.state.location.search}`;
+    const opener = await screen.findByRole("button", { name: /submit work/i });
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "app.admin.work.submit.title" });
+    expect(url()).toBe(`${stageUrl}&item=submit-work`);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(url()).toBe(stageUrl));
+    await waitFor(() => expect(opener).toHaveFocus());
+
+    // The handled item is gone, so the next press opens it again.
+    await user.click(opener);
+    expect(
+      await screen.findByRole("dialog", { name: "app.admin.work.submit.title" })
+    ).toBeInTheDocument();
   });
 
   it("sends a steward whose garden has no actions to set some up, rather than an empty form", async () => {
@@ -470,7 +496,7 @@ describe("SubmitWork dialog", () => {
 
     expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/work/submit");
+      expect(router?.state.location.search).toBe(FLOW_SEARCH);
     });
   });
 
@@ -524,11 +550,11 @@ describe("SubmitWork dialog", () => {
     // The send landed: the Review stays where it is and offers the way out.
     expect(await screen.findByRole("button", { name: "Done" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work/submit");
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
 
     await user.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/work");
+      expect(router?.state.location.search).not.toContain("item=");
     });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
@@ -580,7 +606,7 @@ describe("SubmitWork dialog", () => {
         await router.navigate("/hub/work");
       });
     }
-    await waitFor(() => expect(router.state.location.pathname).toBe("/hub/work"));
+    await waitFor(() => expect(router.state.location.search).not.toContain("item="));
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
     expect(workSend.snapshot().lastSubmissionOutcome?.kind).toBe("awaiting-confirmation");
   });
@@ -603,7 +629,7 @@ describe("SubmitWork dialog", () => {
     // The Review says what happened and offers the same send again, not Done.
     expect(await screen.findByText("Work wasn't submitted")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work/submit");
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
 
     // Nothing was sent, so the typed note is still the steward's to lose.
     const dialog = screen.getByRole("dialog", { name: "app.admin.work.submit.title" });
@@ -644,7 +670,7 @@ describe("SubmitWork dialog", () => {
       key: "Escape",
     });
     expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work/submit");
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
   });
 
   it("starts an empty submission for Submit Another", async () => {
@@ -722,7 +748,7 @@ describe("SubmitWork dialog", () => {
 
     fireEvent.keyDown(dialog, { key: "Escape" });
 
-    expect(router?.state.location.pathname).toBe("/hub/work/submit");
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
     expect(screen.getByRole("dialog", { name: "app.admin.work.submit.title" })).toBeInTheDocument();
   });
 
@@ -744,7 +770,6 @@ describe("SubmitWork dialog", () => {
       await Promise.resolve();
     });
 
-    expect(router?.state.location.pathname).toBe("/hub/work/submit");
-    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
   });
 });

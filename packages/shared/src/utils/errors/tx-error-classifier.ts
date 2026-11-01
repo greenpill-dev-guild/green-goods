@@ -3,6 +3,9 @@ import { wrongWalletNetwork } from "./wallet-network-refusal";
 
 export type TxErrorKind =
   | "cancelled"
+  | "unconfirmed"
+  | "overCeilings"
+  | "pastCeilings"
   | "passkeyUnavailable"
   | "wrongChain"
   | "reverted"
@@ -173,9 +176,44 @@ function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
   return includesAny(normalizedMessage, CANCELLED_PATTERNS);
 }
 
+/** One step is past its ceilings on its own, so there is no smaller send to fall back on. */
+export const DEPOSIT_PAST_CEILINGS = "deposit-past-ceilings";
+
 export function classifyTxError(error: unknown): TxErrorView {
+  // The send went out and nobody can say whether it landed, so it must not read as failed or invite
+  // another send. No raw text, because every surface prefers a meaningful raw message to the key.
+  if (isUnconfirmedTxError(error)) {
+    return {
+      kind: "unconfirmed",
+      severity: "warning",
+      titleKey: "app.txFeedback.unconfirmed.title",
+      messageKey: "app.txFeedback.unconfirmed.message",
+      rawMessage: "",
+    };
+  }
+
   const rawMessage = extractErrorMessage(error).trim();
   const normalizedMessage = rawMessage.toLowerCase();
+
+  if (normalizedMessage === "batch-budget-exceeded") {
+    return {
+      kind: "overCeilings",
+      severity: "warning",
+      titleKey: "app.txFeedback.overCeilings.title",
+      messageKey: "app.txFeedback.overCeilings.message",
+      rawMessage: "",
+    };
+  }
+
+  if (normalizedMessage === DEPOSIT_PAST_CEILINGS) {
+    return {
+      kind: "pastCeilings",
+      severity: "warning",
+      titleKey: "app.txFeedback.pastCeilings.title",
+      messageKey: "app.txFeedback.pastCeilings.message",
+      rawMessage: "",
+    };
+  }
 
   if (isPasskeyCredentialUnavailableError(error)) {
     return {
@@ -274,6 +312,34 @@ export function classifyTxError(error: unknown): TxErrorView {
     messageKey: "app.errors.blockchain.unknown.message",
     rawMessage,
   };
+}
+
+const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
+  "TransactionConfirmationPendingError",
+  "WaitForTransactionReceiptTimeoutError",
+  "WaitForUserOperationReceiptTimeoutError",
+]);
+
+/** Another send of the same thing still holds it, so this one has the same answer: not yet known. */
+const HELD_BY_ANOTHER_SEND = "batch-items-held";
+
+export function isUnconfirmedTxError(error: unknown): boolean {
+  return (
+    hasErrorName(error, UNCONFIRMED_ERROR_NAMES) ||
+    (error instanceof Error && error.message === HELD_BY_ANOTHER_SEND)
+  );
+}
+
+/** Some non-standard tokens revert on allowance(), which is not the same as a failed read. */
+export function isRecoverableAllowanceReadError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("revert") ||
+    message.includes("execution reverted") ||
+    message.includes("contractfunctionexecutionerror") ||
+    message.includes("call_exception")
+  );
 }
 
 export function isCancelledTxError(error: unknown): boolean {

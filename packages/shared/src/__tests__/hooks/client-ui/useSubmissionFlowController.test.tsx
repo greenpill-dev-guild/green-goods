@@ -91,16 +91,13 @@ describe("useSubmissionFlowController", () => {
     expect(work.result.current.stage).toBe("start");
     expect(work.result.current.progress).toBe(1);
 
+    // Evidence shows the same four markers with Start done, and its path opens on Media (DL-153).
     const evidence = renderEvidence(evidenceController());
     expect(evidence.result.current.kind).toBe("evidence");
-    expect(evidence.result.current.stages).toEqual(["media", "details", "review"]);
-    expect(evidence.result.current.stageLabelIds).toEqual([
-      "app.work.step.media",
-      "app.work.step.details",
-      "app.work.step.review",
-    ]);
+    expect(evidence.result.current.stages).toEqual(work.result.current.stages);
+    expect(evidence.result.current.stageLabelIds).toEqual(work.result.current.stageLabelIds);
     expect(evidence.result.current.stage).toBe("media");
-    expect(evidence.result.current.progress).toBe(1);
+    expect(evidence.result.current.progress).toBe(2);
   });
 
   it("moves the work kind through the work store's step and submits from Review", () => {
@@ -151,9 +148,10 @@ describe("useSubmissionFlowController", () => {
 
     act(() => result.current.forward?.run());
     expect(result.current.stage).toBe("details");
+    expect(result.current.progress).toBe(3);
     act(() => result.current.forward?.run());
     expect(result.current.stage).toBe("review");
-    expect(result.current.progress).toBe(3);
+    expect(result.current.progress).toBe(4);
     expect(controller.submit).not.toHaveBeenCalled();
 
     act(() => result.current.forward?.run());

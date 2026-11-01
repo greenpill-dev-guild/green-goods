@@ -1,7 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { classifyTxError, isCancelledTxError } from "../tx-error-classifier";
+import { TransactionConfirmationPendingError } from "../../../modules/transactions/types";
+import { classifyTxError, isCancelledTxError, isUnconfirmedTxError } from "../tx-error-classifier";
 
 describe("tx-error-classifier", () => {
+  it.each([
+    ["a send with no receipt", new TransactionConfirmationPendingError()],
+    ["a wallet receipt wait that ran out", named("WaitForTransactionReceiptTimeoutError")],
+    ["a passkey receipt wait that ran out", named("WaitForUserOperationReceiptTimeoutError")],
+    [
+      "one wrapped in a cause",
+      Object.assign(new Error("wrapped"), {
+        cause: named("WaitForTransactionReceiptTimeoutError"),
+      }),
+    ],
+  ])("reads %s as unconfirmed, not failed", (_case, error) => {
+    expect(classifyTxError(error)).toEqual({
+      kind: "unconfirmed",
+      severity: "warning",
+      titleKey: "app.txFeedback.unconfirmed.title",
+      messageKey: "app.txFeedback.unconfirmed.message",
+      // No raw text, so every surface shows the message rather than a viem string.
+      rawMessage: "",
+    });
+    expect(isUnconfirmedTxError(error)).toBe(true);
+  });
+
+  it("keeps a timeout before anything was sent as a failure", () => {
+    expect(isUnconfirmedTxError(new Error("request timed out"))).toBe(false);
+    expect(classifyTxError(new Error("request timed out")).severity).toBe("error");
+  });
+
   it("classifies wallet rejection message as cancelled warning", () => {
     const result = classifyTxError(new Error("User rejected the request."));
     expect(result.kind).toBe("cancelled");
@@ -95,3 +123,7 @@ describe("tx-error-classifier", () => {
     expect(result.messageKey).toBe("app.errors.blockchain.unknown.message");
   });
 });
+
+function named(name: string): Error {
+  return Object.assign(new Error(`Timed out while waiting (${name})`), { name });
+}

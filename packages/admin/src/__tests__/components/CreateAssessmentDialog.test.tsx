@@ -6,6 +6,7 @@
 import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { del as idbDel, get as idbGet } from "idb-keyval";
 import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
@@ -21,7 +22,9 @@ import {
 } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
-import CreateAssessment from "@/views/Hub/CreateAssessment";
+// Loaded up front, so the flow's lazy boundary resolves at once.
+import "@/views/Hub/CreateAssessment";
+import { HubFlowHarness } from "../hubFlowHarness";
 
 const createAssessmentControllerOverride = vi.hoisted(() => ({
   current: null as null | (() => unknown),
@@ -182,7 +185,10 @@ function controllerAt(overrides: Partial<Controller> = {}): Controller {
   };
 }
 
-function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}) {
+const FLOW_SEARCH = `?gardenId=${SELECTED_GARDEN.id}&item=create-assessment`;
+const FLOW_URL = `/hub/assess${FLOW_SEARCH}`;
+
+function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}, entry = FLOW_URL) {
   const auth = { ...authContextValue, ...authOverrides };
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
@@ -199,18 +205,9 @@ function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}) {
       canDeploy: false,
     }
   );
-  const router = createMemoryRouter(
-    [
-      { path: "/hub/assess/create", element: <CreateAssessment /> },
-      // Cancel/Discard navigates to the Hub the flow was launched from — a
-      // bare fallback so that navigation resolves cleanly instead of logging
-      // a React Router 404 in tests that exercise the close path.
-      { path: "/hub/*", element: <div /> },
-    ],
-    {
-      initialEntries: [`/hub/assess/create?gardenId=${SELECTED_GARDEN.id}`],
-    }
-  );
+  const router = createMemoryRouter([{ path: "/hub/*", element: <HubFlowHarness /> }], {
+    initialEntries: [entry],
+  });
 
   render(
     <QueryClientProvider client={queryClient}>
@@ -392,15 +389,14 @@ describe("CreateAssessment dialog", () => {
 
     await act(async () => {
       void router?.navigate(
-        "/hub/assess/create?gardenId=0x2222222222222222222222222222222222222222"
+        "/hub/assess?gardenId=0x2222222222222222222222222222222222222222&item=create-assessment"
       );
       await Promise.resolve();
     });
 
     expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/assess/create");
-      expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+      expect(router?.state.location.search).toBe(FLOW_SEARCH);
     });
   });
 
@@ -450,8 +446,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    expect(router?.state.location.pathname).toBe("/hub/assess/create");
-    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    expect(router?.state.location.search).toBe(FLOW_SEARCH);
   });
 
   it("closes straight back to the Hub when the form is pristine (no discard prompt)", async () => {
@@ -468,13 +463,36 @@ describe("CreateAssessment dialog", () => {
     });
 
     // Pristine form: Escape must not raise the discard confirm — it exits
-    // directly to the Hub workbench the flow was launched from (controller
-    // handleClose → adminRoutes.hub → the default /hub/work stage).
+    // directly to the stage the flow opened over (DL-140).
     await waitFor(() => {
-      expect(router?.state.location.pathname).toBe("/hub/work");
+      expect(router?.state.location.search).not.toContain("item=");
       expect(screen.queryByRole("dialog", { name: "Create Assessment" })).not.toBeInTheDocument();
     });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("opens over the stage it was pressed from and returns there on close (DL-140)", async () => {
+    const user = userEvent.setup();
+    const stageUrl = `/hub/work?gardenId=${SELECTED_GARDEN.id}`;
+    let router: ReturnType<typeof renderCreateAssessment> | undefined;
+    await act(async () => {
+      router = renderCreateAssessment({}, stageUrl);
+      await Promise.resolve();
+    });
+    const url = () => `${router?.state.location.pathname}${router?.state.location.search}`;
+    const opener = await screen.findByRole("button", { name: /create assessment/i });
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "Create Assessment" });
+    expect(url()).toBe(`${stageUrl}&item=create-assessment`);
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(url()).toBe(stageUrl));
+    await waitFor(() => expect(opener).toHaveFocus());
+
+    // The handled item is gone, so the next press opens it again.
+    await user.click(opener);
+    expect(await screen.findByRole("dialog", { name: "Create Assessment" })).toBeInTheDocument();
   });
 
   it("shows the Review, with the answers, before anything is sent", async () => {

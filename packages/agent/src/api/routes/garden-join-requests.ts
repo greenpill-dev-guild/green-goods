@@ -1,4 +1,5 @@
 import {
+  decodeGardenJoinCountAuthorization,
   GARDEN_JOIN_REQUEST_DEFAULT_PAGE_SIZE,
   GARDEN_JOIN_REQUEST_MAX_PAGE_SIZE,
 } from "@green-goods/shared/public-contracts/join-requests";
@@ -28,13 +29,16 @@ export function registerGardenJoinRequestRoutes(
   ctx: GardenJoinRequestRouteContext
 ): void {
   const collection = "/public/gardens/:garden/join-requests";
+  const count = "/public/gardens/:garden/join-requests/count";
   const mine = "/public/gardens/:garden/join-requests/me";
   const resolve = "/public/gardens/:garden/join-requests/:requestId/resolve";
   app.options(collection, (c) => publicBrowserCorsPreflight(c, ctx.deps));
+  app.options(count, (c) => publicBrowserCorsPreflight(c, ctx.deps));
   app.options(mine, (c) => publicBrowserCorsPreflight(c, ctx.deps));
   app.options(resolve, (c) => publicBrowserCorsPreflight(c, ctx.deps));
   app.post(collection, (c) => handleCreateGardenJoinRequest(c, ctx));
   app.get(collection, (c) => handleList(c, ctx));
+  app.get(count, (c) => handleCount(c, ctx));
   app.get(mine, (c) => handleMine(c, ctx));
   app.delete(mine, (c) => handleWithdraw(c, ctx));
   app.post(resolve, (c) => handleGardenJoinRequestResolution(c, ctx));
@@ -228,6 +232,14 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
         items.push(request);
       }
     }
+    const countGrant = ctx.deps.gardenJoinRequestCountGrants?.issue(
+      {
+        chainId: authenticated.proof.chainId,
+        gardenAddress: preflight.garden,
+        accountAddress: authenticated.proof.accountAddress,
+      },
+      ctx.deps.now?.() ?? Date.now()
+    );
     return publicBrowserCorsResponse(c, ctx.deps, {
       ok: true,
       items,
@@ -237,9 +249,64 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
           ctx.deps.now?.() ?? Date.now()
         ) ?? false,
       ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+      ...(countGrant ? { countGrant } : {}),
     });
   } catch (error) {
     reportGardenJoinRequestUnavailable("list", stage, error);
+    return gardenJoinRequestsUnavailable(c, ctx);
+  }
+}
+
+/**
+ * How many requests wait in a garden, for a steward's badge: no signature, no decryption, and no
+ * name, note or address in the answer. A row added to the garden by hand counts until a signed
+ * queue read returns it and reconciles it, since matching it here would mean decrypting.
+ */
+async function handleCount(c: Context, ctx: GardenJoinRequestRouteContext) {
+  const preflight = prepareGardenJoinRequest(c, ctx);
+  if (!preflight.ok) return preflight.response;
+  const rateError = checkRateLimit(c, ctx.deps, "join_request_read", preflight.garden);
+  if (rateError) return publicBrowserCorsResponse(c, ctx.deps, rateError, 429);
+  const store = ctx.store;
+  const chain = ctx.deps.gardenJoinRequestChainReader;
+  const grants = ctx.deps.gardenJoinRequestCountGrants;
+  if (!store || !chain || !grants) return gardenJoinRequestsUnavailable(c, ctx);
+  const now = ctx.deps.now?.() ?? Date.now();
+  const subject = grants.verify(
+    decodeGardenJoinCountAuthorization(c.req.header("authorization")),
+    now
+  );
+  // Every bad token gets one answer, before any read, so it says nothing about the garden.
+  if (
+    !subject ||
+    subject.gardenAddress !== preflight.garden ||
+    subject.chainId !== ctx.deps.gardenJoinRequestChainId
+  ) {
+    return gardenJoinRequestFailure(
+      c,
+      ctx,
+      "signature_invalid",
+      "This count authorization is invalid or expired.",
+      401
+    );
+  }
+  const budget = createGardenJoinRequestBudget(ctx.deps.now ?? Date.now, c.req.raw.signal);
+  let stage = "role_read";
+  try {
+    if (!(await budget.run(() => chain.canManage(preflight.garden, subject.accountAddress)))) {
+      return gardenJoinRequestFailure(
+        c,
+        ctx,
+        "garden_role_required",
+        "An operator or owner role is required.",
+        403
+      );
+    }
+    stage = "store_count";
+    const waiting = await store.countPending(preflight.garden, new Date(now).toISOString());
+    return publicBrowserCorsResponse(c, ctx.deps, { ok: true, waiting });
+  } catch (error) {
+    reportGardenJoinRequestUnavailable("count", stage, error);
     return gardenJoinRequestsUnavailable(c, ctx);
   }
 }

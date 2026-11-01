@@ -50,14 +50,6 @@ export const roleKeys = {
     ["greengoods", "role", "roleHat", gardenId, address] as const,
   roleHat: (gardenId?: string, address?: string, role?: string, chainId?: number) =>
     ["greengoods", "role", "roleHat", gardenId, address, role, chainId] as const,
-  evaluatorGardens: (address?: Address, gardenIds: string[] = []) =>
-    [
-      "greengoods",
-      "role",
-      "evaluatorGardens",
-      address,
-      JSON.stringify([...gardenIds].sort()),
-    ] as const,
   deploymentPermissions: (address?: string, chainId?: number) =>
     ["greengoods", "role", "deploymentPermissions", address, chainId] as const,
   allowlist: (chainId?: number) => ["greengoods", "role", "allowlist", chainId] as const,

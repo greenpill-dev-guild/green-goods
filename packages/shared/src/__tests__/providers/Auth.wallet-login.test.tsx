@@ -20,6 +20,7 @@ import {
 } from "../../modules/auth/sessionSignOut";
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
 import { connectivityStore } from "../../stores/connectivity";
+import { useJoinRequestCountGrantStore } from "../../stores/useJoinRequestCountGrantStore";
 import { queryClient } from "../../config/react-query";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
@@ -215,6 +216,9 @@ describe("AuthProvider wallet login bridge", () => {
     queryClient.setQueryData(["greengoods", "works", "online", "garden"], ["submitted"]);
     queryClient.setQueryData(["greengoods", "works", "merged", "garden"], ["private-draft"]);
     localStorage.setItem("__rq_pc__", "persisted-reads");
+    useJoinRequestCountGrantStore
+      .getState()
+      .keepGrant("11155111:account", "0xgarden", { token: "grant", expiresAt: 4_000_000_000 });
     const deleteDatabase = vi.spyOn(indexedDB, "deleteDatabase");
     // Offline, letting go of a WalletConnect session never finishes.
     mocks.mockDisconnect.mockReturnValueOnce(new Promise<undefined>(() => {}));
@@ -222,6 +226,7 @@ describe("AuthProvider wallet login bridge", () => {
       await view.result.current.signOut();
     });
     expect(view.result.current.isAuthenticated).toBe(false);
+    expect(useJoinRequestCountGrantStore.getState().grantsByScope).toEqual({});
     expect(queryClient.getQueryData(gardens)).toEqual([{ id: "garden" }]);
     expect(queryClient.getQueryData(["wallet", "session"])).toBeUndefined();
     expect(queryClient.getQueryData(["greengoods", "works", "online", "garden"])).toEqual([

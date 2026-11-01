@@ -25,6 +25,10 @@ interface WorkListTabProps {
   onWorkClick: (work: Work) => void;
   onRefresh?: () => void;
   renderPresentation?: (work: Work) => WorkCardPresentation;
+  /** Draws each row instead of the work card, as To Review's review rows do. */
+  renderRow?: (work: Work) => React.ReactNode;
+  /** The list may stop short of all there is, so the status line names no number. */
+  uncounted?: boolean;
   headerActions?: React.ReactNode;
   headerContent?: React.ReactNode;
   messages: WorkListMessages;
@@ -128,6 +132,8 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
   onWorkClick,
   onRefresh,
   renderPresentation,
+  renderRow,
+  uncounted = false,
   headerActions,
   headerContent,
   messages,
@@ -145,7 +151,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             { id: "app.offline.savedAt", defaultMessage: "Offline · {when}" },
             { when: formatSavedAt(intl, savedAt) }
           )
-        : items.length > 0
+        : items.length > 0 && !uncounted
           ? intl.formatMessage(messages.itemCount, { count: items.length })
           : null;
   // Offline there is nothing to refresh, so neither the header nor the error state offers it.
@@ -224,12 +230,16 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
           <ul className="animate-stagger-in flex flex-col gap-(--gg-list-gap)">
             {items.map((work) => (
               <li key={work.id}>
-                <MinimalWorkCard
-                  work={work}
-                  onClick={() => onWorkClick(work)}
-                  presentation={renderPresentation?.(work)}
-                  className="cv-work-card"
-                />
+                {renderRow ? (
+                  renderRow(work)
+                ) : (
+                  <MinimalWorkCard
+                    work={work}
+                    onClick={() => onWorkClick(work)}
+                    presentation={renderPresentation?.(work)}
+                    className="cv-work-card"
+                  />
+                )}
               </li>
             ))}
           </ul>

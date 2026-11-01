@@ -20,10 +20,15 @@ const noop = () => undefined;
 /** The evidence kind on Media, as the flow hands it to the shell. */
 const evidenceOnMedia: SubmissionFlowController = {
   kind: "evidence",
-  stages: ["media", "details", "review"],
+  stages: ["start", "media", "details", "review"],
   stage: "media",
-  progress: 1,
-  stageLabelIds: ["app.work.step.media", "app.work.step.details", "app.work.step.review"],
+  progress: 2,
+  stageLabelIds: [
+    "app.work.step.start",
+    "app.work.step.media",
+    "app.work.step.details",
+    "app.work.step.review",
+  ],
   goToStage: noop,
   back: noop,
   forward: {

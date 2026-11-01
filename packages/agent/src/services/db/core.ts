@@ -302,6 +302,10 @@ class DB {
     );
   }
 
+  async countPendingGardenJoinRequests(gardenAddress: PublicAddress, nowIso: string) {
+    return gardenJoinRequests.countPendingGardenJoinRequests(this.db, gardenAddress, nowIso);
+  }
+
   async resolveGardenJoinRequest(
     cipher: GardenJoinRequestCipher,
     input: Parameters<typeof gardenJoinRequests.resolveGardenJoinRequest>[2]
@@ -465,16 +469,14 @@ export const createGardenJoinRequest = (
 ) => getDB().createGardenJoinRequest(cipher, id, input);
 export const getGardenJoinRequestMine = (...args: Parameters<DB["getGardenJoinRequestMine"]>) =>
   getDB().getGardenJoinRequestMine(...args);
-export const getGardenJoinRequestById = (
-  cipher: GardenJoinRequestCipher,
-  gardenAddress: PublicAddress,
-  requestId: string
-) => getDB().getGardenJoinRequestById(cipher, gardenAddress, requestId);
+export const getGardenJoinRequestById = (...args: Parameters<DB["getGardenJoinRequestById"]>) =>
+  getDB().getGardenJoinRequestById(...args);
 export const listPendingGardenJoinRequests = (
-  cipher: GardenJoinRequestCipher,
-  gardenAddress: PublicAddress,
-  options?: Parameters<DB["listPendingGardenJoinRequests"]>[2]
-) => getDB().listPendingGardenJoinRequests(cipher, gardenAddress, options);
+  ...args: Parameters<DB["listPendingGardenJoinRequests"]>
+) => getDB().listPendingGardenJoinRequests(...args);
+export const countPendingGardenJoinRequests = (
+  ...args: Parameters<DB["countPendingGardenJoinRequests"]>
+) => getDB().countPendingGardenJoinRequests(...args);
 export const resolveGardenJoinRequest = (
   cipher: GardenJoinRequestCipher,
   input: Parameters<DB["resolveGardenJoinRequest"]>[1]

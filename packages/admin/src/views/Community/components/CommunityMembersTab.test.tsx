@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useNavigate, useSearchParams } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../__tests__/test-utils";
+import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
@@ -51,20 +52,27 @@ function MembersHarness({
   const navigate = useNavigate();
 
   return (
-    <CommunityMembersTab
-      garden={storyGarden}
-      canManage
-      closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
-      memberCount={memberCount}
-      memberSearch=""
-      noteJoinRequestsRead={() => {}}
-      roleMembers={storyRoleMembers}
-      roleSummary={roleSummary}
-      scheduleBackgroundRefetch={() => {}}
-      selectedItem={searchParams.get("item")}
-      setMemberSearch={() => {}}
-      visibleDirectory={storyDirectory}
-    />
+    <>
+      <CommunityMembersDialogs
+        garden={storyGarden}
+        canManage
+        closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
+        roleMembers={storyRoleMembers}
+        scheduleBackgroundRefetch={() => {}}
+        selectedItem={searchParams.get("item")}
+      />
+      <CommunityMembersTab
+        garden={storyGarden}
+        canManage
+        memberCount={memberCount}
+        memberSearch=""
+        noteJoinRequestsRead={() => {}}
+        keepJoinRequestCountGrant={() => {}}
+        roleSummary={roleSummary}
+        setMemberSearch={() => {}}
+        visibleDirectory={storyDirectory}
+      />
+    </>
   );
 }
 

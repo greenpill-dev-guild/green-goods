@@ -112,12 +112,19 @@ vi.mock("../../modules/app/error-tracking", async (importOriginal) => ({
 }));
 
 import { readContract } from "@wagmi/core";
-import { checkGardenOpenJoining, useJoinGarden } from "../../hooks/garden/useJoinGarden";
+import {
+  checkGardenOpenJoining,
+  isGardenMember,
+  useJoinGarden,
+  usePendingJoinsVersion,
+} from "../../hooks/garden/useJoinGarden";
 import {
   trackGardenJoinCancelled,
   trackGardenJoinFailed,
 } from "../../modules/app/analytics-events";
 import { trackContractError } from "../../modules/app/error-tracking";
+import { gardensKeys } from "../../config/query-keys/garden";
+import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import {
   createMockSmartAccountClient,
   MOCK_ADDRESSES,
@@ -149,6 +156,7 @@ describe("hooks/garden/useJoinGarden", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     queryClient.clear();
   });
 
@@ -234,6 +242,30 @@ describe("hooks/garden/useJoinGarden", () => {
       expect(mockClient.sendTransaction).toHaveBeenCalled();
     });
 
+    // The join lands while the screen is open, so its limit starts after the subscriber mounted.
+    it("lapses a join sent from this screen at its limit when the roster never lists it", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+      localStorage.clear();
+      const account = MOCK_ADDRESSES.smartAccount;
+      const garden = MOCK_ADDRESSES.garden;
+
+      const { result } = renderHookWithProviders(
+        () => ({ join: useJoinGarden(), version: usePendingJoinsVersion() }),
+        { queryClient }
+      );
+      await act(async () => {
+        await result.current.join.joinGarden(garden);
+      });
+      const afterJoin = result.current.version;
+      expect(afterJoin).toBe(1);
+      expect(isGardenMember(account, [], [], garden)).toBe(true);
+
+      act(() => vi.advanceTimersByTime(15 * 60_000 + 1));
+
+      expect(result.current.version).toBe(afterJoin + 1);
+      expect(isGardenMember(account, [], [], garden)).toBe(false);
+    });
+
     it("handles already-member case gracefully", async () => {
       const mockClient = createMockSmartAccountClient();
       const alreadyGardenerError = new Error("AlreadyGardener");
@@ -255,6 +287,70 @@ describe("hooks/garden/useJoinGarden", () => {
       // Should return "already-member" for AlreadyGardener errors
       expect(txHash).toBe("already-member");
       expect(result.current.error).toBeNull();
+    });
+
+    describe("the active garden (DL-147)", () => {
+      const scope = `11155111:${MOCK_ADDRESSES.smartAccount.toLowerCase()}`;
+      const activeGarden = () => useActiveGardenStore.getState().gardenIdsByScope[scope];
+
+      /** Renders the hook over a passkey session whose send lands or fails as told. */
+      const renderJoin = (send: string | Error) => {
+        const mockClient = createMockSmartAccountClient();
+        if (send instanceof Error) mockClient.sendTransaction.mockRejectedValue(send);
+        else mockClient.sendTransaction.mockResolvedValue(send);
+        mockUseUser.mockReturnValue({
+          smartAccountAddress: MOCK_ADDRESSES.smartAccount,
+          smartAccountClient: mockClient,
+          eoa: null,
+        });
+        return renderHookWithProviders(() => useJoinGarden(), { queryClient }).result;
+      };
+
+      beforeEach(() => {
+        useActiveGardenStore.setState({ gardenIdsByScope: { [scope]: "0xPrevious" } });
+      });
+
+      it.each([
+        ["a join that lands", MOCK_TX_HASH],
+        ["a join the chain says already happened", new Error("AlreadyGardener")],
+      ])("switches to the garden after %s, whatever was active before", async (_case, send) => {
+        const result = renderJoin(send);
+        await act(async () => {
+          await result.current.joinGarden(MOCK_ADDRESSES.garden);
+        });
+
+        expect(activeGarden()).toBe(MOCK_ADDRESSES.garden);
+      });
+
+      it("keeps the active garden when the join fails", async () => {
+        const result = renderJoin(new Error("Network error"));
+        await act(async () => {
+          await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).rejects.toThrow();
+        });
+
+        expect(activeGarden()).toBe("0xPrevious");
+      });
+
+      it("marks the entry it adds to the list as the join's own, not a read of the roster", async () => {
+        const key = gardensKeys.byChain(11155111);
+        const garden = { id: MOCK_ADDRESSES.garden, gardeners: [] };
+        // No observer holds the list here, and the test client would collect it at once.
+        queryClient.setQueryDefaults(key, { gcTime: Number.POSITIVE_INFINITY });
+        queryClient.setQueryData(key, [garden]);
+
+        const result = renderJoin(MOCK_TX_HASH);
+        await act(async () => {
+          await result.current.joinGarden(MOCK_ADDRESSES.garden);
+        });
+
+        expect(queryClient.getQueryData(key)).toEqual([
+          {
+            ...garden,
+            gardeners: [MOCK_ADDRESSES.smartAccount],
+            optimisticGardener: MOCK_ADDRESSES.smartAccount,
+          },
+        ]);
+      });
     });
 
     it("throws error for other failures", async () => {
