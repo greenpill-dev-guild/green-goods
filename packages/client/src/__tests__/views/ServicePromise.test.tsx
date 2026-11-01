@@ -23,6 +23,7 @@ function page(options: { online?: boolean; failed?: boolean; checking?: boolean 
         serviceKey={snapshot.key}
         access={{ data: snapshot, refetch, isError: options.failed, isFetching: options.checking }}
         coreState="OFFERED"
+        creator={null}
         gardenName="Test garden"
         heading="Hub day"
         hasCoreAct={false}
