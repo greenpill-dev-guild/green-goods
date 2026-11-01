@@ -299,6 +299,7 @@ describe("queryInvalidation", () => {
         queryKeys.vaults.eventsBase(TEST_GARDEN, TEST_CHAIN_ID),
         queryKeys.vaults.myDeposits(TEST_GARDEN, TEST_USER, TEST_CHAIN_ID),
         queryKeys.vaults.myDepositsByUser(TEST_USER, TEST_CHAIN_ID),
+        ...queryInvalidation.onchainReads(),
       ])
     );
 
