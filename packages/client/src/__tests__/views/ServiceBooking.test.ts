@@ -31,6 +31,7 @@ import {
 } from "../../views/Home/Garden/Commitment/serviceActs";
 import {
   bookingVoucherIssuer,
+  ownServiceOfferView,
   serviceBookingView,
 } from "../../views/Home/Garden/Commitment/serviceBooking";
 import { exchangeStateFromPilot } from "../../views/Home/Garden/Commitment/serviceExchange";
@@ -69,6 +70,36 @@ function view(
   if (!result) throw new Error(`No booking view for ${service} ${stage}`);
   return result;
 }
+
+describe("a voucher offer as the person who made it reads it", () => {
+  const own = (
+    change: Partial<Parameters<typeof ownServiceOfferView>[0]> = {},
+    snapshot = bookingStorySnapshot("hubDay", "open")
+  ) =>
+    ownServiceOfferView(
+      { snapshot, coreState: "OFFERED", issuer: ISSUER.hubDay, paused: false, ...change },
+      intl
+    );
+
+  it("says what a booking takes, in the count's own words", () => {
+    expect(own()?.takes).toBe("1 Tech and Sun voucher");
+    const two = bookingStorySnapshot("hubDay", "open");
+    two.offer!.voucher!.units = vouchers(2);
+    expect(own({}, two)?.takes).toBe("2 Tech and Sun vouchers");
+  });
+
+  it("speaks only while nobody can book an open offer, leaving every other sentence to the promise", () => {
+    expect(own()?.band).toBeNull();
+    expect(own({ paused: true })?.band?.sentence).toContain("New bookings are paused");
+    expect(own({ paused: true, coreState: "ACTIVE" })?.band).toBeNull();
+  });
+
+  it("has nothing to say about an offer with no voucher route", () => {
+    const personal = bookingStorySnapshot("hubDay", "open");
+    personal.offer!.route = "personal-gd";
+    expect(own({}, personal)).toBeNull();
+  });
+});
 
 describe("voucher booking on the promise page", () => {
   it.each([false, true])("separates an unsent request from its network wait (sent=%s)", (sent) => {
