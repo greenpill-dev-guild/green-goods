@@ -4,11 +4,13 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
+import { requireConfirmed } from "../../modules/transactions/confirmation";
 import type { Address } from "../../types/domain";
 import type { DepositParams } from "../../types/vaults";
 import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -54,6 +56,13 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
+  const refreshDeposits = (gardenAddress: string) => {
+    lastParamsRef.current = { gardenAddress, userAddress: primaryAddress ?? undefined };
+    queryInvalidation
+      .onVaultDeposit(gardenAddress, primaryAddress ?? undefined, chainId)
+      .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+    scheduleFollowUp();
+  };
 
   const mutation = useMutation({
     mutationFn: async (params: DepositParams) => {
@@ -185,20 +194,24 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         try {
           // USDT-style tokens may require zeroing allowance before setting a new value.
           if (allowance > 0n) {
+            requireConfirmed(
+              await sender.sendContractCall({
+                address: params.assetAddress,
+                abi: ERC20_ALLOWANCE_ABI,
+                functionName: "approve",
+                args: [params.vaultAddress, 0n],
+              })
+            );
+          }
+
+          requireConfirmed(
             await sender.sendContractCall({
               address: params.assetAddress,
               abi: ERC20_ALLOWANCE_ABI,
               functionName: "approve",
-              args: [params.vaultAddress, 0n],
-            });
-          }
-
-          await sender.sendContractCall({
-            address: params.assetAddress,
-            abi: ERC20_ALLOWANCE_ABI,
-            functionName: "approve",
-            args: [params.vaultAddress, params.amount],
-          });
+              args: [params.vaultAddress, params.amount],
+            })
+          );
 
           const refreshedAllowanceResult = await readContract(getWagmiConfig(), {
             address: params.assetAddress,
@@ -215,6 +228,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
             );
           }
         } catch (error) {
+          if (isUnconfirmedTxError(error)) throw error;
           throw new VaultDepositStageError(
             "approval",
             error instanceof Error ? error.message : "Approval failed"
@@ -257,8 +271,9 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           functionName: "deposit",
           args: [params.amount, receiver],
         });
-        return result.hash;
+        return requireConfirmed(result).hash;
       } catch (error) {
+        if (isUnconfirmedTxError(error)) throw error;
         throw new VaultDepositStageError(
           "deposit",
           error instanceof Error ? error.message : "Deposit failed"
@@ -280,17 +295,23 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         message: formatMessage({ id: "app.treasury.depositSuccess" }),
       });
 
-      lastParamsRef.current = {
-        gardenAddress: params.gardenAddress,
-        userAddress: primaryAddress ?? undefined,
-      };
-      queryInvalidation
-        .onVaultDeposit(params.gardenAddress, primaryAddress ?? undefined, chainId)
-        .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      scheduleFollowUp();
+      refreshDeposits(params.gardenAddress);
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      if (isUnconfirmedTxError(error)) {
+        if (showErrorToast) {
+          toastService.info({
+            title: formatMessage({ id: "app.txFeedback.unconfirmed.title" }),
+            message: formatMessage({ id: "app.txFeedback.unconfirmed.message" }),
+            context: "vault deposit",
+            suppressLogging: true,
+          });
+        }
+        // It may have landed, so the balances are worth reading again.
+        refreshDeposits(params.gardenAddress);
+        return;
+      }
       const metadata = {
         gardenAddress: params?.gardenAddress,
         assetAddress: params?.assetAddress,
