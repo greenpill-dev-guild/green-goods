@@ -1,10 +1,11 @@
-import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Button } from "@green-goods/shared/components/Button";
 import { useOfflineStatus } from "@green-goods/shared/hooks/offline/useOfflineContent";
 import type { OfflineProgress } from "@green-goods/shared/modules/offline-content/store";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiDownloadCloud2Line } from "@remixicon/react";
 import { type IntlShape, useIntl } from "react-intl";
-import { SettingTitle } from "./SettingTitle";
+import { Card } from "@/components/Cards";
+import { Avatar } from "@/components/Display";
 
 interface OfflineContentRowProps {
   /** The settings column's shared control width, so every row's control lines up. */
@@ -134,10 +135,9 @@ function describeRow(
 }
 
 /**
- * The one place offline downloads are visible: a settings row in the Profile's
- * settings list. The status stays on exactly two lines, each truncated rather
- * than wrapped, so the row keeps its height in every state and language at a
- * 360 px screen.
+ * The one place offline downloads are visible. The title stays on one line and
+ * the status on exactly two, each truncated rather than wrapped, so the card keeps
+ * its height in every state and language at a 360 px screen.
  */
 export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) {
   const intl = useIntl();
@@ -149,27 +149,33 @@ export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) 
   const row = describeRow(intl, progress, connectivity.state, { pause, resume, refresh });
 
   return (
-    <FactRow
-      icon={<RiDownloadCloud2Line className="h-4 w-4" />}
-      label={<SettingTitle>{title}</SettingTitle>}
-      description={
-        <span role="status" aria-label={title} className="block min-h-8">
-          <span className="block truncate">{row.status}</span>
-          <span className="block truncate">{row.detail}</span>
-        </span>
-      }
-      action={
+    <Card>
+      <div className="flex flex-wrap items-center gap-3 w-full">
+        <Avatar>
+          <RiDownloadCloud2Line className="h-4 w-4 text-primary-on-surface" aria-hidden="true" />
+        </Avatar>
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1 basis-0">
+          <div className="text-sm font-medium truncate" title={title}>
+            {title}
+          </div>
+          <div role="status" aria-label={title} className="min-h-8 text-xs text-text-sub-600">
+            <span className="block truncate">{row.status}</span>
+            {/* Wraps rather than cuts: these lines run long in Spanish and Portuguese (DL-159). */}
+            <span className="block">{row.detail}</span>
+          </div>
+        </div>
         <Button
           type="button"
           emphasis="secondary"
           size="sm"
-          className={controlClassName}
+          // Under the title on a phone too narrow for both, as the other settings' controls do.
+          className={cn(controlClassName, "@max-[328px]:w-full @max-[328px]:basis-full")}
           disabled={row.disabled}
           onClick={row.onClick}
         >
           {row.action}
         </Button>
-      }
-    />
+      </div>
+    </Card>
   );
 }

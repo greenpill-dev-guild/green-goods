@@ -1,11 +1,11 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowRightSLine,
   RiErrorWarningLine,
@@ -14,78 +14,14 @@ import {
   RiMapPinLine,
   RiPlantLine,
 } from "@remixicon/react";
-import { useId } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
-import { SettingTitle } from "./SettingTitle";
+import { cardVariants } from "@/components/Cards/Card";
+import { Avatar } from "@/components/Display";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
-}
-
-interface GardenRowProps {
-  name: string;
-  location?: string;
-  /** This is the active garden, marked On Home. */
-  onHome: boolean;
-  onOpen: () => void;
-}
-
-/**
- * One garden in the list's divided rows (DL-152). The row's one button, in the right slot, reaches
- * across the row, so the whole row still opens the garden and the list stays a description list:
- * the row presses into the surface with it, and the button's reach draws its focus ring.
- */
-function GardenRow({ name, location, onHome, onOpen }: GardenRowProps) {
-  const intl = useIntl();
-  const detailId = useId();
-
-  return (
-    <FactRow
-      className="relative transition-[scale] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-safe:has-[[data-pressable]:active]:scale-[0.985]"
-      icon={<RiPlantLine className="w-4" />}
-      label={<SettingTitle>{name}</SettingTitle>}
-      // The active garden's mark shares the place's line under the name, so the name keeps the
-      // row's width, and the line stays when it is empty, so every row keeps one height.
-      description={
-        <span id={detailId} className="flex min-h-[1lh] min-w-0 items-center gap-1">
-          {onHome && (
-            <span className="mr-2 flex shrink-0 items-center gap-1 font-medium text-text-strong-950">
-              <RiHomeLine className="h-3 w-3 shrink-0" aria-hidden="true" />
-              {intl.formatMessage({
-                id: "app.profile.gardensOnHome",
-                defaultMessage: "On Home",
-              })}
-            </span>
-          )}
-          {location && (
-            <>
-              <RiMapPinLine className="h-3 w-3 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 truncate" title={location}>
-                {location}
-              </span>
-            </>
-          )}
-        </span>
-      }
-      action={
-        <button
-          type="button"
-          data-pressable="row"
-          // The reach lies over the name, so the button carries its hover text, and its name.
-          title={name}
-          aria-describedby={onHome || location ? detailId : undefined}
-          onClick={onOpen}
-          // The row takes the press. A scale on the button would shrink its reach back to the
-          // chevron under a finger still down, and the release would land off it, on the name.
-          className="flex outline-none active:[scale:none] after:absolute after:inset-0 after:rounded-xl focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-[rgb(var(--gg-focus-ring))]"
-        >
-          <RiArrowRightSLine className="h-5 w-5 shrink-0 text-text-soft-400" aria-hidden="true" />
-        </button>
-      }
-    />
-  );
 }
 
 /**
@@ -104,7 +40,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   if (!primaryAddress) return null;
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.gardens",
@@ -145,17 +81,62 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           />
         </Card>
       ) : myGardens.length > 0 ? (
-        <FactList>
-          {myGardens.map(({ garden }) => (
-            <GardenRow
-              key={garden.id}
-              name={garden.name}
-              location={garden.location}
-              onHome={compareAddresses(garden.id, activeGardenId)}
-              onOpen={() => navigate(`/home/${garden.id}`)}
-            />
-          ))}
-        </FactList>
+        <ul className="flex flex-col gap-2">
+          {myGardens.map(({ garden }) => {
+            // The active garden's mark shares the place's line under the name, so the name
+            // keeps the row's width and every row keeps one height.
+            const onHome = compareAddresses(garden.id, activeGardenId);
+            return (
+              <li key={garden.id}>
+                <button
+                  type="button"
+                  data-pressable="card"
+                  onClick={() => navigate(`/home/${garden.id}`)}
+                  className={cn(cardVariants(), "w-full items-center gap-3 text-left")}
+                >
+                  <Avatar>
+                    <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
+                      <RiPlantLine className="w-4" />
+                    </div>
+                  </Avatar>
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
+                    <div
+                      className="line-clamp-2 min-w-0 max-w-full text-sm font-medium leading-snug [overflow-wrap:anywhere]"
+                      title={garden.name}
+                    >
+                      {garden.name}
+                    </div>
+                    {(onHome || garden.location) && (
+                      <div className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600">
+                        {onHome && (
+                          <span className="mr-2 flex shrink-0 items-center gap-1 font-medium text-text-strong-950">
+                            <RiHomeLine className="w-3 h-3 shrink-0" aria-hidden="true" />
+                            {intl.formatMessage({
+                              id: "app.profile.gardensOnHome",
+                              defaultMessage: "On Home",
+                            })}
+                          </span>
+                        )}
+                        {garden.location && (
+                          <>
+                            <RiMapPinLine className="w-3 h-3 shrink-0" />
+                            <span className="min-w-0 truncate" title={garden.location}>
+                              {garden.location}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <RiArrowRightSLine
+                    className="h-5 w-5 shrink-0 text-text-soft-400"
+                    aria-hidden="true"
+                  />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       ) : (
         <Card>
           <EmptyState
@@ -187,6 +168,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           />
         </Card>
       )}
-    </>
+    </section>
   );
 };

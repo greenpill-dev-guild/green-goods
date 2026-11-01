@@ -4,7 +4,7 @@
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -54,6 +54,14 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
 
 vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
+}));
+
+vi.mock("@/components/Cards", () => ({
+  Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+}));
+
+vi.mock("@/components/Display", () => ({
+  Avatar: ({ children }: { children: ReactNode }) => createElement("div", null, children),
 }));
 
 vi.mock("@/components/Inputs", () => ({
@@ -137,10 +145,8 @@ describe("AccountInfo passkey recovery note", () => {
     renderAccountInfo();
 
     expect(screen.getByText("Wallet")).toBeInTheDocument();
-    // How the account signs in and its ID are facts in one list (DL-152).
-    expect(document.querySelectorAll('[data-component="FactList"]')).toHaveLength(1);
-    expect(screen.getByText("Connected").tagName).toBe("DD");
-    expect(screen.getByText("address-copy").closest("dd")).not.toBeNull();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.getByText("address-copy")).toBeInTheDocument();
     expect(screen.queryByText(deviceLine)).not.toBeInTheDocument();
   });
 

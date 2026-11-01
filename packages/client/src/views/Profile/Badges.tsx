@@ -22,6 +22,7 @@ import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixic
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
 
@@ -379,7 +380,7 @@ export const ProfileBadges: React.FC = () => {
               type="button"
               data-pressable="card"
               onClick={() => setOpenedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/30"
+              className="gg-card flex min-h-[11rem] flex-col items-center justify-center gap-3 p-4 text-center"
               aria-label={intl.formatMessage(
                 {
                   id: "app.profile.badges.viewDetails",
@@ -388,16 +389,21 @@ export const ProfileBadges: React.FC = () => {
                 { badge: title }
               )}
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-primary/10">
+              <span className="flex size-16 items-center justify-center rounded-full bg-[rgb(var(--primary-container))] [&>svg]:size-7 [&>svg]:text-[rgb(var(--primary-container-foreground))]">
                 {badgeIcon(badge.slug)}
               </span>
-              <span className="mt-3 min-w-0">
-                <span className="line-clamp-2 text-sm font-medium leading-snug text-text-strong-950">
-                  {title}
-                </span>
-                <span className="mt-2 inline-flex rounded-full bg-bg-weak-50 px-2 py-1 text-[11px] font-medium text-text-sub-600">
+              <span className="flex min-w-0 flex-col items-center gap-2">
+                <span className="line-clamp-2 type-card-title text-text-strong-950">{title}</span>
+                {/* A badge's standing is read with its tile, not announced as it renders. */}
+                <StatusBadge
+                  role={undefined}
+                  aria-live={undefined}
+                  size="xs"
+                  variant={badge.profileStatus === "earned" ? "success" : "warning"}
+                  showIcon={false}
+                >
                   {statusLabel}
-                </span>
+                </StatusBadge>
               </span>
             </button>
           );
