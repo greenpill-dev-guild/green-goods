@@ -2,7 +2,11 @@ import { useRefreshAction } from "../../../components/Canvas/RefreshActionContex
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
-import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import {
+  type AdminHubRouteContext,
+  adminRoutes,
+  parseHubFlowItem,
+} from "../../../utils/navigation/admin-routes";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
@@ -59,7 +63,7 @@ export function useHubWorkbenchController() {
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   // A create flow open over the stage, named in the URL (DL-140).
-  const routeItem = searchParams.get("item") ?? undefined;
+  const routeItem = parseHubFlowItem(searchParams.get("item"));
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const gardenStateKey = selectedGarden?.id ?? "";

@@ -2,6 +2,7 @@ import {
   buildHubViewActions,
   resolvePipelineStageFromPath,
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { parseHubFlowItem } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminViewActions } from "@/components/AdminViewActions";
 import { HubFlowDialogs } from "@/views/Hub/components/HubFlowDialogs";
@@ -21,7 +22,7 @@ export function HubFlowHarness() {
   return (
     <>
       <AdminViewActions items={actions} />
-      <HubFlowDialogs item={search.get("item") ?? undefined} />
+      <HubFlowDialogs item={parseHubFlowItem(search.get("item"))} />
     </>
   );
 }

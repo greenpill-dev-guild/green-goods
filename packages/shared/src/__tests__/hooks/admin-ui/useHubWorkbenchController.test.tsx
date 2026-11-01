@@ -84,6 +84,15 @@ describe("useHubWorkbenchController: a create flow's route item (DL-140)", () =>
     expect(screen.getByTestId("route-item")).toHaveTextContent("create-assessment");
   });
 
+  it("does not carry an item that names no create flow", async () => {
+    const router = renderAt(`/hub/work?gardenId=${GARDEN}&item=old-item`);
+
+    await waitFor(() =>
+      expect(currentUrl(router)).toBe(`/hub/assess?gardenId=${GARDEN}&sort=newest`)
+    );
+    expect(screen.getByTestId("route-item")).toHaveTextContent("none");
+  });
+
   it("is not invented for a redirect that has none", async () => {
     const router = renderAt(`/hub/work?gardenId=${GARDEN}`);
 

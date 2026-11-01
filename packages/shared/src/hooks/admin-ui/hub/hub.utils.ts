@@ -8,6 +8,7 @@ import {
 import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
 import {
+  type AdminHubFlowItem,
   type AdminHubRouteContext,
   type AdminHubWorkScope,
   adminRoutes,
@@ -219,7 +220,7 @@ export function buildHubViewActions(
   navigate: (path: string) => void,
   hubContext: AdminHubRouteContext
 ): ViewAction[] {
-  const openFlow = (item: string) => () =>
+  const openFlow = (item: AdminHubFlowItem) => () =>
     pushRouteItem(navigate, adminRoutes.hubMode(stage, { ...hubContext, item }));
 
   return [

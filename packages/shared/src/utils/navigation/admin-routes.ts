@@ -28,8 +28,8 @@ export interface AdminHubRouteContext {
   sort?: AdminHubSort;
   /** Pending is the default and stays out of the URL; only "approved" is written. */
   scope?: AdminHubWorkScope;
-  /** A create flow's route item, which opens the flow over the stage (DL-140). */
-  item?: string;
+  /** A create flow that opens over the stage (DL-140). A Hub URL's item holds nothing else. */
+  item?: AdminHubFlowItem;
 }
 
 export interface AdminGardenRouteContext {
@@ -94,7 +94,7 @@ function buildHubContextSearch(
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
     scope: context.scope === "approved" ? "approved" : undefined,
-    item: context.item,
+    item: parseHubFlowItem(context.item),
   };
 }
 
@@ -392,6 +392,20 @@ export const EDIT_GARDEN_ROUTE_ITEM = "edit-garden";
 export const SUBMIT_WORK_ROUTE_ITEM = "submit-work";
 export const CREATE_ASSESSMENT_ROUTE_ITEM = "create-assessment";
 export const CREATE_HYPERCERT_ROUTE_ITEM = "create-hypercert";
+
+export type AdminHubFlowItem =
+  | typeof SUBMIT_WORK_ROUTE_ITEM
+  | typeof CREATE_ASSESSMENT_ROUTE_ITEM
+  | typeof CREATE_HYPERCERT_ROUTE_ITEM;
+
+/** The create flow a Hub URL's item names, if it names one. */
+export function parseHubFlowItem(item: string | null | undefined): AdminHubFlowItem | undefined {
+  return item === SUBMIT_WORK_ROUTE_ITEM ||
+    item === CREATE_ASSESSMENT_ROUTE_ITEM ||
+    item === CREATE_HYPERCERT_ROUTE_ITEM
+    ? item
+    : undefined;
+}
 
 /**
  * Where the campaign cookie jar URLs land: the protocol garden's Community →

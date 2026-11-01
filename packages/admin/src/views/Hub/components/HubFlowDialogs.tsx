@@ -1,4 +1,5 @@
 import {
+  type AdminHubFlowItem,
   CREATE_ASSESSMENT_ROUTE_ITEM,
   CREATE_HYPERCERT_ROUTE_ITEM,
   SUBMIT_WORK_ROUTE_ITEM,
@@ -11,12 +12,11 @@ const SubmitWork = lazy(() => import("@/views/Garden/SubmitWork"));
 const CreateAssessment = lazy(() => import("../CreateAssessment"));
 const CreateHypercert = lazy(() => import("../CreateHypercert"));
 
-function flowForItem(item: string | undefined): ComponentType | null {
-  if (item === SUBMIT_WORK_ROUTE_ITEM) return SubmitWork;
-  if (item === CREATE_ASSESSMENT_ROUTE_ITEM) return CreateAssessment;
-  if (item === CREATE_HYPERCERT_ROUTE_ITEM) return CreateHypercert;
-  return null;
-}
+const FLOWS: Record<AdminHubFlowItem, ComponentType> = {
+  [SUBMIT_WORK_ROUTE_ITEM]: SubmitWork,
+  [CREATE_ASSESSMENT_ROUTE_ITEM]: CreateAssessment,
+  [CREATE_HYPERCERT_ROUTE_ITEM]: CreateHypercert,
+};
 
 /** Holds the page while a flow's chunk loads, so no other action takes a press meanwhile. */
 function FlowLoading() {
@@ -35,9 +35,9 @@ function FlowLoading() {
  * URL is on (DL-140). A flow mounts only while its item is in the URL, so its
  * close guard is the newest on the page and it starts clean each time.
  */
-export function HubFlowDialogs({ item }: { item: string | undefined }) {
-  const Flow = flowForItem(item);
-  if (!Flow) return null;
+export function HubFlowDialogs({ item }: { item: AdminHubFlowItem | undefined }) {
+  if (!item) return null;
+  const Flow = FLOWS[item];
   return (
     <Suspense fallback={<FlowLoading />}>
       <Flow />
