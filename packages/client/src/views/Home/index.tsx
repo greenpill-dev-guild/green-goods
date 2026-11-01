@@ -45,6 +45,7 @@ import {
 } from "./DeferredSurfaces";
 import type { GardenVisitState } from "./Garden";
 import { HomeHeader } from "./HomeHeader";
+import { HomeProfileButton } from "./HomeProfileButton";
 import { HomeError, HomeLoading, HomeNoActiveGarden } from "./HomeStates";
 import { awaitingGardens, switcherRows } from "./homeGardens";
 import { followHomePlace, type HomePlace, restoreHomePlace } from "./homePlace";
@@ -57,8 +58,9 @@ import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 /**
  * Home in the member's active garden (DL-123 to DL-125). The header carries the garden chip and
  * the launchers; the body follows `useActiveGarden`: a remembered garden goes straight in while
- * the account's gardens load, a failed read keeps the state block, no active garden opens the one
- * page that finds or picks one (DL-146), and a chosen garden opens its journal. A pick there or in
+ * the account's gardens load, a failed read keeps the state block, no active garden opens the
+ * page that finds or picks one with no launchers or app bar (DL-155), and a chosen garden opens
+ * its journal. A pick there or in
  * the switcher changes the active garden, and so does joining an open garden (DL-147): Explore, a
  * request's row or a link visits.
  */
@@ -249,17 +251,23 @@ const Home: React.FC = () => {
     [closeSwitcher, selectGarden]
   );
 
-  // A row of the first-login page goes with the pick, so the chip, which now names the garden,
-  // takes focus first (DL-146).
+  // A row of the first-login page goes with the pick, and the chip only arrives with the garden,
+  // so focus waits for the chip that now names it (DL-155).
+  const chipTakesFocus = useRef(false);
   const pickOnPage = useCallback(
     (id: string) => {
-      contentRef.current
-        ?.querySelector<HTMLElement>("[data-component='GardenChip']")
-        ?.focus({ preventScroll: true });
+      chipTakesFocus.current = true;
       selectGarden(id);
     },
     [selectGarden]
   );
+  useLayoutEffect(() => {
+    if (status !== "ready" || !chipTakesFocus.current) return;
+    chipTakesFocus.current = false;
+    contentRef.current
+      ?.querySelector<HTMLElement>("[data-component='GardenChip']")
+      ?.focus({ preventScroll: true });
+  }, [status]);
 
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
@@ -338,11 +346,19 @@ const Home: React.FC = () => {
     scheduleArrival,
   ]);
 
-  // The header's lead: Home's title with no garden, else the chip, which opens the switcher.
+  // The header's lead: the chip once a garden is entered, which opens the switcher. Before that
+  // there is no chip to cut a name off (DL-155): a member choosing reads the page's title, and
+  // a member of no garden reads the state block, so Home's title stays for assistive tech.
   let lead: ReactNode;
-  if (status === "none" || status === "error") {
+  if (status === "choose") {
     lead = (
       <h1 className="truncate type-title-md text-text-strong">
+        {intl.formatMessage({ id: "app.home.chooser.title" })}
+      </h1>
+    );
+  } else if (status === "error" || gardenId === null) {
+    lead = (
+      <h1 className={gardenId === null ? "sr-only" : "truncate type-title-md text-text-strong"}>
         {intl.formatMessage({ id: "app.home" })}
       </h1>
     );
@@ -406,19 +422,24 @@ const Home: React.FC = () => {
       <div ref={attachContent} hidden={!isHomeRoute}>
         <HomeHeader
           lead={lead}
+          // The launchers wait for a garden, as the app bar does; while the account's gardens
+          // load with none remembered, nothing shows that could turn out wrong (DL-155).
           launchers={
-            <>
-              <WalletSheetIcon onClick={openWalletSheet} />
-              <DeferredLauncher
-                placeholder={<CommitmentsSheetIcon onClick={openCommitmentsSheet} actCount={0} />}
-              >
-                <CommitmentsSheetLauncher onClick={openCommitmentsSheet} />
-              </DeferredLauncher>
-              <WorkDashboardIcon />
-              {/* The bell reads the active garden's events once the garden is known: a
-                  remembered one while the list loads, or the chosen one. Without a garden it
-                  keeps its place with nothing to list (DL-130). */}
-              {gardenId ? (
+            gardenId === null ? (
+              status === "loading" ? null : (
+                <HomeProfileButton onClick={() => navigate(APP_ROUTES.profile)} />
+              )
+            ) : (
+              <>
+                <WalletSheetIcon onClick={openWalletSheet} />
+                <DeferredLauncher
+                  placeholder={<CommitmentsSheetIcon onClick={openCommitmentsSheet} actCount={0} />}
+                >
+                  <CommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+                </DeferredLauncher>
+                <WorkDashboardIcon />
+                {/* The bell reads the active garden's events: a remembered one while the list
+                  loads, or the chosen one (DL-130). */}
                 <DeferredLauncher
                   placeholder={<NotificationsIcon onClick={openNotifications} />}
                   requested={isNotificationsOpen}
@@ -434,10 +455,8 @@ const Home: React.FC = () => {
                     onClose={closeNotifications}
                   />
                 </DeferredLauncher>
-              ) : (
-                <NotificationsIcon disabled />
-              )}
-            </>
+              </>
+            )
           }
         />
         {/* The journal's sections close their sheets as Home stops showing or Your Work opens. */}

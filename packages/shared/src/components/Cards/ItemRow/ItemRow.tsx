@@ -81,6 +81,11 @@ export interface ItemRowProps
   /** One line; it ends in an ellipsis when it must and shows in full on hover. */
   title: string;
   /**
+   * Lets a long title take two lines, for a row with no detail line, so the row keeps its one
+   * height: a garden's name on Home's first-login page (DL-155).
+   */
+  titleLines?: 1 | 2;
+  /**
    * The row's one pill. A state that replaces the status (an error, a retry,
    * "Confirming…", "Not sent") goes here too, never in a second pill.
    */
@@ -213,15 +218,20 @@ function DetailLine({ details }: { details: NonNullable<ItemRowProps["details"]>
 function RowContent({
   lead,
   title,
+  titleLines = 1,
   status,
   details,
   amount,
-}: Pick<ItemRowProps, "lead" | "title" | "status" | "details" | "amount">) {
+}: Pick<ItemRowProps, "lead" | "title" | "titleLines" | "status" | "details" | "amount">) {
   return (
     <>
       <Lead lead={lead} />
       <span className="gg-item-row-body">
-        <span className="gg-item-row-title type-card-title" title={title}>
+        <span
+          className="gg-item-row-title type-card-title"
+          data-lines={titleLines === 2 ? "2" : undefined}
+          title={title}
+        >
           {title}
         </span>
         {status ? (
@@ -253,6 +263,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
   {
     lead,
     title,
+    titleLines,
     status,
     details,
     edge,
@@ -278,6 +289,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     <RowContent
       lead={lead}
       title={title}
+      titleLines={titleLines}
       status={status}
       details={details}
       amount={action ? undefined : amount}

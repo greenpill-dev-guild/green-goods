@@ -2,8 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
 import { HubReviewBatchBar } from "./HubReviewBatchBar";
 
-const review = (note: object = {}) => ({ draft: {} as never, ...note });
-
 const meta: Meta<typeof HubReviewBatchBar> = {
   title: "Admin/Workflows/Hub/HubReviewBatchBar",
   component: HubReviewBatchBar,
@@ -26,7 +24,7 @@ const meta: Meta<typeof HubReviewBatchBar> = {
       signatureStep: 1,
       sendSize: 0,
       blockedCount: 0,
-      reviews: [review(), review()],
+      oneSignatureEach: false,
       isSending: false,
       send: fn(async () => {}),
       unstageBlocked: fn(),
@@ -64,13 +62,7 @@ export const Sending: Story = {
 
 export const Refused: Story = {
   tags: ["storybook-ci"],
-  args: {
-    batch: {
-      ...meta.args!.batch!,
-      blockedCount: 1,
-      reviews: [review({ refusal: "This action has ended." }), review()],
-    },
-  },
+  args: { batch: { ...meta.args!.batch!, blockedCount: 1 } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText(/nothing has gone out/)).toBeVisible();
@@ -78,12 +70,15 @@ export const Refused: Story = {
   },
 };
 
-export const TooCostlyTogether: Story = {
+/** Too big to go together: it said so, and the next press takes a signature each. */
+export const OneSignatureEach: Story = {
   args: {
     batch: {
       ...meta.args!.batch!,
-      blockedCount: 2,
-      reviews: [review({ notBatchable: true }), review({ notBatchable: true })],
+      approvals: 3,
+      rejections: 0,
+      signatures: 3,
+      oneSignatureEach: true,
     },
   },
 };

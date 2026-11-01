@@ -76,6 +76,7 @@ function reviewBatchWith(staged: Record<string, StagedReview>): ReviewBatch {
     signatureStep: 1,
     sendSize: 0,
     blockedCount: 0,
+    oneSignatureEach: false,
     isSending: false,
     isSettlingHold: false,
     reviewFor: (workId) => staged[workId],

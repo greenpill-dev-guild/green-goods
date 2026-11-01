@@ -1,4 +1,5 @@
 import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -13,12 +14,15 @@ export const AppBar = () => {
   const intl = useIntl();
   const { count: pendingCount } = useYourWorkCount();
   const { isPwaPresentation } = useApp();
+  // The bar's tabs are about a garden, so it waits until one is entered (DL-155).
+  const { gardenId } = useActiveGarden();
 
   // Every sheet and dialog registers itself while open, so the bar steps aside
   // for all of them without a hand-maintained list (DL-015).
   const isAnySheetOpen = useUIStore((s) => s.openSheetCount > 0);
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
-  const shouldHideBar = !isPwaPresentation || isImmersiveAppRoute(pathname) || isAnySheetOpen;
+  const shouldHideBar =
+    !isPwaPresentation || isImmersiveAppRoute(pathname) || isAnySheetOpen || gardenId === null;
 
   const tabs: {
     path: string;

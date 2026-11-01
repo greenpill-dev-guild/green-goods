@@ -79,6 +79,7 @@ const REVIEW_BATCH = {
   signatureStep: 1,
   sendSize: 0,
   blockedCount: 0,
+  oneSignatureEach: false,
   isSending: false,
   isSettlingHold: false,
   reviewFor: () => undefined,

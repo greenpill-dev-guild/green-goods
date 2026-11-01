@@ -87,7 +87,7 @@ function reviewChipFor(
   }
   const staged = reviewBatch?.reviewFor(workId);
   if (!staged) return undefined;
-  if (staged.refusal || staged.notBatchable) {
+  if (staged.refusal) {
     return { label: formatMessage({ id: "app.work.batch.chip.blocked" }), tone: "error" };
   }
   return staged.draft.approved

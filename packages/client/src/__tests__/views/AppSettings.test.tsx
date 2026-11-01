@@ -81,6 +81,15 @@ vi.mock("@remixicon/react", () => ({
 }));
 
 // Mock client components
+vi.mock("@/components/Cards", () => ({
+  Card: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-testid": "card" }, children),
+}));
+
+vi.mock("@/components/Display", () => ({
+  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
+}));
+
 vi.mock("@/components/Inputs", async () => {
   const React = await import("react");
   const SelectContext = React.createContext<((value: string) => void) | undefined>(undefined);
@@ -198,7 +207,7 @@ describe("AppSettings", () => {
     it("always offers a manual check with the same control width as the selects", () => {
       render(wrap(createElement(AppSettings)));
 
-      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
       expect(screen.getByText(TITLE)).toBeInTheDocument();
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
@@ -230,10 +239,10 @@ describe("AppSettings", () => {
         "Check for a newer version."
       );
       expect(screen.getByRole("button", { name: "Check" })).toBeInTheDocument();
-      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
-    it("reserves two subtitle lines in every row so the rows never change height", () => {
+    it("reserves two subtitle lines in every row so the cards never change height", () => {
       render(wrap(createElement(AppSettings)));
 
       const subtitles = [
@@ -308,7 +317,7 @@ describe("AppSettings", () => {
       const control = screen.getByRole("button", { name: label });
       expect(control).toHaveAttribute("aria-busy", "true");
       expect(control).toHaveClass(...widthClasses(screen.getAllByTestId("select-trigger")[0]));
-      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
     it("offers Restart when a background check found a waiting update", async () => {
@@ -418,14 +427,16 @@ describe("offline content row", () => {
     vi.clearAllMocks();
   });
 
-  it("keeps the title on one line and the status on exactly two truncated lines", () => {
+  it("keeps the title and status on one line each, and lets a long detail wrap rather than cut", () => {
     const { status } = renderRow({ state: "ready", savedBytes: 42_000_000 });
 
     expect(screen.getByText("Offline")).toHaveClass("truncate");
     expect(status).toHaveClass("min-h-8");
     const lines = status.querySelectorAll("span");
     expect(lines).toHaveLength(2);
-    for (const line of lines) expect(line).toHaveClass("block", "truncate");
+    expect(lines[0]).toHaveClass("block", "truncate");
+    expect(lines[1]).toHaveClass("block");
+    expect(lines[1]).not.toHaveClass("truncate");
   });
 
   it("shows megabytes and progress while downloading, with Pause instead of Retry", async () => {

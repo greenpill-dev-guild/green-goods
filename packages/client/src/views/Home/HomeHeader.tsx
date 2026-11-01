@@ -2,9 +2,12 @@ import type { ReactNode } from "react";
 import { StickyTopBar } from "./StickyTopBar";
 
 interface HomeHeaderProps {
-  /** The header's lead: the garden chip, or Home's title while the member has no garden. */
+  /** The header's lead: the garden chip, or the page's title before a garden is entered. */
   lead: ReactNode;
-  /** The launchers at the end: Wallet, Promises, Your Work and the bell last (DL-130). */
+  /**
+   * The end of the row: Wallet, Promises, Your Work and the bell last (DL-130), or only Profile
+   * before a garden is entered (DL-155).
+   */
   launchers: ReactNode;
 }
 

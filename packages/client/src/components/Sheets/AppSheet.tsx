@@ -4,6 +4,7 @@ import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/Sh
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type FC, type ReactNode, useId } from "react";
 import { useIntl } from "react-intl";
+import { TAB_ICON, TAB_RAIL } from "@/components/Navigation/Tabs/tabRailStyles";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 export interface AppSheetTab {
@@ -88,7 +89,7 @@ export const AppSheet: FC<AppSheetProps> = ({
   const hasTabs = tabs.length > 0;
 
   const rail = hasTabs ? (
-    <div className={pwaSheetStyles.tabs} role="tablist">
+    <div className={cn(pwaSheetStyles.tabs, TAB_RAIL)} role="tablist">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -104,12 +105,7 @@ export const AppSheet: FC<AppSheetProps> = ({
           data-testid={`tab-${tab.id}`}
         >
           {tab.icon && (
-            <span
-              className={cn(
-                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
-                activeTab === tab.id && pwaSheetStyles.tabActiveIcon
-              )}
-            >
+            <span className={cn(TAB_ICON, activeTab === tab.id && pwaSheetStyles.tabActiveIcon)}>
               {tab.icon}
             </span>
           )}

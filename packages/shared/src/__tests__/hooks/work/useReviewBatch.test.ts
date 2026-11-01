@@ -143,7 +143,8 @@ describe("useReviewBatch", () => {
 
     act(() => void result.current.send());
     expect(batch.send).toHaveBeenCalledWith(
-      ids.map((id) => ({ draft: decide(id), gardenAddress: GARDEN }))
+      ids.map((id) => ({ draft: decide(id), gardenAddress: GARDEN })),
+      {}
     );
     await waitFor(() => expect(result.current.sendSize).toBe(2));
     expect(result.current.signatureStep).toBe(1);
@@ -195,17 +196,34 @@ describe("useReviewBatch", () => {
     expect(result.current.blockedCount).toBe(0);
   });
 
-  it("clears a note the next send doesn't repeat", async () => {
-    batch.send.mockResolvedValueOnce(outcomeOf({ notBatchable: ["0x1"] }));
+  it("takes a signature each once a list was too big together, and says so before the press", async () => {
+    const ids = ["0x1", "0x2", "0x3"];
+    batch.send.mockResolvedValueOnce(outcomeOf({ notBatchable: ids }));
     const { result } = render();
-    act(() => result.current.stage(decide("0x1")));
+    act(() => {
+      for (const id of ids) result.current.stage(decide(id));
+    });
+    expect(result.current.signatures).toBe(1);
+    expect(result.current.oneSignatureEach).toBe(false);
 
     await act(() => result.current.send());
-    expect(result.current.reviewFor("0x1")?.notBatchable).toBe(true);
+    expect(batch.send).toHaveBeenLastCalledWith(expect.any(Array), {});
+    expect(result.current.oneSignatureEach).toBe(true);
+    expect(result.current.signatures).toBe(3);
+    // It can still go, so nothing here is a refusal to take out.
+    expect(result.current.blockedCount).toBe(0);
 
-    batch.send.mockResolvedValueOnce(outcomeOf({ notSent: ["0x1"] }));
-    await act(() => result.current.send());
-    expect(result.current.reviewFor("0x1")?.notBatchable).toBeUndefined();
+    let finish = (_outcome: ReviewBatchOutcome) => {};
+    batch.send.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    act(() => void result.current.send());
+    expect(batch.send).toHaveBeenLastCalledWith(expect.any(Array), { perSignature: 1 });
+    await waitFor(() => expect(result.current.sendSize).toBe(3));
+    act(() => batch.onLanded(["0x1"]));
+    expect(result.current.signatureStep).toBe(2);
+
+    await act(async () => finish(outcomeOf({ notSent: ["0x2", "0x3"] })));
+    expect(result.current.oneSignatureEach).toBe(false);
+    expect(result.current.reviewFor("0x2")?.notBatchable).toBeUndefined();
   });
 
   it("hands a send it can't confirm to the journal, so nothing can send it again", async () => {

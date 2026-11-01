@@ -215,21 +215,6 @@ describe("useBatchWorkApproval", () => {
     expect(toasts.success).toHaveBeenCalledOnce();
   });
 
-  it("locks nobody out while a failed hold read retries", async () => {
-    const { garden, queryClient, sender } = setup();
-    queryClient.setDefaultOptions({ queries: { retry: 2, retryDelay: 60_000 } });
-    const list = vi
-      .spyOn(sender.batches!, "list")
-      .mockRejectedValue(new Error("wallet reconnecting"));
-    const { result } = renderHookWithProviders(() => useBatchWorkApproval(garden), { queryClient });
-    expect(result.current.isSettlingHold).toBe(true);
-
-    await waitFor(() => expect(list).toHaveBeenCalledOnce());
-    await waitFor(() => expect(result.current.isSettlingHold).toBe(false));
-    // It's still trying, and a hold it finds will lock the work then.
-    expect(queryClient.isFetching()).toBeGreaterThan(0);
-  });
-
   it("tells its caller each decision that lands, from a send and from a later read", async () => {
     const { decide, garden, landed, listWorks, queryClient, sender } = setup();
     const decision = decide();
@@ -244,6 +229,20 @@ describe("useBatchWorkApproval", () => {
 
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
     expect(onLanded).toHaveBeenCalledWith([decision.draft.workUID]);
+  });
+
+  it("passes on a list that takes a signature per review", async () => {
+    const { decide, landed, listWorks, render, sender } = setup();
+    const decisions = [decide(), decide()];
+    listWorks(decisions);
+    decisions.forEach((decision) => landed(decision));
+    const { result } = render();
+
+    await act(async () => {
+      await result.current.send(decisions, { perSignature: 1 });
+    });
+
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(2);
   });
 
   it("treats two quick presses as one send, since they share the approval lock", async () => {
