@@ -7,6 +7,14 @@ export const gardenJoinRequestKeys = {
   // removed by the existing Auth logout path (namespace !== "greengoods").
   target: (chainId: number, account: string, kind: GardenJoinRequestKind, authMode = "none") =>
     ["garden-join-requests", "target", chainId, account.toLowerCase(), authMode, kind] as const,
+  count: (chainId: number, garden: string, account: string) =>
+    [
+      "garden-join-requests",
+      "count",
+      chainId,
+      garden.toLowerCase(),
+      account.toLowerCase(),
+    ] as const,
   self: (
     chainId: number,
     garden: string,

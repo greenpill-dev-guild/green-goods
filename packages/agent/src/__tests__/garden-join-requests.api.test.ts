@@ -4,6 +4,7 @@ import { createGardenJoinRequestSignatureVerifier } from "../services/garden-joi
 import {
   buildGardenJoinProofMessage,
   encodeGardenJoinAuthorization,
+  encodeGardenJoinCountAuthorization,
   type GardenJoinProofAction,
   type GardenJoinProofEnvelope,
 } from "@green-goods/shared/public-contracts/join-requests";
@@ -11,6 +12,7 @@ import type { Address } from "@green-goods/shared/public-contracts";
 import { describe, expect, it, vi } from "vitest";
 import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import { createServer } from "../api/server";
+import { createGardenJoinRequestCountGrants } from "../services/garden-join-request-count-grants";
 import { MemoryGardenJoinRequestStore } from "../services/garden-join-request-memory-store";
 import {
   createGardenJoinRequestCipher,
@@ -67,9 +69,11 @@ function createApp(
   options: { signatureVerifier?: AccountSignatureVerifier; now?: () => number } = {}
 ) {
   let requestId = 0;
-  const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("11".repeat(32)), {
+  const cipher = createGardenJoinRequestCipher("11".repeat(32));
+  const store = new MemoryGardenJoinRequestStore(cipher, {
     id: () => `request-${++requestId}`,
   });
+  const countGrants = createGardenJoinRequestCountGrants(cipher);
   const rateLimitPressure = new GardenJoinRequestRateLimitPressure();
   let applicantIsMember = false;
   let applicantIsSteward = false;
@@ -105,12 +109,14 @@ function createApp(
     gardenJoinRequestChainId: CHAIN_ID,
     gardenJoinRequestChainReader: chainReader,
     gardenJoinRequestSignatureVerifier: options.signatureVerifier ?? vi.fn(async () => true),
+    gardenJoinRequestCountGrants: countGrants,
     gardenJoinRequestSweepIntervalMs: 0,
     now: options.now ?? (() => NOW),
   });
   return {
     app,
     store,
+    countGrants,
     rateLimitPressure,
     chainReader,
     setMember: (value: boolean) => (applicantIsMember = value),
@@ -166,6 +172,141 @@ async function submitForGarden(
     body: JSON.stringify({ displayName: "Maya", requestedVia: "garden_detail" }),
   });
 }
+
+function readCount(
+  app: ReturnType<typeof createServer>,
+  authorization?: string,
+  gardenAddress: Address = GARDEN
+) {
+  return app.request(`/public/gardens/${gardenAddress}/join-requests/count`, {
+    headers: {
+      origin: ORIGIN,
+      "x-gg-test-socket-ip": "198.51.100.10",
+      ...(authorization ? { authorization } : {}),
+    },
+  });
+}
+
+describe("garden join request count", () => {
+  it("reads one number with the grant a signed queue read issues, and asks for no signature", async () => {
+    const signatureVerifier = vi.fn(async () => true);
+    const { app, chainReader } = createApp({ signatureVerifier });
+    await submit(app);
+    await submitSteward(app);
+
+    const denied = await app.request(
+      `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25`,
+      { headers: headers(proof("list")) }
+    );
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).not.toHaveProperty("countGrant");
+
+    const listed = await app.request(
+      `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25`,
+      { headers: headers(proof("list", OPERATOR)) }
+    );
+    const { countGrant } = await listed.json();
+    // As long as a request can wait unanswered.
+    expect(countGrant.expiresAt).toBe(Math.floor(NOW / 1000) + 30 * 24 * 60 * 60);
+
+    signatureVerifier.mockClear();
+    chainReader.canManage.mockClear();
+    const counted = await readCount(app, encodeGardenJoinCountAuthorization(countGrant.token));
+
+    expect(counted.status).toBe(200);
+    expect(counted.headers.get("cache-control")).toBe("no-store");
+    // Both queues in one total, and no name, note, address or request id beside it.
+    expect(await counted.json()).toEqual({ ok: true, waiting: 2 });
+    expect(signatureVerifier).not.toHaveBeenCalled();
+    expect(chainReader.canManage).toHaveBeenCalledWith(GARDEN, OPERATOR);
+  });
+
+  it("lets a browser ask with the grant across origins", async () => {
+    const { app } = createApp();
+    const preflight = await app.request(`/public/gardens/${GARDEN}/join-requests/count`, {
+      method: "OPTIONS",
+      headers: { origin: ORIGIN },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-headers")).toContain("Authorization");
+  });
+
+  it("gives every bad grant one answer, before reading the role or the queue", async () => {
+    const { app, chainReader, countGrants, store } = createApp();
+    await submit(app);
+    const countPending = vi.spyOn(store, "countPending");
+    const subject = { chainId: CHAIN_ID, gardenAddress: GARDEN, accountAddress: OPERATOR };
+    const { token } = countGrants.issue(subject, NOW);
+    const [payload, signature] = token.split(".");
+    const lapsed = countGrants.issue(subject, NOW - 31 * 24 * 60 * 60 * 1000).token;
+    const otherGarden = countGrants.issue({ ...subject, gardenAddress: SECOND_GARDEN }, NOW).token;
+    const otherChain = countGrants.issue({ ...subject, chainId: 1 }, NOW).token;
+    const forgedAccount = Buffer.from(
+      JSON.stringify({
+        ...JSON.parse(Buffer.from(payload, "base64url").toString()),
+        accountAddress: APPLICANT,
+      })
+    ).toString("base64url");
+
+    const answers = await Promise.all(
+      [
+        undefined,
+        // A signature proof is not a count grant, and neither is the token without its scheme.
+        encodeGardenJoinAuthorization(proof("list", OPERATOR)),
+        `Bearer ${token}`,
+        encodeGardenJoinCountAuthorization("not-a-token"),
+        encodeGardenJoinCountAuthorization(`${payload}.${"0".repeat(64)}`),
+        encodeGardenJoinCountAuthorization(`${forgedAccount}.${signature}`),
+        encodeGardenJoinCountAuthorization(lapsed),
+        encodeGardenJoinCountAuthorization(otherGarden),
+        encodeGardenJoinCountAuthorization(otherChain),
+      ].map(async (authorization) => {
+        const response = await readCount(app, authorization);
+        return { status: response.status, body: await response.json() };
+      })
+    );
+
+    for (const answer of answers) {
+      expect(answer).toEqual(answers[0]);
+      expect(answer.status).toBe(401);
+      expect(answer.body).not.toHaveProperty("waiting");
+    }
+    expect(chainReader.canManage).not.toHaveBeenCalled();
+    expect(countPending).not.toHaveBeenCalled();
+  });
+
+  it("stops at once for an account that lost its role, and never guesses during an outage", async () => {
+    const { app, chainReader, countGrants, store } = createApp();
+    await submit(app);
+    const authorization = encodeGardenJoinCountAuthorization(
+      countGrants.issue({ chainId: CHAIN_ID, gardenAddress: GARDEN, accountAddress: OPERATOR }, NOW)
+        .token
+    );
+
+    chainReader.canManage.mockResolvedValueOnce(false);
+    const removed = await readCount(app, authorization);
+    expect(removed.status).toBe(403);
+    expect(await removed.json()).not.toHaveProperty("waiting");
+
+    chainReader.canManage.mockRejectedValueOnce(new Error("rpc down"));
+    const roleOutage = await readCount(app, authorization);
+    expect(roleOutage.status).toBe(503);
+    expect(await roleOutage.json()).not.toHaveProperty("waiting");
+
+    vi.spyOn(store, "countPending").mockRejectedValueOnce(new Error("disk full"));
+    const storeOutage = await readCount(app, authorization);
+    expect(storeOutage.status).toBe(503);
+    expect(await storeOutage.json()).not.toHaveProperty("waiting");
+  });
+
+  it("shares the read limit with the signed reads", async () => {
+    const { app } = createApp();
+    for (let attempt = 1; attempt <= 120; attempt += 1) {
+      expect((await readCount(app)).status).toBe(401);
+    }
+    expect((await readCount(app)).status).toBe(429);
+  });
+});
 
 describe("garden join request public API", () => {
   it("accepts steward requests from existing gardeners in open gardens", async () => {
@@ -1149,6 +1290,7 @@ describe("garden join request public API", () => {
     const app = createServer({ isAIReady: () => true, gardenJoinRequestsEnabled: false });
     const response = await submit(app);
     expect(response.status).toBe(404);
+    expect((await readCount(app)).status).toBe(404);
 
     const availability = await app.request("/public/features/garden-join-requests", {
       headers: { origin: ORIGIN },

@@ -55,6 +55,7 @@ function MembersHarness({
       garden={storyGarden}
       canManage
       closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
+      keepJoinRequestCountGrant={() => {}}
       memberCount={memberCount}
       memberSearch=""
       noteJoinRequestsRead={() => {}}

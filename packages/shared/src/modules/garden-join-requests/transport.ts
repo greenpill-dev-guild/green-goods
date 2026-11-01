@@ -1,10 +1,12 @@
 import {
   encodeGardenJoinAuthorization,
+  encodeGardenJoinCountAuthorization,
   type CreateGardenJoinRequestInput,
   type GardenJoinRequestAvailabilityResponse,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiError,
   type GardenJoinRequestApiErrorCode,
+  type GardenJoinRequestCountResponse,
   type GardenJoinRequestKind,
   type GardenJoinRequestQueueResponse,
   type GardenJoinRequestSelfResponse,
@@ -140,6 +142,12 @@ function scopedRoute(path: string, proof: GardenJoinProofEnvelope): string {
   return proof.kind ? `${path}?kind=${encodeURIComponent(proof.kind)}` : path;
 }
 
+function isCountGrant(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const { token, expiresAt } = value as { token?: unknown; expiresAt?: unknown };
+  return typeof token === "string" && token.length > 0 && Number.isSafeInteger(expiresAt);
+}
+
 function hasRequestKind(record: unknown, kind: GardenJoinRequestKind): boolean {
   return Boolean(
     record &&
@@ -225,7 +233,8 @@ async function request<T>(
       proof?.action === "list" &&
       (!("items" in payload) ||
         !Array.isArray(payload.items) ||
-        !payload.items.every((record) => hasRequestKind(record, expectedKind)))
+        !payload.items.every((record) => hasRequestKind(record, expectedKind)) ||
+        ("countGrant" in payload && !isCountGrant(payload.countGrant)))
     ) {
       throw new Error("Invalid garden request queue.");
     }
@@ -328,6 +337,19 @@ export const gardenJoinRequestTransport = {
       { method: "GET" },
       baseUrl
     );
+  },
+
+  async count(gardenAddress: Address, token: string, baseUrl?: string) {
+    const response = await request<GardenJoinRequestCountResponse>(
+      `${collectionRoute(gardenAddress)}/count`,
+      null,
+      { method: "GET", headers: { Authorization: encodeGardenJoinCountAuthorization(token) } },
+      baseUrl
+    );
+    if (!Number.isSafeInteger(response.waiting) || response.waiting < 0) {
+      throw new GardenJoinRequestTransportError("Invalid garden request count.");
+    }
+    return response;
   },
 
   resolve(

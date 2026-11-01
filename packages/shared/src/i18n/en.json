@@ -4296,6 +4296,7 @@
   "cockpit.community.loadFailed": "Unable to load this community workspace.",
   "cockpit.community.members": "Members",
   "cockpit.community.joinRequests.confirmDecline": "Decline Request",
+  "cockpit.community.joinRequests.countNotice": "Checking also lets this browser show how many wait on the Members tab for 30 days.",
   "cockpit.community.joinRequests.decline": "Decline",
   "cockpit.community.joinRequests.declined": "The request was declined.",
   "cockpit.community.joinRequests.declineDescription": "Decline {name}'s request and share the reason they can read when they check their status.",

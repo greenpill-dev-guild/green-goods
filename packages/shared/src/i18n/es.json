@@ -4296,6 +4296,7 @@
   "cockpit.community.loadFailed": "No se pudo cargar este espacio de comunidad.",
   "cockpit.community.members": "Miembros",
   "cockpit.community.joinRequests.confirmDecline": "Rechazar solicitud",
+  "cockpit.community.joinRequests.countNotice": "Al revisar, este navegador también mostrará cuántas están pendientes en la pestaña Miembros durante 30 días.",
   "cockpit.community.joinRequests.decline": "Rechazar",
   "cockpit.community.joinRequests.declined": "La solicitud fue rechazada.",
   "cockpit.community.joinRequests.declineDescription": "Rechaza la solicitud de {name} y comparte el motivo que podrá leer al consultar su estado.",

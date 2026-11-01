@@ -78,6 +78,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         memberCount={workspace.memberCount}
         memberSearch={workspace.memberSearch}
         noteJoinRequestsRead={workspace.noteJoinRequestsRead}
+        keepJoinRequestCountGrant={workspace.keepJoinRequestCountGrant}
         roleMembers={workspace.roleMembers}
         roleSummary={workspace.roleSummary}
         scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}

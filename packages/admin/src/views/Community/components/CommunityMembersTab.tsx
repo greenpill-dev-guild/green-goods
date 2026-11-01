@@ -24,6 +24,7 @@ export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
   | "canManage"
   | "closeMembersModal"
+  | "keepJoinRequestCountGrant"
   | "memberCount"
   | "memberSearch"
   | "noteJoinRequestsRead"
@@ -41,6 +42,7 @@ export function CommunityMembersTab({
   garden,
   canManage,
   closeMembersModal,
+  keepJoinRequestCountGrant,
   memberCount,
   memberSearch,
   noteJoinRequestsRead,
@@ -202,7 +204,11 @@ export function CommunityMembersTab({
 
         <aside className="garden-tab-rail flex flex-col gap-section">
           {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={gardenAddress} onRead={noteJoinRequestsRead} />
+            <CommunityJoinRequests
+              gardenAddress={gardenAddress}
+              onRead={noteJoinRequestsRead}
+              onCountGrant={keepJoinRequestCountGrant}
+            />
           ) : null}
           <AdminCard variant="elevated" className="space-y-3">
             <AdminCardTitle>
