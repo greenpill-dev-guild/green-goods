@@ -66,15 +66,16 @@ export function useDepositPlan(input: {
     walletRouteListed({ action, chainId, asset });
 
   // Asked only when it can change the route: until then no wallet hears from this hook.
-  const { data: walletAtomic, isLoading: isAskingWallet } = useQuery({
+  const { data: capability, isLoading: isAskingWallet } = useQuery({
     queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
     queryFn: async () => {
-      const capability = await sender!.getBatchCapability!({ account: account!, chainId });
-      return capability.atomic === "supported";
+      const { atomic } = await sender!.getBatchCapability!({ account: account!, chainId });
+      return atomic;
     },
     enabled: canAskWallet,
     retry: false,
   });
+  const walletAtomic = capability === "supported";
   const route = target
     ? depositRoute({
         action,
@@ -107,7 +108,10 @@ export function useDepositPlan(input: {
       : 1 +
         (allowance < amount ? 1 : 0) +
         (target?.kind === "vault" && allowance > 0n && allowance < amount ? 1 : 0);
-  const signatures = route?.atomic && !overCeilings ? 1 : stepCount;
+  // The send asks again and stops before any prompt if it still can't tell, so nothing is promised.
+  const capabilityUnread =
+    canAskWallet && capability !== "supported" && capability !== "unsupported";
+  const signatures = capabilityUnread ? null : route?.atomic && !overCeilings ? 1 : stepCount;
 
   const targetKind = target?.kind;
   const targetAddress = target?.address ?? "";

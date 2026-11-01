@@ -393,6 +393,29 @@ describe("useDepositPlan", () => {
     expect(sender.getBatchCapability).toHaveBeenCalled();
   });
 
+  it.each([
+    ["comes back unknown", async (scope: object) => ({ ...scope, atomic: "unknown" })],
+    [
+      "fails",
+      async () => {
+        throw new Error("rpc down");
+      },
+    ],
+  ])("states no count when a listed wallet's capability read %s, and locks no one out", async (_case, read) => {
+    listing.enabled = true;
+    listing.walletProfile = "sequential";
+    const { renderPlan, sender } = setup({}, "wallet");
+    vi.mocked(sender.getBatchCapability!).mockImplementation(read as never);
+    chainState.allowance = 100n;
+    const { result } = renderPlan();
+
+    await waitFor(() => expect(sender.getBatchCapability).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isPaused).toBe(false));
+
+    expect(result.current.signatures).toBeNull();
+    expect(result.current.signatureLine).toBeNull();
+  });
+
   it("reads nothing and says nothing about signatures until there is an amount", async () => {
     const { renderPlan } = setup();
     const { result } = renderPlan(0n);
