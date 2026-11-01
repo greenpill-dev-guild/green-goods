@@ -362,6 +362,35 @@ describe("useBatchWorkApproval", () => {
     await waitFor(() => expect(elsewhere.current.hold?.workUIDs).toHaveLength(1));
   });
 
+  it("lets go of a decision whose held send turned out to revert", async () => {
+    const { decide, listWorks, workOf, sender, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+    await act(async () => {
+      await result.current.send([decision]);
+    });
+    await waitFor(() => expect(result.current.hold).not.toBeNull());
+    expect(workOf(decision)?._isPending).toBe(true);
+    sender.reconcileBatch = vi.fn(
+      async () =>
+        ({
+          status: "reverted",
+          receipts: [{ transactionHash: hash, status: "reverted" }],
+          sponsored: true,
+        }) satisfies BatchExecution
+    );
+
+    await act(async () => {
+      await result.current.checkAgain();
+    });
+
+    await waitFor(() => expect(result.current.hold).toBeNull());
+    expect(workOf(decision)?._isPending).toBe(false);
+    expect(workOf(decision)?._pendingUntilMs).toBeLessThanOrEqual(Date.now());
+    expect(toasts.success).not.toHaveBeenCalled();
+  });
+
   it("says when a held send proves it landed, once", async () => {
     const { decide, landed, listWorks, workOf, sender, render } = setup({});
     const decision = decide();

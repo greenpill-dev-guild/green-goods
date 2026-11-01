@@ -9,13 +9,9 @@ import { track } from "../../modules/app/posthog";
 import { isBatchEnabled } from "../../modules/transactions/batch-enablement";
 import type { OverlayWork } from "../../modules/work/local-status-overlay";
 import {
-  moveOnFromReviewHold,
-  type ProvenReview,
-  readReviewHold,
   type ReviewBatchOutcome,
   type ReviewDecision,
   reviewDomain,
-  type ReviewHold,
   sendReviewBatch,
 } from "../../modules/work/review-batch";
 import {
@@ -23,6 +19,13 @@ import {
   reviewBudget,
   signaturesForReviews,
 } from "../../modules/work/review-chain";
+import {
+  moveOnFromReviewHold,
+  type ProvenReview,
+  readReviewHold,
+  type ReviewHold,
+  type ReviewSettlement,
+} from "../../modules/work/review-hold";
 import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useHeldBatches } from "../garden/useHeldBatches";
@@ -200,22 +203,22 @@ export function useBatchWorkApproval(gardenId: string) {
   const send = useSafeMutation(sendMutation, "approval");
   const sending = useIsMutating({ mutationKey: sendKey }) > 0 || send.isPending;
 
+  /** A send that ended without proof lets go of its decisions, whichever tab ended it. */
+  const letGoOfUnproven = (settlement: ReviewSettlement) => {
+    if (settlement.notLanded.length > 0) {
+      clearOverlay(settlement.notLanded);
+      refreshWorks();
+    }
+    return settlement;
+  };
+
   const held = useHeldBatches<ReviewHold, ProvenReview>({
     domain,
     account,
     chainId,
     enabled: Boolean(batches && account) && !sending,
-    read: (shown) => readReviewHold(batchInput(), shown),
-    moveOn: async (hold) => {
-      const settlement = await moveOnFromReviewHold(batchInput(), hold);
-      // A hold that ended let go of its decisions, unless a last read proved they landed.
-      if (!settlement.hold) {
-        const proven = new Set(settlement.saved.map(({ workUID }) => workUID));
-        clearOverlay(hold.workUIDs.filter((workUID) => !proven.has(workUID)));
-        refreshWorks();
-      }
-      return settlement;
-    },
+    read: async (shown) => letGoOfUnproven(await readReviewHold(batchInput(), shown)),
+    moveOn: async (hold) => letGoOfUnproven(await moveOnFromReviewHold(batchInput(), hold)),
     onSaved: (saved) => {
       markLanded(saved);
       announceSent(saved.length);
