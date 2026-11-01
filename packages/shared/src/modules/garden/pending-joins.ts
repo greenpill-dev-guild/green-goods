@@ -28,13 +28,24 @@ export function subscribeToPendingJoins(listener: () => void): () => void {
   };
 }
 
+// Gardens whose record storage refused to forget. Such a record reads as gone in this tab, so it
+// stops counting and no reader comes back to it, until a write that lands drops it for good.
+const refusedRemovals = new Set<string>();
+
 function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+    const saved = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+    for (const gardenId of refusedRemovals) delete saved[gardenId];
+    return saved;
   } catch {
     return {};
   }
+}
+
+function savePendingJoins(pending: Record<string, { address: string; timestamp: number }>) {
+  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  refusedRemovals.clear();
 }
 
 export function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.now()) {
@@ -49,7 +60,7 @@ export function addPendingJoin(gardenId: string, userAddress: string, timestamp 
     return;
   }
   pending[gardenId] = { address: userAddress, timestamp };
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  savePendingJoins(pending);
   notifyPendingJoinsChanged();
 }
 
@@ -62,12 +73,12 @@ export function removePendingJoin(gardenId: string) {
   if (!(gardenId in pending)) return;
   delete pending[gardenId];
   try {
-    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
-    notifyPendingJoinsChanged();
+    savePendingJoins(pending);
   } catch (error) {
-    // Storage can refuse the write. Nothing changed, so no one is told; readers go by the limit.
     logger.warn("Could not forget a settled pending join", { source: "removePendingJoin", error });
+    refusedRemovals.add(gardenId);
   }
+  notifyPendingJoinsChanged();
 }
 
 /** Whether this device holds a fresh open join for the account there. An expired record goes. */

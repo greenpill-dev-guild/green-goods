@@ -69,7 +69,8 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 const { isGardenMember, usePendingJoinsVersion } = await import(
   "../../../hooks/garden/useJoinGarden"
 );
-const { forgetListedPendingJoins } = await import("../../../modules/garden/pending-joins");
+const { addPendingJoin, forgetListedPendingJoins, pendingJoinGardenIds, removePendingJoin } =
+  await import("../../../modules/garden/pending-joins");
 const { logger } = await import("../../../modules/app/logger");
 
 describe("usePendingJoinsVersion at a join's limit", () => {
@@ -174,10 +175,11 @@ describe("usePendingJoinsVersion at a join's limit", () => {
     expect(result.current).toBe(0);
   });
 
-  // Listeners hear only of a change that landed. Telling them anyway would send every memo back
-  // to a record it cannot remove, for ever.
-  it("stays quiet and keeps answering when storage refuses to forget a lapsed join", () => {
-    const saved = JSON.stringify({ "garden-first": { address: user, timestamp: Date.now() } });
+  // The record reads as gone once the write is refused, so subscribers hear of the limit and a
+  // reader that comes back finds nothing to remove, which keeps the render loop from starting.
+  it("tells subscribers once when storage refuses to forget a lapsed join", () => {
+    const gardenId = "garden-refused-lapse";
+    const saved = JSON.stringify({ [gardenId]: { address: user, timestamp: Date.now() } });
     vi.stubGlobal("localStorage", {
       getItem: () => saved,
       setItem: () => {
@@ -188,13 +190,44 @@ describe("usePendingJoinsVersion at a join's limit", () => {
 
     act(() => vi.advanceTimersByTime(LIMIT + 1));
 
-    expect(result.current).toBe(0);
+    expect(result.current).toBe(1);
+    expect(isGardenMember(user, [], [], gardenId)).toBe(false);
     expect(vi.getTimerCount()).toBe(0);
+
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(result.current).toBe(1);
+    expect(logger.warn).toHaveBeenCalledOnce();
     expect(logger.warn).toHaveBeenCalledWith(
       "Could not forget a settled pending join",
       expect.objectContaining({ source: "removePendingJoin" })
     );
-    expect(isGardenMember(user, [], [], "garden-first")).toBe(false);
+  });
+
+  // A failed join rolls back through here, so its record must not keep reading as a fresh join.
+  it("stops counting a fresh join it could not forget, until a write lands", () => {
+    const gardenId = "garden-refused-fresh";
+    let stored = JSON.stringify({ [gardenId]: { address: user, timestamp: Date.now() } });
+    let refuses = true;
+    vi.stubGlobal("localStorage", {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => {
+        if (refuses) throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+        stored = value;
+      },
+    });
+
+    removePendingJoin(gardenId);
+    expect(isGardenMember(user, [], [], gardenId)).toBe(false);
+    expect(pendingJoinGardenIds(user).size).toBe(0);
+
+    refuses = false;
+    addPendingJoin("garden-next", user);
+    expect(Object.keys(JSON.parse(stored))).toEqual(["garden-next"]);
+
+    addPendingJoin(gardenId, user);
+    expect(isGardenMember(user, [], [], gardenId)).toBe(true);
   });
 });
 
@@ -230,7 +263,8 @@ describe("forgetListedPendingJoins", () => {
   });
 
   it("keeps going when storage refuses the write, and says so", () => {
-    const saved = JSON.stringify({ "garden-listed": { address: user, timestamp: Date.now() } });
+    const gardenId = "garden-refused-listed";
+    const saved = JSON.stringify({ [gardenId]: { address: user, timestamp: Date.now() } });
     vi.stubGlobal("localStorage", {
       getItem: () => saved,
       setItem: () => {
@@ -238,7 +272,7 @@ describe("forgetListedPendingJoins", () => {
       },
     });
 
-    expect(() => forgetListedPendingJoins(user, ["garden-listed"])).not.toThrow();
+    expect(() => forgetListedPendingJoins(user, [gardenId])).not.toThrow();
     expect(logger.warn).toHaveBeenCalledWith(
       "Could not forget a settled pending join",
       expect.objectContaining({ source: "removePendingJoin" })
