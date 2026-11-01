@@ -122,6 +122,32 @@ describe("useCommitmentProofDraft", () => {
     expect(draftRepository.durable.get(key())).toEqual([]);
   });
 
+  it("tries an emptied draft's removal again after its write fails, and only then says saved", async () => {
+    const { result } = renderSynced(repository());
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    const held = result.current.snapshot;
+    act(() =>
+      result.current.setSnapshot({ ...held, words: { ...held.words, note: "Beds cleared" } })
+    );
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    const stored = () =>
+      JSON.parse(localStorage.getItem("gg-commitment-proof-drafts")!).state.drafts[key()];
+    expect(stored()).toBeDefined();
+
+    const storage = useCommitmentProofDraftStore.persist.getOptions().storage!;
+    const write = vi.spyOn(storage, "setItem").mockImplementationOnce(() => {
+      throw new DOMException("quota", "QuotaExceededError");
+    });
+    act(() => result.current.setSnapshot(held));
+    await waitFor(() => expect(result.current.sync.persistence).toBe("failed"));
+    expect(stored()).toBeDefined();
+    write.mockRestore();
+
+    act(() => result.current.sync.retrySave());
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    expect(stored()).toBeUndefined();
+  });
+
   it("keeps a credit choice made before anything else, for the member's return", async () => {
     const { result } = renderSynced(repository());
     await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));

@@ -40,6 +40,8 @@ interface DraftScope {
   revision: number;
   restoredFiles: ProofDraftFiles | null;
   durableFiles: ProofDraftFiles | null;
+  /** An emptied draft's removal has not reached storage yet. */
+  removing: boolean;
 }
 
 export interface CommitmentProofDraftHandle {
@@ -111,6 +113,7 @@ export function useCommitmentProofDraft(input: {
       revision: 0,
       restoredFiles: null,
       durableFiles: null,
+      removing: false,
     };
     scopeRef.current = scope;
     setRestoration({ scope, status: "loading" });
@@ -190,9 +193,12 @@ export function useCommitmentProofDraft(input: {
           if (!latest()) return false;
           await recordFiles(key, files);
           if (!latest()) return false;
-        } else if (useCommitmentProofDraftStore.getState().drafts[key]) {
-          // A composer holding nothing is no draft (DL-148), so one emptied stops being one.
+        } else if (scope.removing || useCommitmentProofDraftStore.getState().drafts[key]) {
+          // A composer holding nothing is no draft (DL-148), so one emptied stops being one. The
+          // store drops it from memory before it writes, so a failed write is tried again here.
+          scope.removing = true;
           clearDraft(key);
+          scope.removing = false;
         }
         setPersistence({ scope, snapshot, status: "saved" });
         return true;
