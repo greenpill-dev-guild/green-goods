@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-11-01T04:22:42.722Z"
+    "updated_at": "2026-11-01T05:28:33.965Z"
   },
   "links": {
     "brief": "brief.md",
@@ -72,19 +72,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-jar-deposits",
+      "branch": "feature/batch-review-execution",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/hooks/cookie-jar/useCookieJarDepositBatch.test.ts",
-          "evidence": "Not RED first for the jar path: these tests were written alongside the code, then proven by breaking one behavior at a time on 2026-11-01. Of 24 breaks across hook and forms, 4 first survived: a send not marked as in flight, no hold read after a send, no allowance read after one, and a deposit past its ceilings reading as a failure. Each got a case and then failed. The vault review's fixes did fail first, 8 on behavior, at 04:09:02 UTC."
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/work-review-batch.test.ts src/__tests__/hooks/work/useBatchWorkApproval.test.ts",
+          "evidence": "Not RED first: written alongside the code, then proven by breaking one behavior at a time on 2026-11-01. Of 25 breaks, 23 failed at once; a garden's hold scope and the wait for a send in flight survived, each got a real case, and both then failed."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test src/__tests__/hooks/cookie-jar src/__tests__/hooks/vault/useVaultDepositBatch.test.ts src/__tests__/hooks/vault/useVaultOperations.test.ts src/__tests__/modules/garden-deposit-batch.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/utils/errors/__tests__/tx-error-classifier.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-11-01 04:21:44 UTC: 13 files, 190 passed, at the tree committed as 14e615554."
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/work-review-batch.test.ts src/__tests__/hooks/work/useBatchWorkApproval.test.ts src/__tests__/modules/passkey-submission.test.ts src/__tests__/modules/submit-approval-command.test.ts src/__tests__/modules/wallet-submission.test.ts src/__tests__/utils/transaction-builder.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/__tests__/i18n/locale-coverage.test.ts",
+          "evidence": "2026-11-01 05:28:23 UTC: 8 files, 97 passed, at the tree committed as 7e25e7fa2."
         },
         "note": ""
       },
@@ -663,6 +663,22 @@
       "status": "tdd_recorded",
       "branch": "feature/batch-jar-deposits",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T05:28:32.855Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/batch-review-execution",
+      "note": "Slice 5A: bulk review execution, with its rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T05:28:33.966Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-review-execution",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -708,9 +724,9 @@
     },
     "phase_5_work_approvals": {
       "machine_lane": "ui",
-      "owner": "codex",
-      "status": "todo",
-      "branch": null,
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "feature/batch-review-execution",
       "depends_on": ["phase_4_deposits"],
       "handoff": "handoffs/ui.md"
     },

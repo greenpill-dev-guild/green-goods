@@ -26,6 +26,10 @@ Execute in the user's order: **shared batching and recovery → garden settings 
 | 15 | Batch every action that can batch, one slice per PR (approved 2026-10-30) | The user asked for all of them. An action stays out only when a later call needs an earlier receipt or a review is deliberately separate |
 | 16 | After an unknown deposit, Move On works once the chain has been read, and warns that a later landing means depositing twice (approved 2026-10-31) | A dropped transaction must not lock anyone out, and the person decides with fresh values, as in settings and members |
 | 17 | Plain wallets get the durable hold on deposits, with the same prompts as today (approved 2026-10-31) | A deposit moves money, so recovery matters on every rail. Settings kept today's flow for plain wallets; deposits do not |
+| 18 | Add to Batch sits beside Approve and Reject, which still send at once (approved 2026-11-01) | One review stays one step, and every item still needs its own decision |
+| 19 | Unsent reviews stay on the device, per garden, account, and chain (approved 2026-11-01) | Twenty reviews shouldn't be lost to a reload. Everything is rechecked before signing, a decision whose work changed goes back to review, and audio notes upload when the decision is made, so only a link is kept |
+| 20 | Add and Send proof goes in one signature on passkeys and atomic wallets, both or neither (approved 2026-11-01) | Reverses "two calls, two signatures". If it fails, neither lands and the proof stays in the queue on the device. Plain wallets keep two signatures |
+| 21 | A review batch carries five decisions per signature, not ten | A decision used 1.25M to 1.34M gas on Arbitrum, with the resolver's Karma and commitment hooks |
 
 ## Requirements coverage
 
@@ -69,7 +73,7 @@ Each slice is one PR. Signatures read "today, then after" for passkeys and atomi
 | 9 | Campaign jar sync | 1–3, then 1 | 2 | Changes who can withdraw |
 | 10 | Action edit | 1–4, then 1 | 2 | Upload order and its own recovery |
 | 11 | Octant checkout | 1–4, then 1, atomic wallets only | 4 | Wallet only, on mainnet |
-| 12 | Add and send proof | 2, then 1 | 7 | Blocked: reverses a recorded decision, see Phase 12 |
+| 12 | Add and send proof | 2, then 1 | 7 | Reverses a recorded decision, approved in decision 20 |
 
 After slice 2, slices 3, 6, 8, 9, and 10 share no code and can run in parallel worktrees. Slice 4 waits for 3 only by decision 13.
 
@@ -155,8 +159,8 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 5A: strict approval execution.** Depends on Phase 4 acceptance; no bulk UI until this lands.
 
-- [ ] **5.1 Consolidate bulk submission.** Route `submit-approval-command.ts` through existing queued preparation, EAS builders, and common checkpointing. Migrate the wallet/passkey bulk helpers one at a time with their existing tests. Prove receipt timeout remains pending and passkey bulk sends use the same execution checks as other writes.
-- [ ] **5.2 Preserve individual outcomes and explicit dispatch.** Update `useBatchWorkApproval.ts` and its tests to retain all decision metadata, item-to-attestation IDs, and pending overlays. Admin mounts no job queue provider, so its recovery records live in the batch journal, where no background executor can submit them. Prove mixed decisions, one invalid attestation, indexer delay, and reload retain correct per-item state.
+- [x] **5.1 Consolidate bulk submission.** Built in `modules/work/review-batch.ts` with its rails unlisted; the wallet and passkey bulk helpers are gone. Route `submit-approval-command.ts` through existing queued preparation, EAS builders, and common checkpointing. Migrate the wallet/passkey bulk helpers one at a time with their existing tests. Prove receipt timeout remains pending and passkey bulk sends use the same execution checks as other writes.
+- [x] **5.2 Preserve individual outcomes and explicit dispatch.** `useBatchWorkApproval` now reports each work's outcome and attestation, and a decision stays pending until it is proven, moved on from, or known not sent. Update `useBatchWorkApproval.ts` and its tests to retain all decision metadata, item-to-attestation IDs, and pending overlays. Admin mounts no job queue provider, so its recovery records live in the batch journal, where no background executor can submit them. Prove mixed decisions, one invalid attestation, indexer delay, and reload retain correct per-item state.
 
 **PR 5B: staged review experience and rollout.** Depends on 5A.
 
@@ -221,9 +225,9 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 ### Phase 12: add and send proof
 
-**PR 12.** Depends on slice 7. Blocked until the user reverses a recorded decision.
+**PR 12.** Depends on slice 7. The user reversed the recorded decision on 2026-11-01 (decision 20).
 
-- [ ] **12.1 Decide, then batch.** `useCommitmentJobs.ts` records "two calls, two signatures" for this flow, so a proof is kept even when its send fails. Batching means the queue carries both as one job: the second job waits for the proof today, its solo simulation reverts `EvidenceRequired`, and the client's passkey send is a flush, not a tap.
+- [ ] **12.1 Batch it.** `useCommitmentJobs.ts` records "two calls, two signatures" for this flow, so a proof is kept even when its send fails. Batching means the queue carries both as one job: the second job waits for the proof today, its solo simulation reverts `EvidenceRequired`, and the client's passkey send is a flush, not a tap.
 
 **Phase exit:** AC-27 passes, and a proof still survives a failed send.
 
