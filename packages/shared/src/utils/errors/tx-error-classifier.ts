@@ -3,6 +3,7 @@ import { wrongWalletNetwork } from "./wallet-network-refusal";
 
 export type TxErrorKind =
   | "cancelled"
+  | "unconfirmed"
   | "passkeyUnavailable"
   | "wrongChain"
   | "reverted"
@@ -174,6 +175,18 @@ function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
 }
 
 export function classifyTxError(error: unknown): TxErrorView {
+  // The send went out and nobody can say whether it landed, so it must not read as failed or invite
+  // another send. No raw text, because every surface prefers a meaningful raw message to the key.
+  if (isUnconfirmedTxError(error)) {
+    return {
+      kind: "unconfirmed",
+      severity: "warning",
+      titleKey: "app.txFeedback.unconfirmed.title",
+      messageKey: "app.txFeedback.unconfirmed.message",
+      rawMessage: "",
+    };
+  }
+
   const rawMessage = extractErrorMessage(error).trim();
   const normalizedMessage = rawMessage.toLowerCase();
 
@@ -274,6 +287,16 @@ export function classifyTxError(error: unknown): TxErrorView {
     messageKey: "app.errors.blockchain.unknown.message",
     rawMessage,
   };
+}
+
+const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
+  "TransactionConfirmationPendingError",
+  "WaitForTransactionReceiptTimeoutError",
+  "WaitForUserOperationReceiptTimeoutError",
+]);
+
+export function isUnconfirmedTxError(error: unknown): boolean {
+  return hasErrorName(error, UNCONFIRMED_ERROR_NAMES);
 }
 
 export function isCancelledTxError(error: unknown): boolean {

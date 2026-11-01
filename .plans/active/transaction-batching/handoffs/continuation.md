@@ -34,7 +34,11 @@ A fourth round found one more real gap, fixed in `71c52b405`: one person took th
 
 CodeRabbit's one finding is fixed in `db712a741`: the "Nothing to sign" toast could fire with rows still left to do. Its test failed first at 21:14 UTC, and on that tree Shared passed 7 files with 95 tests at 21:15 UTC and Admin 7 files with 116.
 
-Still open for that slice, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
+#1400 merged as `77b1b62c4`, with its landed tree equal to the tested one. The user dismissed CodeRabbit's stale review for that merge.
+
+Deposits (slice 4) start with `fix/deposit-unknown-outcome`, which reaches everyone on merge and lists nothing: a deposit nobody can confirm now says so, in place of "Deposit failed" or, for a Safe proposal, "Deposit completed successfully". Its tests failed first at 22:33:53 UTC, 12 on behavior, and Shared passed 9 files with 117 tests at 22:46:16 UTC on `04e90c72b`. The batch path follows, with its rails unlisted.
+
+Still open for add members, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here
 

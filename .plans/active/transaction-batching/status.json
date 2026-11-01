@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T21:17:02.026Z"
+    "updated_at": "2026-10-31T22:50:14.144Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,7 +50,7 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-add-members",
+      "branch": "fix/deposit-unknown-outcome",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
@@ -72,19 +72,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-add-members",
+      "branch": "fix/deposit-unknown-outcome",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useAddMembersBatch.test.ts",
-          "evidence": "2026-10-31 21:14:49 UTC: 1 failed on behavior from CodeRabbit's review of #1400: the toast said nothing to sign while rows past the ceilings were left."
+          "command": "bun run --cwd packages/shared test src/utils/errors/__tests__/tx-error-classifier.test.ts src/__tests__/hooks/vault/useVaultOperations.test.ts src/__tests__/hooks/cookie-jar/useCookieJarDeposit.test.ts",
+          "evidence": "2026-10-31 22:33:53 UTC: 12 failed on behavior: a deposit with no receipt read as done, one whose receipt wait ran out read as failed, and an approval with no receipt went on to the deposit."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts src/__tests__/hooks/useGardenOperations.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-10-31 21:15:04 UTC: 7 files, 95 passed, at the tree committed as db712a741."
+          "command": "bun run --cwd packages/shared test src/utils/errors/__tests__/tx-error-classifier.test.ts src/__tests__/hooks/vault/useVaultOperations.test.ts src/__tests__/hooks/cookie-jar src/__tests__/i18n/locale-coverage.test.ts",
+          "evidence": "2026-10-31 22:46:16 UTC: 9 files, 117 passed, at the tree committed as 04e90c72b."
         },
         "note": ""
       },
@@ -575,6 +575,30 @@
       "status": "tdd_recorded",
       "branch": "feature/batch-add-members",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T22:50:03.541Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "fix/deposit-unknown-outcome",
+      "note": "Slice 4, deposits: honest outcomes on today's path first."
+    },
+    {
+      "timestamp": "2026-10-31T22:50:09.708Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/deposit-unknown-outcome",
+      "note": "Slice 4, deposits: honest outcomes on today's path first."
+    },
+    {
+      "timestamp": "2026-10-31T22:50:14.147Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/deposit-unknown-outcome",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -613,10 +637,10 @@
     "phase_4_deposits": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "fix/deposit-unknown-outcome",
       "depends_on": ["phase_3_members"],
-      "handoff": "handoffs/ui.md"
+      "handoff": "handoffs/continuation.md"
     },
     "phase_5_work_approvals": {
       "machine_lane": "ui",
