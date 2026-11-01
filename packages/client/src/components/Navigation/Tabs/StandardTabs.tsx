@@ -3,7 +3,7 @@ import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import React from "react";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { TAB_ICON, TAB_RAIL } from "./tabRailStyles";
+import { TAB_ICON, TAB_SIZING, TAB_RAIL } from "./tabRailStyles";
 
 export interface StandardTab {
   id: string;
@@ -95,7 +95,8 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           }}
           disabled={tab.disabled}
           className={cn(
-            "flex min-h-11 items-center justify-center gap-1 px-1.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            "flex min-h-11 items-center justify-center gap-1 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            TAB_SIZING,
             "focus:outline-none focus-visible:shadow-button-primary-focus",
             variant === "compact" ? "py-2.5 sm:py-3" : "py-3 sm:py-3.5",
             activeTab === tab.id

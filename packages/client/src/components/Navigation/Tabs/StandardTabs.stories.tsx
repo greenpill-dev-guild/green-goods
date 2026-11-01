@@ -113,7 +113,7 @@ export const NarrowRailKeepsOneLine: Story = {
             id: "review",
             label: "Para revisar",
             icon: <RiPlantLine className="w-4 h-4" />,
-            count: 12,
+            count: 120,
           },
           { id: "done", label: "Concluído", icon: <RiUserLine className="w-4 h-4" /> },
         ]}
