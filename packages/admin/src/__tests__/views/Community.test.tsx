@@ -46,7 +46,6 @@ describe("Community navigation", () => {
       allocations: [],
       allocationsLoading: false,
       endowmentByAsset: [],
-      derived: { directoryEntries: [] },
       desktopActions: [],
       hasVaults: false,
       mode: "members",
@@ -101,5 +100,55 @@ describe("Community navigation", () => {
       </MemoryRouter>
     );
     expect(screen.queryByRole("tab", { name: "Coordination" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Community tab badges (DL-134)", () => {
+  beforeEach(() => {
+    mocks.protocolGarden = false;
+    mocks.workspace = {
+      selectedGarden: { id: GARDEN, chainId: 42161 },
+      selectedGardenAddress: GARDEN,
+      allocations: [
+        { assetAddress: GARDEN, cookieJarAmount: 1n, fractionsAmount: 0n, juiceboxAmount: 0n },
+      ],
+      allocationsLoading: false,
+      endowmentByAsset: [],
+      memberCount: 11,
+      desktopActions: [],
+      canManage: true,
+      hasVaults: true,
+      joinRequestsWaiting: 0,
+      mode: "members",
+      handleModeChange: mocks.changeMode,
+    } as unknown as CommunityWorkspace;
+  });
+
+  it("puts no number on a tab for the members, the payouts or having an endowment", () => {
+    renderCommunity();
+    // A count would join the tab's accessible name, so these exact names prove none.
+    for (const name of ["Members", "Endowment", "Payouts"]) {
+      expect(screen.getByRole("tab", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("counts the join requests waiting on Members, and shows none when none wait", () => {
+    mocks.workspace = { ...mocks.workspace!, joinRequestsWaiting: 3 };
+    const { rerender } = renderCommunity();
+    expect(screen.getByRole("tab", { name: "Members 3 waiting" })).toBeInTheDocument();
+
+    mocks.workspace = { ...mocks.workspace!, joinRequestsWaiting: 0 };
+    rerender(
+      <MemoryRouter>
+        <CommunityView />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole("tab", { name: "Members" })).toBeInTheDocument();
+  });
+
+  it("hides the last check's number from someone who can no longer open the queue", () => {
+    mocks.workspace = { ...mocks.workspace!, canManage: false, joinRequestsWaiting: 3 };
+    renderCommunity();
+    expect(screen.getByRole("tab", { name: "Members" })).toBeInTheDocument();
   });
 });

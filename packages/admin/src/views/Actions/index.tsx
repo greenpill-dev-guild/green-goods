@@ -34,17 +34,31 @@ export default function Actions() {
   const actions = useActionsController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const { isRefreshing, refetch } = actions;
+  const selectedDomain = actions.filters.domain;
+  const activeDomainTab = selectedDomain === undefined ? "all" : String(selectedDomain);
 
   const headerStats = useMemo(() => {
     if (actions.isLoading) return [];
     return buildActionsHeaderStats({
-      totalCount: actions.actions.length,
-      domainsCovered: new Set(
-        actions.actions.map((action) => action.domain).filter((domain) => domain !== null)
-      ).size,
+      // A tab's total sits on this line, not on the tab, and follows the tab (DL-134).
+      totalCount: actions.domainCounts[activeDomainTab] ?? 0,
+      // How many domains the registry covers says nothing about one domain's tab.
+      domainsCovered:
+        selectedDomain === undefined
+          ? new Set(
+              actions.actions.map((action) => action.domain).filter((domain) => domain !== null)
+            ).size
+          : undefined,
       formatMessage: intl.formatMessage,
     });
-  }, [actions.actions, actions.isLoading, intl.formatMessage]);
+  }, [
+    actions.actions,
+    actions.domainCounts,
+    actions.isLoading,
+    activeDomainTab,
+    intl.formatMessage,
+    selectedDomain,
+  ]);
 
   const handleRefresh = useCallback(() => {
     void refetch();
@@ -107,7 +121,7 @@ export default function Actions() {
               id: "cockpit.actions.domainSwitcher",
               defaultMessage: "Filter actions by domain",
             })}
-            activeId={actions.filters.domain === undefined ? "all" : String(actions.filters.domain)}
+            activeId={activeDomainTab}
             onChange={(next) => actions.setFilter("domain", next === "all" ? undefined : next)}
             tabs={[
               {
@@ -116,12 +130,10 @@ export default function Actions() {
                   id: "cockpit.actions.stage.all",
                   defaultMessage: "All",
                 }),
-                count: actions.domainCounts.all || undefined,
               },
               ...DOMAIN_FILTER_OPTIONS.map((option) => ({
                 id: String(option.value),
                 label: intl.formatMessage({ id: option.labelId }),
-                count: actions.domainCounts[option.value] || undefined,
               })),
             ]}
           />
