@@ -42,10 +42,14 @@ export function useCanvasSearchParams(): CanvasSearchParamsResult {
 /**
  * Opens a route item's dialog from a press. A double press can land before the
  * dialog is up, and a second entry would leave the close going back onto the same
- * item, so a press for the URL already in the address bar does nothing.
+ * item, so a press for the URL already in the address bar does nothing. It reads
+ * the address bar because the router's location lags until the first press commits,
+ * and IPFS builds keep the route in the hash.
  */
 export function pushRouteItem(navigate: (path: string) => void, href: string): void {
-  if (`${window.location.pathname}${window.location.search}` === href) return;
+  const { hash, pathname, search } = window.location;
+  const route = hash.startsWith("#/") ? hash.slice(1) : `${pathname}${search}`;
+  if (route === href) return;
   navigate(href);
 }
 

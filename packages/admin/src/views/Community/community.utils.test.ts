@@ -18,7 +18,7 @@ describe("Community header dialogs", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   const addressBar = (search: string) =>
-    vi.stubGlobal("window", { location: { pathname: "/community/endowment", search } });
+    vi.stubGlobal("window", { location: { pathname: "/community/endowment", search, hash: "" } });
 
   it.each([
     ["add-member", "add-member"],
@@ -37,6 +37,13 @@ describe("Community header dialogs", () => {
 
     // The first press has reached the address bar; the dialog is not up yet.
     addressBar(search);
+    press();
+    expect(navigate).toHaveBeenCalledTimes(1);
+
+    // An IPFS build keeps the route in the hash, behind the gateway's own path.
+    vi.stubGlobal("window", {
+      location: { pathname: "/ipfs/cid/", search: "", hash: `#/community/endowment${search}` },
+    });
     press();
     expect(navigate).toHaveBeenCalledTimes(1);
   });
