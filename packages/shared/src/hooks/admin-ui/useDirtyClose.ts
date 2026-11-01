@@ -40,6 +40,15 @@ export interface UseDirtyCloseResult {
 }
 
 /**
+ * The guards holding unsaved input or a pending write, latest last. The router
+ * consults only its most recently registered blocker, and every mounted
+ * useDirtyClose registers one, armed or not. So each hook's predicate asks about
+ * all of them, and whichever hook the router asked hands the block to the guard
+ * that armed last.
+ */
+const armedGuards = new Set<(blocker: Blocker) => void>();
+
+/**
  * Confirm-before-discard for admin flow dialogs. Gates an `AdminDialog` close
  * on a dirty signal and surfaces a confirm (wire the result to
  * `DiscardChangesDialog`). Generalizes the bespoke leave-confirm in
@@ -61,12 +70,12 @@ export function useDirtyClose({
 }: UseDirtyCloseOptions): UseDirtyCloseResult {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const blockerRef = useRef<Blocker | null>(null);
+  // Never armed when blockRouteChange is false, though its blocker still registers.
+  const armed = blockRouteChange && (isDirty || preventRouteChange);
 
-  // Inert when blockRouteChange is false (predicate always returns false).
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      blockRouteChange &&
-      (isDirty || preventRouteChange) &&
+      armedGuards.size > 0 &&
       (currentLocation.pathname !== nextLocation.pathname ||
         currentLocation.search !== nextLocation.search)
   );
@@ -78,18 +87,34 @@ export function useDirtyClose({
     event.returnValue = "";
   });
 
-  useEffect(() => {
-    if (blocker.state === "blocked") {
+  const takeBlock = useCallback(
+    (activeBlocker: Blocker) => {
       if (preventRouteChange) {
-        blocker.reset?.();
+        activeBlocker.reset?.();
         blockerRef.current = null;
         setConfirmOpen(false);
         return;
       }
-      blockerRef.current = blocker;
+      blockerRef.current = activeBlocker;
       setConfirmOpen(true);
-    }
-  }, [blocker, preventRouteChange]);
+    },
+    [preventRouteChange]
+  );
+
+  useEffect(() => {
+    if (!armed) return;
+    armedGuards.add(takeBlock);
+    return () => {
+      armedGuards.delete(takeBlock);
+    };
+  }, [armed, takeBlock]);
+
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    const latestGuard = [...armedGuards].at(-1);
+    if (latestGuard) latestGuard(blocker);
+    else blocker.reset?.();
+  }, [blocker, takeBlock]);
 
   const onOpenChange = useCallback(
     (open: boolean) => {
