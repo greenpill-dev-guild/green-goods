@@ -5,6 +5,7 @@ import {
   adminRoutes,
   EDIT_GARDEN_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
 import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
 
 /**
@@ -132,7 +133,10 @@ export function buildGardenViewActions(
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () =>
-        navigate(adminRoutes.gardenMode(view, { ...routeContext, item: EDIT_GARDEN_ROUTE_ITEM })),
+        pushRouteItem(
+          navigate,
+          adminRoutes.gardenMode(view, { ...routeContext, item: EDIT_GARDEN_ROUTE_ITEM })
+        ),
       variant: "primary",
       visible: hasSelectedGarden && canManage,
       primary: true,

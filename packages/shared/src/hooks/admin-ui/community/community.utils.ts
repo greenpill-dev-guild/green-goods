@@ -12,6 +12,7 @@ import {
   adminRoutes,
   FUND_JAR_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**
@@ -157,7 +158,8 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.addMember",
       icon: RiUserAddLine,
       onClick: () =>
-        navigate(
+        pushRouteItem(
+          navigate,
           adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: ADD_MEMBER_ROUTE_ITEM })
         ),
       variant: "primary",
@@ -179,7 +181,8 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
       onClick: () =>
-        navigate(
+        pushRouteItem(
+          navigate,
           adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: FUND_JAR_ROUTE_ITEM })
         ),
       variant: "secondary",

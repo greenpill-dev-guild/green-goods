@@ -156,6 +156,17 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     await waitFor(() => expect(currentUrl()).toBe(before));
   });
 
+  it("goes back once for a double click on Cancel", async () => {
+    const user = userEvent.setup();
+    renderAt(TAB_URL, { before: `/community/members?gardenId=${storyGarden.id}` });
+
+    await user.click(addButton());
+    await user.dblClick(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
+    expect(currentUrl()).toBe(TAB_URL);
+  });
+
   it("stays closed for another route item and for a reader who cannot manage", () => {
     const { unmount } = renderAt(`${TAB_URL}&item=fund-jar`);
     expect(addDialog()).not.toBeInTheDocument();
