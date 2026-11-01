@@ -2,7 +2,6 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { forgetListedPendingJoins } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";
@@ -77,6 +76,7 @@ const members: GardenMember[] = Array.from({ length: 41 }, (_, index) => ({
 }));
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   localStorage.clear();
 });
@@ -343,7 +343,8 @@ describe("GardenGardeners", () => {
       expect(leaveLine()).toBeNull();
     });
 
-    it("shows from the moment a join lands, before the roster lists it, and follows it if it lapses", () => {
+    it("shows from the moment a join lands, before the roster lists it, and goes when its time runs out", () => {
+      vi.useFakeTimers();
       readAs(reader.account);
       localStorage.setItem(
         "greengoods:pending-joins",
@@ -355,7 +356,9 @@ describe("GardenGardeners", () => {
         "To leave this garden, ask a steward like Ana to remove you."
       );
 
-      act(() => forgetListedPendingJoins(reader.account, [GARDEN_ID]));
+      act(() => {
+        vi.advanceTimersByTime(15 * 60 * 1000 + 1);
+      });
       expect(leaveLine()).toBeNull();
     });
   });
