@@ -18,7 +18,7 @@ interface GardenListProps {
   gardens: Garden[];
   selectedGardenId?: string;
   onCardClick: (id: string) => void;
-  /** The one tag on a card's photo, such as Explore's Member, Awaiting review or Open. */
+  /** The one tag on a card's photo, such as Explore's Member, Waiting for approval or Open. */
   tagFor?: (garden: Garden) => string | undefined;
   // Loading states
   showSkeleton: boolean;

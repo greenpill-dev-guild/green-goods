@@ -45,7 +45,7 @@ function exploreState({ listed = LISTED, isPending = false } = {}) {
 
 /**
  * Explore (DL-125, DL-126): every garden the app lists, under Home so the bottom bar stays on
- * Home, with the member's own first and one tag on each card's photo (Member, Awaiting review or
+ * Home, with the member's own first and one tag on each card's photo (Member, Waiting for approval or
  * Open), under a top bar with Back, the title and Filters. A card visits its garden and leaves
  * the active garden alone.
  */
@@ -78,7 +78,7 @@ export const Gardens: Story = {
     ]);
     await expect(
       cards.map((card) => card.querySelector("[data-slot='media-label']")?.textContent ?? null)
-    ).toEqual(["Member", "Member", "Awaiting review", "Open"]);
+    ).toEqual(["Member", "Member", "Waiting for approval", "Open"]);
     // Every card keeps one height, tag or none.
     await expect(new Set(cards.map((card) => card.getBoundingClientRect().height)).size).toBe(1);
     await userEvent.click(canvas.getByRole("button", { name: "Filters" }));

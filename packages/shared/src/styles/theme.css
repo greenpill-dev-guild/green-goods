@@ -2404,6 +2404,15 @@
     font-variant-ligatures: no-contextual;
   }
 
+  .gg-item-row-title[data-lines="2"] {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   /* One detail line that never wraps: each detail carries its separator in a
    * 12px start pad and the list is pulled 12px back inside a one-line clip, so
    * a detail that does not fit wraps below the clip and drops whole, separator

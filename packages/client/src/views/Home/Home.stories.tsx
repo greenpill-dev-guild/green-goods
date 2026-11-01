@@ -139,7 +139,7 @@ function homeState(active: ReturnType<typeof activeGarden>, { awaiting = [] as G
  * title's place, then Wallet, Promises, Your Work and the bell, in a header that stays at the
  * top. The body follows the active garden's five states: a remembered garden goes straight in
  * while the account's gardens load, a failed read says nothing was lost, no active garden opens
- * one page that finds or picks one (DL-146), and a chosen garden opens its journal.
+ * one page that finds or picks one (DL-155), and a chosen garden opens its journal.
  */
 const meta: Meta<typeof Home> = {
   title: "Client/PWA/Home",
@@ -175,7 +175,7 @@ export const Ready: Story = {
     await userEvent.click(chip);
     const switcher = within(await screen.findByRole("dialog", { name: "Your Gardens" }));
     await expect(switcher.getByRole("button", { name: /Vida Verde/ })).toHaveTextContent(
-      "Awaiting review"
+      "Waiting for approval"
     );
   },
 };
@@ -206,18 +206,21 @@ export const ReadFailed: Story = {
 };
 
 /**
- * No garden yet: the first-login page (DL-146) with Explore first and the member's requests
- * awaiting review, whose rows visit. The Community Garden is one of the gardens Explore lists.
+ * No garden yet (DL-155): the Find Your Garden block, then the member's requests waiting for
+ * approval, whose rows visit, with only Profile in the header. The Community Garden is one of the
+ * gardens Explore lists.
  */
 export const NoGardenYet: Story = {
   tags: ["storybook-ci"],
   beforeEach: homeState(activeGarden("none"), { awaiting: [VIDA_VERDE] }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+    await expect(await canvas.findByText("Find Your Garden")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Profile" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Notifications" })).toBeNull();
     await expect(canvas.getByRole("button", { name: /Explore Gardens/ })).toBeVisible();
     await expect(canvas.getByRole("region", { name: "Your Requests" })).toHaveTextContent(
-      "Awaiting review"
+      "Waiting for approval"
     );
     await expect(canvas.queryByText("Green Goods Community Garden")).toBeNull();
   },
@@ -226,9 +229,9 @@ export const NoGardenYet: Story = {
 const NONE_REMEMBERED = activeGarden("choose", SEVERAL);
 
 /**
- * Several gardens and none remembered: the same page, with the member's gardens between Explore
- * and their requests. A row makes its garden active and opens Home in it; no sheet opens by itself,
- * and the chip keeps the switcher.
+ * Several gardens and none remembered (DL-155): the page's title in the chip's place, the member's
+ * gardens, their requests, and Explore Gardens last. A row makes its garden active and opens Home
+ * in it, and no sheet opens by itself.
  */
 export const SeveralGardensNoneRemembered: Story = {
   tags: ["storybook-ci"],
@@ -237,6 +240,7 @@ export const SeveralGardensNoneRemembered: Story = {
     const canvas = within(canvasElement);
     const gardens = within(await canvas.findByRole("region", { name: "Your Gardens" }));
     await expect(screen.queryByRole("dialog")).toBeNull();
+    await expect(canvas.getByRole("heading", { level: 1, name: "Choose a Garden" })).toBeVisible();
     await userEvent.click(gardens.getByRole("button", { name: /Aiyeloja Family Garden/ }));
     await expect(NONE_REMEMBERED.selectGarden).toHaveBeenCalledWith(AIYELOJA.id);
   },
