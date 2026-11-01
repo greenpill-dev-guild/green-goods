@@ -219,7 +219,7 @@ describe("useBatchWorkApproval", () => {
     const { garden, queryClient, sender } = setup();
     queryClient.setDefaultOptions({ queries: { retry: 2, retryDelay: 60_000 } });
     const list = vi
-      .spyOn(sender.batches, "list")
+      .spyOn(sender.batches!, "list")
       .mockRejectedValue(new Error("wallet reconnecting"));
     const { result } = renderHookWithProviders(() => useBatchWorkApproval(garden), { queryClient });
     expect(result.current.isSettlingHold).toBe(true);
