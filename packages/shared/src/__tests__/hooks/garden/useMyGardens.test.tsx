@@ -6,13 +6,14 @@
  */
 
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { gardensKeys } from "../../../config/query-keys/garden";
 import { gardenJoinRequestKeys } from "../../../config/query-keys/garden-join-requests";
 import { useMyGardens } from "../../../hooks/garden/useMyGardens";
+import { markOwnJoinEntry } from "../../../modules/garden/pending-joins";
 import {
   awaitingJoinRequestScope,
   useAwaitingJoinRequestsStore,
@@ -133,6 +134,38 @@ describe("useMyGardens", () => {
     await waitFor(() => expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe("{}"));
     expect(result.current.gardens[0]?.membership).toEqual({
       roles: ["steward"],
+      pendingJoin: false,
+    });
+  });
+
+  // The indexer is behind the chain for a while after a join: the join writes the account into the
+  // list it holds (useJoinGarden), and the next read drops it again.
+  it("keeps an open join standing in until a read of the roster lists the account", async () => {
+    getGardens.mockResolvedValue([openJoined]);
+    const { result } = renderMyGardens();
+    await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+    const key = gardensKeys.byChain(DEFAULT_CHAIN_ID);
+    const listed = { ...openJoined, gardeners: [ACCOUNT] };
+    savePendingJoins({ [openJoined.id]: { address: ACCOUNT, timestamp: Date.now() } });
+    client.setQueryData(key, [markOwnJoinEntry(listed, ACCOUNT)]);
+    await waitFor(() => expect(result.current.gardens[0]?.membership.roles).toEqual(["gardener"]));
+    // A later write to the list, such as a steward's approval elsewhere, is no read of this roster.
+    await act(async () => {
+      client.setQueryData<Garden[]>(key, (gardens) => gardens?.map((garden) => ({ ...garden })));
+    });
+    expect(localStorage.getItem(PENDING_JOINS_KEY)).toContain(openJoined.id);
+
+    await act(() => client.invalidateQueries({ queryKey: key }));
+    await waitFor(() =>
+      expect(result.current.gardens[0]?.membership).toEqual({ roles: [], pendingJoin: true })
+    );
+
+    getGardens.mockResolvedValue([listed]);
+    await act(() => client.invalidateQueries({ queryKey: key }));
+    await waitFor(() => expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe("{}"));
+    expect(result.current.gardens[0]?.membership).toEqual({
+      roles: ["gardener"],
       pendingJoin: false,
     });
   });

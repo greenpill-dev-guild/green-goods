@@ -2,16 +2,17 @@ import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { listMyGardens, type MyGarden } from "../../modules/garden/membership";
 import {
+  forgetListedPendingJoins,
+  isOwnJoinEntry,
+  pendingJoinGardenIds,
+} from "../../modules/garden/pending-joins";
+import {
   awaitingJoinRequestScope,
   useAwaitingJoinRequestsStore,
 } from "../../stores/useAwaitingJoinRequestsStore";
 import type { Garden } from "../../types/domain";
 import { useGardens } from "../blockchain/useBaseLists";
-import {
-  forgetListedPendingJoins,
-  pendingJoinGardenIds,
-  usePendingJoinsVersion,
-} from "./useJoinGarden";
+import { usePendingJoinsVersion } from "./useJoinGarden";
 
 export interface MyGardens {
   /** The account's gardens in the list's order (newest first), each with its roles. */
@@ -50,12 +51,15 @@ export function useMyGardens(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [list, account, pendingJoinsVersion]);
 
-  // Once the roster lists the account, its open join has done its job, and a request to join
-  // there has been answered.
+  // Once a read of the roster lists the account, its open join has done its job, and a request to
+  // join there has been answered. The join's own optimistic entry is not a read: the next read can
+  // drop it while the indexer catches up, and the pending join has to stand in then.
   useEffect(() => {
     if (!account) return;
     const listed = gardens
-      .filter(({ membership }) => membership.roles.length > 0)
+      .filter(
+        ({ garden, membership }) => membership.roles.length > 0 && !isOwnJoinEntry(garden, account)
+      )
       .map(({ garden }) => garden.id);
     if (listed.length === 0) return;
     forgetListedPendingJoins(account, listed);
