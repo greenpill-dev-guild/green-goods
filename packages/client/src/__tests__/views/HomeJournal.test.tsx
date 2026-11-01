@@ -743,10 +743,12 @@ describe("Home journal", () => {
       expect(promises.recorded.opener).toBe(card);
     });
 
-    it("is absent while the cycles load, when their read failed, and when none is open", () => {
+    it("holds its height while the cycles load, and is absent when their read failed or none is open", () => {
       mocks.cycles.mockReturnValue(cycles({ state: { status: "loading" } }));
       const { container, rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
-      expect(container).toBeEmptyDOMElement();
+      const section = container.querySelector("[data-component='HighlightsCarousel']");
+      expect(section).toHaveAttribute("aria-busy", "true");
+      expect(section?.querySelector("li")).toHaveClass("h-28");
 
       for (const status of ["error", "empty"] as const) {
         mocks.cycles.mockReturnValue(cycles({ state: { status } }));
@@ -760,7 +762,7 @@ describe("Home journal", () => {
     });
   });
 
-  it("mounts the journal's sections in DL-127's order, closing with About This Garden", () => {
+  it("mounts the journal's sections in DL-156's order, closing with About This Garden", () => {
     const garden = { id: GARDEN, name: "Riverside Commons Garden" } as Garden;
     const { container } = render(
       <HomeJournal garden={garden} membership={{ roles: ["gardener"], pendingJoin: false }} />
@@ -780,8 +782,8 @@ describe("Home journal", () => {
         ].includes(name ?? "")
       );
     expect(order).toEqual([
-      "HomeNeedsYourAttention",
       "HighlightsCarousel",
+      "HomeNeedsYourAttention",
       "RecentActivity",
       "Continue",
       "TakePart",

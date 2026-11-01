@@ -3,6 +3,7 @@ import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import React from "react";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { TAB_ICON, TAB_SIZING, TAB_RAIL } from "./tabRailStyles";
 
 export interface StandardTab {
   id: string;
@@ -78,7 +79,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
     <div
       role="group"
       aria-label={ariaLabel}
-      className={cn("flex border-b border-border flex-shrink-0", className)}
+      className={cn("flex border-b border-border flex-shrink-0", TAB_RAIL, className)}
     >
       {tabs.map((tab) => (
         <button
@@ -94,7 +95,8 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           }}
           disabled={tab.disabled}
           className={cn(
-            "flex min-h-11 items-center justify-center gap-1 px-1.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            "flex min-h-11 items-center justify-center gap-1 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            TAB_SIZING,
             "focus:outline-none focus-visible:shadow-button-primary-focus",
             variant === "compact" ? "py-2.5 sm:py-3" : "py-3 sm:py-3.5",
             activeTab === tab.id
@@ -107,20 +109,14 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
         >
           {tab.icon && (
             // The label, icon and indicator use the same theme-aware interactive foreground.
-            <span
-              className={cn(
-                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
-                activeTab === tab.id && pwaStatusStyles.primary.icon
-              )}
-            >
+            <span className={cn(TAB_ICON, activeTab === tab.id && pwaStatusStyles.primary.icon)}>
               {tab.icon}
             </span>
           )}
 
-          {/* Label — allowed to wrap to two lines at narrow widths: es/pt
-              labels ("Compromisos", "Jardineros/as") must never clip glyphs.
-              hyphens-auto so a single long word breaks with a hyphen, not a
-              bare mid-word split. */}
+          {/* One line in every language at every phone width (DL-158). Wrapping stays as the
+              last resort for a larger text setting, so a glyph is never clipped. hyphens-auto
+              so a single long word breaks with a hyphen, not a bare mid-word split. */}
           <span className="line-clamp-2 min-w-0 break-words text-center hyphens-auto">
             {tab.label}
           </span>

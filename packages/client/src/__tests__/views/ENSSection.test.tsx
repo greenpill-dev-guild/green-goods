@@ -120,12 +120,8 @@ describe("Profile ENSSection", () => {
     expect(screen.getByText("ines.greengoods.eth")).toBeInTheDocument();
     expect(screen.getByText("Ready")).toBeInTheDocument();
     expect(screen.getByText("People can use this name to find your work.")).toBeInTheDocument();
-    // A row with its act in the right slot, under the short word the section's title explains.
-    const change = screen.getByRole("button", { name: "Change Username" });
-    expect(change).toHaveTextContent(/^Change$/);
-    expect(change.closest(".gg-fact-action")).not.toBeNull();
 
-    fireEvent.click(change);
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
 
     const steps = within(sheet()).getByTestId("change-username-steps");
     expect(within(sheet()).getByText("Your username is ines.greengoods.eth.")).toBeInTheDocument();
@@ -213,12 +209,7 @@ describe("Profile ENSSection", () => {
 
     expect(screen.getByText("ines-duarte.greengoods.eth")).toBeInTheDocument();
     expect(screen.getByText("Changing · 2 of 2")).toBeInTheDocument();
-    const claim = screen.getByRole("button", { name: "Claim ines-duarte" });
-    // Both acts share the right slot, one above the other.
-    expect(claim.closest(".gg-fact-action")).toContainElement(
-      screen.getByRole("button", { name: "Choose Another" })
-    );
-    fireEvent.click(claim);
+    fireEvent.click(screen.getByRole("button", { name: "Claim ines-duarte" }));
     expect(mocks.acts.claim).toHaveBeenCalledWith("ines-duarte");
     fireEvent.click(screen.getByRole("button", { name: "Choose Another" }));
     expect(mocks.acts.chooseAnother).toHaveBeenCalled();
@@ -231,11 +222,6 @@ describe("Profile ENSSection", () => {
     const claim = screen.getByRole("button", { name: "Claim Name" });
     expect(screen.getByText("4/50")).toBeInTheDocument();
     expect(claim).toBeDisabled();
-    // The act keeps the right slot; the field opens under the row, in the same frame.
-    const field = screen.getByLabelText("Username");
-    expect(claim.closest(".gg-fact-action")).not.toBeNull();
-    expect(field.closest('[data-component="FactList"]')).toBeNull();
-    expect(field.closest('[data-component="UsernameCard"]')).toContainElement(claim);
 
     mocks.available = true;
     cleanup();
@@ -245,22 +231,12 @@ describe("Profile ENSSection", () => {
     await waitFor(() => expect(mocks.acts.claim).toHaveBeenCalledWith("ines"));
   });
 
-  it("keeps a state with nothing to act on a setting's row, its words across the row", () => {
-    mocks.card = { kind: "checking", slug: "ines" };
-    renderSection();
-
-    expect(
-      screen.getByText("ines.greengoods.eth").closest('[data-component="FactRow"]')
-    ).toHaveAttribute("data-kind", "setting");
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-  });
-
   it("sends an account outside every garden to the open gardens", () => {
     mocks.card = { kind: "locked" };
     renderSection();
 
     expect(screen.getByText("Not available yet")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open Gardens" }));
-    expect(mocks.navigate).toHaveBeenCalledWith("/home");
+    expect(mocks.navigate).toHaveBeenCalledWith("/home/explore");
   });
 });

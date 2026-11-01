@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
 import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
@@ -9,9 +8,10 @@ import { debugError } from "@green-goods/shared/utils/debug";
 import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/Cards";
+import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 import { APP_ROUTES } from "@/config/pwaRouting";
-import { SettingTitle } from "./SettingTitle";
 
 export const AccountInfo: React.FC = () => {
   const { authMode, credential, walletAddress, embeddedAddress, userName } = useAuthState();
@@ -57,7 +57,7 @@ export const AccountInfo: React.FC = () => {
   };
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.account",
@@ -65,17 +65,19 @@ export const AccountInfo: React.FC = () => {
         })}
       </h5>
 
-      <FactList>
-        <FactRow
-          icon={
-            authMode === "passkey" ? (
-              <RiKeyLine className="w-4" />
-            ) : (
-              <RiWalletLine className="w-4" />
-            )
-          }
-          label={
-            <SettingTitle>
+      <Card>
+        <div className="flex items-center gap-3 w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
+              {authMode === "passkey" ? (
+                <RiKeyLine className="w-4" />
+              ) : (
+                <RiWalletLine className="w-4" />
+              )}
+            </div>
+          </Avatar>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="truncate text-sm font-medium">
               {authMode === "passkey"
                 ? intl.formatMessage({
                     id: "app.account.passkey",
@@ -85,44 +87,52 @@ export const AccountInfo: React.FC = () => {
                     id: "app.account.wallet",
                     defaultMessage: "Wallet",
                   })}
-            </SettingTitle>
-          }
-          value={
-            authMode === "passkey" && credential
-              ? intl.formatMessage({ id: "app.account.statusActive", defaultMessage: "Active" })
-              : (authMode === "wallet" && walletAddress) ||
-                  (authMode === "embedded" && embeddedAddress)
-                ? intl.formatMessage({
-                    id: "app.account.statusConnected",
-                    defaultMessage: "Connected",
-                  })
-                : intl.formatMessage({
-                    id: "app.account.statusNotConfigured",
-                    defaultMessage: "Not configured",
-                  })
-          }
-        />
+            </div>
+            <div className="text-xs text-text-sub-600">
+              {authMode === "passkey" && credential
+                ? intl.formatMessage({ id: "app.account.statusActive", defaultMessage: "Active" })
+                : (authMode === "wallet" && walletAddress) ||
+                    (authMode === "embedded" && embeddedAddress)
+                  ? intl.formatMessage({
+                      id: "app.account.statusConnected",
+                      defaultMessage: "Connected",
+                    })
+                  : intl.formatMessage({
+                      id: "app.account.statusNotConfigured",
+                      defaultMessage: "Not configured",
+                    })}
+            </div>
+          </div>
+        </div>
+      </Card>
 
-        {primaryAddress && (
-          <FactRow
-            icon={<RiUserLine className="w-4" />}
-            // Named for what it's for, without Web3 terms (PRD-1026 D3).
-            label={
-              <SettingTitle>
+      {primaryAddress && (
+        <Card>
+          <div className="flex items-center gap-3 w-full">
+            <Avatar>
+              <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
+                <RiUserLine className="w-4" />
+              </div>
+            </Avatar>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              {/* Named for what it's for, without Web3 terms (PRD-1026 D3). */}
+              <div className="text-sm font-medium">
                 {intl.formatMessage({
                   id: "app.account.accountId",
                   defaultMessage: "Account ID",
                 })}
-              </SettingTitle>
-            }
-            description={intl.formatMessage({
-              id: "app.account.accountIdLine",
-              defaultMessage: "Support or a steward may ask for it.",
-            })}
-            value={<AddressCopy address={primaryAddress as Address} size="compact" />}
-          />
-        )}
-      </FactList>
+              </div>
+              <div className="text-xs text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.account.accountIdLine",
+                  defaultMessage: "Support or a steward may ask for it.",
+                })}
+              </div>
+              <AddressCopy address={primaryAddress as Address} size="compact" />
+            </div>
+          </div>
+        </Card>
+      )}
 
       {authMode === "passkey" && passkeyServerEnabled && (
         <div className="space-y-1 px-1 text-xs leading-relaxed text-text-sub-600">
@@ -164,6 +174,6 @@ export const AccountInfo: React.FC = () => {
           defaultMessage: "Logout",
         })}
       </Button>
-    </>
+    </section>
   );
 };

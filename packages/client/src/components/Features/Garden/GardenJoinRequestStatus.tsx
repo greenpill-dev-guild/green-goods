@@ -62,7 +62,7 @@ export function GardenJoinRequestStatus({
                 : request?.state === "pending"
                   ? {
                       id: "app.garden.joinRequest.pendingTitle",
-                      defaultMessage: "Request awaiting review",
+                      defaultMessage: "Request waiting for approval",
                     }
                   : request?.state === "welcomed"
                     ? {

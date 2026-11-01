@@ -1,7 +1,7 @@
 /**
  * The active garden: the garden the installed app's Home opens in. It is a device preference
  * for each chain and account (PWA Home decision 8), never account state. Only the chip changes it
- * (decision 6), with two exceptions: a member row on Home's first-login page (DL-146) and joining
+ * (decision 6), with two exceptions: a member row on Home's first-login page (DL-155) and joining
  * an open garden (DL-147). `resolveActiveGarden` combines the account's gardens
  * (`useMyGardens`) with the garden this device remembers for the chain and account:
  *

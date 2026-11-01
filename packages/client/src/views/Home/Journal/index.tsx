@@ -30,11 +30,10 @@ export interface HomeJournalProps {
  * inside the app's scroller. Home mounts it only once the active garden is `ready`; loading,
  * error, no garden and the chooser are Home's own states.
  *
- * This is the one place the compact journal's sections mount, in this order: Needs Your
- * Attention for stewards (step 19), the Highlights carousel and Recent Activity (step 7),
- * Continue (step 8), Take Part (step 9), then About This Garden (step 10, DL-128), whose rows
- * and sheets keep every entry point the garden page offered within reach of Home. Where About
- * sits is reviewed once the first slice renders.
+ * This is the one place the compact journal's sections mount, in this order (DL-156): What's
+ * Open, then Needs Your Attention for stewards, Recent Activity, Continue, Take Part, then About
+ * This Garden (DL-128), whose rows and sheets keep every entry point the garden page offered
+ * within reach of Home.
  *
  * The garden's duties are read once here. Needs Your Attention draws them, and a duty card in
  * the carousel would take the first of the same read, so both show one count. Take Part's See
@@ -52,8 +51,8 @@ export function HomeJournal({ garden }: HomeJournalProps) {
   useEffect(() => closeTakePartSheet, [closeTakePartSheet, garden.id]);
   return (
     <div className="flex flex-col pb-4">
-      <NeedsYourAttention garden={garden} duties={duties} />
       <HighlightsCarousel gardenId={garden.id} />
+      <NeedsYourAttention garden={garden} duties={duties} />
       <RecentActivity gardenId={garden.id} />
       <Continue />
       <TakePart gardenId={garden.id} />

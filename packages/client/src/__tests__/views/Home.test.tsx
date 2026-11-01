@@ -1,5 +1,5 @@
 /**
- * Home in the member's active garden (DL-123 to DL-125, DL-146): the header's chip, the five
+ * Home in the member's active garden (DL-123 to DL-125, DL-155): the header's chip, the five
  * states of `useActiveGarden`, the first-login page and the switcher. The active garden is the
  * edge: its store and resolver have their own tests, so here a pick calls `selectGarden` and
  * nothing else does, and a join stands in for its write by changing what the hook returns.
@@ -305,14 +305,36 @@ describe("Home's header", () => {
     expect(screen.queryByRole("button", { name: "Filters" })).not.toBeInTheDocument();
   });
 
-  it("names Home in the chip's place when the member has no garden, and the bell has nothing to list", () => {
+  it("keeps only Profile before a garden is entered, and the page its title for assistive tech", () => {
     setActive("none");
     renderHome();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Home" })).toHaveClass("sr-only");
     expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
-    // The other launchers keep their places: the bell stays, with no garden's events to show.
-    expect(screen.getByRole("button", { name: "Notifications" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Wallet" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    expect(location).toBe("/home/profile");
+  });
+
+  it("shows no control that could turn out wrong while the gardens load with none remembered", () => {
+    setActive("loading");
+    renderHome();
+
+    expect(screen.queryByRole("button", { name: "Profile" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+  });
+
+  it("titles the page Choose a Garden, with no chip to cut it off", () => {
+    setActive("choose", [
+      [TAS, ["steward"]],
+      [AIYELOJA, ["gardener"]],
+    ]);
+    renderHome();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Choose a Garden" })).toBeVisible();
+    expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
   });
 
   it("mounts the bell's read with a remembered garden while the account's gardens still load", async () => {
@@ -365,10 +387,11 @@ describe("the first-login page", () => {
   ];
   const yourGardens = () => screen.getByRole("region", { name: "Your Gardens" });
 
-  it("gives a member of none Explore alone: the Community Garden's door has left Home", () => {
+  it("gives a member of none the Find Your Garden block: the Community Garden's door stays gone", () => {
     setActive("none");
     renderHome();
 
+    expect(screen.getByText("Find Your Garden")).toBeVisible();
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
     expect(screen.queryByText(COMMUNITY.name)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Join Garden" })).not.toBeInTheDocument();
@@ -378,60 +401,50 @@ describe("the first-login page", () => {
     expect(selectGarden).not.toHaveBeenCalled();
   });
 
-  it("lists a member's gardens under Explore with their role, and opens no sheet by itself", async () => {
+  it("lists a member's gardens with their role, Explore last, and opens no sheet by itself", async () => {
     setActive("choose", SEVERAL);
     renderHome();
     await act(() => vi.advanceTimersByTimeAsync(1_000));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     const explore = screen.getByRole("button", { name: /Explore Gardens/ });
-    expect(explore.compareDocumentPosition(yourGardens())).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(explore.compareDocumentPosition(yourGardens())).toBe(Node.DOCUMENT_POSITION_PRECEDING);
     expect(
       within(yourGardens())
         .getAllByRole("button")
         .map((row) => row.textContent)
-    ).toEqual([
-      "TAS HUBStewardTAS HUB place",
-      "Aiyeloja Family GardenGardenerAiyeloja Family Garden place",
-    ]);
+    ).toEqual(["TAS HUBSteward", "Aiyeloja Family GardenGardener"]);
     expect(selectGarden).not.toHaveBeenCalled();
   });
 
-  it("makes a picked garden active, and the chip that will name it takes focus from the row", () => {
+  it("makes a picked garden active, and the chip that then names it takes focus", () => {
     setActive("choose", SEVERAL);
-    renderHome();
+    const { rerender } = renderHome();
 
     fireEvent.click(within(yourGardens()).getByRole("button", { name: /Aiyeloja Family Garden/ }));
-
     expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
     expect(location).toBe("/home");
-    expect(screen.getByRole("button", { name: /Choose a Garden/ })).toHaveFocus();
+
+    setActive("ready", SEVERAL, AIYELOJA.id);
+    rerender();
+    expect(document.querySelector("[data-component='GardenChip']")).toHaveFocus();
   });
 
   it.each([
     ["a member of none", "none" as const, []],
     ["a member of several", "choose" as const, SEVERAL],
-  ])("marks %s's requests as awaiting review, and a request's row visits", (_who, status, mine) => {
+  ])("marks %s's requests as waiting for approval, and a request's row visits", (_who, status, mine) => {
     setActive(status, mine);
     state.awaiting = new Set([VIDA.id.toLowerCase()]);
     renderHome();
 
     const requests = screen.getByRole("region", { name: "Your Requests" });
-    expect(requests).toHaveTextContent("Awaiting review");
+    expect(requests).toHaveTextContent("Waiting for approval");
     fireEvent.click(within(requests).getByRole("button", { name: /Vida Verde/ }));
 
     expect(location).toBe(`/home/${VIDA.id}`);
     expect(locationState).toEqual({ returnTo: "/home" });
     expect(selectGarden).not.toHaveBeenCalled();
-  });
-
-  it("keeps the switcher behind the chip", async () => {
-    setActive("choose", SEVERAL);
-    renderHome();
-
-    fireEvent.click(screen.getByRole("button", { name: /Choose a Garden/ }));
-
-    expect(await screen.findByRole("dialog", { name: "Your Gardens" })).toBeInTheDocument();
   });
 });
 
@@ -510,7 +523,7 @@ describe("the switcher", () => {
     expect(rows.map((row) => row.textContent)).toEqual([
       "TAS HUBTAS HUB placeOwner",
       "Aiyeloja Family GardenAiyeloja Family Garden placeGardener",
-      "Vida VerdeVida Verde placeAwaiting review",
+      "Vida VerdeVida Verde placeWaiting for approval",
       "Explore GardensFind a garden to join",
     ]);
     expect(rows[0]).toHaveAttribute("aria-current", "true");
@@ -534,7 +547,7 @@ describe("the switcher", () => {
     expect(location).toBe("/home");
   });
 
-  it("visits a garden awaiting review without switching to it", async () => {
+  it("visits a garden waiting for approval without switching to it", async () => {
     renderHome();
     fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
 

@@ -137,7 +137,7 @@ describe("Explore", () => {
     const tags = screen
       .getAllByTestId("garden-card")
       .map((card) => card.querySelector("[data-slot='media-label']")?.textContent ?? null);
-    expect(tags).toEqual(["Member", null, "Open", "Awaiting review"]);
+    expect(tags).toEqual(["Member", null, "Open", "Waiting for approval"]);
   });
 
   it("lists a family test garden to its members only", () => {

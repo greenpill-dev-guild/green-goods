@@ -1,11 +1,11 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { UsernameCardState } from "@green-goods/shared/hooks/client-ui/profile/useUsernameController";
 import { RiAtLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { SETTING_ACT_WIDTH } from "./settingControls";
+import { Card } from "@/components/Cards";
+import { Avatar } from "@/components/Display";
 import { usernameCardWords } from "./usernameCardWords";
 
 export interface UsernameCardProps {
@@ -27,12 +27,12 @@ export interface UsernameCardProps {
 }
 
 /**
- * The Account tab's Username (PRD-1026, DL-152): one fact row, the name with one text chip and
- * one sentence (D7), and the state's acts in the right slot, one above the other when it has two.
- * While the card asks for a name, the field opens under the row in the same frame. Every state
- * comes from `selectUsernameCard` and its words from `usernameCardWords`; this lays them out and
- * offers each state's acts. The name wraps rather than truncating, because people must read it
- * exactly (p11).
+ * The Account tab's Username card (PRD-1026): the tab's own row, a 40px icon
+ * beside the name with one text chip and one sentence (D7), then any field
+ * and the card's acts at full width under it, like Logout. Every state comes
+ * from `selectUsernameCard` and its words from `usernameCardWords`; this lays
+ * them out and offers each state's acts. The name wraps rather than
+ * truncating, because people must read it exactly (p11).
  */
 export function UsernameCard({
   card,
@@ -55,11 +55,10 @@ export function UsernameCard({
     <Button
       type="button"
       emphasis="secondary"
-      size="sm"
       onClick={onCheckStatus}
       disabled={!isOnline}
       loading={isOnline && isCheckingStatus}
-      className={SETTING_ACT_WIDTH}
+      className="w-full"
     >
       {isOnline
         ? formatMessage({ id: "app.profile.username.checkStatus", defaultMessage: "Check Status" })
@@ -71,21 +70,21 @@ export function UsernameCard({
   );
 
   let actions: ReactNode = null;
+  let control: ReactNode = null;
   switch (card.kind) {
     case "ready":
-      actions = (
-        // The section's title says what changes, so the slot's short word does; a screen
-        // reader hears the whole act.
+      // The card's one act sits where a setting's control does, in that control's width. A phone
+      // under 390px drops it under the text, since a name must never break mid-word beside it.
+      control = (
         <Button
           type="button"
           emphasis="secondary"
-          size="sm"
           onClick={onChangeUsername}
           aria-label={formatMessage({
             id: "app.profile.username.change",
             defaultMessage: "Change Username",
           })}
-          className={SETTING_ACT_WIDTH}
+          className="w-[120px] sm:w-[140px] @max-[358px]:w-full"
         >
           {formatMessage({ id: "app.profile.username.changeShort", defaultMessage: "Change" })}
         </Button>
@@ -101,7 +100,7 @@ export function UsernameCard({
       actions = (
         <>
           {checkStatus}
-          <Button asChild emphasis="secondary" size="sm" className={SETTING_ACT_WIDTH}>
+          <Button asChild emphasis="secondary" className="w-full">
             <a href={helpHref} target="_blank" rel="noopener noreferrer">
               {formatMessage({ id: "app.profile.username.getHelp", defaultMessage: "Get Help" })}
             </a>
@@ -114,23 +113,16 @@ export function UsernameCard({
         <>
           <Button
             type="button"
-            size="sm"
             onClick={() => onClaim(card.to)}
             disabled={!isOnline}
-            className={SETTING_ACT_WIDTH}
+            className="w-full"
           >
             {formatMessage(
               { id: "app.profile.username.claimNamed", defaultMessage: "Claim {name}" },
               { name: card.to }
             )}
           </Button>
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            onClick={onChooseAnother}
-            className={SETTING_ACT_WIDTH}
-          >
+          <Button type="button" emphasis="secondary" onClick={onChooseAnother} className="w-full">
             {formatMessage({
               id: "app.profile.username.chooseAnother",
               defaultMessage: "Choose Another",
@@ -141,13 +133,7 @@ export function UsernameCard({
       break;
     case "locked":
       actions = (
-        <Button
-          type="button"
-          emphasis="secondary"
-          size="sm"
-          onClick={onOpenGardens}
-          className={SETTING_ACT_WIDTH}
-        >
+        <Button type="button" emphasis="secondary" onClick={onOpenGardens} className="w-full">
           {formatMessage({ id: "app.profile.discoverGardens", defaultMessage: "Open Gardens" })}
         </Button>
       );
@@ -156,10 +142,9 @@ export function UsernameCard({
       actions = (
         <Button
           type="button"
-          size="sm"
           onClick={onClaimTyped}
           disabled={!isOnline || !canClaim}
-          className={SETTING_ACT_WIDTH}
+          className="w-full"
         >
           {isOnline
             ? formatMessage({ id: "app.profile.claimButton", defaultMessage: "Claim Name" })
@@ -177,28 +162,36 @@ export function UsernameCard({
   }
 
   return (
-    <div className="gg-card" data-component="UsernameCard" data-state={card.kind}>
-      <FactList frame="inset" className="px-3.5">
-        <FactRow
-          icon={<RiAtLine className="w-4" />}
-          label={
-            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="min-w-0 [overflow-wrap:anywhere]">{title}</span>
+    <Card>
+      <div
+        className="flex w-full flex-col gap-3"
+        data-component="UsernameCard"
+        data-state={card.kind}
+      >
+        <div className="flex flex-wrap items-start gap-3">
+          <Avatar>
+            <RiAtLine className="h-4 w-4 text-primary-on-surface" aria-hidden="true" />
+          </Avatar>
+          <div className="flex min-w-0 flex-1 basis-0 flex-col gap-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="min-w-0 text-sm font-medium text-text-strong-950 [overflow-wrap:anywhere]">
+                {title}
+              </span>
               {chip ? (
-                <StatusBadge size="xs" variant={chip.tone} showIcon={false}>
+                <StatusBadge size="xs" variant={chip.tone} showIcon={false} className="shrink-0">
                   {chip.text}
                 </StatusBadge>
               ) : null}
-            </span>
-          }
-          description={sentence}
-          // An empty slot keeps a state with no act a setting's row, its words across the row.
-          action={actions ? <span className="flex flex-col gap-2">{actions}</span> : <></>}
-        />
-      </FactList>
-      {card.kind === "choose" && field ? (
-        <div className="border-t border-stroke-soft-200 px-3.5 py-3">{field}</div>
-      ) : null}
-    </div>
+            </div>
+            <p className="text-xs text-text-sub-600">{sentence}</p>
+          </div>
+          {control ? (
+            <div className="shrink-0 self-center @max-[358px]:basis-full">{control}</div>
+          ) : null}
+        </div>
+        {card.kind === "choose" ? field : null}
+        {actions ? <div className="flex flex-col gap-2">{actions}</div> : null}
+      </div>
+    </Card>
   );
 }

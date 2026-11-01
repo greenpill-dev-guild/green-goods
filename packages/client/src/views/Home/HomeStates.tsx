@@ -12,7 +12,7 @@ import { HomeSection } from "./HomeSection";
 import { STANDING_LABEL_IDS, type SwitcherRow } from "./homeGardens";
 
 /**
- * Home's states before its journal (DL-123, DL-146): loading, a failed read, and no active garden.
+ * Home's states before its journal (DL-123, DL-155): loading, a failed read, and no active garden.
  * Each keeps the header above it.
  */
 
@@ -57,9 +57,10 @@ interface HomeNoActiveGardenProps {
 }
 
 /**
- * No active garden, as at first login (DL-146): Explore first, then the gardens the member
- * belongs to, whose rows make that garden active, then the gardens they asked to join, whose
- * rows visit and switch nothing.
+ * No active garden, as at first login (DL-155). A member of no garden finds one: the state block
+ * with Explore Gardens, then any gardens they asked to join, whose rows visit and switch nothing.
+ * A member of several picks one: their gardens, whose rows make that garden active and open Home,
+ * then their requests, with Explore Gardens last.
  */
 export function HomeNoActiveGarden({ rows, onExplore, onPick, onVisit }: HomeNoActiveGardenProps) {
   const { formatMessage } = useIntl();
@@ -70,35 +71,55 @@ export function HomeNoActiveGarden({ rows, onExplore, onPick, onVisit }: HomeNoA
         key={garden.id}
         lead={{ kind: "photo", src: garden.bannerImage, fallbackIcon: RiSeedlingLine }}
         title={garden.name}
+        titleLines={2}
         status={{
           label: formatMessage({ id: STANDING_LABEL_IDS[standing] }),
           tone: awaiting ? "warning" : "neutral",
         }}
-        details={[garden.location]}
         onOpen={() => (awaiting ? onVisit(garden.id) : onPick(garden.id))}
       />
     );
   };
   const member = rows.filter(({ standing }) => standing !== "awaiting");
   const requests = rows.filter(({ standing }) => standing === "awaiting");
+  const yourRequests =
+    requests.length > 0 ? (
+      <HomeSection title={formatMessage({ id: "app.home.requests.title" })}>
+        {requests.map(gardenRow)}
+      </HomeSection>
+    ) : null;
+  if (member.length === 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <EmptyState
+          icon={<RiCompass3Line />}
+          title={formatMessage({ id: "app.home.none.title" })}
+          description={formatMessage({ id: "app.home.none.description" })}
+          action={
+            <Button type="button" onClick={onExplore}>
+              {formatMessage({ id: "app.home.explore.title" })}
+            </Button>
+          }
+        />
+        {yourRequests}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-6">
+      <p className="type-body text-text-sub-600">
+        {formatMessage({ id: "app.home.chooser.description" })}
+      </p>
+      <HomeSection title={formatMessage({ id: "app.home.switcher.title" })}>
+        {member.map(gardenRow)}
+      </HomeSection>
+      {yourRequests}
       <ItemRow
         lead={{ kind: "icon", icon: <RiCompass3Line /> }}
         title={formatMessage({ id: "app.home.explore.title" })}
         details={[formatMessage({ id: "app.home.explore.row" })]}
         onOpen={onExplore}
       />
-      {member.length > 0 ? (
-        <HomeSection title={formatMessage({ id: "app.home.switcher.title" })}>
-          {member.map(gardenRow)}
-        </HomeSection>
-      ) : null}
-      {requests.length > 0 ? (
-        <HomeSection title={formatMessage({ id: "app.home.requests.title" })}>
-          {requests.map(gardenRow)}
-        </HomeSection>
-      ) : null}
     </div>
   );
 }
