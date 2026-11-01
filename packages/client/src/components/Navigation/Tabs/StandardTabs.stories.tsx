@@ -101,6 +101,39 @@ export const WithIcons: Story = {
   render: () => <TabsDemo tabs={tabsWithIcons} />,
 };
 
+/** Under 360px the glyphs give way on every tab, and each label and count keep one line (DL-158). */
+export const NarrowRailKeepsOneLine: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div style={{ width: 320 }}>
+      <TabsDemo
+        tabs={[
+          { id: "pending", label: "Pendente", icon: <RiHomeLine className="w-4 h-4" /> },
+          {
+            id: "review",
+            label: "Para revisar",
+            icon: <RiPlantLine className="w-4 h-4" />,
+            count: 120,
+          },
+          { id: "done", label: "Concluído", icon: <RiUserLine className="w-4 h-4" /> },
+        ]}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const tabs = within(canvasElement).getAllByRole("button");
+    await expect(tabs).toHaveLength(3);
+    for (const tab of tabs) {
+      await expect(tab.querySelector("svg")?.parentElement).not.toBeVisible();
+      const label = tab.querySelector("span.line-clamp-2") as HTMLElement;
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const lines = new Set([...range.getClientRects()].map(({ top }) => Math.round(top)));
+      await expect(lines.size).toBe(1);
+    }
+  },
+};
+
 export const WithDisabled: Story = {
   render: () => <TabsDemo tabs={tabsWithDisabled} />,
 };

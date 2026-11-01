@@ -103,7 +103,8 @@ vi.mock("@green-goods/shared/hooks/ens/useProtocolMemberStatus", () => ({
   useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
 }));
 
-vi.mock("@remixicon/react", () => ({
+vi.mock("@remixicon/react", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   RiAwardLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-award" }),
   RiAlertLine: (props: any) => createElement("span", props),
   RiCheckboxCircleLine: (props: any) => createElement("span", props),

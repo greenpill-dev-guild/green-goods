@@ -232,7 +232,7 @@ export const Pending: Story = {
   beforeEach: withJoinRequests({ hasCheckedStatus: true, request: selfRequest() }),
   play: async () => {
     const sheet = await openSheet();
-    await expect(sheet.getByText("Request awaiting review")).toBeVisible();
+    await expect(sheet.getByText("Request waiting for approval")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
     await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
     await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));

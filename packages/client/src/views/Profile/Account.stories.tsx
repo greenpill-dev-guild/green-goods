@@ -21,9 +21,8 @@ import { ProfileAccount } from "./Account";
 const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 
 /**
- * The Profile's Account tab (DL-152): every section a titled, divided fact list under one heading
- * pattern, Username and Your Services as rows with their act in the right slot, and only the
- * install card, when the phone offers one, still a card. The gardens and the name are fictional.
+ * The Profile's Account tab (DL-159): every section its own cards under one heading pattern, with
+ * Username's and Your Services' act in the right slot. The gardens and the name are fictional.
  */
 const meta: Meta<typeof ProfileAccount> = {
   title: "Client/Profile/Account",
@@ -97,7 +96,7 @@ const meta: Meta<typeof ProfileAccount> = {
 export default meta;
 type Story = StoryObj<typeof ProfileAccount>;
 
-/** The whole tab on a phone: one heading pattern, and each section's rows in one list. */
+/** The whole tab on a phone (DL-159): one heading pattern, and each section's own cards. */
 export const Current: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -106,11 +105,9 @@ export const Current: Story = {
       await expect(await canvas.findByRole("heading", { level: 5, name })).toBeVisible();
     }
     await expect(canvasElement.querySelectorAll("h1, h2, h3, h4, h6")).toHaveLength(0);
-    await expect(canvasElement.querySelectorAll('[data-component="FactList"]')).toHaveLength(
-      sections.length
-    );
+    await expect(canvasElement.querySelectorAll('[data-component="FactList"]')).toHaveLength(0);
     const change = canvas.getByRole("button", { name: "Change Username" });
-    await expect(change.closest(".gg-fact-action")).not.toBeNull();
+    await expect(change.closest("[data-component='UsernameCard']")).not.toBeNull();
     await expect(canvas.getByRole("button", { name: "Hilltop Market Garden" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Riverside Commons Garden" })).toHaveAttribute(
       "aria-describedby"

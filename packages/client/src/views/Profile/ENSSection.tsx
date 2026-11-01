@@ -4,6 +4,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { APP_ROUTES } from "@/config/pwaRouting";
 import { ChangeUsernameSheet } from "./ChangeUsernameSheet";
 import { ENS_SUPPORT_URL, ENSUsernameChangeRequest } from "./ENSUsernameChangeRequest";
 import { UsernameCard } from "./UsernameCard";
@@ -41,7 +42,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
   const closeSheet = () => setIsSheetOpen(false);
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({ id: "app.profile.currentENSName", defaultMessage: "Username" })}
       </h5>
@@ -72,7 +73,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
         onChooseAnother={acts.chooseAnother}
         onOpenGardens={() => {
           setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
-          navigate("/home");
+          navigate(APP_ROUTES.explore);
         }}
       />
       {username.currentSlug ? (
@@ -94,6 +95,6 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
           />
         )
       ) : null}
-    </>
+    </section>
   );
 };

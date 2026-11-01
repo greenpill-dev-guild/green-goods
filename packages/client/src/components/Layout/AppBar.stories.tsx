@@ -1,9 +1,11 @@
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, mocked, userEvent, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
+import { activeGarden, memberGarden, TAS_HUB } from "../../../../shared/.storybook/homeFixtures";
 import { AppBar } from "./AppBar";
 
 /** Registers one open sheet for the story's lifetime, the way every sheet does while open. */
@@ -16,6 +18,7 @@ function WithSheetOpen({ children }: { children: React.ReactNode }) {
  * AppBar requires react-router context (useLocation, Link) and several shared hooks:
  * - useYourWorkCount (the job queue and drafts on this device)
  * - useUIStore (Zustand)
+ * - useActiveGarden, which every story but one answers with an entered garden
  *
  * We provide a MemoryRouter decorator and let the global QueryClientProvider
  * handle queries (they return defaults). The Zustand store initializes with
@@ -65,6 +68,11 @@ const meta: Meta<typeof AppBar> = {
     layout: "fullscreen",
   },
   decorators: [withInstalledPwa(), withClientAppRuntime],
+  beforeEach: () => {
+    mocked(useActiveGarden).mockReturnValue(
+      activeGarden("ready", [memberGarden(TAS_HUB, ["gardener"])], TAS_HUB.id)
+    );
+  },
 };
 
 export default meta;
@@ -87,6 +95,19 @@ export const HomeActive: Story = {
     const nav = canvas.getByTestId("authenticated-nav");
     expect(nav.className).not.toContain("translate-y-full");
     await expectActivePill(canvasElement, /home/i);
+  },
+};
+
+/** Before a garden is entered the bar waits, off screen and out of reach (DL-155). */
+export const HiddenBeforeAGardenIsEntered: Story = {
+  decorators: [withRouter(["/home"])],
+  beforeEach: () => {
+    mocked(useActiveGarden).mockReturnValue(activeGarden("none"));
+  },
+  play: async ({ canvasElement }) => {
+    const nav = within(canvasElement).getByTestId("authenticated-nav");
+    await expect(nav.className).toContain("translate-y-full");
+    await expect(nav.inert).toBe(true);
   },
 };
 
