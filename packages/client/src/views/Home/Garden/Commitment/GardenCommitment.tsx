@@ -301,6 +301,7 @@ export function GardenCommitment() {
           viewer={controller.viewer}
           stewards={stewards}
           serviceBand={service.band}
+          serviceTakes={service.takes}
           rewardsBelow={service.rewards}
         />
         {service.body}
@@ -483,6 +484,7 @@ export function GardenCommitment() {
       serviceKey={serviceKey}
       access={serviceAccess}
       coreState={commitment.derivedState}
+      creator={commitment.creator}
       gardenName={controller.roles.garden?.name ?? ""}
       heading={heading}
       hasCoreAct={Boolean(act)}
