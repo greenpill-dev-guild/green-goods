@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IERC6551Registry } from "../../../src/interfaces/IERC6551Registry.sol";
+import { IHats } from "../../../src/interfaces/IHats.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { HatsModule } from "../../../src/modules/Hats.sol";
 
@@ -15,10 +16,9 @@ interface IERC721OwnerOf {
 /// @notice What a deployed garden account already exposes. Its code cannot change with the module.
 interface ILiveGardenAccount {
     function isGardener(address account) external view returns (bool);
-    function isOperator(address account) external view returns (bool);
-    function openJoining() external view returns (bool);
-    function maxGardeners() external view returns (uint256);
     function gardenMemberCount() external view returns (uint256);
+    function setOpenJoining(bool openJoining) external;
+    function setMaxGardeners(uint256 maxGardeners) external;
     function joinGarden() external;
 }
 
@@ -126,46 +126,62 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
         UUPSUpgradeable(hatsModule).upgradeTo(address(newImplementation));
 
         GardenSnapshot[] memory gardens = _snapshotGardens(proxy);
-        address member = makeAddr("leavingMember");
         for (uint256 i = 0; i < gardens.length; i++) {
-            address garden = gardens[i].garden;
-            ILiveGardenAccount account = ILiveGardenAccount(garden);
-            address gardenOwner = IERC721OwnerOf(gardenToken).ownerOf(i);
-
-            vm.prank(gardenOwner);
-            vm.expectRevert(abi.encodeWithSelector(HatsModule.OwnerCannotLeave.selector, garden));
-            proxy.leaveGarden(garden);
-
-            vm.startPrank(gardenOwner);
-            proxy.grantRole(garden, member, IHatsModule.GardenRole.Steward);
-            proxy.grantRole(garden, member, IHatsModule.GardenRole.Funder);
-            proxy.grantRole(garden, member, IHatsModule.GardenRole.Community);
-            vm.stopPrank();
-            assertTrue(account.isOperator(member), string.concat("grant did not land for token ", vm.toString(i)));
-
-            vm.prank(member);
-            proxy.leaveGarden(garden);
-
-            assertFalse(account.isOperator(member), string.concat("account still sees a steward: ", vm.toString(i)));
-            assertFalse(account.isGardener(member), string.concat("account still sees a gardener: ", vm.toString(i)));
-            assertFalse(proxy.isEvaluatorOf(garden, member), string.concat("evaluator hat stayed: ", vm.toString(i)));
-            assertFalse(proxy.isFunderOf(garden, member), string.concat("funder hat stayed: ", vm.toString(i)));
-            assertFalse(proxy.isCommunityOf(garden, member), string.concat("community hat stayed: ", vm.toString(i)));
-
-            if (!account.openJoining() || account.maxGardeners() != 0) continue;
-
-            // The account's join counter only counts up, so a departure leaves it where it was.
-            uint256 countBeforeRejoining = account.gardenMemberCount();
-            vm.prank(member);
-            account.joinGarden();
-            assertTrue(account.isGardener(member), string.concat("could not rejoin token ", vm.toString(i)));
-            assertEq(account.gardenMemberCount(), countBeforeRejoining + 1, "rejoining should count as a join");
-
-            vm.prank(member);
-            proxy.leaveGarden(garden);
-            assertFalse(account.isGardener(member), string.concat("could not leave again: ", vm.toString(i)));
-            assertEq(account.gardenMemberCount(), countBeforeRejoining + 1, "leaving should not change the count");
+            _rehearseLeavingLiveGarden(proxy, gardens[i].garden, vm.toString(i));
         }
+    }
+
+    function _rehearseLeavingLiveGarden(HatsModule proxy, address garden, string memory token) private {
+        ILiveGardenAccount account = ILiveGardenAccount(garden);
+        IHats hats = proxy.hats();
+        (uint256 ownerHat, uint256 stewardHat,,,,,,) = proxy.getGardenHatIds(garden);
+        address fixtureOwner = makeAddr("rehearsalOwner");
+        address member = makeAddr("leavingMember");
+
+        // Live Owner hats can move between blocks, so the rehearsal mints its own as the hat's admin.
+        vm.prank(hatsModule);
+        hats.mintHat(ownerHat, fixtureOwner);
+
+        vm.prank(fixtureOwner);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.OwnerCannotLeave.selector, garden));
+        proxy.leaveGarden(garden);
+
+        (,, uint32 stewardSupplyBefore,,,,,,) = hats.viewHat(stewardHat);
+        vm.startPrank(fixtureOwner);
+        proxy.grantRole(garden, member, IHatsModule.GardenRole.Steward);
+        proxy.grantRole(garden, member, IHatsModule.GardenRole.Funder);
+        proxy.grantRole(garden, member, IHatsModule.GardenRole.Community);
+        account.setOpenJoining(true);
+        account.setMaxGardeners(0);
+        vm.stopPrank();
+        assertTrue(proxy.isStewardOf(garden, member), string.concat("steward hat missing: ", token));
+        assertTrue(proxy.isEvaluatorOf(garden, member), string.concat("evaluator hat missing: ", token));
+        assertTrue(proxy.isGardenerOf(garden, member), string.concat("gardener hat missing: ", token));
+        assertTrue(proxy.isFunderOf(garden, member), string.concat("funder hat missing: ", token));
+        assertTrue(proxy.isCommunityOf(garden, member), string.concat("community hat missing: ", token));
+
+        vm.prank(member);
+        proxy.leaveGarden(garden);
+
+        assertFalse(account.isGardener(member), string.concat("account still sees a member: ", token));
+        assertFalse(proxy.isStewardOf(garden, member), string.concat("steward hat stayed: ", token));
+        assertFalse(proxy.isEvaluatorOf(garden, member), string.concat("evaluator hat stayed: ", token));
+        assertFalse(proxy.isFunderOf(garden, member), string.concat("funder hat stayed: ", token));
+        assertFalse(proxy.isCommunityOf(garden, member), string.concat("community hat stayed: ", token));
+        // Revocation burns the hat. A burn address would keep wearing it and read as a steward.
+        (,, uint32 stewardSupplyAfter,,,,,,) = hats.viewHat(stewardHat);
+        assertEq(stewardSupplyAfter, stewardSupplyBefore, string.concat("revocation left a wearer behind: ", token));
+
+        // The account's join counter only counts up, so coming back counts as another join.
+        uint256 countBeforeRejoining = account.gardenMemberCount();
+        vm.prank(member);
+        account.joinGarden();
+        assertTrue(account.isGardener(member), string.concat("could not rejoin: ", token));
+        assertEq(account.gardenMemberCount(), countBeforeRejoining + 1, string.concat("join not counted: ", token));
+
+        vm.prank(member);
+        proxy.leaveGarden(garden);
+        assertFalse(account.isGardener(member), string.concat("could not leave again: ", token));
     }
 
     function _assertReviewedGardenCountIsExact() private {

@@ -158,10 +158,7 @@ contract HatsModule is
     /// @notice Conviction voting strategies per garden for power sync on role revocation
     mapping(address garden => address[] strategies) internal gardenConvictionStrategies;
 
-    /// @notice Monotonic counter for generating unique burn addresses during hat revocation.
-    /// @dev Each revocation transfers the hat to a unique address derived from this nonce,
-    ///      preventing AlreadyWearingHat reverts when the same hat type is revoked from
-    ///      multiple users (or the same user after re-grant). See _revokeRole().
+    /// @dev Retired: revocation burns hats now. The slot stays for the storage layout.
     uint256 private _revokeNonce;
 
     /// @notice Optional per-garden canonical steward change observer. Delivery remains permissionless.
@@ -448,7 +445,7 @@ contract HatsModule is
     function leaveGarden(address garden) external override nonReentrant {
         if (isOwnerOf(garden, msg.sender)) revert OwnerCannotLeave(garden);
         bool wasMember;
-        for (uint256 i = 0; i <= uint256(GardenRole.Community); i++) {
+        for (uint256 i = 0; i <= uint256(type(GardenRole).max); i++) {
             if (!_checkRole(garden, msg.sender, GardenRole(i))) continue;
             _revokeRole(garden, msg.sender, GardenRole(i));
             wasMember = true;
@@ -701,8 +698,9 @@ contract HatsModule is
 
         uint256 hatId = _getHatId(garden, role);
         if (hats.isWearerOfHat(account, hatId)) {
-            address burnAddr = address(uint160(uint256(keccak256(abi.encodePacked("burn", _revokeNonce++)))));
-            hats.transferHat(hatId, account, burnAddr);
+            // Burned as the hat's eligibility module, not moved: a burn address would keep wearing it and read
+            // as a member. Good standing lets the same account be granted the hat again.
+            hats.setHatWearerStatus(hatId, account, false, true);
         }
         emit RoleRevoked(garden, account, role);
         _notifyStewardObserver(garden, account, role);
