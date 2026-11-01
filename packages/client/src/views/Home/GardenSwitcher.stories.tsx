@@ -33,8 +33,7 @@ const ROWS: SwitcherRow[] = [
  * too. One row per garden of the member's with its banner, place and role; the active garden is
  * a tinted row with a ring on its picture and no check mark, so every role keeps one slot. A
  * garden the member asked to join shows Awaiting review and visits instead of switching, and
- * Explore Gardens is last. On the first run with several gardens it opens once as Choose a
- * Garden.
+ * Explore Gardens is last.
  */
 const meta: Meta<typeof GardenSwitcherSheet> = {
   title: "Client/Sheets/GardenSwitcherSheet",
@@ -45,7 +44,6 @@ const meta: Meta<typeof GardenSwitcherSheet> = {
   args: {
     isOpen: true,
     onClose: fn(),
-    mode: "switch",
     rows: ROWS,
     onPick: fn(),
     onVisit: fn(),
@@ -91,17 +89,5 @@ export const OneGarden: Story = {
     const sheet = within(await screen.findByRole("dialog", { name: "Your Gardens" }));
     await expect(sheet.getByText("You belong to 1 garden.")).toBeVisible();
     await expect(sheet.getByRole("button", { name: /Explore Gardens/ })).toBeVisible();
-  },
-};
-
-/** The first run with several gardens and none remembered: the chooser, opened once. */
-export const ChooseAGarden: Story = {
-  args: {
-    mode: "choose",
-    rows: ROWS.slice(0, 3).map((row) => ({ ...row, active: false })),
-  },
-  play: async () => {
-    const sheet = within(await screen.findByRole("dialog", { name: "Choose a Garden" }));
-    await expect(sheet.queryByRole("button", { current: true })).toBeNull();
   },
 };
