@@ -162,8 +162,7 @@ export function useCommitmentPoolSetupSequence(
   // write, and the flow's count of prompts says so before anyone presses.
   const [pastCeilings, setPastCeilings] = useState(false);
 
-  // Asked before the run so the flow can say up front how many times the
-  // wallet will ask.
+  // Asked before the run, so the flow can say how many times the wallet will ask.
   useAsyncEffect(
     async ({ isMounted }) => {
       setBatching("checking");
@@ -272,7 +271,10 @@ export function useCommitmentPoolSetupSequence(
         return fail("unavailable", null, error);
       }
       if (!sender) return fail("no-sender", null, new Error("Transaction sender is unavailable"));
-      const canBatch = !pastCeilings && (await canBatchPoolWrites(sender, chainId));
+      const canBatch =
+        Boolean(sender.sendAtomicBatch) &&
+        !pastCeilings &&
+        (await canBatchPoolWrites(sender, chainId));
       const batchBudget =
         sender.authMode === "passkey" ? (poolSetupBudget(chainId) ?? undefined) : undefined;
 

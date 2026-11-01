@@ -282,7 +282,7 @@ export function poolSetupBudget(chainId: number): BatchBudget | null {
 
 /** Asking never prompts; a sender that cannot answer counts as one that cannot batch. */
 export async function canBatchPoolWrites(sender: TransactionSender | null, chainId: number) {
-  if (!sender?.sendAtomicBatch || !sender.canSendAtomicBatch) return false;
+  if (!sender?.canSendAtomicBatch) return false;
   if (sender.authMode === "passkey" && !poolSetupBudget(chainId)) return false;
   return sender.canSendAtomicBatch(chainId, "pool-setup").catch(() => false);
 }
