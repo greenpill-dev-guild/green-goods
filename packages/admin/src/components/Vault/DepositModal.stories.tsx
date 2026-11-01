@@ -1,8 +1,10 @@
+import { useDepositPlan } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenVault } from "@green-goods/shared/types/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { fn, mocked } from "storybook/test";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { DepositModal } from "./DepositModal";
 
 const MOCK_GARDEN_ADDRESS = "0x1234567890AbcdEF1234567890aBcdef12345678" as Address;
@@ -88,6 +90,38 @@ export const Default: Story = {
     onClose: fn(),
     gardenAddress: MOCK_GARDEN_ADDRESS,
     vaults: mockVaults,
+  },
+};
+
+/**
+ * An earlier deposit nobody can confirm pauses the next one until it lands or the person moves on.
+ */
+export const HeldDeposit: Story = {
+  args: {
+    isOpen: true,
+    onClose: fn(),
+    gardenAddress: MOCK_GARDEN_ADDRESS,
+    vaults: mockVaults,
+  },
+  beforeEach: () => {
+    mocked(useDepositPlan).mockReturnValue({
+      signatures: 2,
+      signatureLine: "2 signatures",
+      isHeld: true,
+      isSettlingHold: false,
+      unconfirmedIsHeld: false,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message:
+          "It could still land, so deposits here are paused until you check again or move on. If it lands after you move on, you’ll have deposited twice.",
+        detail: "You tried to deposit 5 USDC. You have 41 USDC in this vault now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: fn(),
+        onMoveOn: fn(),
+      },
+    });
+    return resetHookMocks(useDepositPlan);
   },
 };
 

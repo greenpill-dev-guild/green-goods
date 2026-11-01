@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
 
 const TEST_CHAIN_ID = 11155111;
@@ -11,6 +11,16 @@ const TEST_USER = "0x3333333333333333333333333333333333333333";
 const mockUseBalance = vi.fn();
 const mockUseEstimateGas = vi.fn();
 const mockUseGasPrice = vi.fn();
+const mockUseDepositPlan = vi.fn();
+const QUIET_PLAN = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isSettlingHold: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
+const depositError: { current: Error | null } = { current: null };
 
 vi.mock("wagmi", () => ({
   useBalance: (...args: unknown[]) => mockUseBalance(...args),
@@ -78,8 +88,9 @@ vi.mock("@green-goods/shared/hooks/vault/useDepositForm", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: (...args: unknown[]) => mockUseDepositPlan(...args),
   useVaultDeposit: () => ({
-    error: null,
+    error: depositError.current,
     isPending: false,
     mutate: vi.fn(),
     reset: vi.fn(),
@@ -110,11 +121,11 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
 });
 
 vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
-  classifyTxError: () => ({
+  classifyTxError: (error: Error | null) => ({
     severity: "error",
     titleKey: "app.status.error",
     messageKey: "app.status.error",
-    kind: "failed",
+    kind: error?.message === "unconfirmed" ? "unconfirmed" : "failed",
     rawMessage: "",
   }),
   isMeaningfulTxErrorMessage: () => false,
@@ -127,6 +138,11 @@ vi.mock("@/components/ConnectButton", () => ({
 import { DepositModal } from "../../../components/Vault/DepositModal";
 
 describe("DepositModal", () => {
+  beforeEach(() => {
+    depositError.current = null;
+    mockUseDepositPlan.mockReturnValue(QUIET_PLAN);
+  });
+
   it("pins wallet balance and gas reads to the selected vault chain", () => {
     mockUseBalance.mockReturnValue({
       data: {
@@ -220,5 +236,73 @@ describe("DepositModal", () => {
     renderOpenModal();
 
     expect(screen.getByText(/Minimum deposit: any amount/)).toBeTruthy();
+  });
+
+  it("plans the deposit for the selected vault and says how many signatures it takes", () => {
+    mockUseDepositPlan.mockReturnValue({ ...QUIET_PLAN, signatureLine: "2 signatures" });
+    renderOpenModal();
+
+    expect(screen.getByText("2 signatures")).toBeTruthy();
+    expect(mockUseDepositPlan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        amount: 1_000_000_000_000_000_000n,
+        enabled: true,
+        target: { kind: "vault", address: TEST_VAULT, asset: TEST_ASSET, receiver: TEST_USER },
+      })
+    );
+  });
+
+  it("allows a deposit when nothing is held", () => {
+    renderOpenModal();
+
+    expect((screen.getByRole("button", { name: "Deposit" }) as HTMLButtonElement).disabled).toBe(
+      false
+    );
+    expect(screen.queryByRole("button", { name: "Check Again" })).toBeNull();
+  });
+
+  it("pauses the next deposit while an earlier one is unknown", () => {
+    mockUseDepositPlan.mockReturnValue({
+      ...QUIET_PLAN,
+      isHeld: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "You have 3 WETH in this vault now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+    renderOpenModal();
+
+    expect((screen.getByRole("button", { name: "Deposit" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+    expect(screen.getByText(/You have 3 WETH in this vault now/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeTruthy();
+  });
+
+  it.each([
+    ["an unknown outcome on today's path", "unconfirmed", false, true],
+    ["an unknown outcome on a route that holds it", "unconfirmed", true, false],
+    ["any other failure on a route that holds", "rejected", true, true],
+  ])("for %s, the error line reads as expected", (_case, message, unconfirmedIsHeld, shown) => {
+    depositError.current = new Error(message);
+    mockUseDepositPlan.mockReturnValue({ ...QUIET_PLAN, unconfirmedIsHeld });
+    renderOpenModal();
+
+    expect(Boolean(screen.queryByRole("alert"))).toBe(shown);
+  });
+
+  it("keeps the deposit paused while a check is running", () => {
+    mockUseDepositPlan.mockReturnValue({ ...QUIET_PLAN, isSettlingHold: true });
+    renderOpenModal();
+
+    expect((screen.getByRole("button", { name: "Deposit" }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
   });
 });

@@ -4,6 +4,7 @@ import { wrongWalletNetwork } from "./wallet-network-refusal";
 export type TxErrorKind =
   | "cancelled"
   | "unconfirmed"
+  | "overCeilings"
   | "passkeyUnavailable"
   | "wrongChain"
   | "reverted"
@@ -190,6 +191,16 @@ export function classifyTxError(error: unknown): TxErrorView {
   const rawMessage = extractErrorMessage(error).trim();
   const normalizedMessage = rawMessage.toLowerCase();
 
+  if (normalizedMessage === "batch-budget-exceeded") {
+    return {
+      kind: "overCeilings",
+      severity: "warning",
+      titleKey: "app.txFeedback.overCeilings.title",
+      messageKey: "app.txFeedback.overCeilings.message",
+      rawMessage: "",
+    };
+  }
+
   if (isPasskeyCredentialUnavailableError(error)) {
     return {
       kind: "passkeyUnavailable",
@@ -295,8 +306,26 @@ const UNCONFIRMED_ERROR_NAMES: ReadonlySet<string> = new Set([
   "WaitForUserOperationReceiptTimeoutError",
 ]);
 
+/** Another send of the same thing still holds it, so this one has the same answer: not yet known. */
+const HELD_BY_ANOTHER_SEND = "batch-items-held";
+
 export function isUnconfirmedTxError(error: unknown): boolean {
-  return hasErrorName(error, UNCONFIRMED_ERROR_NAMES);
+  return (
+    hasErrorName(error, UNCONFIRMED_ERROR_NAMES) ||
+    (error instanceof Error && error.message === HELD_BY_ANOTHER_SEND)
+  );
+}
+
+/** Some non-standard tokens revert on allowance(), which is not the same as a failed read. */
+export function isRecoverableAllowanceReadError(error: unknown): boolean {
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("revert") ||
+    message.includes("execution reverted") ||
+    message.includes("contractfunctionexecutionerror") ||
+    message.includes("call_exception")
+  );
 }
 
 export function isCancelledTxError(error: unknown): boolean {

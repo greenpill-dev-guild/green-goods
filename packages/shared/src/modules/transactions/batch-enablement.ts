@@ -3,15 +3,18 @@ import type { PasskeyAccountProfileId } from "../auth/account-profile";
 export type BatchRail = "passkey" | "wallet";
 
 export interface BatchEnablement {
-  action: "garden-settings" | "add-members";
+  action: "garden-settings" | "add-members" | "vault-deposit" | "jar-deposit";
   rail: BatchRail;
   /**
    * A wallet lists as `eip-5792` when the action needs atomic calls: this list says it may batch,
    * its own capability says it can. It lists as `contract-call` when one call does the batching, so
-   * every wallet can send it.
+   * every wallet can send it. It lists as `sequential` when it keeps one signature per step, which
+   * still runs through the journal.
    */
-  profile: PasskeyAccountProfileId | "eip-5792" | "contract-call";
+  profile: PasskeyAccountProfileId | "eip-5792" | "contract-call" | "sequential";
   chainId: number;
+  /** Only the assets with recorded evidence, for an action that moves money. */
+  asset?: string;
 }
 
 /**
@@ -30,6 +33,7 @@ export function isBatchEnabled(
       entry.action === query.action &&
       entry.rail === query.rail &&
       entry.profile === query.profile &&
-      entry.chainId === query.chainId
+      entry.chainId === query.chainId &&
+      (entry.asset === undefined || entry.asset.toLowerCase() === query.asset?.toLowerCase())
   );
 }

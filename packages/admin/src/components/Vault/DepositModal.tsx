@@ -1,11 +1,14 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import {
+  TxHoldFeedback,
+  TxInlineFeedback,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import { useDepositForm } from "@green-goods/shared/hooks/vault/useDepositForm";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenVault } from "@green-goods/shared/types/vaults";
@@ -154,8 +157,29 @@ export function DepositModal({
         })
       : null;
 
+  const plan = useDepositPlan({
+    target:
+      selectedVault && primaryAddress
+        ? {
+            kind: "vault",
+            address: selectedVault.vaultAddress as Address,
+            asset: selectedVault.asset as Address,
+            receiver: primaryAddress as Address,
+          }
+        : null,
+    amount: amountBigInt,
+    decimals,
+    symbol: assetSymbol,
+    gardenAddress,
+    enabled: isOpen,
+  });
+  const isDepositPaused = plan.isHeld || plan.isSettlingHold;
+  const showTxError =
+    Boolean(depositMutation.error) &&
+    !(plan.unconfirmedIsHeld && txError.view.kind === "unconfirmed");
+
   const onSubmit = () => {
-    if (!vaultAcceptingDeposits) return;
+    if (!vaultAcceptingDeposits || isDepositPaused) return;
     if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
 
     depositMutation.mutate(
@@ -181,7 +205,10 @@ export function DepositModal({
       preventClose={depositMutation.isPending}
       actions={
         primaryAddress ? (
-          <>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
+              {plan.signatureLine}
+            </p>
             <Button
               type="button"
               emphasis="tertiary"
@@ -202,13 +229,14 @@ export function DepositModal({
                 hasBlockingError ||
                 !decimalsReady ||
                 !vaultAcceptingDeposits ||
+                isDepositPaused ||
                 depositMutation.isPending
               }
               loading={depositMutation.isPending}
             >
               {formatMessage({ id: "app.treasury.deposit" })}
             </Button>
-          </>
+          </div>
         ) : null
       }
     >
@@ -221,6 +249,9 @@ export function DepositModal({
         </div>
       ) : (
         <div className="space-y-4">
+          {plan.holdFeedback ? (
+            <TxHoldFeedback {...plan.holdFeedback} isBusy={depositMutation.isPending} />
+          ) : null}
           <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 type-meta text-text-sub">
             <p>
               {formatMessage({
@@ -349,7 +380,7 @@ export function DepositModal({
             </p>
           )}
           <TxInlineFeedback
-            visible={Boolean(depositMutation.error)}
+            visible={showTxError}
             severity={txError.view.severity}
             title={txError.title}
             message={txError.message}

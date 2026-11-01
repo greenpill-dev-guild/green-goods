@@ -7,7 +7,7 @@ import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPr
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
 import {
@@ -88,6 +88,14 @@ function documentationFunding() {
   mocked(useVaultDeposit).mockReturnValue(
     mutation as unknown as ReturnType<typeof useVaultDeposit>
   );
+  mocked(useDepositPlan).mockReturnValue({
+    signatures: null,
+    signatureLine: null,
+    isHeld: false,
+    isSettlingHold: false,
+    unconfirmedIsHeld: false,
+    holdFeedback: null,
+  });
   mocked(useVaultWithdraw).mockReturnValue({ ...mutation, mutate: fn() } as unknown as ReturnType<
     typeof useVaultWithdraw
   >);
@@ -137,6 +145,7 @@ function documentationFunding() {
     useGardenVaults,
     useCookieJarDeposit,
     useVaultDeposit,
+    useDepositPlan,
     useVaultWithdraw,
     usePublicEndowmentPositions,
     useVaultPreview
@@ -159,6 +168,30 @@ const enterAmount = async () => {
 };
 export const Donate: Story = { play: enterAmount };
 export const Endow: Story = { args: { intent: "endow" }, play: enterAmount };
+/** An earlier deposit nobody can confirm pauses the next one until it lands or the person moves on. */
+export const EndowHeld: Story = {
+  args: { intent: "endow" },
+  beforeEach: () => {
+    mocked(useDepositPlan).mockReturnValue({
+      signatures: 2,
+      signatureLine: "2 signatures",
+      isHeld: true,
+      isSettlingHold: false,
+      unconfirmedIsHeld: false,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message:
+          "It could still land, so deposits here are paused until you check again or move on. If it lands after you move on, you’ll have deposited twice.",
+        detail: "You tried to deposit 5 DAI. You have 41 DAI in this vault now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: fn(),
+        onMoveOn: fn(),
+      },
+    });
+  },
+  play: enterAmount,
+};
 export const Donated: Story = {
   play: async () => {
     await enterAmount();

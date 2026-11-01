@@ -1,7 +1,9 @@
 import { RiAlertLine, RiErrorWarningLine, RiInformationLine } from "@remixicon/react";
 import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
 
 import { cn } from "../../utils/styles/cn";
+import { Button } from "../Button";
 
 export type TxInlineFeedbackSeverity = "error" | "warning" | "info";
 
@@ -65,5 +67,77 @@ export function TxInlineFeedback({
         </div>
       </div>
     </div>
+  );
+}
+
+export interface TxHoldFeedbackProps {
+  title: string;
+  message: string;
+  /** What the chain holds now, when that belongs in the notice. */
+  detail?: string;
+  /** The last read could not see everything this send wrote, so moving on waits. */
+  hasUnreadValues: boolean;
+  isSettling: boolean;
+  /** Another send is in flight; settling waits for it. */
+  isBusy?: boolean;
+  onCheckAgain: () => void;
+  onMoveOn: () => void;
+  className?: string;
+}
+
+/**
+ * A send whose outcome nobody can say yet. What it sent stays paused until the person checks again
+ * and it has landed, or chooses to move on, which they can do only from values they have seen.
+ */
+export function TxHoldFeedback({
+  title,
+  message,
+  detail,
+  hasUnreadValues,
+  isSettling,
+  isBusy = false,
+  onCheckAgain,
+  onMoveOn,
+  className,
+}: TxHoldFeedbackProps) {
+  const { formatMessage } = useIntl();
+  return (
+    <TxInlineFeedback
+      visible
+      severity="warning"
+      title={title}
+      message={[
+        message,
+        detail,
+        hasUnreadValues ? formatMessage({ id: "app.garden.settings.hold.unread" }) : null,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      reserveClassName=""
+      className={className}
+      action={
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            onClick={onCheckAgain}
+            disabled={isBusy}
+            loading={isSettling}
+          >
+            {formatMessage({ id: "app.garden.settings.hold.checkAgain" })}
+          </Button>
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="sm"
+            onClick={onMoveOn}
+            disabled={isBusy || isSettling || hasUnreadValues}
+          >
+            {formatMessage({ id: "app.garden.settings.hold.moveOn" })}
+          </Button>
+        </div>
+      }
+    />
   );
 }
