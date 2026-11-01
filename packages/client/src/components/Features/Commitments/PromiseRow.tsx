@@ -19,6 +19,8 @@ export interface PromiseRowProps {
   kind?: string | null;
   /** A service offer's line: what booking takes first, then who promises it (PRD-1299). */
   service?: CommitmentRowProps["service"];
+  /** Identical open copies standing behind this row: their number marks the tile (DL-150). */
+  copies?: number;
   /** Given a destination, the row becomes the way into the promise. */
   onOpen?: (commitmentId: bigint) => void;
 }
@@ -30,7 +32,15 @@ export interface PromiseRowProps {
  * The details give the due date, then the other person from the reader's side; how the
  * reader is involved, its units and its team live on the promise.
  */
-export function PromiseRow({ row, title, sendFailed, kind, service, onOpen }: PromiseRowProps) {
+export function PromiseRow({
+  row,
+  title,
+  sendFailed,
+  kind,
+  service,
+  copies,
+  onOpen,
+}: PromiseRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const { commitment, seat, needsYou } = row;
@@ -57,6 +67,7 @@ export function PromiseRow({ row, title, sendFailed, kind, service, onOpen }: Pr
       service={service}
       due={promiseDueDetail(intl, commitment.dueDate)}
       party={{ commitment, seat }}
+      group={copies ? { size: copies, counts: "" } : null}
       // A row without a destination is a record, not a control.
       onOpen={onOpen ? () => onOpen(commitment.commitmentId) : undefined}
     />
