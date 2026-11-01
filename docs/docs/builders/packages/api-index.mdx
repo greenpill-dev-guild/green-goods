@@ -27,7 +27,7 @@ generated_from:
   - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
-source_digest: "sha256:bbd3afa9c088c44d04199677c23b8efded37f8ec3d25795c9e00864dc2435289"
+source_digest: "sha256:859558a223f7baf84a194d73ab8ae747b6775016c7797c539f82c4ba4bfb058b"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -73,6 +73,7 @@ Every route the agent registers under `/public/`, and every route a shared route
 | `/public/gardens/:chainId/:gardenAddress/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.gardenImpact` | `routes/public-garden-impact.ts` |
 | `/public/gardens/:garden/join-requests` | `GET`, `OPTIONS`, `POST` | none | `routes/garden-join-requests.ts` |
 | `/public/gardens/:garden/join-requests/:requestId/resolve` | `OPTIONS`, `POST` | none | `routes/garden-join-requests.ts` |
+| `/public/gardens/:garden/join-requests/count` | `GET`, `OPTIONS` | none | `routes/garden-join-requests.ts` |
 | `/public/gardens/:garden/join-requests/me` | `DELETE`, `GET`, `OPTIONS` | none | `routes/garden-join-requests.ts` |
 | `/public/passkeys/rpc` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.passkeyDirectory` | `routes/passkey-directory.ts` |
 | `/public/profile-avatars/:chainId` | `GET`, `OPTIONS` | `PROFILE_AVATAR_BATCH_ROUTE` | `routes/profile-avatars.ts` |

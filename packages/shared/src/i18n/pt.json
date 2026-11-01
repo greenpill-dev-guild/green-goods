@@ -4315,6 +4315,7 @@
   "cockpit.community.loadFailed": "Não foi possível carregar este espaço de comunidade.",
   "cockpit.community.members": "Membros",
   "cockpit.community.joinRequests.confirmDecline": "Recusar solicitação",
+  "cockpit.community.joinRequests.countNotice": "Ao verificar, este navegador também mostrará quantas estão pendentes na aba Membros por 30 dias.",
   "cockpit.community.joinRequests.decline": "Recusar",
   "cockpit.community.joinRequests.declined": "A solicitação foi recusada.",
   "cockpit.community.joinRequests.declineDescription": "Recuse a solicitação de {name} e compartilhe o motivo que a pessoa poderá ler ao verificar o status.",

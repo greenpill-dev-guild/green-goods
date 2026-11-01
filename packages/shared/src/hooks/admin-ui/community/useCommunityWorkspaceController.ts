@@ -41,7 +41,8 @@ export function useCommunityWorkspaceController() {
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [memberSearch, setMemberSearchState] = useState("");
-  const { joinRequestsWaiting, noteJoinRequestsRead } = useJoinRequestsWaiting(gardenStateKey);
+  const { joinRequestsWaiting, noteJoinRequestsRead, keepJoinRequestCountGrant } =
+    useJoinRequestsWaiting(gardenStateKey);
 
   const isVaultDepositRoute =
     location.pathname.startsWith("/community/endowment/vault/deposit") ||
@@ -259,6 +260,7 @@ export function useCommunityWorkspaceController() {
     isSignalPoolRoute,
     isStrategiesRoute,
     joinRequestsWaiting,
+    keepJoinRequestCountGrant,
     vaultAction,
     memberCount: derived.memberCount,
     memberSearch,
