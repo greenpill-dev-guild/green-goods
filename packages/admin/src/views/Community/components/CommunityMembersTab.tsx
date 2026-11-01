@@ -26,6 +26,7 @@ export type CommunityMembersTabProps = Pick<
   | "closeMembersModal"
   | "memberCount"
   | "memberSearch"
+  | "noteJoinRequestsRead"
   | "roleMembers"
   | "roleSummary"
   | "scheduleBackgroundRefetch"
@@ -42,6 +43,7 @@ export function CommunityMembersTab({
   closeMembersModal,
   memberCount,
   memberSearch,
+  noteJoinRequestsRead,
   roleMembers,
   roleSummary,
   scheduleBackgroundRefetch,
@@ -81,7 +83,7 @@ export function CommunityMembersTab({
                 {formatMessage({ id: "cockpit.community.members.directory" })}
               </AdminCardTitle>
               <p className="mt-1 type-meta text-text-sub">
-                {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
+                {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
               </p>
             </div>
 
@@ -200,7 +202,7 @@ export function CommunityMembersTab({
 
         <aside className="garden-tab-rail flex flex-col gap-section">
           {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={gardenAddress} />
+            <CommunityJoinRequests gardenAddress={gardenAddress} onRead={noteJoinRequestsRead} />
           ) : null}
           <AdminCard variant="elevated" className="space-y-3">
             <AdminCardTitle>

@@ -91,9 +91,9 @@ export function useActionsController() {
     return counts;
   }, [actions]);
 
-  // Per-domain counts for the primary tab rail (mirrors lifecycleCounts). Keyed
-  // by the numeric Domain enum plus an "all" total. Counts the full registry so
-  // each tab shows how many actions live in that domain regardless of search.
+  // Per-domain totals for the header line (mirrors lifecycleCounts). Keyed by the
+  // numeric Domain enum plus an "all" total. Counts the full registry so the line
+  // says how many actions live in the open domain regardless of search.
   const domainCounts = useMemo(() => {
     const counts: Record<string, number> = {
       all: actions.length,
