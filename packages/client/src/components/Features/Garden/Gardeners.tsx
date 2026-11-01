@@ -7,10 +7,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import {
-  isGardenMember,
-  usePendingJoinsVersion,
-} from "@green-goods/shared/hooks/garden/useJoinGarden";
+import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
@@ -23,7 +20,7 @@ import {
   RiUserLine,
   RiWallet3Fill,
 } from "@remixicon/react";
-import { forwardRef, memo, useMemo, useState } from "react";
+import { forwardRef, memo, useState } from "react";
 import { useIntl } from "react-intl";
 import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -55,33 +52,20 @@ function contactName(member: GardenMember) {
 
 /**
  * How a member leaves the garden today: a steward removes them in the admin. It goes when members
- * can leave from the app themselves (PRD-1084). Membership is the garden page's own answer, a
- * join still on its way included, and a garden's only steward has nobody to ask, so they don't
- * see it. Each name reads as that steward's row does.
+ * can leave from the app themselves (PRD-1084). A member is anyone whose gardens include this one,
+ * a join still on its way included. With no other steward to name, such as a garden's only
+ * steward, it stays away rather than say to ask nobody. Each name reads as that steward's row does.
  */
-function GardenLeaveLine({
-  garden,
-  members,
-  canManageRequests,
-}: {
-  garden: Garden;
-  members: GardenMember[];
-  canManageRequests: boolean;
-}) {
+function GardenLeaveLine({ garden, members }: { garden: Garden; members: GardenMember[] }) {
   const intl = useIntl();
   const { primaryAddress } = useUser();
-  // The version counter refreshes membership as in-tab joins confirm or expire.
-  const pendingJoinsVersion = usePendingJoinsVersion();
-  const isMember = useMemo(() => {
-    const { gardeners, stewards, id } = garden;
-    return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
-  }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
+  const { gardens: myGardens } = useMyGardens(primaryAddress);
+  const isMember = myGardens.some((mine) => compareAddresses(mine.garden.id, garden.id));
   const stewards = members.filter(
     (member) => member.isSteward && !compareAddresses(member.account, primaryAddress)
   );
 
-  if (!isMember || (canManageRequests && stewards.length === 0)) return null;
+  if (!isMember || stewards.length === 0) return null;
 
   const names = stewards.slice(0, LEAVE_LINE_STEWARDS).map((steward) => (
     <AddressDisplay
@@ -101,12 +85,10 @@ function GardenLeaveLine({
   return (
     <li className="mb-3 list-none" role="presentation">
       <p className="type-body text-text-sub-600">
-        {names.length > 0
-          ? intl.formatMessage(
-              { id: "app.garden.gardeners.leaveNamed" },
-              { stewards: intl.formatList(names, { type: "disjunction" }) }
-            )
-          : intl.formatMessage({ id: "app.garden.gardeners.leave" })}
+        {intl.formatMessage(
+          { id: "app.garden.gardeners.leave" },
+          { stewards: intl.formatList(names, { type: "disjunction" }) }
+        )}
       </p>
     </li>
   );
@@ -226,13 +208,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             <GardenJoinRequestsQueue gardenAddress={garden.id as Address} />
           </li>
         ) : null}
-        {garden ? (
-          <GardenLeaveLine
-            garden={garden}
-            members={members}
-            canManageRequests={canManageRequests}
-          />
-        ) : null}
+        {garden ? <GardenLeaveLine garden={garden} members={members} /> : null}
         {members.length ? (
           shouldVirtualize ? (
             <List

@@ -1,5 +1,6 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { forgetListedPendingJoins } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
@@ -46,8 +47,8 @@ vi.mock("@/components/Inputs", () => ({
   AddressCopy: ({ address }: { address: string }) => <span>{address}</span>,
 }));
 
-vi.mock("../../components/Features/Garden/GardenJoinRequestsQueue", () => ({
-  GardenJoinRequestsQueue: () => null,
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: vi.fn(() => ({ data: [] })),
 }));
 
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
@@ -261,13 +262,17 @@ describe("GardenGardeners", () => {
     const renderSection = (
       garden: Garden,
       roster: GardenMember[],
-      { canManageRequests = false, locale = "en", catalog = en as Record<string, string> } = {}
-    ) =>
-      render(
+      { locale = "en", catalog = en as Record<string, string> } = {}
+    ) => {
+      vi.mocked(useGardens).mockImplementation(
+        () => ({ data: [garden] }) as unknown as ReturnType<typeof useGardens>
+      );
+      return render(
         <IntlProvider locale={locale} messages={catalog}>
-          <GardenGardeners members={roster} garden={garden} canManageRequests={canManageRequests} />
+          <GardenGardeners members={roster} garden={garden} />
         </IntlProvider>
       );
+    };
     const leaveLine = () => screen.queryByText(/leave this garden/i);
 
     it.each([
@@ -287,9 +292,7 @@ describe("GardenGardeners", () => {
       readAs(ana.account);
       const stewards = [ana, bo, caio, dee].map((steward) => steward.account);
 
-      renderSection(record({ stewards, gardeners: [] }), [ana, bo, caio, dee], {
-        canManageRequests: true,
-      });
+      renderSection(record({ stewards, gardeners: [] }), [ana, bo, caio, dee]);
 
       expect(leaveLine()).toHaveTextContent(
         "To leave this garden, ask a steward like Bo, Caio, or Dee to remove you."
@@ -297,15 +300,45 @@ describe("GardenGardeners", () => {
     });
 
     it.each([
-      ["a signed-out reader", null, false],
-      ["a reader with no role here", dee.account, false],
-      ["the garden's only steward, who has nobody to ask", ana.account, true],
-    ])("stays away from %s", (_reader, account, canManageRequests) => {
+      ["evaluators"],
+      ["owners"],
+    ])("tells a member who is listed only under %s, as Home counts them", (role) => {
+      readAs(reader.account);
+
+      renderSection(record({ stewards: [ana.account], [role]: [reader.account] }), [ana]);
+
+      expect(leaveLine()).toHaveTextContent(
+        "To leave this garden, ask a steward like Ana to remove you."
+      );
+    });
+
+    it.each([
+      ["a signed-out reader", null, { stewards: [ana.account] }, [ana]],
+      ["a reader with no role here", dee.account, { stewards: [ana.account] }, [ana]],
+      [
+        "a funder, who holds no member role",
+        reader.account,
+        { stewards: [ana.account], funders: [reader.account] },
+        [ana],
+      ],
+      [
+        "the garden's only steward, with nobody to name",
+        ana.account,
+        { stewards: [ana.account] },
+        [ana],
+      ],
+      [
+        "a gardener when the record lists no steward to ask",
+        reader.account,
+        { stewards: [], gardeners: [reader.account] },
+        [reader],
+      ],
+    ] satisfies Array<
+      [string, string | null, Partial<Garden>, GardenMember[]]
+    >)("stays away from %s", (_reader, account, roster, listed) => {
       readAs(account);
 
-      const garden = record({ stewards: [ana.account], gardeners: [reader.account] });
-
-      renderSection(garden, [ana, reader], { canManageRequests });
+      renderSection(record(roster), listed);
 
       expect(leaveLine()).toBeNull();
     });
@@ -317,8 +350,10 @@ describe("GardenGardeners", () => {
         JSON.stringify({ [GARDEN_ID]: { address: reader.account, timestamp: Date.now() } })
       );
 
-      renderSection(record({ stewards: [], gardeners: [] }), []);
-      expect(leaveLine()).toHaveTextContent("To leave this garden, ask a steward to remove you.");
+      renderSection(record({ stewards: [ana.account], gardeners: [] }), [ana]);
+      expect(leaveLine()).toHaveTextContent(
+        "To leave this garden, ask a steward like Ana to remove you."
+      );
 
       act(() => forgetListedPendingJoins(reader.account, [GARDEN_ID]));
       expect(leaveLine()).toBeNull();
