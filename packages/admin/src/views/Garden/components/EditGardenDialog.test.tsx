@@ -224,31 +224,33 @@ const editDialog = () => screen.queryByRole("dialog", { name: "Edit Garden" });
 const currentUrl = () => screen.getByTestId("location").textContent;
 
 describe("Edit Garden over the current tab (DL-140)", () => {
-  it.each(["health", "impact", "activity", "pool"] as const)(
-    "opens over %s and returns there on close",
-    async (tab) => {
-      const user = userEvent.setup();
-      const tabUrl = `/garden/${tab}?gardenId=${GARDEN_ADDRESS}&range=90d`;
-      renderWorkspaceAt(tabUrl);
-      expect(editDialog()).not.toBeInTheDocument();
+  it.each([
+    "health",
+    "impact",
+    "activity",
+    "pool",
+  ] as const)("opens over %s and returns there on close", async (tab) => {
+    const user = userEvent.setup();
+    const tabUrl = `/garden/${tab}?gardenId=${GARDEN_ADDRESS}&range=90d`;
+    renderWorkspaceAt(tabUrl);
+    expect(editDialog()).not.toBeInTheDocument();
 
-      const opener = editButton();
-      await user.click(opener);
+    const opener = editButton();
+    await user.click(opener);
 
-      expect(editDialog()).toBeInTheDocument();
-      expect(currentUrl()).toBe(`${tabUrl}&item=edit-garden`);
+    expect(editDialog()).toBeInTheDocument();
+    expect(currentUrl()).toBe(`${tabUrl}&item=edit-garden`);
 
-      await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-      await waitFor(() => expect(editDialog()).not.toBeInTheDocument());
-      expect(currentUrl()).toBe(tabUrl);
-      await waitFor(() => expect(opener).toHaveFocus());
+    await waitFor(() => expect(editDialog()).not.toBeInTheDocument());
+    expect(currentUrl()).toBe(tabUrl);
+    await waitFor(() => expect(opener).toHaveFocus());
 
-      // The handled item is gone, so the next press opens it again.
-      await user.click(editButton());
-      expect(editDialog()).toBeInTheDocument();
-    }
-  );
+    // The handled item is gone, so the next press opens it again.
+    await user.click(editButton());
+    expect(editDialog()).toBeInTheDocument();
+  });
 
   it("reopens on the same tab from a direct link or a reload, and closes in place", async () => {
     const user = userEvent.setup();
