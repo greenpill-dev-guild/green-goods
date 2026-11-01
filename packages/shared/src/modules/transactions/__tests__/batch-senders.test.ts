@@ -280,6 +280,19 @@ describe("passkey batches for callers that group their own writes", () => {
     expect(result).toEqual({ hash: expect.any(String), sponsored: true });
   });
 
+  it("reports a UserOperation that reverted as a revert, so a caller knows nothing landed", async () => {
+    const { sender, client, calls } = passkey();
+    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
+    const onNeverSent = vi.fn();
+
+    await expect(accepted(sender, calls, { onNeverSent })).rejects.toBeInstanceOf(
+      TransactionRevertedError
+    );
+
+    expect(onNeverSent).not.toHaveBeenCalled();
+  });
+
   it("refuses to send without ceilings, and says it never went out", async () => {
     const { sender, client, calls } = passkey();
     const onNeverSent = vi.fn();

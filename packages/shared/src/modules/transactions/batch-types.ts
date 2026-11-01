@@ -149,9 +149,12 @@ export function atomicBatchTxResult(execution: BatchExecution): TxResult {
   if (execution.status === "confirmed" && execution.receipts.length === 1) {
     return { hash: receipt.transactionHash, sponsored: execution.sponsored };
   }
-  if (execution.status === "reverted" && receipt) {
+  // A reverted UserOperation has no receipt to hand back, only its own hash.
+  const operation = execution.reference?.kind === "user-operation" ? execution.reference : null;
+  const revertedAs = receipt?.transactionHash ?? operation?.hash;
+  if (execution.status === "reverted" && revertedAs) {
     throw new TransactionRevertedError(
-      receipt.transactionHash,
+      revertedAs,
       "The batch reverted on chain. Nothing in it was recorded."
     );
   }

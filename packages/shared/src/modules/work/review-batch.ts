@@ -118,6 +118,8 @@ export function verifyReviews(
   };
   return (execution) => {
     const isProven = async (id: string) => {
+      // Proven once is proven: a later read may come from a node still behind this block.
+      if (attestationUIDs.has(id)) return true;
       const sent = sentFor(prepared, id);
       if (!sent) return false;
       const match = (await madeIn(execution.receipts)).find(

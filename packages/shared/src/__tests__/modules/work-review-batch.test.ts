@@ -190,6 +190,22 @@ describe("sendReviewBatch", () => {
     expect(outcome.unknown).toEqual([]);
   });
 
+  it("keeps a proof it already has when a later read answers from behind", async () => {
+    const { decide, landed, chain, send } = setup();
+    const [first, second] = [decide(), decide()];
+    const [one, two] = [landed(first), landed(second)];
+    const stale = (attestation: typeof one) => ({ ...attestation, data: "0x" as const });
+    chain.attestationsIn
+      .mockResolvedValueOnce([one, stale(two)])
+      .mockResolvedValueOnce([stale(one), stale(two)])
+      .mockResolvedValue([stale(one), two]);
+
+    const outcome = await send([first, second]);
+
+    expect(outcome.unknown).toEqual([]);
+    expect(outcome.sent.map((item) => item.attestationUID)).toEqual([one.uid, two.uid]);
+  });
+
   it("tries again when a read of the receipt fails", async () => {
     const { decide, landed, chain, send } = setup();
     const decision = decide();
