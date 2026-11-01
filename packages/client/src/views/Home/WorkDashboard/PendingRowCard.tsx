@@ -3,11 +3,11 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { DraftCard } from "@/components/Cards";
 import { PendingCard } from "@/components/Cards/Work/PendingCard";
-import type { PendingRow } from "./buildPendingRows";
+import type { PendingRow, ToReviewRow } from "./buildPendingRows";
 
 /**
- * One row of Your Work › Pending: work, a review, a draft or proof, each in the pending card.
- * Home's Continue draws the same rows, without Discard.
+ * One row of Your Work › Pending or To Review: work, a review, a draft or proof, each in the
+ * pending card. Home's Continue draws the same rows, without Discard.
  */
 export function PendingRowCard({
   row,
@@ -15,7 +15,7 @@ export function PendingRowCard({
   onOpen,
   onDiscard,
 }: {
-  row: PendingRow;
+  row: PendingRow | ToReviewRow;
   actionTitle?: string;
   onOpen: () => void;
   /** Offered only where throwing the row away is safe; the list confirms first. */
