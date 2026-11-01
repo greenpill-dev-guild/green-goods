@@ -68,10 +68,6 @@ vi.mock("@/components/Cards", () => ({
     createElement("div", { "data-testid": "card" }, children),
 }));
 
-vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
-}));
-
 import { GardensList } from "../../views/Profile/GardensList";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
@@ -174,11 +170,12 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     const rows = screen.getAllByRole("button", { name: /garden/i });
-    expect(rows.map((row) => row.textContent)).toEqual([
-      expect.stringContaining("My Garden"),
-      expect.stringContaining("Reviewed Garden"),
-    ]);
-    expect(screen.getByText("Berlin")).toBeInTheDocument();
+    expect(rows[0]).toHaveAccessibleName("My Garden");
+    expect(rows[0]).toHaveAccessibleDescription("Berlin");
+    expect(rows[1]).toHaveAccessibleName("Reviewed Garden");
+    // One titled fact list, not a card per garden (DL-152).
+    expect(document.querySelectorAll('[data-component="FactList"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(2);
     // Joining lives on the garden itself, so this list offers no join.
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
@@ -196,8 +193,8 @@ describe("GardensList", () => {
     // Only Home's chip switches: the list holds its rows and nothing else.
     const rows = screen.getAllByRole("button");
     expect(rows).toHaveLength(2);
-    expect(rows[1]).toHaveTextContent("On Home");
-    expect(rows[0]).not.toHaveTextContent("On Home");
+    expect(rows[1]).toHaveAccessibleDescription("On Home");
+    expect(rows[0]).not.toHaveAttribute("aria-describedby");
 
     await user.click(rows[1]);
     expect(mockNavigate).toHaveBeenCalledWith("/home/0xGarden2");
@@ -236,11 +233,10 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     const gardenName = screen.getByText(longName);
-    expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
-    expect(gardenName.className).toContain("[overflow-wrap:anywhere]");
-    expect(gardenName.parentElement).toHaveClass("min-w-0", "flex-1");
+    expect(gardenName).toHaveClass("min-w-0", "truncate");
+    expect(gardenName).toHaveAttribute("title", longName);
     const location = screen.getByText(longLocation);
     expect(location).toHaveClass("min-w-0", "truncate");
-    expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
+    expect(location.parentElement).toHaveClass("min-w-0");
   });
 });

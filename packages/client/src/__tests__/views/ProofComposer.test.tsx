@@ -12,7 +12,7 @@ import type { ProofComposerController } from "@green-goods/shared/hooks/client-u
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -346,6 +346,22 @@ describe("ProofComposer", () => {
 
     expect(await screen.findByText("Back on the promise")).toBeInTheDocument();
     expect(screen.getByText("Its Back reopens Your Work")).toBeInTheDocument();
+  });
+
+  it("opens on Media under the four step markers, with Start already checked (DL-153)", () => {
+    render();
+
+    const [start, media, details, review] = within(
+      screen.getByRole("list", { name: "Steps" })
+    ).getAllByRole("listitem");
+    expect(start).not.toHaveAttribute("aria-current");
+    // A done step trades its number for a tick, and says so to a screen reader.
+    expect(start).toHaveTextContent(/^Start, Done$/);
+    expect(start.querySelector("svg")).not.toBeNull();
+    expect(media).toHaveAttribute("aria-current", "step");
+    expect(details).toHaveTextContent("3");
+    expect(review).toHaveTextContent("4");
+    expect(screen.getByText("Show What Was Done", { selector: "h6" })).toBeInTheDocument();
   });
 
   it("goes back a step with Back, and leaves for the promise from Media", async () => {
