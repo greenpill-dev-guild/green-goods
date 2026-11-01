@@ -1,5 +1,7 @@
 import {
   type CommitmentDerivedState,
+  type CommitmentReadModel,
+  isCommitmentCreator,
   isDemoPoolingActive,
   type ServiceAccessAction,
   type ServiceAccessKey,
@@ -9,7 +11,6 @@ import {
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "@green-goods/shared/commitment-pooling";
-import { Button } from "@green-goods/shared/components/Button";
 import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -23,6 +24,7 @@ import { JoinToActDoor } from "./JoinToAct";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
+import { ServiceReadStatus } from "./ServiceReadStatus";
 import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import {
@@ -44,6 +46,7 @@ import {
   bookingVoucherIssuer,
   formatVoucherMessage,
   isServiceAccessPromise,
+  ownServiceOfferView,
   serviceBookingView,
 } from "./serviceBooking";
 import type { ServiceActKind, ServiceBookingView } from "./serviceBookingTypes";
@@ -59,6 +62,8 @@ import { VoucherPilotJourney } from "./VoucherPilotJourney";
 /** What a voucher booking or a request's rewards hand the promise page. */
 export interface ServicePromiseParts {
   band: CommitmentIdentityProps["serviceBand"];
+  /** What a booking of the reader's own voucher offer takes, for What was promised. */
+  takes: string | null;
   /** The door under the band and the service's section card, in the page's order. */
   body: ReactNode;
   /** The service's own bar, or null when the promise's act leads. */
@@ -83,6 +88,8 @@ export interface ServicePromiseProps {
     dataUpdatedAt?: number;
   };
   coreState: CommitmentDerivedState;
+  /** Who made the promise: the chain refuses their own take-up, so they read no buyer's path. */
+  creator: CommitmentReadModel["creator"];
   /** The request's garden, whose pool pays any G$. */
   gardenName: string;
   heading: string;
@@ -108,6 +115,7 @@ export function ServicePromise({
   serviceKey,
   access,
   coreState,
+  creator,
   gardenName,
   heading,
   hasCoreAct,
@@ -146,9 +154,18 @@ export function ServicePromise({
   const held = issuer
     ? (wallet?.holdings.find((entry) => entry.issuer.account === issuer.account)?.available ?? null)
     : null;
-  const booking = snapshot
-    ? serviceBookingView({ snapshot, coreState, issuer, approval, held }, intl)
-    : null;
+  // A paused contract stops every new booking; a paused issuer, its own.
+  const paused =
+    Boolean(snapshot && Object.values(snapshot.pause).some((p) => p === true)) ||
+    issuer?.standing.bookings === "paused";
+  const ownOffer =
+    snapshot && isCommitmentCreator({ commitment: { creator }, viewer: serviceKey?.buyer })
+      ? ownServiceOfferView({ snapshot, coreState, issuer, paused }, intl)
+      : null;
+  const booking =
+    snapshot && !ownOffer
+      ? serviceBookingView({ snapshot, coreState, issuer, approval, held }, intl)
+      : null;
   const rewards = snapshot
     ? serviceRewardsView(
         {
@@ -161,9 +178,9 @@ export function ServicePromise({
                   snapshot.acceptancePolicy.earned.terms?.asset.token.toLowerCase() &&
                 entry.account.toLowerCase() ===
                   snapshot.acceptancePolicy.earned.terms?.issuer.toLowerCase()
-            ) ?? (booking ? null : issuer),
+            ) ?? (booking || ownOffer ? null : issuer),
           garden: gardenName,
-          takeUp: snapshot.knownService ? "service" : (takeUp?.mode ?? null),
+          takeUp: ownOffer ? null : snapshot.knownService ? "service" : (takeUp?.mode ?? null),
         },
         intl
       )
@@ -171,10 +188,6 @@ export function ServicePromise({
   const text = (id: string) =>
     formatVoucherMessage(intl, id, { issuer: booking?.words.issuer ?? "" });
   const offline = snapshot?.capabilities.reasons.includes("offline") ?? false;
-  // A paused contract stops every new booking; a paused issuer, its own.
-  const paused =
-    Boolean(snapshot && Object.values(snapshot.pause).some((p) => p === true)) ||
-    booking?.issuerPaused === true;
   const blocked =
     booking?.stage === "open"
       ? paused
@@ -321,7 +334,7 @@ export function ServicePromise({
       isOnline={isOnline}
       onRun={() => run(secondary.kind)}
     />
-  ) : !hasCoreAct && rewards?.vouchersReceived ? (
+  ) : !hasCoreAct && !ownOffer && rewards?.vouchersReceived ? (
     // Arrived vouchers are the reader's to use: the wallet's Vouchers tab books or exchanges them.
     <CommitmentActionBar
       act={{ kind: "service", labelId: "", label: formatVoucherMessage(intl, "rw.a.wallet") }}
@@ -334,7 +347,8 @@ export function ServicePromise({
   const showPanel = isServiceAccessPromise(snapshot) || (snapshot?.voucherSetups.length ?? 0) > 0;
 
   return children({
-    band: booking?.band ?? rewards?.band ?? null,
+    band: ownOffer ? ownOffer.band : (booking?.band ?? rewards?.band ?? null),
+    takes: ownOffer?.takes ?? null,
     body: (
       <>
         {booking || rewards ? (
@@ -368,33 +382,9 @@ export function ServicePromise({
             ) : null}
             {booking ? <ServiceAccessSection view={booking} /> : null}
             {rewards ? <ServiceRewardsSection view={rewards} /> : null}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-sub-600">
-              <p role="status">
-                {!isOnline
-                  ? text("wait.offline")
-                  : access.isError
-                    ? text("wait.readFailed")
-                    : access.dataUpdatedAt
-                      ? intl.formatMessage(
-                          { id: "app.voucher.wait.checked" },
-                          {
-                            time: intl.formatTime(access.dataUpdatedAt, {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            }),
-                          }
-                        )
-                      : text("wait.auto")}
-              </p>
-              <Button
-                type="button"
-                emphasis="secondary"
-                disabled={!isOnline || access.isFetching || pending}
-                onClick={() => void access.refetch()}
-              >
-                {text(access.isFetching ? "wait.checking" : "wait.check")}
-              </Button>
-            </div>
+            {ownOffer ? null : (
+              <ServiceReadStatus access={access} isOnline={isOnline} isPending={pending} />
+            )}
             {snapshot?.pilot && import.meta.env.DEV && isDemoPoolingActive() ? (
               <VoucherPilotJourney
                 snapshot={snapshot}
@@ -406,7 +396,7 @@ export function ServicePromise({
             ) : null}
           </>
         ) : null}
-        {snapshot && showPanel && !booking && (snapshot.knownService || !rewards) ? (
+        {snapshot && showPanel && !booking && !ownOffer && (snapshot.knownService || !rewards) ? (
           <ServiceAccessPanel
             key={`${serviceKey?.sourceChainId}:${serviceKey?.coreModule}:${serviceKey?.commitmentId}:${serviceKey?.buyer}`}
             snapshot={snapshot}
