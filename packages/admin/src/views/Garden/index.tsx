@@ -86,7 +86,6 @@ export default function GardenView() {
                 id: "cockpit.garden.impact",
                 defaultMessage: "Impact",
               }),
-              count: garden.derived.impactBadge.count,
             },
             {
               id: "activity",

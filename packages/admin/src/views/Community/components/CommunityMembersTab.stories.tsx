@@ -43,6 +43,7 @@ const meta = {
     closeMembersModal: fn(),
     memberCount: storyDirectory.length,
     memberSearch: "",
+    noteJoinRequestsRead: fn(),
     roleMembers: storyRoleMembers,
     roleSummary: storyRoleSummary,
     scheduleBackgroundRefetch: fn(),
