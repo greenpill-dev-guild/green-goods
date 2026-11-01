@@ -40,8 +40,16 @@ export const SubmitWork: Story = {
   },
 };
 
+/** Adding proof: the same four markers, Start already checked as the path opens on Media (DL-153). */
 export const AddingProof: Story = {
-  args: { currentStep: 3, steps: ["Media", "Details", "Review"] },
+  args: { currentStep: 2, steps: ["Start", "Media", "Details", "Review"] },
+  play: async ({ canvasElement }) => {
+    const [start, media] = within(
+      within(canvasElement).getByRole("list", { name: "Steps" })
+    ).getAllByRole("listitem");
+    await expect(start).toHaveTextContent("Start, Done");
+    await expect(media).toHaveAttribute("aria-current", "step");
+  },
 };
 
 const MESSAGES = { en, es, pt } as const;
@@ -55,7 +63,12 @@ const FLOW_STEPS = {
     "app.work.step.details",
     "app.work.step.review",
   ],
-  proof: ["app.work.step.media", "app.work.step.details", "app.work.step.review"],
+  proof: [
+    "app.work.step.start",
+    "app.work.step.media",
+    "app.work.step.details",
+    "app.work.step.review",
+  ],
   compose: [
     "app.compose.beat.what",
     "app.compose.beat.howMuch",
