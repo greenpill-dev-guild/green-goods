@@ -1449,6 +1449,8 @@
   "app.commitment.progress.local": "Ainda não há provas na promessa. A sua continua neste telefone (veja acima).",
   "app.commitment.progress.localMore": "Sua prova mais recente continua neste telefone (veja acima).",
   "app.commitment.progress.note": "Cada linha conta por si. As linhas nunca são somadas, porque contam coisas diferentes.",
+  "app.commitment.progress.proofAfterTakeUp": "Ainda não há provas. Você poderá adicioná-las quando alguém aceitar esta promessa.",
+  "app.commitment.progress.proofCount": "{count, plural, =0 {Ainda não há provas.} one {# prova adicionada.} other {# provas adicionadas.}}",
   "app.commitment.progress.proofOnly": "{count, plural, =0 {Ainda não há provas. A prova é o que faz isto avançar.} one {# prova adicionada. A prova é o que faz isto avançar.} other {# provas adicionadas. A prova é o que faz isto avançar.}}",
   "app.commitment.progress.proofOnlySettled": "{count, plural, =0 {Não foram adicionadas provas.} one {Foi adicionada # prova.} other {Foram adicionadas # provas.}}",
   "app.commitment.progress.row": "Requisito {index}",
