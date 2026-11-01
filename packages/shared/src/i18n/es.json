@@ -3977,6 +3977,7 @@
   "app.wizard.back": "Atrás",
   "app.wizard.cancel": "Cancelar",
   "app.wizard.submitting": "Enviando…",
+  "app.work.batch.sent": "{count, plural, one {# revisión enviada} other {# revisiones enviadas}}",
   "app.work.sendCancelled.title": "Carga cancelada",
   "app.work.sendCancelled.message": "No se envió nada. Está en Tu trabajo › Pendiente, listo para subir o descartar.",
   "app.work.detail.action": "Acción",

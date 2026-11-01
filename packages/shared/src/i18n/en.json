@@ -3977,6 +3977,7 @@
   "app.wizard.back": "Back",
   "app.wizard.cancel": "Cancel",
   "app.wizard.submitting": "Submitting…",
+  "app.work.batch.sent": "{count, plural, one {# review sent} other {# reviews sent}}",
   "app.work.sendCancelled.title": "Upload canceled",
   "app.work.sendCancelled.message": "Nothing was sent. It's in Your Work › Pending, ready to upload or discard.",
   "app.work.detail.action": "Action",

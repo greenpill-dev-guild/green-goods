@@ -19,7 +19,7 @@ interface RailListing {
 /** A deposit moves money, so its listing names the one asset with recorded evidence. */
 export type BatchEnablement = RailListing &
   (
-    | { action: "garden-settings" | "add-members"; asset?: never }
+    | { action: "garden-settings" | "add-members" | "bulk-reviews"; asset?: never }
     | { action: DepositAction; asset: string }
   );
 

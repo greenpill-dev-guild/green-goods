@@ -1,309 +1,230 @@
-/**
- * Batch Work Approval Hook
- *
- * Enables stewards to approve/reject multiple works in a single transaction
- * using EAS multiAttest. This dramatically improves UX by:
- * - Single wallet confirmation instead of N confirmations
- * - Single gas payment
- * - Single polling cycle
- *
- * @module hooks/work/useBatchWorkApproval
- */
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { trackContractError } from "../../modules/app/error-tracking";
-import { track } from "../../modules/app/posthog";
-import { type OverlayWork, overlayDeadline } from "../../modules/work/local-status-overlay";
-import {
-  type BatchApprovalItem,
-  createDefaultSubmitBatchApprovalsPorts,
-  submitBatchApprovals,
-} from "../../modules/work/submit-approval-command";
-import type { Work } from "../../types/domain";
-import { hapticError, hapticSuccess } from "../../utils/app/haptics";
-import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
-import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { batchKeys } from "../../config/query-keys/garden";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
-import { useSafeMutation } from "../utils/useSafeMutation";
+import { track } from "../../modules/app/posthog";
+import { isBatchEnabled } from "../../modules/transactions/batch-enablement";
+import type { OverlayWork } from "../../modules/work/local-status-overlay";
+import {
+  moveOnFromReviewHold,
+  type ProvenReview,
+  readReviewHold,
+  type ReviewBatchOutcome,
+  type ReviewDecision,
+  reviewDomain,
+  type ReviewHold,
+  sendReviewBatch,
+} from "../../modules/work/review-batch";
+import {
+  createReviewChain,
+  reviewBudget,
+  signaturesForReviews,
+} from "../../modules/work/review-chain";
+import type { Address } from "../../types/domain";
+import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { useHeldBatches } from "../garden/useHeldBatches";
+import { useUser } from "../auth/useUser";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
+type OverlayPatch = Partial<OverlayWork>;
+
 /**
- * Hook for submitting multiple work approvals in a single transaction.
- *
- * Benefits:
- * - Single wallet confirmation for all approvals
- * - 70-85% time savings compared to individual approvals
- * - Optimistic UI updates for immediate feedback
- *
- * @returns TanStack Query mutation for batch approval submission
- *
- * @example
- * ```tsx
- * function BatchApprovalPanel({ works }) {
- *   const [selected, setSelected] = useState<string[]>([]);
- *   const batchApproval = useBatchWorkApproval();
- *
- *   const handleBatchApprove = async () => {
- *     const approvals = selected.map(workId => {
- *       const work = works.find(w => w.id === workId);
- *       return {
- *         draft: { workUID: workId, actionUID: work.actionUID, approved: true },
- *         work
- *       };
- *     });
- *
- *     await batchApproval.mutateAsync(approvals);
- *   };
- *
- *   return (
- *     <button
- *       onClick={handleBatchApprove}
- *       disabled={batchApproval.isPending || selected.length === 0}
- *     >
- *       {batchApproval.isPending
- *         ? `Approving ${selected.length}...`
- *         : `Approve ${selected.length} works`}
- *     </button>
- *   );
- * }
- * ```
+ * Send a list of reviewed decisions under as few signatures as the rail allows, and settle a send
+ * whose outcome is unknown. One `multiAttest` call carries each group, so every wallet can send it.
+ * Nothing here sends on its own: the records live in the batch journal, where no background sender
+ * can reach them, and recovery does not depend on `available`, so a hold from an earlier send still
+ * shows after batching is switched off.
  */
-export function useBatchWorkApproval() {
-  const { authMode, smartAccountClient } = useUser();
+export function useBatchWorkApproval(gardenId: string) {
+  const gardenAddress = gardenId as Address;
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-  const lastGardenAddressesRef = useRef<string[]>([]);
+  const { formatMessage } = useIntl();
+  const sender = useTransactionSender();
+  const { primaryAddress: account, passkeyAccountProfile } = useUser();
+  const handleError = createMutationErrorHandler({
+    source: "useBatchWorkApproval",
+    toastContext: "batch approval",
+    formatMessage,
+  });
+
+  const batches = sender?.batches;
+  const rail =
+    sender?.authMode === "passkey" || sender?.authMode === "wallet" ? sender.authMode : null;
+  const profile = rail === "wallet" ? "contract-call" : passkeyAccountProfile;
+  const available = Boolean(
+    batches &&
+      account &&
+      rail &&
+      profile &&
+      reviewBudget(rail, chainId) &&
+      isBatchEnabled({ action: "bulk-reviews", rail, profile, chainId })
+  );
+
+  const domain = reviewDomain(gardenAddress);
+  const holdKey = batchKeys.hold(domain, account ?? "", chainId);
+  const batchInput = () => ({
+    batches: batches!,
+    chain: createReviewChain(chainId),
+    gardenAddress,
+    scope: { account: account!, chainId },
+  });
+
+  const refreshWorks = () => {
+    void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
+    void queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
+    void queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
+    void queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
+  };
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
-    useCallback(() => {
-      for (const addr of lastGardenAddressesRef.current) {
-        queryClient.invalidateQueries({ queryKey: worksKeys.online(addr, chainId) });
-        queryClient.invalidateQueries({ queryKey: worksKeys.merged(addr, chainId) });
-      }
-      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
-    }, [queryClient, chainId]),
+    refreshWorks,
     INDEXER_LAG_SCHEDULE_MS
   );
 
-  const mutation = useMutation({
-    mutationFn: async (items: BatchApprovalItem[]) => {
-      if (DEBUG_ENABLED) {
-        debugLog("[useBatchWorkApproval] Starting batch approval", {
-          authMode,
-          count: items.length,
-          chainId,
-        });
-      }
+  const patchWorks = (patchFor: (workId: string) => OverlayPatch | undefined) => {
+    const patched = (old: OverlayWork[] = []) =>
+      old.map((work) => {
+        const patch = patchFor(work.id.toLowerCase());
+        return patch ? { ...work, ...patch } : work;
+      });
+    queryClient.setQueryData(worksKeys.merged(gardenAddress, chainId), patched);
+    queryClient.setQueryData(worksKeys.online(gardenAddress, chainId), patched);
+  };
 
-      return submitBatchApprovals(
-        { authMode, items, chainId },
-        createDefaultSubmitBatchApprovalsPorts(smartAccountClient)
+  /** A proven decision outranks the indexer until the indexer reports it, with no deadline. */
+  const markLanded = (landed: readonly { workUID: string; transactionHash?: string }[]) => {
+    const byWork = new Map(landed.map((item) => [item.workUID.toLowerCase(), item]));
+    patchWorks((workId) => {
+      const item = byWork.get(workId);
+      return (
+        item && { _isPending: false, _pendingUntilMs: undefined, _txHash: item.transactionHash }
       );
-    },
+    });
+  };
 
-    onMutate: async (items) => {
-      if (!items || items.length === 0) return;
+  /** Nothing went out, or the person moved on: the indexer's answer is the only one left. */
+  const clearOverlay = (workUIDs: readonly string[]) => {
+    const ids = new Set(workUIDs.map((workUID) => workUID.toLowerCase()));
+    const now = Date.now();
+    patchWorks((workId) =>
+      ids.has(workId) ? { _isPending: false, _pendingUntilMs: now, _txHash: undefined } : undefined
+    );
+  };
 
-      // Track batch approval started
-      track("batch_approval_started", {
-        count: items.length,
-        auth_mode: authMode,
-      });
+  const announceSent = (count: number) =>
+    toastService.success({
+      title: formatMessage({ id: "app.work.batch.sent" }, { count }),
+      context: "batch approval",
+    });
 
-      // Cancel outgoing refetches
-      const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
-      for (const addr of gardenAddresses) {
-        await queryClient.cancelQueries({
-          queryKey: worksKeys.merged(addr, chainId),
-        });
-        await queryClient.cancelQueries({
-          queryKey: worksKeys.online(addr, chainId),
-        });
-      }
-
-      // Snapshot previous states for rollback
-      const previousStates = new Map<string, Work[] | undefined>();
-      for (const addr of gardenAddresses) {
-        previousStates.set(
-          `merged-${addr}`,
-          queryClient.getQueryData<Work[]>(worksKeys.merged(addr, chainId))
-        );
-        previousStates.set(
-          `online-${addr}`,
-          queryClient.getQueryData<Work[]>(worksKeys.online(addr, chainId))
-        );
-      }
-
-      // Optimistically update all works. The deadline matters: without one the
-      // overlay would outrank the indexer forever if this batch never lands.
-      for (const { draft, work } of items) {
-        const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
-
-        const applyOptimistic = (old: OverlayWork[] = []): OverlayWork[] =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? {
-                  ...w,
-                  status: optimisticStatus,
-                  _isPending: true,
-                  _pendingUntilMs: overlayDeadline(),
-                }
-              : w
-          );
-
-        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), applyOptimistic);
-        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), applyOptimistic);
-      }
-
-      // Show loading toast
-      const approvedCount = items.filter((i) => i.draft.approved).length;
-      const rejectedCount = items.length - approvedCount;
-      const message =
-        approvedCount > 0 && rejectedCount > 0
-          ? `${approvedCount} approvals, ${rejectedCount} rejections`
-          : approvedCount > 0
-            ? `${approvedCount} approval${approvedCount > 1 ? "s" : ""}`
-            : `${rejectedCount} rejection${rejectedCount > 1 ? "s" : ""}`;
-
-      toastService.loading({
-        id: "batch-approval",
-        title: authMode === "wallet" ? "Confirm in your wallet" : "Submitting batch...",
-        message: `Processing ${message}...`,
-        context: "batch approval",
-        // Wallet mode waits on the human signature, which can exceed any fixed
-        // timeout — keep it up until the flow replaces it. Passkey/offline are
-        // fast, so they keep the default auto-dismiss safety window.
-        persistent: authMode === "wallet",
-      });
-
-      return { previousStates };
-    },
-
-    onSuccess: (result, items) => {
-      hapticSuccess();
-
-      // Clear pending flags on all items, keeping a grace window so the decision
-      // survives indexer lag without outliving a transaction that never landed.
-      for (const { draft, work } of items) {
-        const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
-        const reviewFeedback = draft.feedback?.trim() || undefined;
-
-        const recordDecision = (old: OverlayWork[] = []): OverlayWork[] =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? {
-                  ...w,
-                  status: confirmedStatus,
-                  _isPending: false,
-                  _txHash: result.hash,
-                  _pendingUntilMs: overlayDeadline(),
-                  // Replaces a cached reason even when this decision has none.
-                  reviewFeedback,
-                }
-              : w
-          );
-
-        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), recordDecision);
-        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), recordDecision);
-      }
-
-      // Invalidate queries
-      const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
-      for (const addr of gardenAddresses) {
-        queryClient.invalidateQueries({ queryKey: worksKeys.online(addr, chainId) });
-        queryClient.invalidateQueries({ queryKey: worksKeys.merged(addr, chainId) });
-      }
-      queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
-      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
-
-      // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
-      lastGardenAddressesRef.current = gardenAddresses;
-      scheduleFollowUp();
-
-      toastService.success({
-        id: "batch-approval",
-        title: "Batch approved!",
-        message: `${result.count} work${result.count > 1 ? "s" : ""} processed successfully.`,
-        context: "batch approval",
-      });
-
-      track("batch_approval_success", {
-        count: result.count,
-        auth_mode: authMode,
-        tx_hash: result.hash,
-      });
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useBatchWorkApproval] Batch approval successful", {
-          count: result.count,
-          hash: result.hash,
-        });
-      }
-    },
-
-    onError: (error, items, context) => {
-      hapticError();
-
-      // Rollback optimistic updates
-      if (context?.previousStates && items) {
-        const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
-        for (const addr of gardenAddresses) {
-          const prevMerged = context.previousStates.get(`merged-${addr}`);
-          const prevOnline = context.previousStates.get(`online-${addr}`);
-          if (prevMerged) {
-            queryClient.setQueryData(worksKeys.merged(addr, chainId), prevMerged);
+  const send = useMutation({
+    onMutate: async (decisions: readonly ReviewDecision[]) => {
+      await queryClient.cancelQueries({ queryKey: holdKey });
+      await queryClient.cancelQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
+      await queryClient.cancelQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
+      track("batch_approval_started", { count: decisions.length, auth_mode: rail });
+      const decided = new Map(
+        decisions.map(({ draft }) => [draft.workUID.toLowerCase(), draft] as const)
+      );
+      // No deadline: a decision stays pending until it is proven, moved on from, or known not sent.
+      patchWorks((workId) => {
+        const draft = decided.get(workId);
+        return (
+          draft && {
+            status: draft.approved ? "approved" : "rejected",
+            reviewFeedback: draft.feedback?.trim() || undefined,
+            _isPending: true,
+            _pendingUntilMs: undefined,
           }
-          if (prevOnline) {
-            queryClient.setQueryData(worksKeys.online(addr, chainId), prevOnline);
-          }
-        }
+        );
+      });
+    },
+    mutationFn: async (decisions: readonly ReviewDecision[]): Promise<ReviewBatchOutcome> => {
+      try {
+        return await sendReviewBatch({
+          ...batchInput(),
+          rail: rail!,
+          decisions,
+          onLanded: markLanded,
+        });
+      } catch (failure) {
+        return {
+          sent: [],
+          stale: [],
+          refused: [],
+          notSent: decisions.map(({ draft }) => draft.workUID),
+          notBatchable: [],
+          unknown: [],
+          failure,
+        };
       }
-
-      // Parse error for user-friendly message
-      const { title, message, parsed } = parseAndFormatError(error);
-      const displayMessage = parsed.isKnown ? message : "Batch approval failed. Please try again.";
-      const displayTitle = parsed.isKnown ? title : "Batch approval failed";
-
-      // Structured error tracking
-      trackContractError(error, {
-        source: "useBatchWorkApproval",
-        authMode,
-        userAction: "batch approval",
-        metadata: {
-          count: items?.length ?? 0,
-          parsedErrorName: parsed.name,
-          isKnown: parsed.isKnown,
-        },
-      });
-
-      toastService.error({
-        id: "batch-approval",
-        title: displayTitle,
-        message: displayMessage,
-        context: "batch approval",
-        description: parsed.isKnown ? parsed.action || undefined : undefined,
-        error,
-      });
-
-      track("batch_approval_failed", {
-        count: items?.length ?? 0,
-        auth_mode: authMode,
-        error: parsed.message || (error instanceof Error ? error.message : "Unknown error"),
-      });
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useBatchWorkApproval] Batch approval failed", {
-          error,
-          parsedError: parsed.name,
-          message: displayMessage,
+    },
+    onSuccess: (outcome) => {
+      const { sent, stale, refused, notSent, notBatchable, unknown, failure } = outcome;
+      clearOverlay([
+        ...stale,
+        ...refused.map(({ workUID }) => workUID),
+        ...notSent,
+        ...notBatchable,
+      ]);
+      if (failure) handleError(failure, { authMode: rail, gardenAddress });
+      if (sent.length > 0) {
+        announceSent(sent.length);
+        track("batch_approval_success", {
+          count: sent.length,
+          auth_mode: rail,
+          tx_hash: sent[0].transactionHash,
+        });
+        refreshWorks();
+        scheduleFollowUp();
+      }
+      if (unknown.length > 0 || refused.length > 0 || failure) {
+        track("batch_approval_failed", {
+          count: unknown.length + refused.length + notSent.length,
+          unknown: unknown.length,
+          auth_mode: rail,
         });
       }
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
   });
 
-  return useSafeMutation(mutation, "approval");
+  const held = useHeldBatches<ReviewHold, ProvenReview>({
+    domain,
+    account,
+    chainId,
+    enabled: Boolean(batches && account) && !send.isPending,
+    read: (shown) => readReviewHold(batchInput(), shown),
+    moveOn: async (hold) => {
+      const settlement = await moveOnFromReviewHold(batchInput(), hold);
+      // A hold that ended let go of its decisions, unless a last read proved they landed.
+      if (!settlement.hold) {
+        const proven = new Set(settlement.saved.map(({ workUID }) => workUID));
+        clearOverlay(hold.workUIDs.filter((workUID) => !proven.has(workUID)));
+        refreshWorks();
+      }
+      return settlement;
+    },
+    onSaved: (saved) => {
+      markLanded(saved);
+      announceSent(saved.length);
+      refreshWorks();
+      scheduleFollowUp();
+    },
+    onError: (error) => handleError(error, { authMode: rail, gardenAddress }),
+  });
+
+  return {
+    ...held,
+    /** Who `hold` and `send` act for. A hold is theirs alone, so a list should not outlive a change. */
+    account,
+    available,
+    isSending: send.isPending,
+    signaturesFor: signaturesForReviews,
+    send: (decisions: readonly ReviewDecision[]) => send.mutateAsync(decisions),
+  };
 }

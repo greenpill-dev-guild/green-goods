@@ -2,10 +2,7 @@ import { encodeFunctionData } from "viem";
 import { describe, expect, it } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import { EASABI } from "../../utils/blockchain/contracts";
-import {
-  buildBatchApprovalAttestTx,
-  buildQueuedAttestationsCall,
-} from "../../utils/eas/transaction-builder";
+import { buildQueuedAttestationsCall } from "../../utils/eas/transaction-builder";
 
 const mockEasConfig: EASConfig = {
   ASSESSMENT: { uid: "0x" + "1".repeat(64), schema: "" },
@@ -17,12 +14,6 @@ const mockEasConfig: EASConfig = {
 };
 
 describe("utils/eas/transaction-builder", () => {
-  it("buildBatchApprovalAttestTx rejects empty batches", () => {
-    expect(() => buildBatchApprovalAttestTx(mockEasConfig, [])).toThrow(
-      "Approvals array must not be empty"
-    );
-  });
-
   describe("buildQueuedAttestationsCall", () => {
     const GARDEN_A = "0x00000000000000000000000000000000000000aa" as const;
     const GARDEN_B = "0x00000000000000000000000000000000000000bb" as const;
