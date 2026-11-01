@@ -8,16 +8,11 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { AppSheet } from "@/components/Sheets/AppSheet";
-import type { SwitcherRow } from "./homeGardens";
+import { STANDING_LABEL_IDS, type SwitcherRow } from "./homeGardens";
 
 export interface GardenSwitcherSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  /**
-   * `choose` is the one-time chooser for a member with several gardens and none remembered
-   * (DL-123); `switch` is the chip's switcher.
-   */
-  mode: "switch" | "choose";
   rows: readonly SwitcherRow[];
   /** One of the member's gardens: it becomes the active garden, and Home stays. */
   onPick: (gardenId: string) => void;
@@ -25,14 +20,6 @@ export interface GardenSwitcherSheetProps {
   onVisit: (gardenId: string) => void;
   onExplore: () => void;
 }
-
-const STANDING_LABEL_IDS = {
-  owner: "app.roles.owner",
-  steward: "app.roles.steward",
-  evaluator: "app.roles.evaluator",
-  gardener: "app.roles.gardener",
-  awaiting: "app.home.awaitingReview",
-} as const satisfies Record<SwitcherRow["standing"], string>;
 
 // Every row is 80px: room for a name on two lines, so no row changes height (DL-133).
 const ROW_CLASS =
@@ -102,7 +89,6 @@ function GardenBanner({ garden }: { garden: Garden }) {
 export function GardenSwitcherSheet({
   isOpen,
   onClose,
-  mode,
   rows,
   onPick,
   onVisit,
@@ -116,20 +102,10 @@ export function GardenSwitcherSheet({
       isOpen={isOpen}
       onClose={onClose}
       size="half"
-      header={
-        mode === "choose"
-          ? {
-              title: formatMessage({ id: "app.home.chooser.title" }),
-              description: formatMessage({ id: "app.home.chooser.description" }),
-            }
-          : {
-              title: formatMessage({ id: "app.home.switcher.title" }),
-              description: formatMessage(
-                { id: "app.home.switcher.description" },
-                { count: memberCount }
-              ),
-            }
-      }
+      header={{
+        title: formatMessage({ id: "app.home.switcher.title" }),
+        description: formatMessage({ id: "app.home.switcher.description" }, { count: memberCount }),
+      }}
     >
       <ul className="flex flex-col gap-1">
         {rows.map(({ garden, standing, active }) => {
