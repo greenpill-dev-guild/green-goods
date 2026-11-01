@@ -9,7 +9,6 @@ import {
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "@green-goods/shared/commitment-pooling";
-import { Button } from "@green-goods/shared/components/Button";
 import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -23,6 +22,7 @@ import { JoinToActDoor } from "./JoinToAct";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
+import { ServiceReadStatus } from "./ServiceReadStatus";
 import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
 import {
@@ -368,33 +368,7 @@ export function ServicePromise({
             ) : null}
             {booking ? <ServiceAccessSection view={booking} /> : null}
             {rewards ? <ServiceRewardsSection view={rewards} /> : null}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-sub-600">
-              <p role="status">
-                {!isOnline
-                  ? text("wait.offline")
-                  : access.isError
-                    ? text("wait.readFailed")
-                    : access.dataUpdatedAt
-                      ? intl.formatMessage(
-                          { id: "app.voucher.wait.checked" },
-                          {
-                            time: intl.formatTime(access.dataUpdatedAt, {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            }),
-                          }
-                        )
-                      : text("wait.auto")}
-              </p>
-              <Button
-                type="button"
-                emphasis="secondary"
-                disabled={!isOnline || access.isFetching || pending}
-                onClick={() => void access.refetch()}
-              >
-                {text(access.isFetching ? "wait.checking" : "wait.check")}
-              </Button>
-            </div>
+            <ServiceReadStatus access={access} isOnline={isOnline} isPending={pending} />
             {snapshot?.pilot && import.meta.env.DEV && isDemoPoolingActive() ? (
               <VoucherPilotJourney
                 snapshot={snapshot}

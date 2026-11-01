@@ -40,6 +40,23 @@ export function formatVoucherMessage(
     : text;
 }
 
+/** Voucher strings and amounts, with the issuer's name and grammatical gender already in them. */
+function voucherWords(
+  intl: Pick<IntlShape, "formatMessage" | "locale">,
+  named: ServiceBookingInput["issuer"],
+  asset: { symbol: string | null; decimals: number | null } | null
+) {
+  const decimals = asset?.decimals ?? 0;
+  const issuer = named?.name ?? asset?.symbol ?? "";
+  const gender = named?.gender ?? "other";
+  const t = (id: string, values: Record<string, string | number> = {}) =>
+    formatVoucherMessage(intl, id, { issuer, gender, ...values });
+  const count = (value: bigint) => formatTokenAmount(value, decimals, decimals, intl.locale);
+  const isOne = (value: bigint) => value === 10n ** BigInt(decimals);
+  const unit = (value: bigint) => t("unit", { count: isOne(value) ? 1 : 2 });
+  return { issuer, t, count, isOne, unit };
+}
+
 /** Decision 3: the acceptance deadline defaults to seven days from agreeing. */
 export const SERVICE_ACCEPTANCE_WINDOW_SECONDS = 7n * 86_400n;
 
@@ -252,20 +269,13 @@ export function serviceBookingView(
   const setup = currentVoucherSetup(s);
   const offer = s.offer;
   const asset = setup?.asset ?? offer?.voucher?.asset ?? null;
-  const decimals = asset?.decimals ?? 0;
   const units = setup?.authorization.voucherUnits ?? offer?.voucher?.units ?? 0n;
   const serviceUnits = setup?.authorization.serviceUnits ?? offer?.serviceUnits ?? 1n;
   // A booking keeps the terms it was set up on, even after the offer changes them.
   const revision = setup?.authorization.termsRevision ?? offer?.revision ?? null;
   const profile = serviceProfile(offer?.unitLabel);
   const member = input.issuer?.kind === "individual";
-  const issuer = input.issuer?.name ?? asset?.symbol ?? "";
-  const gender = input.issuer?.gender ?? "other";
-  const t = (id: string, values: Record<string, string | number> = {}) =>
-    formatVoucherMessage(intl, id, { issuer, gender, ...values });
-  const count = (value: bigint) => formatTokenAmount(value, decimals, decimals, intl.locale);
-  const isOne = (value: bigint) => value === 10n ** BigInt(decimals);
-  const unit = (value: bigint) => t("unit", { count: isOne(value) ? 1 : 2 });
+  const { issuer, t, count, isOne, unit } = voucherWords(intl, input.issuer, asset);
   const date = (seconds: number | bigint) =>
     intl.formatDate(Number(seconds) * 1000, { month: "short", day: "numeric" });
   const d = setup?.destination ?? null;
