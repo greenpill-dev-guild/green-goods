@@ -1,4 +1,4 @@
-import { Alert } from "@green-goods/shared/components/Alert";
+import { Alert, type AlertVariant } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
@@ -33,6 +33,8 @@ interface CookieJarDepositModalHarnessProps {
   error?: string | null;
   /** The selected jar's per-claim limit is under the floor: warn, and offer the fix first. */
   lowLimit?: { limit: string; symbol: string };
+  /** The jars can't be funded yet: this stands in for the form, with Cancel alone in the footer. */
+  readNotice?: { variant: AlertVariant; title?: string; body: string };
 }
 
 function CookieJarDepositModalHarness({
@@ -43,11 +45,32 @@ function CookieJarDepositModalHarness({
   isPending = false,
   error = null,
   lowLimit,
+  readNotice,
 }: CookieJarDepositModalHarnessProps) {
   const [jarAddress, setJarAddress] = useState(jars[0]?.jarAddress ?? "");
   const [amount, setAmount] = useState("");
 
   const selected = jars.find((j) => j.jarAddress === jarAddress);
+
+  if (readNotice) {
+    return (
+      <AdminDialog
+        open={isOpen}
+        onOpenChange={(open) => !open && onClose()}
+        title="Fund Cookie Jar"
+        description="Fund a jar from your connected wallet."
+        actions={
+          <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+        }
+      >
+        <Alert variant={readNotice.variant} title={readNotice.title}>
+          {readNotice.body}
+        </Alert>
+      </AdminDialog>
+    );
+  }
 
   return (
     <AdminDialog
@@ -211,6 +234,25 @@ export const WithError: Story = {
 /** Funding a jar capped at one cent warns; the deposit still goes through. */
 export const LowLimitWarning: Story = {
   args: { jars: [JARS[1]], lowLimit: { limit: "0.01", symbol: "DAI" } },
+};
+
+/** Fund Cookie Jar opened before the jars were read, as on a reload with its route item (DL-140). */
+export const CheckingJars: Story = {
+  args: {
+    jars: [],
+    readNotice: { variant: "info", body: "Checking which cookie jars you can access…" },
+  },
+};
+
+export const JarsReadFailed: Story = {
+  args: {
+    jars: [],
+    readNotice: {
+      variant: "error",
+      title: "Couldn't read this garden's cookie jars",
+      body: "Refresh the page to try again.",
+    },
+  },
 };
 
 export const Closed: Story = {

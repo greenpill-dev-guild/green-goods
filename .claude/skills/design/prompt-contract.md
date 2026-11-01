@@ -130,8 +130,8 @@ but the canvas itself never tints: it stays constant linen (`--m3-surface-contai
 light and m3 surface in dark. Tone spends a **6-use budget**: (1) the active tab: its 10% tint,
 label and underline (DL-100), (2) the active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (3) the
 single filled header action (`--tone-action`), (4) the nav-shell FAB fill (`Shell/FabButton`), the
-one tone-filled control in the floating chrome, (5) the count badge on every tab of the rail
-(the shared `CountBadge` on `--tone-on-surface-accent`, DL-099), and (6) a selected filter chip
+one tone-filled control in the floating chrome, (5) the count badge on a rail tab where something
+waits on the steward (the shared `CountBadge` on `--tone-on-surface-accent`, DL-099, DL-134), and (6) a selected filter chip
 (`AdminFilterChip` on `--tone-action` with `--tone-on-action`, DL-101). Outside the budget, a
 faint canvas wash (`--tone-surface-tint-color`, 5% light / 10% dark) fades to transparent by
 320px. The

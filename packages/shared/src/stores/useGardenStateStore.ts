@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, subscribeWithSelector } from "zustand/middleware";
+import type { GardenJoinRequestKind } from "../public-contracts/join-requests";
 
 export const GARDEN_STATE_STORAGE_KEY = "green-goods:garden-state";
 export const ALL_GARDENS_KEY = "__all__";
@@ -9,6 +10,8 @@ export type GardenWorkspaceKey = "hub" | "garden" | "community" | "actions";
 export type GardenWorkspaceState = {
   activeMode: string;
   filter: string;
+  /** What the last check of each join-request queue found (`useJoinRequestsWaiting`). */
+  joinRequestsWaiting?: Partial<Record<GardenJoinRequestKind, number>>;
   search: string;
   selectedItem: string | null;
   scrollPosition: number;
