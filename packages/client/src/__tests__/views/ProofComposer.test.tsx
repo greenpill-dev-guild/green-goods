@@ -354,10 +354,9 @@ describe("ProofComposer", () => {
     const [start, media, details, review] = within(
       screen.getByRole("list", { name: "Steps" })
     ).getAllByRole("listitem");
-    expect(start).toHaveTextContent("Start");
     expect(start).not.toHaveAttribute("aria-current");
-    // A done step trades its number for a tick.
-    expect(start).not.toHaveTextContent("1");
+    // A done step trades its number for a tick, and says so to a screen reader.
+    expect(start).toHaveTextContent(/^Start, Done$/);
     expect(start.querySelector("svg")).not.toBeNull();
     expect(media).toHaveAttribute("aria-current", "step");
     expect(details).toHaveTextContent("3");

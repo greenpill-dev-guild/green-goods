@@ -2092,6 +2092,7 @@
   "app.form.method.onchain": "Onchain",
   "app.form.next": "Continuar",
   "app.form.optional": "opcional",
+  "app.form.progress.done": "Concluído",
   "app.form.progress.label": "Etapas",
   "app.form.required": "Obrigatório",
   "app.form.stepAnnouncement": "Etapa {step} de {total}: {title}",

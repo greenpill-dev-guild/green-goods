@@ -28,7 +28,7 @@ const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 const meta: Meta<typeof ProfileAccount> = {
   title: "Client/Profile/Account",
   component: ProfileAccount,
-  tags: ["storybook-ci"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "mobile" } },
   decorators: [
