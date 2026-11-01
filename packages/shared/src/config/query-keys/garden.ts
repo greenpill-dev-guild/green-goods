@@ -31,6 +31,9 @@ export const batchKeys = {
   /** Sends in flight from this account, so a read of its holds waits for them. */
   depositSend: (account: string, chainId: number) =>
     ["greengoods", "batch", "deposit-send", account, chainId] as const,
+  /** Review sends in flight from this account, so a read of its holds waits for them. */
+  reviewSend: (account: string, chainId: number) =>
+    ["greengoods", "batch", "review-send", account, chainId] as const,
   /** A deposit that came back past its ceilings, so the next press goes step by step. */
   overCeilings: (domain: string, account: string, chainId: number, amount: string) =>
     ["greengoods", "batch", "over-ceilings", domain, account, chainId, amount] as const,

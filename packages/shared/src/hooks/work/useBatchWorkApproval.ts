@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -121,7 +121,10 @@ export function useBatchWorkApproval(gardenId: string) {
       context: "batch approval",
     });
 
+  const sendKey = batchKeys.reviewSend(account ?? "", chainId);
+  const sending = useIsMutating({ mutationKey: sendKey }) > 0;
   const send = useMutation({
+    mutationKey: sendKey,
     onMutate: async (decisions: readonly ReviewDecision[]) => {
       await queryClient.cancelQueries({ queryKey: holdKey });
       await queryClient.cancelQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
@@ -197,7 +200,7 @@ export function useBatchWorkApproval(gardenId: string) {
     domain,
     account,
     chainId,
-    enabled: Boolean(batches && account) && !send.isPending,
+    enabled: Boolean(batches && account) && !sending,
     read: (shown) => readReviewHold(batchInput(), shown),
     moveOn: async (hold) => {
       const settlement = await moveOnFromReviewHold(batchInput(), hold);
@@ -223,7 +226,7 @@ export function useBatchWorkApproval(gardenId: string) {
     /** Who `hold` and `send` act for. A hold is theirs alone, so a list should not outlive a change. */
     account,
     available,
-    isSending: send.isPending,
+    isSending: sending,
     signaturesFor: signaturesForReviews,
     send: (decisions: readonly ReviewDecision[]) => send.mutateAsync(decisions),
   };

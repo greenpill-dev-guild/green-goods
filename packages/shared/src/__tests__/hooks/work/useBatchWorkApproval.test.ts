@@ -287,6 +287,39 @@ describe("useBatchWorkApproval", () => {
     expect(workOf(decision)?._isPending).toBe(false);
   });
 
+  it("reads no hold while a send is in flight, even from another form, and reads it after", async () => {
+    const { decide, listWorks, sender, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const call = vi.mocked(sender.sendContractCall);
+    const realSend = call.getMockImplementation()!;
+    let wake = () => {};
+    const woken = new Promise<void>((resolve) => {
+      wake = resolve;
+    });
+    call.mockImplementationOnce(async (...args) => {
+      await woken;
+      return realSend(...args);
+    });
+    const { result: sending } = render();
+    let sent = Promise.resolve();
+    act(() => {
+      sent = sending.current.send([decision]).then(() => undefined);
+    });
+    await waitFor(() => expect(call).toHaveBeenCalledOnce());
+    const list = vi.spyOn(sender.batches!, "list");
+
+    const { result: elsewhere } = render();
+    await waitFor(() => expect(elsewhere.current.isSending).toBe(true));
+    expect(list).not.toHaveBeenCalled();
+
+    await act(async () => {
+      wake();
+      await sent;
+    });
+    await waitFor(() => expect(elsewhere.current.hold?.workUIDs).toHaveLength(1));
+  });
+
   it("says when a held send proves it landed, once", async () => {
     const { decide, landed, listWorks, workOf, sender, render } = setup({});
     const decision = decide();

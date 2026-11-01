@@ -359,18 +359,16 @@ describe("holding reviews whose outcome is unknown", () => {
     expect(hold?.onChain).toHaveLength(1);
   });
 
-  it("holds only that garden's sends", async () => {
+  it("shows only that garden's held sends", async () => {
     const context = setup({});
     await onChainAfterReload(context);
-    const elsewhere = address();
 
-    const outcome = await sendReviewBatch({
-      ...context.input,
-      gardenAddress: elsewhere,
-      rail: "passkey",
-      decisions: [{ ...context.decide(), gardenAddress: elsewhere }],
+    await expect(readReviewHold({ ...context.input, gardenAddress: address() })).resolves.toEqual({
+      hold: null,
+      saved: [],
     });
-
-    expect(outcome.unknown).toHaveLength(1);
+    await expect(readReviewHold(context.input)).resolves.toMatchObject({
+      hold: { workUIDs: [expect.any(String)] },
+    });
   });
 });
