@@ -178,10 +178,18 @@ describe("CookieJarPayoutPanel", () => {
     reading.unmount();
 
     mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true, isPaused: true };
-    renderPanel();
+    const paused = renderPanel();
 
     expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
     expect(screen.getByText("Cookie jars need a connection")).toBeInTheDocument();
+    paused.unmount();
+
+    // A failed read keeps the fallback for good, so its row, Claim and limit editor stay away too.
+    mocks.read = { ...FINISHED_READ, hasDecimalsReadFailure: true };
+    renderPanel();
+
+    expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
+    expect(screen.getByText("Couldn't read this garden's cookie jars")).toBeInTheDocument();
   });
 
   it("stays loading while a jar read is pending but not yet fetching", () => {
