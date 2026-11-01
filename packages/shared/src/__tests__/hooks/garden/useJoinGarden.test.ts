@@ -69,9 +69,8 @@ vi.mock("../../../hooks/utils/useTimeout", () => ({
   useDelayedInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
 }));
 
-const { forgetListedPendingJoins, isGardenMember } = await import(
-  "../../../hooks/garden/useJoinGarden"
-);
+const { isGardenMember } = await import("../../../hooks/garden/useJoinGarden");
+const { forgetListedPendingJoins } = await import("../../../modules/garden/pending-joins");
 const { logger } = await import("../../../modules/app/logger");
 
 describe("forgetListedPendingJoins", () => {
@@ -188,7 +187,7 @@ describe("isGardenMember", () => {
     expect(stored[gardenId]).toBeUndefined();
   });
 
-  it("cleans up pending join when confirmed in gardeners list", () => {
+  it("leaves a pending join to the roster read when the list names the user", () => {
     const user = "0x4444444444444444444444444444444444444444";
     const gardenId = "garden-confirmed";
 
@@ -201,12 +200,11 @@ describe("isGardenMember", () => {
     };
     localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pendingJoins));
 
-    // User is now confirmed in gardeners list
+    // The list may only hold the join's own optimistic entry.
     const result = isGardenMember(user, [user], [], gardenId);
     expect(result).toBe(true);
 
-    // Pending join should be cleaned up since the user is now confirmed
-    const stored = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
-    expect(stored[gardenId]).toBeUndefined();
+    // `useMyGardens` settles it once a read of the roster lists the user.
+    expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe(JSON.stringify(pendingJoins));
   });
 });
