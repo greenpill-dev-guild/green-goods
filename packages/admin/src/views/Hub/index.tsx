@@ -214,6 +214,7 @@ export default function HubView() {
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}
                   onOpenHypercert={hub.handleOpenHypercert}
+                  reviewBatch={hub.reviewBatch}
                 />
               </div>
             </section>

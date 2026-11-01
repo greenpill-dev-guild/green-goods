@@ -62,6 +62,9 @@ interface UseWorkApprovalDependencies {
   onApprovalComplete?: (completion: WorkApprovalCompletion) => void | Promise<void>;
 }
 
+export type { StagedReview } from "../../stores/useReviewBatchStore";
+export { type ReviewBatch, useReviewBatch } from "./useReviewBatch";
+
 const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
 type PendingWork = OverlayWork;
 interface WorkDecisionCacheSnapshot {

@@ -1,4 +1,5 @@
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { z } from "zod";
@@ -37,6 +38,40 @@ export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | 
 // ─────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────
+
+/** What the review form shows. A decision already made, or waiting, outranks who may make one. */
+export function reviewFormState(form: {
+  isReviewed: boolean;
+  isHeld: boolean;
+  isStaged: boolean;
+  isOwnSubmission: boolean;
+  isActionExpired: boolean;
+  canReview: boolean;
+  canApproveOrReject: boolean;
+}) {
+  if (form.isReviewed) return "reviewed";
+  if (form.isHeld) return "held";
+  if (form.isStaged) return "staged";
+  if (form.isOwnSubmission) return "self-review";
+  if (form.isActionExpired) return "expired";
+  if (!form.canReview) return "no-permission";
+  return form.canApproveOrReject ? "actionable" : "role-blocked";
+}
+
+/** Uploads a review's audio note and its envelope, returning the link a decision carries. */
+export async function uploadReviewNotes(audio: File, comments: string): Promise<string> {
+  // IPFS upload chain: audio file -> IPFS CID -> JSON envelope -> IPFS CID
+  const { cid: audioCid } = await uploadFileToIPFS(audio, { source: "WorkDetail.reviewNotes" });
+  const { cid } = await uploadJSONToIPFS(
+    {
+      schemaVersion: "review_notes_v1",
+      audioNoteCids: [audioCid],
+      reviewerComments: comments,
+    },
+    { source: "WorkDetail.reviewNotes", metadataType: "review_notes" }
+  );
+  return cid;
+}
 
 export function ReviewSummary({ work }: { work: Work }) {
   const { formatMessage } = useIntl();

@@ -47,6 +47,7 @@ sb.mock(import("../src/hooks/client-ui/work/useWorkSubmissionFlowController.ts")
 });
 sb.mock(import("../src/hooks/client-ui/work/useWorkDetailController.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useQueuedWorkActions.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useReviewBatch.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useWorkUploads.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/wallet/useSendFlowController.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { spy: true });

@@ -33,6 +33,9 @@ vi.mock("../../../hooks/garden/useGardenDerivedState", () => ({
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: [] }),
 }));
+vi.mock("../../../hooks/work/useReviewBatch", () => ({
+  useReviewBatch: () => ({}),
+}));
 vi.mock("../../../hooks/admin-ui/hub/useHubConfirmStage", () => ({
   useHubConfirmStage: () => ({
     chainId: 42161,

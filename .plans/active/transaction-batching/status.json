@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-11-01T05:28:33.965Z"
+    "updated_at": "2026-11-01T06:51:29.707Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,19 +50,19 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-jar-deposits",
+      "branch": "feature/batch-staged-reviews",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/__tests__/components/CookieJarPayoutModals.test.tsx && bun run --cwd packages/client test src/__tests__/views/Cookies.test.tsx src/__tests__/components/PublicFundingCard.test.tsx",
-          "evidence": "Not RED first for the jar forms: proven afterwards on 2026-11-01. Removing the hold from each button failed its test, and so did letting the error line sit beside the hold, hiding every failure, hiding an unknown claim, or keeping the amount after a held deposit landed."
+          "command": "node ../../scripts/dev/node-cli.js vitest run src/__tests__/components/ReviewForm.test.tsx",
+          "evidence": "06:50:51 UTC, 1 failed on behavior: the form didn't wait for a batch in flight. The store, hook, and UI tests were written alongside the code, then proven by breaking one behavior at a time: 45 of 45 breaks failed a test."
         },
         "green": {
-          "command": "bun run --cwd packages/admin test src/__tests__/components/CookieJarPayoutModals.test.tsx src/views/Community/components/CommunitySheetDescriptor.test.tsx src/__tests__/components/Vault/DepositModal.test.tsx src/__tests__/components/AdminDensityScale.guard.test.tsx && bun run --cwd packages/client test src/__tests__/views/Cookies.test.tsx src/__tests__/components/PublicFundingCard.test.tsx src/__tests__/components/TreasuryAmounts.test.tsx",
-          "evidence": "2026-11-01 04:21:44 UTC: admin 4 files, 51 passed; client 3 files, 53 passed, at the tree committed as 14e615554. Storybook plays for TxInlineFeedback and EndowmentSheet: 2 files, 9 passed on the same tree."
+          "command": "node ../../scripts/dev/node-cli.js vitest run src/__tests__/components/ReviewForm.test.tsx",
+          "evidence": "22 passed after the fix."
         },
         "note": ""
       },
@@ -72,7 +72,7 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-review-execution",
+      "branch": "feature/batch-staged-reviews",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
@@ -678,6 +678,22 @@
       "lane": "state_api",
       "status": "tdd_recorded",
       "branch": "feature/batch-review-execution",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T06:51:28.335Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/batch-staged-reviews",
+      "note": "Staged reviews in the Hub, with no rail listed."
+    },
+    {
+      "timestamp": "2026-11-01T06:51:29.708Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-staged-reviews",
       "note": "Recorded RED/GREEN TDD proof"
     }
   ],

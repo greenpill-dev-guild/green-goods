@@ -18,6 +18,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockUseUser = vi.fn();
 const queueProcessJob = vi.fn();
 
+// Re-exported from the same module, and not what these tests are about.
+vi.mock("../../hooks/work/useReviewBatch", () => ({ useReviewBatch: vi.fn() }));
+
 vi.mock("../../hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
 }));

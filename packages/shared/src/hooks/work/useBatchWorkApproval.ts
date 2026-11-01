@@ -44,7 +44,11 @@ type ReviewSend = { decisions: readonly ReviewDecision[]; perSignature?: number 
  * can reach them, and recovery does not depend on `available`, so a hold from an earlier send still
  * shows after batching is switched off.
  */
-export function useBatchWorkApproval(gardenId: string) {
+export function useBatchWorkApproval(
+  gardenId: string,
+  /** `onLanded` hears every decision proven on chain, from a send or from a later read. */
+  options: { onLanded?: (workUIDs: readonly string[]) => void } = {}
+) {
   const gardenAddress = gardenId as Address;
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
@@ -109,14 +113,26 @@ export function useBatchWorkApproval(gardenId: string) {
         item && { _isPending: false, _pendingUntilMs: undefined, _txHash: item.transactionHash }
       );
     });
+    options.onLanded?.(landed.map(({ workUID }) => workUID));
   };
 
-  /** Nothing went out, or the person moved on: the indexer's answer is the only one left. */
+  /**
+   * Nothing went out, or the person moved on: the work waits again until the indexer says otherwise.
+   * The cached row has to say so too, or it reads as decided until the next refetch.
+   */
   const clearOverlay = (workUIDs: readonly string[]) => {
     const ids = new Set(workUIDs.map((workUID) => workUID.toLowerCase()));
     const now = Date.now();
     patchWorks((workId) =>
-      ids.has(workId) ? { _isPending: false, _pendingUntilMs: now, _txHash: undefined } : undefined
+      ids.has(workId)
+        ? {
+            status: "pending",
+            reviewFeedback: undefined,
+            _isPending: false,
+            _pendingUntilMs: now,
+            _txHash: undefined,
+          }
+        : undefined
     );
   };
 
@@ -149,6 +165,9 @@ export function useBatchWorkApproval(gardenId: string) {
           }
         );
       });
+      // TanStack hands a running mutation each later render's callbacks, so what a send has to
+      // finish in comes from here: the garden and account it started in.
+      return { clearOverlay, refreshWorks, holdKey, rail, gardenAddress };
     },
     mutationFn: async ({ decisions, perSignature }: ReviewSend): Promise<ReviewBatchOutcome> => {
       try {
@@ -171,34 +190,37 @@ export function useBatchWorkApproval(gardenId: string) {
         };
       }
     },
-    onSuccess: (outcome) => {
+    onSuccess: (outcome, _decisions, started) => {
       const { sent, stale, refused, notSent, notBatchable, unknown, failure } = outcome;
-      clearOverlay([
+      started.clearOverlay([
         ...stale,
         ...refused.map(({ workUID }) => workUID),
         ...notSent,
         ...notBatchable,
       ]);
-      if (failure) handleError(failure, { authMode: rail, gardenAddress });
+      started.refreshWorks();
+      if (failure) {
+        handleError(failure, { authMode: started.rail, gardenAddress: started.gardenAddress });
+      }
       if (sent.length > 0) {
         announceSent(sent.length);
         track("batch_approval_success", {
           count: sent.length,
-          auth_mode: rail,
+          auth_mode: started.rail,
           tx_hash: sent[0].transactionHash,
         });
-        refreshWorks();
         scheduleFollowUp();
       }
       if (unknown.length > 0 || refused.length > 0 || failure) {
         track("batch_approval_failed", {
           count: unknown.length + refused.length + notSent.length,
           unknown: unknown.length,
-          auth_mode: rail,
+          auth_mode: started.rail,
         });
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
+    onSettled: (_outcome, _error, _decisions, started) =>
+      queryClient.invalidateQueries({ queryKey: started?.holdKey ?? holdKey }),
   });
   // The lock a single review shares. It hands a second caller the first call's promise, so anything
   // that isn't that same send has to check `isSending` before it starts.

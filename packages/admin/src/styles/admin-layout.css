@@ -357,4 +357,21 @@ button.garden-stat-row:hover {
     gap: 0.75rem;
     min-height: 0;
   }
+
+  /* Follows the last row, and stays in reach down a long queue. A sticky box stops
+   * at its scroller's padding, and the canvas pads itself clear of the nav and, on
+   * a phone, the FAB. */
+  .hub-review-batch-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+  }
+
+  /* From 600px the canvas clears only the nav, and until 1024px the FAB floats
+   * above it. */
+  @media (min-width: 600px) and (max-width: 1023px) {
+    .hub-review-batch-bar {
+      bottom: 3.75rem;
+    }
+  }
 }

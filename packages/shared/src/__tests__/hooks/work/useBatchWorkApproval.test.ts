@@ -215,6 +215,22 @@ describe("useBatchWorkApproval", () => {
     expect(toasts.success).toHaveBeenCalledOnce();
   });
 
+  it("tells its caller each decision that lands, from a send and from a later read", async () => {
+    const { decide, garden, landed, listWorks, queryClient, sender } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const onLanded = vi.fn();
+    const { result } = renderHookWithProviders(() => useBatchWorkApproval(garden, { onLanded }), {
+      queryClient,
+    });
+
+    await act(() => result.current.send([decision]));
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(onLanded).toHaveBeenCalledWith([decision.draft.workUID]);
+  });
+
   it("passes on a list that takes a signature per review", async () => {
     const { decide, landed, listWorks, render, sender } = setup();
     const decisions = [decide(), decide()];
@@ -303,7 +319,7 @@ describe("useBatchWorkApproval", () => {
   });
 
   it("lets go of a decision that didn't go out, so the indexer's answer stands", async () => {
-    const { decide, listWorks, workOf, render, sender } = setup();
+    const { decide, garden, listWorks, queryClient, workOf, render, sender } = setup();
     const decision = decide();
     chainState.decided.add(decision.draft.workUID);
     listWorks([decision]);
@@ -318,6 +334,10 @@ describe("useBatchWorkApproval", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(workOf(decision)?._isPending).toBe(false);
     expect(workOf(decision)?._pendingUntilMs).toBeLessThanOrEqual(Date.now());
+    // The row can't keep reading as decided until the next refetch, and that refetch starts now.
+    expect(workOf(decision)?.status).toBe("pending");
+    expect(workOf(decision)?.reviewFeedback).toBeUndefined();
+    expect(queryClient.getQueryState(worksKeys.merged(garden, chainId))?.isInvalidated).toBe(true);
   });
 
   it("shows a held send after a reload, even off the list, and moving on lets it go", async () => {
@@ -374,6 +394,42 @@ describe("useBatchWorkApproval", () => {
       await sent;
     });
     await waitFor(() => expect(elsewhere.current.hold?.workUIDs).toHaveLength(1));
+  });
+
+  it("finishes a send in the garden it started in, whichever garden is open by then", async () => {
+    const { decide, garden, listWorks, queryClient, sender, workOf } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    const other = random(20) as Address;
+    const otherRow = { id: "other-work", status: "pending" } as OverlayWork;
+    queryClient.setQueryData(worksKeys.merged(other, chainId), [otherRow]);
+    let decline = (_error: unknown) => {};
+    vi.mocked(sender.sendContractCall).mockImplementation(
+      () => new Promise((_, reject) => (decline = reject))
+    );
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const { result, rerender } = renderHookWithProviders(
+      ({ open }: { open: Address }) => useBatchWorkApproval(open),
+      { queryClient, initialProps: { open: garden } }
+    );
+
+    let sending: Promise<unknown> = Promise.resolve();
+    act(() => {
+      sending = result.current.send([decision]);
+    });
+    await waitFor(() => expect(sender.sendContractCall).toHaveBeenCalledOnce());
+    rerender({ open: other });
+    invalidate.mockClear();
+
+    await act(async () => {
+      decline(new Error("User rejected the request."));
+      await sending;
+    });
+
+    expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: false });
+    expect(queryClient.getQueryData(worksKeys.merged(other, chainId))).toEqual([otherRow]);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: worksKeys.merged(garden, chainId) });
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: worksKeys.merged(other, chainId) });
   });
 
   it("lets go of a decision whose held send turned out to revert", async () => {
