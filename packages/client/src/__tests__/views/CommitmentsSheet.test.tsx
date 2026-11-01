@@ -9,8 +9,9 @@
  * @vitest-environment happy-dom
  */
 
+import { commitmentFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -20,10 +21,18 @@ const render = (ui: React.ReactElement) =>
   renderWithProviders(<MemoryRouter initialEntries={["/home"]}>{ui}</MemoryRouter>);
 
 const mockNavigate = vi.fn();
+/** Set by a test that walks the real routes rather than only recording where it would go. */
+let navigatesForReal = false;
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useNavigate: () => mockNavigate };
+  return {
+    ...actual,
+    useNavigate: () => {
+      const navigate = actual.useNavigate();
+      return navigatesForReal ? navigate : mockNavigate;
+    },
+  };
 });
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
@@ -58,6 +67,11 @@ const CYCLE_NAMES = new Map([
   ["1", { status: "resolved", name: "Autumn Planting" }],
   ["2", { status: "resolved", name: "Seed Swap Weekend" }],
 ]);
+const HUB_DAY = "Four-hour hub day";
+const HUB_DAY_CID = "bafy-hub-day";
+const HUB_DAY_METADATA = new Map([[HUB_DAY_CID, { version: 1, title: HUB_DAY }]]);
+/** The promises' words as read so far. */
+let mockMetadata = HUB_DAY_METADATA;
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -160,6 +174,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentSeries: () => ({ series: [] }),
   useCommitmentCycles: (...args: unknown[]) => mockUseCommitmentCycles(...args),
   useCommitmentCycleNames: () => ({ byCycleId: CYCLE_NAMES, isLoading: false }),
+  useCommitmentMetadata: () => ({ byCID: mockMetadata, isLoading: false }),
   useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
   useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
 }));
@@ -193,6 +208,105 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
     mockActiveGarden = null;
+    navigatesForReal = false;
+    mockMetadata = HUB_DAY_METADATA;
+  });
+
+  describe("identical open copies (DL-150)", () => {
+    /** Ten offers of one hub day, as a garden's creator reads them. */
+    const tenOffers = Array.from({ length: 10 }, (_, index) => ({
+      commitment: commitmentFixture({
+        id: `42161-${63 + index}`,
+        commitmentId: BigInt(63 + index),
+        poolId: 7n,
+        creator: VIEWER,
+        direction: "OFFER",
+        onchainState: "OFFERED",
+        derivedState: "OFFERED",
+        metadataCID: HUB_DAY_CID,
+      }),
+      seat: "provider" as const,
+      needsYou: false,
+    }));
+    const copiesSheet = () => screen.getByRole("dialog", { name: HUB_DAY });
+    const copyRows = () =>
+      within(copiesSheet()).getAllByRole("button", { name: new RegExp(HUB_DAY) });
+
+    beforeEach(() => {
+      mockUseCommitmentsInbox.mockReturnValue(inbox({ live: tenOffers }));
+    });
+
+    it("lists ten as one row with a count that opens the ten, each into its own page", async () => {
+      const user = userEvent.setup();
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
+      expect(fold).toHaveTextContent(HUB_DAY);
+      expect(fold).toHaveTextContent("Offered");
+      expect(screen.getAllByRole("button", { name: new RegExp(HUB_DAY) })).toHaveLength(1);
+      await user.click(fold);
+
+      expect(copiesSheet()).toHaveAccessibleDescription("A group of 10 separate promises");
+      expect(copyRows()).toHaveLength(10);
+      await user.click(copyRows()[2] as HTMLElement);
+      expect(mockNavigate).toHaveBeenCalledWith(
+        `/home/${GARDEN}/commitments/65`,
+        expect.objectContaining({ viewTransition: false })
+      );
+    });
+
+    it("keeps the list open when the copies' words arrive after it opened", async () => {
+      const user = userEvent.setup();
+      mockMetadata = new Map();
+      const onClose = vi.fn();
+      const view = render(<CommitmentsSheet isOpen onClose={onClose} />);
+      await user.click(screen.getByRole("button", { name: /A group of 10 separate promises/ }));
+      expect(screen.getByRole("dialog", { name: "A promise" })).toBeInTheDocument();
+
+      // The words change what folds the copies, not which copies the reader opened.
+      mockMetadata = HUB_DAY_METADATA;
+      view.rerender(
+        <MemoryRouter>
+          <CommitmentsSheet isOpen onClose={onClose} />
+        </MemoryRouter>
+      );
+
+      expect(copyRows()).toHaveLength(10);
+    });
+
+    it("reopens the list on top, with focus and Escape its own, on the way back from a copy", async () => {
+      const user = userEvent.setup();
+      navigatesForReal = true;
+      function GoBack() {
+        const navigate = useNavigate();
+        return <button onClick={() => navigate(-1)}>Back from the page</button>;
+      }
+      renderWithProviders(
+        <MemoryRouter initialEntries={["/home"]}>
+          <CommitmentsSheet isOpen onClose={vi.fn()} />
+          <GoBack />
+        </MemoryRouter>
+      );
+
+      await user.click(screen.getByRole("button", { name: /A group of 10 separate promises/ }));
+      await user.click(copyRows()[0] as HTMLElement);
+      // The page covers both sheets.
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: "Back from the page" }));
+
+      const copies = await screen.findByRole("dialog", { name: HUB_DAY });
+      expect(copies).toContainElement(document.activeElement as HTMLElement);
+      expect(copies.dataset.entryMotion).toBe("instant");
+      // The sheet under it is what's hidden from assistive tech, not the list.
+      expect(screen.queryByRole("dialog", { name: "Promises" })).not.toBeInTheDocument();
+
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Escape" });
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: HUB_DAY })).not.toBeInTheDocument()
+      );
+      expect(screen.getByRole("dialog", { name: "Promises" })).toBeInTheDocument();
+    });
   });
 
   describe("in the active garden", () => {
