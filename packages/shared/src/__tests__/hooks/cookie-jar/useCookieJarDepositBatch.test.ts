@@ -333,6 +333,21 @@ describe("useDepositPlan for a jar", () => {
     chainState.logs = [];
   });
 
+  it("shows the hold on a form already open when its send ends unknown", async () => {
+    const { deposit, renderDeposit, renderPlan } = setup();
+    chainState.allowance = 100n;
+    const { result } = renderPlan();
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+    await waitFor(() => expect(result.current.isPaused).toBe(false));
+    const { result: send } = renderDeposit();
+
+    await act(async () => {
+      await expect(send.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+    });
+
+    await waitFor(() => expect(result.current.isHeld).toBe(true));
+  });
+
   it("says what was tried and what the jar holds, or only what was tried", async () => {
     const { deposit, renderDeposit, renderPlan } = setup();
     const { result: send } = renderDeposit();
