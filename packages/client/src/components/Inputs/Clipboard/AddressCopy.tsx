@@ -58,9 +58,12 @@ export function AddressCopy({
   };
 
   const sizeClasses = size === "compact" ? "px-3 py-2 min-h-[40px]" : "px-4 py-3 min-h-[48px]";
+  // In a narrow column the compact pill gives up the word Copy, not the address: its icon stays
+  // and a screen reader still hears the word.
+  const compact = size === "compact";
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full", compact && "@container", className)}>
       <button
         type="button"
         data-pressable="row"
@@ -68,6 +71,7 @@ export function AddressCopy({
         aria-describedby={statusId}
         className={cn(
           "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform,scale] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+          compact && "@max-[11.5rem]:gap-2",
           "active:scale-[0.99]",
           "focus:outline-none",
           pwaStatusStyles.primary.focus,
@@ -76,11 +80,13 @@ export function AddressCopy({
       >
         <span className="flex items-center gap-2 text-sm text-text-strong-950">
           {icon ? <span className="text-primary-on-surface">{icon}</span> : null}
-          <span className="font-mono text-xs sm:text-sm">{displayValue}</span>
+          <span className={cn("font-mono text-xs sm:text-sm", compact && "whitespace-nowrap")}>
+            {displayValue}
+          </span>
         </span>
         <span className="flex items-center gap-1 text-xs font-medium text-primary-on-surface">
           {copied ? <RiCheckLine className="h-4 w-4" /> : <RiFileCopyLine className="h-4 w-4" />}
-          <span>
+          <span className={cn(compact && "@max-[11.5rem]:sr-only")}>
             {copied
               ? intl.formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" })
               : intl.formatMessage({ id: "app.common.copy", defaultMessage: "Copy" })}
