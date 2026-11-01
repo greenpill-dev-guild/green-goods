@@ -58,6 +58,8 @@ export function useHubWorkbenchController() {
     commitmentId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
+  // A create flow open over the stage, named in the URL (DL-140).
+  const routeItem = searchParams.get("item") ?? undefined;
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const gardenStateKey = selectedGarden?.id ?? "";
@@ -156,8 +158,8 @@ export function useHubWorkbenchController() {
   useEffect(() => {
     if (!selectedGarden) return;
     if (requestedStage === stage) return;
-    navigate(adminRoutes.hubMode(stage, hubContext), { replace: true });
-  }, [hubContext, navigate, requestedStage, selectedGarden, stage]);
+    navigate(adminRoutes.hubMode(stage, { ...hubContext, item: routeItem }), { replace: true });
+  }, [hubContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
@@ -441,6 +443,7 @@ export function useHubWorkbenchController() {
     routeSheetCloseTo,
     routeCertificationId,
     routeCommitmentId,
+    routeItem,
     routeWorkId,
     scopedWorks,
     searchPlaceholder,

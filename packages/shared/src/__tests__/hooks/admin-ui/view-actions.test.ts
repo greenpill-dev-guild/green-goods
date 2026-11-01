@@ -88,26 +88,28 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("secondary");
   });
 
-  it("drops list sort state when opening Hub creation flows", () => {
+  it.each([
+    "work",
+    "confirm",
+    "assess",
+    "certify",
+  ] as const)("opens each flow over %s, keeping its sort and scope (DL-140)", (stage) => {
     const navigate = vi.fn();
-    const actions = buildHubViewActions("work", true, true, navigate, {
+    const actions = buildHubViewActions(stage, true, true, navigate, {
       gardenAddress: GARDEN,
-      sort: "newest",
+      sort: "oldest",
+      scope: "approved",
     });
 
     for (const id of ["submit-work", "create-assessment", "create-hypercert"]) {
       actions.find((action) => action.id === id)?.onClick();
     }
 
-    expect(navigate).toHaveBeenCalledTimes(3);
-    for (const [target] of navigate.mock.calls) {
-      expect(target).toContain(GARDEN);
-      expect(target).not.toContain("sort=");
-    }
-    expect(navigate.mock.calls.map(([target]) => target.split("?")[0])).toEqual([
-      "/hub/work/submit",
-      "/hub/assess/create",
-      "/hub/certify/create",
+    const stageUrl = `/hub/${stage}?gardenId=${GARDEN}&sort=oldest&scope=approved`;
+    expect(navigate.mock.calls.map(([target]) => target)).toEqual([
+      `${stageUrl}&item=submit-work`,
+      `${stageUrl}&item=create-assessment`,
+      `${stageUrl}&item=create-hypercert`,
     ]);
   });
 });

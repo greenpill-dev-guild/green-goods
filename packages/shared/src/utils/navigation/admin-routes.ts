@@ -28,6 +28,8 @@ export interface AdminHubRouteContext {
   sort?: AdminHubSort;
   /** Pending is the default and stays out of the URL; only "approved" is written. */
   scope?: AdminHubWorkScope;
+  /** A create flow's route item, which opens the flow over the stage (DL-140). */
+  item?: string;
 }
 
 export interface AdminGardenRouteContext {
@@ -92,6 +94,7 @@ function buildHubContextSearch(
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
     scope: context.scope === "approved" ? "approved" : undefined,
+    item: context.item,
   };
 }
 
@@ -158,11 +161,19 @@ export const adminRoutes = {
   hubWorkDetail(workId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));
   },
+  /** Submit Work over Work. The header action opens it over the active stage instead (DL-140). */
   hubWorkSubmit(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/work/submit", buildHubCreationContextSearch(context));
+    return buildAdminHref("/hub/work", {
+      ...buildHubCreationContextSearch(context),
+      item: SUBMIT_WORK_ROUTE_ITEM,
+    });
   },
+  /** Create Assessment over Assessments, the way in from outside the header (DL-140). */
   hubAssessCreate(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));
+    return buildAdminHref("/hub/assess", {
+      ...buildHubCreationContextSearch(context),
+      item: CREATE_ASSESSMENT_ROUTE_ITEM,
+    });
   },
   hubAssessDetail(assessmentId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(
@@ -170,8 +181,12 @@ export const adminRoutes = {
       buildHubContextSearch(context)
     );
   },
+  /** Create Hypercert over Hypercerts, the way in from outside the header (DL-140). */
   hubCertifyCreate(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));
+    return buildAdminHref("/hub/certify", {
+      ...buildHubCreationContextSearch(context),
+      item: CREATE_HYPERCERT_ROUTE_ITEM,
+    });
   },
   garden(context?: AdminGardenRouteContext) {
     return this.gardenHealth(context);

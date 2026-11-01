@@ -42,15 +42,6 @@ vi.mock("@/views/Actions", () => ({
 vi.mock("@/views/Profile", () => ({
   default: () => <div data-testid="route-target">Profile</div>,
 }));
-vi.mock("@/views/Hub/CreateAssessment", () => ({
-  default: () => <div data-testid="route-target">Create Assessment</div>,
-}));
-vi.mock("@/views/Hub/CreateHypercert", () => ({
-  default: () => <div data-testid="route-target">Create Hypercert</div>,
-}));
-vi.mock("@/views/Garden/SubmitWork", () => ({
-  default: () => <div data-testid="route-target">Submit Work</div>,
-}));
 
 const routers = new Set<ReturnType<typeof createMemoryRouter>>();
 function createAdminCanvasRouter(initialEntry: string) {
@@ -70,9 +61,9 @@ async function renderAdminCanvasRoute(initialEntry: string) {
 }
 
 const hubCreateActions = [
-  ["submit-work", "Submit Work", "/hub/work/submit"],
-  ["create-assessment", "Create Assessment", "/hub/assess/create"],
-  ["create-hypercert", "Create Hypercert", "/hub/certify/create"],
+  ["submit-work", "Submit Work"],
+  ["create-assessment", "Create Assessment"],
+  ["create-hypercert", "Create Hypercert"],
 ] as const;
 
 const TestIcon = ({ className }: { className?: string }) => (
@@ -235,8 +226,22 @@ describe("admin canvas runtime navigation", () => {
     expect(screen.getByTestId("route-target")).toHaveTextContent("Garden");
   });
 
-  it("mounts Hub create-flow routes from the shared action targets", async () => {
-    for (const [id, label, expectedPath] of hubCreateActions) {
+  it.each([
+    ["/hub/work/submit", "/hub/work", "submit-work"],
+    ["/hub/assess/create", "/hub/assess", "create-assessment"],
+    ["/hub/certify/create", "/hub/certify", "create-hypercert"],
+  ])("opens %s's flow over its own stage, keeping the URL's context", async (oldPath, stage, item) => {
+    const router = await renderAdminCanvasRoute(`${oldPath}?gardenId=0xAAA&sort=oldest`);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(stage);
+    });
+    expect(router.state.location.search).toBe(`?gardenId=0xAAA&sort=oldest&item=${item}`);
+    expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
+  });
+
+  it("opens Hub create flows over the stage from the shared action targets", async () => {
+    for (const [id] of hubCreateActions) {
       const router = await renderAdminCanvasRoute("/hub/work?gardenId=0xAAA");
       const actions = buildHubViewActions("work", true, true, router.navigate, {
         gardenId: "0xAAA",
@@ -247,16 +252,16 @@ describe("admin canvas runtime navigation", () => {
       });
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe(expectedPath);
+        expect(router.state.location.search).toBe(`?gardenId=0xAAA&item=${id}`);
       });
-      expect(router.state.location.search).toBe("?gardenId=0xAAA");
-      expect(screen.getByTestId("route-target")).toHaveTextContent(label);
+      expect(router.state.location.pathname).toBe("/hub/work");
+      expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
       expect(getAdminWorkspaceForPath(router.state.location.pathname)).toBe("hub");
       cleanup();
     }
   });
 
-  it("routes Hub mobile FAB speed-dial actions to mounted create-flow routes", async () => {
+  it("opens Hub create flows over the stage from the mobile FAB speed-dial", async () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       writable: true,
@@ -272,7 +277,7 @@ describe("admin canvas runtime navigation", () => {
       })),
     });
 
-    for (const [, label, expectedPath] of hubCreateActions) {
+    for (const [id, label] of hubCreateActions) {
       const user = userEvent.setup();
       const router = createAdminCanvasRouter("/hub/work?gardenId=0xAAA");
 
@@ -287,10 +292,10 @@ describe("admin canvas runtime navigation", () => {
       await user.click(await screen.findByRole("menuitem", { name: label }));
 
       await waitFor(() => {
-        expect(router.state.location.pathname).toBe(expectedPath);
+        expect(router.state.location.search).toBe(`?gardenId=0xAAA&item=${id}`);
       });
-      expect(router.state.location.search).toBe("?gardenId=0xAAA");
-      expect(screen.getByTestId("route-target")).toHaveTextContent(label);
+      expect(router.state.location.pathname).toBe("/hub/work");
+      expect(screen.getByTestId("route-target")).toHaveTextContent("Hub");
       expect(getAdminWorkspaceForPath(router.state.location.pathname)).toBe("hub");
       cleanup();
     }
