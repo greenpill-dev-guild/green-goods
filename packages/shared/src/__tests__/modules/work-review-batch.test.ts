@@ -177,6 +177,19 @@ describe("sendReviewBatch", () => {
     });
   });
 
+  it("reads again when a node answers from behind the attestation's block", async () => {
+    const { decide, landed, chain, send } = setup();
+    const decision = decide();
+    const real = landed(decision);
+    chain.attestationsIn.mockResolvedValueOnce([{ ...real, data: "0x" }]);
+
+    const outcome = await send([decision]);
+
+    expect(chain.attestationsIn).toHaveBeenCalledTimes(2);
+    expect(outcome.sent.map((item) => item.attestationUID)).toEqual([real.uid]);
+    expect(outcome.unknown).toEqual([]);
+  });
+
   it("tries again when a read of the receipt fails", async () => {
     const { decide, landed, chain, send } = setup();
     const decision = decide();

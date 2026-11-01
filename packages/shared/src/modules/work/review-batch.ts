@@ -127,6 +127,8 @@ export function verifyReviews(
           same(made.data, sent.data)
       );
       if (match) attestationUIDs.set(id, match.uid);
+      // A node can hold the receipt and still answer the attestation from before its block.
+      else read.clear();
       return Boolean(match);
     };
     return verifyByReading(isProven, retryMs)(execution);

@@ -11,12 +11,14 @@ const mocks = vi.hoisted(() => ({
   wallet: vi.fn(),
   account: vi.fn(),
   created: vi.fn(),
+  write: vi.fn(),
+  config: {},
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => mocks.user }));
 vi.mock("wagmi", () => ({
-  useConfig: () => ({}),
-  useWriteContract: () => ({ writeContractAsync: vi.fn() }),
+  useConfig: () => mocks.config,
+  useWriteContract: () => ({ writeContractAsync: mocks.write }),
 }));
 vi.mock("@wagmi/core", async (importOriginal) => ({
   ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())

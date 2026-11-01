@@ -841,14 +841,16 @@ describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
     };
   }
 
+  const startingAuthMode = mocks.sender.authMode;
   beforeEach(() => {
     vi.clearAllMocks();
     batchSender.canSendAtomicBatch = vi.fn(async () => true);
+    Object.assign(mocks.sender, { authMode: "wallet" });
   });
   afterEach(() => {
     delete batchSender.canSendAtomicBatch;
     delete batchSender.sendAtomicBatch;
-    Object.assign(mocks.sender, { authMode: "wallet" });
+    Object.assign(mocks.sender, { authMode: startingAuthMode });
   });
 
   it("asks once for the five writes before the opening, then once to open the season", async () => {
@@ -866,6 +868,8 @@ describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
       functionName: string;
     }>;
     expect(batchSender.sendAtomicBatch).toHaveBeenCalledOnce();
+    // A wallet sets its own limits in its own prompt.
+    expect(batchSender.sendAtomicBatch.mock.calls[0]?.[1]?.batchBudget).toBeUndefined();
     expect(batched.map((call) => call.functionName)).toEqual([
       "setPoolCharter",
       "setProviderOpenCommitmentCap",
@@ -1144,6 +1148,24 @@ describe("useCommitmentPoolSetupSequence with a wallet that batches", () => {
       result.current.reset();
     });
     await waitFor(() => expect(result.current.batching).toBe("available"));
+  });
+
+  it("takes a sender that can't answer as one that can't batch", async () => {
+    const { reader, apply, chain } = fakeChain({ poolState: POOL.NOT_READY });
+    batchSender.canSendAtomicBatch = vi.fn(async () => {
+      throw new Error("wallet did not answer");
+    });
+    batchSender.sendAtomicBatch = vi.fn(atomicBatch(apply, chain));
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(FIRST_RUN);
+    });
+
+    expect(result.current.batching).toBe("unavailable");
+    expect(sentFunctions()).toHaveLength(6);
+    expect(result.current.state.status).toBe("complete");
   });
 
   it("sends one write at a time when the wallet cannot batch", async () => {
