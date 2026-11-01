@@ -73,6 +73,8 @@ export interface GardenCommitmentController {
   };
   ownRequest: CommitmentClaimRequestRecord | null;
   pendingClaimRequests: CommitmentClaimRequestRecord[];
+  /** Someone can still take this up: nobody has, and it is known not to be past due. */
+  takeUpOpen: boolean;
   canAskAgain: boolean;
   claimNeedsContext: boolean;
   /**
