@@ -369,8 +369,13 @@ export function getAdminWorkspaceRoot(pathname: string): string {
 export const CAMPAIGN_JARS_ROUTE_ITEM = "campaigns";
 export const CREATE_CAMPAIGN_JAR_ROUTE_ITEM = "create-campaign-jar";
 
-/** Community item for Fund Cookie Jar's deposit dialog, which opens over any tab (DL-140). */
+/** Route items for the header actions whose dialogs open over any tab (DL-140). */
 export const FUND_JAR_ROUTE_ITEM = "fund-jar";
+export const ADD_MEMBER_ROUTE_ITEM = "add-member";
+export const EDIT_GARDEN_ROUTE_ITEM = "edit-garden";
+export const SUBMIT_WORK_ROUTE_ITEM = "submit-work";
+export const CREATE_ASSESSMENT_ROUTE_ITEM = "create-assessment";
+export const CREATE_HYPERCERT_ROUTE_ITEM = "create-hypercert";
 
 /**
  * Where the campaign cookie jar URLs land: the protocol garden's Community →

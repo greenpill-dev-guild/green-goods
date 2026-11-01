@@ -1,14 +1,14 @@
 import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
-import { useCanvasSearchParams } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
+import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
 import { JAR_LIMIT_ROUTE_ITEM_PREFIX } from "@green-goods/shared/utils/cookie-jar-claim-limit";
 import {
   adminRoutes,
   FUND_JAR_ROUTE_ITEM,
 } from "@green-goods/shared/utils/navigation/admin-routes";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate, useNavigationType } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
@@ -35,14 +35,7 @@ export function CommunitySheetDescriptor({
 }: CommunitySheetDescriptorProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
-  const navigationType = useNavigationType();
-  const { updateSearch } = useCanvasSearchParams();
-  // Whether Fund Cookie Jar's press pushed the entry the dialog is open on. It lives in a ref
-  // because a deposit's success closes the dialog with a callback from the moment it was sent.
-  const fundJarPushedEntry = useRef(false);
-  useEffect(() => {
-    fundJarPushedEntry.current = selectedItem === FUND_JAR_ROUTE_ITEM && navigationType === "PUSH";
-  }, [navigationType, selectedItem]);
+  const closeFundJar = useRouteItemClose(selectedItem === FUND_JAR_ROUTE_ITEM);
 
   const communitySheet = useMemo(() => {
     if (GOVERNANCE_ENABLED && isStrategiesRoute) {
@@ -80,16 +73,11 @@ export function CommunitySheetDescriptor({
       <VaultActionRouteDialog action={vaultAction} gardenAddress={gardenAddress} />
       {gardenAddress && isAddress(gardenAddress) ? (
         // Fund Cookie Jar opens over whichever tab the URL is on, and closing
-        // drops the item and leaves the tab alone (DL-140). After a press it goes
-        // back over the pushed entry, so browser Back stays live; a direct link or
-        // a reload has no press beneath it. Only Fix Limit First moves on, because
-        // the limit editor is on the jar's page under Payouts.
+        // drops the item and leaves the tab alone (DL-140). Only Fix Limit First
+        // moves on, because the limit editor is on the jar's page under Payouts.
         <CookieJarDepositModal
           isOpen={selectedItem === FUND_JAR_ROUTE_ITEM}
-          onClose={() => {
-            if (fundJarPushedEntry.current) navigate(-1);
-            else updateSearch({ item: undefined });
-          }}
+          onClose={closeFundJar}
           gardenAddress={gardenAddress}
           onFixLimit={(jarAddress) =>
             navigate(

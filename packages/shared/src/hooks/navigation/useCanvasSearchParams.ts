@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useRef } from "react";
+import { useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 
 export interface CanvasSearchParamsResult {
   searchParams: URLSearchParams;
@@ -37,4 +37,27 @@ export function useCanvasSearchParams(): CanvasSearchParamsResult {
   );
 
   return { searchParams, updateSearch };
+}
+
+/**
+ * Closes a dialog that a route item opened, leaving the tab underneath alone
+ * (DL-140). After a press it goes back over the entry the press pushed, so
+ * browser Back stays live. A direct link or a reload has no press beneath it, so
+ * it drops the item in place. Once the item has left the URL there is nothing to
+ * close. The check lives in a ref because a send's success closes the dialog with
+ * a callback from the moment it was sent.
+ */
+export function useRouteItemClose(itemInUrl: boolean): () => void {
+  const navigate = useNavigate();
+  const navigationType = useNavigationType();
+  const { updateSearch } = useCanvasSearchParams();
+  const entry = useRef<"none" | "pushed" | "direct">("none");
+  useEffect(() => {
+    entry.current = !itemInUrl ? "none" : navigationType === "PUSH" ? "pushed" : "direct";
+  }, [itemInUrl, navigationType]);
+
+  return useCallback(() => {
+    if (entry.current === "pushed") navigate(-1);
+    else if (entry.current === "direct") updateSearch({ item: undefined });
+  }, [navigate, updateSearch]);
 }
