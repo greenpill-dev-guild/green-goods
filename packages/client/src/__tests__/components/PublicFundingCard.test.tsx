@@ -343,6 +343,35 @@ describe("PublicFundingCard", () => {
     );
   });
 
+  it("plans a donation for the chosen jar, and pauses it while an earlier one is unknown", async () => {
+    mockDepositPlan.mockReturnValue({
+      ...QUIET_PLAN,
+      isHeld: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "This jar holds 3 DAI now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+    const user = userEvent.setup();
+    renderCard("donate");
+
+    await user.type(await screen.findByLabelText("Amount"), "5");
+
+    expect(screen.getByRole("button", { name: "Donate $5.00 in DAI" })).toBeDisabled();
+    expect(screen.getByText(/This jar holds 3 DAI now/)).toBeInTheDocument();
+    expect(mockDepositPlan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        amount: 5n * 10n ** 18n,
+        target: { kind: "jar", address: TEST_COOKIE_JAR, asset: TEST_DAI },
+      })
+    );
+  });
+
   it("pauses an endowment while an earlier deposit is unknown", async () => {
     mockDepositPlan.mockReturnValue({
       ...QUIET_PLAN,

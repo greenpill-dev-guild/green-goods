@@ -38,6 +38,16 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", () => ({
   useCookieJarDeposit: () => deposit,
 }));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: () => ({
+    signatures: null,
+    signatureLine: null,
+    isHeld: false,
+    isSettlingHold: false,
+    unconfirmedIsHeld: false,
+    holdFeedback: null,
+  }),
+}));
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x9999999999999999999999999999999999999999" }),
 }));

@@ -167,6 +167,29 @@ const enterAmount = async () => {
   await userEvent.type(await screen.findByRole("textbox"), "50.00");
 };
 export const Donate: Story = { play: enterAmount };
+/** An earlier donation nobody can confirm pauses the next one until it lands or the person moves on. */
+export const DonateHeld: Story = {
+  beforeEach: () => {
+    mocked(useDepositPlan).mockReturnValue({
+      signatures: 2,
+      signatureLine: "2 signatures",
+      isHeld: true,
+      isSettlingHold: false,
+      unconfirmedIsHeld: false,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message:
+          "It could still land, so deposits here are paused until you check again or move on. If it lands after you move on, you’ll have deposited twice.",
+        detail: "You tried to deposit 5 DAI. This jar holds 41 DAI now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: fn(),
+        onMoveOn: fn(),
+      },
+    });
+  },
+  play: enterAmount,
+};
 export const Endow: Story = { args: { intent: "endow" }, play: enterAmount };
 /** An earlier deposit nobody can confirm pauses the next one until it lands or the person moves on. */
 export const EndowHeld: Story = {

@@ -272,13 +272,15 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const txError = useTxErrorMessages(activeMutation.error);
   const depositPlan = useDepositPlan({
     target:
-      !isDonate && selected && primaryAddress
-        ? {
-            kind: "vault",
-            address: selected.destinationAddress,
-            asset: selected.assetAddress,
-            receiver: primaryAddress,
-          }
+      selected && primaryAddress
+        ? isDonate
+          ? { kind: "jar", address: selected.destinationAddress, asset: selected.assetAddress }
+          : {
+              kind: "vault",
+              address: selected.destinationAddress,
+              asset: selected.assetAddress,
+              receiver: primaryAddress,
+            }
         : null,
     amount: tokenAmountWei,
     decimals: selected?.decimals ?? 18,

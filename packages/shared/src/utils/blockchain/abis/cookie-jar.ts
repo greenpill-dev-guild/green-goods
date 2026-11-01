@@ -6,6 +6,15 @@
 
 export const COOKIE_JAR_ABI = [
   {
+    type: "event",
+    name: "Deposit",
+    inputs: [
+      { name: "depositor", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "token", type: "address", indexed: true },
+    ],
+  },
+  {
     name: "CURRENCY",
     type: "function",
     stateMutability: "view",

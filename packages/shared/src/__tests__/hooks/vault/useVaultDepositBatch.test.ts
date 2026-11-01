@@ -5,6 +5,7 @@
 
 import "fake-indexeddb/auto";
 import { act, waitFor } from "@testing-library/react";
+import { readContract } from "@wagmi/core";
 import { encodeAbiParameters, encodeEventTopics, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { batchKeys } from "../../../config/query-keys/garden";
@@ -335,13 +336,15 @@ describe("useDepositPlan", () => {
     expect(sender.getBatchCapability).toHaveBeenCalled();
   });
 
-  it("says nothing about signatures until there is an amount", async () => {
+  it("reads nothing and says nothing about signatures until there is an amount", async () => {
     const { renderPlan } = setup();
     const { result } = renderPlan(0n);
 
-    await waitFor(() => expect(result.current.signatures).toBe(1));
+    await act(async () => {});
 
+    expect(result.current.signatures).toBeNull();
     expect(result.current.signatureLine).toBeNull();
+    expect(vi.mocked(readContract)).not.toHaveBeenCalled();
   });
 
   it("shows a held deposit after a reload, even once its rail is off the list", async () => {

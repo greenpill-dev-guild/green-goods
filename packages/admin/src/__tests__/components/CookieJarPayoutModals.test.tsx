@@ -5,7 +5,18 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { renderWithProviders, screen } from "../test-utils";
 
+const QUIET_PLAN = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isSettlingHold: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
+
 const cookieJarMutationState = vi.hoisted(() => ({
+  plan: vi.fn(),
+  depositError: null as Error | null,
   depositPending: false,
   withdrawPending: false,
   depositMutate: vi.fn(),
@@ -27,11 +38,15 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", () => ({
   useCookieJarDeposit: () => ({
-    error: null,
+    error: cookieJarMutationState.depositError,
     isPending: cookieJarMutationState.depositPending,
     mutate: cookieJarMutationState.depositMutate,
     reset: cookieJarMutationState.depositReset,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: cookieJarMutationState.plan,
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", () => ({
@@ -86,6 +101,8 @@ import { CookieJarWithdrawModal } from "@/views/Hub/components/CookieJarWithdraw
 describe("CookieJar payout modals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    cookieJarMutationState.plan.mockReturnValue(QUIET_PLAN);
+    cookieJarMutationState.depositError = null;
     cookieJarMutationState.depositPending = false;
     cookieJarMutationState.withdrawPending = false;
     cookieJarMutationState.jarOverrides = {};
@@ -135,6 +152,87 @@ describe("CookieJar payout modals", () => {
 
     expect(screen.queryByText(/per claim/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+  });
+
+  it("plans the deposit for the chosen jar and says how many signatures it takes", () => {
+    cookieJarMutationState.plan.mockReturnValue({ ...QUIET_PLAN, signatureLine: "2 signatures" });
+    renderWithProviders(
+      <CookieJarDepositModal isOpen onClose={vi.fn()} gardenAddress={GARDEN_ADDRESS} />
+    );
+
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    expect(cookieJarMutationState.plan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        gardenAddress: GARDEN_ADDRESS,
+        target: { kind: "jar", address: JAR_ADDRESS, asset: ASSET_ADDRESS },
+      })
+    );
+  });
+
+  it.each([
+    ["Deposit", vi.fn().mockReturnValue(false)],
+    ["Deposit Anyway", vi.fn().mockReturnValue(true)],
+  ])("pauses %s while an earlier deposit is unknown", (name, lowLimit) => {
+    if (lowLimit()) {
+      cookieJarMutationState.jarOverrides = {
+        assetAddress: getCampaignCookieJarPayoutAsset(DEFAULT_CHAIN_ID, "dai")?.address,
+        decimals: 18,
+        maxWithdrawal: 10n ** 16n,
+        withdrawalInterval: 86400n,
+      };
+    }
+    cookieJarMutationState.plan.mockReturnValue({
+      ...QUIET_PLAN,
+      isHeld: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "This jar holds 3 DAI now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+        onFixLimit={vi.fn()}
+      />
+    );
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "1" } });
+
+    expect(screen.getByRole("button", { name })).toBeDisabled();
+    expect(screen.getByText(/This jar holds 3 DAI now/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+  });
+
+  it.each([
+    ["an unknown outcome on today's path", "TransactionConfirmationPendingError", false, true],
+    [
+      "an unknown outcome on a route that holds it",
+      "TransactionConfirmationPendingError",
+      true,
+      false,
+    ],
+    ["any other failure on a route that holds", "Error", true, true],
+  ])("for %s, the error line reads as expected", (_case, name, unconfirmedIsHeld, shown) => {
+    cookieJarMutationState.depositError = Object.assign(new Error("No luck"), { name });
+    cookieJarMutationState.plan.mockReturnValue({ ...QUIET_PLAN, unconfirmedIsHeld });
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+
+    expect(Boolean(screen.queryByRole("alert") ?? screen.queryByRole("status"))).toBe(shown);
   });
 
   it("starts on the garden's first jar when the caller names none", () => {

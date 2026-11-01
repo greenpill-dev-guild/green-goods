@@ -1,10 +1,14 @@
 import { Alert, type AlertVariant } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import {
+  TxHoldFeedback,
+  TxInlineFeedback,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useDepositPlan } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   formatTokenAmount,
@@ -141,6 +145,27 @@ export function CookieJarDepositModal({
   }, [depositAmount, depositJar, depositMutation.error, resetDepositMutation]);
 
   const depositTxError = useTxErrorMessages(depositMutation.error);
+  const plan = useDepositPlan({
+    target:
+      selectedDepositJar && primaryAddress
+        ? {
+            kind: "jar",
+            address: selectedDepositJar.jarAddress,
+            asset: selectedDepositJar.assetAddress,
+          }
+        : null,
+    amount: parsedDepositAmount,
+    decimals: depositDecimals,
+    symbol: selectedDepositJar
+      ? getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined)
+      : "",
+    gardenAddress,
+    enabled: isOpen,
+  });
+  const isDepositPaused = plan.isHeld || plan.isSettlingHold;
+  const showTxError =
+    Boolean(depositMutation.error) &&
+    !(plan.unconfirmedIsHeld && depositTxError.view.kind === "unconfirmed");
 
   const isPending = depositMutation.isPending;
   // Funding is the last moment before gardeners meet a limit set too low. It warns, never
@@ -150,7 +175,7 @@ export function CookieJarDepositModal({
       ? selectedDepositJar
       : null;
   const handleDeposit = () => {
-    if (!selectedDepositJar || parsedDepositAmount <= 0n) return;
+    if (!selectedDepositJar || parsedDepositAmount <= 0n || isDepositPaused) return;
     depositMutation.mutate(
       {
         jarAddress: selectedDepositJar.jarAddress,
@@ -188,48 +213,55 @@ export function CookieJarDepositModal({
           <Button type="button" emphasis="tertiary" size="sm" onClick={onClose}>
             {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
           </Button>
-        ) : lowLimitJar ? (
-          <>
-            <Button
-              type="button"
-              emphasis="secondary"
-              size="sm"
-              loading={isPending}
-              disabled={parsedDepositAmount <= 0n}
-              onClick={handleDeposit}
-            >
-              {formatMessage({ id: "app.cookieJar.depositAnyway" })}
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              disabled={isPending}
-              onClick={() => onFixLimit?.(lowLimitJar.jarAddress)}
-            >
-              {formatMessage({ id: "app.cookieJar.fixLimitFirst" })}
-            </Button>
-          </>
         ) : (
-          <>
-            <Button
-              type="button"
-              emphasis="tertiary"
-              size="sm"
-              onClick={onClose}
-              disabled={isPending}
-            >
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              size="sm"
-              type="button"
-              loading={isPending}
-              disabled={!selectedDepositJar || parsedDepositAmount <= 0n}
-              onClick={handleDeposit}
-            >
-              {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
-            </Button>
-          </>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
+              {plan.signatureLine}
+            </p>
+            {lowLimitJar ? (
+              <>
+                <Button
+                  type="button"
+                  emphasis="secondary"
+                  size="sm"
+                  loading={isPending}
+                  disabled={parsedDepositAmount <= 0n || isDepositPaused}
+                  onClick={handleDeposit}
+                >
+                  {formatMessage({ id: "app.cookieJar.depositAnyway" })}
+                </Button>
+                <Button
+                  size="sm"
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => onFixLimit?.(lowLimitJar.jarAddress)}
+                >
+                  {formatMessage({ id: "app.cookieJar.fixLimitFirst" })}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="sm"
+                  onClick={onClose}
+                  disabled={isPending}
+                >
+                  {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+                </Button>
+                <Button
+                  size="sm"
+                  type="button"
+                  loading={isPending}
+                  disabled={!selectedDepositJar || parsedDepositAmount <= 0n || isDepositPaused}
+                  onClick={handleDeposit}
+                >
+                  {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
+                </Button>
+              </>
+            )}
+          </div>
         )
       }
     >
@@ -242,6 +274,7 @@ export function CookieJarDepositModal({
         </Alert>
       ) : (
         <div className="space-y-4">
+          {plan.holdFeedback ? <TxHoldFeedback {...plan.holdFeedback} isBusy={isPending} /> : null}
           {/* Jar switcher — compact single-select between the garden's jars (e.g. DAI / WETH) */}
           {jars.length > 1 && (
             <AdminFieldGroup
@@ -341,7 +374,7 @@ export function CookieJarDepositModal({
 
           {/* Error feedback */}
           <TxInlineFeedback
-            visible={Boolean(depositMutation.error)}
+            visible={showTxError}
             severity={depositTxError.view.severity}
             title={depositTxError.title}
             message={depositTxError.message}

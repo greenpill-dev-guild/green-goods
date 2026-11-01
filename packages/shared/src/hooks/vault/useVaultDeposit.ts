@@ -4,16 +4,8 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
-import {
-  createDepositChain,
-  type DepositTarget,
-  depositDomain,
-  sendDepositBatch,
-} from "../../modules/garden/deposit-batch";
-import { depositRoute, walletRouteListed } from "../../modules/garden/deposit-route";
-import { assertBatchCapabilityKnown } from "../../modules/transactions/batch-types";
+import { depositDomain } from "../../modules/garden/deposit-batch";
 import { requireConfirmed } from "../../modules/transactions/confirmation";
-import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { DepositParams } from "../../types/vaults";
 import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
@@ -32,6 +24,7 @@ import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { batchKeys } from "../../config/query-keys/garden";
+import { useDepositRoute } from "./useDepositRoute";
 import {
   shouldShowErrorToast,
   VaultDepositStageError,
@@ -45,9 +38,10 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress, passkeyAccountProfile } = useUser();
+  const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sender = useTransactionSender();
+  const routes = useDepositRoute("vault-deposit");
   const handleError = createMutationErrorHandler({
     source: "useVaultDeposit",
     toastContext: "vault deposit",
@@ -91,29 +85,6 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       .onVaultDeposit(gardenAddress, primaryAddress ?? undefined, chainId)
       .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
     scheduleFollowUp();
-  };
-
-  // How this deposit goes now, or null for today's flow. Asked at the send, so it is never stale.
-  const routeFor = async (params: DepositParams) => {
-    const asset = params.assetAddress;
-    const rail =
-      sender?.authMode === "passkey" || sender?.authMode === "wallet" ? sender.authMode : null;
-    if (!sender?.batches || !primaryAddress) return null;
-    let walletAtomic: boolean | undefined;
-    if (rail === "wallet" && walletRouteListed({ action: "vault-deposit", chainId, asset })) {
-      const capability = await sender.getBatchCapability?.({ account: primaryAddress, chainId });
-      assertBatchCapabilityKnown(capability);
-      walletAtomic = capability?.atomic === "supported";
-    }
-    const route = depositRoute({
-      action: "vault-deposit",
-      rail,
-      passkeyProfile: passkeyAccountProfile,
-      walletAtomic,
-      chainId,
-      asset,
-    });
-    return route && rail ? { ...route, rail, batches: sender.batches } : null;
   };
 
   const mutation = useMutation({
@@ -214,7 +185,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         }
       }
 
-      const route = await routeFor(params);
+      const route = await routes.routeFor(params.assetAddress);
 
       // Snapshot expected shares before approval for post-approval slippage detection
       const preApprovalPreview = await readContract(getWagmiConfig(), {
@@ -247,41 +218,20 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       };
 
       if (route) {
-        const target: DepositTarget = {
-          kind: "vault",
-          address: params.vaultAddress,
-          asset: params.assetAddress,
-          receiver,
-        };
-        const overCeilingsKey = batchKeys.overCeilings(
-          depositDomain(target),
-          primaryAddress,
-          chainId,
-          params.amount.toString()
-        );
-        const tookOneSignature = route.atomic && !queryClient.getQueryData(overCeilingsKey);
-        const outcome = await sendDepositBatch({
-          batches: route.batches,
-          chain: createDepositChain(chainId),
-          scope: { account: primaryAddress as Address, chainId },
-          rail: route.rail,
-          atomic: tookOneSignature,
-          target,
+        const outcome = await routes.send(route, {
+          target: {
+            kind: "vault",
+            address: params.vaultAddress,
+            asset: params.assetAddress,
+            receiver,
+          },
           amount: params.amount,
           checkBeforeDeposit: async () => {
             await checkSlippage();
             showDepositing();
           },
-        }).catch((error: unknown) => {
-          // It was promised one signature, so going step by step takes another press.
-          if (tookOneSignature && classifyTxError(error).kind === "overCeilings") {
-            queryClient.setQueryData(overCeilingsKey, true);
-          }
-          throw error;
         });
         if (outcome.status === "deposited") return outcome.transactionHash;
-        if (outcome.status === "unknown") throw new TransactionConfirmationPendingError();
-        if (outcome.status === "declined") throw new Error("Transaction cancelled");
         throw new VaultDepositStageError("deposit", "Deposit failed");
       }
 

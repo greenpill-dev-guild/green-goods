@@ -4,20 +4,23 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
+import { batchKeys } from "../../config/query-keys/garden";
 import { logger } from "../../modules/app/logger";
+import { depositDomain } from "../../modules/garden/deposit-batch";
 import { requireConfirmed } from "../../modules/transactions/confirmation";
 import type { CookieJarDepositParams } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
+import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
+import { useDepositRoute } from "../vault/useDepositRoute";
 
 type TxErrorMode = "toast" | "inline" | "auto";
 
@@ -50,6 +53,7 @@ export function useCookieJarDepositMutation({
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sender = useTransactionSender();
+  const routes = useDepositRoute("jar-deposit");
   const handleError = createMutationErrorHandler({
     source,
     toastContext,
@@ -77,7 +81,23 @@ export function useCookieJarDepositMutation({
     scheduleFollowUp();
   };
 
+  const showDepositing = () => {
+    if (!activeToastId.current) return;
+    toastService.loading({
+      id: activeToastId.current,
+      title: formatMessage({ id: "app.cookieJar.deposit" }),
+      message: formatMessage({ id: "app.cookieJar.depositing" }),
+    });
+  };
+  const holdKeyFor = (params: CookieJarDepositParams) =>
+    batchKeys.hold(
+      depositDomain({ kind: "jar", address: params.jarAddress }),
+      primaryAddress ?? "",
+      chainId
+    );
+
   const mutation = useMutation({
+    mutationKey: batchKeys.depositSend(primaryAddress ?? "", chainId),
     mutationFn: async (params: CookieJarDepositParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
@@ -102,6 +122,17 @@ export function useCookieJarDepositMutation({
           throw error;
         }
         logger.warn(balanceWarning, { error });
+      }
+
+      const route = await routes.routeFor(params.assetAddress);
+      if (route) {
+        const outcome = await routes.send(route, {
+          target: { kind: "jar", address: params.jarAddress, asset: params.assetAddress },
+          amount: params.amount,
+          checkBeforeDeposit: async () => showDepositing(),
+        });
+        if (outcome.status === "deposited") return outcome.transactionHash;
+        throw new Error("Deposit failed");
       }
 
       // Check ERC20 allowance and approve if needed
@@ -131,14 +162,7 @@ export function useCookieJarDepositMutation({
         );
       }
 
-      // Update toast to reflect deposit phase
-      if (activeToastId.current) {
-        toastService.loading({
-          id: activeToastId.current,
-          title: formatMessage({ id: "app.cookieJar.deposit" }),
-          message: formatMessage({ id: "app.cookieJar.depositing" }),
-        });
-      }
+      showDepositing();
 
       const result = await sender.sendContractCall({
         address: params.jarAddress,
@@ -149,7 +173,8 @@ export function useCookieJarDepositMutation({
       });
       return requireConfirmed(result).hash;
     },
-    onMutate: () => {
+    onMutate: async (params) => {
+      await queryClient.cancelQueries({ queryKey: holdKeyFor(params) });
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.cookieJar.deposit" }),
         message: formatMessage({ id: "app.cookieJar.approving" }),
@@ -168,17 +193,18 @@ export function useCookieJarDepositMutation({
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      if (isUnconfirmedTxError(error)) {
+      const view = classifyTxError(error);
+      if (view.kind === "unconfirmed" || view.kind === "overCeilings") {
         if (showErrorToast) {
           toastService.info({
-            title: formatMessage({ id: "app.txFeedback.unconfirmed.title" }),
-            message: formatMessage({ id: "app.txFeedback.unconfirmed.message" }),
+            title: formatMessage({ id: view.titleKey }),
+            message: formatMessage({ id: view.messageKey }),
             context: toastContext,
             suppressLogging: true,
           });
         }
         // It may have landed, so the balances are worth reading again.
-        refreshJar(params.jarAddress);
+        if (view.kind === "unconfirmed") refreshJar(params.jarAddress);
         return;
       }
       handleError(error, {
@@ -188,6 +214,18 @@ export function useCookieJarDepositMutation({
           assetAddress: params?.assetAddress,
         },
         showToast: showErrorToast,
+      });
+    },
+    // A read follows every send, since that is what locks the form and can settle the send itself.
+    onSettled: (_hash, _error, params) => {
+      void queryClient.invalidateQueries({ queryKey: holdKeyFor(params) });
+      void queryClient.invalidateQueries({
+        queryKey: batchKeys.allowance(
+          params.assetAddress,
+          primaryAddress ?? "",
+          params.jarAddress,
+          chainId
+        ),
       });
     },
   });
