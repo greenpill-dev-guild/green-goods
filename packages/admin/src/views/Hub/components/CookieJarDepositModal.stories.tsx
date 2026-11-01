@@ -1,7 +1,10 @@
 import { Alert, type AlertVariant } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import {
+  TxHoldFeedback,
+  TxInlineFeedback,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
@@ -33,6 +36,8 @@ interface CookieJarDepositModalHarnessProps {
   error?: string | null;
   /** The selected jar's per-claim limit is under the floor: warn, and offer the fix first. */
   lowLimit?: { limit: string; symbol: string };
+  /** An earlier deposit into this jar nobody can confirm, which pauses the next one. */
+  held?: boolean;
   /** The jars can't be funded yet: this stands in for the form, with Cancel alone in the footer. */
   readNotice?: { variant: AlertVariant; title?: string; body: string };
 }
@@ -45,6 +50,7 @@ function CookieJarDepositModalHarness({
   isPending = false,
   error = null,
   lowLimit,
+  held = false,
   readNotice,
 }: CookieJarDepositModalHarnessProps) {
   const [jarAddress, setJarAddress] = useState(jars[0]?.jarAddress ?? "");
@@ -91,6 +97,17 @@ function CookieJarDepositModalHarness({
       }
     >
       <div className="space-y-4">
+        {held ? (
+          <TxHoldFeedback
+            title="We couldn’t confirm your last deposit."
+            message="It could still land, so deposits here are paused until you check again or move on. If it lands after you move on, you’ll have deposited twice."
+            detail="You tried to deposit 5 DAI. This jar holds 41 DAI now."
+            hasUnreadValues={false}
+            isSettling={false}
+            onCheckAgain={fn()}
+            onMoveOn={fn()}
+          />
+        ) : null}
         {jars.length > 1 && (
           <div>
             <p className="mb-1.5 block type-body font-medium text-text-strong">Cookie Jar</p>
@@ -160,7 +177,7 @@ function CookieJarDepositModalHarness({
           emphasis="secondary"
           className="w-full"
           loading={isPending}
-          disabled={!selected || amount.trim() === ""}
+          disabled={!selected || amount.trim() === "" || held}
           onClick={fn()}
         >
           Deposit
@@ -229,6 +246,11 @@ export const Submitting: Story = {
 
 export const WithError: Story = {
   args: { error: "User rejected the request." },
+};
+
+/** An earlier deposit nobody can confirm pauses the next one until it lands or the person moves on. */
+export const HeldDeposit: Story = {
+  args: { jars: [JARS[1]], held: true },
 };
 
 /** Funding a jar capped at one cent warns; the deposit still goes through. */

@@ -307,6 +307,49 @@ describe("garden join request transport", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it("reads the waiting count with its grant in the header, never the address bar", async () => {
+    const fetchMock = vi.fn(async () => Response.json({ ok: true, waiting: 4 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await gardenJoinRequestTransport.count(
+      GARDEN,
+      "grant.token",
+      "https://agent.example"
+    );
+
+    expect(response.waiting).toBe(4);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`https://agent.example/public/gardens/${GARDEN}/join-requests/count`);
+    expect(init.headers).toMatchObject({ Authorization: "GG-JoinCount grant.token" });
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects a malformed count, and a queue carrying a malformed grant", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        Response.json(
+          url.endsWith("/count")
+            ? { ok: true, waiting: "4" }
+            : { ok: true, items: [], rateLimitedRecently: false, countGrant: { token: 7 } }
+        )
+      )
+    );
+
+    await expect(
+      gardenJoinRequestTransport.count(GARDEN, "grant.token", "https://agent.example")
+    ).rejects.toBeInstanceOf(GardenJoinRequestTransportError);
+    await expect(
+      gardenJoinRequestTransport.list(
+        GARDEN,
+        { limit: 25 },
+        { ...proof, action: "list" },
+        "https://agent.example"
+      )
+    ).rejects.toBeInstanceOf(GardenJoinRequestTransportError);
+    vi.unstubAllGlobals();
+  });
+
   it("reads the server-owned activation state without sending a proof", async () => {
     const fetchMock = vi.fn(async () => Response.json({ ok: true, enabled: false }));
     vi.stubGlobal("fetch", fetchMock);

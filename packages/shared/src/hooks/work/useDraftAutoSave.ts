@@ -6,14 +6,21 @@ import {
   validateWorkVideo,
 } from "../../modules/work/work-attachments";
 import { normalizeWorkMediaFiles } from "../../modules/work/media-processing";
-import { queueDraftWrite, returnChangedWorkToDraft } from "../../modules/work/draft-lifecycle";
+import {
+  deleteWorkDraft,
+  queueDraftWrite,
+  returnChangedWorkToDraft,
+} from "../../modules/work/draft-lifecycle";
 import { useCallback, useEffect, useRef } from "react";
+import { useIntl } from "react-intl";
 import { useQueryClient } from "@tanstack/react-query";
+import { toastService } from "../../components/Toast/toast.service";
 import type { Address, ApproximateWorkLocation } from "../../types/domain";
 import type { DraftStep, DraftWorkLink, WorkDraftRecord } from "../../types/job-queue";
-import { draftDB, hasMeaningfulDraftDetails } from "../../modules/job-queue/draft-db";
+import { logger } from "../../modules/app/logger";
+import { draftDB } from "../../modules/job-queue/draft-db";
+import { workHoldsContent } from "../../modules/job-queue/draft-state";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
-import { compareAddresses } from "../../utils/blockchain/address";
 import { requestPersistentStorageOnce } from "../../utils/storage/quota";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -117,22 +124,12 @@ export function useDraftAutoSave(
     if (committed?.generation === generation && committed.snapshot === snapshot)
       return committed.draftId;
     const { audioNotes = [], ...fields } = snapshot.formData;
-    // A garden alone is not work: Submit Work chooses one before the member does anything (the
-    // active garden), so a draft starts with the first action, photo or word and carries it. Nor
-    // is the action the flow chose when it skipped Start (the garden's only one).
-    const skipped = state.startSkipAction;
-    const flowChoseAction =
-      skipped !== null &&
-      skipped.actionUID === fields.actionUID &&
-      compareAddresses(skipped.garden, fields.gardenAddress);
-    const meaningful =
-      snapshot.images.length > 0 ||
-      audioNotes.length > 0 ||
-      (fields.actionUID !== null && !flowChoseAction) ||
-      fields.feedback.trim() ||
-      hasMeaningfulDraftDetails(fields.details) ||
-      (fields.timeSpentMinutes ?? 0) > 0;
-    if (!state.activeDraftId && !meaningful) {
+    // Opening the flow and tapping an action is not work yet (DL-148): nothing is written until
+    // the work holds something of the member's own, and then the draft carries its garden and action.
+    if (
+      !state.activeDraftId &&
+      !workHoldsContent({ ...fields, images: snapshot.images, audioNotes })
+    ) {
       useWorkFlowStore.setState({ draftSaveState: "idle" });
       return null;
     }
@@ -247,6 +244,47 @@ export function useDraftAutoSave(
       flush();
     };
   }, [saveOnExit]);
+
+  // A draft emptied and left is no draft (DL-148). While the flow is open it stays, since taking
+  // out the only photo is often the way to a better one, and an attachment that could not be read
+  // still counts: the member has not given it up.
+  const intl = useIntl();
+  const leaving = useRef({ enabled, userAddress, chainId, intl });
+  leaving.current = { enabled, userAddress, chainId, intl };
+  useEffect(
+    () => () => {
+      const { enabled: saves, userAddress: account, chainId: chain, intl: copy } = leaving.current;
+      const state = useWorkFlowStore.getState();
+      const draftId = state.activeDraftId;
+      if (!saves || !account || !draftId || state.draftMissingAttachments.length > 0) return;
+      const { formData } = latest.current;
+      if (workHoldsContent({ ...formData, images: state.images, audioNotes: state.audioNotes }))
+        return;
+      // Detached first, so a member who comes straight back starts over rather than editing a
+      // draft about to go. The delete keeps its place behind any save still writing.
+      state.reset();
+      const remove = () => {
+        deleteWorkDraft(draftId)
+          .then(() => queryClient.invalidateQueries({ queryKey: draftsKeys.list(account, chain) }))
+          .catch((error) => {
+            // Nothing is lost: until this lands, the empty draft stays in Your Work to delete there.
+            logger.error("[WorkDrafts] Could not remove an emptied draft", { error });
+            toastService.error({
+              title: copy.formatMessage({ id: "app.drafts.delete.error" }),
+              message: copy.formatMessage({ id: "app.drafts.delete.errorMessage" }),
+              context: "drafts",
+              action: {
+                label: copy.formatMessage({ id: "app.garden.draft.retry" }),
+                onClick: remove,
+                dismissOnClick: true,
+              },
+            });
+          });
+      };
+      remove();
+    },
+    [queryClient]
+  );
 
   return {
     saveOnExit,

@@ -19,6 +19,7 @@ import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
 import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
+import { useJoinRequestCountGrantStore } from "../stores/useJoinRequestCountGrantStore";
 import {
   type AuthMode,
   clearSessionForSignOut,
@@ -344,6 +345,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     releaseWallet(session);
     if (manualWalletLoginPendingRef.current || isConnecting) void getAppKit()?.close();
     clearRestoreAttempt();
+    // The one join-request credential a browser keeps ends with the session.
+    useJoinRequestCountGrantStore.getState().clearAll();
 
     // A late connector event must not revive the ended session.
     walletRestoreAttemptedRef.current = true;

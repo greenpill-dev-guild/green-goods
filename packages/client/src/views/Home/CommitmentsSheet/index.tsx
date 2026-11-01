@@ -222,6 +222,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
               direction={direction}
               onDirectionChange={setDirection}
               onOpenCommitment={openCommitment}
+              covered={dashboardNavigation.isDashboardCovered}
             />
           )}
           {selectedTab === "over-time" && (

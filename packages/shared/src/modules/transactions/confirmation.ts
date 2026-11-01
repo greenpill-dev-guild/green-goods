@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import {
+  TransactionConfirmationPendingError,
   TransactionRevertedError,
   TransactionReplacementError,
   type BroadcastReference,
@@ -65,6 +66,12 @@ export async function sendCheckpointedCall(
     // A submitted reference plus a failed RPC response says nothing about execution.
     return pending;
   }
+}
+
+/** For a caller that acts on a landed send: a result with no receipt says nothing about execution. */
+export function requireConfirmed(result: TxResult): TxResult {
+  if (result.confirmation === "pending") throw new TransactionConfirmationPendingError(result);
+  return result;
 }
 
 /** An opaque wallet proposal is not an execution transaction hash. */

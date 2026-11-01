@@ -14,11 +14,9 @@ import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
   storyGarden,
-  storyRoleMembers,
   storyRoleSummary,
   storyRoster,
   storyRosterIdentity,
-  storyRosterRoleMembers,
   storyRosterRoleSummary,
 } from "./communityStoryFixtures";
 
@@ -40,14 +38,11 @@ const meta = {
   args: {
     garden: storyGarden,
     canManage: true,
-    closeMembersModal: fn(),
+    keepJoinRequestCountGrant: fn(),
     memberCount: storyDirectory.length,
     memberSearch: "",
     noteJoinRequestsRead: fn(),
-    roleMembers: storyRoleMembers,
     roleSummary: storyRoleSummary,
-    scheduleBackgroundRefetch: fn(),
-    selectedItem: null,
     setMemberSearch: fn(),
     visibleDirectory: storyDirectory,
   },
@@ -66,9 +61,6 @@ export const ReadOnly: Story = { args: { canManage: false } };
 export const PersonWithSeveralRoles: Story = {
   args: {
     memberCount: storyDirectory.length,
-    // Manage Members builds each person's role chips from these seats, so the
-    // steward's evaluator seat lives here too.
-    roleMembers: { ...storyRoleMembers, evaluator: storyRoleMembers.steward },
     roleSummary: storyRoleSummary.map((entry) =>
       entry.role === "evaluator" ? { ...entry, count: 1 } : entry
     ),
@@ -99,7 +91,6 @@ export const Roster: Story = {
   decorators: [withRosterIdentity],
   args: {
     memberCount: storyRoster.length,
-    roleMembers: storyRosterRoleMembers,
     roleSummary: storyRosterRoleSummary,
     visibleDirectory: storyRoster,
   },

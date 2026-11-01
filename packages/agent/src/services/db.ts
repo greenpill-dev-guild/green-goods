@@ -10,6 +10,7 @@ export {
   compareAndSwapProfileAvatar,
   compareAndSwapSavedOffer,
   completeIdempotencyKey,
+  countPendingGardenJoinRequests,
   createFundingIntent,
   createGardenJoinRequest,
   createUser,

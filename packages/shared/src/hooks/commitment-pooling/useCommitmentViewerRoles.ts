@@ -33,8 +33,8 @@ const NO_GARDENS: Garden[] = [];
 /**
  * Whether the indexed roster names the viewer in any of the six roles. The
  * contract counts every hat (`GuardLib.isGardenMember`), so evaluators, owners,
- * funders and community members are members too. Read directly, without
- * `isGardenMember`'s cleanup, so a stale roster never erases a fresh join.
+ * funders and community members are members too. Read directly, since
+ * `isGardenMember` reads only gardeners and stewards.
  */
 function rosterListsViewer(viewer: Address | null | undefined, garden: Garden): boolean {
   return [
@@ -155,7 +155,8 @@ export function useCommitmentViewerRoles(input: {
   const gardensKnown = gardensQuery.isSuccess;
   const { canManageGarden } = useGardenPermissions();
   // A join written in this tab lands in the overlay before the roster; the
-  // version ticks when it does, so the memo below sees it without a reload.
+  // version ticks when it does and when it lapses at its limit, so the memo
+  // below sees both without a reload.
   const pendingJoinsVersion = usePendingJoinsVersion();
   const garden = gardens.find((entry) => entry.id.toLowerCase() === routeGarden?.toLowerCase());
   const poolHost = pool?.garden?.toLowerCase();
@@ -185,7 +186,6 @@ export function useCommitmentViewerRoles(input: {
   // joins `member` on its own chain read, as the route's membership does,
   // rather than on the roster the other gardens are listed from.
   const claimGardens = useMemo(() => {
-    void pendingJoinsVersion;
     const isHost = (entry: Garden) => entry.id.toLowerCase() === poolHost;
     const asOption = (entry: Garden): ClaimGardenOption => ({
       address: entry.id as Address,
@@ -201,6 +201,9 @@ export function useCommitmentViewerRoles(input: {
       member: [...unlistedHost, ...listed].map(asOption),
       stewarded: gardens.filter((entry) => !isHost(entry) && canManageGarden(entry)).map(asOption),
     };
+    // The disable line also keeps the React Compiler off this hook: it drops a version nothing
+    // reads from the memo's key, so built apps would freeze this list while every test passes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [gardens, poolHost, hostGarden, hostMember, viewer, canManageGarden, pendingJoinsVersion]);
 
   return {

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-10-31T21:17:02.026Z"
+    "updated_at": "2026-11-01T04:22:42.722Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,19 +50,19 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-add-members",
+      "branch": "feature/batch-jar-deposits",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx",
-          "evidence": "2026-10-31 21:08:33 UTC: 2 failed on behavior from the fourth review of #1400: one person on a listed rail skipped the journal, so another tab's hold could not refuse the row."
+          "command": "bun run --cwd packages/admin test src/__tests__/components/CookieJarPayoutModals.test.tsx && bun run --cwd packages/client test src/__tests__/views/Cookies.test.tsx src/__tests__/components/PublicFundingCard.test.tsx",
+          "evidence": "Not RED first for the jar forms: proven afterwards on 2026-11-01. Removing the hold from each button failed its test, and so did letting the error line sit beside the hold, hiding every failure, hiding an unknown claim, or keeping the amount after a held deposit landed."
         },
         "green": {
-          "command": "bun run --cwd packages/admin test src/__tests__/components/Garden/AddMembersDialog.test.tsx src/components/Garden src/views/Community/components/CommunityMembersTab.test.tsx src/views/Garden/components/EditGardenDialog.test.tsx",
-          "evidence": "2026-10-31 21:15:40 UTC: 7 files, 116 passed, at the tree committed as db712a741."
+          "command": "bun run --cwd packages/admin test src/__tests__/components/CookieJarPayoutModals.test.tsx src/views/Community/components/CommunitySheetDescriptor.test.tsx src/__tests__/components/Vault/DepositModal.test.tsx src/__tests__/components/AdminDensityScale.guard.test.tsx && bun run --cwd packages/client test src/__tests__/views/Cookies.test.tsx src/__tests__/components/PublicFundingCard.test.tsx src/__tests__/components/TreasuryAmounts.test.tsx",
+          "evidence": "2026-11-01 04:21:44 UTC: admin 4 files, 51 passed; client 3 files, 53 passed, at the tree committed as 14e615554. Storybook plays for TxInlineFeedback and EndowmentSheet: 2 files, 9 passed on the same tree."
         },
         "note": ""
       },
@@ -72,19 +72,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-add-members",
+      "branch": "feature/batch-jar-deposits",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/hooks/garden/useAddMembersBatch.test.ts",
-          "evidence": "2026-10-31 21:14:49 UTC: 1 failed on behavior from CodeRabbit's review of #1400: the toast said nothing to sign while rows past the ceilings were left."
+          "command": "bun run --cwd packages/shared test src/__tests__/hooks/cookie-jar/useCookieJarDepositBatch.test.ts",
+          "evidence": "Not RED first for the jar path: these tests were written alongside the code, then proven by breaking one behavior at a time on 2026-11-01. Of 24 breaks across hook and forms, 4 first survived: a send not marked as in flight, no hold read after a send, no allowance read after one, and a deposit past its ceilings reading as a failure. Each got a case and then failed. The vault review's fixes did fail first, 8 on behavior, at 04:09:02 UTC."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-members-batch.test.ts src/__tests__/hooks/garden/useAddMembersBatch.test.ts src/__tests__/hooks/useGardenOperations.test.ts src/__tests__/modules/garden-settings-batch.test.ts src/__tests__/hooks/garden/useGardenSettingsBatch.test.ts src/__tests__/config/query-persistence-offline.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-10-31 21:15:04 UTC: 7 files, 95 passed, at the tree committed as db712a741."
+          "command": "bun run --cwd packages/shared test src/__tests__/hooks/cookie-jar src/__tests__/hooks/vault/useVaultDepositBatch.test.ts src/__tests__/hooks/vault/useVaultOperations.test.ts src/__tests__/modules/garden-deposit-batch.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/utils/errors/__tests__/tx-error-classifier.test.ts src/__tests__/i18n/locale-coverage.test.ts",
+          "evidence": "2026-11-01 04:21:44 UTC: 13 files, 190 passed, at the tree committed as 14e615554."
         },
         "note": ""
       },
@@ -575,6 +575,94 @@
       "status": "tdd_recorded",
       "branch": "feature/batch-add-members",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-31T22:50:03.541Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "fix/deposit-unknown-outcome",
+      "note": "Slice 4, deposits: honest outcomes on today's path first."
+    },
+    {
+      "timestamp": "2026-10-31T22:50:09.708Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/deposit-unknown-outcome",
+      "note": "Slice 4, deposits: honest outcomes on today's path first."
+    },
+    {
+      "timestamp": "2026-10-31T22:50:14.147Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/deposit-unknown-outcome",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T03:20:33.401Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/batch-vault-deposits",
+      "note": "Slice 4, deposits: the vault batch path, with its rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T03:20:34.699Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/batch-vault-deposits",
+      "note": "Slice 4, deposits: the vault batch path, with its rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T03:20:35.948Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-vault-deposits",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T03:20:39.261Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-vault-deposits",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T04:22:40.056Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Slice 4, deposits: jars on the same path, with their rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T04:22:40.985Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Slice 4, deposits: jars on the same path, with their rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T04:22:41.848Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T04:22:42.723Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -613,10 +701,10 @@
     "phase_4_deposits": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "feature/batch-jar-deposits",
       "depends_on": ["phase_3_members"],
-      "handoff": "handoffs/ui.md"
+      "handoff": "handoffs/continuation.md"
     },
     "phase_5_work_approvals": {
       "machine_lane": "ui",

@@ -103,7 +103,7 @@ Finish the existing limit, preview, balance, and allowance reads first, then fre
 
 A deposit moves money, so recovery matters more here than the prompt count. Today a receipt timeout reaches the funder as a failed deposit with a suggestion to try again, although the deposit may have landed. An unknown outcome must stay pending, survive a reload, and hold the next deposit into that vault or jar from the same account and chain until it is reconciled. Each attempt gets a new operation ID, and a confirmed deposit holds nothing.
 
-Confirm a vault deposit only from a receipt whose `Deposit` event matches the vault, depositor, receiver, and amount. The jar's ABI shows no such event, so read a real deposit's logs before fixing its rule. A slow indexer leaves it pending.
+Confirm a vault deposit only from a receipt whose `Deposit` event matches the vault, depositor, receiver, and amount. The jar's ABI omits its event, but a real deposit's logs show `Deposit(address indexed depositor, uint256 amount, address indexed token)`, so a jar deposit confirms the same way, matching the jar, depositor, and amount. A jar takes one currency, so the token adds nothing. A slow indexer leaves it pending.
 
 The vault's `deposit(amount, receiver)` takes no minimum shares, so its slippage check can only run before signing. Today it runs after the approval lands. In an atomic group it runs last before signing, and nothing can land between the approval and the deposit. The window between signing and inclusion stays as it is today.
 

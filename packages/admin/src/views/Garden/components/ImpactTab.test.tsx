@@ -47,11 +47,11 @@ describe("ImpactTab", () => {
     expect(screen.queryByRole("link", { name: "View All" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Create Hypercert" })).toHaveAttribute(
       "href",
-      expect.stringContaining("/hub/certify/create")
+      expect.stringMatching(/^\/hub\/certify\?.*item=create-hypercert/)
     );
     expect(screen.getByRole("link", { name: "Create Assessment" })).toHaveAttribute(
       "href",
-      expect.stringContaining("/hub/assess/create")
+      expect.stringMatching(/^\/hub\/assess\?.*item=create-assessment/)
     );
   });
 

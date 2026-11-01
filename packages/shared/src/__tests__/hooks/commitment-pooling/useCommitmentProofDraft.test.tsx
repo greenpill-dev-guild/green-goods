@@ -93,6 +93,74 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("useCommitmentProofDraft", () => {
+  it("writes nothing for a composer opened and left, and lets go of a draft emptied (DL-148)", async () => {
+    const draftRepository = repository();
+    const { result } = renderSynced(draftRepository);
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    // Moving on from an empty composer waits for this answer, so it still says saved.
+    expect(useCommitmentProofDraftStore.getState().drafts[key()]).toBeUndefined();
+    expect(draftRepository.save).not.toHaveBeenCalled();
+
+    const held = result.current.snapshot;
+    for (const content of [
+      { words: { ...held.words, note: "Beds cleared" } },
+      { words: { ...held.words, links: ["https://example.org/proof"] } },
+      { files: { media: [photo()], audioNotes: [] } },
+      { files: { media: [new File(["mp4"], "clip.mp4", { type: "video/mp4" })], audioNotes: [] } },
+      {
+        files: { media: [], audioNotes: [new File(["webm"], "note.webm", { type: "audio/webm" })] },
+      },
+    ]) {
+      act(() => result.current.setSnapshot({ ...held, ...content }));
+      await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+      expect(useCommitmentProofDraftStore.getState().drafts[key()]).toBeDefined();
+
+      act(() => result.current.setSnapshot(held));
+      await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+      expect(useCommitmentProofDraftStore.getState().drafts[key()]).toBeUndefined();
+    }
+    expect(draftRepository.durable.get(key())).toEqual([]);
+  });
+
+  it("tries an emptied draft's removal again after its write fails, and only then says saved", async () => {
+    const { result } = renderSynced(repository());
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    const held = result.current.snapshot;
+    act(() =>
+      result.current.setSnapshot({ ...held, words: { ...held.words, note: "Beds cleared" } })
+    );
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    const stored = () =>
+      JSON.parse(localStorage.getItem("gg-commitment-proof-drafts")!).state.drafts[key()];
+    expect(stored()).toBeDefined();
+
+    const storage = useCommitmentProofDraftStore.persist.getOptions().storage!;
+    const write = vi.spyOn(storage, "setItem").mockImplementationOnce(() => {
+      throw new DOMException("quota", "QuotaExceededError");
+    });
+    act(() => result.current.setSnapshot(held));
+    await waitFor(() => expect(result.current.sync.persistence).toBe("failed"));
+    expect(stored()).toBeDefined();
+    write.mockRestore();
+
+    act(() => result.current.sync.retrySave());
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+    expect(stored()).toBeUndefined();
+  });
+
+  it("keeps a credit choice made before anything else, for the member's return", async () => {
+    const { result } = renderSynced(repository());
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+
+    const held = result.current.snapshot;
+    act(() =>
+      result.current.setSnapshot({ ...held, words: { ...held.words, credited: [VIEWER] } })
+    );
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+
+    expect(useCommitmentProofDraftStore.getState().drafts[key()]?.credited).toEqual([VIEWER]);
+  });
+
   it("restores after StrictMode tears down and replays its mount effects", async () => {
     const draftRepository = repository();
     const { result } = renderHook(

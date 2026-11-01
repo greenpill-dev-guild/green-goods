@@ -13,7 +13,7 @@ export type AdminWorkspaceId =
 export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "confirm";
 export type AdminHubView = AdminHubMode;
-export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
+export type AdminGardenMode = "health" | "activity" | "impact" | "pool";
 export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminHubSort = "newest" | "oldest";
 /** The Work tab's scope: work waiting for review, or work already approved. */
@@ -28,6 +28,8 @@ export interface AdminHubRouteContext {
   sort?: AdminHubSort;
   /** Pending is the default and stays out of the URL; only "approved" is written. */
   scope?: AdminHubWorkScope;
+  /** A create flow that opens over the stage (DL-140). A Hub URL's item holds nothing else. */
+  item?: AdminHubFlowItem;
 }
 
 export interface AdminGardenRouteContext {
@@ -92,6 +94,7 @@ function buildHubContextSearch(
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
     scope: context.scope === "approved" ? "approved" : undefined,
+    item: parseHubFlowItem(context.item),
   };
 }
 
@@ -158,11 +161,19 @@ export const adminRoutes = {
   hubWorkDetail(workId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));
   },
+  /** Submit Work over Work. The header action opens it over the active stage instead (DL-140). */
   hubWorkSubmit(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/work/submit", buildHubCreationContextSearch(context));
+    return buildAdminHref("/hub/work", {
+      ...buildHubCreationContextSearch(context),
+      item: SUBMIT_WORK_ROUTE_ITEM,
+    });
   },
+  /** Create Assessment over Assessments, the way in from outside the header (DL-140). */
   hubAssessCreate(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));
+    return buildAdminHref("/hub/assess", {
+      ...buildHubCreationContextSearch(context),
+      item: CREATE_ASSESSMENT_ROUTE_ITEM,
+    });
   },
   hubAssessDetail(assessmentId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(
@@ -170,8 +181,12 @@ export const adminRoutes = {
       buildHubContextSearch(context)
     );
   },
+  /** Create Hypercert over Hypercerts, the way in from outside the header (DL-140). */
   hubCertifyCreate(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));
+    return buildAdminHref("/hub/certify", {
+      ...buildHubCreationContextSearch(context),
+      item: CREATE_HYPERCERT_ROUTE_ITEM,
+    });
   },
   garden(context?: AdminGardenRouteContext) {
     return this.gardenHealth(context);
@@ -196,8 +211,9 @@ export const adminRoutes = {
   gardenImpact(context?: AdminGardenRouteContext) {
     return this.gardenMode("impact", context);
   },
+  /** Edit Garden over Health. The header action opens it over the active tab instead (DL-140). */
   gardenSettings(context?: AdminGardenRouteContext) {
-    return this.gardenMode("settings", context);
+    return this.gardenHealth({ ...context, item: EDIT_GARDEN_ROUTE_ITEM });
   },
   /** The steward's pool console (uiux-spec §6.2). */
   gardenPool(context?: AdminGardenRouteContext) {
@@ -369,8 +385,27 @@ export function getAdminWorkspaceRoot(pathname: string): string {
 export const CAMPAIGN_JARS_ROUTE_ITEM = "campaigns";
 export const CREATE_CAMPAIGN_JAR_ROUTE_ITEM = "create-campaign-jar";
 
-/** Community item for Fund Cookie Jar's deposit dialog, which opens over any tab (DL-140). */
+/** Route items for the header actions whose dialogs open over any tab (DL-140). */
 export const FUND_JAR_ROUTE_ITEM = "fund-jar";
+export const ADD_MEMBER_ROUTE_ITEM = "add-member";
+export const EDIT_GARDEN_ROUTE_ITEM = "edit-garden";
+export const SUBMIT_WORK_ROUTE_ITEM = "submit-work";
+export const CREATE_ASSESSMENT_ROUTE_ITEM = "create-assessment";
+export const CREATE_HYPERCERT_ROUTE_ITEM = "create-hypercert";
+
+export type AdminHubFlowItem =
+  | typeof SUBMIT_WORK_ROUTE_ITEM
+  | typeof CREATE_ASSESSMENT_ROUTE_ITEM
+  | typeof CREATE_HYPERCERT_ROUTE_ITEM;
+
+/** The create flow a Hub URL's item names, if it names one. */
+export function parseHubFlowItem(item: string | null | undefined): AdminHubFlowItem | undefined {
+  return item === SUBMIT_WORK_ROUTE_ITEM ||
+    item === CREATE_ASSESSMENT_ROUTE_ITEM ||
+    item === CREATE_HYPERCERT_ROUTE_ITEM
+    ? item
+    : undefined;
+}
 
 /**
  * Where the campaign cookie jar URLs land: the protocol garden's Community →
