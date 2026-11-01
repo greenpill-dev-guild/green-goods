@@ -214,6 +214,38 @@ describe("useBatchWorkApproval", () => {
     expect(toasts.success).toHaveBeenCalledOnce();
   });
 
+  it("locks nobody out while a failed hold read retries", async () => {
+    const { garden, queryClient, sender } = setup();
+    queryClient.setDefaultOptions({ queries: { retry: 2, retryDelay: 60_000 } });
+    const list = vi
+      .spyOn(sender.batches, "list")
+      .mockRejectedValue(new Error("wallet reconnecting"));
+    const { result } = renderHookWithProviders(() => useBatchWorkApproval(garden), { queryClient });
+    expect(result.current.isSettlingHold).toBe(true);
+
+    await waitFor(() => expect(list).toHaveBeenCalledOnce());
+    await waitFor(() => expect(result.current.isSettlingHold).toBe(false));
+    // It's still trying, and a hold it finds will lock the work then.
+    expect(queryClient.isFetching()).toBeGreaterThan(0);
+  });
+
+  it("tells its caller each decision that lands, from a send and from a later read", async () => {
+    const { decide, garden, landed, listWorks, queryClient, sender, account } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const onLanded = vi.fn();
+    const { result } = renderHookWithProviders(() => useBatchWorkApproval(garden, { onLanded }), {
+      queryClient,
+    });
+    expect(account).toBeTruthy();
+
+    await act(() => result.current.send([decision]));
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(onLanded).toHaveBeenCalledWith([decision.draft.workUID]);
+  });
+
   it("doesn't take the resolver's own attestation as the decision", async () => {
     const { decide, landedUnderAnotherSchema, listWorks, render } = setup();
     const decision = decide();
@@ -247,7 +279,7 @@ describe("useBatchWorkApproval", () => {
   });
 
   it("lets go of a decision that didn't go out, so the indexer's answer stands", async () => {
-    const { decide, listWorks, workOf, render, sender } = setup();
+    const { decide, garden, listWorks, queryClient, workOf, render, sender } = setup();
     const decision = decide();
     chainState.decided.add(decision.draft.workUID);
     listWorks([decision]);
@@ -262,6 +294,10 @@ describe("useBatchWorkApproval", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(workOf(decision)?._isPending).toBe(false);
     expect(workOf(decision)?._pendingUntilMs).toBeLessThanOrEqual(Date.now());
+    // The row can't keep reading as decided until the next refetch, and that refetch starts now.
+    expect(workOf(decision)?.status).toBe("pending");
+    expect(workOf(decision)?.reviewFeedback).toBeUndefined();
+    expect(queryClient.getQueryState(worksKeys.merged(garden, chainId))?.isInvalidated).toBe(true);
   });
 
   it("shows a held send after a reload, even off the list, and moving on lets it go", async () => {

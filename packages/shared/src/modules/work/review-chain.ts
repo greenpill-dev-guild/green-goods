@@ -46,7 +46,8 @@ export function createReviewChain(chainId: number): ReviewChain {
         account,
         chainId
       );
-      return success ? null : (error?.message ?? "Transaction simulation failed");
+      // The raw revert, so whoever shows it can still name the contract's error.
+      return success ? null : (error?.raw ?? "Transaction simulation failed");
     },
     isDecided: async (workUID) => (await getWorkApprovalsForWork(workUID, chainId)).length > 0,
     attestationsIn: async (hash) => {

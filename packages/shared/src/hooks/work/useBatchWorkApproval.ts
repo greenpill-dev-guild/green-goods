@@ -39,7 +39,11 @@ type OverlayPatch = Partial<OverlayWork>;
  * can reach them, and recovery does not depend on `available`, so a hold from an earlier send still
  * shows after batching is switched off.
  */
-export function useBatchWorkApproval(gardenId: string) {
+export function useBatchWorkApproval(
+  gardenId: string,
+  /** `onLanded` hears every decision proven on chain, from a send or from a later read. */
+  options: { onLanded?: (workUIDs: readonly string[]) => void } = {}
+) {
   const gardenAddress = gardenId as Address;
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
@@ -104,14 +108,26 @@ export function useBatchWorkApproval(gardenId: string) {
         item && { _isPending: false, _pendingUntilMs: undefined, _txHash: item.transactionHash }
       );
     });
+    options.onLanded?.(landed.map(({ workUID }) => workUID));
   };
 
-  /** Nothing went out, or the person moved on: the indexer's answer is the only one left. */
+  /**
+   * Nothing went out, or the person moved on: the work waits again until the indexer says otherwise.
+   * The cached row has to say so too, or it reads as decided until the next refetch.
+   */
   const clearOverlay = (workUIDs: readonly string[]) => {
     const ids = new Set(workUIDs.map((workUID) => workUID.toLowerCase()));
     const now = Date.now();
     patchWorks((workId) =>
-      ids.has(workId) ? { _isPending: false, _pendingUntilMs: now, _txHash: undefined } : undefined
+      ids.has(workId)
+        ? {
+            status: "pending",
+            reviewFeedback: undefined,
+            _isPending: false,
+            _pendingUntilMs: now,
+            _txHash: undefined,
+          }
+        : undefined
     );
   };
 
@@ -174,6 +190,7 @@ export function useBatchWorkApproval(gardenId: string) {
         ...notSent,
         ...notBatchable,
       ]);
+      refreshWorks();
       if (failure) handleError(failure, { authMode: rail, gardenAddress });
       if (sent.length > 0) {
         announceSent(sent.length);
@@ -182,7 +199,6 @@ export function useBatchWorkApproval(gardenId: string) {
           auth_mode: rail,
           tx_hash: sent[0].transactionHash,
         });
-        refreshWorks();
         scheduleFollowUp();
       }
       if (unknown.length > 0 || refused.length > 0 || failure) {

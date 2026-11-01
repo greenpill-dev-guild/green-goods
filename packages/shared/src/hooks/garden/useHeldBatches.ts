@@ -57,7 +57,8 @@ export function useHeldBatches<Hold, Saved>(input: {
     hold,
     saved: query.data?.saved ?? [],
     lastReadAt: query.dataUpdatedAt,
-    isSettlingHold: query.isFetching || mutation.isPending,
+    /** False from a read's first failure: while it retries, nothing it can't read locks anyone out. */
+    isSettlingHold: (query.isFetching && query.failureCount === 0) || mutation.isPending,
     checkAgain: async () => {
       const { error } = await query.refetch();
       if (error) onError(error);
