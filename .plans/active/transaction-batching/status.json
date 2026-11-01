@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-11-01T03:20:39.256Z"
+    "updated_at": "2026-11-01T04:22:42.722Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,19 +50,19 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-vault-deposits",
+      "branch": "feature/batch-jar-deposits",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/admin test src/__tests__/components/Vault/DepositModal.test.tsx && bun run --cwd packages/client test src/__tests__/components/PublicFundingCard.test.tsx src/__tests__/components/TreasuryAmounts.test.tsx",
-          "evidence": "Not RED first: these cases were written alongside the forms. Proven afterwards on 2026-11-01: on each of the three forms, removing the hold from the button failed its test, and so did letting the error line sit beside the hold on the two forms that have one, or hide every failure."
+          "command": "bun run --cwd packages/admin test src/__tests__/components/CookieJarPayoutModals.test.tsx && bun run --cwd packages/client test src/__tests__/views/Cookies.test.tsx src/__tests__/components/PublicFundingCard.test.tsx",
+          "evidence": "Not RED first for the jar forms: proven afterwards on 2026-11-01. Removing the hold from each button failed its test, and so did letting the error line sit beside the hold, hiding every failure, hiding an unknown claim, or keeping the amount after a held deposit landed."
         },
         "green": {
-          "command": "bun run --cwd packages/admin test src/__tests__/components/Vault/DepositModal.test.tsx && bun run --cwd packages/client test src/__tests__/components/PublicFundingCard.test.tsx src/__tests__/components/TreasuryAmounts.test.tsx src/__tests__/components/PublicFundingDialogVocab.test.ts",
-          "evidence": "2026-11-01 03:19:19 UTC: admin 1 file, 11 passed; client 3 files, 27 passed, at the tree committed as 6e2467d0f. Storybook plays for TxInlineFeedback and EndowmentSheet: 2 files, 9 passed at 03:20:01 UTC on the same tree."
+          "command": "bun run --cwd packages/admin test src/__tests__/components/CookieJarPayoutModals.test.tsx src/views/Community/components/CommunitySheetDescriptor.test.tsx src/__tests__/components/Vault/DepositModal.test.tsx src/__tests__/components/AdminDensityScale.guard.test.tsx && bun run --cwd packages/client test src/__tests__/views/Cookies.test.tsx src/__tests__/components/PublicFundingCard.test.tsx src/__tests__/components/TreasuryAmounts.test.tsx",
+          "evidence": "2026-11-01 04:21:44 UTC: admin 4 files, 51 passed; client 3 files, 53 passed, at the tree committed as 14e615554. Storybook plays for TxInlineFeedback and EndowmentSheet: 2 files, 9 passed on the same tree."
         },
         "note": ""
       },
@@ -72,19 +72,19 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-vault-deposits",
+      "branch": "feature/batch-jar-deposits",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-deposit-batch.test.ts src/__tests__/hooks/vault/useVaultDepositBatch.test.ts",
-          "evidence": "Not RED first: these tests were written alongside the code. Proven afterwards by breaking one behavior at a time on 2026-11-01. Of 22 Shared breaks, 16 failed at once and 6 survived: a landed approval reporting as a deposit, an address's case in the hold domain, a jar's amount, a reset counted for a jar, a hold read during a send, and an unread hold claiming a balance. Each survivor got a case and then failed. Six more breaks on the new fixes were caught too, one only after a passkey case was added."
+          "command": "bun run --cwd packages/shared test src/__tests__/hooks/cookie-jar/useCookieJarDepositBatch.test.ts",
+          "evidence": "Not RED first for the jar path: these tests were written alongside the code, then proven by breaking one behavior at a time on 2026-11-01. Of 24 breaks across hook and forms, 4 first survived: a send not marked as in flight, no hold read after a send, no allowance read after one, and a deposit past its ceilings reading as a failure. Each got a case and then failed. The vault review's fixes did fail first, 8 on behavior, at 04:09:02 UTC."
         },
         "green": {
-          "command": "bun run --cwd packages/shared test src/__tests__/modules/garden-deposit-batch.test.ts src/__tests__/hooks/vault/useVaultDepositBatch.test.ts src/__tests__/hooks/vault/useVaultOperations.test.ts src/utils/errors/__tests__/tx-error-classifier.test.ts src/__tests__/i18n/locale-coverage.test.ts",
-          "evidence": "2026-11-01 03:19:19 UTC: 5 files, 113 passed, at the tree committed as 6e2467d0f."
+          "command": "bun run --cwd packages/shared test src/__tests__/hooks/cookie-jar src/__tests__/hooks/vault/useVaultDepositBatch.test.ts src/__tests__/hooks/vault/useVaultOperations.test.ts src/__tests__/modules/garden-deposit-batch.test.ts src/modules/transactions/__tests__/prepared-batch.test.ts src/utils/errors/__tests__/tx-error-classifier.test.ts src/__tests__/i18n/locale-coverage.test.ts",
+          "evidence": "2026-11-01 04:21:44 UTC: 13 files, 190 passed, at the tree committed as 14e615554."
         },
         "note": ""
       },
@@ -631,6 +631,38 @@
       "status": "tdd_recorded",
       "branch": "feature/batch-vault-deposits",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T04:22:40.056Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Slice 4, deposits: jars on the same path, with their rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T04:22:40.985Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Slice 4, deposits: jars on the same path, with their rails unlisted."
+    },
+    {
+      "timestamp": "2026-11-01T04:22:41.848Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-01T04:22:42.723Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/batch-jar-deposits",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ],
   "execution_sub_lanes": {
@@ -670,7 +702,7 @@
       "machine_lane": "ui",
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-vault-deposits",
+      "branch": "feature/batch-jar-deposits",
       "depends_on": ["phase_3_members"],
       "handoff": "handoffs/continuation.md"
     },

@@ -5,6 +5,7 @@
 
 import "fake-indexeddb/auto";
 import { act, waitFor } from "@testing-library/react";
+import { readContract } from "@wagmi/core";
 import { encodeAbiParameters, encodeEventTopics, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { batchKeys } from "../../../config/query-keys/garden";
@@ -392,13 +393,38 @@ describe("useDepositPlan", () => {
     expect(sender.getBatchCapability).toHaveBeenCalled();
   });
 
-  it("says nothing about signatures until there is an amount", async () => {
+  it.each([
+    ["comes back unknown", async (scope: object) => ({ ...scope, atomic: "unknown" })],
+    [
+      "fails",
+      async () => {
+        throw new Error("rpc down");
+      },
+    ],
+  ])("states no count when a listed wallet's capability read %s, and locks no one out", async (_case, read) => {
+    listing.enabled = true;
+    listing.walletProfile = "sequential";
+    const { renderPlan, sender } = setup({}, "wallet");
+    vi.mocked(sender.getBatchCapability!).mockImplementation(read as never);
+    chainState.allowance = 100n;
+    const { result } = renderPlan();
+
+    await waitFor(() => expect(sender.getBatchCapability).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isPaused).toBe(false));
+
+    expect(result.current.signatures).toBeNull();
+    expect(result.current.signatureLine).toBeNull();
+  });
+
+  it("reads nothing and says nothing about signatures until there is an amount", async () => {
     const { renderPlan } = setup();
     const { result } = renderPlan(0n);
 
-    await waitFor(() => expect(result.current.signatures).toBe(1));
+    await act(async () => {});
 
+    expect(result.current.signatures).toBeNull();
     expect(result.current.signatureLine).toBeNull();
+    expect(vi.mocked(readContract)).not.toHaveBeenCalled();
   });
 
   it("shows a held deposit after a reload, even once its rail is off the list", async () => {
@@ -423,6 +449,22 @@ describe("useDepositPlan", () => {
       result.current.holdFeedback?.onMoveOn();
     });
     await waitFor(() => expect(result.current.isHeld).toBe(false));
+  });
+
+  it("shows the hold on a form already open when its send ends unknown", async () => {
+    listing.enabled = true;
+    const { deposit, renderDeposit, renderPlan } = setup();
+    chainState.allowance = 100n;
+    const { result } = renderPlan();
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+    await waitFor(() => expect(result.current.isPaused).toBe(false));
+    const { result: send } = renderDeposit();
+
+    await act(async () => {
+      await expect(send.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+    });
+
+    await waitFor(() => expect(result.current.isHeld).toBe(true));
   });
 
   it("claims no balance it could not read, and asks for another check", async () => {
