@@ -394,10 +394,9 @@ export const ProfileBadges: React.FC = () => {
               </span>
               <span className="flex min-w-0 flex-col items-center gap-2">
                 <span className="line-clamp-2 type-card-title text-text-strong-950">{title}</span>
-                {/* A badge's standing is read with its tile, not announced as it renders. */}
+                {/* A badge's standing is read with its tile, so it is not one of the page's statuses. */}
                 <StatusBadge
-                  role={undefined}
-                  aria-live={undefined}
+                  role="none"
                   size="xs"
                   variant={badge.profileStatus === "earned" ? "success" : "warning"}
                   showIcon={false}
