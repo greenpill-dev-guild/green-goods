@@ -28,7 +28,7 @@ import {
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import {
-  BatchConfirmationPendingError,
+  atomicBatchTxResult,
   BatchNotSubmittedError,
   type BatchBudget,
   type BatchQuote,
@@ -363,23 +363,18 @@ export class WalletSender implements TransactionSender {
     try {
       execution = await sendWalletAtomicBatch(this.batchPort(), calls, options);
     } catch (error) {
-      if (error instanceof BatchNotSubmittedError) throw error.cause;
+      if (error instanceof BatchNotSubmittedError) {
+        options.onNeverSent?.();
+        throw error.cause;
+      }
       throw error;
     }
-    const receipt = execution.receipts[0];
-    if (execution.status === "confirmed" && execution.receipts.length === 1) {
-      logger.debug("Wallet atomic batch confirmed", {
-        source: "WalletSender",
-        calls: calls.map((call) => call.functionName),
-        hash: receipt.transactionHash,
-      });
-      return { hash: receipt.transactionHash, sponsored: false };
-    }
-    if (execution.status === "reverted" && receipt)
-      throw new TransactionRevertedError(
-        receipt.transactionHash,
-        "The batch reverted on chain. Nothing in it was recorded."
-      );
-    throw new BatchConfirmationPendingError(execution);
+    const result = atomicBatchTxResult(execution);
+    logger.debug("Wallet atomic batch confirmed", {
+      source: "WalletSender",
+      calls: calls.map((call) => call.functionName),
+      hash: result.hash,
+    });
+    return result;
   }
 }

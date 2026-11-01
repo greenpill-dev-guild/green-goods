@@ -22,6 +22,8 @@
 
 import type { Hex } from "viem";
 
+import type { BatchBudget } from "../transactions/batch-types";
+import type { TransactionSender } from "../transactions/types";
 import type {
   CommitmentAllocationBps,
   CommitmentCycleTypeInput,
@@ -256,3 +258,39 @@ export interface PoolSetupRunContext {
 // The judging half lives beside this one for file-length reasons; it stays
 // part of this module's surface so callers keep importing from one place.
 export * from "./pool-setup-verdicts";
+
+/**
+ * A passkey's ceilings for one signature's worth of pool writes, on the chains they were sized for.
+ * Sized from Arbitrum receipts: the five writes before an opening came to about 650k gas, with
+ * seeding the largest at 240k, and a UserOperation adds about 730k. The first live batch confirms
+ * them before the rail is listed. A wallet sets its own limits in its own prompt.
+ */
+const POOL_SETUP_BUDGETS: Partial<Record<number, BatchBudget>> = {
+  42161: {
+    maxCalls: 6,
+    maxCalldataBytes: 8_192,
+    maxGas: "3000000",
+    maxFeePerGas: "1000000000",
+    maxFee: "3000000000000000",
+    sponsorship: "required",
+  },
+};
+
+export function poolSetupBudget(chainId: number): BatchBudget | null {
+  return POOL_SETUP_BUDGETS[chainId] ?? null;
+}
+
+/** Asking never prompts; a sender that cannot answer counts as one that cannot batch. */
+export async function canBatchPoolWrites(sender: TransactionSender | null, chainId: number) {
+  if (!sender?.sendAtomicBatch || !sender.canSendAtomicBatch) return false;
+  if (sender.authMode === "passkey" && !poolSetupBudget(chainId)) return false;
+  return sender.canSendAtomicBatch(chainId, "pool-setup").catch(() => false);
+}
+
+/** The cycle a plan opens when it's one that already exists, not the one it seeds. */
+export function knownCycleId(steps: readonly PoolSetupStep[]): bigint | null {
+  for (const step of steps) {
+    if (step.action === "openCycle" && step.cycleId !== "seeded") return step.cycleId;
+  }
+  return null;
+}

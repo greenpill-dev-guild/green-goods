@@ -11,6 +11,7 @@ import type { Address } from "../../types/domain";
 import type { SmartAccountClientResolver } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import type { Config } from "@wagmi/core";
+import type { PasskeyAccountProfileId } from "../auth/account-profile";
 import type { TransactionSender } from "./types";
 import { PasskeySender } from "./passkey-sender";
 import { EmbeddedSender } from "./embedded-sender";
@@ -21,6 +22,7 @@ export interface TransactionSenderOptions {
   authMode: "passkey" | "embedded" | "wallet";
   smartAccountClient?: SmartAccountClient | null;
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
+  passkeyAccountProfile?: PasskeyAccountProfileId | null;
   wagmiConfig?: Config;
   writeContractAsync?: (params: {
     address: `0x${string}`;
@@ -64,6 +66,7 @@ function createTransportSender(options: TransactionSenderOptions): TransactionSe
       if (options.smartAccountClient?.account) {
         return new PasskeySender(options.smartAccountClient, {
           resolveSmartAccountClient: options.resolveSmartAccountClient,
+          accountProfile: options.passkeyAccountProfile,
         });
       }
       throw new Error("smartAccountClient is required for passkey auth mode");

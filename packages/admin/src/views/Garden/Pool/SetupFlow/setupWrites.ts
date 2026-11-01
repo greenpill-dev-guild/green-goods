@@ -74,7 +74,9 @@ export function promptNumbers(
   const done = (row: PoolSetupStepState) =>
     row.status === "already" || (stopped && row.status === "landed");
   const toSend = rows.filter((row) => !done(row)).map((row) => row.action);
-  const prompts = walletPrompts(toSend, batching);
+  // A plan with no seed opens a cycle that exists. Otherwise only the seeding receipt names it.
+  const seed = rows.find((row) => row.action === "seedCycle");
+  const prompts = walletPrompts(toSend, batching, !seed || done(seed));
   let cursor = 0;
   const numbers = rows.map((row) => (done(row) ? null : (prompts[cursor++] ?? null)));
   return { numbers, total: prompts.at(-1) ?? 0 };

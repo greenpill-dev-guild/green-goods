@@ -51,6 +51,29 @@ describe("setup checklist writes", () => {
     expect(promptNumbers(rows, false)).toEqual({ numbers: [1, null, 2], total: 2 });
   });
 
+  it("counts one prompt to open a seeded season, whose id is already known", () => {
+    const opening = promptNumbers(previewRows("open-season", false), true);
+    expect(opening).toEqual({ numbers: [1, 1], total: 1 });
+    expect(promptNumbers(previewRows("open-campaign", true), true)).toEqual({
+      numbers: [null, 1],
+      total: 1,
+    });
+    expect(promptNumbers(previewRows("open-season", false), false)).toEqual({
+      numbers: [1, 2],
+      total: 2,
+    });
+  });
+
+  it("counts a seeded cycle's opening with the write before it, once a retry knows its id", () => {
+    const rows = previewRows("season", false).map((row) =>
+      row.action === "seedCycle" ? { ...row, status: "landed" as const } : row
+    );
+
+    expect(promptNumbers(rows, true, true)).toEqual({ numbers: [null, 1, 1], total: 1 });
+    // Before it's named, the opening waits for the seed's receipt.
+    expect(promptNumbers(previewRows("season", false), true).total).toBe(2);
+  });
+
   it("numbers shared prompts the same when the wallet batches", () => {
     expect(promptNumbers(previewRows("first-run", false), true)).toEqual({
       numbers: [1, 1, 1, 1, 1, 2],

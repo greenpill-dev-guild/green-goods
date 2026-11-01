@@ -4,6 +4,9 @@ export type BatchRail = "passkey" | "wallet";
 
 export type DepositAction = "vault-deposit" | "jar-deposit";
 
+/** What a caller names when it asks a sender whether it may group its own writes. */
+export type AtomicBatchAction = "pool-setup";
+
 interface RailListing {
   rail: BatchRail;
   /**
@@ -19,7 +22,10 @@ interface RailListing {
 /** A deposit moves money, so its listing names the one asset with recorded evidence. */
 export type BatchEnablement = RailListing &
   (
-    | { action: "garden-settings" | "add-members" | "bulk-reviews"; asset?: never }
+    | {
+        action: "garden-settings" | "add-members" | "bulk-reviews" | AtomicBatchAction;
+        asset?: never;
+      }
     | { action: DepositAction; asset: string }
   );
 

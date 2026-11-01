@@ -9,6 +9,7 @@
 
 import type { Abi, Hex, TypedDataDefinition } from "viem";
 import type { Address } from "../../types/domain";
+import type { AtomicBatchAction } from "./batch-enablement";
 import type {
   BatchBudget,
   BatchQuote,
@@ -75,6 +76,8 @@ export interface TransactionSendOptions {
 export interface AtomicBatchOptions extends BatchSendOptions {
   /** Called once the wallet has accepted the batch. Its receipt is still pending. */
   onAccepted?: () => Promise<void>;
+  /** The batch is proven never to have gone out, whatever the error it rejects with says. */
+  onNeverSent?: () => void;
 }
 
 /**
@@ -123,10 +126,12 @@ export interface TransactionSender {
   sendBatch?(calls: ContractCall[]): Promise<TxResult>;
 
   /**
-   * Whether the connected wallet can run several calls as one transaction on
-   * this chain (EIP-5792 atomic execution). Asking never prompts the person.
+   * Whether this account can run several calls as one transaction on this chain
+   * for `action`. Asking never prompts the person. A wallet answers for itself
+   * (EIP-5792 atomic execution); a passkey also needs the action on the
+   * enablement list, so no caller's flow changes until its rail is listed.
    */
-  canSendAtomicBatch?(chainId: number): Promise<boolean>;
+  canSendAtomicBatch?(chainId: number, action?: AtomicBatchAction): Promise<boolean>;
 
   /**
    * Several calls, one approval, one transaction: all of them land or none do.

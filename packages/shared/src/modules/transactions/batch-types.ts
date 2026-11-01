@@ -1,6 +1,11 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
-import type { ContractCall, TransactionSendOptions } from "./types";
+import {
+  type ContractCall,
+  TransactionRevertedError,
+  type TransactionSendOptions,
+  type TxResult,
+} from "./types";
 
 export interface BatchScope {
   account: Address;
@@ -136,6 +141,21 @@ export class BatchConfirmationPendingError extends Error {
     super("The batch outcome is unknown. Check its saved submission before sending again.");
     this.name = "BatchConfirmationPendingError";
   }
+}
+
+/** The confirmed-hash shape a caller of `sendAtomicBatch` reads, from one execution's outcome. */
+export function atomicBatchTxResult(execution: BatchExecution): TxResult {
+  const receipt = execution.receipts[0];
+  if (execution.status === "confirmed" && execution.receipts.length === 1) {
+    return { hash: receipt.transactionHash, sponsored: execution.sponsored };
+  }
+  if (execution.status === "reverted" && receipt) {
+    throw new TransactionRevertedError(
+      receipt.transactionHash,
+      "The batch reverted on chain. Nothing in it was recorded."
+    );
+  }
+  throw new BatchConfirmationPendingError(execution);
 }
 
 export interface BatchOperations {
