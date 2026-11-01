@@ -215,6 +215,20 @@ describe("useBatchWorkApproval", () => {
     expect(toasts.success).toHaveBeenCalledOnce();
   });
 
+  it("passes on a list that takes a signature per review", async () => {
+    const { decide, landed, listWorks, render, sender } = setup();
+    const decisions = [decide(), decide()];
+    listWorks(decisions);
+    decisions.forEach((decision) => landed(decision));
+    const { result } = render();
+
+    await act(async () => {
+      await result.current.send(decisions, { perSignature: 1 });
+    });
+
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(2);
+  });
+
   it("treats two quick presses as one send, since they share the approval lock", async () => {
     const { decide, landed, listWorks, render, sender, workOf } = setup();
     const decision = decide();

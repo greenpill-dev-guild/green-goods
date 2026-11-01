@@ -21,7 +21,6 @@ import {
   type ReviewAttestation,
   type ReviewChain,
   reviewBudget,
-  signaturesForReviews,
 } from "./review-chain";
 
 /** One reviewed decision. Every field a send encodes comes from the person's own review. */
@@ -148,7 +147,10 @@ export interface ReviewBatchOutcome {
   refused: { workUID: string; reason: string }[];
   /** Nothing went out for these, and they can go again as they are. */
   notSent: string[];
-  /** Nothing went out for these: past the ceilings, they need more signatures than promised. */
+  /**
+   * Nothing went out for these: past the ceilings, they need more signatures than promised, so the
+   * person is told first. A size or a cost one group can't carry may still fit a signature each.
+   */
   notBatchable: string[];
   /** They may have landed: held until someone reads them or moves on. */
   unknown: string[];
@@ -168,9 +170,12 @@ export async function sendReviewBatch(
     rail: BatchRail;
     decisions: readonly ReviewDecision[];
     onLanded?: (sent: readonly SentReview[]) => void;
+    /** Fewer than the most one signature carries, once a list has been too big to send together. */
+    perSignature?: number;
   }
 ): Promise<ReviewBatchOutcome> {
   const { batches, scope, gardenAddress, chain, rail, onLanded } = input;
+  const { perSignature = MAX_REVIEWS_PER_SIGNATURE } = input;
   // One garden's journal and lists hold this send, so another garden's work can't ride in it.
   if (input.decisions.some((decision) => !same(decision.gardenAddress, gardenAddress))) {
     throw new Error("review-garden-mismatch");
@@ -201,8 +206,8 @@ export async function sendReviewBatch(
   const fresh = decisions.filter((_, index) => !decided[index]);
   if (outcome.stale.length > 0) return { ...outcome, notSent: uids(fresh) };
 
-  const groups = Array.from({ length: signaturesForReviews(fresh.length) }, (_, index) =>
-    fresh.slice(index * MAX_REVIEWS_PER_SIGNATURE, (index + 1) * MAX_REVIEWS_PER_SIGNATURE)
+  const groups = Array.from({ length: Math.ceil(fresh.length / perSignature) }, (_, index) =>
+    fresh.slice(index * perSignature, (index + 1) * perSignature)
   );
 
   for (const group of groups) {

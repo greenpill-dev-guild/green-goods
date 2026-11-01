@@ -317,6 +317,22 @@ describe("sendReviewBatch", () => {
     expect(outcome.unknown).toEqual([]);
   });
 
+  it("takes a signature per review when asked, for a list too big to send together", async () => {
+    const { sender, decide, landed, input } = setup();
+    const decisions = Array.from({ length: 3 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      rail: "passkey",
+      decisions,
+      perSignature: 1,
+    });
+
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(3);
+    expect(outcome.sent).toHaveLength(3);
+  });
+
   it("reports a list past its ceilings without sending anything for it", async () => {
     const { sender, decide, send } = setup();
     const decision = decide();

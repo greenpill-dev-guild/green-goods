@@ -35,6 +35,7 @@ import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 type OverlayPatch = Partial<OverlayWork>;
+type ReviewSend = { decisions: readonly ReviewDecision[]; perSignature?: number };
 
 /**
  * Send a list of reviewed decisions under as few signatures as the rail allows, and settle a send
@@ -128,7 +129,7 @@ export function useBatchWorkApproval(gardenId: string) {
   const sendKey = batchKeys.reviewSend(account ?? "", chainId);
   const sendMutation = useMutation({
     mutationKey: sendKey,
-    onMutate: async (decisions: readonly ReviewDecision[]) => {
+    onMutate: async ({ decisions }: ReviewSend) => {
       await queryClient.cancelQueries({ queryKey: holdKey });
       await queryClient.cancelQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
       await queryClient.cancelQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
@@ -149,12 +150,13 @@ export function useBatchWorkApproval(gardenId: string) {
         );
       });
     },
-    mutationFn: async (decisions: readonly ReviewDecision[]): Promise<ReviewBatchOutcome> => {
+    mutationFn: async ({ decisions, perSignature }: ReviewSend): Promise<ReviewBatchOutcome> => {
       try {
         return await sendReviewBatch({
           ...batchInput(),
           rail: rail!,
           decisions,
+          perSignature,
           onLanded: markLanded,
         });
       } catch (failure) {
@@ -235,6 +237,7 @@ export function useBatchWorkApproval(gardenId: string) {
     available,
     isSending: sending,
     signaturesFor: signaturesForReviews,
-    send: (decisions: readonly ReviewDecision[]) => send.mutateAsync(decisions),
+    send: (decisions: readonly ReviewDecision[], options: { perSignature?: number } = {}) =>
+      send.mutateAsync({ decisions, ...options }),
   };
 }
