@@ -3,8 +3,10 @@ import {
   useAddMembersBatch,
   useGardenOperations,
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { ADD_MEMBER_ROUTE_ITEM } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -18,6 +20,11 @@ export type CommunityMembersDialogsProps = Pick<
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
 
+/**
+ * The Community workspace's member dialogs. They mount at the workspace because
+ * Add Member opens over any tab (DL-140); Manage Roles only opens from Members,
+ * and it closes back there.
+ */
 export function CommunityMembersDialogs({
   garden,
   canManage,
@@ -27,7 +34,10 @@ export function CommunityMembersDialogs({
   selectedItem,
 }: CommunityMembersDialogsProps) {
   const [manageMembersOpen, setManageMembersOpen] = useState(selectedItem === "manage-members");
-  const [addMembersOpen, setAddMembersOpen] = useState(selectedItem === "add-member");
+  const addMemberItemOpen = selectedItem === ADD_MEMBER_ROUTE_ITEM;
+  const closeAddMemberItem = useRouteItemClose(addMemberItemOpen);
+  // Add Members also opens over Manage Members, with no route item of its own.
+  const [addingFromManage, setAddingFromManage] = useState(false);
   // The person Manage Members was showing when Add Members opened over it.
   const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
   const [searchParams] = useSearchParams();
@@ -42,7 +52,6 @@ export function CommunityMembersDialogs({
 
   useEffect(() => {
     if (selectedItem === "manage-members") setManageMembersOpen(true);
-    if (selectedItem === "add-member") setAddMembersOpen(true);
   }, [selectedItem]);
 
   const addByRole = useMemo<
@@ -78,12 +87,12 @@ export function CommunityMembersDialogs({
   };
   const openAddMembers = (prefill?: Address) => {
     setAddMembersPrefill(prefill);
-    setAddMembersOpen(true);
+    setAddingFromManage(true);
   };
   const closeAddMembers = () => {
-    setAddMembersOpen(false);
+    setAddingFromManage(false);
     setAddMembersPrefill(undefined);
-    if (selectedItem === "add-member") closeMembersModal();
+    closeAddMemberItem();
   };
   const handleRemoveMember = async (address: Address, role: GardenRole) => {
     const result = await removeByRole[role](address);
@@ -108,7 +117,7 @@ export function CommunityMembersDialogs({
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
           key={garden.id}
-          open={addMembersOpen}
+          open={canManage && (addMemberItemOpen || addingFromManage)}
           onClose={closeAddMembers}
           tone="community"
           gardenAddress={gardenAddress}

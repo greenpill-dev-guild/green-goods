@@ -193,8 +193,18 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate).toHaveBeenCalledTimes(1);
     // Community owns membership — the flow must stay under /community so the
     // NavigationBar tab does not flip to Garden while the dialog is open.
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
-    expect(navigate.mock.calls[0]?.[0]).toContain("item=add-member");
+    expect(navigate).toHaveBeenCalledWith(`/community/members?gardenId=${GARDEN}&item=add-member`);
+  });
+
+  it("opens Add Member over the tab it was pressed from (DL-140)", () => {
+    const navigate = vi.fn();
+    buildCommunityViewActions("payouts", true, true, true, navigate, {
+      gardenAddress: GARDEN,
+    })
+      .find((action) => action.id === "add-member")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledWith(`/community/payouts?gardenId=${GARDEN}&item=add-member`);
   });
 
   it("links Deposit / withdraw to the route-backed endowment vault surface", () => {

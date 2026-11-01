@@ -17,20 +17,15 @@ import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSelect } from "@/components/AdminTextField";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
-import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { communityRoleIcons } from "./communityRoleIcons";
 
 export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
   | "canManage"
-  | "closeMembersModal"
   | "memberCount"
   | "memberSearch"
   | "noteJoinRequestsRead"
-  | "roleMembers"
   | "roleSummary"
-  | "scheduleBackgroundRefetch"
-  | "selectedItem"
   | "setMemberSearch"
   | "visibleDirectory"
 > & {
@@ -40,14 +35,10 @@ export type CommunityMembersTabProps = Pick<
 export function CommunityMembersTab({
   garden,
   canManage,
-  closeMembersModal,
   memberCount,
   memberSearch,
   noteJoinRequestsRead,
-  roleMembers,
   roleSummary,
-  scheduleBackgroundRefetch,
-  selectedItem,
   setMemberSearch,
   visibleDirectory,
 }: CommunityMembersTabProps) {
@@ -229,14 +220,6 @@ export function CommunityMembersTab({
           </AdminCard>
         </aside>
       </div>
-      <CommunityMembersDialogs
-        garden={garden}
-        canManage={canManage}
-        closeMembersModal={closeMembersModal}
-        roleMembers={roleMembers}
-        scheduleBackgroundRefetch={scheduleBackgroundRefetch}
-        selectedItem={selectedItem}
-      />
     </div>
   );
 }

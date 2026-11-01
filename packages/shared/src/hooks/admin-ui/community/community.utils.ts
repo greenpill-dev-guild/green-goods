@@ -7,6 +7,7 @@ import {
   formatTokenAmount,
 } from "../../../utils/blockchain/vaults";
 import {
+  ADD_MEMBER_ROUTE_ITEM,
   type AdminCommunityRouteContext,
   adminRoutes,
   FUND_JAR_ROUTE_ITEM,
@@ -133,8 +134,9 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 /**
  * Community view-level actions. The set is stable across Community tabs so
  * desktop button positions and the mobile FAB speed dial do not shift while
- * stewards move between Members, Coordination, Endowment, and Payouts. Only
- * Fund Cookie Jar reads the active tab, to open its dialog over it (DL-140).
+ * stewards move between Members, Coordination, Endowment, and Payouts. Add
+ * Member and Fund Cookie Jar read the active tab, to open their dialogs over it
+ * (DL-140).
  */
 export function buildCommunityViewActions(
   mode: CommunityWorkspaceMode,
@@ -155,7 +157,9 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.addMember",
       icon: RiUserAddLine,
       onClick: () =>
-        navigate(adminRoutes.communityMembers({ gardenId: gardenAddress, item: "add-member" })),
+        navigate(
+          adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: ADD_MEMBER_ROUTE_ITEM })
+        ),
       variant: "primary",
       visible: hasSelectedGarden && canManage,
       primary: true,
