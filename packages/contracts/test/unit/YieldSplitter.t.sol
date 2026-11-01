@@ -354,6 +354,8 @@ contract YieldResolverTest is Test {
 
         vm.expectEmit(true, true, true, true, address(yieldSplitter));
         emit YieldResolver.YieldToCookieJar(garden, address(weth), amount, address(cookieJar));
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldSplit(garden, address(weth), amount, 0, 0, amount);
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
         assertEq(cookieJar.currencyHeldByJar(), amount, "Cookie jar should book the yield");
@@ -390,6 +392,8 @@ contract YieldResolverTest is Test {
         vm.prank(owner);
         yieldSplitter.setCookieJar(garden, address(jar));
 
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldSplit(garden, address(weth), amount / 2, 0, amount / 2, amount);
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
         assertEq(weth.balanceOf(address(jar)), amount / 2, "Jar should hold what it pulled");
@@ -414,6 +418,9 @@ contract YieldResolverTest is Test {
 
         vm.expectEmit(true, true, true, true, address(yieldSplitter));
         emit YieldResolver.YieldToTreasury(garden, address(weth), amount, treasury, "cookieJar");
+        // The split must not report the refused portion as the jar's, and its fields must still add up.
+        vm.expectEmit(true, true, true, true, address(yieldSplitter));
+        emit YieldResolver.YieldSplit(garden, address(weth), 0, 0, amount, amount);
         yieldSplitter.splitYield(garden, address(weth), address(vault));
 
         assertEq(weth.balanceOf(treasury), amount, "Treasury should take the yield");

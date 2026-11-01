@@ -289,10 +289,10 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 fractionsAmount = (totalYield * split.fractionsBps) / BPS_DENOMINATOR;
         uint256 juiceboxAmount = totalYield - cookieJarAmount - fractionsAmount; // remainder to avoid rounding dust
 
-        // Step 5: Route each portion to its destination
-        _routePortions(garden, asset, vault, cookieJarAmount, fractionsAmount, juiceboxAmount);
+        // Step 5: Route each portion. A portion the jar refused is reported with the remainder, not as the jar's.
+        uint256 inJar = _routePortions(garden, asset, vault, cookieJarAmount, fractionsAmount, juiceboxAmount);
 
-        emit YieldSplit(garden, asset, cookieJarAmount, fractionsAmount, juiceboxAmount, totalYield);
+        emit YieldSplit(garden, asset, inJar, fractionsAmount, totalYield - inJar - fractionsAmount, totalYield);
     }
 
     /// @dev Redeem this garden's vault shares and return total yield (redeemed + pending)
@@ -325,7 +325,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         return redeemed + pendingYield[garden][asset];
     }
 
-    /// @dev Route split portions to Cookie Jar, Fractions, and Juicebox
+    /// @dev Route split portions to Cookie Jar, Fractions, and Juicebox, returning what the jar actually took
     function _routePortions(
         address garden,
         address asset,
@@ -335,9 +335,10 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 juiceboxAmount
     )
         private
+        returns (uint256 inJar)
     {
         if (cookieJarAmount > 0) {
-            _routeToCookieJar(garden, asset, cookieJarAmount);
+            inJar = _routeToCookieJar(garden, asset, cookieJarAmount);
         }
         if (fractionsAmount > 0) {
             _routeToFractions(garden, asset, fractionsAmount, vault);
@@ -577,7 +578,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @dev Jars pay out only from the ledger deposit() maintains, so tokens sent by plain transfer
     ///      can never leave one. A jar that refuses the deposit (paused, or below its minimum) costs
     ///      the garden nothing: the amount takes the treasury fallback instead.
-    function _routeToCookieJar(address garden, address asset, uint256 amount) internal {
+    function _routeToCookieJar(address garden, address asset, uint256 amount) internal returns (uint256 deposited) {
         // Try per-asset jar from CookieJarModule first, fall back to legacy mapping
         address jar = address(0);
         if (address(cookieJarModule) != address(0)) {
@@ -588,7 +589,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         }
         if (jar == address(0)) jar = gardenCookieJars[garden];
 
-        uint256 deposited = _depositIntoJar(jar, asset, amount);
+        deposited = _depositIntoJar(jar, asset, amount);
         if (deposited > 0) emit YieldToCookieJar(garden, asset, deposited, jar);
         if (deposited < amount) _sendToTreasury(garden, asset, amount - deposited, "cookieJar");
     }
