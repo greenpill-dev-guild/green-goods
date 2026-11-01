@@ -15,6 +15,7 @@ import {
 } from "./serviceBookingSteps";
 import type {
   BookingContext,
+  OwnServiceOfferView,
   ServiceAct,
   ServiceActKind,
   ServiceBandTone,
@@ -257,6 +258,30 @@ const POSITION: Record<ServiceBookingStage, number> = {
   returnFailed: 7,
   closed: 8,
 };
+
+/**
+ * A voucher offer as the person who made it reads it; null when it has no voucher route. The chain
+ * refuses their own take-up (SelfCounterparty), so nothing on a buyer's path applies to them.
+ */
+export function ownServiceOfferView(
+  input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "issuer"> & {
+    /** Nobody can start a booking right now, whatever they hold. */
+    paused: boolean;
+  },
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+): OwnServiceOfferView | null {
+  const offer = input.snapshot.offer;
+  const voucher = offer?.route === "voucher" ? offer.voucher : null;
+  if (!voucher) return null;
+  const { t, count, unit } = voucherWords(intl, input.issuer, voucher.asset);
+  return {
+    takes: t("of.v.give", { n: count(voucher.units), unit: unit(voucher.units) }),
+    band:
+      input.paused && input.coreState === "OFFERED"
+        ? { tone: "waiting", sentence: t("pp.band.ownPaused"), needsYou: false }
+        : null,
+  };
+}
 
 /** Everything the promise page draws for one voucher offer or booking. */
 export function serviceBookingView(
