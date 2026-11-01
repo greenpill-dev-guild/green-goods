@@ -293,9 +293,13 @@ describe("useDepositPlan", () => {
     await waitFor(() => expect(result.current.signatures).toBe(2));
   });
 
-  it("says nothing and asks no wallet anything before there is a target", async () => {
+  it.each([
+    "passkey",
+    "wallet",
+  ] as const)("on a %s rail, says nothing and asks nothing before there is a target", async (rail) => {
     listing.enabled = true;
-    const { renderPlan, sender } = setup({}, "wallet");
+    listing.walletProfile = "sequential";
+    const { renderPlan, sender } = setup({}, rail);
     const { result } = renderPlan(100n, null);
 
     await act(async () => {});
