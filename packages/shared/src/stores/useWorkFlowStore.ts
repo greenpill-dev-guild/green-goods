@@ -50,8 +50,8 @@ export type WorkFlowState = WorkDraftState & {
   draftLinkCleared: boolean;
   /**
    * The action the flow chose itself when it skipped Start (DL-131): the only one its garden
-   * offers. Like the garden, a choice the member did not make starts no draft, and it belongs to
-   * that garden, so a work with no draft gives it back when its garden changes.
+   * offers. It belongs to that garden, so a work with no draft gives it back when its garden
+   * changes.
    */
   startSkipAction: { garden: Address; actionUID: number } | null;
   location?: ApproximateWorkLocation;

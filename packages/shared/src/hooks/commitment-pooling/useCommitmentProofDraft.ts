@@ -16,6 +16,7 @@ import { isVideoFile } from "../../modules/work/media-processing";
 import {
   type CommitmentProofDraft,
   commitmentProofDraftKey,
+  proofDraftHasContent,
   useCommitmentProofDraftStore,
 } from "../../stores/useCommitmentProofDraftStore";
 import type { Address } from "../../types/domain";
@@ -39,6 +40,8 @@ interface DraftScope {
   revision: number;
   restoredFiles: ProofDraftFiles | null;
   durableFiles: ProofDraftFiles | null;
+  /** An emptied draft's removal has not reached storage yet. */
+  removing: boolean;
 }
 
 export interface CommitmentProofDraftHandle {
@@ -110,6 +113,7 @@ export function useCommitmentProofDraft(input: {
       revision: 0,
       restoredFiles: null,
       durableFiles: null,
+      removing: false,
     };
     scopeRef.current = scope;
     setRestoration({ scope, status: "loading" });
@@ -178,17 +182,24 @@ export function useCommitmentProofDraft(input: {
           scope.durableFiles = snapshot.files;
         }
         if (!latest()) return false;
-        // The configured store is synchronous localStorage. Await its runtime
-        // result too, so a returning persistence error cannot be fire-and-forgotten.
-        await saveDraft(key, snapshot.words);
-        if (!latest()) return false;
         const videos = media.filter((file) => isVideoFile(file)).length;
-        await recordFiles(key, {
-          photos: media.length - videos,
-          videos,
-          voiceNotes: audioNotes.length,
-        });
-        if (!latest()) return false;
+        const files = { photos: media.length - videos, videos, voiceNotes: audioNotes.length };
+        // A credit choice alone makes no draft and lists nowhere, but the member made it, so it
+        // stays with the composer for their return.
+        if (proofDraftHasContent({ ...snapshot.words, files }) || snapshot.words.credited) {
+          // The configured store is synchronous localStorage. Await its runtime
+          // result too, so a returning persistence error cannot be fire-and-forgotten.
+          await saveDraft(key, snapshot.words);
+          if (!latest()) return false;
+          await recordFiles(key, files);
+          if (!latest()) return false;
+        } else if (scope.removing || useCommitmentProofDraftStore.getState().drafts[key]) {
+          // A composer holding nothing is no draft (DL-148), so one emptied stops being one. The
+          // store drops it from memory before it writes, so a failed write is tried again here.
+          scope.removing = true;
+          clearDraft(key);
+          scope.removing = false;
+        }
         setPersistence({ scope, snapshot, status: "saved" });
         return true;
       } catch (error) {
@@ -201,7 +212,7 @@ export function useCommitmentProofDraft(input: {
         return false;
       }
     },
-    [isCurrent, isRestored, key, recordFiles, repository, saveDraft]
+    [clearDraft, isCurrent, isRestored, key, recordFiles, repository, saveDraft]
   );
 
   const clear = useCallback(async () => {
