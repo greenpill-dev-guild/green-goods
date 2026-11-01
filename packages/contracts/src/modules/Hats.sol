@@ -96,6 +96,8 @@ contract HatsModule is
     error TooManyStrategies(uint256 count, uint256 max);
     error InvalidStrategyAddress(address strategy);
     error DuplicateStrategy(address strategy);
+    error NotGardenMember();
+    error OwnerCannotLeave(address garden);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
@@ -156,10 +158,7 @@ contract HatsModule is
     /// @notice Conviction voting strategies per garden for power sync on role revocation
     mapping(address garden => address[] strategies) internal gardenConvictionStrategies;
 
-    /// @notice Monotonic counter for generating unique burn addresses during hat revocation.
-    /// @dev Each revocation transfers the hat to a unique address derived from this nonce,
-    ///      preventing AlreadyWearingHat reverts when the same hat type is revoked from
-    ///      multiple users (or the same user after re-grant). See _revokeRole().
+    /// @dev Retired: revocation burns hats now. The slot stays for the storage layout.
     uint256 private _revokeNonce;
 
     /// @notice Optional per-garden canonical steward change observer. Delivery remains permissionless.
@@ -213,37 +212,31 @@ contract HatsModule is
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the gardener hat for msg.sender (the garden)
     function isGardener(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Gardener);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the operator hat for msg.sender (the garden)
     function isOperator(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Steward);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the evaluator hat for msg.sender (the garden)
     function isEvaluator(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Evaluator);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the owner hat for msg.sender (the garden)
     function isOwner(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Owner);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the funder hat for msg.sender (the garden)
     function isFunder(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Funder);
     }
 
     /// @inheritdoc IGardenAccessControl
-    /// @dev Checks if account wears the community hat for msg.sender (the garden)
     function isCommunity(address account) external view override returns (bool) {
         return _checkRole(msg.sender, account, GardenRole.Community);
     }
@@ -446,6 +439,18 @@ contract HatsModule is
         for (uint256 i = 0; i < accounts.length; i++) {
             _revokeRole(garden, accounts[i], roles[i]);
         }
+    }
+
+    /// @inheritdoc IHatsModule
+    function leaveGarden(address garden) external override nonReentrant {
+        if (isOwnerOf(garden, msg.sender)) revert OwnerCannotLeave(garden);
+        bool wasMember;
+        for (uint256 i = 0; i <= uint256(type(GardenRole).max); i++) {
+            if (!_checkRole(garden, msg.sender, GardenRole(i))) continue;
+            _revokeRole(garden, msg.sender, GardenRole(i));
+            wasMember = true;
+        }
+        if (!wasMember) revert NotGardenMember();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -693,8 +698,9 @@ contract HatsModule is
 
         uint256 hatId = _getHatId(garden, role);
         if (hats.isWearerOfHat(account, hatId)) {
-            address burnAddr = address(uint160(uint256(keccak256(abi.encodePacked("burn", _revokeNonce++)))));
-            hats.transferHat(hatId, account, burnAddr);
+            // Burned as the hat's eligibility module, not moved: a burn address would keep wearing it and read
+            // as a member. Good standing lets the same account be granted the hat again.
+            hats.setHatWearerStatus(hatId, account, false, true);
         }
         emit RoleRevoked(garden, account, role);
         _notifyStewardObserver(garden, account, role);

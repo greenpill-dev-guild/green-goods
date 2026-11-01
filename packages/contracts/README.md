@@ -164,21 +164,23 @@ Payouts in the admin).
 
 ## HatsModule Operational Notes
 
-### Phantom hat wearers after revocation
+### Hat burns and phantom wearers
 
-Hats Protocol does not provide a burn function for ordinary wearer hats. Revocation is implemented by transferring the hat to another address, which means revocations can accumulate historical "phantom" wearers.
+`HatsModule` is the eligibility module of every role hat a garden's tree creates, so it revokes by burning: `setHatWearerStatus(hatId, account, false, true)` removes the hat and lowers its supply, and good standing leaves the account free to wear it again. A hat with a different eligibility module can't be revoked this way, and the call reverts.
 
-In `HatsModule`, revocation transfers to a unique nonce-derived burn address instead of a fixed sink (for example `0xdead`). This avoids `AlreadyWearingHat` reverts when the same hat type is revoked multiple times.
+Revocations before this upgrade transferred the hat to a nonce-derived burn address, and those "phantom" wearers remain. A burn address reads as wearing the hat, so `isStewardOf` and the other role views answer true for one. A steward can clear a phantom with `revokeRole`.
 
 **Behavioral implications:**
 - Revoked users no longer wear the role hat (`isWearerOfHat(user, hatId) == false`)
-- Total historical wearers can still grow over time
-- Indexers and analytics should treat revocation events as canonical membership state transitions
+- A hat's supply and holder lists can still include phantom wearers from older revocations, so neither is a count of current members
 
-**Cleanup strategy:**
-- Use `RoleRevoked` as the source of truth for active membership snapshots
+**Membership snapshots:**
+- Use `RoleRevoked` as the source of truth for active membership
 - Rebuild role membership by replaying `RoleGranted` and `RoleRevoked` events in order
-- Ignore holder counts that include burn recipients when presenting active member metrics
+
+### Leaving a garden
+
+`leaveGarden(garden)` gives up every role the caller wears in a garden through the same revocation path a steward's removal uses, so indexers see the usual `RoleRevoked` events and conviction strategies are offered the same best-effort sync. It reverts with `OwnerCannotLeave` for anyone wearing the Owner hat, so an Owner can't leave by accident. That is not a last-owner guarantee, because an Owner can revoke their own Owner hat first. A departure does not lower the garden account's `gardenMemberCount`, which only counts self-joins, so on a capped garden each leave and rejoin uses another slot.
 
 ### Conviction power sync gas stipend
 

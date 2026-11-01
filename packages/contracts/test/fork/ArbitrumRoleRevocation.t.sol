@@ -8,10 +8,9 @@ import { HatsModule } from "../../src/modules/Hats.sol";
 
 /// @title ArbitrumRoleRevocationForkTest
 /// @notice Fork tests for HatsModule.revokeRole() and revokeRoles() against real Hats Protocol
-///         on Arbitrum. Covers the burn-address revocation mechanism, nonce isolation, authorization,
+///         on Arbitrum. Covers revocation burning the hat, re-granting afterwards, authorization,
 ///         batch revocation, and event emission.
 /// @dev Uses setUp pattern for efficient fork reuse. Each test guards with `if (!forkActive) { return; }`.
-///      The _revokeNonce resets per test (Forge snapshot/revert), so burn address generation is isolated.
 contract ArbitrumRoleRevocationForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════
     // Test State
@@ -82,7 +81,7 @@ contract ArbitrumRoleRevocationForkTest is ForkTestBase {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test 2: Revoke → re-grant → revoke cycle (burn address nonce)
+    // Test 2: Revoke → re-grant → revoke cycle
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_fork_revokeRole_revokeRegrantRevoke() public {
@@ -100,7 +99,7 @@ contract ArbitrumRoleRevocationForkTest is ForkTestBase {
         _grantGardenRole(testGarden, forkGardener, IHatsModule.GardenRole.Gardener);
         assertTrue(IHats(HATS_PROTOCOL).isWearerOfHat(forkGardener, gardenerHatId), "should wear hat after re-grant");
 
-        // Second revoke — unique burn address nonce prevents AlreadyWearingHat revert
+        // Second revoke — the first burned the hat, so the account can wear it and lose it again
         _revokeGardenRole(testGarden, forkGardener, IHatsModule.GardenRole.Gardener);
         assertFalse(
             IHats(HATS_PROTOCOL).isWearerOfHat(forkGardener, gardenerHatId), "should not wear hat after second revoke"
@@ -128,7 +127,7 @@ contract ArbitrumRoleRevocationForkTest is ForkTestBase {
         _revokeGardenRole(testGarden, forkGardener, IHatsModule.GardenRole.Gardener);
         assertFalse(IHats(HATS_PROTOCOL).isWearerOfHat(forkGardener, gardenerHatId), "gardener1 hat removed");
 
-        // Revoke second — sequential same-hat burn addresses must not collide
+        // Revoke second — sequential revocations of the same hat must not collide
         _revokeGardenRole(testGarden, secondGardener, IHatsModule.GardenRole.Gardener);
         assertFalse(IHats(HATS_PROTOCOL).isWearerOfHat(secondGardener, gardenerHatId), "gardener2 hat removed");
     }
@@ -167,7 +166,7 @@ contract ArbitrumRoleRevocationForkTest is ForkTestBase {
             IHats(HATS_PROTOCOL).isWearerOfHat(forkNonMember, gardenerHatId), "non-member should not wear gardener hat"
         );
 
-        // Revoke from non-wearer — should be a no-op (isWearerOfHat guard skips transferHat)
+        // Revoke from non-wearer — should be a no-op (isWearerOfHat guard skips the burn)
         // The garden admin (address(this)) calls this, so authorization passes.
         hatsModule.revokeRole(testGarden, forkNonMember, IHatsModule.GardenRole.Gardener);
 

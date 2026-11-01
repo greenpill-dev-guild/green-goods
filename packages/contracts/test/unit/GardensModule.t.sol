@@ -91,6 +91,8 @@ contract MockHatsModuleForGardens is IHatsModule {
     function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
     function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
 
+    function leaveGarden(address) external { }
+
     function setConvictionStrategies(address garden, address[] calldata strategies) external {
         delete gardenStrategies[garden];
         for (uint256 i = 0; i < strategies.length; i++) {
