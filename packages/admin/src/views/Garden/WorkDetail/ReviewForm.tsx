@@ -7,9 +7,9 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
+import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useReviewBatch, useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { logger } from "@green-goods/shared/modules/app/logger";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import {
   Confidence,
   VerificationMethod,
@@ -26,7 +26,14 @@ import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
-import { ReviewSummary, type WorkApprovalFormData, workApprovalSchema } from "./helpers";
+import {
+  ReviewSummary,
+  reviewFormState,
+  uploadReviewNotes,
+  type WorkApprovalFormData,
+  workApprovalSchema,
+} from "./helpers";
+import { StagedReviewNotice } from "./StagedReviewNotice";
 
 const REJECT_REASON_SUGGESTION_IDS = [
   "app.work.detail.rejectDialog.suggestion.photos",
@@ -73,7 +80,7 @@ export function ReviewForm({
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
   const isOwnSubmission = compareAddresses(primaryAddress, work.gardenerAddress);
 
-  const { control, watch, getValues } = useForm<WorkApprovalFormData>({
+  const { control, watch, getValues, setValue } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
     defaultValues: {
       confidence: Confidence.NONE,
@@ -89,17 +96,30 @@ export function ReviewForm({
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittingAction, setSubmittingAction] = useState<"approve" | "reject" | null>(null);
+  const [submittingAction, setSubmittingAction] = useState<"approve" | "reject" | "batch" | null>(
+    null
+  );
   const [isRejectDialogOpen, setRejectDialogOpen] = useState(false);
 
   const approvalMutation = useWorkApproval();
+  const reviewBatch = useReviewBatch(work.gardenAddress);
+  const stagedReview = reviewBatch.reviewFor(work.id);
+  const isHeld = reviewBatch.isHeld(work.id);
+  // Sending from here skips the journal, so it waits to learn whether this work is held.
+  const isDecisionPaused = isSubmitting || reviewBatch.isSettlingHold;
 
   /**
-   * Sends the decision. A rejection always carries the steward's reason as its
-   * feedback (DL-048); an approval keeps the optional Feedback field. Resolves
-   * false when nothing was sent, so the reason dialog stays open for a retry.
+   * Sends the decision, or keeps it for the batch. A rejection always carries
+   * the steward's reason as its feedback (DL-048); an approval keeps the
+   * optional Feedback field. An audio note uploads now either way, so a batch
+   * keeps only its link. Resolves false when nothing was sent or kept, so the
+   * reason dialog stays open for a retry.
    */
-  const handleApprovalSubmit = async (approved: boolean, reason?: string): Promise<boolean> => {
+  const handleApprovalSubmit = async (
+    approved: boolean,
+    reason?: string,
+    toBatch = false
+  ): Promise<boolean> => {
     // Validate form data manually since approval/rejection isn't a form field
     const formData = {
       confidence: approved ? confidence : Confidence.NONE,
@@ -110,7 +130,7 @@ export function ReviewForm({
     // An approval needs a confidence level; a rejection needs a reason.
     if (approved ? formData.confidence < Confidence.LOW : !formData.feedback) return false;
 
-    setSubmittingAction(approved ? "approve" : "reject");
+    setSubmittingAction(toBatch ? "batch" : approved ? "approve" : "reject");
     setIsSubmitting(true);
 
     try {
@@ -118,24 +138,8 @@ export function ReviewForm({
       let reviewNotesCID: string | undefined;
 
       if (reviewAudioFile) {
-        // IPFS upload chain: audio file -> IPFS CID -> JSON envelope -> IPFS CID
         try {
-          const { cid: audioCid } = await uploadFileToIPFS(reviewAudioFile, {
-            source: "WorkDetail.reviewNotes",
-          });
-
-          const reviewNotesJson: Record<string, unknown> = {
-            schemaVersion: "review_notes_v1",
-            audioNoteCids: [audioCid],
-            reviewerComments: formData.feedback || "",
-          };
-
-          const { cid: jsonCid } = await uploadJSONToIPFS(reviewNotesJson, {
-            source: "WorkDetail.reviewNotes",
-            metadataType: "review_notes",
-          });
-
-          reviewNotesCID = jsonCid;
+          reviewNotesCID = await uploadReviewNotes(reviewAudioFile, formData.feedback || "");
         } catch (uploadError) {
           logger.error("Failed to upload review notes to IPFS", {
             error: uploadError,
@@ -162,7 +166,8 @@ export function ReviewForm({
         reviewNotesCID,
       };
 
-      await approvalMutation.mutateAsync({ draft, work });
+      if (toBatch) reviewBatch.stage(draft);
+      else await approvalMutation.mutateAsync({ draft, work });
 
       onSuccess?.(approved);
       return true;
@@ -200,17 +205,28 @@ export function ReviewForm({
     }
   };
 
-  const blockedState = isReviewed
-    ? "reviewed"
-    : isOwnSubmission
-      ? "self-review"
-      : isActionExpired
-        ? "expired"
-        : canReview && !canApproveOrReject
-          ? "role-blocked"
-          : canReview
-            ? "actionable"
-            : "no-permission";
+  const finishReject = async (reason: string, toBatch: boolean) => {
+    if (await handleApprovalSubmit(false, reason, toBatch)) setRejectDialogOpen(false);
+  };
+
+  // The batch kept the words, so they come back. A recording only stays if this form still holds it.
+  const handleRemoveFromBatch = () => {
+    if (!stagedReview) return;
+    const { approved, confidence, feedback } = stagedReview.draft;
+    if (approved) setValue("confidence", confidence);
+    setValue("feedback", feedback ?? "");
+    reviewBatch.unstage(work.id);
+  };
+
+  const blockedState = reviewFormState({
+    isReviewed,
+    isHeld,
+    isStaged: Boolean(stagedReview),
+    isOwnSubmission,
+    isActionExpired,
+    canReview,
+    canApproveOrReject,
+  });
 
   return (
     <div className={layout === "page" ? "lg:col-span-2" : undefined}>
@@ -225,6 +241,16 @@ export function ReviewForm({
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
+            ) : blockedState === "held" ? (
+              reviewBatch.holdFeedback && (
+                <TxHoldFeedback {...reviewBatch.holdFeedback} className="mt-4" />
+              )
+            ) : blockedState === "staged" && stagedReview ? (
+              <StagedReviewNotice
+                review={stagedReview}
+                disabled={reviewBatch.isSending}
+                onRemove={handleRemoveFromBatch}
+              />
             ) : blockedState === "self-review" ? (
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
                 <p className="type-body font-medium text-information-dark">
@@ -389,38 +415,51 @@ export function ReviewForm({
                 {/* Decision row — M3 button hierarchy: Reject reads clearly
                     destructive but secondary (outlined, error color role);
                     Approve is the filled primary and sits rightmost. */}
-                <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
-                  <Button
-                    type="button"
-                    emphasis="secondary"
-                    tone="danger"
-                    size="sm"
-                    onClick={() => setRejectDialogOpen(true)}
-                    disabled={isSubmitting}
-                    loading={isSubmitting && submittingAction === "reject"}
-                    data-action="reject"
-                  >
-                    {formatMessage({ id: "app.work.detail.reject" })}
-                  </Button>
-                  <Button
-                    type="button"
-                    emphasis="primary"
-                    size="sm"
-                    onClick={() => void handleApprovalSubmit(true)}
-                    disabled={isSubmitting || needsConfidence}
-                    loading={isSubmitting && submittingAction === "approve"}
-                    data-action="approve"
-                  >
-                    {formatMessage({ id: "app.work.detail.approve" })}
-                  </Button>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                  {reviewBatch.available ? (
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      size="sm"
+                      onClick={() => void handleApprovalSubmit(true, undefined, true)}
+                      disabled={isDecisionPaused || needsConfidence}
+                      loading={isSubmitting && submittingAction === "batch"}
+                      data-action="add-to-batch"
+                    >
+                      {formatMessage({ id: "app.work.batch.add" })}
+                    </Button>
+                  ) : null}
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      type="button"
+                      emphasis="secondary"
+                      tone="danger"
+                      size="sm"
+                      onClick={() => setRejectDialogOpen(true)}
+                      disabled={isDecisionPaused}
+                      loading={isSubmitting && submittingAction === "reject"}
+                      data-action="reject"
+                    >
+                      {formatMessage({ id: "app.work.detail.reject" })}
+                    </Button>
+                    <Button
+                      type="button"
+                      emphasis="primary"
+                      size="sm"
+                      onClick={() => void handleApprovalSubmit(true)}
+                      disabled={isDecisionPaused || needsConfidence}
+                      loading={isSubmitting && submittingAction === "approve"}
+                      data-action="approve"
+                    >
+                      {formatMessage({ id: "app.work.detail.approve" })}
+                    </Button>
+                  </div>
                 </div>
 
                 <AdminReasonDialog
                   isOpen={isRejectDialogOpen}
                   onClose={() => setRejectDialogOpen(false)}
-                  onConfirm={async (reason) => {
-                    if (await handleApprovalSubmit(false, reason)) setRejectDialogOpen(false);
-                  }}
+                  onConfirm={(reason) => finishReject(reason, false)}
                   title={formatMessage({ id: "app.work.detail.rejectDialog.title" })}
                   target={`${workTitle} · ${gardenerDisplayName}`}
                   description={formatMessage(
@@ -436,6 +475,14 @@ export function ReviewForm({
                   confirmLabel={formatMessage({ id: "app.work.detail.rejectDialog.confirm" })}
                   variant="danger"
                   isLoading={isSubmitting && submittingAction === "reject"}
+                  alternative={
+                    reviewBatch.available
+                      ? {
+                          label: formatMessage({ id: "app.work.batch.add" }),
+                          onConfirm: (reason) => finishReject(reason, true),
+                        }
+                      : undefined
+                  }
                 />
               </form>
             ) : (

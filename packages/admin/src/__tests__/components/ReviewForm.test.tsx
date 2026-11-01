@@ -13,11 +13,26 @@ const {
   mockPrimaryAddress,
   mockProtocolName,
   mockParseAndFormatError,
+  mockReviewBatch,
   mockToastError,
+  mockUploadFile,
+  mockUploadJSON,
 } = vi.hoisted(() => ({
   mockApprovalMutation: {
     mutateAsync: vi.fn(),
   },
+  mockReviewBatch: {
+    available: false,
+    isSending: false,
+    isSettlingHold: false,
+    holdFeedback: null as null | Record<string, unknown>,
+    reviewFor: vi.fn(),
+    isHeld: vi.fn(),
+    stage: vi.fn(),
+    unstage: vi.fn(),
+  },
+  mockUploadFile: vi.fn(),
+  mockUploadJSON: vi.fn(),
   mockPrimaryAddress: vi.fn(),
   mockProtocolName: vi.fn(),
   mockParseAndFormatError: vi.fn(),
@@ -25,7 +40,15 @@ const {
 }));
 
 vi.mock("@green-goods/shared/components/Audio/AudioRecorder", () => ({
-  AudioRecorder: () => <div data-testid="audio-recorder" />,
+  AudioRecorder: ({ onRecordingComplete }: { onRecordingComplete: (file: File) => void }) => (
+    <button
+      type="button"
+      data-testid="audio-recorder"
+      onClick={() => onRecordingComplete(new File(["note"], "note.webm"))}
+    >
+      Record a note
+    </button>
+  ),
 }));
 
 vi.mock("@green-goods/shared/components/ErrorBoundary/ErrorBoundary", () => ({
@@ -74,6 +97,7 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
 
 vi.mock("@green-goods/shared/hooks/work/useWorkApproval", () => ({
   useWorkApproval: () => mockApprovalMutation,
+  useReviewBatch: () => mockReviewBatch,
 }));
 
 vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
@@ -89,8 +113,8 @@ vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
 vi.mock("@green-goods/shared/modules/data/ipfs/upload", () => ({
   // The reject reason dialog imports the pooling reason module, whose document store reads it.
   ipfsPinner: {},
-  uploadFileToIPFS: vi.fn(),
-  uploadJSONToIPFS: vi.fn(),
+  uploadFileToIPFS: mockUploadFile,
+  uploadJSONToIPFS: mockUploadJSON,
 }));
 
 vi.mock("@green-goods/shared/types/domain", () => ({
@@ -172,6 +196,17 @@ const messages = {
   "app.work.detail.rejectDialog.suggestion.action": "Wrong action chosen",
   "app.work.detail.rejectDialog.confirm": "Reject Work",
   "app.common.cancel": "Cancel",
+  "app.common.remove": "Remove",
+  "app.garden.settings.hold.checkAgain": "Check Again",
+  "app.garden.settings.hold.moveOn": "Move On",
+  "app.work.batch.add": "Add to Batch",
+  "app.work.batch.chip.approve": "To approve",
+  "app.work.batch.chip.reject": "To reject",
+  "app.work.batch.notBatchable": "This review costs too much to send with the others right now.",
+  "app.work.batch.remove": "Remove from Batch",
+  "app.work.batch.staged.hint": "It goes out when you send your batch from the Hub.",
+  "app.work.detail.reviewFeedback": "Feedback to the gardener",
+  "app.work.detail.statusLabel": "Status",
 };
 
 const TEST_WORK: Work = {
@@ -212,6 +247,18 @@ describe("ReviewForm", () => {
 
     mockPrimaryAddress.mockReturnValue("0x9999999999999999999999999999999999999999");
     mockProtocolName.mockReset().mockReturnValue({ data: null });
+    mockUploadFile.mockReset().mockResolvedValue({ cid: "audio-cid" });
+    mockUploadJSON.mockReset().mockResolvedValue({ cid: "notes-cid" });
+    Object.assign(mockReviewBatch, {
+      available: false,
+      isSending: false,
+      isSettlingHold: false,
+      holdFeedback: null,
+    });
+    mockReviewBatch.reviewFor.mockReset().mockReturnValue(undefined);
+    mockReviewBatch.isHeld.mockReset().mockReturnValue(false);
+    mockReviewBatch.stage.mockReset();
+    mockReviewBatch.unstage.mockReset();
   });
 
   it("keeps verification method implicit for huma steward reviews", async () => {
@@ -349,6 +396,217 @@ describe("ReviewForm", () => {
         })
       );
     });
+  });
+
+  describe("with a batch to add to", () => {
+    const addToBatch = () => screen.getByRole("button", { name: "Add to Batch" });
+
+    beforeEach(() => {
+      mockReviewBatch.available = true;
+    });
+
+    it("offers nothing new until a rail is listed", () => {
+      mockReviewBatch.available = false;
+      renderReviewForm();
+
+      expect(screen.queryByRole("button", { name: "Add to Batch" })).not.toBeInTheDocument();
+    });
+
+    it("keeps an approval without sending it, asking for the same confidence", async () => {
+      const onSuccess = vi.fn();
+      renderReviewForm(TEST_WORK, onSuccess);
+      expect(addToBatch()).toBeDisabled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.change(screen.getByRole("textbox", { name: /Feedback/ }), {
+        target: { value: "Lovely" },
+      });
+      fireEvent.click(addToBatch());
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+      expect(mockReviewBatch.stage).toHaveBeenCalledWith({
+        actionUID: 1,
+        workUID: "0xWork",
+        approved: true,
+        feedback: "Lovely",
+        confidence: 2,
+        verificationMethod: 1,
+        reviewNotesCID: undefined,
+      });
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("keeps a rejection with its reason from the dialog, and still needs one", async () => {
+      renderReviewForm();
+      fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+      const dialog = await screen.findByRole("dialog", { name: "Reject Work" });
+      const fromDialog = within(dialog).getByRole("button", { name: "Add to Batch" });
+      expect(fromDialog).toBeDisabled();
+
+      fireEvent.change(within(dialog).getByRole("textbox", { name: /Why are you rejecting/ }), {
+        target: { value: "No photo" },
+      });
+      fireEvent.click(fromDialog);
+
+      await waitFor(() => {
+        expect(mockReviewBatch.stage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            approved: false,
+            feedback: "No photo",
+            confidence: 0,
+            verificationMethod: 0,
+          })
+        );
+      });
+      expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
+
+    it("uploads an audio note when the decision is made, so only its link is kept", async () => {
+      renderReviewForm();
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+
+      await waitFor(() => {
+        expect(mockReviewBatch.stage).toHaveBeenCalledWith(
+          expect.objectContaining({ reviewNotesCID: "notes-cid" })
+        );
+      });
+      expect(mockUploadFile).toHaveBeenCalledOnce();
+    });
+
+    it("keeps nothing when the note can't upload, and says so", async () => {
+      mockUploadFile.mockRejectedValue(new Error("offline"));
+      const onSuccess = vi.fn();
+      renderReviewForm(TEST_WORK, onSuccess);
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+      fireEvent.click(screen.getByTestId("audio-recorder"));
+      fireEvent.click(addToBatch());
+
+      await waitFor(() => expect(mockToastError).toHaveBeenCalledOnce());
+      expect(mockReviewBatch.stage).not.toHaveBeenCalled();
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+
+    it("waits to learn whether this work is held before sending anything", () => {
+      mockReviewBatch.isSettlingHold = true;
+      renderReviewForm();
+      fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+
+      expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Reject" })).toBeDisabled();
+      expect(addToBatch()).toBeDisabled();
+    });
+  });
+
+  describe("with this work's decision waiting", () => {
+    const staged = (draft: object, note: object = {}) =>
+      mockReviewBatch.reviewFor.mockReturnValue({
+        draft: {
+          actionUID: 1,
+          workUID: "0xWork",
+          approved: true,
+          confidence: 3,
+          verificationMethod: 1,
+          ...draft,
+        },
+        ...note,
+      });
+
+    beforeEach(() => {
+      mockReviewBatch.available = true;
+    });
+
+    it("shows the decision in place of the form, with no way to send it twice", () => {
+      staged({ approved: false, confidence: 0, verificationMethod: 0, feedback: "No photo" });
+      renderReviewForm();
+
+      expect(screen.getByText("To reject")).toBeInTheDocument();
+      expect(screen.getByText("No photo")).toBeInTheDocument();
+      expect(screen.getByText(/send your batch from the Hub/)).toBeInTheDocument();
+      for (const name of ["Approve", "Reject", "Add to Batch"]) {
+        expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+      }
+    });
+
+    it("hands the words back when it comes out", () => {
+      staged({ feedback: "Lovely" });
+      const { rerender } = renderReviewForm();
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove from Batch" }));
+      expect(mockReviewBatch.unstage).toHaveBeenCalledWith("0xWork");
+
+      mockReviewBatch.reviewFor.mockReturnValue(undefined);
+      rerender(
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={TEST_WORK}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject
+            isReviewed={false}
+          />
+        </IntlProvider>
+      );
+
+      expect(screen.getByRole("textbox", { name: /Feedback/ })).toHaveValue("Lovely");
+      expect(addToBatch()).toBeEnabled();
+    });
+
+    it.each([
+      [{ refusal: "This action has ended." }, "This action has ended."],
+      [{ notBatchable: true }, /costs too much/],
+    ])("says why the last send couldn't take it", (note, words) => {
+      staged({}, note);
+      renderReviewForm();
+
+      expect(screen.getByText(words)).toBeInTheDocument();
+      expect(screen.queryByText(/send your batch from the Hub/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove from Batch" })).toBeEnabled();
+    });
+
+    it("outranks who may review now, so it can still come out", () => {
+      staged({});
+      render(
+        <IntlProvider locale="en" messages={messages}>
+          <ReviewForm
+            work={TEST_WORK}
+            gardenName="Demo Garden"
+            canReview
+            canApproveOrReject={false}
+            isReviewed={false}
+            actionEndTime={1}
+          />
+        </IntlProvider>
+      );
+
+      expect(screen.getByRole("button", { name: "Remove from Batch" })).toBeInTheDocument();
+    });
+
+    function addToBatch() {
+      return screen.getByRole("button", { name: "Add to Batch" });
+    }
+  });
+
+  it("locks a work whose last send is unknown, wherever it's opened, even off the list", () => {
+    mockReviewBatch.available = false;
+    mockReviewBatch.isHeld.mockReturnValue(true);
+    mockReviewBatch.holdFeedback = {
+      title: "We couldn’t confirm your last reviews.",
+      message: "They could still land.",
+      hasUnreadValues: false,
+      isSettling: false,
+      onCheckAgain: vi.fn(),
+      onMoveOn: vi.fn(),
+    };
+
+    renderReviewForm();
+
+    expect(screen.getByText("We couldn’t confirm your last reviews.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
   });
 
   it("blocks a steward from reviewing their own submission", () => {

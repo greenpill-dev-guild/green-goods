@@ -1,5 +1,6 @@
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { type ReviewBatch, useReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, userEvent, within } from "storybook/test";
@@ -68,6 +69,86 @@ export default meta;
 type Story = StoryObj<typeof ReviewForm>;
 
 export const Actionable: Story = {};
+
+const REVIEW_BATCH = {
+  available: true,
+  reviews: [],
+  approvals: 0,
+  rejections: 0,
+  signatures: 0,
+  signatureStep: 1,
+  sendSize: 0,
+  blockedCount: 0,
+  isSending: false,
+  isSettlingHold: false,
+  reviewFor: () => undefined,
+  isHeld: () => false,
+  stage: fn(),
+  unstage: fn(),
+  unstageBlocked: fn(),
+  send: fn(async () => {}),
+  holdFeedback: null,
+} satisfies ReviewBatch;
+
+/** Once a rail is listed, a decision can wait for the batch instead of going at once. */
+export const WithBatch: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: () => {
+    mocked(useReviewBatch).mockReturnValue(REVIEW_BATCH);
+    return resetHookMocks(useReviewBatch);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Add to Batch" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Reject" })).toBeEnabled();
+  },
+};
+
+export const WaitingInBatch: Story = {
+  beforeEach: () => {
+    mocked(useReviewBatch).mockReturnValue({
+      ...REVIEW_BATCH,
+      reviewFor: () => ({
+        draft: {
+          actionUID: BASE_WORK.actionUID,
+          workUID: BASE_WORK.id,
+          approved: true,
+          feedback: "Lovely work, thank you.",
+          confidence: 3,
+          verificationMethod: 1,
+        },
+      }),
+    });
+    return resetHookMocks(useReviewBatch);
+  },
+};
+
+export const HeldAfterAnUnknownSend: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: () => {
+    mocked(useReviewBatch).mockReturnValue({
+      ...REVIEW_BATCH,
+      isHeld: () => true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last reviews.",
+        message:
+          "They could still land, so these works stay locked until you check again or move on. If they land after you move on, they’ll have two reviews.",
+        detail: "0 of 1 have a review recorded now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        isBusy: false,
+        onCheckAgain: fn(),
+        onMoveOn: fn(),
+      },
+    });
+    return resetHookMocks(useReviewBatch);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Check Again" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Approve" })).toBeNull();
+  },
+};
 
 export const PublishedSubmitterName: Story = {
   beforeEach: () => {

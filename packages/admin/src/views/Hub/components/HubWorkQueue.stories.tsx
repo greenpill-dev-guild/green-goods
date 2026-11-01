@@ -1,7 +1,15 @@
 import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { type Address, Domain, type Work } from "@green-goods/shared/types/domain";
+import type { ReviewBatch, StagedReview } from "@green-goods/shared/hooks/work/useWorkApproval";
+import {
+  type Address,
+  Confidence,
+  Domain,
+  VerificationMethod,
+  type Work,
+  type WorkApprovalDraft,
+} from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, within } from "storybook/test";
 import { daysAgo, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
@@ -47,6 +55,39 @@ const ACTIONS_MAP = new Map<number, HubActionSummary>([
   [4, { title: "Solar service session", domain: Domain.SOLAR }],
 ]);
 
+const draftFor = (item: Work, approved: boolean): WorkApprovalDraft => ({
+  actionUID: item.actionUID,
+  workUID: item.id,
+  approved,
+  feedback: approved ? undefined : "The photos don't show the work.",
+  confidence: approved ? Confidence.HIGH : Confidence.NONE,
+  verificationMethod: approved ? VerificationMethod.HUMAN : 0,
+});
+
+function reviewBatchWith(staged: Record<string, StagedReview>): ReviewBatch {
+  const reviews = Object.values(staged);
+  const approvals = reviews.filter(({ draft }) => draft.approved).length;
+  return {
+    available: true,
+    reviews,
+    approvals,
+    rejections: reviews.length - approvals,
+    signatures: reviews.length > 0 ? 1 : 0,
+    signatureStep: 1,
+    sendSize: 0,
+    blockedCount: 0,
+    isSending: false,
+    isSettlingHold: false,
+    reviewFor: (workId) => staged[workId],
+    isHeld: () => false,
+    stage: fn(),
+    unstage: fn(),
+    unstageBlocked: fn(),
+    send: fn(async () => {}),
+    holdFeedback: null,
+  };
+}
+
 const meta: Meta<typeof HubWorkQueue> = {
   title: "Admin/Workflows/Hub/HubWorkQueue",
   component: HubWorkQueue,
@@ -87,6 +128,58 @@ export const WithExamplePhoto: Story = {
     actionsMap: new Map([[5, { title: "Seedling Transplant", domain: Domain.AGRO }]]),
     worksLoading: false,
     hasDataError: false,
+  },
+};
+
+/** Decisions waiting on this list: each work says its own, and a bar holds the send. */
+export const WithReviewBatch: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    items: PENDING_WORK,
+    worksLoading: false,
+    hasDataError: false,
+    reviewBatch: reviewBatchWith({
+      [PENDING_WORK[0].id]: { draft: draftFor(PENDING_WORK[0], true) },
+      [PENDING_WORK[1].id]: { draft: draftFor(PENDING_WORK[1], false) },
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("To approve")).toBeVisible();
+    await expect(canvas.getByText("To reject")).toBeVisible();
+    await expect(canvas.getByText("1 approval, 1 rejection")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Send 2" })).toBeEnabled();
+  },
+};
+
+/** An unknown send: its work says Checking, and the notice sits above the list. */
+export const WithHeldReviews: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    items: PENDING_WORK,
+    worksLoading: false,
+    hasDataError: false,
+    reviewBatch: {
+      ...reviewBatchWith({}),
+      isHeld: (workId: string) => workId === PENDING_WORK[0].id,
+      holdFeedback: {
+        title: "We couldn’t confirm your last reviews.",
+        message:
+          "They could still land, so these works stay locked until you check again or move on. If they land after you move on, they’ll have two reviews.",
+        detail: "0 of 1 have a review recorded now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        isBusy: false,
+        onCheckAgain: fn(),
+        onMoveOn: fn(),
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Checking")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    await expect(canvas.queryByRole("button", { name: /^Send/ })).toBeNull();
   },
 };
 

@@ -8,6 +8,7 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import type { ReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { HubConfirmQueue } from "./HubConfirmQueue";
 import {
   HubAssessmentList,
@@ -48,6 +49,7 @@ interface HubStageContentProps {
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
   onOpenHypercert: (hypercertId: string) => void;
+  reviewBatch?: ReviewBatch;
 }
 
 export function HubStageContent({
@@ -78,6 +80,7 @@ export function HubStageContent({
   onClearSearch,
   onOpenCertification,
   onOpenHypercert,
+  reviewBatch,
 }: HubStageContentProps) {
   const content = selectHubStageContent(stage);
 
@@ -95,6 +98,7 @@ export function HubStageContent({
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
         onClearSearch={onClearSearch}
+        reviewBatch={reviewBatch}
       />
     );
   }
