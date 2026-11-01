@@ -176,7 +176,7 @@ export const Pool: Story = {
 
 export const Settings: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: `/garden/settings?${SEEDED_GARDEN}` },
+  args: { initialPath: `/garden/health?${SEEDED_GARDEN}&item=edit-garden` },
   decorators: gardenDecorators(),
 };
 
@@ -237,7 +237,7 @@ export const UrlGardenSync: Story = {
   // Not in storybook-ci: the URL-sync play needs live indexer/vault data the clean-room CI
   // browser can't reach, so the garden name never renders offline. Kept for
   // local/authenticated Storybook review.
-  args: { initialPath: `/garden/settings?gardenAddress=${STORYBOOK_SECONDARY_ADMIN_GARDEN.id}` },
+  args: { initialPath: `/garden/health?gardenAddress=${STORYBOOK_SECONDARY_ADMIN_GARDEN.id}&item=edit-garden` },
   decorators: gardenDecorators({ seeds: STORYBOOK_SECONDARY_GARDEN_SEEDS }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

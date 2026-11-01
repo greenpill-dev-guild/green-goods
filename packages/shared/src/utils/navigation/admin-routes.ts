@@ -13,7 +13,7 @@ export type AdminWorkspaceId =
 export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "confirm";
 export type AdminHubView = AdminHubMode;
-export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
+export type AdminGardenMode = "health" | "activity" | "impact" | "pool";
 export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminHubSort = "newest" | "oldest";
 /** The Work tab's scope: work waiting for review, or work already approved. */
@@ -196,8 +196,9 @@ export const adminRoutes = {
   gardenImpact(context?: AdminGardenRouteContext) {
     return this.gardenMode("impact", context);
   },
+  /** Edit Garden over Health. The header action opens it over the active tab instead (DL-140). */
   gardenSettings(context?: AdminGardenRouteContext) {
-    return this.gardenMode("settings", context);
+    return this.gardenHealth({ ...context, item: EDIT_GARDEN_ROUTE_ITEM });
   },
   /** The steward's pool console (uiux-spec §6.2). */
   gardenPool(context?: AdminGardenRouteContext) {

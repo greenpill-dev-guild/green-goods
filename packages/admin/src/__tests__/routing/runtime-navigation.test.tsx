@@ -225,6 +225,16 @@ describe("admin canvas runtime navigation", () => {
     expect(getAdminWorkspaceForPath(legacy.state.location.pathname)).toBe("community");
   });
 
+  it("opens Edit Garden over Health from its old address, keeping the URL's context", async () => {
+    const router = await renderAdminCanvasRoute("/garden/settings?gardenId=0xAAA&range=90d");
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/garden/health");
+    });
+    expect(router.state.location.search).toBe("?gardenId=0xAAA&range=90d&item=edit-garden");
+    expect(screen.getByTestId("route-target")).toHaveTextContent("Garden");
+  });
+
   it("mounts Hub create-flow routes from the shared action targets", async () => {
     for (const [id, label, expectedPath] of hubCreateActions) {
       const router = await renderAdminCanvasRoute("/hub/work?gardenId=0xAAA");

@@ -135,6 +135,21 @@ describe("buildGardenViewActions — fixed primary", () => {
     }
   });
 
+  it("opens Edit Garden over the view it was pressed from, keeping its context (DL-140)", () => {
+    const navigate = vi.fn();
+    buildGardenViewActions("impact", true, true, navigate, {
+      gardenAddress: GARDEN,
+      range: "90d",
+      section: "hypercerts",
+    })
+      .find((action) => action.id === "edit-garden")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledWith(
+      `/garden/impact?gardenId=${GARDEN}&range=90d&section=hypercerts&item=edit-garden`
+    );
+  });
+
   it("dropped the header add-member action — membership is community-owned", () => {
     // Membership lives at /community/members (Manage Members → Add members);
     // the Garden header must not re-grow a parallel add path.

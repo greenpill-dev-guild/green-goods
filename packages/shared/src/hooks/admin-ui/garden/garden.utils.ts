@@ -1,6 +1,10 @@
 import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
-import { type AdminGardenRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import {
+  type AdminGardenRouteContext,
+  adminRoutes,
+  EDIT_GARDEN_ROUTE_ITEM,
+} from "../../../utils/navigation/admin-routes";
 import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
 
 /**
@@ -69,9 +73,8 @@ export function buildGardenHeaderStats({
 }
 
 /**
- * Garden is the internal readout surface. Settings remains route-backed for
- * deep links, but it opens as a dialog over the Health view rather than taking
- * a tab slot.
+ * Garden is the internal readout surface. Edit Garden is a route item that opens
+ * as a dialog over whichever tab the URL is on, rather than taking a tab slot.
  */
 export type GardenWorkspaceView = "health" | "impact" | "activity" | "pool";
 
@@ -86,8 +89,8 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 /**
  * Garden view-level actions — stable pair: the same set renders on every
  * view, in the same order, so positions never shift between tabs. Edit garden
- * is the fixed primary; View public stays ghost because it leaves the admin
- * context.
+ * is the fixed primary and opens over the active view (DL-140); View public
+ * stays ghost because it leaves the admin context.
  *
  * Membership actions live on the Community workspace (Manage Members →
  * Add members at /community/members) — the Garden header no longer carries
@@ -100,7 +103,7 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
  * redirect route, which resolves to the public garden page.
  */
 export function buildGardenViewActions(
-  _view: GardenWorkspaceView,
+  view: GardenWorkspaceView,
   canManage: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
@@ -128,7 +131,8 @@ export function buildGardenViewActions(
       label: "Edit garden",
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
-      onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
+      onClick: () =>
+        navigate(adminRoutes.gardenMode(view, { ...routeContext, item: EDIT_GARDEN_ROUTE_ITEM })),
       variant: "primary",
       visible: hasSelectedGarden && canManage,
       primary: true,

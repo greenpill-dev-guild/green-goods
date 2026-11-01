@@ -9,6 +9,7 @@ import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainCo
 import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import {
   adminRoutes,
+  EDIT_GARDEN_ROUTE_ITEM,
   resolveCampaignCookieJarsRoute,
 } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ComponentType } from "react";
@@ -60,9 +61,12 @@ function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
 }
 
-function PreserveSearchRedirect({ pathname }: { pathname: string }) {
+/** Keeps the URL's search; `item` adds the route item of a dialog the old address opened. */
+function PreserveSearchRedirect({ pathname, item }: { pathname: string; item?: string }) {
   const location = useLocation();
-  return <Navigate to={{ pathname, search: location.search }} replace />;
+  const search = new URLSearchParams(location.search);
+  if (item) search.set("item", item);
+  return <Navigate to={{ pathname, search: search.toString() }} replace />;
 }
 
 /**
@@ -231,8 +235,9 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        // Edit Garden is a route item now (DL-140); saved links open it over Health.
         path: "settings",
-        lazy: gardenView,
+        element: <PreserveSearchRedirect pathname="/garden/health" item={EDIT_GARDEN_ROUTE_ITEM} />,
       },
       {
         // The steward's pool console (uiux-spec §6.2). The seeding console and
