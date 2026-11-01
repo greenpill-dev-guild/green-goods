@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  type BatchApprovalItem,
   submitApproval,
   type SubmitApprovalCommand,
   type SubmitApprovalPorts,
