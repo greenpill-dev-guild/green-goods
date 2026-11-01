@@ -177,9 +177,9 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 6.** Depends on slice 2.
 
-- [ ] **6.1 Give passkeys the path pool callers use.** Add budget-carrying `sendAtomicBatch` and `canSendAtomicBatch` to `PasskeySender`, gated by the enablement list, because pool setup probes for them and would otherwise switch on for everyone at once. Prove a listed combination batches and an unlisted one still sends one call at a time.
-- [ ] **6.2 Batch pool setup.** In `useCommitmentPoolSetupSequence.ts`, the writes before opening go together. `openCycle` follows on its own because its ID comes from the seeding receipt, and the counter is global, so never predict it. Prove a first run takes 2 prompts on a passkey and a retry repeats only what did not land.
-- [ ] **6.3 Batch opening a seeded season.** Stop grouping only at a `"seeded"` cycle ID, so `openPool` and an `openCycle` with a known ID go together. Atomic wallets gain this too. Keep `setupWrites.ts` counting the same signatures the wallet asks for.
+- [x] **6.1 Give passkeys the path pool callers use.** `PasskeySender` now has `canSendAtomicBatch(chainId, action)` and a budget-carrying `sendAtomicBatch`, and it answers yes only for an action on the enablement list. A listed combination batches and an unlisted one still sends one call at a time. `onNeverSent` tells a caller a batch never went out, so a seed in it isn't treated as maybe landed.
+- [x] **6.2 Batch pool setup.** A first run takes 2 prompts on a listed passkey, with ceilings from `poolSetupBudget`, and a retry repeats only what did not land. A group past its ceilings stops without sending, and the next try goes write by write, with the flow's count saying so first.
+- [x] **6.3 Batch opening a seeded season.** Grouping stops only at an opening that awaits its seed, so `openPool` and an `openCycle` with a known ID go together, atomic wallets included. `walletPrompts` and `setupWrites.ts` count the same prompts the wallet asks for.
 
 **Phase exit:** AC-24 passes on passkeys and atomic wallets; plain wallets still take every step.
 

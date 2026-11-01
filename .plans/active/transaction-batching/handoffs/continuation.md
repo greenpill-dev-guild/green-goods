@@ -48,6 +48,8 @@ Review of #1420 found four real gaps, fixed in `34bb6e4d6`, with their checks fa
 
 Staged reviews (5B) are on `feature/batch-staged-reviews`, built on 5A, with no rail listed. They add `useReviewBatch`, its store, Add to Batch in the review form, chips on the queue, and `HubReviewBatchBar`. Building them turned up two gaps in 5A, both fixed here: a row whose send never went out kept reading as decided until the next refetch, and a refusal lost the contract's error by the time anyone could name it. 5B carries 5A's commits, so 5A merges first.
 
+Pool setup on passkeys (slice 6) is on `feature/batch-pool-setup`, built on staged reviews, with no rail listed. Passkeys can now answer `canSendAtomicBatch` and take a budgeted `sendAtomicBatch`, but only for a listed action, so pool setup's probe finds nothing yet. A first run takes 2 prompts once listed, and opening a seeded season takes 1, on atomic wallets too, which reaches them on merge.
+
 Still open for add members, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
 ## Start here
