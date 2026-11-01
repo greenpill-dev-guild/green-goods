@@ -7,7 +7,7 @@ import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanva
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { ADD_MEMBER_ROUTE_ITEM } from "@green-goods/shared/utils/navigation/admin-routes";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
@@ -33,13 +33,18 @@ export function CommunityMembersDialogs({
   scheduleBackgroundRefetch,
   selectedItem,
 }: CommunityMembersDialogsProps) {
-  const [manageMembersOpen, setManageMembersOpen] = useState(selectedItem === "manage-members");
+  const manageMembersOpen = selectedItem === "manage-members";
   const addMemberItemOpen = selectedItem === ADD_MEMBER_ROUTE_ITEM;
   const closeAddMemberItem = useRouteItemClose(addMemberItemOpen);
   // Add Members also opens over Manage Members, with no route item of its own.
   const [addingFromManage, setAddingFromManage] = useState(false);
   // The person Manage Members was showing when Add Members opened over it.
   const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
+  // It leaves with Manage Members, by browser Back as well as by a close.
+  if (addingFromManage && !manageMembersOpen) {
+    setAddingFromManage(false);
+    setAddMembersPrefill(undefined);
+  }
   const [searchParams] = useSearchParams();
   const memberParam = searchParams.get("member");
   const initialMemberAddress =
@@ -49,10 +54,6 @@ export function CommunityMembersDialogs({
   const operations = useGardenOperations(garden.id);
   const addMembersBatch = useAddMembersBatch(garden.id);
   const gardenAddress = garden.id;
-
-  useEffect(() => {
-    if (selectedItem === "manage-members") setManageMembersOpen(true);
-  }, [selectedItem]);
 
   const addByRole = useMemo<
     Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
@@ -81,10 +82,6 @@ export function CommunityMembersDialogs({
     [operations]
   );
 
-  const closeManageMembers = () => {
-    setManageMembersOpen(false);
-    if (selectedItem === "manage-members") closeMembersModal();
-  };
   const openAddMembers = (prefill?: Address) => {
     setAddMembersPrefill(prefill);
     setAddingFromManage(true);
@@ -106,7 +103,7 @@ export function CommunityMembersDialogs({
         key={garden.id}
         open={manageMembersOpen}
         initialSearch={initialMemberAddress}
-        onClose={closeManageMembers}
+        onClose={closeMembersModal}
         tone="community"
         roleMembers={roleMembers}
         canManage={canManage}
@@ -118,6 +115,7 @@ export function CommunityMembersDialogs({
         <AddMembersDialog
           key={garden.id}
           open={canManage && (addMemberItemOpen || addingFromManage)}
+          closesByRoute={addMemberItemOpen}
           onClose={closeAddMembers}
           tone="community"
           gardenAddress={gardenAddress}

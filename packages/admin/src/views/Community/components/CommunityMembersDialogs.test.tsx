@@ -5,6 +5,7 @@ import {
 import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import {
+  act,
   fireEvent,
   renderWithProviders,
   screen,
@@ -16,9 +17,11 @@ import { AdminViewActions } from "@/components/AdminViewActions";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { storyGarden, storyRoleMembers } from "./communityStoryFixtures";
 
+const addGardener = vi.hoisted(() => vi.fn());
+
 // The chain and the wallet are this suite's edges; the action, the URL and the dialogs are real.
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
-  useGardenOperations: () => ({ isLoading: false }),
+  useGardenOperations: () => ({ isLoading: false, addGardener }),
   useAddMembersBatch: () => ({
     hold: null,
     saved: [],
@@ -42,6 +45,7 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
 }));
 
 const TAB_URL = `/community/endowment?gardenId=${storyGarden.id}`;
+const NEW_MEMBER = "0x7777777777777777777777777777777777777777";
 
 function CommunityRoute({ canManage }: { canManage: boolean }) {
   const navigate = useNavigate();
@@ -92,6 +96,7 @@ const addButton = () => screen.getByRole("button", { name: "Add Member" });
 const addDialog = () => screen.queryByRole("dialog", { name: "Add Members" });
 const currentUrl = () => screen.getByTestId("location").textContent;
 const pressBrowserBack = () => fireEvent.click(screen.getByTestId("browser-back"));
+const addressField = () => screen.getByPlaceholderText("0x... or name.eth");
 
 describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
   it.each([
@@ -191,5 +196,90 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
     expect(screen.getByRole("dialog", { name: "Manage Members" })).toBeInTheDocument();
     expect(currentUrl()).toBe(manageUrl);
+  });
+
+  it("asks before Back or the close button drops a draft, and keeps it on Keep Editing", async () => {
+    const user = userEvent.setup();
+    renderAt(TAB_URL, { before: `/community/members?gardenId=${storyGarden.id}` });
+
+    await user.click(addButton());
+    await user.type(addressField(), NEW_MEMBER);
+
+    pressBrowserBack();
+    expect(await screen.findByText("Discard Changes?")).toBeVisible();
+    expect(currentUrl()).toBe(`${TAB_URL}&item=add-member`);
+    await user.click(screen.getByRole("button", { name: "Keep Editing" }));
+    expect(addressField()).toHaveValue(NEW_MEMBER);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.click(await screen.findByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
+    expect(currentUrl()).toBe(TAB_URL);
+
+    // The discarded draft does not come back with the next press.
+    await user.click(addButton());
+    expect(addressField()).toHaveValue("");
+  });
+
+  it("drops a draft on Cancel with no prompt", async () => {
+    const user = userEvent.setup();
+    renderAt(TAB_URL, { before: `/community/members?gardenId=${storyGarden.id}` });
+
+    await user.click(addButton());
+    await user.type(addressField(), NEW_MEMBER);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
+    expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+    expect(currentUrl()).toBe(TAB_URL);
+  });
+
+  it("holds Back while an add sends, then closes to the tab with no prompt", async () => {
+    const user = userEvent.setup();
+    let finish: (result: { success: boolean }) => void = () => {};
+    addGardener.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    renderAt(TAB_URL, { before: `/community/members?gardenId=${storyGarden.id}` });
+
+    await user.click(addButton());
+    await user.type(addressField(), NEW_MEMBER);
+    await user.click(screen.getByRole("button", { name: /^Add 1 / }));
+    await waitFor(() => expect(addGardener).toHaveBeenCalled());
+
+    pressBrowserBack();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(currentUrl()).toBe(`${TAB_URL}&item=add-member`);
+    expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+
+    await act(async () => finish({ success: true }));
+
+    await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
+    expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+    expect(currentUrl()).toBe(TAB_URL);
+  });
+
+  it("closes Manage Members and Add Members over it when Back leaves its item", async () => {
+    const user = userEvent.setup();
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`, {
+      before: TAB_URL,
+    });
+
+    const manage = await screen.findByRole("dialog", { name: "Manage Members" });
+    await user.click(within(manage).getByRole("button", { name: "Add Members" }));
+    await screen.findByRole("dialog", { name: "Add Members" });
+
+    pressBrowserBack();
+
+    await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Manage Members" })).not.toBeInTheDocument()
+    );
+    expect(currentUrl()).toBe(TAB_URL);
   });
 });
