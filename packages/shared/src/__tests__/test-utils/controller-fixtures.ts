@@ -117,6 +117,7 @@ export function gardenCommitmentControllerFixture(
     },
     ownRequest: null,
     pendingClaimRequests: [],
+    takeUpOpen: false,
     canAskAgain: false,
     claimNeedsContext: false,
     membership: { isMember: null, garden: null, unavailable: false, retry: () => undefined },

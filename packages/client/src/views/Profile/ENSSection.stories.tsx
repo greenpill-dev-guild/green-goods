@@ -111,10 +111,10 @@ function withUsername({
 }
 
 /**
- * The Account tab's Username section (PRD-1026): the card on the tab's own
- * row, one text chip and one sentence per state, its acts at full width, and
- * the tall Change Username sheet it opens. The ENS reads, the release and the
- * claim are mocked; the change this device started is set in its store.
+ * The Account tab's Username section (PRD-1026, DL-152): one fact row with one
+ * text chip and one sentence per state, its acts in the right slot, and the tall
+ * Change Username sheet it opens. The ENS reads, the release and the claim are
+ * mocked; the change this device started is set in its store.
  */
 const meta: Meta<typeof ENSSection> = {
   title: "Client/Profile/ENSSection",
@@ -137,13 +137,15 @@ const meta: Meta<typeof ENSSection> = {
 export default meta;
 type Story = StoryObj<typeof ENSSection>;
 
-/** p1: the name, Ready, one sentence, and Change Username below. */
+/** p1: the name, Ready, one sentence, and Change in the right slot. */
 export const Ready: Story = {
   beforeEach: withUsername(),
   play: async () => {
     await expect(await screen.findByText("afo.greengoods.eth")).toBeVisible();
     await expect(screen.getByText("Ready")).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Change Username" })).toBeEnabled();
+    const change = screen.getByRole("button", { name: "Change Username" });
+    await expect(change).toBeEnabled();
+    await expect(change.closest(".gg-fact-action")).not.toBeNull();
   },
 };
 
@@ -259,7 +261,7 @@ export const Offline: Story = {
   },
 };
 
-/** p7: no name yet; the field keeps its line for availability and the count. */
+/** p7: no name yet; the field opens under the row and keeps its line for availability and the count. */
 export const NoUsernameYet: Story = {
   beforeEach: withUsername({ name: null, status: {}, free: { afo: true } }),
   play: async () => {
@@ -310,7 +312,7 @@ export const ClaimReturnFromWallet: Story = {
   },
 };
 
-/** p11: the longest name wraps beside the icon and is never cut off. */
+/** p11: the longest name wraps beside the icon, clear of the act, and is never cut off. */
 export const LongName: Story = {
   beforeEach: withUsername({ name: LONG_NAME, status: { [LONG_NAME]: active } }),
   globals: { viewport: { value: "mobile" } },

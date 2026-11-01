@@ -148,6 +148,8 @@ export const StartSkippedForOneAction: Story = {
   beforeEach: onStep("media", { linked: false, start: startStepFixture({ skipped: true }) }),
   play: async ({ canvasElement }) => {
     const { steps } = markersCenteredInBar(canvasElement);
+    // The shape adding proof shows too: four markers, Start already checked (DL-153).
+    await expect(steps).toHaveLength(4);
     await expect(steps[1]).toHaveAttribute("aria-current", "step");
     await userEvent.click(within(canvasElement).getByRole("button", { name: "Go back" }));
     await expect(exitFlow).toHaveBeenCalledTimes(1);
