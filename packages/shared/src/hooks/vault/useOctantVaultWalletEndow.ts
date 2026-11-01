@@ -9,11 +9,11 @@ import type { Address } from "../../types/domain";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { isRecoverableAllowanceReadError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import {
-  isRecoverableAllowanceReadError,
   shouldShowErrorToast,
   shouldShowLifecycleToast,
   type VaultDepositFailureReason,

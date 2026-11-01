@@ -8,7 +8,7 @@ import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGar
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
@@ -124,6 +124,24 @@ export function EndowmentSheet({
 
   const myDeposits = useMemo(() => deposits.filter((deposit) => deposit.shares > 0n), [deposits]);
 
+  const plan = useDepositPlan({
+    target:
+      selectedVault && primaryAddress
+        ? {
+            kind: "vault",
+            address: selectedVault.vaultAddress as Address,
+            asset: selectedVault.asset as Address,
+            receiver: primaryAddress as Address,
+          }
+        : null,
+    amount,
+    decimals,
+    symbol: balance?.symbol ?? "",
+    gardenAddress,
+    enabled: isOpen,
+    onLanded: () => setAmountInput(""),
+  });
+
   const onDeposit = () => {
     if (!selectedVault || !primaryAddress || amount <= 0n) return;
 
@@ -153,6 +171,7 @@ export function EndowmentSheet({
             loading: depositMutation.isPending,
             disabled:
               !isOnline ||
+              plan.isPaused ||
               !selectedVault ||
               !primaryAddress ||
               amount <= 0n ||
@@ -193,6 +212,9 @@ export function EndowmentSheet({
           balance={balance}
           previewShares={preview?.previewShares}
           decimals={decimals}
+          holdFeedback={plan.holdFeedback}
+          signatureLine={plan.signatureLine}
+          isDepositing={depositMutation.isPending}
         />
       )}
 

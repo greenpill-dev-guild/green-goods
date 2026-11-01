@@ -25,6 +25,15 @@ export const batchKeys = {
     ["greengoods", "batch", "capability", account, chainId, connectorId] as const,
   hold: (domain: string, account: string, chainId: number) =>
     ["greengoods", "batch", "hold", domain, account, chainId] as const,
+  /** Spending this account has allowed, which decides how many signatures a deposit takes. */
+  allowance: (asset: string, account: string, spender: string, chainId: number) =>
+    ["greengoods", "batch", "allowance", asset, account, spender, chainId] as const,
+  /** Sends in flight from this account, so a read of its holds waits for them. */
+  depositSend: (account: string, chainId: number) =>
+    ["greengoods", "batch", "deposit-send", account, chainId] as const,
+  /** A deposit that came back past its ceilings, so the next press goes step by step. */
+  overCeilings: (domain: string, account: string, chainId: number, amount: string) =>
+    ["greengoods", "batch", "over-ceilings", domain, account, chainId, amount] as const,
 } as const;
 
 export const actionsKeys = {
