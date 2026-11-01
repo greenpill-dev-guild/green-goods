@@ -4061,6 +4061,8 @@
   "app.workDashboard.toReview.count": "{count} por revisar",
   "app.workDashboard.toReview.description": "Aquí aparece el trabajo que espera tu revisión.",
   "app.workDashboard.toReview.empty": "Nada por revisar",
+  "app.workDashboard.toReview.emptyRecent": "Nada por revisar en el trabajo reciente",
+  "app.workDashboard.toReview.emptyRecentDescription": "Puede haber trabajo anterior en espera. Ver todo en Actividad reciente lo muestra.",
   "app.workDashboard.timeFilter.year": "Año",
   "app.workDashboard.title": "Tu trabajo",
   "app.yield.accruing": "(acumulando)",

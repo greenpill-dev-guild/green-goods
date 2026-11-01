@@ -693,6 +693,17 @@ describe("WorkDashboard", () => {
       expect(screen.queryByText("2 to review")).not.toBeInTheDocument();
     });
 
+    it("never calls the queue empty while older work may wait beyond the rows read", () => {
+      mockReviewerGardenIds = [garden];
+      mockNeedsReviewState = { ...mockNeedsReviewState, works: [], ready: false };
+
+      renderDashboard();
+      fireEvent.click(toReview());
+
+      expect(screen.getByText("Nothing to review in recent work")).toBeInTheDocument();
+      expect(screen.queryByText("Nothing to review")).not.toBeInTheDocument();
+    });
+
     it.each([
       ["while its read runs", { isLoading: true }, "Loading your work..."],
       ["when its read fails", { isError: true }, "Unable to load work"],

@@ -543,6 +543,11 @@ export const ToReviewUncounted: Story = {
   args: { tab: "toReview", toReview: WAITING_FOR_REVIEW, uncounted: true },
 };
 
+/** None waiting among the rows read, with older work unread: it does not call the queue empty. */
+export const ToReviewEmptyRecentOnly: Story = {
+  args: { tab: "toReview", toReview: [], uncounted: true },
+};
+
 export const ToReviewLoading: Story = {
   args: { tab: "toReview", toReview: [], isLoading: true },
 };

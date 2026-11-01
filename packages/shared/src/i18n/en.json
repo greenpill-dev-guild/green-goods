@@ -4061,6 +4061,8 @@
   "app.workDashboard.toReview.count": "{count} to review",
   "app.workDashboard.toReview.description": "Work waiting for your review shows up here.",
   "app.workDashboard.toReview.empty": "Nothing to review",
+  "app.workDashboard.toReview.emptyRecent": "Nothing to review in recent work",
+  "app.workDashboard.toReview.emptyRecentDescription": "Older work may still be waiting. See All under Recent Activity lists it.",
   "app.workDashboard.timeFilter.year": "Year",
   "app.workDashboard.title": "Your Work",
   "app.yield.accruing": "(accruing)",

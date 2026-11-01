@@ -18,7 +18,7 @@ interface ToReviewTabProps {
   isLoading: boolean;
   isFetching: boolean;
   hasError: boolean;
-  /** Older work may wait beyond the rows read, so the list names no count. */
+  /** Older work may wait beyond the rows read, so the list names no count and claims no end. */
   uncounted: boolean;
   onWorkClick: (work: Work) => void;
   onRefresh: () => void;
@@ -33,6 +33,19 @@ const TO_REVIEW_MESSAGES = {
   emptyDescription: {
     id: "app.workDashboard.toReview.description",
     defaultMessage: "Work waiting for your review shows up here.",
+  },
+};
+
+/** None waiting among the rows read says nothing about older work beyond them. */
+const RECENT_ONLY_MESSAGES = {
+  ...TO_REVIEW_MESSAGES,
+  emptyTitle: {
+    id: "app.workDashboard.toReview.emptyRecent",
+    defaultMessage: "Nothing to review in recent work",
+  },
+  emptyDescription: {
+    id: "app.workDashboard.toReview.emptyRecentDescription",
+    defaultMessage: "Older work may still be waiting. See All under Recent Activity lists it.",
   },
 };
 
@@ -82,7 +95,7 @@ export const ToReviewTab: React.FC<ToReviewTabProps> = ({
           <PendingRowCard row={toReviewRow(work, context)} onOpen={() => onWorkClick(work)} />
         </div>
       )}
-      messages={TO_REVIEW_MESSAGES}
+      messages={uncounted ? RECENT_ONLY_MESSAGES : TO_REVIEW_MESSAGES}
       emptyIcon={<RiInboxLine />}
     />
   );
