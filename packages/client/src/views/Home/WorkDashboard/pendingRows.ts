@@ -1,26 +1,18 @@
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { PendingCardKind } from "@/components/Cards/Work/PendingCard";
 
-export type PendingKind = PendingCardKind;
+/** Where a row of the member's own work stands; work to review has its own tab (DL-149). */
+export type PendingKind = Exclude<PendingCardKind, "needsReview">;
 
 /**
- * The list answers in this order (D12, O2): what can't go without you, work
- * waiting for your review, what's ready to upload, drafts, anything being
- * checked, then sent work in review.
+ * The list answers in this order (D12, O2): what can't go without you, what's
+ * ready to upload, drafts, anything being checked, then sent work in review.
  */
-const KIND_ORDER: readonly PendingKind[] = [
-  "needs",
-  "needsReview",
-  "upload",
-  "draft",
-  "checking",
-  "review",
-];
+const KIND_ORDER: readonly PendingKind[] = ["needs", "upload", "draft", "checking", "review"];
 
 /** The filter that holds each kind. */
 const FILTER_OF_KIND: Record<PendingKind, Exclude<WorkDashboardPendingFilter, "all">> = {
   needs: "needs",
-  needsReview: "needsReview",
   upload: "upload",
   draft: "editing",
   checking: "checking",
@@ -31,7 +23,6 @@ const FILTER_OF_KIND: Record<PendingKind, Exclude<WorkDashboardPendingFilter, "a
 const FILTER_ORDER: readonly WorkDashboardPendingFilter[] = [
   "all",
   "needs",
-  "needsReview",
   "upload",
   "editing",
   "checking",
@@ -68,13 +59,11 @@ export interface PendingRead {
 }
 
 /**
- * The kinds of row each read can list: the work waiting for your review, the
- * reviews you made here that wait to upload (read in the gardens they name),
- * your own work, and the proof this phone's queue holds. Drafts are on this
- * phone and never wait.
+ * The kinds of row each read can list: the reviews you made here that wait to
+ * upload (read in the gardens they name), your own work, and the proof this
+ * phone's queue holds. Drafts are on this phone and never wait.
  */
 const KINDS_BY_READ = {
-  needsReview: ["needsReview"],
   decisions: ["needs", "upload", "checking"],
   myWork: ["needs", "upload", "checking", "review"],
   queue: ["needs", "upload", "checking"],
@@ -109,8 +98,7 @@ export function filterPendingRows<T extends Pick<PendingPlace, "kind">>(
 /**
  * The filters worth offering (D17): All, then each state the list holds. A
  * filter with nothing in it is left out, except the one in use, so the select
- * never shows a choice it doesn't list. Needs review only ever holds work for
- * a steward, so only stewards see it.
+ * never shows a choice it doesn't list.
  */
 export function pendingFilterOptions(
   rows: readonly Pick<PendingPlace, "kind">[],

@@ -2,7 +2,7 @@ import { type DraftDatabase, draftConnection } from "./draft-connection";
 import { MAX_DRAFTS_PER_USER, saveDraftSnapshot } from "./draft-snapshot";
 import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, isWorkDraft } from "./draft-state";
 
-export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
+export { computeFirstIncompleteStep } from "./draft-state";
 
 import {
   hashWorkBytes,
