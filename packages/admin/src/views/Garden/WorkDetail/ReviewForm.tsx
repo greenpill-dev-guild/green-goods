@@ -105,8 +105,9 @@ export function ReviewForm({
   const reviewBatch = useReviewBatch(work.gardenAddress);
   const stagedReview = reviewBatch.reviewFor(work.id);
   const isHeld = reviewBatch.isHeld(work.id);
-  // Sending from here skips the journal, so it waits to learn whether this work is held.
-  const isDecisionPaused = isSubmitting || reviewBatch.isSettlingHold;
+  // Sending from here skips the journal, so it waits to learn whether this work is held. It also
+  // shares the batch's lock, which would hand it the batch's result as its own.
+  const isDecisionPaused = isSubmitting || reviewBatch.isSettlingHold || reviewBatch.isSending;
 
   /**
    * Sends the decision, or keeps it for the batch. A rejection always carries

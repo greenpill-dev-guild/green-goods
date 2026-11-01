@@ -44,6 +44,8 @@ The jars are on `feature/batch-jar-deposits`, on the same path with no rail list
 
 Bulk review execution (5A) is [#1420](https://github.com/greenpill-dev-guild/green-goods/pull/1420) on `feature/batch-review-execution`, with no rail listed and no UI. It removed the old bulk helpers, and one `multiAttest` call carries up to five decisions per signature, so a review batch works on every wallet.
 
+Review of #1420 found four real gaps, fixed in `34bb6e4d6`, with their checks failing first at 06:43 and 06:44 UTC: the last check before each signature now reads who has decided, a held send keeps its hash whichever tab ended it, a send refuses another garden's decision, and the send shares the approval lock again. Its fifth finding is answered in its thread: a save stays whole until it ends.
+
 Staged reviews (5B) are on `feature/batch-staged-reviews`, built on 5A, with no rail listed. They add `useReviewBatch`, its store, Add to Batch in the review form, chips on the queue, and `HubReviewBatchBar`. Building them turned up two gaps in 5A, both fixed here: a row whose send never went out kept reading as decided until the next refetch, and a refusal lost the contract's error by the time anyone could name it. 5B carries 5A's commits, so 5A merges first.
 
 Still open for add members, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.

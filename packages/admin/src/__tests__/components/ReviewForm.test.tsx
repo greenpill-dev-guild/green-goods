@@ -489,8 +489,12 @@ describe("ReviewForm", () => {
       expect(onSuccess).not.toHaveBeenCalled();
     });
 
-    it("waits to learn whether this work is held before sending anything", () => {
-      mockReviewBatch.isSettlingHold = true;
+    it.each([
+      ["learn whether this work is held", { isSettlingHold: true }],
+      // They share one lock, which would hand this form the batch's result as its own.
+      ["a batch to finish sending", { isSending: true }],
+    ])("waits for %s before sending anything", (_name, state) => {
+      Object.assign(mockReviewBatch, state);
       renderReviewForm();
       fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
 
