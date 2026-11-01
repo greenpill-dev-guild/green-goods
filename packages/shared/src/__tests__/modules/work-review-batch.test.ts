@@ -256,6 +256,53 @@ describe("sendReviewBatch", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("reads who has decided again before each signature, and sends back what changed", async () => {
+    const { sender, decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 7 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+    const late = decisions[5].draft.workUID;
+    chain.isDecided.mockImplementation(
+      async (workUID) =>
+        workUID === late && vi.mocked(sender.sendContractCall).mock.calls.length > 0
+    );
+
+    const outcome = await send(decisions);
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(outcome.sent).toHaveLength(5);
+    expect(outcome.stale).toEqual([late]);
+    expect(outcome.notSent).toEqual([decisions[6].draft.workUID]);
+    expect(outcome.failure).toBeUndefined();
+  });
+
+  it("signs nothing more when it can't read who has decided right before a signature", async () => {
+    const { sender, decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 6 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+    chain.isDecided.mockImplementation(async () => {
+      if (vi.mocked(sender.sendContractCall).mock.calls.length > 0) throw new Error("index down");
+      return false;
+    });
+
+    const outcome = await send(decisions);
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(outcome.sent).toHaveLength(5);
+    expect(outcome.stale).toEqual([]);
+    expect(outcome.notSent).toEqual([decisions[5].draft.workUID]);
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "index down" }));
+  });
+
+  it("refuses a decision from another garden before it reads or signs anything", async () => {
+    const { sender, decide, chain, send } = setup();
+    const foreign = { ...decide(), gardenAddress: address() };
+
+    await expect(send([decide(), foreign])).rejects.toThrow("review-garden-mismatch");
+
+    expect(chain.isDecided).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("keeps an earlier group sent when a later one is declined", async () => {
     const { sender, decide, landed, send } = setup();
     const decisions = Array.from({ length: 6 }, () => decide());
@@ -328,6 +375,24 @@ describe("holding reviews whose outcome is unknown", () => {
       ],
     });
     await expect(readReviewHold(context.input)).resolves.toEqual({ hold: null, saved: [] });
+  });
+
+  it("keeps the hash when another tab ended it, so the decision stays on screen", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    const { hold } = await readReviewHold(context.input);
+    context.landed(decision);
+    context.sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
+    await readReviewHold(context.input);
+
+    const { saved } = await readReviewHold(context.input, hold);
+
+    expect(saved).toEqual([
+      expect.objectContaining({
+        workUID: decision.draft.workUID.toLowerCase(),
+        transactionHash: hash,
+      }),
+    ]);
   });
 
   it("frees the work when the person moves on from what they saw", async () => {

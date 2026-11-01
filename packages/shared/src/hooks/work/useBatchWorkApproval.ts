@@ -28,6 +28,7 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useHeldBatches } from "../garden/useHeldBatches";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 type OverlayPatch = Partial<OverlayWork>;
@@ -122,8 +123,7 @@ export function useBatchWorkApproval(gardenId: string) {
     });
 
   const sendKey = batchKeys.reviewSend(account ?? "", chainId);
-  const sending = useIsMutating({ mutationKey: sendKey }) > 0;
-  const send = useMutation({
+  const sendMutation = useMutation({
     mutationKey: sendKey,
     onMutate: async (decisions: readonly ReviewDecision[]) => {
       await queryClient.cancelQueries({ queryKey: holdKey });
@@ -195,6 +195,10 @@ export function useBatchWorkApproval(gardenId: string) {
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
   });
+  // The lock a single review shares. It hands a second caller the first call's promise, so anything
+  // that isn't that same send has to check `isSending` before it starts.
+  const send = useSafeMutation(sendMutation, "approval");
+  const sending = useIsMutating({ mutationKey: sendKey }) > 0 || send.isPending;
 
   const held = useHeldBatches<ReviewHold, ProvenReview>({
     domain,

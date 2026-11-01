@@ -9,6 +9,7 @@ import { encodeAbiParameters, encodeEventTopics, type Hex, type Log, parseAbi, t
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getEASConfig } from "../../../config/blockchain";
 import { worksKeys } from "../../../config/query-keys/work";
+import { useMutationLock } from "../../../hooks/utils/useMutationLock";
 import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 import type { BatchExecution } from "../../../modules/transactions/batch-types";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
@@ -212,6 +213,47 @@ describe("useBatchWorkApproval", () => {
     // A proven decision outranks the indexer until the indexer reports it.
     expect(workOf(yes)?._pendingUntilMs).toBeUndefined();
     expect(toasts.success).toHaveBeenCalledOnce();
+  });
+
+  it("treats two quick presses as one send, since they share the approval lock", async () => {
+    const { decide, landed, listWorks, render, sender, workOf } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const { result } = render();
+
+    let outcomes: Awaited<ReturnType<typeof result.current.send>>[] = [];
+    await act(async () => {
+      outcomes = await Promise.all([
+        result.current.send([decision]),
+        result.current.send([decision]),
+      ]);
+    });
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // Refused by the journal instead, the second press would let go of the first's decision.
+    expect(outcomes[1]).toBe(outcomes[0]);
+    expect(workOf(decision)).toMatchObject({ status: "approved", _txHash: hash });
+  });
+
+  it("counts as sending while a single review holds the approval lock", async () => {
+    const { garden, queryClient } = setup();
+    let release = () => {};
+    const { result } = renderHookWithProviders(
+      () => ({ batch: useBatchWorkApproval(garden), lock: useMutationLock("approval") }),
+      { queryClient }
+    );
+    expect(result.current.batch.isSending).toBe(false);
+
+    act(() => {
+      void result.current.lock.runWithLock(
+        () => new Promise<void>((resolve) => (release = resolve))
+      );
+    });
+    await waitFor(() => expect(result.current.batch.isSending).toBe(true));
+
+    await act(async () => release());
+    await waitFor(() => expect(result.current.batch.isSending).toBe(false));
   });
 
   it("doesn't take the resolver's own attestation as the decision", async () => {

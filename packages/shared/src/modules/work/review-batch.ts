@@ -171,6 +171,10 @@ export async function sendReviewBatch(
   }
 ): Promise<ReviewBatchOutcome> {
   const { batches, scope, gardenAddress, chain, rail, onLanded } = input;
+  // One garden's journal and lists hold this send, so another garden's work can't ride in it.
+  if (input.decisions.some((decision) => !same(decision.gardenAddress, gardenAddress))) {
+    throw new Error("review-garden-mismatch");
+  }
   const decisions = [
     ...new Map(
       input.decisions.map((decision) => [itemId(decision.draft.workUID), decision])
@@ -224,6 +228,7 @@ export async function sendReviewBatch(
 
   for (const [index, group] of groups.entries()) {
     const remaining = uids(groups.slice(index).flat());
+    let decidedSince: string[] = [];
     try {
       const prepared = prepareReviewBatch({
         ...scope,
@@ -234,9 +239,14 @@ export async function sendReviewBatch(
       });
       const attestationUIDs = new Map<string, Hex>();
       const record = await batches.execute(prepared, {
-        // A role or an action's end can pass while a list is open, and the last signature may be a
-        // while ago.
+        // A role, an action's end, or another steward's decision can pass while a list is open. The
+        // resolver allows a later decision, so only a read can catch that one.
         preflight: async () => {
+          const decided = await Promise.all(
+            group.map(({ draft }) => chain.isDecided(draft.workUID))
+          );
+          decidedSince = uids(group.filter((_, member) => decided[member]));
+          if (decidedSince.length > 0) throw new Error("review-decided-since");
           const reason = await chain.refusal(reviewCall(group, scope.chainId), scope.account);
           if (reason) throw new Error(reason);
         },
@@ -258,6 +268,10 @@ export async function sendReviewBatch(
       }
       return { ...outcome, notSent: remaining };
     } catch (error) {
+      if (decidedSince.length > 0) {
+        const notSent = remaining.filter((workUID) => !decidedSince.includes(workUID));
+        return { ...outcome, stale: decidedSince, notSent };
+      }
       if (error instanceof Error && NOT_BATCHABLE.has(error.message)) {
         return { ...outcome, notBatchable: remaining };
       }
@@ -276,7 +290,7 @@ export interface ReviewHold {
   onChain: { workUID: string; decided: boolean }[];
 }
 
-/** A decision a read proved landed. The hash comes only from the tab that ended it. */
+/** A decision a read proved landed, with the hash that keeps it on screen until it's indexed. */
 export interface ProvenReview {
   workUID: string;
   attestationUID?: Hex;
@@ -290,7 +304,7 @@ async function settleOpenReviews(
 ): Promise<{ hold: ReviewHold | null; saved: ProvenReview[] }> {
   const { batches, scope, gardenAddress, chain } = input;
   const attestationUIDs = new Map<string, Hex>();
-  const { held, ended, endedHere } = await settleOpenBatches({
+  const { held, ended } = await settleOpenBatches({
     batches,
     scope,
     domain: reviewDomain(gardenAddress),
@@ -299,14 +313,13 @@ async function settleOpenReviews(
     shownIds: options.shown?.operationIds,
     onlyShown: options.onlyShown,
   });
-  const saved = ended.flatMap((record) => {
-    const here = endedHere.includes(record);
-    return provenItems(record).map(({ id }) => ({
+  const saved = ended.flatMap((record) =>
+    provenItems(record).map(({ id }) => ({
       workUID: id,
       attestationUID: attestationUIDs.get(id),
-      transactionHash: here ? record.receipts[0]?.transactionHash : undefined,
-    }));
-  });
+      transactionHash: record.receipts[0]?.transactionHash,
+    }))
+  );
   const workUIDs = held.flatMap((record) => record.prepared.items.map(({ id }) => id));
   if (workUIDs.length === 0) return { hold: null, saved };
 
