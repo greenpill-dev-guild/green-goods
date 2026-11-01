@@ -210,18 +210,16 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
-  it("links Fund payout jar to the route-backed payouts surface", () => {
+  it("opens Fund Cookie Jar over the tab it was pressed from (DL-140)", () => {
     const navigate = vi.fn();
-    buildCommunityViewActions("payouts", true, true, true, navigate, {
+    buildCommunityViewActions("endowment", true, true, true, navigate, {
       gardenAddress: GARDEN,
     })
       .find((action) => action.id === "fund-payout-jar")
       ?.onClick();
 
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/payouts");
-    expect(navigate.mock.calls[0]?.[0]).toContain("item=fund-jar");
-    expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+    expect(navigate).toHaveBeenCalledWith(`/community/endowment?gardenId=${GARDEN}&item=fund-jar`);
   });
 
   it("keeps Fund Cookie Jar in place but disabled, with its reason, for a garden with no jar", () => {
