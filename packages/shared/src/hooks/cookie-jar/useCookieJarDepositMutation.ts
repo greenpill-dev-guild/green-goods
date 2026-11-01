@@ -5,14 +5,16 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
+import { requireConfirmed } from "../../modules/transactions/confirmation";
 import type { CookieJarDepositParams } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useContractTxSender } from "../blockchain/useContractTxSender";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
@@ -47,7 +49,7 @@ export function useCookieJarDepositMutation({
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source,
     toastContext,
@@ -67,9 +69,17 @@ export function useCookieJarDepositMutation({
     }, [queryClient, chainId, primaryAddress]),
     INDEXER_LAG_SCHEDULE_MS
   );
+  const refreshJar = (jarAddress: Address) => {
+    lastDepositRef.current = { jarAddress, invalidationKeys };
+    invalidationKeys(jarAddress, chainId, primaryAddress ?? undefined).forEach((queryKey) =>
+      queryClient.invalidateQueries({ queryKey })
+    );
+    scheduleFollowUp();
+  };
 
   const mutation = useMutation({
     mutationFn: async (params: CookieJarDepositParams) => {
+      if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
@@ -110,12 +120,15 @@ export function useCookieJarDepositMutation({
       }
 
       if (allowance < params.amount) {
-        await sendContractTx({
-          address: params.assetAddress,
-          abi: ERC20_ALLOWANCE_ABI,
-          functionName: "approve",
-          args: [params.jarAddress, params.amount],
-        });
+        requireConfirmed(
+          await sender.sendContractCall({
+            address: params.assetAddress,
+            abi: ERC20_ALLOWANCE_ABI,
+            functionName: "approve",
+            args: [params.jarAddress, params.amount],
+            chainId,
+          })
+        );
       }
 
       // Update toast to reflect deposit phase
@@ -127,12 +140,14 @@ export function useCookieJarDepositMutation({
         });
       }
 
-      return sendContractTx({
+      const result = await sender.sendContractCall({
         address: params.jarAddress,
         abi: COOKIE_JAR_ABI,
         functionName: "deposit",
         args: [params.amount],
+        chainId,
       });
+      return requireConfirmed(result).hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -149,14 +164,23 @@ export function useCookieJarDepositMutation({
         message: formatMessage({ id: "app.cookieJar.depositSuccess" }),
       });
 
-      lastDepositRef.current = { jarAddress: _params.jarAddress, invalidationKeys };
-      invalidationKeys(_params.jarAddress, chainId, primaryAddress ?? undefined).forEach(
-        (queryKey) => queryClient.invalidateQueries({ queryKey })
-      );
-      scheduleFollowUp();
+      refreshJar(_params.jarAddress);
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      if (isUnconfirmedTxError(error)) {
+        if (showErrorToast) {
+          toastService.info({
+            title: formatMessage({ id: "app.txFeedback.unconfirmed.title" }),
+            message: formatMessage({ id: "app.txFeedback.unconfirmed.message" }),
+            context: toastContext,
+            suppressLogging: true,
+          });
+        }
+        // It may have landed, so the balances are worth reading again.
+        refreshJar(params.jarAddress);
+        return;
+      }
       handleError(error, {
         metadata: {
           ...metadata,

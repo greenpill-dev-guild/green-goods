@@ -23,7 +23,7 @@ import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
-import { commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
@@ -301,6 +301,7 @@ export function GardenCommitment() {
           viewer={controller.viewer}
           stewards={stewards}
           serviceBand={service.band}
+          serviceTakes={service.takes}
           rewardsBelow={service.rewards}
         />
         {service.body}
@@ -363,6 +364,12 @@ export function GardenCommitment() {
           commitment={commitment}
           requirements={requirements}
           delivery={service.delivery}
+          addProof={addProofReach(
+            // The bar's own act, or the one beside required work; a service's own bar has neither.
+            service.bar ? null : selectedAct,
+            controller.seat,
+            controller.takeUpOpen
+          )}
           onPhone={
             controller.queue.proofOnItsWay
               ? {
@@ -477,6 +484,7 @@ export function GardenCommitment() {
       serviceKey={serviceKey}
       access={serviceAccess}
       coreState={commitment.derivedState}
+      creator={commitment.creator}
       gardenName={controller.roles.garden?.name ?? ""}
       heading={heading}
       hasCoreAct={Boolean(act)}

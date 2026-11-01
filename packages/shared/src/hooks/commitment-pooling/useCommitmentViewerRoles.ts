@@ -33,8 +33,8 @@ const NO_GARDENS: Garden[] = [];
 /**
  * Whether the indexed roster names the viewer in any of the six roles. The
  * contract counts every hat (`GuardLib.isGardenMember`), so evaluators, owners,
- * funders and community members are members too. Read directly, without
- * `isGardenMember`'s cleanup, so a stale roster never erases a fresh join.
+ * funders and community members are members too. Read directly, since
+ * `isGardenMember` reads only gardeners and stewards.
  */
 function rosterListsViewer(viewer: Address | null | undefined, garden: Garden): boolean {
   return [

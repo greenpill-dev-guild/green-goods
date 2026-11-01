@@ -47,15 +47,22 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useServiceIssuerApproval: () => state.approval,
 }));
 
+const SERVICES_ROW = "Vouchers you hold and services you offer.";
+
 describe("Profile service asset composition", () => {
   it("leaves an empty production catalog unavailable without starting an issuer read", () => {
     state.routes = [];
     state.drafts.mockReturnValue({ data: { status: "unavailable" } });
     state.operations.mockClear();
     renderWithProviders(<ServiceAssets />);
-    expect(screen.getByText(/No verified service assets are available yet/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 5, name: "Your Services" })).toBeInTheDocument();
+    const row = screen
+      .getByText(/No verified service assets are available yet/)
+      .closest('[data-component="FactRow"]');
+    expect(row).toHaveTextContent("Vouchers you hold and services you offer.");
+    expect(row).toHaveAttribute("data-kind", "setting");
     expect(state.operations).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText("Service Asset")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("offers only the signed-in member's own drafts, approved by their own signature", async () => {
@@ -73,10 +80,14 @@ describe("Profile service asset composition", () => {
     state.approval.approve.mutateAsync.mockResolvedValue(undefined);
     renderWithProviders(<ServiceAssets />);
     expect(state.drafts).toHaveBeenCalledWith(ISSUER_STORY_ADDRESS);
-    const select = screen.getByLabelText("Service Asset");
+    const select = screen.getByRole("combobox", { name: SERVICES_ROW });
+    expect(select.closest(".gg-fact-action")).not.toBeNull();
     expect(within(select).getAllByRole("option")).toHaveLength(2);
     await userEvent.selectOptions(select, "draft:7");
-    await userEvent.click(screen.getByRole("button", { name: "Review and Approve" }));
+    // The chosen draft opens under the row, in the same frame.
+    const review = screen.getByRole("button", { name: "Review and Approve" });
+    expect(select.closest('[data-component="ServiceAssets"]')).toContainElement(review);
+    await userEvent.click(review);
     const sheet = within(screen.getByRole("dialog"));
     await userEvent.click(sheet.getByRole("checkbox"));
     await userEvent.click(sheet.getByRole("button", { name: "Approve My Service" }));
@@ -97,7 +108,7 @@ describe("Profile service asset composition", () => {
     state.operations.mockClear();
     const view = renderWithProviders(<ServiceAssets />);
     expect(state.operations).not.toHaveBeenCalled();
-    await userEvent.selectOptions(screen.getByLabelText("Service Asset"), "0:0");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: SERVICES_ROW }), "0:0");
     expect(state.operations).toHaveBeenLastCalledWith({
       address: ISSUER_STORY_ADDRESS,
       routeId: "fictional-story",

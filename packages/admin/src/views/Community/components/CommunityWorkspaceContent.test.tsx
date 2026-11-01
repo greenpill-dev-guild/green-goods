@@ -22,6 +22,9 @@ vi.mock("./CommunityPools", () => ({
     </>
   ),
 }));
+vi.mock("./CommunityMembersDialogs", () => ({
+  CommunityMembersDialogs: () => <div data-testid="member-dialogs" />,
+}));
 vi.mock("./CommunityMembersTab", () => ({
   CommunityMembersTab: (props: object) => (
     <div data-testid="members">{Object.keys(props).sort().join(",")}</div>
@@ -118,6 +121,13 @@ describe("CommunityWorkspaceContent", () => {
 
     renderWorkspace({ communityLoading: true });
     expect(screen.getByText("loading:members")).toBeInTheDocument();
+  });
+
+  it("keeps the member dialogs mounted while a tab loads, so an open one survives it (DL-140)", () => {
+    renderWorkspace({ mode: "endowment", vaultsLoading: true });
+
+    expect(screen.getByText("loading:endowment")).toBeInTheDocument();
+    expect(screen.getByTestId("member-dialogs")).toBeInTheDocument();
   });
 
   it.each([

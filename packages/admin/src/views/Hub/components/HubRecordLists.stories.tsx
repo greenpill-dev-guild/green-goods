@@ -80,7 +80,7 @@ const meta: Meta<typeof HubAssessmentList> = {
     isLoading: false,
     hasDataError: false,
     searchQuery: "",
-    createHref: "/hub/assess/create",
+    createHref: "/hub/assess?item=create-assessment",
     selectedAssessmentId: undefined,
     onClearSearch: fn(),
     onOpenAssessment: fn(),
@@ -121,7 +121,7 @@ const hypercertArgs = {
   isLoading: false,
   hasDataError: false,
   searchQuery: "",
-  createHref: "/hub/certify/create",
+  createHref: "/hub/certify?item=create-hypercert",
   onClearSearch: fn(),
   onOpenHypercert: fn(),
 };

@@ -88,26 +88,28 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("secondary");
   });
 
-  it("drops list sort state when opening Hub creation flows", () => {
+  it.each([
+    "work",
+    "confirm",
+    "assess",
+    "certify",
+  ] as const)("opens each flow over %s, keeping its sort and scope (DL-140)", (stage) => {
     const navigate = vi.fn();
-    const actions = buildHubViewActions("work", true, true, navigate, {
+    const actions = buildHubViewActions(stage, true, true, navigate, {
       gardenAddress: GARDEN,
-      sort: "newest",
+      sort: "oldest",
+      scope: "approved",
     });
 
     for (const id of ["submit-work", "create-assessment", "create-hypercert"]) {
       actions.find((action) => action.id === id)?.onClick();
     }
 
-    expect(navigate).toHaveBeenCalledTimes(3);
-    for (const [target] of navigate.mock.calls) {
-      expect(target).toContain(GARDEN);
-      expect(target).not.toContain("sort=");
-    }
-    expect(navigate.mock.calls.map(([target]) => target.split("?")[0])).toEqual([
-      "/hub/work/submit",
-      "/hub/assess/create",
-      "/hub/certify/create",
+    const stageUrl = `/hub/${stage}?gardenId=${GARDEN}&sort=oldest&scope=approved`;
+    expect(navigate.mock.calls.map(([target]) => target)).toEqual([
+      `${stageUrl}&item=submit-work`,
+      `${stageUrl}&item=create-assessment`,
+      `${stageUrl}&item=create-hypercert`,
     ]);
   });
 });
@@ -133,6 +135,21 @@ describe("buildGardenViewActions — fixed primary", () => {
     for (const view of GARDEN_VIEWS) {
       expect(buildFor(view).some((action) => action.id === "edit-domains")).toBe(false);
     }
+  });
+
+  it("opens Edit Garden over the view it was pressed from, keeping its context (DL-140)", () => {
+    const navigate = vi.fn();
+    buildGardenViewActions("impact", true, true, navigate, {
+      gardenAddress: GARDEN,
+      range: "90d",
+      section: "hypercerts",
+    })
+      .find((action) => action.id === "edit-garden")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledWith(
+      `/garden/impact?gardenId=${GARDEN}&range=90d&section=hypercerts&item=edit-garden`
+    );
   });
 
   it("dropped the header add-member action — membership is community-owned", () => {
@@ -193,8 +210,18 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate).toHaveBeenCalledTimes(1);
     // Community owns membership — the flow must stay under /community so the
     // NavigationBar tab does not flip to Garden while the dialog is open.
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
-    expect(navigate.mock.calls[0]?.[0]).toContain("item=add-member");
+    expect(navigate).toHaveBeenCalledWith(`/community/members?gardenId=${GARDEN}&item=add-member`);
+  });
+
+  it("opens Add Member over the tab it was pressed from (DL-140)", () => {
+    const navigate = vi.fn();
+    buildCommunityViewActions("payouts", true, true, true, navigate, {
+      gardenAddress: GARDEN,
+    })
+      .find((action) => action.id === "add-member")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledWith(`/community/payouts?gardenId=${GARDEN}&item=add-member`);
   });
 
   it("links Deposit / withdraw to the route-backed endowment vault surface", () => {

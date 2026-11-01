@@ -3,14 +3,14 @@ import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
 import { formatAssetAmounts } from "../../../utils/blockchain/vaults";
 import { parseGardenRange } from "../../../utils/garden-detail";
-import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { adminRoutes, EDIT_GARDEN_ROUTE_ITEM } from "../../../utils/navigation/admin-routes";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { useGardenDetailData } from "../../garden/useGardenDetailData";
 import { useGardenMaxGardeners } from "../../garden/useGardenMaxGardeners";
 import { useKarmaIntegration } from "../../garden/useKarmaIntegration";
 import { useEffectiveToolbarPermissions } from "../../roles/useEffectiveToolbarPermissions";
-import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
+import { useCanvasSearchParams, useRouteItemClose } from "../../navigation/useCanvasSearchParams";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { useSheetWidth } from "../../useSheetWidth";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,12 +49,15 @@ export function useGardenWorkspaceController() {
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
 
   const view = resolveGardenView(location.pathname);
-  const settingsOpen = location.pathname.startsWith("/garden/settings");
   // The seeding console is a route-backed dialog over the Pool tab (§6.3).
   const poolSeedOpen = location.pathname.startsWith("/garden/pool/seed");
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
+  const settingsOpen = selectedItem === EDIT_GARDEN_ROUTE_ITEM;
+  const handleSettingsClose = useRouteItemClose(settingsOpen);
+  // As the URL has it, so pressing Edit Garden adds no range of its own.
+  const rangeParam = searchParams.get("range") ?? undefined;
 
   useEffect(() => {
     if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
@@ -127,13 +130,16 @@ export function useGardenWorkspaceController() {
     () =>
       buildGardenViewActions(view, canManage, Boolean(selectedGarden), navigate, {
         gardenAddress: selectedGardenAddress,
+        range: rangeParam,
+        section,
       }),
-    [canManage, navigate, selectedGarden, selectedGardenAddress, view]
+    [canManage, navigate, rangeParam, section, selectedGarden, selectedGardenAddress, view]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
-    blocked: Boolean(hypercertId) || Boolean(poolCommitmentId) || settingsOpen || poolSeedOpen,
+    // Edit Garden stays out of this: its button stays on the page to take focus back.
+    blocked: Boolean(hypercertId) || Boolean(poolCommitmentId) || poolSeedOpen,
   });
 
   const openSection = useCallback(
@@ -250,11 +256,6 @@ export function useGardenWorkspaceController() {
         navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range }));
       }
     },
-    [navigate, range, selectedGardenAddress]
-  );
-
-  const handleSettingsClose = useCallback(
-    () => navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range })),
     [navigate, range, selectedGardenAddress]
   );
 

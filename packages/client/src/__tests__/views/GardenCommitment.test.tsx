@@ -133,6 +133,9 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
 }));
 
 const { GardenCommitment } = await import("../../views/Home/Garden/Commitment");
+const { isCommitmentCreator, selectCommitmentActKind, selectCommitmentSeat } = await import(
+  "@green-goods/shared/commitment-pooling"
+);
 const { serviceAccessStorySnapshot } = await import(
   "../../views/Home/Garden/Commitment/serviceAccessStoryFixtures"
 );
@@ -571,6 +574,96 @@ describe("GardenCommitment", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
+  });
+
+  describe("a creator's proof (DL-151)", () => {
+    const PROOF_MOVES_IT = "No proof added yet. Proof is what moves this forward.";
+    /** The page as the controller reads this record, through the real seat and act rules. */
+    const open = (overrides: Partial<CommitmentReadModel>, takeUpOpen = false) => {
+      const record = commitment({ commitmentType: "SUPPORT_SERVICE", ...overrides });
+      const seat = selectCommitmentSeat({ commitment: record, contributors: [], viewer: VIEWER });
+      const actKind = selectCommitmentActKind({
+        commitment: record,
+        seat,
+        isCreator: isCommitmentCreator({ commitment: record, viewer: VIEWER }),
+      });
+      mockUseController.mockReturnValue(
+        controller({
+          detail: detail({ commitment: record }),
+          seat,
+          actKind,
+          linkable: false,
+          takeUpOpen,
+        })
+      );
+      render();
+    };
+    const untakenOffer = {
+      direction: "OFFER",
+      creator: VIEWER,
+      leadProvider: null,
+      counterparty: null,
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+    } as const;
+    const progress = () => screen.getByRole("region", { name: "Progress and proof" });
+
+    it("leads with Add Proof when the creator is the provider and proof can land", () => {
+      open({ direction: "OFFER", creator: VIEWER, leadProvider: VIEWER, counterparty: OTHER });
+
+      expect(screen.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBar"
+      );
+      expect(progress()).toHaveTextContent(PROOF_MOVES_IT);
+    });
+
+    it("offers a creator who is not the provider no proof, and no line that asks for any", () => {
+      open({ direction: "REQUEST", creator: VIEWER, leadProvider: OTHER, counterparty: OTHER });
+
+      expect(screen.queryByRole("button", { name: "Add Proof" })).not.toBeInTheDocument();
+      expect(progress()).toHaveTextContent("No proof added yet.");
+      expect(progress()).not.toHaveTextContent("Proof is what moves this forward");
+    });
+
+    it("promises no proof on an offer past due, which nobody can take up any more", () => {
+      open(untakenOffer, false);
+
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+      expect(progress()).toHaveTextContent("No proof added yet.");
+      expect(progress()).not.toHaveTextContent("once someone takes this up");
+    });
+
+    it("keeps Withdraw before anyone takes it up, when the chain takes no proof", () => {
+      open(untakenOffer, true);
+
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBar"
+      );
+      expect(screen.queryByRole("button", { name: "Add Proof" })).not.toBeInTheDocument();
+      expect(progress()).toHaveTextContent(
+        "No proof added yet. You can add it once someone takes this up."
+      );
+      expect(progress()).not.toHaveTextContent("Proof is what moves this forward");
+    });
+
+    it("says it beside required work too, where Add Proof sits second", () => {
+      mockUseController.mockReturnValue(
+        controller({ detail: detail({ commitment: { commitmentType: "DOMAIN_IMPACT" } }) })
+      );
+      render();
+
+      expect(screen.getByRole("button", { name: "Link Work" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBar"
+      );
+      expect(screen.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBarSecondary"
+      );
+      expect(progress()).toHaveTextContent(PROOF_MOVES_IT);
+    });
   });
 
   it("names the reward among what was promised, so it stays in sight after taking one up", () => {
@@ -1636,6 +1729,102 @@ describe("a voucher booking on the promise page", () => {
     );
     expect(document.querySelector('[data-component="JoinToAct"][data-mode="door"]')).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+  });
+
+  describe("the same offer, read by a buyer and by the person who made it", () => {
+    const OPEN_FOR_BOOKING = "Open for booking. Nothing moves until you agree to the exact terms.";
+    const OWN_OFFER = "Neighbors can take this up. You can withdraw it until someone does.";
+
+    function creatorPage(
+      coreState: Parameters<typeof bookingStoryController>[1] = "OFFERED",
+      actKind: GardenCommitmentController["actKind"] = "withdraw"
+    ): GardenCommitmentController {
+      const page = bookingStoryController("hubDay", coreState);
+      return { ...page, viewer: page.detail!.commitment.creator!, seat: "provider", actKind };
+    }
+
+    it("offers a buyer the booking", () => {
+      show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"));
+      expect(screen.getByText(OPEN_FOR_BOOKING)).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Review and Redeem" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check Status" })).toBeInTheDocument();
+      expect(screen.queryByText("Takes")).not.toBeInTheDocument();
+    });
+
+    it("shows a buyer who holds too few vouchers the way to get more", () => {
+      show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"), {
+        techAndSun: 0,
+        greenGoods: 0,
+      });
+      expect(screen.getByText("You hold 0 Tech and Sun vouchers.")).toBeInTheDocument();
+    });
+
+    it.each([
+      { holding: "enough vouchers", techAndSun: 9 },
+      { holding: "no vouchers", techAndSun: 0 },
+    ])("tells its creator holding $holding what it takes and leaves them their own act", ({
+      techAndSun,
+    }) => {
+      show(bookingStorySnapshot("hubDay", "open"), creatorPage(), { techAndSun, greenGoods: 0 });
+      expect(screen.getByText(OWN_OFFER)).toBeInTheDocument();
+      expect(screen.queryByText(OPEN_FOR_BOOKING)).not.toBeInTheDocument();
+      const promised = within(screen.getByRole("region", { name: "What was promised" }));
+      expect(promised.getByText("Takes")).toBeInTheDocument();
+      expect(promised.getByText("1 Tech and Sun voucher")).toBeInTheDocument();
+      expect(screen.queryByText(/^You hold/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Service Access" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Review and Redeem" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Check Status" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+    });
+
+    it.each([
+      { state: "ACTIVE", actKind: "addProof", sentence: /^Add proof as you go/, act: "Add Proof" },
+      {
+        state: "CANCELLED",
+        actKind: "offerAgain",
+        sentence: /^It has left the pool/,
+        act: "Offer It Again",
+      },
+    ] as const)("keeps the promise's own sentence and act for its creator when $state", ({
+      state,
+      actKind,
+      sentence,
+      act,
+    }) => {
+      show(bookingStorySnapshot("hubDay", "open"), creatorPage(state, actKind));
+      expect(screen.getByText(sentence)).toBeInTheDocument();
+      expect(screen.queryByText(OPEN_FOR_BOOKING)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: act })).toBeInTheDocument();
+    });
+
+    it("tells its creator when nobody can take it up, and leaves them Withdraw", () => {
+      const offer = bookingStorySnapshot("hubDay", "open");
+      show({ ...offer, pause: { ...offer.pause, sourceVoucher: true } }, creatorPage());
+      expect(
+        screen.getByText(
+          "New bookings are paused, so nobody can take this up for now. You can still withdraw it."
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(OWN_OFFER)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+    });
+
+    it("keeps a reward's section for its creator, without asking them to agree to it", () => {
+      show(
+        withReviewedReward(bookingStorySnapshot("hubDay", "open"), `0x${"c".repeat(64)}`),
+        creatorPage()
+      );
+      expect(screen.getByRole("region", { name: "Rewards" })).toBeInTheDocument();
+      expect(screen.getByText(OWN_OFFER)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Agree to the Rewards" })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Check Status" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+    });
   });
 
   it("asks a short pool for a smaller exchange, not the same quote again", async () => {
