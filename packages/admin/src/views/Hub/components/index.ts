@@ -3,6 +3,7 @@ export { CookieJarPayoutPanel } from "./CookieJarPayoutPanel";
 export { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
 export { HubAssessmentInspector } from "./HubAssessmentInspector";
 export { HubAssessmentList, HubHypercertList } from "./HubRecordLists";
+export { HubFlowDialogs } from "./HubFlowDialogs";
 export { HubSheetDescriptor } from "./HubSheetDescriptor";
 export { HubStageContent } from "./HubStageContent";
 export { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";

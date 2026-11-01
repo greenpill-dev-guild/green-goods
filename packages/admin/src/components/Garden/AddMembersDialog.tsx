@@ -15,6 +15,7 @@ import {
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { RiAddLine, RiClipboardLine } from "@remixicon/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
@@ -22,17 +23,16 @@ import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { AddMembersEntryStatus } from "./AddMembersEntryStatus";
 import {
+  addMembersSubmitLabel,
   buildRolesByAddress,
   canStage,
   checkEntry,
   memberListKey,
   memberRowKey,
   type StagedMember,
-  sharedRole,
 } from "./addMembersEntry";
 import { runAddMembers, stagedAfterRead } from "./addMembersRun";
 import { BatchHoldAlert } from "./BatchHoldAlert";
-import { getRoleLabel } from "./gardenUtils";
 import { StagedMemberList } from "./StagedMemberList";
 
 export interface AddMembersDialogProps {
@@ -53,6 +53,8 @@ export interface AddMembersDialogProps {
   initialAddress?: Address;
   /** Disables inputs while the hosting view runs an unrelated write. */
   isLoading?: boolean;
+  /** A route item opened it, so the router guards its draft: browser Back asks before dropping it. */
+  closesByRoute?: boolean;
   tone?: AdminDialogProps["tone"];
 }
 
@@ -73,6 +75,7 @@ export function AddMembersDialog({
   roleMembers,
   initialAddress,
   isLoading = false,
+  closesByRoute = false,
   tone,
 }: AddMembersDialogProps) {
   const intl = useIntl();
@@ -282,8 +285,7 @@ export function AddMembersDialog({
         setOverCeilings(memberListKey(run.remaining));
         setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }));
       } else if (run.remaining.length === 0 && !hold) {
-        resetDraft();
-        onClose();
+        closeAndReset();
       }
     } catch (err) {
       logger.error("Failed to add members", { error: err, gardenAddress });
@@ -310,35 +312,29 @@ export function AddMembersDialog({
       : sendable;
   const batchRoles = batchRows.map((entry) => entry.role);
   const batchCount = batchRoles.length;
-  // The button names the role when every row shares it; an empty list names
-  // the role the picker would add.
-  const batchRole = batchCount === 0 ? selectedRole : sharedRole(batchRoles);
-  const submitLabel = batchRole
-    ? formatMessage(
-        { id: "admin.addMember.addCountRole" },
-        { count: batchCount, ...getRoleLabel(batchRole, formatMessage) }
-      )
-    : formatMessage(
-        {
-          id: "admin.addMember.addCount",
-          defaultMessage: "{count, plural, one {Add # Member} other {Add # Members}}",
-        },
-        { count: batchCount }
-      );
+  const submitLabel = addMembersSubmitLabel(batchRoles, selectedRole, formatMessage);
   const signatureCount =
     batch?.available && memberListKey(batchRows) !== overCeilings
       ? batch.signaturesFor(batchCount)
       : batchCount;
   const closeAndReset = () => {
-    resetDraft();
+    // Commits the empty draft first, so a close by route change finds no guard armed.
+    flushSync(() => {
+      resetDraft();
+      setSubmitting(false);
+    });
     onClose();
   };
   // Confirm-before-discard: a staged batch (or typed input) is unsaved
   // steward input, so X/scrim/Escape confirm first. A prefilled person nobody
   // changed is not. The footer Cancel still exits directly per the dialog contract.
   const dirtyClose = useDirtyClose({
-    isDirty: sendable.length > 0 || (Boolean(trimmed) && trimmed !== (initialAddress ?? "")),
-    onClose: closeAndReset,
+    isDirty:
+      open && (sendable.length > 0 || (Boolean(trimmed) && trimmed !== (initialAddress ?? ""))),
+    onClose: closesByRoute ? onClose : closeAndReset,
+    blockRouteChange: closesByRoute,
+    preventRouteChange: closesByRoute && (submitResolving || submitting),
+    onDiscard: closesByRoute ? resetDraft : undefined,
   });
   const handleOpenChange = (next: boolean) => {
     if (next || busy) return;

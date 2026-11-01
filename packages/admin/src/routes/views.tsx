@@ -9,7 +9,11 @@ import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainCo
 import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import {
   adminRoutes,
+  CREATE_ASSESSMENT_ROUTE_ITEM,
+  CREATE_HYPERCERT_ROUTE_ITEM,
+  EDIT_GARDEN_ROUTE_ITEM,
   resolveCampaignCookieJarsRoute,
+  SUBMIT_WORK_ROUTE_ITEM,
 } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation, useParams } from "react-router-dom";
@@ -28,9 +32,6 @@ const communityView = lazyView(() => import("@/views/Community"));
 const actionsView = lazyView(() => import("@/views/Actions"));
 const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
-const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
-const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
-const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
 
 function RoleGateSkeleton() {
   return (
@@ -60,9 +61,12 @@ function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
 }
 
-function PreserveSearchRedirect({ pathname }: { pathname: string }) {
+/** Keeps the URL's search; `item` adds the route item of a dialog the old address opened. */
+function PreserveSearchRedirect({ pathname, item }: { pathname: string; item?: string }) {
   const location = useLocation();
-  return <Navigate to={{ pathname, search: location.search }} replace />;
+  const search = new URLSearchParams(location.search);
+  if (item) search.set("item", item);
+  return <Navigate to={{ pathname, search: search.toString() }} replace />;
 }
 
 /**
@@ -104,12 +108,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         element: <IndexRedirect kind="hub" />,
       },
       {
-        // Submit Work is a creation/commit flow — its own full surface
-        // (desktop full-screen dialog / mobile full-page route), not a Hub
-        // inspector sheet. Keep this flattened before /work/:workId so the
-        // static action route cannot be interpreted as a work id.
+        // The create flows are route items that open over the active stage now
+        // (DL-140); saved links open each over its own stage. Keep this flattened
+        // before /work/:workId so it cannot be interpreted as a work id.
         path: "work/submit",
-        lazy: submitWorkView,
+        element: <PreserveSearchRedirect pathname="/hub/work" item={SUBMIT_WORK_ROUTE_ITEM} />,
       },
       {
         path: "work",
@@ -126,7 +129,9 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         path: "assess/create",
-        lazy: createAssessmentView,
+        element: (
+          <PreserveSearchRedirect pathname="/hub/assess" item={CREATE_ASSESSMENT_ROUTE_ITEM} />
+        ),
       },
       {
         path: "assess",
@@ -143,7 +148,9 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         path: "certify/create",
-        lazy: createHypercertView,
+        element: (
+          <PreserveSearchRedirect pathname="/hub/certify" item={CREATE_HYPERCERT_ROUTE_ITEM} />
+        ),
       },
       {
         // Commitments waiting on a steward's confirmation (uiux-spec §6.9).
@@ -231,8 +238,9 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        // Edit Garden is a route item now (DL-140); saved links open it over Health.
         path: "settings",
-        lazy: gardenView,
+        element: <PreserveSearchRedirect pathname="/garden/health" item={EDIT_GARDEN_ROUTE_ITEM} />,
       },
       {
         // The steward's pool console (uiux-spec §6.2). The seeding console and

@@ -3,12 +3,15 @@ import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useGardens } from "../../blockchain/useBaseLists";
 import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useRouteItemClose } from "../../navigation/useCanvasSearchParams";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { HypercertCompletionData } from "../hypercerts/types";
 
 export function useCreateHypercertController() {
   const navigate = useNavigate();
+  // Mounted only while its route item is in the URL.
+  const closeFlow = useRouteItemClose(true);
   const { activeGarden, activeGardenId } = useAdminGardenContext();
   const { data: gardens = [] } = useGardens();
   const garden = useMemo(() => {
@@ -32,7 +35,9 @@ export function useCreateHypercertController() {
 
   const openMinted = useCallback(
     (data: HypercertCompletionData) =>
+      // Replaces the flow's entry, so Back from the record cannot reopen it.
       navigate(adminRoutes.gardenHypercertDetail(data.hypercertId, gardenRouteContext), {
+        replace: true,
         state: {
           // Shown at once while the indexer catches up with the mint.
           optimisticData: {
@@ -52,14 +57,13 @@ export function useCreateHypercertController() {
 
   const handleCancel = useCallback(() => {
     // A minted hypercert closes onto its record, as Done does. Any other close
-    // returns to the Hub the flow was launched from (parity with Submit Work),
-    // not the garden impact view: closing a Hub create flow must not jump tabs.
+    // returns to the stage the flow opened over (DL-140).
     if (minted) {
       openMinted(minted);
       return;
     }
-    navigate(adminRoutes.hub(gardenRouteContext));
-  }, [gardenRouteContext, minted, navigate, openMinted]);
+    closeFlow();
+  }, [closeFlow, minted, openMinted]);
 
   return {
     canManage,

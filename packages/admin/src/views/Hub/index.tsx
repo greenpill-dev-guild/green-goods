@@ -19,7 +19,7 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
-import { HubSheetDescriptor, HubStageContent } from "./components";
+import { HubFlowDialogs, HubSheetDescriptor, HubStageContent } from "./components";
 
 export default function HubView() {
   const { formatMessage } = useIntl();
@@ -63,6 +63,7 @@ export default function HubView() {
         onNavigateToBase={hub.navigateToHubBase}
         onBeforeClose={hub.handleCloseSheet}
       />
+      <HubFlowDialogs item={hub.routeItem} />
       {!hub.selectedGarden && !hub.routeWorkId && !hub.isSubmitRoute ? (
         <CanvasWorkspaceSelectionState
           workspaceLabel={formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })}
