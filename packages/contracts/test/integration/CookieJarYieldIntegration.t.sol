@@ -76,8 +76,8 @@ contract CookieJarYieldIntegrationTest is Test {
 
         // Deploy mocks
         hatsModule = new MockHatsModule();
-        wethJar = new MockCookieJar();
-        daiJar = new MockCookieJar();
+        wethJar = new MockCookieJar(address(weth));
+        daiJar = new MockCookieJar(address(dai));
         jbTerminal = new MockJBMultiTerminalForYield();
         cookieJarModule = new MockCookieJarModule();
 
@@ -179,6 +179,8 @@ contract CookieJarYieldIntegrationTest is Test {
 
         assertEq(weth.balanceOf(address(wethJar)), expectedWethJar, "WETH jar should receive correct amount");
         assertEq(dai.balanceOf(address(daiJar)), expectedDaiJar, "DAI jar should receive correct amount");
+        assertEq(wethJar.currencyHeldByJar(), expectedWethJar, "WETH jar should book its share");
+        assertEq(daiJar.currencyHeldByJar(), expectedDaiJar, "DAI jar should book its share");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

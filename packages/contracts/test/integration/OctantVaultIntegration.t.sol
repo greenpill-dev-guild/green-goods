@@ -14,6 +14,7 @@ import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MultistrategyVault } from "../../src/vendor/octant/core/MultistrategyVault.sol";
 import { MultistrategyVaultFactory } from "../../src/vendor/octant/factories/MultistrategyVaultFactory.sol";
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { MockCookieJar } from "../../src/mocks/YieldDeps.sol";
 import { IOctantVault } from "../../src/interfaces/IOctantFactory.sol";
 
 contract MockIntegratedGarden is MockGardenAccessControl {
@@ -386,7 +387,7 @@ contract RealVaultOctantIntegrationTest is Test {
 
         // Configure split destinations:
         // - Cookie Jar destination (receives ~48.65% of yield)
-        address cookieJar = address(0xC001);
+        address cookieJar = address(new MockCookieJar(address(weth)));
         yieldResolver.setCookieJar(address(garden), cookieJar);
         // - Treasury destination (receives juicebox portion as fallback since JB not configured)
         address treasury = address(0x7EA5);

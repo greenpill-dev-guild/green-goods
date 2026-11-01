@@ -506,7 +506,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
     {
         ysWeth = new MockWETHForBench();
         ysVault = new MockOctantVaultForYield(address(ysWeth));
-        MockCookieJar cookieJar = new MockCookieJar();
+        MockCookieJar cookieJar = new MockCookieJar(address(ysWeth));
         MockJBMultiTerminalForYield jbTerminal = new MockJBMultiTerminalForYield();
         MockHatsModuleForBench hatsModuleBench = new MockHatsModuleForBench();
 
