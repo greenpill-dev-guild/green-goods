@@ -19,27 +19,47 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
-export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Address }) {
+type JoinRequestsReadHandler = (kind: GardenJoinRequestKind, waiting: number) => void;
+
+export function CommunityJoinRequests({
+  gardenAddress,
+  onRead,
+}: {
+  gardenAddress: Address;
+  /** Told how many wait in a queue after each read, for the Members tab's badge (DL-134). */
+  onRead: JoinRequestsReadHandler;
+}) {
+  // Keyed by garden: one garden's check never stands for another garden's queue.
   return (
-    <>
-      <CommunityJoinRequestQueue gardenAddress={gardenAddress} kind="garden_membership" />
-      <CommunityJoinRequestQueue gardenAddress={gardenAddress} kind="steward_access" />
-    </>
+    <Fragment key={gardenAddress}>
+      <CommunityJoinRequestQueue
+        gardenAddress={gardenAddress}
+        kind="garden_membership"
+        onRead={onRead}
+      />
+      <CommunityJoinRequestQueue
+        gardenAddress={gardenAddress}
+        kind="steward_access"
+        onRead={onRead}
+      />
+    </Fragment>
   );
 }
 
 function CommunityJoinRequestQueue({
   gardenAddress,
   kind,
+  onRead,
 }: {
   gardenAddress: Address;
   kind: GardenJoinRequestKind;
+  onRead: JoinRequestsReadHandler;
 }) {
   const { formatDate, formatMessage } = useIntl();
   const stewardRequest = kind === "steward_access";
@@ -54,6 +74,13 @@ function CommunityJoinRequestQueue({
   const [notice, setNotice] = useState<string>();
   const [localError, setLocalError] = useState<string>();
   const error = join.queueState.error ?? join.mutationState.error;
+  const waiting = queue.length;
+
+  // Only a finished read can say how many wait. With another page left to load,
+  // this is how many the steward has seen so far.
+  useEffect(() => {
+    if (loaded) onRead(kind, waiting);
+  }, [kind, loaded, onRead, waiting]);
 
   async function load(cursor?: string) {
     await join

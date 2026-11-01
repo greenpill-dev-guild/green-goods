@@ -87,11 +87,17 @@ vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
 
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 
-function panel(props: { routeEditLimitJar?: Address } = {}) {
+type PanelProps = {
+  routeEditLimitJar?: Address;
+  allocationCount?: number;
+  allocationCountAtLeast?: boolean;
+};
+
+function panel(props: PanelProps = {}) {
   return <CookieJarPayoutPanel gardenAddress={GARDEN} gardenName="Riverbend Garden" {...props} />;
 }
 
-function renderPanel(props: { routeEditLimitJar?: Address } = {}) {
+function renderPanel(props: PanelProps = {}) {
   return renderWithProviders(panel(props));
 }
 
@@ -108,6 +114,19 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [plainJar];
     mocks.read = { ...FINISHED_READ };
     mocks.signer = { canSign: true, isResolved: true, owner: undefined };
+  });
+
+  it.each([
+    [{ allocationCount: 1 }, "1 payout"],
+    [{ allocationCount: 3 }, "3 payouts"],
+    // The history stops at its limit, so a full list is a lower bound.
+    [{ allocationCount: 20, allocationCountAtLeast: true }, "20+ payouts"],
+  ])("says the payout total in the panel's own header line (DL-134): %o", (props, line) => {
+    renderPanel(props);
+
+    expect(
+      screen.getByRole("heading", { name: "Cookie Jars" }).nextElementSibling
+    ).toHaveTextContent(new RegExp(`^${line.replace("+", "\\+")}$`));
   });
 
   it("lists each jar as a row that opens its operational page", async () => {
@@ -178,10 +197,18 @@ describe("CookieJarPayoutPanel", () => {
     reading.unmount();
 
     mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true, isPaused: true };
-    renderPanel();
+    const paused = renderPanel();
 
     expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
     expect(screen.getByText("Cookie jars need a connection")).toBeInTheDocument();
+    paused.unmount();
+
+    // A failed read keeps the fallback for good, so its row, Claim and limit editor stay away too.
+    mocks.read = { ...FINISHED_READ, hasDecimalsReadFailure: true };
+    renderPanel();
+
+    expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
+    expect(screen.getByText("Couldn't read this garden's cookie jars")).toBeInTheDocument();
   });
 
   it("stays loading while a jar read is pending but not yet fetching", () => {

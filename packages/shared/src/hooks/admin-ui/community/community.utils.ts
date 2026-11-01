@@ -9,6 +9,7 @@ import {
 import {
   type AdminCommunityRouteContext,
   adminRoutes,
+  FUND_JAR_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
@@ -132,10 +133,11 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 /**
  * Community view-level actions. The set is stable across Community tabs so
  * desktop button positions and the mobile FAB speed dial do not shift while
- * stewards move between Members, Coordination, Endowment, and Payouts.
+ * stewards move between Members, Coordination, Endowment, and Payouts. Only
+ * Fund Cookie Jar reads the active tab, to open its dialog over it (DL-140).
  */
 export function buildCommunityViewActions(
-  _mode: CommunityWorkspaceMode,
+  mode: CommunityWorkspaceMode,
   canManage: boolean,
   isOwner: boolean,
   hasSelectedGarden: boolean,
@@ -173,7 +175,9 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
       onClick: () =>
-        navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
+        navigate(
+          adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: FUND_JAR_ROUTE_ITEM })
+        ),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
       // Stays in place, disabled and saying why, rather than doing nothing (D10).
