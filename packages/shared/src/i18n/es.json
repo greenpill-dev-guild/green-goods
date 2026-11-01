@@ -2428,6 +2428,7 @@
   "app.garden.gardeners": "Jardineros",
   "app.garden.gardeners.noGardeners": "Aún no se han unido jardineros a este jardín.",
   "app.garden.gardeners.gardenerSince": "Jardinero desde el {date}",
+  "app.garden.gardeners.leave": "Para salir de este jardín, pide a un responsable como {stewards} que te retire.",
   "app.garden.insights": "Análisis",
   "app.garden.share": "Compartir jardín",
   "app.garden.shareFailed": "No se pudo compartir el jardín",
