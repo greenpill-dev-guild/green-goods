@@ -3999,6 +3999,7 @@
   "app.work.batch.sent": "{count, plural, one {# revisão enviada} other {# revisões enviadas}}",
   "app.work.batch.signatureStep": "Assinatura {step} de {total}",
   "app.work.batch.staged.hint": "Sai quando você enviar seu lote pelo Hub.",
+  "app.work.batch.unavailable": "Estas não podem ser enviadas agora. Tente de novo em breve, ou abra uma para removê-la.",
   "app.work.sendCancelled.title": "Envio cancelado",
   "app.work.sendCancelled.message": "Nada foi enviado. Está em Seu trabalho › Pendente, pronto para enviar ou descartar.",
   "app.work.detail.action": "Ação",

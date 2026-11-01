@@ -8,6 +8,7 @@ interface HubReviewBatchBarProps {
   gardenName?: string;
   batch: Pick<
     ReviewBatch,
+    | "available"
     | "approvals"
     | "rejections"
     | "signatures"
@@ -29,7 +30,7 @@ interface HubReviewBatchBarProps {
 export function HubReviewBatchBar({ gardenName, batch }: HubReviewBatchBarProps) {
   const { formatMessage } = useIntl();
   const { approvals, rejections, signatures, signatureStep, sendSize, blockedCount } = batch;
-  const { reviews, isSending, send, unstageBlocked } = batch;
+  const { available, reviews, isSending, send, unstageBlocked } = batch;
   const count = approvals + rejections;
   if (count === 0) return null;
 
@@ -75,12 +76,14 @@ export function HubReviewBatchBar({ gardenName, batch }: HubReviewBatchBarProps)
           <p className="type-meta text-text-soft" role="status">
             {[
               gardenName,
-              isSending
-                ? formatMessage(
-                    { id: "app.work.batch.signatureStep" },
-                    { step: signatureStep, total: sendSize }
-                  )
-                : formatMessage({ id: "app.treasury.signatures" }, { count: signatures }),
+              !available
+                ? formatMessage({ id: "app.work.batch.unavailable" })
+                : isSending
+                  ? formatMessage(
+                      { id: "app.work.batch.signatureStep" },
+                      { step: signatureStep, total: sendSize }
+                    )
+                  : formatMessage({ id: "app.treasury.signatures" }, { count: signatures }),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -91,6 +94,7 @@ export function HubReviewBatchBar({ gardenName, batch }: HubReviewBatchBarProps)
           emphasis="primary"
           size="sm"
           onClick={() => void send()}
+          disabled={!available}
           loading={isSending}
           data-action="send-batch"
         >

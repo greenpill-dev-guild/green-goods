@@ -5,6 +5,7 @@ import { fireEvent, renderWithProviders, screen } from "../test-utils";
 const review = (note: object = {}) => ({ draft: {} as never, ...note });
 
 const batch = (state: Partial<Parameters<typeof HubReviewBatchBar>[0]["batch"]> = {}) => ({
+  available: true,
   approvals: 2,
   rejections: 1,
   signatures: 1,
@@ -36,6 +37,15 @@ describe("HubReviewBatchBar", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Send 3" }));
     expect(props.send).toHaveBeenCalledOnce();
+  });
+
+  it("says so when these can't send right now, and keeps them in view", () => {
+    const props = batch({ available: false });
+    renderWithProviders(<HubReviewBatchBar batch={props} gardenName="Rio Lab" />);
+
+    expect(screen.getByText("2 approvals, 1 rejection")).toBeInTheDocument();
+    expect(screen.getByText(/Rio Lab · These can’t send right now/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send 3" })).toBeDisabled();
   });
 
   it("names only the side that has any", () => {

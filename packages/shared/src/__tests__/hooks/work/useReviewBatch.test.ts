@@ -103,18 +103,20 @@ describe("useReviewBatch", () => {
     expect(result.current.reviewFor("0x7")).toBeUndefined();
   });
 
-  it("shows nothing off the list, and keeps the decisions for when it's back", () => {
+  it("keeps a decision in view off the list, so a form can't decide that work a second way", async () => {
     const { result, rerender } = render();
     act(() => result.current.stage(decide("0x1")));
 
     batch.available = false;
     rerender({ list: undefined });
-    expect(result.current.reviews).toEqual([]);
-    expect(result.current.reviewFor("0x1")).toBeUndefined();
-
-    batch.available = true;
-    rerender({ list: undefined });
     expect(stagedIds(result)).toEqual(["0x1"]);
+    expect(result.current.reviewFor("0x1")?.draft.workUID).toBe("0x1");
+
+    // It can still come out, but nothing sends it.
+    await act(() => result.current.send());
+    expect(batch.send).not.toHaveBeenCalled();
+    act(() => result.current.unstage("0x1"));
+    expect(result.current.reviews).toEqual([]);
   });
 
   it("keeps each account's list its own", () => {
@@ -292,16 +294,6 @@ describe("useReviewBatch", () => {
     render([row]);
 
     expect(Object.keys(useReviewBatchStore.getState().reviewsByScope[SCOPE()])).toEqual(["0xab"]);
-    expect(toasts.info).not.toHaveBeenCalled();
-  });
-
-  it("cleans up off the list without news, since the steward decided that work at once", () => {
-    batch.available = false;
-    useReviewBatchStore.getState().stage(SCOPE(), decide("0xAB"));
-
-    render([{ id: "0xab", status: "rejected" } as OverlayWork]);
-
-    expect(useReviewBatchStore.getState().reviewsByScope[SCOPE()]).toBeUndefined();
     expect(toasts.info).not.toHaveBeenCalled();
   });
 

@@ -3999,6 +3999,7 @@
   "app.work.batch.sent": "{count, plural, one {# review sent} other {# reviews sent}}",
   "app.work.batch.signatureStep": "Signature {step} of {total}",
   "app.work.batch.staged.hint": "It goes out when you send your batch from the Hub.",
+  "app.work.batch.unavailable": "These can’t send right now. Try again soon, or open one to remove it.",
   "app.work.sendCancelled.title": "Upload canceled",
   "app.work.sendCancelled.message": "Nothing was sent. It's in Your Work › Pending, ready to upload or discard.",
   "app.work.detail.action": "Action",

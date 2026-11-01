@@ -19,6 +19,7 @@ const meta: Meta<typeof HubReviewBatchBar> = {
   args: {
     gardenName: "Rio Rainforest Lab",
     batch: {
+      available: true,
       approvals: 1,
       rejections: 1,
       signatures: 1,

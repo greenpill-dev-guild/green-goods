@@ -125,6 +125,44 @@ describe("stores/useReviewBatchStore", () => {
     });
   });
 
+  it("starts every write from what's saved, so another tab's review survives", () => {
+    const { stage, unstage } = useReviewBatchStore.getState();
+    stage(SCOPE, draft("0xW1"));
+    // Another tab saved its list a moment ago, and its storage event hasn't arrived here.
+    const saveFromAnotherTab = (workUIDs: string[]) =>
+      localStorage.setItem(
+        REVIEW_BATCH_STORAGE_KEY,
+        JSON.stringify({
+          state: {
+            reviewsByScope: {
+              [SCOPE]: Object.fromEntries(
+                workUIDs.map((id) => [id.toLowerCase(), { draft: draft(id) }])
+              ),
+            },
+          },
+          version: 0,
+        })
+      );
+    saveFromAnotherTab(["0xW1", "0xW2"]);
+
+    stage(SCOPE, draft("0xW3"));
+    expect(Object.keys(reviews())).toEqual(["0xw1", "0xw2", "0xw3"]);
+
+    saveFromAnotherTab(["0xW1", "0xW2", "0xW3", "0xW4"]);
+    unstage(SCOPE, ["0xW1"]);
+    expect(Object.keys(reviews())).toEqual(["0xw2", "0xw3", "0xw4"]);
+  });
+
+  it("keeps this tab's notes when it picks up another tab's list", async () => {
+    const { stage, note } = useReviewBatchStore.getState();
+    stage(SCOPE, draft("0xW1"));
+    note(SCOPE, new Map([["0xW1", { refusal: "Action expired" }]]));
+
+    await useReviewBatchStore.persist.rehydrate();
+
+    expect(reviews()["0xw1"].refusal).toBe("Action expired");
+  });
+
   it("lasts the session when the device refuses the write", () => {
     const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
     vi.stubGlobal("localStorage", {

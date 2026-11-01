@@ -75,18 +75,15 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
       .map(({ id }) => id);
     if (decided.length === 0) return;
     unstageIn(scope, decided);
-    // Off the list a steward decides in the form, at once, so that isn't news.
-    if (available) announceDecided(decided.length);
-  }, [works, stored, isSending, available, scope, unstageIn, announceDecided]);
+    announceDecided(decided.length);
+  }, [works, stored, isSending, scope, unstageIn, announceDecided]);
 
   const reviews = useMemo(
     () =>
-      available
-        ? Object.entries(stored)
-            .filter(([key]) => !heldIds.has(key))
-            .map(([, review]) => review)
-        : [],
-    [available, stored, heldIds]
+      Object.entries(stored)
+        .filter(([key]) => !heldIds.has(key))
+        .map(([, review]) => review),
+    [stored, heldIds]
   );
   const approvals = reviews.filter(({ draft }) => draft.approved).length;
   const blocked = reviews.filter(({ refusal, notBatchable }) => refusal || notBatchable);
@@ -99,7 +96,7 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
   };
 
   const send = async () => {
-    if (reviews.length === 0 || isSending) return;
+    if (!available || reviews.length === 0 || isSending) return;
     setSendSize(batch.signaturesFor(reviews.length));
     const { stale, unknown, refused, notBatchable } = await batch.send(
       reviews.map(({ draft }) => ({ draft, gardenAddress }))
@@ -115,7 +112,11 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
 
   const decidedOnChain = hold?.onChain.filter(({ decided }) => decided).length ?? 0;
   return {
-    /** Whether this account can add to the list and send it here. Recovery doesn't depend on it. */
+    /**
+     * Whether this account can add to the list and send it here. What's already on the list stays in
+     * view without it, with a wallet reconnecting or a rail taken off, so no form can decide a waiting
+     * work a second way. Recovery doesn't depend on it either.
+     */
     available,
     /** The reviews a send takes, in the order they were decided. */
     reviews,
@@ -130,7 +131,7 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
     isSending,
     isSettlingHold: batch.isSettlingHold,
     reviewFor: (workId: string): StagedReview | undefined =>
-      available && !heldIds.has(workId.toLowerCase()) ? stored[workId.toLowerCase()] : undefined,
+      heldIds.has(workId.toLowerCase()) ? undefined : stored[workId.toLowerCase()],
     /** Its last send is unknown, so nothing may go for this work until that settles. */
     isHeld: (workId: string) => heldIds.has(workId.toLowerCase()),
     stage: (draft: WorkApprovalDraft) => stageIn(scope, draft),

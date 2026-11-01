@@ -77,8 +77,14 @@ function parseDraft(value: unknown): WorkApprovalDraft | null {
   return isWellFormed ? (draft as WorkApprovalDraft) : null;
 }
 
-/** Saved reviews are untrusted input: a malformed one goes, and the chain rechecks the rest. */
-function parseReviewsByScope(value: unknown): ReviewBatchState["reviewsByScope"] {
+/**
+ * Saved reviews are untrusted input: a malformed one goes, and the chain rechecks the rest. Notes
+ * come only from this session: a saved one described a send that has passed, and the next asks again.
+ */
+function parseReviewsByScope(
+  value: unknown,
+  current: ReviewBatchState["reviewsByScope"]
+): ReviewBatchState["reviewsByScope"] {
   if (!value || typeof value !== "object") return {};
   const scopes: ReviewBatchState["reviewsByScope"] = {};
   for (const [scope, reviews] of Object.entries(value)) {
@@ -86,8 +92,10 @@ function parseReviewsByScope(value: unknown): ReviewBatchState["reviewsByScope"]
     const parsed: Record<string, StagedReview> = {};
     for (const saved of Object.values(reviews) as { draft?: unknown }[]) {
       const draft = parseDraft(saved?.draft);
-      // Its notes described a send that has passed, and the next one asks again.
-      if (draft) parsed[reviewKey(draft.workUID)] = { draft };
+      if (!draft) continue;
+      const key = reviewKey(draft.workUID);
+      const { draft: _kept, ...notes } = current[scope]?.[key] ?? {};
+      parsed[key] = { draft, ...notes };
     }
     if (Object.keys(parsed).length > 0) scopes[scope] = parsed;
   }
@@ -100,29 +108,38 @@ function parseReviewsByScope(value: unknown): ReviewBatchState["reviewsByScope"]
  */
 export const useReviewBatchStore = create<ReviewBatchState>()(
   persist(
-    (set) => ({
+    (set, get, api) => ({
       reviewsByScope: {},
-      stage: (scope, draft) =>
+      // Each write starts from what's saved: another tab's may not have reached this one yet, and a
+      // write saves the whole list.
+      stage: (scope, draft) => {
+        void api.persist.rehydrate();
         set((state) => ({
           reviewsByScope: {
             ...state.reviewsByScope,
             [scope]: { ...state.reviewsByScope[scope], [reviewKey(draft.workUID)]: { draft } },
           },
-        })),
+        }));
+      },
       // With nothing to remove, nothing changes, so a caller that runs on every read settles.
-      unstage: (scope, workUIDs) =>
+      unstage: (scope, workUIDs) => {
+        const leaving = new Set(workUIDs.map(reviewKey));
+        const listed = Object.keys(get().reviewsByScope[scope] ?? {});
+        if (!listed.some((key) => leaving.has(key))) return;
+        void api.persist.rehydrate();
         set((state) => {
-          const reviews = state.reviewsByScope[scope];
-          const leaving = new Set(workUIDs.map(reviewKey));
-          if (!reviews || !Object.keys(reviews).some((key) => leaving.has(key))) return state;
-          const kept = Object.entries(reviews).filter(([key]) => !leaving.has(key));
+          const kept = Object.entries(state.reviewsByScope[scope] ?? {}).filter(
+            ([key]) => !leaving.has(key)
+          );
           const { [scope]: _emptied, ...others } = state.reviewsByScope;
           return {
             reviewsByScope:
               kept.length > 0 ? { ...others, [scope]: Object.fromEntries(kept) } : others,
           };
-        }),
-      note: (scope, notes) =>
+        });
+      },
+      note: (scope, notes) => {
+        void api.persist.rehydrate();
         set((state) => {
           const reviews = state.reviewsByScope[scope];
           if (!reviews) return state;
@@ -138,7 +155,8 @@ export const useReviewBatchStore = create<ReviewBatchState>()(
               ),
             },
           };
-        }),
+        });
+      },
     }),
     {
       name: REVIEW_BATCH_STORAGE_KEY,
@@ -147,7 +165,8 @@ export const useReviewBatchStore = create<ReviewBatchState>()(
       merge: (persisted, current) => ({
         ...current,
         reviewsByScope: parseReviewsByScope(
-          (persisted as { reviewsByScope?: unknown } | undefined)?.reviewsByScope
+          (persisted as { reviewsByScope?: unknown } | undefined)?.reviewsByScope,
+          current.reviewsByScope
         ),
       }),
     }

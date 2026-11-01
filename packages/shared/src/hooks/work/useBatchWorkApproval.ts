@@ -164,6 +164,9 @@ export function useBatchWorkApproval(
           }
         );
       });
+      // TanStack hands a running mutation each later render's callbacks, so what a send has to
+      // finish in comes from here: the garden and account it started in.
+      return { clearOverlay, refreshWorks, holdKey, rail, gardenAddress };
     },
     mutationFn: async (decisions: readonly ReviewDecision[]): Promise<ReviewBatchOutcome> => {
       try {
@@ -185,21 +188,23 @@ export function useBatchWorkApproval(
         };
       }
     },
-    onSuccess: (outcome) => {
+    onSuccess: (outcome, _decisions, started) => {
       const { sent, stale, refused, notSent, notBatchable, unknown, failure } = outcome;
-      clearOverlay([
+      started.clearOverlay([
         ...stale,
         ...refused.map(({ workUID }) => workUID),
         ...notSent,
         ...notBatchable,
       ]);
-      refreshWorks();
-      if (failure) handleError(failure, { authMode: rail, gardenAddress });
+      started.refreshWorks();
+      if (failure) {
+        handleError(failure, { authMode: started.rail, gardenAddress: started.gardenAddress });
+      }
       if (sent.length > 0) {
         announceSent(sent.length);
         track("batch_approval_success", {
           count: sent.length,
-          auth_mode: rail,
+          auth_mode: started.rail,
           tx_hash: sent[0].transactionHash,
         });
         scheduleFollowUp();
@@ -208,11 +213,12 @@ export function useBatchWorkApproval(
         track("batch_approval_failed", {
           count: unknown.length + refused.length + notSent.length,
           unknown: unknown.length,
-          auth_mode: rail,
+          auth_mode: started.rail,
         });
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: holdKey }),
+    onSettled: (_outcome, _error, _decisions, started) =>
+      queryClient.invalidateQueries({ queryKey: started?.holdKey ?? holdKey }),
   });
   // The lock a single review shares. It hands a second caller the first call's promise, so anything
   // that isn't that same send has to check `isSending` before it starts.
