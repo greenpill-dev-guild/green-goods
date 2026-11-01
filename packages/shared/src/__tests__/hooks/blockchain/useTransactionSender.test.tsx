@@ -10,12 +10,15 @@ const mocks = vi.hoisted(() => ({
   resolver: vi.fn(),
   wallet: vi.fn(),
   account: vi.fn(),
+  created: vi.fn(),
+  write: vi.fn(),
+  config: {},
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => mocks.user }));
 vi.mock("wagmi", () => ({
-  useConfig: () => ({}),
-  useWriteContract: () => ({ writeContractAsync: vi.fn() }),
+  useConfig: () => mocks.config,
+  useWriteContract: () => ({ writeContractAsync: mocks.write }),
 }));
 vi.mock("@wagmi/core", async (importOriginal) => ({
   ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())
@@ -24,7 +27,10 @@ vi.mock("@wagmi/core", async (importOriginal) => ({
   getAccount: (...args: unknown[]) => mocks.account(...args),
 }));
 vi.mock("../../../modules/transactions/factory", () => ({
-  createTransactionSender: () => ({ authMode: "passkey", sendContractCall: vi.fn() }),
+  createTransactionSender: (options: unknown) => {
+    mocks.created(options);
+    return { authMode: "passkey", sendContractCall: vi.fn() };
+  },
 }));
 
 import { useTransactionSender } from "../../../hooks/blockchain/useTransactionSender";
@@ -44,6 +50,20 @@ describe("useTransactionSender ownership", () => {
     };
     mocks.wallet.mockResolvedValue({ account: { address: account } });
     mocks.account.mockReturnValue({ chainId: 42220 });
+  });
+
+  it("hands the sender the profile the session signed in with, and rebuilds it if that changes", () => {
+    mocks.user.passkeyAccountProfile = "kernel-0.3.1-legacy";
+    const { rerender } = renderHook(() => useTransactionSender());
+    expect(mocks.created).toHaveBeenLastCalledWith(
+      expect.objectContaining({ passkeyAccountProfile: "kernel-0.3.1-legacy" })
+    );
+
+    mocks.user.passkeyAccountProfile = "another-profile";
+    rerender();
+    expect(mocks.created).toHaveBeenLastCalledWith(
+      expect.objectContaining({ passkeyAccountProfile: "another-profile" })
+    );
   });
 
   it("accepts a same-account Celo job while the primary client is Arbitrum", async () => {

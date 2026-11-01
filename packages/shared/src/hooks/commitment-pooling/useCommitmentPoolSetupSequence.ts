@@ -11,10 +11,11 @@
  * the landed list up to it, and `retry()` walks the same steps again, so only
  * the unlanded call goes out. Nothing already recorded is written twice.
  *
- * When the connected wallet can run several calls as one transaction
- * (`canSendAtomicBatch`), the writes before a cycle opening go to the wallet
- * together (`walletPrompts`): one prompt, one transaction, all or none. The
- * opening follows on its own, because it needs the id the seeding receipt names.
+ * When the sender can run several calls as one transaction (`canSendAtomicBatch`:
+ * a wallet that says so, or a passkey listed for it), the writes go to it together
+ * (`walletPrompts`): one prompt, one transaction, all or none. An opening joins
+ * them when its cycle is known, and otherwise follows on its own, because it needs
+ * the id the seeding receipt names.
  *
  * The sequence holds the seeded cycle id from the seeding receipt for the
  * `openCycle` that follows; every other judgement is a fresh read. A read that
@@ -38,20 +39,24 @@ import {
   commitmentPoolCallArgs,
 } from "../../modules/commitment-pooling/pool-lifecycle";
 import {
+  canBatchPoolWrites,
   judgeStep,
+  knownCycleId,
   type PoolChainReader,
   type PoolSetupAction,
   type PoolSetupFailure,
   type PoolSetupRunContext,
   type PoolSetupStep,
   type PoolStepVerdict,
+  poolSetupBudget,
   stepToCall,
 } from "../../modules/commitment-pooling/pool-setup";
-import { TransactionRevertedError, type ContractCall } from "../../modules/transactions/types";
+import { type ContractCall, TransactionRevertedError } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import { CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useAsyncEffect } from "../utils/useAsyncEffect";
@@ -116,13 +121,6 @@ const IDLE: PoolSetupSequenceState = {
   cycleId: null,
 };
 
-function knownCycleId(steps: PoolSetupStep[]): bigint | null {
-  for (const step of steps) {
-    if (step.action === "openCycle" && step.cycleId !== "seeded") return step.cycleId;
-  }
-  return null;
-}
-
 export function useCommitmentPoolSetupSequence(
   options: {
     chainId?: number;
@@ -160,19 +158,18 @@ export function useCommitmentPoolSetupSequence(
   // asking again, and only `reset()` (a fresh open of the flow, after the
   // console has refetched the pool) lifts it.
   const seedUnconfirmedRef = useRef(false);
+  // A group past its ceilings can't go as one, so the next try goes write by
+  // write, and the flow's count of prompts says so before anyone presses.
+  const [pastCeilings, setPastCeilings] = useState(false);
 
-  // Asked before the run so the flow can say up front how many times the
-  // wallet will ask. Asking never prompts; a wallet that cannot answer counts
-  // as one that cannot batch.
+  // Asked before the run, so the flow can say how many times the wallet will ask.
   useAsyncEffect(
     async ({ isMounted }) => {
       setBatching("checking");
-      const able = sender?.canSendAtomicBatch
-        ? await sender.canSendAtomicBatch(chainId).catch(() => false)
-        : false;
+      const able = !pastCeilings && (await canBatchPoolWrites(sender, chainId));
       if (isMounted()) setBatching(able ? "available" : "unavailable");
     },
-    [sender, chainId]
+    [sender, chainId, pastCeilings]
   );
 
   const run = useCallback(
@@ -274,9 +271,12 @@ export function useCommitmentPoolSetupSequence(
         return fail("unavailable", null, error);
       }
       if (!sender) return fail("no-sender", null, new Error("Transaction sender is unavailable"));
-      const canBatch = sender.sendAtomicBatch
-        ? await (sender.canSendAtomicBatch?.(chainId) ?? Promise.resolve(false)).catch(() => false)
-        : false;
+      const canBatch =
+        Boolean(sender.sendAtomicBatch) &&
+        !pastCeilings &&
+        (await canBatchPoolWrites(sender, chainId));
+      const batchBudget =
+        sender.authMode === "passkey" ? (poolSetupBudget(chainId) ?? undefined) : undefined;
 
       const toCall = (step: PoolSetupStep): ContractCall | null => {
         const call = stepToCall(step, context);
@@ -289,6 +289,9 @@ export function useCommitmentPoolSetupSequence(
           chainId,
         };
       };
+      /** Only the seeding receipt can name this opening's cycle, so it goes on its own after it. */
+      const awaitsSeed = (candidate: PoolSetupStep) =>
+        candidate.action === "openCycle" && toCall(candidate) === null;
       /** A send the wallet refused, or a batch the chain proved reverted, wrote nothing. */
       const wroteNothing = (error: unknown, batch: boolean) =>
         parseContractError(error).name === "UserRejected" ||
@@ -350,12 +353,12 @@ export function useCommitmentPoolSetupSequence(
             return fail(before.refused, step.action, null);
           }
 
-          // The group this write rides in: itself, plus every following write
-          // up to the cycle opening, when the wallet can take them as one.
+          // The group this write rides in: itself, plus every following write up
+          // to an opening that awaits its seed, when the sender can take them as one.
           const group = [index];
           let next = index + 1;
-          if (canBatch && step.action !== "openCycle") {
-            while (next < steps.length && steps[next]!.action !== "openCycle") {
+          if (canBatch && !awaitsSeed(step)) {
+            while (next < steps.length && !awaitsSeed(steps[next]!)) {
               if (
                 steps[next]!.action === "seedCycle" &&
                 seedUnconfirmedRef.current &&
@@ -404,9 +407,16 @@ export function useCommitmentPoolSetupSequence(
           };
 
           let hash: Hex;
+          let neverSent = false;
           try {
             const result = batch
-              ? await sender.sendAtomicBatch!(calls, { onAccepted: () => markConfirming(null) })
+              ? await sender.sendAtomicBatch!(calls, {
+                  batchBudget,
+                  onAccepted: () => markConfirming(null),
+                  onNeverSent: () => {
+                    neverSent = true;
+                  },
+                })
               : await sender.sendContractCall(calls[0]!, { onBroadcast: markConfirming });
             hash = result.hash;
           } catch (error) {
@@ -421,8 +431,9 @@ export function useCommitmentPoolSetupSequence(
             // still have been mined, and a mined `seedCycle` this run cannot
             // name is a cycle a second seed would orphan, so the run stops
             // instead of offering to repeat it.
+            if (neverSent && classifyTxError(error).kind === "overCeilings") setPastCeilings(true);
             const seeding = group.some((member) => steps[member]!.action === "seedCycle");
-            if (seeding && !wroteNothing(error, batch)) {
+            if (seeding && !neverSent && !wroteNothing(error, batch)) {
               seedUnconfirmedRef.current = true;
               return fail("seed-unconfirmed", "seedCycle", error);
             }
@@ -471,7 +482,7 @@ export function useCommitmentPoolSetupSequence(
       publish({ status: "complete", failedStep: null, failure: null, error: null });
       return outcome;
     },
-    [chainId, handleError, queryClient, reader, sender]
+    [chainId, handleError, pastCeilings, queryClient, reader, sender]
   );
 
   /** Walk the same steps again; what the chain already shows is skipped. */
@@ -481,6 +492,7 @@ export function useCommitmentPoolSetupSequence(
     stepsRef.current = [];
     cycleIdRef.current = null;
     seedUnconfirmedRef.current = false;
+    setPastCeilings(false);
     setState(IDLE);
   }, []);
 

@@ -118,6 +118,8 @@ export function verifyReviews(
   };
   return (execution) => {
     const isProven = async (id: string) => {
+      // Proven once is proven: a later read may come from a node still behind this block.
+      if (attestationUIDs.has(id)) return true;
       const sent = sentFor(prepared, id);
       if (!sent) return false;
       const match = (await madeIn(execution.receipts)).find(
@@ -127,6 +129,8 @@ export function verifyReviews(
           same(made.data, sent.data)
       );
       if (match) attestationUIDs.set(id, match.uid);
+      // A node can hold the receipt and still answer the attestation from before its block.
+      else read.clear();
       return Boolean(match);
     };
     return verifyByReading(isProven, retryMs)(execution);

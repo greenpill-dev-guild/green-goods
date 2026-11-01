@@ -15,7 +15,24 @@ import {
 import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { PasskeySender } from "../passkey-sender";
 import { WalletSender } from "../wallet-sender";
-import { BatchNotSubmittedError, type BatchReference } from "../batch-types";
+import {
+  BatchConfirmationPendingError,
+  BatchNotSubmittedError,
+  type BatchReference,
+} from "../batch-types";
+import { createTransactionSender } from "../factory";
+import { type ContractCall, TransactionRevertedError } from "../types";
+import type { PasskeyAccountProfileId } from "../../auth/account-profile";
+
+const listing = vi.hoisted(() => ({ profile: null as string | null, action: "" }));
+vi.mock("../batch-enablement", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isBatchEnabled: (query: { action: string; rail: string; profile: string; chainId: number }) =>
+    query.rail === "passkey" &&
+    query.chainId === 42161 &&
+    query.action === listing.action &&
+    query.profile === listing.profile,
+}));
 
 const walletBudget = createMockBatchBudget();
 const passkeyBudget = createMockBatchBudget({ sponsorship: "required" });
@@ -58,7 +75,7 @@ function wallet() {
     ],
   };
 }
-function passkey() {
+function passkey(deps: { accountProfile?: PasskeyAccountProfileId } = {}) {
   const client = createFakeSmartAccountClient({ chain: arbitrum });
   client.account!.encodeCalls = vi.fn(async (calls) =>
     encode7579Calls({
@@ -74,6 +91,7 @@ function passkey() {
   const sender = new PasskeySender(client, {
     resolveSmartAccountClient: async () => client,
     assertWriteSafety: async () => undefined,
+    ...deps,
   });
   return {
     client,
@@ -190,6 +208,129 @@ describe("explicit wallet batching", () => {
       ).status
     ).toBe("unresolved");
     expect(deps.getCallsStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe("passkey batches for callers that group their own writes", () => {
+  const PROFILE = "kernel-0.3.1-legacy";
+  const accepted = async (sender: PasskeySender, calls: ContractCall[], extra = {}) =>
+    sender.sendAtomicBatch(calls, { batchBudget: passkeyBudget, ...extra });
+
+  it("groups only an action listed for this account's profile on this chain", async () => {
+    listing.action = "pool-setup";
+    listing.profile = PROFILE;
+    const listed = passkey({ accountProfile: PROFILE }).sender;
+    await expect(listed.canSendAtomicBatch(42161, "pool-setup")).resolves.toBe(true);
+    await expect(listed.canSendAtomicBatch(10, "pool-setup")).resolves.toBe(false);
+
+    // Pool setup probes for this, so nobody's flow changes until a rail is listed.
+    await expect(listed.canSendAtomicBatch(42161)).resolves.toBe(false);
+    await expect(
+      passkey({ accountProfile: "another-profile" as never }).sender.canSendAtomicBatch(
+        42161,
+        "pool-setup"
+      )
+    ).resolves.toBe(false);
+    await expect(passkey().sender.canSendAtomicBatch(42161, "pool-setup")).resolves.toBe(false);
+    listing.action = "";
+    await expect(listed.canSendAtomicBatch(42161, "pool-setup")).resolves.toBe(false);
+  });
+
+  it("carries the profile a session signed in with, from the factory", async () => {
+    listing.action = "pool-setup";
+    listing.profile = PROFILE;
+    const client = passkey().client;
+    const sender = createTransactionSender({
+      authMode: "passkey",
+      smartAccountClient: client,
+      resolveSmartAccountClient: async () => client,
+      passkeyAccountProfile: PROFILE,
+    });
+
+    await expect(sender.canSendAtomicBatch?.(42161, "pool-setup")).resolves.toBe(true);
+    listing.action = "";
+  });
+
+  it("won't group a listed action when the encoding isn't all-or-nothing", async () => {
+    listing.action = "pool-setup";
+    listing.profile = PROFILE;
+    const { sender, client } = passkey({ accountProfile: PROFILE });
+    client.account!.encodeCalls = vi.fn(async (calls) =>
+      encode7579Calls({
+        mode: { type: "batchcall", revertOnError: true, selector: "0x", context: "0x" },
+        callData: calls,
+      })
+    );
+
+    await expect(sender.canSendAtomicBatch(42161, "pool-setup")).resolves.toBe(false);
+    listing.action = "";
+  });
+
+  it("sends one UserOperation, says when it's accepted, and returns its hash", async () => {
+    const { sender, client, calls } = passkey();
+    const onAccepted = vi.fn(async () => {});
+
+    const result = await accepted(sender, calls, { onAccepted });
+
+    expect(client.sendUserOperation).toHaveBeenCalledOnce();
+    expect(client.sendUserOperation.mock.calls[0][0]).toMatchObject({
+      calls: [{ to: calls[0].address }, { to: calls[1].address }],
+    });
+    expect(onAccepted).toHaveBeenCalledOnce();
+    expect(result).toEqual({ hash: expect.any(String), sponsored: true });
+  });
+
+  it("reports a UserOperation that reverted as a revert, so a caller knows nothing landed", async () => {
+    const { sender, client, calls } = passkey();
+    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
+    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
+    const onNeverSent = vi.fn();
+
+    await expect(accepted(sender, calls, { onNeverSent })).rejects.toBeInstanceOf(
+      TransactionRevertedError
+    );
+
+    expect(onNeverSent).not.toHaveBeenCalled();
+  });
+
+  it("refuses to send without ceilings, and says it never went out", async () => {
+    const { sender, client, calls } = passkey();
+    const onNeverSent = vi.fn();
+
+    await expect(sender.sendAtomicBatch(calls, { onNeverSent })).rejects.toThrow(
+      "batch-budget-required"
+    );
+
+    expect(onNeverSent).toHaveBeenCalledOnce();
+    expect(client.sendUserOperation).not.toHaveBeenCalled();
+  });
+
+  it("gives back the same error a caller already reads when a signature is refused", async () => {
+    const { sender, client, calls } = passkey();
+    const onNeverSent = vi.fn();
+    const refused = new Error("The operation either timed out or was not allowed.");
+    client.sendUserOperation.mockRejectedValueOnce(refused);
+
+    await expect(accepted(sender, calls, { onNeverSent })).rejects.toBe(refused);
+
+    expect(onNeverSent).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["reverted", TransactionRevertedError],
+    ["unresolved", BatchConfirmationPendingError],
+  ] as const)("doesn't report a hash for a batch that %s", async (status, expected) => {
+    const { sender, calls } = passkey();
+    const onNeverSent = vi.fn();
+    vi.spyOn(sender, "submitAtomicBatch").mockResolvedValue({
+      status,
+      receipts: status === "reverted" ? [{ transactionHash: hash, status: "reverted" }] : [],
+      sponsored: true,
+    });
+
+    await expect(accepted(sender, calls, { onNeverSent })).rejects.toBeInstanceOf(expected);
+
+    expect(onNeverSent).not.toHaveBeenCalled();
   });
 });
 

@@ -21,6 +21,7 @@ import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safet
 import {
   assertTypedDataChain,
   TransactionRevertedError,
+  type AtomicBatchOptions,
   type BroadcastConfirmation,
   type BroadcastReference,
   type AccountTypedDataRequest,
@@ -33,6 +34,7 @@ import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import type { Address } from "../../types/domain";
 import {
   assertBatchCapabilityKnown,
+  atomicBatchTxResult,
   BatchNotSubmittedError,
   type BatchBudget,
   type BatchCapability,
@@ -43,6 +45,8 @@ import {
 } from "./batch-types";
 import { prepareBatch } from "./prepared-batch";
 import { assertBatchCalls, quoteUserOperation } from "./batch-budget";
+import { type AtomicBatchAction, isBatchEnabled } from "./batch-enablement";
+import type { PasskeyAccountProfileId } from "../auth/account-profile";
 
 const KERNEL_TRY_FAILURE = toEventSelector("TryExecuteUnsuccessful(uint256,bytes)");
 
@@ -62,6 +66,8 @@ function kernelCallFailed(
 interface PasskeySenderDeps {
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
   assertWriteSafety?: () => Promise<void>;
+  /** What the enablement list is keyed by. Without it, this sender groups nothing for a caller. */
+  accountProfile?: PasskeyAccountProfileId | null;
 }
 
 export class PasskeySender implements TransactionSender {
@@ -418,6 +424,39 @@ export class PasskeySender implements TransactionSender {
           sponsored: true,
         }
       : { ...unresolved, status: outcome.status };
+  }
+
+  /** Callers probe for this, so an action nobody has listed still sends one call at a time. */
+  async canSendAtomicBatch(chainId: number, action?: AtomicBatchAction): Promise<boolean> {
+    const account = this.client.account?.address;
+    const profile = this.deps.accountProfile;
+    if (!account || !profile || !action) return false;
+    if (!isBatchEnabled({ action, rail: "passkey", profile, chainId })) return false;
+    return (await this.getBatchCapability({ account, chainId })).atomic === "supported";
+  }
+
+  /** The send a caller shares with a wallet. A passkey's also needs `batchBudget`. */
+  async sendAtomicBatch(
+    calls: ContractCall[],
+    { onAccepted, onNeverSent, ...options }: AtomicBatchOptions = {}
+  ): Promise<TxResult> {
+    let execution: BatchExecution;
+    try {
+      execution = await this.submitAtomicBatch(calls, {
+        ...options,
+        onBroadcastReference: async (reference) => {
+          await options.onBroadcastReference?.(reference);
+          await onAccepted?.();
+        },
+      });
+    } catch (error) {
+      if (error instanceof BatchNotSubmittedError) {
+        onNeverSent?.();
+        throw error.cause;
+      }
+      throw error;
+    }
+    return atomicBatchTxResult(execution);
   }
 
   async sendBatch(calls: ContractCall[]): Promise<TxResult> {
