@@ -86,7 +86,10 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
     [stored, heldIds]
   );
   const approvals = reviews.filter(({ draft }) => draft.approved).length;
-  const blocked = reviews.filter(({ refusal, notBatchable }) => refusal || notBatchable);
+  const refused = reviews.filter(({ refusal }) => refusal);
+  // Too big to send together, so it was told first: the next press takes a signature each.
+  const oneSignatureEach = reviews.some(({ notBatchable }) => notBatchable);
+  const signatures = oneSignatureEach ? reviews.length : batch.signaturesFor(reviews.length);
 
   const describeRefusal = (reason: string) => {
     const { message, parsed } = parseAndFormatError(reason);
@@ -97,14 +100,16 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
 
   const send = async () => {
     if (!available || reviews.length === 0 || isSending) return;
-    setSendSize(batch.signaturesFor(reviews.length));
-    const { stale, unknown, refused, notBatchable } = await batch.send(
-      reviews.map(({ draft }) => ({ draft, gardenAddress }))
+    setSendSize(signatures);
+    const outcome = await batch.send(
+      reviews.map(({ draft }) => ({ draft, gardenAddress })),
+      oneSignatureEach ? { perSignature: 1 } : {}
     );
+    const { stale, unknown, notBatchable } = outcome;
     unstageIn(scope, [...stale, ...unknown]);
     if (stale.length > 0) announceDecided(stale.length);
     const notes = new Map<string, StagedReviewNote>(
-      refused.map(({ workUID, reason }) => [workUID, { refusal: describeRefusal(reason) }])
+      outcome.refused.map(({ workUID, reason }) => [workUID, { refusal: describeRefusal(reason) }])
     );
     for (const workUID of notBatchable) notes.set(workUID, { notBatchable: true });
     noteIn(scope, notes);
@@ -122,12 +127,14 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
     reviews,
     approvals,
     rejections: reviews.length - approvals,
-    signatures: batch.signaturesFor(reviews.length),
+    signatures,
     /** Which signature a send in flight is on, of `sendSize`. Each group's landing moves it on. */
-    signatureStep: sendSize - batch.signaturesFor(reviews.length) + 1,
+    signatureStep: sendSize - signatures + 1,
     sendSize,
-    /** Reviews the last send could not take. The list won't go until they change or come out. */
-    blockedCount: blocked.length,
+    /** Reviews the chain would refuse. The list won't go until they change or come out. */
+    blockedCount: refused.length,
+    /** The last send found the list too big to go together, so the next takes a signature each. */
+    oneSignatureEach,
     isSending,
     isSettlingHold: batch.isSettlingHold,
     reviewFor: (workId: string): StagedReview | undefined =>
@@ -139,7 +146,7 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
     unstageBlocked: () =>
       unstageIn(
         scope,
-        blocked.map(({ draft }) => draft.workUID)
+        refused.map(({ draft }) => draft.workUID)
       ),
     send,
     /** What a screen shows while held. Spread it onto `TxHoldFeedback`. */

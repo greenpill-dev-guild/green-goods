@@ -2,8 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { HubReviewBatchBar } from "@/views/Hub/components/HubReviewBatchBar";
 import { fireEvent, renderWithProviders, screen } from "../test-utils";
 
-const review = (note: object = {}) => ({ draft: {} as never, ...note });
-
 const batch = (state: Partial<Parameters<typeof HubReviewBatchBar>[0]["batch"]> = {}) => ({
   available: true,
   approvals: 2,
@@ -12,7 +10,7 @@ const batch = (state: Partial<Parameters<typeof HubReviewBatchBar>[0]["batch"]> 
   signatureStep: 1,
   sendSize: 0,
   blockedCount: 0,
-  reviews: [review(), review(), review()],
+  oneSignatureEach: false,
   isSending: false,
   send: vi.fn(async () => {}),
   unstageBlocked: vi.fn(),
@@ -65,10 +63,7 @@ describe("HubReviewBatchBar", () => {
   });
 
   it("says a refused review stops the list, and offers to take it out", () => {
-    const props = batch({
-      blockedCount: 1,
-      reviews: [review({ refusal: "This action has ended." }), review(), review()],
-    });
+    const props = batch({ blockedCount: 1 });
     renderWithProviders(<HubReviewBatchBar batch={props} />);
 
     expect(screen.getByText(/1 review can’t be sent, so nothing has gone out/)).toBeInTheDocument();
@@ -76,13 +71,14 @@ describe("HubReviewBatchBar", () => {
     expect(props.unstageBlocked).toHaveBeenCalledOnce();
   });
 
-  it("says when the list costs too much to send together", () => {
-    renderWithProviders(
-      <HubReviewBatchBar
-        batch={batch({ blockedCount: 3, reviews: [review({ notBatchable: true })] })}
-      />
-    );
+  it("says when the list goes a signature each, with nothing to take out", () => {
+    const props = batch({ oneSignatureEach: true, signatures: 3 });
+    renderWithProviders(<HubReviewBatchBar batch={props} />);
 
     expect(screen.getByText(/cost too much to send together/)).toBeInTheDocument();
+    expect(screen.getByText("3 signatures")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Take Out" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Send 3" }));
+    expect(props.send).toHaveBeenCalledOnce();
   });
 });

@@ -15,7 +15,7 @@ interface HubReviewBatchBarProps {
     | "signatureStep"
     | "sendSize"
     | "blockedCount"
-    | "reviews"
+    | "oneSignatureEach"
     | "isSending"
     | "send"
     | "unstageBlocked"
@@ -30,7 +30,7 @@ interface HubReviewBatchBarProps {
 export function HubReviewBatchBar({ gardenName, batch }: HubReviewBatchBarProps) {
   const { formatMessage } = useIntl();
   const { approvals, rejections, signatures, signatureStep, sendSize, blockedCount } = batch;
-  const { available, reviews, isSending, send, unstageBlocked } = batch;
+  const { available, oneSignatureEach, isSending, send, unstageBlocked } = batch;
   const count = approvals + rejections;
   if (count === 0) return null;
 
@@ -42,7 +42,6 @@ export function HubReviewBatchBar({ gardenName, batch }: HubReviewBatchBarProps)
   ]
     .filter(Boolean)
     .join(", ");
-  const isRefused = reviews.some(({ refusal }) => refusal);
 
   return (
     <section
@@ -65,9 +64,12 @@ export function HubReviewBatchBar({ gardenName, batch }: HubReviewBatchBarProps)
             </Button>
           }
         >
-          {isRefused
-            ? formatMessage({ id: "app.work.batch.blocked.refused" }, { count: blockedCount })
-            : formatMessage({ id: "app.work.batch.blocked.notBatchable" })}
+          {formatMessage({ id: "app.work.batch.blocked.refused" }, { count: blockedCount })}
+        </Alert>
+      ) : null}
+      {oneSignatureEach ? (
+        <Alert variant="warning">
+          {formatMessage({ id: "app.work.batch.blocked.notBatchable" })}
         </Alert>
       ) : null}
       <div className="flex items-center gap-3">
