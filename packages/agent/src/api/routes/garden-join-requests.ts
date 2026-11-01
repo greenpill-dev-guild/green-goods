@@ -259,8 +259,8 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
 
 /**
  * How many requests wait in a garden, for a steward's badge: no signature, no decryption, and no
- * name, note or address in the answer. A row added to the garden by hand counts until the next
- * signed queue read reconciles it, since matching it would mean decrypting on this passive path.
+ * name, note or address in the answer. A row added to the garden by hand counts until a signed
+ * queue read returns it and reconciles it, since matching it here would mean decrypting.
  */
 async function handleCount(c: Context, ctx: GardenJoinRequestRouteContext) {
   const preflight = prepareGardenJoinRequest(c, ctx);
