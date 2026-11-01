@@ -77,6 +77,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         closeMembersModal={workspace.closeMembersModal}
         memberCount={workspace.memberCount}
         memberSearch={workspace.memberSearch}
+        noteJoinRequestsRead={workspace.noteJoinRequestsRead}
         roleMembers={workspace.roleMembers}
         roleSummary={workspace.roleSummary}
         scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}

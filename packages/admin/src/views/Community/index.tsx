@@ -24,8 +24,8 @@ export default function CommunityView() {
   });
   const showCoordination = Boolean(community.selectedGardenAddress) && isProtocolGarden;
 
-  // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
-  // header cannot add base units across WETH/USDC/etc. as one token total.
+  // Paid-out magnitudes by asset: the header cannot add base units across
+  // WETH/USDC/etc. as one token total.
   const distributedAmountsByAsset = useMemo(
     () =>
       Array.from(
@@ -107,7 +107,9 @@ export default function CommunityView() {
                 id: "cockpit.community.members",
                 defaultMessage: "Members",
               }),
-              count: community.derived.directoryEntries.length || undefined,
+              // Only join requests wait on the steward on this rail (DL-134), and only
+              // someone who can open their queue sees the last check's number.
+              count: community.canManage ? community.joinRequestsWaiting : undefined,
             },
             ...(showCoordination
               ? [
@@ -126,7 +128,6 @@ export default function CommunityView() {
                 id: "cockpit.community.endowment",
                 defaultMessage: "Endowment",
               }),
-              count: community.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",
@@ -134,7 +135,6 @@ export default function CommunityView() {
                 id: "cockpit.community.payouts",
                 defaultMessage: "Payouts",
               }),
-              count: community.allocations.length || undefined,
             },
           ]}
         />
