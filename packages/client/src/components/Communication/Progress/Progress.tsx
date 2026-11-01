@@ -82,6 +82,10 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
               )}
             >
               {step}
+              {/* The tick is hidden from a screen reader, so a done step says so here. */}
+              {isCompletedStep ? (
+                <span className="sr-only">, {formatMessage({ id: "app.form.progress.done" })}</span>
+              ) : null}
             </span>
           </li>
         );
