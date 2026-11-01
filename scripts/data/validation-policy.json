@@ -1819,6 +1819,7 @@
         "packages/shared/src/modules/commitment-pooling/service-issuer-operations.ts",
         "packages/shared/src/modules/commitment-pooling/take-up.ts",
         "packages/shared/src/modules/garden/create-garden-command.ts",
+        "packages/shared/src/modules/garden/deposit-batch.ts",
         "packages/shared/src/modules/garden/join-garden-command.ts",
         "packages/shared/src/modules/garden/members-batch.ts",
         "packages/shared/src/modules/garden/settings-batch.ts",

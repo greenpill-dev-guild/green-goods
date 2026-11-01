@@ -4,13 +4,27 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
+import {
+  createDepositChain,
+  type DepositTarget,
+  depositDomain,
+  sendDepositBatch,
+} from "../../modules/garden/deposit-batch";
+import { depositRoute, walletRouteListed } from "../../modules/garden/deposit-route";
+import { assertBatchCapabilityKnown } from "../../modules/transactions/batch-types";
 import { requireConfirmed } from "../../modules/transactions/confirmation";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { DepositParams } from "../../types/vaults";
 import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-import { isUnconfirmedTxError } from "../../utils/errors/tx-error-classifier";
+import {
+  classifyTxError,
+  DEPOSIT_PAST_CEILINGS,
+  isRecoverableAllowanceReadError,
+  isUnconfirmedTxError,
+} from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -18,19 +32,21 @@ import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
+import { batchKeys } from "../../config/query-keys/garden";
 import {
-  isRecoverableAllowanceReadError,
   shouldShowErrorToast,
   VaultDepositStageError,
   type VaultDepositFailureReason,
   type VaultMutationOptions,
 } from "./vault-helpers";
 
+export { useDepositPlan } from "./useDepositPlan";
+
 export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const { primaryAddress } = useUser();
+  const { primaryAddress, passkeyAccountProfile } = useUser();
   const showErrorToast = shouldShowErrorToast(options.errorMode);
   const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
@@ -56,6 +72,20 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
+  const holdKeyFor = (params: DepositParams) =>
+    batchKeys.hold(
+      depositDomain({ kind: "vault", address: params.vaultAddress }),
+      primaryAddress ?? "",
+      chainId
+    );
+  const showDepositing = () => {
+    if (!activeToastId.current) return;
+    toastService.loading({
+      id: activeToastId.current,
+      title: formatMessage({ id: "app.treasury.deposit" }),
+      message: formatMessage({ id: "app.treasury.depositing" }),
+    });
+  };
   const refreshDeposits = (gardenAddress: string) => {
     lastParamsRef.current = { gardenAddress, userAddress: primaryAddress ?? undefined };
     queryInvalidation
@@ -64,7 +94,31 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
     scheduleFollowUp();
   };
 
+  // How this deposit goes now, or null for today's flow. Asked at the send, so it is never stale.
+  const routeFor = async (params: DepositParams) => {
+    const asset = params.assetAddress;
+    const rail =
+      sender?.authMode === "passkey" || sender?.authMode === "wallet" ? sender.authMode : null;
+    if (!sender?.batches || !primaryAddress) return null;
+    let walletAtomic: boolean | undefined;
+    if (rail === "wallet" && walletRouteListed({ action: "vault-deposit", chainId, asset })) {
+      const capability = await sender.getBatchCapability?.({ account: primaryAddress, chainId });
+      assertBatchCapabilityKnown(capability);
+      walletAtomic = capability?.atomic === "supported";
+    }
+    const route = depositRoute({
+      action: "vault-deposit",
+      rail,
+      passkeyProfile: passkeyAccountProfile,
+      walletAtomic,
+      chainId,
+      asset,
+    });
+    return route && rail ? { ...route, rail, batches: sender.batches } : null;
+  };
+
   const mutation = useMutation({
+    mutationKey: batchKeys.depositSend(primaryAddress ?? "", chainId),
     mutationFn: async (params: DepositParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
@@ -161,6 +215,8 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         }
       }
 
+      const route = await routeFor(params);
+
       // Snapshot expected shares before approval for post-approval slippage detection
       const preApprovalPreview = await readContract(getWagmiConfig(), {
         address: params.vaultAddress,
@@ -170,6 +226,66 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         chainId,
       });
       const expectedShares = typeof preApprovalPreview === "bigint" ? preApprovalPreview : 0n;
+
+      // Default slippage tolerance: 1% (99% of pre-approval snapshot)
+      const minShares = params.minSharesOut ?? (expectedShares * 99n) / 100n;
+      const checkSlippage = async () => {
+        const freshPreview = await readContract(getWagmiConfig(), {
+          address: params.vaultAddress,
+          abi: OCTANT_VAULT_ABI,
+          functionName: "previewDeposit",
+          args: [params.amount],
+          chainId,
+        });
+        const freshShares = typeof freshPreview === "bigint" ? freshPreview : 0n;
+        if (freshShares > 0n && freshShares < minShares) {
+          throw new VaultDepositStageError(
+            "deposit",
+            "Exchange rate moved unfavorably during approval. Please try again.",
+            "slippage"
+          );
+        }
+      };
+
+      if (route) {
+        const target: DepositTarget = {
+          kind: "vault",
+          address: params.vaultAddress,
+          asset: params.assetAddress,
+          receiver,
+        };
+        const overCeilingsKey = batchKeys.overCeilings(
+          depositDomain(target),
+          primaryAddress,
+          chainId,
+          params.amount.toString()
+        );
+        const tookOneSignature = route.atomic && !queryClient.getQueryData(overCeilingsKey);
+        const outcome = await sendDepositBatch({
+          batches: route.batches,
+          chain: createDepositChain(chainId),
+          scope: { account: primaryAddress as Address, chainId },
+          rail: route.rail,
+          atomic: tookOneSignature,
+          target,
+          amount: params.amount,
+          checkBeforeDeposit: async () => {
+            await checkSlippage();
+            showDepositing();
+          },
+        }).catch((error: unknown) => {
+          if (classifyTxError(error).kind !== "overCeilings") throw error;
+          // Step by step, an earlier approval may already have landed and no press will help.
+          if (!tookOneSignature) throw new Error(DEPOSIT_PAST_CEILINGS);
+          // It was promised one signature, so going step by step takes another press.
+          queryClient.setQueryData(overCeilingsKey, true);
+          throw error;
+        });
+        if (outcome.status === "deposited") return outcome.transactionHash;
+        if (outcome.status === "unknown") throw new TransactionConfirmationPendingError();
+        if (outcome.status === "declined") throw new Error("Transaction cancelled");
+        throw new VaultDepositStageError("deposit", "Deposit failed");
+      }
 
       let allowance: bigint;
       try {
@@ -237,32 +353,9 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       }
 
       // Post-approval slippage check: re-read preview with fresh exchange rate
-      const freshPreview = await readContract(getWagmiConfig(), {
-        address: params.vaultAddress,
-        abi: OCTANT_VAULT_ABI,
-        functionName: "previewDeposit",
-        args: [params.amount],
-        chainId,
-      });
-      const freshShares = typeof freshPreview === "bigint" ? freshPreview : 0n;
-      // Default slippage tolerance: 1% (99% of pre-approval snapshot)
-      const minShares = params.minSharesOut ?? (expectedShares * 99n) / 100n;
-      if (freshShares > 0n && freshShares < minShares) {
-        throw new VaultDepositStageError(
-          "deposit",
-          "Exchange rate moved unfavorably during approval. Please try again.",
-          "slippage"
-        );
-      }
+      await checkSlippage();
 
-      // Update toast to reflect deposit phase (after approval)
-      if (activeToastId.current) {
-        toastService.loading({
-          id: activeToastId.current,
-          title: formatMessage({ id: "app.treasury.deposit" }),
-          message: formatMessage({ id: "app.treasury.depositing" }),
-        });
-      }
+      showDepositing();
 
       try {
         const result = await sender.sendContractCall({
@@ -280,7 +373,8 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
         );
       }
     },
-    onMutate: () => {
+    onMutate: async (params) => {
+      await queryClient.cancelQueries({ queryKey: holdKeyFor(params) });
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.deposit" }),
         message: formatMessage({ id: "app.treasury.approving" }),
@@ -299,17 +393,18 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
     },
     onError: (error, params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      if (isUnconfirmedTxError(error)) {
+      const view = classifyTxError(error);
+      if (view.severity === "warning" && view.kind !== "cancelled") {
         if (showErrorToast) {
           toastService.info({
-            title: formatMessage({ id: "app.txFeedback.unconfirmed.title" }),
-            message: formatMessage({ id: "app.txFeedback.unconfirmed.message" }),
+            title: formatMessage({ id: view.titleKey }),
+            message: formatMessage({ id: view.messageKey }),
             context: "vault deposit",
             suppressLogging: true,
           });
         }
         // It may have landed, so the balances are worth reading again.
-        refreshDeposits(params.gardenAddress);
+        if (view.kind === "unconfirmed") refreshDeposits(params.gardenAddress);
         return;
       }
       const metadata = {
@@ -365,6 +460,18 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       handleError(error, {
         metadata,
         showToast: showErrorToast,
+      });
+    },
+    // A read follows every send, since that is what locks the form and can settle the send itself.
+    onSettled: (_hash, _error, params) => {
+      void queryClient.invalidateQueries({ queryKey: holdKeyFor(params) });
+      void queryClient.invalidateQueries({
+        queryKey: batchKeys.allowance(
+          params.assetAddress,
+          primaryAddress ?? "",
+          params.vaultAddress,
+          chainId
+        ),
       });
     },
   });

@@ -1,3 +1,7 @@
+import {
+  TxHoldFeedback,
+  type TxHoldFeedbackProps,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
@@ -39,6 +43,10 @@ export interface TreasuryTabContentProps {
   balance: { value: bigint; decimals: number; symbol: string } | undefined;
   previewShares: bigint | undefined;
   decimals: number;
+  /** An earlier deposit here whose outcome is unknown, which pauses the next one. */
+  holdFeedback?: Omit<TxHoldFeedbackProps, "isBusy" | "className"> | null;
+  signatureLine?: string | null;
+  isDepositing?: boolean;
 }
 
 export function TreasuryTabContent({
@@ -60,6 +68,9 @@ export function TreasuryTabContent({
   balance,
   previewShares,
   decimals,
+  holdFeedback,
+  signatureLine,
+  isDepositing = false,
 }: TreasuryTabContentProps) {
   const { formatMessage } = useIntl();
 
@@ -205,6 +216,9 @@ export function TreasuryTabContent({
           </p>
         ) : (
           <>
+            {holdFeedback ? (
+              <TxHoldFeedback {...holdFeedback} isBusy={isDepositing} className="mt-2" />
+            ) : null}
             {vaults.length > 0 && (
               <div className="mt-2">
                 <AssetSelector
@@ -256,6 +270,11 @@ export function TreasuryTabContent({
                 {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
                 {previewShares !== undefined ? formatTokenAmount(previewShares, 18) : "--"}
               </p>
+              {signatureLine ? (
+                <p className="text-xs text-text-soft-400" aria-live="polite">
+                  {signatureLine}
+                </p>
+              ) : null}
             </div>
           </>
         )}
