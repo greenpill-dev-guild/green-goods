@@ -10,8 +10,9 @@ import { type IntlShape, useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
 
 /**
- * The garden's actions as two-up tiles under capsule domain chips with All. The chips wrap to a
- * second row when they must, so nothing in the step scrolls sideways (DL-132).
+ * The garden's actions as two-up tiles under capsule domain chips with All. The chips hold one
+ * row that slides sideways to the screen's edges with the next chip peeking, and only sideways:
+ * the row neither scrolls on its own vertical axis nor hands a drag to the page (DL-157).
  */
 export function StartActions({
   actions,
@@ -56,7 +57,7 @@ export function StartActions({
         <div
           role="group"
           aria-label={intl.formatMessage({ id: "app.gardenIntro.domains.label" })}
-          className="flex flex-wrap gap-2"
+          className="-mx-4 flex touch-pan-x gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain px-4 [scrollbar-width:none] scroll-px-4 [&::-webkit-scrollbar]:hidden [&>*]:shrink-0"
         >
           <Chip selected={domain === null} onClick={() => setSelectedDomain(null)}>
             {intl.formatMessage({ id: "app.actions.domain.all" })}
