@@ -6,12 +6,11 @@ import {
   type BatchExecution,
 } from "../../modules/transactions/batch-types";
 import {
-  moveOnFromReviewHold,
   prepareReviewBatch,
-  readReviewHold,
   type ReviewDecision,
   sendReviewBatch,
 } from "../../modules/work/review-batch";
+import { moveOnFromReviewHold, readReviewHold } from "../../modules/work/review-hold";
 import {
   type ReviewAttestation,
   type ReviewChain,
@@ -373,8 +372,13 @@ describe("holding reviews whose outcome is unknown", () => {
           transactionHash: hash,
         },
       ],
+      notLanded: [],
     });
-    await expect(readReviewHold(context.input)).resolves.toEqual({ hold: null, saved: [] });
+    await expect(readReviewHold(context.input)).resolves.toEqual({
+      hold: null,
+      saved: [],
+      notLanded: [],
+    });
   });
 
   it("keeps the hash when another tab ended it, so the decision stays on screen", async () => {
@@ -395,6 +399,25 @@ describe("holding reviews whose outcome is unknown", () => {
     ]);
   });
 
+  it("names the works a settled send didn't prove, so nothing keeps showing them decided", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    context.sender.reconcileBatch = vi.fn(
+      async () =>
+        ({
+          status: "reverted",
+          receipts: [{ transactionHash: hash, status: "reverted" }],
+          sponsored: true,
+        }) satisfies BatchExecution
+    );
+
+    await expect(readReviewHold(context.input)).resolves.toEqual({
+      hold: null,
+      saved: [],
+      notLanded: [decision.draft.workUID.toLowerCase()],
+    });
+  });
+
   it("frees the work when the person moves on from what they saw", async () => {
     const context = setup({});
     const decision = await onChainAfterReload(context);
@@ -403,6 +426,7 @@ describe("holding reviews whose outcome is unknown", () => {
     await expect(moveOnFromReviewHold(context.input, hold!)).resolves.toEqual({
       hold: null,
       saved: [],
+      notLanded: [decision.draft.workUID.toLowerCase()],
     });
 
     await expect(context.send([decision])).resolves.toMatchObject({
@@ -431,6 +455,7 @@ describe("holding reviews whose outcome is unknown", () => {
     await expect(readReviewHold({ ...context.input, gardenAddress: address() })).resolves.toEqual({
       hold: null,
       saved: [],
+      notLanded: [],
     });
     await expect(readReviewHold(context.input)).resolves.toMatchObject({
       hold: { workUIDs: [expect.any(String)] },
