@@ -37,6 +37,7 @@ import {
 } from "../../modules/garden/join-garden-command";
 import {
   addPendingJoin,
+  forgetLapsedPendingJoins,
   hasFreshPendingJoin,
   markOwnJoinEntry,
   removePendingJoin,
@@ -60,7 +61,8 @@ import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/c
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { gardensKeys } from "../../config/query-keys/garden";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useDocumentEvent } from "../utils/useEventListener";
+import { useDelayedInvalidation, useTimeout } from "../utils/useTimeout";
 
 /**
  * Check if a garden has openJoining enabled on-chain
@@ -97,15 +99,27 @@ export async function checkGardenOpenJoining(gardenAddress: Address): Promise<bo
 /**
  * Subscribe to pending-join changes inside this tab. Used by garden-membership
  * filter memos so optimistic UI updates immediately on join/release without
- * waiting for an unrelated render trigger.
+ * waiting for an unrelated render trigger. A join the indexer never lists has
+ * no such trigger when its limit passes, so each subscriber also keeps the time.
  *
  * @returns an incrementing counter; use it as a `useMemo`/`useEffect` dep.
  */
 export function usePendingJoinsVersion(): number {
   const [version, setVersion] = useState(0);
+  const { set: setLimitTimer } = useTimeout();
   useEffect(() => {
     return subscribeToPendingJoins(() => setVersion((prev) => prev + 1));
   }, []);
+  // Each change re-arms the timer: a new join may be the next to lapse.
+  useEffect(() => {
+    const settle = () => {
+      const wait = forgetLapsedPendingJoins();
+      if (wait !== null) setLimitTimer(settle, wait);
+    };
+    settle();
+  }, [version, setLimitTimer]);
+  // A sleeping device holds timers back, so a screen that comes back checks the clock at once.
+  useDocumentEvent("visibilitychange", forgetLapsedPendingJoins);
   return version;
 }
 
