@@ -118,6 +118,7 @@ export function TxHoldFeedback({
       action={
         <div className="flex flex-wrap gap-2">
           <Button
+            data-piece-control
             type="button"
             emphasis="secondary"
             size="sm"
@@ -128,6 +129,7 @@ export function TxHoldFeedback({
             {formatMessage({ id: "app.garden.settings.hold.checkAgain" })}
           </Button>
           <Button
+            data-piece-control
             type="button"
             emphasis="tertiary"
             size="sm"
