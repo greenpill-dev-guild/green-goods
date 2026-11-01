@@ -1,4 +1,4 @@
-import { useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryKey, useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
@@ -36,7 +36,7 @@ export function useDepositPlan(input: {
   /** For the amounts a hold shows. */
   decimals: number;
   symbol: string;
-  /** Whose vault lists to refresh when a held deposit proves it landed. */
+  /** Whose lists to refresh when a held deposit proves it landed. A campaign jar has no garden. */
   gardenAddress?: Address;
   enabled?: boolean;
   /** A held deposit proved it landed, so the same amount mustn't stay one press from going again. */
@@ -66,15 +66,16 @@ export function useDepositPlan(input: {
     walletRouteListed({ action, chainId, asset });
 
   // Asked only when it can change the route: until then no wallet hears from this hook.
-  const { data: walletAtomic, isLoading: isAskingWallet } = useQuery({
+  const { data: capability, isLoading: isAskingWallet } = useQuery({
     queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
     queryFn: async () => {
-      const capability = await sender!.getBatchCapability!({ account: account!, chainId });
-      return capability.atomic === "supported";
+      const { atomic } = await sender!.getBatchCapability!({ account: account!, chainId });
+      return atomic;
     },
     enabled: canAskWallet,
     retry: false,
   });
+  const walletAtomic = capability === "supported";
   const route = target
     ? depositRoute({
         action,
@@ -89,7 +90,8 @@ export function useDepositPlan(input: {
   const { data: allowance, isLoading: isReadingAllowance } = useQuery({
     queryKey: batchKeys.allowance(asset, account ?? "", target?.address ?? "", chainId),
     queryFn: () => createDepositChain(chainId).allowance(account!, target!),
-    enabled: enabled && Boolean(target && account),
+    // Read once there's something to count: a page can hold a form per jar.
+    enabled: enabled && Boolean(target && account) && amount > 0n,
     retry: false,
   });
   const domain = target ? depositDomain(target) : "";
@@ -106,14 +108,28 @@ export function useDepositPlan(input: {
       : 1 +
         (allowance < amount ? 1 : 0) +
         (target?.kind === "vault" && allowance > 0n && allowance < amount ? 1 : 0);
-  const signatures = route?.atomic && !overCeilings ? 1 : stepCount;
+  // The send asks again and stops before any prompt if it still can't tell, so nothing is promised.
+  const capabilityUnread =
+    canAskWallet && capability !== "supported" && capability !== "unsupported";
+  const signatures = capabilityUnread ? null : route?.atomic && !overCeilings ? 1 : stepCount;
 
+  const targetKind = target?.kind;
+  const targetAddress = target?.address ?? "";
   const refreshDeposits = useCallback(() => {
-    if (!gardenAddress) return;
-    queryInvalidation
-      .onVaultDeposit(gardenAddress, account ?? undefined, chainId)
-      .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-  }, [gardenAddress, account, chainId, queryClient]);
+    const keys: QueryKey[] =
+      targetKind === "jar"
+        ? gardenAddress
+          ? queryInvalidation.onCookieJarDeposit(gardenAddress, targetAddress, chainId)
+          : queryInvalidation.onCampaignCookieJarChanged(
+              targetAddress,
+              account ?? undefined,
+              chainId
+            )
+        : gardenAddress
+          ? queryInvalidation.onVaultDeposit(gardenAddress, account ?? undefined, chainId)
+          : [];
+    for (const queryKey of keys) void queryClient.invalidateQueries({ queryKey });
+  }, [targetKind, targetAddress, gardenAddress, account, chainId, queryClient]);
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
     refreshDeposits,
     INDEXER_LAG_SCHEDULE_MS
@@ -135,9 +151,12 @@ export function useDepositPlan(input: {
     read: (shown) => readDepositHold(batchInput(), shown),
     moveOn: (hold) => moveOnFromDepositHold(batchInput(), hold),
     onSaved: () => {
+      const isJar = targetKind === "jar";
       toastService.success({
-        title: formatMessage({ id: "app.treasury.deposit" }),
-        message: formatMessage({ id: "app.treasury.depositSuccess" }),
+        title: formatMessage({ id: isJar ? "app.cookieJar.deposit" : "app.treasury.deposit" }),
+        message: formatMessage({
+          id: isJar ? "app.cookieJar.depositSuccess" : "app.treasury.depositSuccess",
+        }),
       });
       void queryClient.invalidateQueries({
         queryKey: batchKeys.allowance(asset, account ?? "", target?.address ?? "", chainId),
@@ -171,7 +190,12 @@ export function useDepositPlan(input: {
           message: formatMessage({ id: "app.treasury.hold.body" }),
           detail: formatMessage(
             {
-              id: hold.held === null ? "app.treasury.hold.vaultUnread" : "app.treasury.hold.vault",
+              id:
+                hold.held === null
+                  ? "app.treasury.hold.attempted"
+                  : targetKind === "jar"
+                    ? "app.treasury.hold.jar"
+                    : "app.treasury.hold.vault",
             },
             { attempted: amountText(hold.amount), held: amountText(hold.held ?? 0n) }
           ),

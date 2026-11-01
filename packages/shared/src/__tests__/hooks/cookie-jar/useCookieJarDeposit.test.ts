@@ -97,6 +97,10 @@ function renderDeposit() {
   return renderMutation(() => useCookieJarDeposit(GARDEN));
 }
 
+/** A read of the hold and the allowance follows every send. These are the jar's own refreshes. */
+const jarRefreshes = (calls: unknown[][]) =>
+  calls.filter(([filters]) => (filters as { queryKey: unknown[] }).queryKey[1] !== "batch");
+
 describe("useCookieJarDeposit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -206,14 +210,14 @@ describe("useCookieJarDeposit", () => {
     await act(async () => {
       await result.current.mutateAsync(params);
     });
-    const initialRefreshes = [...invalidateQueries.mock.calls];
+    const initialRefreshes = jarRefreshes(invalidateQueries.mock.calls);
     invalidateQueries.mockClear();
 
     currentGarden = "0x5555555555555555555555555555555555555555";
     rerender();
     act(() => mocks.followUp?.());
 
-    expect(invalidateQueries.mock.calls).toEqual(initialRefreshes);
+    expect(jarRefreshes(invalidateQueries.mock.calls)).toEqual(initialRefreshes);
     expect(invalidateQueries).toHaveBeenCalled();
   });
 
@@ -266,7 +270,7 @@ describe("useCookieJarDeposit", () => {
     });
 
     expect(mocks.sendContractTx).not.toHaveBeenCalled();
-    expect(invalidateQueries).not.toHaveBeenCalled();
+    expect(jarRefreshes(invalidateQueries.mock.calls)).toEqual([]);
   });
 
   it("rejects a disconnected account before reading or sending", async () => {
