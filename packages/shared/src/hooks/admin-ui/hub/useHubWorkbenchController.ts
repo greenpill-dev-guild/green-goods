@@ -15,6 +15,7 @@ import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
 import { useSheetOrchestrator } from "../../navigation/useSheetOrchestrator";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { useDebouncedValue } from "../../utils/useDebouncedValue";
+import { useReviewBatch } from "../../work/useReviewBatch";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -194,6 +195,8 @@ export function useHubWorkbenchController() {
 
   const { data: actions = [] } = useActions();
   const actionsMap = useMemo(() => buildActionTitleMap(actions), [actions]);
+  // Up here, not on the Work tab, so a send in flight outlives a change of tab.
+  const reviewBatch = useReviewBatch(selectedGarden?.id ?? "", { works });
 
   useEffect(() => {
     if (!worksLoading && !fetchingAssessments && !hypercertsLoading) {
@@ -443,6 +446,7 @@ export function useHubWorkbenchController() {
     waitingOverWeekCount: derived.reviewQueue.waitingOverWeekCount,
     refreshAgoText,
     resultCount,
+    reviewBatch,
     routeSheetContentId,
     routeSheetCloseTo,
     routeCertificationId,
