@@ -1731,6 +1731,102 @@ describe("a voucher booking on the promise page", () => {
     expect(screen.queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
   });
 
+  describe("the same offer, read by a buyer and by the person who made it", () => {
+    const OPEN_FOR_BOOKING = "Open for booking. Nothing moves until you agree to the exact terms.";
+    const OWN_OFFER = "Neighbors can take this up. You can withdraw it until someone does.";
+
+    function creatorPage(
+      coreState: Parameters<typeof bookingStoryController>[1] = "OFFERED",
+      actKind: GardenCommitmentController["actKind"] = "withdraw"
+    ): GardenCommitmentController {
+      const page = bookingStoryController("hubDay", coreState);
+      return { ...page, viewer: page.detail!.commitment.creator!, seat: "provider", actKind };
+    }
+
+    it("offers a buyer the booking", () => {
+      show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"));
+      expect(screen.getByText(OPEN_FOR_BOOKING)).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Review and Redeem" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Check Status" })).toBeInTheDocument();
+      expect(screen.queryByText("Takes")).not.toBeInTheDocument();
+    });
+
+    it("shows a buyer who holds too few vouchers the way to get more", () => {
+      show(bookingStorySnapshot("hubDay", "open"), bookingStoryController("hubDay", "OFFERED"), {
+        techAndSun: 0,
+        greenGoods: 0,
+      });
+      expect(screen.getByText("You hold 0 Tech and Sun vouchers.")).toBeInTheDocument();
+    });
+
+    it.each([
+      { holding: "enough vouchers", techAndSun: 9 },
+      { holding: "no vouchers", techAndSun: 0 },
+    ])("tells its creator holding $holding what it takes and leaves them their own act", ({
+      techAndSun,
+    }) => {
+      show(bookingStorySnapshot("hubDay", "open"), creatorPage(), { techAndSun, greenGoods: 0 });
+      expect(screen.getByText(OWN_OFFER)).toBeInTheDocument();
+      expect(screen.queryByText(OPEN_FOR_BOOKING)).not.toBeInTheDocument();
+      const promised = within(screen.getByRole("region", { name: "What was promised" }));
+      expect(promised.getByText("Takes")).toBeInTheDocument();
+      expect(promised.getByText("1 Tech and Sun voucher")).toBeInTheDocument();
+      expect(screen.queryByText(/^You hold/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Service Access" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Review and Redeem" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Check Status" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+    });
+
+    it.each([
+      { state: "ACTIVE", actKind: "addProof", sentence: /^Add proof as you go/, act: "Add Proof" },
+      {
+        state: "CANCELLED",
+        actKind: "offerAgain",
+        sentence: /^It has left the pool/,
+        act: "Offer It Again",
+      },
+    ] as const)("keeps the promise's own sentence and act for its creator when $state", ({
+      state,
+      actKind,
+      sentence,
+      act,
+    }) => {
+      show(bookingStorySnapshot("hubDay", "open"), creatorPage(state, actKind));
+      expect(screen.getByText(sentence)).toBeInTheDocument();
+      expect(screen.queryByText(OPEN_FOR_BOOKING)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: act })).toBeInTheDocument();
+    });
+
+    it("tells its creator when nobody can take it up, and leaves them Withdraw", () => {
+      const offer = bookingStorySnapshot("hubDay", "open");
+      show({ ...offer, pause: { ...offer.pause, sourceVoucher: true } }, creatorPage());
+      expect(
+        screen.getByText(
+          "New bookings are paused, so nobody can take this up for now. You can still withdraw it."
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(OWN_OFFER)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+    });
+
+    it("keeps a reward's section for its creator, without asking them to agree to it", () => {
+      show(
+        withReviewedReward(bookingStorySnapshot("hubDay", "open"), `0x${"c".repeat(64)}`),
+        creatorPage()
+      );
+      expect(screen.getByRole("region", { name: "Rewards" })).toBeInTheDocument();
+      expect(screen.getByText(OWN_OFFER)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Agree to the Rewards" })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Ask for Help" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Check Status" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+    });
+  });
+
   it("asks a short pool for a smaller exchange, not the same quote again", async () => {
     const quoted = bookingStorySnapshot("access", "notEnough", { exchange: "quoted" });
     const pilot = quoted.pilot!;

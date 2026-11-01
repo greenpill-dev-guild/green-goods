@@ -175,6 +175,14 @@ export interface ServiceBookingView {
   };
 }
 
+/** What a voucher offer's creator reads about it, beside the promise's own sentences and act. */
+export interface OwnServiceOfferView {
+  /** What a booking takes, in words ("1 Tech and Sun voucher"), for What was promised. */
+  takes: string;
+  /** Said only while the promise's own sentence would be false: nobody can book right now. */
+  band: { tone: ServiceBandTone; sentence: string; needsYou: boolean } | null;
+}
+
 export interface ServiceBookingInput {
   snapshot: ServiceAccessSnapshot;
   coreState: CommitmentDerivedState;
