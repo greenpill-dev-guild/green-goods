@@ -19,6 +19,8 @@ export function joinRequestCountGrantScope(
 interface JoinRequestCountGrantState {
   /** The grants still usable, by scope (`joinRequestCountGrantScope`) and lowercase garden id. */
   grantsByScope: GrantsByScope;
+  /** Moves at every `clearAll`, so a queue read that began before one cannot bring a grant back. */
+  generation: number;
   /** Keep the grant a signed queue read returned. It replaces the garden's last one. */
   keepGrant: (scope: string, gardenId: string, grant: GardenJoinRequestCountGrant) => void;
   /** Forget a grant the service refused, unless a newer one has already replaced it. */
@@ -35,7 +37,11 @@ const deviceStorage: StateStorage = {
   getItem: (name) => {
     try {
       return localStorage.getItem(name);
-    } catch {
+    } catch (error) {
+      logger.warn("Could not read the join-request count grants", {
+        source: "useJoinRequestCountGrantStore",
+        error,
+      });
       return null;
     }
   },
@@ -52,8 +58,11 @@ const deviceStorage: StateStorage = {
   removeItem: (name) => {
     try {
       localStorage.removeItem(name);
-    } catch {
-      // Storage that cannot be read holds nothing to remove.
+    } catch (error) {
+      logger.warn("Could not remove the join-request count grants", {
+        source: "useJoinRequestCountGrantStore",
+        error,
+      });
     }
   },
 };
@@ -87,6 +96,7 @@ export const useJoinRequestCountGrantStore = create<JoinRequestCountGrantState>(
   persist(
     (set, get) => ({
       grantsByScope: {},
+      generation: 0,
       keepGrant: (scope, gardenId, grant) => {
         const current = get().grantsByScope;
         set({
@@ -107,9 +117,9 @@ export const useJoinRequestCountGrantStore = create<JoinRequestCountGrantState>(
         else delete next[scope];
         set({ grantsByScope: next });
       },
-      clearAll: () => {
-        if (Object.keys(get().grantsByScope).length > 0) set({ grantsByScope: {} });
-      },
+      // Always writes, even from an empty store: another tab may have saved a grant since this one
+      // loaded, and the persist layer touches storage only on a `set`.
+      clearAll: () => set({ grantsByScope: {}, generation: get().generation + 1 }),
     }),
     {
       name: JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY,

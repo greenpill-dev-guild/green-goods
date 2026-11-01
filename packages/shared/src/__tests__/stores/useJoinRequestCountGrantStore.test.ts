@@ -4,7 +4,8 @@
  * sign-out.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { logger } from "../../modules/app/logger";
 import {
   JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY,
   joinRequestCountGrantScope,
@@ -24,6 +25,11 @@ const state = () => useJoinRequestCountGrantStore.getState();
 beforeEach(() => {
   localStorage.clear();
   useJoinRequestCountGrantStore.setState({ grantsByScope: {} });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("useJoinRequestCountGrantStore", () => {
@@ -58,6 +64,41 @@ describe("useJoinRequestCountGrantStore", () => {
 
     expect(state().grantsByScope).toEqual({});
     expect(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY)).not.toContain("first");
+  });
+
+  it("clears a grant another tab saved, even when this tab holds none", () => {
+    localStorage.setItem(
+      JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY,
+      JSON.stringify({ state: { grantsByScope: { [SCOPE]: { [A]: grant("other-tab") } } } })
+    );
+
+    state().clearAll();
+
+    expect(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY)).not.toContain("other-tab");
+  });
+
+  it("keeps the grant for this session when storage refuses it, and says so", async () => {
+    const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const refuse = () => {
+      throw new DOMException("Storage is blocked.", "SecurityError");
+    };
+    vi.stubGlobal("localStorage", { getItem: refuse, setItem: refuse, removeItem: refuse });
+
+    await useJoinRequestCountGrantStore.persist.rehydrate();
+    state().keepGrant(SCOPE, GARDEN_A, grant("first"));
+    useJoinRequestCountGrantStore.persist.clearStorage();
+
+    expect(state().grantsByScope[SCOPE]?.[A]).toEqual(grant("first"));
+    for (const message of [
+      "Could not read the join-request count grants",
+      "Could not save the join-request count grant",
+      "Could not remove the join-request count grants",
+    ]) {
+      expect(warn).toHaveBeenCalledWith(
+        message,
+        expect.objectContaining({ source: "useJoinRequestCountGrantStore" })
+      );
+    }
   });
 
   it("brings back only usable grants after a reload", async () => {

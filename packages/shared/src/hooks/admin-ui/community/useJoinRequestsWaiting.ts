@@ -37,6 +37,7 @@ export function useJoinRequestsWaiting(gardenKey: string) {
   const token = useJoinRequestCountGrantStore((state) =>
     scope ? state.grantsByScope[scope]?.[garden]?.token : undefined
   );
+  const grantGeneration = useJoinRequestCountGrantStore((state) => state.generation);
   const lastChecks = useGardenStateStore(
     (state) => state.getGardenWorkspaceState(gardenKey, "community").joinRequestsWaiting
   );
@@ -87,11 +88,13 @@ export function useJoinRequestsWaiting(gardenKey: string) {
 
   const keepJoinRequestCountGrant = useCallback(
     (grant: GardenJoinRequestCountGrant) => {
-      if (!scope) return;
-      useJoinRequestCountGrantStore.getState().keepGrant(scope, garden, grant);
+      const store = useJoinRequestCountGrantStore.getState();
+      // A queue read can outlive the session that started it; sign-out has the last word.
+      if (!scope || store.generation !== grantGeneration) return;
+      store.keepGrant(scope, garden, grant);
       readCountAgain();
     },
-    [scope, garden, readCountAgain]
+    [scope, garden, grantGeneration, readCountAgain]
   );
 
   return {

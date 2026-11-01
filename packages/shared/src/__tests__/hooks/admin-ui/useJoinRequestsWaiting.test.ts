@@ -117,6 +117,21 @@ describe("useJoinRequestsWaiting", () => {
     await waitFor(() => expect(result.current.joinRequestsWaiting).toBe(2));
   });
 
+  it("drops a grant from a read that outlived the session, and keeps the next one", async () => {
+    answers(200, { ok: true, waiting: 3 });
+    const { result } = renderWaiting();
+    const fromTheReadBeforeSignOut = result.current.keepJoinRequestCountGrant;
+
+    act(() => useJoinRequestCountGrantStore.getState().clearAll());
+    act(() => fromTheReadBeforeSignOut(GRANT));
+
+    expect(useJoinRequestCountGrantStore.getState().grantsByScope).toEqual({});
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    act(() => result.current.keepJoinRequestCountGrant(GRANT));
+    await waitFor(() => expect(result.current.joinRequestsWaiting).toBe(3));
+  });
+
   it.each([
     [401, "signature_invalid"],
     [403, "garden_role_required"],
