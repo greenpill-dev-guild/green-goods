@@ -6,7 +6,7 @@
  */
 
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
@@ -72,6 +72,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   client.clear();
   localStorage.clear();
 });
@@ -122,6 +123,25 @@ describe("useMyGardens", () => {
     expect(result.current.gardens).toEqual([
       { garden: openJoined, membership: { roles: [], pendingJoin: true } },
     ]);
+  });
+
+  // The join never reaches the indexer and the screen stays open: only the clock moves.
+  it("stops counting an open join the moment its limit passes, with nothing else happening", () => {
+    vi.useFakeTimers();
+    client.setQueryData(gardensKeys.byChain(DEFAULT_CHAIN_ID), [openJoined]);
+    savePendingJoins({ [openJoined.id]: { address: ACCOUNT, timestamp: Date.now() } });
+
+    const { result } = renderMyGardens();
+    expect(result.current.gardens).toEqual([
+      { garden: openJoined, membership: { roles: [], pendingJoin: true } },
+    ]);
+
+    // Every reader still counts the join at the limit itself; it lapses a millisecond later.
+    act(() => vi.advanceTimersByTime(15 * 60_000));
+    expect(result.current.gardens).toHaveLength(1);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current.gardens).toEqual([]);
+    expect(getGardens).not.toHaveBeenCalled();
   });
 
   it("forgets an open join once the roster lists the account", async () => {

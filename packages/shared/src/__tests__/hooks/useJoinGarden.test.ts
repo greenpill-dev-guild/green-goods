@@ -112,7 +112,12 @@ vi.mock("../../modules/app/error-tracking", async (importOriginal) => ({
 }));
 
 import { readContract } from "@wagmi/core";
-import { checkGardenOpenJoining, useJoinGarden } from "../../hooks/garden/useJoinGarden";
+import {
+  checkGardenOpenJoining,
+  isGardenMember,
+  useJoinGarden,
+  usePendingJoinsVersion,
+} from "../../hooks/garden/useJoinGarden";
 import {
   trackGardenJoinCancelled,
   trackGardenJoinFailed,
@@ -149,6 +154,7 @@ describe("hooks/garden/useJoinGarden", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     queryClient.clear();
   });
 
@@ -232,6 +238,30 @@ describe("hooks/garden/useJoinGarden", () => {
 
       expect(txHash).toBe(MOCK_TX_HASH);
       expect(mockClient.sendTransaction).toHaveBeenCalled();
+    });
+
+    // The join lands while the screen is open, so its limit starts after the subscriber mounted.
+    it("lapses a join sent from this screen at its limit when the roster never lists it", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+      localStorage.clear();
+      const account = MOCK_ADDRESSES.smartAccount;
+      const garden = MOCK_ADDRESSES.garden;
+
+      const { result } = renderHookWithProviders(
+        () => ({ join: useJoinGarden(), version: usePendingJoinsVersion() }),
+        { queryClient }
+      );
+      await act(async () => {
+        await result.current.join.joinGarden(garden);
+      });
+      const afterJoin = result.current.version;
+      expect(afterJoin).toBe(1);
+      expect(isGardenMember(account, [], [], garden)).toBe(true);
+
+      act(() => vi.advanceTimersByTime(15 * 60_000 + 1));
+
+      expect(result.current.version).toBe(afterJoin + 1);
+      expect(isGardenMember(account, [], [], garden)).toBe(false);
     });
 
     it("handles already-member case gracefully", async () => {

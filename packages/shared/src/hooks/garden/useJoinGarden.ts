@@ -51,7 +51,8 @@ import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/c
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { gardensKeys } from "../../config/query-keys/garden";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useDocumentEvent } from "../utils/useEventListener";
+import { useDelayedInvalidation, useTimeout } from "../utils/useTimeout";
 
 /**
  * Check if a garden has openJoining enabled on-chain
@@ -131,23 +132,29 @@ function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.
 // indexer-confirmed gardener list and the local pending-join overlap (e.g.
 // immediately post-login on the auto-join-community-garden flow).
 function removePendingJoin(gardenId: string) {
-  if (typeof window === "undefined") return;
   const pending = getPendingJoins();
   if (!(gardenId in pending)) return;
   delete pending[gardenId];
-  localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
-  notifyPendingJoinsChanged();
+  try {
+    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+    notifyPendingJoinsChanged();
+  } catch (error) {
+    // Storage can refuse the write. Nothing changed, so no one is told; readers go by the limit.
+    logger.warn("Could not forget a settled pending join", { source: "removePendingJoin", error });
+  }
 }
 
 /**
  * Subscribe to pending-join changes inside this tab. Used by garden-membership
  * filter memos so optimistic UI updates immediately on join/release without
- * waiting for an unrelated render trigger.
+ * waiting for an unrelated render trigger. A join the indexer never lists has
+ * no such trigger when its limit passes, so each subscriber also keeps the time.
  *
  * @returns an incrementing counter; use it as a `useMemo`/`useEffect` dep.
  */
 export function usePendingJoinsVersion(): number {
   const [version, setVersion] = useState(0);
+  const { set: setLimitTimer } = useTimeout();
   useEffect(() => {
     const listener = () => setVersion((prev) => prev + 1);
     pendingJoinsSubscribers.add(listener);
@@ -155,6 +162,16 @@ export function usePendingJoinsVersion(): number {
       pendingJoinsSubscribers.delete(listener);
     };
   }, []);
+  // Each change re-arms the timer: a new join may be the next to lapse.
+  useEffect(() => {
+    const settle = () => {
+      const wait = forgetLapsedPendingJoins();
+      if (wait !== null) setLimitTimer(settle, wait);
+    };
+    settle();
+  }, [version, setLimitTimer]);
+  // A sleeping device holds timers back, so a screen that comes back checks the clock at once.
+  useDocumentEvent("visibilitychange", forgetLapsedPendingJoins);
   return version;
 }
 
@@ -164,10 +181,11 @@ function savedPendingJoins(): Record<string, unknown> {
   return saved && typeof saved === "object" ? (saved as Record<string, unknown>) : {};
 }
 
-/** The account a saved pending join belongs to, lower-cased, or null for a malformed record. */
-function pendingJoinAccount(record: unknown): string | null {
-  const address = (record as { address?: unknown } | null)?.address;
-  return typeof address === "string" ? address.toLowerCase() : null;
+/** A saved pending join's account, lower-cased, and its limit, or null for a malformed record. */
+function readPendingJoin(record: unknown): { account: string; limit: number } | null {
+  const { address, timestamp } = (record ?? {}) as { address?: unknown; timestamp?: unknown };
+  if (typeof address !== "string" || typeof timestamp !== "number") return null;
+  return { account: address.toLowerCase(), limit: timestamp + PENDING_JOIN_TTL };
 }
 
 /**
@@ -180,14 +198,8 @@ export function pendingJoinGardenIds(account: string): Set<string> {
   const now = Date.now();
   const gardenIds = new Set<string>();
   for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
-    const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
-    if (
-      pendingJoinAccount(record) === member &&
-      typeof joinedAt === "number" &&
-      now - joinedAt <= PENDING_JOIN_TTL
-    ) {
-      gardenIds.add(gardenId.toLowerCase());
-    }
+    const join = readPendingJoin(record);
+    if (join?.account === member && now <= join.limit) gardenIds.add(gardenId.toLowerCase());
   }
   return gardenIds;
 }
@@ -197,29 +209,30 @@ export function pendingJoinGardenIds(account: string): Set<string> {
  * role removed later is not masked by the join that came before it. Notifies only on a change.
  */
 export function forgetListedPendingJoins(account: string, listedGardenIds: readonly string[]) {
-  if (typeof window === "undefined") return;
-  const pending = savedPendingJoins();
   const listed = new Set(listedGardenIds.map((gardenId) => gardenId.toLowerCase()));
   const member = account.toLowerCase();
-  let changed = false;
-  for (const [gardenId, record] of Object.entries(pending)) {
-    if (listed.has(gardenId.toLowerCase()) && pendingJoinAccount(record) === member) {
-      delete pending[gardenId];
-      changed = true;
+  for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
+    if (listed.has(gardenId.toLowerCase()) && readPendingJoin(record)?.account === member) {
+      removePendingJoin(gardenId);
     }
   }
-  if (!changed) return;
-  try {
-    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
-  } catch (error) {
-    // Storage can refuse the write; the record then lapses with its time limit.
-    logger.warn("Could not forget a settled pending join", {
-      source: "forgetListedPendingJoins",
-      error,
-    });
-    return;
+}
+
+/**
+ * Forget the joins past their limit, whoever sent them: no reader counts them any more. Returns
+ * how long until the next one lapses, a millisecond past its limit since readers count the limit
+ * itself, or null if none is waiting. A saved timestamp can be anything, so the wait is capped:
+ * past setTimeout's range a delay fires at once, over and over.
+ */
+function forgetLapsedPendingJoins(): number | null {
+  const now = Date.now();
+  const limits: number[] = [];
+  for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
+    const join = readPendingJoin(record);
+    if (join && now > join.limit) removePendingJoin(gardenId);
+    else if (join) limits.push(join.limit);
   }
-  notifyPendingJoinsChanged();
+  return limits.length > 0 ? Math.min(...limits, now + PENDING_JOIN_TTL) + 1 - now : null;
 }
 
 /**

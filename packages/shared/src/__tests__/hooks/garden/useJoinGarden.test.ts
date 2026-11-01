@@ -8,6 +8,7 @@
  *   2. Pending join optimistic state (localStorage, 15-min TTL)
  */
 
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const PENDING_JOINS_KEY = "greengoods:pending-joins";
@@ -65,14 +66,136 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ smartAccountAddress: null, smartAccountClient: null, eoa: null }),
 }));
 
-vi.mock("../../../hooks/utils/useTimeout", () => ({
-  useDelayedInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
-}));
-
-const { forgetListedPendingJoins, isGardenMember } = await import(
+const { forgetListedPendingJoins, isGardenMember, usePendingJoinsVersion } = await import(
   "../../../hooks/garden/useJoinGarden"
 );
 const { logger } = await import("../../../modules/app/logger");
+
+describe("usePendingJoinsVersion at a join's limit", () => {
+  const user = "0x7777777777777777777777777777777777777777";
+  const LIMIT = 15 * 60_000;
+
+  function saveJoins(timestampByGarden: Record<string, number>) {
+    const records = Object.entries(timestampByGarden).map(([gardenId, timestamp]) => [
+      gardenId,
+      { address: user, timestamp },
+    ]);
+    localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(Object.fromEntries(records)));
+  }
+
+  const savedGardens = () =>
+    Object.keys(JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) ?? "{}"));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    vi.mocked(logger.warn).mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    localStorage.clear();
+  });
+
+  // More than one screen subscribes, and each keeps its own timer. Only the first to wake has
+  // anything to forget, so a limit reaches every subscriber once and the render loop in
+  // `removePendingJoin`'s comment has nothing to feed on.
+  it("ticks each subscriber once per lapsed join, waits for the next, then stays quiet", () => {
+    const now = Date.now();
+    saveJoins({ "garden-first": now, "garden-second": now + 60_000 });
+    const one = renderHook(() => usePendingJoinsVersion());
+    const other = renderHook(() => usePendingJoinsVersion());
+    const versions = () => [one.result.current, other.result.current];
+
+    act(() => vi.advanceTimersByTime(LIMIT));
+    expect(versions()).toEqual([0, 0]);
+
+    act(() => vi.advanceTimersByTime(1));
+    expect(versions()).toEqual([1, 1]);
+    expect(savedGardens()).toEqual(["garden-second"]);
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(versions()).toEqual([2, 2]);
+    expect(savedGardens()).toEqual([]);
+
+    act(() => vi.advanceTimersByTime(LIMIT * 2));
+    expect(versions()).toEqual([2, 2]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("leaves no timer behind on unmount", () => {
+    saveJoins({ "garden-first": Date.now() });
+    const { unmount } = renderHook(() => usePendingJoinsVersion());
+    expect(vi.getTimerCount()).toBe(1);
+
+    unmount();
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("checks the clock when the screen comes back from a sleep that held its timer", () => {
+    saveJoins({ "garden-first": Date.now() });
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    vi.setSystemTime(Date.now() + LIMIT + 1);
+    expect(result.current).toBe(0);
+
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(result.current).toBe(1);
+    expect(savedGardens()).toEqual([]);
+  });
+
+  it("waits again when its timer wakes before the clock has reached the limit", () => {
+    saveJoins({ "garden-first": Date.now() });
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    vi.setSystemTime(Date.now() - 60_000);
+    act(() => vi.advanceTimersByTime(LIMIT + 1));
+    expect(result.current).toBe(0);
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(result.current).toBe(1);
+  });
+
+  // A delay past setTimeout's range fires at once; with the record still fresh, that would spin.
+  it("waits out a saved timestamp far in the future instead of firing at once", () => {
+    saveJoins({ "garden-odd": Number.MAX_SAFE_INTEGER });
+    const setTimer = vi.spyOn(globalThis, "setTimeout");
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    act(() => vi.advanceTimersByTime(LIMIT));
+
+    expect(setTimer).toHaveBeenCalledOnce();
+    expect(result.current).toBe(0);
+  });
+
+  // Listeners hear only of a change that landed. Telling them anyway would send every memo back
+  // to a record it cannot remove, for ever.
+  it("stays quiet and keeps answering when storage refuses to forget a lapsed join", () => {
+    const saved = JSON.stringify({ "garden-first": { address: user, timestamp: Date.now() } });
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+    });
+    const { result } = renderHook(() => usePendingJoinsVersion());
+
+    act(() => vi.advanceTimersByTime(LIMIT + 1));
+
+    expect(result.current).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Could not forget a settled pending join",
+      expect.objectContaining({ source: "removePendingJoin" })
+    );
+    expect(isGardenMember(user, [], [], "garden-first")).toBe(false);
+  });
+});
 
 describe("forgetListedPendingJoins", () => {
   const user = "0x5555555555555555555555555555555555555555";
@@ -117,7 +240,7 @@ describe("forgetListedPendingJoins", () => {
     expect(() => forgetListedPendingJoins(user, ["garden-listed"])).not.toThrow();
     expect(logger.warn).toHaveBeenCalledWith(
       "Could not forget a settled pending join",
-      expect.objectContaining({ source: "forgetListedPendingJoins" })
+      expect.objectContaining({ source: "removePendingJoin" })
     );
   });
 });
