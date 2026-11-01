@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
   returnToDraft: vi.fn(),
   queue: { discardJob: vi.fn() },
 }));
+vi.mock("react-intl", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-intl")>()),
+  useIntl: () => ({ formatMessage: ({ id }: { id: string }) => id }),
+}));
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
 }));

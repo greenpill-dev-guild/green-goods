@@ -14,12 +14,14 @@ import { createElement, type ReactNode, useEffect, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAddress } from "viem";
+import { toastService } from "../../../components/Toast/toast.service";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
 import { useDrafts } from "../../../hooks/work/useDrafts";
 import { useWorkDraftRetirement } from "../../../hooks/work/useWorkDraftRetirement";
 import { useWorkMutation } from "../../../hooks/work/useWorkMutation";
 import { useYourWorkCount } from "../../../hooks/work/useYourWorkCount";
+import en from "../../../i18n/en.json";
 import {
   parseWorkLinkIntent,
   toDraftWorkLink,
@@ -95,13 +97,25 @@ vi.mock("../../../modules/work/wallet-submission", () => ({
  * a promise written into it is the promise the next save carries. `strict` mounts it as the app's
  * development build does, where the first load is interrupted and run again.
  */
+/** A hook with what the app gives autosave: queries, and the words its failure toast reads. */
+function renderInApp<TResult>(hook: () => TResult, options: { reactStrictMode?: boolean } = {}) {
+  const queryClient = createTestQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(
+      IntlProvider,
+      { locale: "en", messages: en },
+      createElement(QueryClientProvider, { client: queryClient }, children)
+    );
+  return renderHook(hook, { ...options, wrapper });
+}
+
 function openWizard(
   query = "",
   { strict = false, work }: { strict?: boolean; work?: WorkContent } = {}
 ) {
   const setSearchParams = vi.fn();
   const restoreForm = vi.fn();
-  const view = renderHookWithQueryClient(
+  const view = renderInApp(
     () => {
       const [searchParams, applySearchParams] = useState(() => new URLSearchParams(query));
       setSearchParams.mockImplementation((next: URLSearchParams) => applySearchParams(next));
@@ -353,6 +367,41 @@ describe("a flow with nothing in it (DL-148)", () => {
 
     expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
     expect(useWorkFlowStore.getState().feedback).toBe("Turned the east beds");
+  });
+
+  it("says so, with Retry, when an emptied draft cannot be deleted, and Retry finishes it", async () => {
+    const wizard = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+    act(() => useWorkFlowStore.getState().setImages([]));
+    await act(async () => {
+      await wizard.result.current.saveOnExit();
+    });
+
+    const toast = vi.spyOn(toastService, "error");
+    vi.spyOn(draftDB, "deleteDraft").mockRejectedValueOnce(new Error("store unavailable"));
+    await leave(wizard);
+    await waitFor(() => expect(toast).toHaveBeenCalledOnce());
+    const report = toast.mock.calls[0][0];
+    expect(report).toMatchObject({
+      title: "Delete failed",
+      message: "Could not delete the draft. Please try again.",
+      action: { label: "Retry" },
+    });
+    expect(await draftDB.getDraft(draftId as string)).toBeDefined();
+
+    report.action?.onClick();
+    await queueDraftWrite(async () => undefined);
+    expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
+    expect(toast).toHaveBeenCalledOnce();
   });
 
   it("keeps a draft left with an attachment it could not read", async () => {

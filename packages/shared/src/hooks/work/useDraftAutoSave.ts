@@ -12,7 +12,9 @@ import {
   returnChangedWorkToDraft,
 } from "../../modules/work/draft-lifecycle";
 import { useCallback, useEffect, useRef } from "react";
+import { useIntl } from "react-intl";
 import { useQueryClient } from "@tanstack/react-query";
+import { toastService } from "../../components/Toast/toast.service";
 import type { Address, ApproximateWorkLocation } from "../../types/domain";
 import type { DraftStep, DraftWorkLink, WorkDraftRecord } from "../../types/job-queue";
 import { logger } from "../../modules/app/logger";
@@ -246,11 +248,12 @@ export function useDraftAutoSave(
   // A draft emptied and left is no draft (DL-148). While the flow is open it stays, since taking
   // out the only photo is often the way to a better one, and an attachment that could not be read
   // still counts: the member has not given it up.
-  const leaving = useRef({ enabled, userAddress, chainId });
-  leaving.current = { enabled, userAddress, chainId };
+  const intl = useIntl();
+  const leaving = useRef({ enabled, userAddress, chainId, intl });
+  leaving.current = { enabled, userAddress, chainId, intl };
   useEffect(
     () => () => {
-      const { enabled: saves, userAddress: account, chainId: chain } = leaving.current;
+      const { enabled: saves, userAddress: account, chainId: chain, intl: copy } = leaving.current;
       const state = useWorkFlowStore.getState();
       const draftId = state.activeDraftId;
       if (!saves || !account || !draftId || state.draftMissingAttachments.length > 0) return;
@@ -260,9 +263,25 @@ export function useDraftAutoSave(
       // Detached first, so a member who comes straight back starts over rather than editing a
       // draft about to go. The delete keeps its place behind any save still writing.
       state.reset();
-      void deleteWorkDraft(draftId)
-        .then(() => queryClient.invalidateQueries({ queryKey: draftsKeys.list(account, chain) }))
-        .catch((error) => logger.warn("[WorkDrafts] Could not remove an emptied draft", { error }));
+      const remove = () => {
+        deleteWorkDraft(draftId)
+          .then(() => queryClient.invalidateQueries({ queryKey: draftsKeys.list(account, chain) }))
+          .catch((error) => {
+            // Nothing is lost: until this lands, the empty draft stays in Your Work to delete there.
+            logger.error("[WorkDrafts] Could not remove an emptied draft", { error });
+            toastService.error({
+              title: copy.formatMessage({ id: "app.drafts.delete.error" }),
+              message: copy.formatMessage({ id: "app.drafts.delete.errorMessage" }),
+              context: "drafts",
+              action: {
+                label: copy.formatMessage({ id: "app.garden.draft.retry" }),
+                onClick: remove,
+                dismissOnClick: true,
+              },
+            });
+          });
+      };
+      remove();
     },
     [queryClient]
   );
