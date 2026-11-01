@@ -77,6 +77,63 @@ describe("useJoinRequestCountGrantStore", () => {
     expect(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY)).not.toContain("other-tab");
   });
 
+  it("does not let another tab bring back grants a clear in this tab ended", async () => {
+    state().keepGrant(SCOPE, GARDEN_A, grant("signed-out"));
+    vi.resetModules();
+    const { useJoinRequestCountGrantStore: otherTab } = await import(
+      "../../stores/useJoinRequestCountGrantStore"
+    );
+    expect(otherTab.getState().grantsByScope[SCOPE]?.[A]).toEqual(grant("signed-out"));
+
+    state().clearAll();
+    otherTab.getState().keepGrant(SCOPE, GARDEN_B, grant("next"));
+
+    expect(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY)).not.toContain("signed-out");
+    expect(otherTab.getState().grantsByScope[SCOPE]).toEqual({ [B]: grant("next") });
+  });
+
+  it("removes the saved grants when clearing even if storage refuses the write", () => {
+    vi.spyOn(logger, "warn").mockImplementation(() => {});
+    let saved: string | null = JSON.stringify({
+      state: { grantsByScope: { [SCOPE]: { [A]: grant("still-valid") } } },
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+      removeItem: () => {
+        saved = null;
+      },
+    });
+
+    state().clearAll();
+
+    expect(saved).toBeNull();
+    expect(state().grantsByScope).toEqual({});
+  });
+
+  it("keeps this session's grants when storage can be read but is full", () => {
+    vi.spyOn(logger, "warn").mockImplementation(() => {});
+    let saved: string | null = JSON.stringify({
+      state: { grantsByScope: { [SCOPE]: { [A]: grant("older") } } },
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+      removeItem: () => {
+        saved = null;
+      },
+    });
+
+    state().keepGrant(SCOPE, GARDEN_A, grant("newer"));
+    state().keepGrant(SCOPE, GARDEN_B, grant("second"));
+
+    expect(state().grantsByScope[SCOPE]).toEqual({ [A]: grant("newer"), [B]: grant("second") });
+  });
+
   it("keeps what another tab saved when this tab saves or forgets its own grant", () => {
     const saved = () =>
       JSON.parse(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY) ?? "{}").state

@@ -31,7 +31,9 @@ interface JoinRequestCountGrantState {
 
 /**
  * Local storage read at call time, so a refused write (a full quota, blocked storage) is logged
- * and the grant lasts for this session instead of breaking the queue read that returned it.
+ * and the grant lasts for this session instead of breaking the queue read that returned it. The
+ * saved record goes with a refused write: it is out of date, and it may hold a grant that write was
+ * clearing. If storage refuses the removal too, that record stays, and the log is all that is left.
  */
 const deviceStorage: StateStorage = {
   getItem: (name) => {
@@ -53,6 +55,7 @@ const deviceStorage: StateStorage = {
         source: "useJoinRequestCountGrantStore",
         error,
       });
+      void deviceStorage.removeItem(name);
     }
   },
   removeItem: (name) => {
@@ -125,7 +128,8 @@ export const useJoinRequestCountGrantStore = create<JoinRequestCountGrantState>(
           set({ grantsByScope: next });
         },
         // Always writes, even from an empty store: another tab may have saved a grant since this one
-        // loaded, and the persist layer touches storage only on a `set`.
+        // loaded, and the persist layer touches storage only on a `set`. The empty record stays
+        // rather than going, because it tells another tab's next save to drop the grants it holds.
         clearAll: () => set({ grantsByScope: {}, generation: get().generation + 1 }),
       };
     },
