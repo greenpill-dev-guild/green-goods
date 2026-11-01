@@ -122,6 +122,19 @@ describe("useCommitmentProofDraft", () => {
     expect(draftRepository.durable.get(key())).toEqual([]);
   });
 
+  it("keeps a credit choice made before anything else, for the member's return", async () => {
+    const { result } = renderSynced(repository());
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+
+    const held = result.current.snapshot;
+    act(() =>
+      result.current.setSnapshot({ ...held, words: { ...held.words, credited: [VIEWER] } })
+    );
+    await waitFor(() => expect(result.current.sync.persistence).toBe("saved"));
+
+    expect(useCommitmentProofDraftStore.getState().drafts[key()]?.credited).toEqual([VIEWER]);
+  });
+
   it("restores after StrictMode tears down and replays its mount effects", async () => {
     const draftRepository = repository();
     const { result } = renderHook(

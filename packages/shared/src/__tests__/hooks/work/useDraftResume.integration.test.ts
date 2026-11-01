@@ -317,6 +317,44 @@ describe("a flow with nothing in it (DL-148)", () => {
     expect(badge.result.current.count).toBe(0);
   });
 
+  it("lets a member who comes straight back start over while the delete is still writing", async () => {
+    const wizard = await openedWizard();
+    tapActionTile();
+    act(() =>
+      useWorkFlowStore
+        .getState()
+        .setImages([new File(["photo-bytes"], "beds.jpg", { type: "image/jpeg" })])
+    );
+    let draftId!: string | null;
+    await act(async () => {
+      draftId = await wizard.result.current.saveOnExit();
+    });
+    act(() => useWorkFlowStore.getState().setImages([]));
+    await act(async () => {
+      await wizard.result.current.saveOnExit();
+    });
+
+    // A write still running holds the delete behind it.
+    let finishWrite!: () => void;
+    const writing = queueDraftWrite(
+      () =>
+        new Promise<void>((resolve) => {
+          finishWrite = resolve;
+        })
+    );
+    wizard.unmount();
+    expect(useWorkFlowStore.getState()).toMatchObject({ activeDraftId: null, actionUID: null });
+
+    await openedWizard();
+    act(() => useWorkFlowStore.getState().setFeedback("Turned the east beds"));
+    finishWrite();
+    await writing;
+    await queueDraftWrite(async () => undefined);
+
+    expect(await draftDB.getDraft(draftId as string)).toBeUndefined();
+    expect(useWorkFlowStore.getState().feedback).toBe("Turned the east beds");
+  });
+
   it("keeps a draft left with an attachment it could not read", async () => {
     const wizard = await openedWizard();
     act(() => useWorkFlowStore.getState().setFeedback("Turned the east beds"));

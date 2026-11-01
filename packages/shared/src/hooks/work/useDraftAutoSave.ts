@@ -257,6 +257,9 @@ export function useDraftAutoSave(
       const { formData } = latest.current;
       if (workHoldsContent({ ...formData, images: state.images, audioNotes: state.audioNotes }))
         return;
+      // Detached first, so a member who comes straight back starts over rather than editing a
+      // draft about to go. The delete keeps its place behind any save still writing.
+      state.reset();
       void deleteWorkDraft(draftId)
         .then(() => queryClient.invalidateQueries({ queryKey: draftsKeys.list(account, chain) }))
         .catch((error) => logger.warn("[WorkDrafts] Could not remove an emptied draft", { error }));

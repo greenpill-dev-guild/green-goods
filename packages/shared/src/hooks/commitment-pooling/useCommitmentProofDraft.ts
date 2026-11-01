@@ -181,7 +181,9 @@ export function useCommitmentProofDraft(input: {
         if (!latest()) return false;
         const videos = media.filter((file) => isVideoFile(file)).length;
         const files = { photos: media.length - videos, videos, voiceNotes: audioNotes.length };
-        if (proofDraftHasContent({ ...snapshot.words, files })) {
+        // A credit choice alone makes no draft and lists nowhere, but the member made it, so it
+        // stays with the composer for their return.
+        if (proofDraftHasContent({ ...snapshot.words, files }) || snapshot.words.credited) {
           // The configured store is synchronous localStorage. Await its runtime
           // result too, so a returning persistence error cannot be fire-and-forgotten.
           await saveDraft(key, snapshot.words);

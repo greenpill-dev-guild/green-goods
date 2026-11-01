@@ -85,8 +85,8 @@ export function commitmentProofDraftPrefix(chainId: number, viewer: string): str
 
 /**
  * Whether a draft holds anything: words, a link or a file (DL-148). Opening the
- * composer writes nothing until it does, and a record saved empty before that
- * rule never counts.
+ * composer writes nothing until it does. A record holding only a credit choice,
+ * or saved empty before that rule, never counts.
  */
 export function proofDraftHasContent(
   draft: Pick<CommitmentProofDraft, "note" | "links" | "files">
