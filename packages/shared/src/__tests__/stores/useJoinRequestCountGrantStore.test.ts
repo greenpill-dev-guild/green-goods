@@ -77,7 +77,23 @@ describe("useJoinRequestCountGrantStore", () => {
     expect(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY)).not.toContain("other-tab");
   });
 
-  it("keeps the grant for this session when storage refuses it, and says so", async () => {
+  it("keeps what another tab saved when this tab saves or forgets its own grant", () => {
+    const saved = () =>
+      JSON.parse(localStorage.getItem(JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY) ?? "{}").state
+        .grantsByScope[SCOPE];
+    localStorage.setItem(
+      JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY,
+      JSON.stringify({ state: { grantsByScope: { [SCOPE]: { [A]: grant("other-tab") } } } })
+    );
+
+    state().keepGrant(SCOPE, GARDEN_B, grant("this-tab"));
+    expect(saved()).toEqual({ [A]: grant("other-tab"), [B]: grant("this-tab") });
+
+    state().forgetGrant(SCOPE, GARDEN_B, "this-tab");
+    expect(saved()).toEqual({ [A]: grant("other-tab") });
+  });
+
+  it("keeps the grants for this session when storage refuses them, and says so", async () => {
     const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
     const refuse = () => {
       throw new DOMException("Storage is blocked.", "SecurityError");
@@ -86,9 +102,10 @@ describe("useJoinRequestCountGrantStore", () => {
 
     await useJoinRequestCountGrantStore.persist.rehydrate();
     state().keepGrant(SCOPE, GARDEN_A, grant("first"));
+    state().keepGrant(SCOPE, GARDEN_B, grant("second"));
     useJoinRequestCountGrantStore.persist.clearStorage();
 
-    expect(state().grantsByScope[SCOPE]?.[A]).toEqual(grant("first"));
+    expect(state().grantsByScope[SCOPE]).toEqual({ [A]: grant("first"), [B]: grant("second") });
     for (const message of [
       "Could not read the join-request count grants",
       "Could not save the join-request count grant",

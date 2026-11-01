@@ -94,44 +94,56 @@ function parseGrantsByScope(value: unknown, nowSeconds: number): GrantsByScope {
  */
 export const useJoinRequestCountGrantStore = create<JoinRequestCountGrantState>()(
   persist(
-    (set, get) => ({
-      grantsByScope: {},
-      generation: 0,
-      keepGrant: (scope, gardenId, grant) => {
-        const current = get().grantsByScope;
-        set({
-          grantsByScope: {
-            ...current,
-            [scope]: { ...current[scope], [gardenId.toLowerCase()]: grant },
-          },
-        });
-      },
-      forgetGrant: (scope, gardenId, token) => {
-        const current = get().grantsByScope;
-        const id = gardenId.toLowerCase();
-        const grants = current[scope];
-        if (grants?.[id]?.token !== token) return;
-        const kept = Object.entries(grants).filter(([key]) => key !== id);
-        const next = { ...current };
-        if (kept.length > 0) next[scope] = Object.fromEntries(kept);
-        else delete next[scope];
-        set({ grantsByScope: next });
-      },
-      // Always writes, even from an empty store: another tab may have saved a grant since this one
-      // loaded, and the persist layer touches storage only on a `set`.
-      clearAll: () => set({ grantsByScope: {}, generation: get().generation + 1 }),
-    }),
+    (set, get, api) => {
+      // Tabs share storage, not memory, and a write replaces the whole record, so each write starts
+      // from what is saved. Local storage is synchronous, and so is rehydrating from it.
+      const latestGrants = () => {
+        void api.persist.rehydrate();
+        return get().grantsByScope;
+      };
+      return {
+        grantsByScope: {},
+        generation: 0,
+        keepGrant: (scope, gardenId, grant) => {
+          const current = latestGrants();
+          set({
+            grantsByScope: {
+              ...current,
+              [scope]: { ...current[scope], [gardenId.toLowerCase()]: grant },
+            },
+          });
+        },
+        forgetGrant: (scope, gardenId, token) => {
+          const current = latestGrants();
+          const id = gardenId.toLowerCase();
+          const grants = current[scope];
+          if (grants?.[id]?.token !== token) return;
+          const kept = Object.entries(grants).filter(([key]) => key !== id);
+          const next = { ...current };
+          if (kept.length > 0) next[scope] = Object.fromEntries(kept);
+          else delete next[scope];
+          set({ grantsByScope: next });
+        },
+        // Always writes, even from an empty store: another tab may have saved a grant since this one
+        // loaded, and the persist layer touches storage only on a `set`.
+        clearAll: () => set({ grantsByScope: {}, generation: get().generation + 1 }),
+      };
+    },
     {
       name: JOIN_REQUEST_COUNT_GRANTS_STORAGE_KEY,
       storage: createJSONStorage(() => deviceStorage),
       partialize: (state) => ({ grantsByScope: state.grantsByScope }),
-      merge: (persisted, current) => ({
-        ...current,
-        grantsByScope: parseGrantsByScope(
-          (persisted as { grantsByScope?: unknown } | undefined)?.grantsByScope,
-          Math.floor(Date.now() / 1000)
-        ),
-      }),
+      // Nothing to read, as with blocked storage, leaves this session's grants in place.
+      merge: (persisted, current) =>
+        persisted
+          ? {
+              ...current,
+              grantsByScope: parseGrantsByScope(
+                (persisted as { grantsByScope?: unknown }).grantsByScope,
+                Math.floor(Date.now() / 1000)
+              ),
+            }
+          : current,
     }
   )
 );
