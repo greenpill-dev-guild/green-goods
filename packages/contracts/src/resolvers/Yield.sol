@@ -588,23 +588,22 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         }
         if (jar == address(0)) jar = gardenCookieJars[garden];
 
-        if (jar != address(0) && _depositIntoJar(jar, asset, amount)) {
-            emit YieldToCookieJar(garden, asset, amount, jar);
-        } else {
-            _sendToTreasury(garden, asset, amount, "cookieJar");
-        }
+        uint256 deposited = _depositIntoJar(jar, asset, amount);
+        if (deposited > 0) emit YieldToCookieJar(garden, asset, deposited, jar);
+        if (deposited < amount) _sendToTreasury(garden, asset, amount - deposited, "cookieJar");
     }
 
-    /// @dev True only when the jar pulled the full amount: a contract's fallback can accept the call and take nothing.
-    function _depositIntoJar(address jar, address asset, uint256 amount) private returns (bool deposited) {
-        // try/catch cannot catch a call to an address with no code
-        if (jar.code.length == 0) return false;
+    /// @dev Returns what the jar actually pulled: a contract's fallback can accept the call and take little or nothing.
+    function _depositIntoJar(address jar, address asset, uint256 amount) private returns (uint256 pulled) {
+        // try/catch cannot catch a call to an address with no code, which also covers no jar at all
+        if (jar.code.length == 0) return 0;
 
+        uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
         IERC20(asset).forceApprove(jar, amount);
         // solhint-disable-next-line no-empty-blocks
         try ICookieJar(jar).deposit(amount) { } catch { }
-        deposited = IERC20(asset).allowance(address(this), jar) == 0;
-        if (!deposited) IERC20(asset).forceApprove(jar, 0);
+        IERC20(asset).forceApprove(jar, 0);
+        pulled = balanceBefore - IERC20(asset).balanceOf(address(this));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

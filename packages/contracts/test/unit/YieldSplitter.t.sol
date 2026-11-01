@@ -56,6 +56,19 @@ contract JarThatTakesNothing {
     fallback() external payable { }
 }
 
+/// @notice Reports success after pulling only half of what it was offered
+contract JarThatTakesHalf {
+    ERC20 private immutable token;
+
+    constructor(ERC20 _token) {
+        token = _token;
+    }
+
+    function deposit(uint256 amount) external payable {
+        token.transferFrom(msg.sender, address(this), amount / 2);
+    }
+}
+
 /// @title YieldResolverTest
 /// @notice Unit tests for YieldResolver contract
 contract YieldResolverTest is Test {
@@ -365,6 +378,24 @@ contract YieldResolverTest is Test {
     /// @dev The call succeeds but nothing moves, so the tokens would sit in the resolver unaccounted for.
     function testYieldResolver_treasuryTakesYieldWhenJarTakesNothing() public {
         _assertTreasuryTakesYieldInsteadOf(address(new JarThatTakesNothing()));
+    }
+
+    /// @dev Paying the treasury the full amount here would spend balances pooled for other gardens.
+    function testYieldResolver_treasuryTakesOnlyWhatAPartialJarLeaves() public {
+        uint256 amount = 10_000;
+        uint256 pooledForOtherGardens = 1000;
+        JarThatTakesHalf jar = new JarThatTakesHalf(weth);
+        _prepareSplitEntirelyToCookieJar(amount);
+        weth.mint(address(yieldSplitter), pooledForOtherGardens);
+        vm.prank(owner);
+        yieldSplitter.setCookieJar(garden, address(jar));
+
+        yieldSplitter.splitYield(garden, address(weth), address(vault));
+
+        assertEq(weth.balanceOf(address(jar)), amount / 2, "Jar should hold what it pulled");
+        assertEq(weth.balanceOf(treasury), amount / 2, "Treasury should take only the rest");
+        assertEq(weth.balanceOf(address(yieldSplitter)), pooledForOtherGardens, "Pooled balances should stay");
+        assertEq(weth.allowance(address(yieldSplitter), address(jar)), 0, "No allowance should remain");
     }
 
     function _prepareSplitEntirelyToCookieJar(uint256 amount) internal {

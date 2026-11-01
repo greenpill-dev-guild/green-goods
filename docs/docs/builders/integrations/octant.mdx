@@ -56,9 +56,9 @@ flowchart LR
 Custody follows from that. Funders hold the vault's shares, the module is each vault's role
 manager, and the yield a strategy harvests is minted as vault shares to the yield resolver, which
 splits it between the garden's cookie jar, Hypercert fraction purchases, and the Juicebox treasury
-that backs GOODS. The garden's own account is not the vault's custodian: it receives routed yield
-only as a fallback, when the cookie jar or treasury that should receive it is not set, or when a
-jar refuses the deposit.
+that backs GOODS. The garden's own account is not the vault's custodian. A portion whose destination
+is unavailable (no cookie jar, a jar that refuses the deposit, or no working Juicebox terminal) goes
+to the garden's treasury, and to the garden's own account only when no treasury is set.
 
 Vaults are created when a garden is minted, one per supported asset, and that call is best-effort
 like the other module hooks, so a garden can exist with no vault. `getVaultForAsset` returns the
