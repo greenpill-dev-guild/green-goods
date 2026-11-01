@@ -248,9 +248,8 @@ export function useJoinGarden() {
           })
         );
 
-        // Optimistic update: add user to garden's gardeners list. The list keeps the time it was
-        // read: the roster has not been read since the join, so the pending join still stands in
-        // (`forgetListedPendingJoins`).
+        // Optimistic update: add user to garden's gardeners list, marked as the join's own entry so
+        // the pending join stays until a read of the roster lists them (`useMyGardens`).
         queryClient.setQueryData(
           gardensKeys.byChain(chainId),
           (oldGardens: Garden[] | undefined) => {
@@ -262,13 +261,13 @@ export function useJoinGarden() {
                   return {
                     ...garden,
                     gardeners: [...currentGardeners, targetAddress],
+                    optimisticGardener: targetAddress,
                   };
                 }
               }
               return garden;
             });
-          },
-          { updatedAt: queryClient.getQueryState(gardensKeys.byChain(chainId))?.dataUpdatedAt }
+          }
         );
 
         activateJoinedGarden(gardenAddress, targetAddress);

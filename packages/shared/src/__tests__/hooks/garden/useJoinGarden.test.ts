@@ -93,26 +93,15 @@ describe("forgetListedPendingJoins", () => {
       })
     );
 
-    forgetListedPendingJoins(
-      user.toUpperCase().replace("0X", "0x"),
-      ["GARDEN-LISTED", "garden-shared"],
-      joinedAt
-    );
+    forgetListedPendingJoins(user.toUpperCase().replace("0X", "0x"), [
+      "GARDEN-LISTED",
+      "garden-shared",
+    ]);
 
     expect(JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) ?? "{}")).toEqual({
       "garden-waiting": { address: user, timestamp: joinedAt },
       "garden-shared": { address: other, timestamp: joinedAt },
     });
-  });
-
-  it("keeps a join newer than the read that lists it: that is its own optimistic entry", () => {
-    const joinedAt = Date.now();
-    const saved = JSON.stringify({ "garden-listed": { address: user, timestamp: joinedAt } });
-    localStorage.setItem(PENDING_JOINS_KEY, saved);
-
-    forgetListedPendingJoins(user, ["garden-listed"], joinedAt - 1);
-
-    expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe(saved);
   });
 
   it("keeps going when storage refuses the write, and says so", () => {
@@ -124,7 +113,7 @@ describe("forgetListedPendingJoins", () => {
       },
     });
 
-    expect(() => forgetListedPendingJoins(user, ["garden-listed"], Date.now())).not.toThrow();
+    expect(() => forgetListedPendingJoins(user, ["garden-listed"])).not.toThrow();
     expect(logger.warn).toHaveBeenCalledWith(
       "Could not forget a settled pending join",
       expect.objectContaining({ source: "forgetListedPendingJoins" })
@@ -215,7 +204,7 @@ describe("isGardenMember", () => {
     const result = isGardenMember(user, [user], [], gardenId);
     expect(result).toBe(true);
 
-    // `forgetListedPendingJoins` settles it once a read lists the user.
+    // `useMyGardens` settles it once a read of the roster lists the user.
     expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe(JSON.stringify(pendingJoins));
   });
 });

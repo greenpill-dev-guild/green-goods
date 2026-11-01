@@ -301,12 +301,12 @@ describe("hooks/garden/useJoinGarden", () => {
         expect(activeGarden()).toBe("0xPrevious");
       });
 
-      it("adds the account to the list it holds without counting that as a read of the roster", async () => {
+      it("marks the entry it adds to the list as the join's own, not a read of the roster", async () => {
         const key = gardensKeys.byChain(11155111);
         const garden = { id: MOCK_ADDRESSES.garden, gardeners: [] };
         // No observer holds the list here, and the test client would collect it at once.
         queryClient.setQueryDefaults(key, { gcTime: Number.POSITIVE_INFINITY });
-        queryClient.setQueryData(key, [garden], { updatedAt: 1_000 });
+        queryClient.setQueryData(key, [garden]);
 
         const result = renderJoin(MOCK_TX_HASH);
         await act(async () => {
@@ -314,9 +314,12 @@ describe("hooks/garden/useJoinGarden", () => {
         });
 
         expect(queryClient.getQueryData(key)).toEqual([
-          { ...garden, gardeners: [MOCK_ADDRESSES.smartAccount] },
+          {
+            ...garden,
+            gardeners: [MOCK_ADDRESSES.smartAccount],
+            optimisticGardener: MOCK_ADDRESSES.smartAccount,
+          },
         ]);
-        expect(queryClient.getQueryState(key)?.dataUpdatedAt).toBe(1_000);
       });
     });
 

@@ -88,22 +88,16 @@ function pendingJoinAccount(record: unknown): string | null {
   return typeof address === "string" ? address.toLowerCase() : null;
 }
 
-/** When a saved pending join was recorded, or null for a malformed record. */
-function pendingJoinTime(record: unknown): number | null {
-  const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
-  return typeof joinedAt === "number" ? joinedAt : null;
-}
-
 /** The gardens, lower-cased, where this device holds a fresh open join for the account. Reads only. */
 export function pendingJoinGardenIds(account: string): Set<string> {
   const member = account.toLowerCase();
   const now = Date.now();
   const gardenIds = new Set<string>();
   for (const [gardenId, record] of Object.entries(savedPendingJoins())) {
-    const joinedAt = pendingJoinTime(record);
+    const joinedAt = (record as { timestamp?: unknown } | null)?.timestamp;
     if (
       pendingJoinAccount(record) === member &&
-      joinedAt !== null &&
+      typeof joinedAt === "number" &&
       now - joinedAt <= PENDING_JOIN_TTL
     ) {
       gardenIds.add(gardenId.toLowerCase());
@@ -113,27 +107,17 @@ export function pendingJoinGardenIds(account: string): Set<string> {
 }
 
 /**
- * Forget this device's open joins for the account in gardens whose roster, as read at `readAt`,
- * lists it, so a role removed later is not masked by the join that came before it. A join newer
- * than the read stays: until the roster is read again the list only shows the join's own optimistic
- * entry, which the next read drops while the indexer catches up. Notifies only on a change.
+ * Forget this device's open joins for the account in gardens whose roster now lists it, so a
+ * role removed later is not masked by the join that came before it. Notifies only on a change.
  */
-export function forgetListedPendingJoins(
-  account: string,
-  listedGardenIds: readonly string[],
-  readAt: number
-) {
+export function forgetListedPendingJoins(account: string, listedGardenIds: readonly string[]) {
   if (typeof window === "undefined") return;
   const pending = savedPendingJoins();
   const listed = new Set(listedGardenIds.map((gardenId) => gardenId.toLowerCase()));
   const member = account.toLowerCase();
   let changed = false;
   for (const [gardenId, record] of Object.entries(pending)) {
-    if (
-      listed.has(gardenId.toLowerCase()) &&
-      pendingJoinAccount(record) === member &&
-      (pendingJoinTime(record) ?? 0) <= readAt
-    ) {
+    if (listed.has(gardenId.toLowerCase()) && pendingJoinAccount(record) === member) {
       delete pending[gardenId];
       changed = true;
     }

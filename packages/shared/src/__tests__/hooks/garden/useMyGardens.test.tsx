@@ -139,16 +139,20 @@ describe("useMyGardens", () => {
 
   // The indexer is behind the chain for a while after a join: the join writes the account into the
   // list it holds (useJoinGarden), and the next read drops it again.
-  it("keeps an open join standing in through a read the indexer has not caught up with", async () => {
+  it("keeps an open join standing in until a read of the roster lists the account", async () => {
     getGardens.mockResolvedValue([openJoined]);
     const { result } = renderMyGardens();
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
     const key = gardensKeys.byChain(DEFAULT_CHAIN_ID);
-    const joined = { ...openJoined, gardeners: [ACCOUNT] };
-    savePendingJoins({ [openJoined.id]: { address: ACCOUNT, timestamp: Date.now() + 1 } });
-    client.setQueryData(key, [joined], { updatedAt: client.getQueryState(key)?.dataUpdatedAt });
+    const listed = { ...openJoined, gardeners: [ACCOUNT] };
+    savePendingJoins({ [openJoined.id]: { address: ACCOUNT, timestamp: Date.now() } });
+    client.setQueryData(key, [{ ...listed, optimisticGardener: ACCOUNT }]);
     await waitFor(() => expect(result.current.gardens[0]?.membership.roles).toEqual(["gardener"]));
+    // A later write to the list, such as a steward's approval elsewhere, is no read of this roster.
+    await act(async () => {
+      client.setQueryData<Garden[]>(key, (gardens) => gardens?.map((garden) => ({ ...garden })));
+    });
     expect(localStorage.getItem(PENDING_JOINS_KEY)).toContain(openJoined.id);
 
     await act(() => client.invalidateQueries({ queryKey: key }));
@@ -156,9 +160,7 @@ describe("useMyGardens", () => {
       expect(result.current.gardens[0]?.membership).toEqual({ roles: [], pendingJoin: true })
     );
 
-    getGardens.mockResolvedValue([joined]);
-    // A read made after the join and listing the account settles it.
-    await new Promise((resolve) => setTimeout(resolve, 2));
+    getGardens.mockResolvedValue([listed]);
     await act(() => client.invalidateQueries({ queryKey: key }));
     await waitFor(() => expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe("{}"));
     expect(result.current.gardens[0]?.membership).toEqual({
