@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  type BatchApprovalItem,
   submitApproval,
-  submitBatchApprovals,
   type SubmitApprovalCommand,
   type SubmitApprovalPorts,
 } from "../../modules/work/submit-approval-command";
@@ -122,26 +120,5 @@ describe("submitApproval", () => {
       submitApproval(command({ work: createMockWork({ status: "approved" }) }), dependencies)
     ).rejects.toThrow("already been approved");
     expect(dependencies.direct).not.toHaveBeenCalled();
-  });
-});
-
-describe("submitBatchApprovals", () => {
-  const items: BatchApprovalItem[] = [
-    { draft: createMockWorkApprovalDraft(), work: createMockWork() },
-  ];
-
-  it("routes wallet and sponsored batches through separate ports", async () => {
-    const direct = vi.fn().mockResolvedValue(MOCK_TX_HASH);
-    const sponsored = vi.fn().mockResolvedValue(MOCK_TX_HASH);
-
-    await expect(
-      submitBatchApprovals({ authMode: "wallet", items, chainId: 11155111 }, { direct, sponsored })
-    ).resolves.toEqual({ hash: MOCK_TX_HASH, count: 1 });
-    await expect(
-      submitBatchApprovals({ authMode: "passkey", items, chainId: 11155111 }, { direct, sponsored })
-    ).resolves.toEqual({ hash: MOCK_TX_HASH, count: 1 });
-
-    expect(direct).toHaveBeenCalledOnce();
-    expect(sponsored).toHaveBeenCalledOnce();
   });
 });

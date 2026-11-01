@@ -1,452 +1,428 @@
 /**
- * useBatchWorkApproval Hook Tests
+ * Sending reviewed decisions as one batch, and settling a send whose outcome is unknown.
  * @vitest-environment happy-dom
- *
- * Tests the batch work approval mutation hook including auth mode branching,
- * optimistic updates, error rollback, and query invalidation.
  */
 
-import { QueryClient } from "@tanstack/react-query";
+import "fake-indexeddb/auto";
 import { act, waitFor } from "@testing-library/react";
+import { encodeAbiParameters, encodeEventTopics, type Hex, type Log, parseAbi, toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Work } from "../../../types/domain";
-import {
-  createMockWork,
-  createMockWorkApprovalDraft,
-  MOCK_ADDRESSES,
-  MOCK_TX_HASH,
-} from "../../test-utils/mock-factories";
-import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
-import {
-  createFakeSmartAccountClient,
-  type FakeSmartAccountClient,
-} from "../../test-utils/transaction-fakes";
-
-// ============================================
-// Mocks
-// ============================================
-
-const mockSubmitBatchDirectly = vi.fn();
-
-vi.mock("../../../modules/work/wallet-submission", () => ({
-  submitBatchApprovalsDirectly: (...args: unknown[]) => mockSubmitBatchDirectly(...args),
-}));
-
-vi.mock("../../../components/toast", () => ({
-  toastService: {
-    loading: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    dismiss: vi.fn(),
-  },
-}));
-
-vi.mock("../../../modules/app/posthog", () => ({
-  track: vi.fn(),
-}));
-
-vi.mock("../../../modules/app/error-tracking", () => ({
-  trackContractError: vi.fn(),
-  addBreadcrumb: vi.fn(),
-}));
-
-vi.mock("../../../utils/errors/contract-errors", () => ({
-  parseAndFormatError: vi.fn(() => ({
-    title: "Error",
-    message: "Something went wrong",
-    parsed: {
-      name: "UnknownError",
-      message: "Something went wrong",
-      isKnown: false,
-      recoverable: false,
-    },
-  })),
-}));
-
-vi.mock("../../../utils/app/haptics", () => ({
-  hapticError: vi.fn(),
-  hapticSuccess: vi.fn(),
-}));
-
-vi.mock("../../../utils/debug", () => ({
-  DEBUG_ENABLED: false,
-  debugLog: vi.fn(),
-}));
-
-vi.mock("../../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
-  getEASConfig: () => ({
-    EAS: { address: "0x1111111111111111111111111111111111111111" },
-    WORK_APPROVAL: { uid: `0x${"22".repeat(32)}`, schema: "" },
-  }),
-}));
-
-vi.mock("../../../config/default-chain", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
-}));
-
-// Auth mode mock state
-let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "wallet";
-let mockSmartAccountClient: FakeSmartAccountClient | null = null;
-
-vi.mock("../../../hooks/auth/useUser", () => ({
-  useUser: () => ({
-    authMode: mockAuthMode,
-    smartAccountClient: mockSmartAccountClient,
-  }),
-}));
-
-vi.mock("../../../config/appkit", () => ({
-  getWagmiConfig: () => ({}),
-}));
-
-import { queryKeys } from "../../../config/query-keys";
+import { getEASConfig } from "../../../config/blockchain";
+import { worksKeys } from "../../../config/query-keys/work";
+import { useMutationLock } from "../../../hooks/utils/useMutationLock";
 import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
+import type { BatchExecution } from "../../../modules/transactions/batch-types";
+import type { OverlayWork } from "../../../modules/work/local-status-overlay";
+import type { ReviewDecision } from "../../../modules/work/review-batch";
+import type { Address, WorkApprovalDraft } from "../../../types/domain";
+import { Confidence, VerificationMethod } from "../../../types/domain";
+import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
+import { createFakeBatchingSender } from "../../test-utils/transaction-fakes";
 
-// ============================================
-// Test helpers
-// ============================================
+const { auth, chainState, sending, toasts, listing } = vi.hoisted(() => ({
+  auth: { primaryAddress: null as string | null, passkeyAccountProfile: "kernel-0.3.1-legacy" },
+  chainState: {
+    decided: new Set<string>(),
+    logs: [] as Partial<Log>[],
+    attestations: new Map<string, string>(),
+  },
+  sending: { sender: null as unknown },
+  toasts: { success: vi.fn(), info: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() },
+  listing: { enabled: true, walletProfile: "contract-call" },
+}));
 
-const TEST_CHAIN_ID = 11155111;
-const TEST_GARDEN = MOCK_ADDRESSES.gardener;
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => sending.sender,
+}));
+vi.mock("../../../hooks/auth/useUser", () => ({ useUser: () => auth }));
+vi.mock("../../../components/toast", () => ({ toastService: toasts }));
+vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../../modules/app/posthog", () => ({ track: vi.fn() }));
+vi.mock("../../../utils/errors/mutation-error-handler", () => ({
+  createMutationErrorHandler: () => vi.fn(),
+}));
+vi.mock("../../../modules/transactions/batch-enablement", () => ({
+  isBatchEnabled: (query: { rail: string; profile: string }) =>
+    listing.enabled && (query.rail === "passkey" || query.profile === listing.walletProfile),
+}));
+vi.mock("../../../utils/blockchain/simulation", () => ({
+  simulateTransaction: vi.fn(async () => ({ success: true })),
+}));
+vi.mock("../../../modules/data/eas", () => ({
+  getWorkApprovalsForWork: vi.fn(async (workUID: string) =>
+    chainState.decided.has(workUID) ? [{ id: "earlier" }] : []
+  ),
+}));
+vi.mock("@wagmi/core", () => ({
+  readContract: vi.fn(async (_config, { args }: { args: [string] }) => ({
+    data: chainState.attestations.get(args[0]),
+  })),
+  getTransactionReceipt: vi.fn(async () => ({ logs: chainState.logs })),
+}));
+// The EAS SDK is stubbed in this project, so this writes what the schema does.
+vi.mock("../../../utils/eas/encoders", async (importOriginal) => {
+  const viem = await import("viem");
+  return {
+    ...(await importOriginal<object>()),
+    encodeWorkApprovalData: (draft: WorkApprovalDraft) =>
+      viem.encodeAbiParameters(viem.parseAbiParameters("bytes32,bool,string"), [
+        draft.workUID as Hex,
+        draft.approved,
+        draft.feedback ?? "",
+      ]),
+  };
+});
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
+const chainId = 42161;
+const hash = `0x${"ab".repeat(32)}` as const;
+const CONFIRMED: Partial<BatchExecution> = {
+  status: "confirmed",
+  receipts: [{ transactionHash: hash, status: "success" }],
+};
+const ATTESTED = parseAbi([
+  "event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schemaUID)",
+]);
+const random = (size: number): Hex => toHex(crypto.getRandomValues(new Uint8Array(size)));
+
+function setup(execution: Partial<BatchExecution> = CONFIRMED, authMode = "passkey") {
+  const account = random(20) as Address;
+  const garden = random(20) as Address;
+  const sender = createFakeBatchingSender(account, execution);
+  Object.assign(sender, { authMode });
+  auth.primaryAddress = account;
+  sending.sender = sender;
+  const queryClient = createTestQueryClient();
+  queryClient.setDefaultOptions({ queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } });
+  const decide = (approved = true, feedback = ""): ReviewDecision => ({
+    gardenAddress: garden,
+    draft: {
+      actionUID: 1,
+      workUID: random(32),
+      approved,
+      feedback,
+      confidence: approved ? Confidence.HIGH : Confidence.NONE,
+      verificationMethod: approved ? VerificationMethod.HUMAN : 0,
     },
   });
+  const landed = (decision: ReviewDecision) => {
+    const attestationUID = random(32);
+    const eas = getEASConfig(chainId);
+    chainState.attestations.set(attestationUID, encodeWorkApprovalData(decision.draft, chainId));
+    chainState.logs.push({
+      address: eas.EAS.address as Address,
+      topics: encodeEventTopics({
+        abi: ATTESTED,
+        eventName: "Attested",
+        args: {
+          recipient: garden,
+          attester: account,
+          schemaUID: eas.WORK_APPROVAL.uid as Hex,
+        },
+      }) as Log["topics"],
+      data: encodeAbiParameters([{ type: "bytes32" }], [attestationUID]),
+    });
+    return attestationUID;
+  };
+  /** The resolver's own attestation in the same transaction, under another schema. */
+  const landedUnderAnotherSchema = (decision: ReviewDecision) => {
+    landed(decision);
+    chainState.logs[chainState.logs.length - 1].topics = encodeEventTopics({
+      abi: ATTESTED,
+      eventName: "Attested",
+      args: { recipient: garden, attester: account, schemaUID: random(32) },
+    }) as Log["topics"];
+  };
+  const listWorks = (decisions: readonly ReviewDecision[]) => {
+    const works = decisions.map(
+      ({ draft }) => ({ id: draft.workUID, status: "pending" }) as unknown as OverlayWork
+    );
+    queryClient.setQueryData(worksKeys.merged(garden, chainId), works);
+    queryClient.setQueryData(worksKeys.online(garden, chainId), works);
+  };
+  const workOf = ({ draft }: ReviewDecision) =>
+    queryClient
+      .getQueryData<OverlayWork[]>(worksKeys.merged(garden, chainId))
+      ?.find((work) => work.id === draft.workUID);
+  const render = () => renderHookWithProviders(() => useBatchWorkApproval(garden), { queryClient });
+  return {
+    account,
+    garden,
+    sender,
+    queryClient,
+    decide,
+    landed,
+    landedUnderAnotherSchema,
+    listWorks,
+    workOf,
+    render,
+  };
 }
-
-function createBatchItems(count: number, approved = true) {
-  return Array.from({ length: count }, (_, i) => ({
-    draft: createMockWorkApprovalDraft({
-      workUID: `0x${i.toString(16).padStart(64, "0")}`,
-      actionUID: i + 1,
-      approved,
-    }),
-    work: createMockWork({
-      id: `work-${i}`,
-      gardenAddress: TEST_GARDEN,
-      gardenerAddress: MOCK_ADDRESSES.gardener,
-      actionUID: i + 1,
-    }),
-  }));
-}
-
-// ============================================
-// Tests
-// ============================================
 
 describe("useBatchWorkApproval", () => {
-  let queryClient: QueryClient;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
-    mockAuthMode = "wallet";
-    mockSmartAccountClient = null;
-    mockSubmitBatchDirectly.mockResolvedValue(MOCK_TX_HASH);
+    listing.enabled = true;
+    listing.walletProfile = "contract-call";
+    chainState.decided = new Set();
+    chainState.logs = [];
+    chainState.attestations = new Map();
   });
 
-  // ------------------------------------------
-  // Input validation
-  // ------------------------------------------
+  it.each([
+    "passkey",
+    "wallet",
+  ])("is available on a %s once listed, since one call does the batching", (mode) => {
+    const { render } = setup(CONFIRMED, mode);
+    const { result } = render();
 
-  describe("input validation", () => {
-    it("throws when submitting empty items array", async () => {
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        try {
-          await result.current.mutateAsync([]);
-        } catch (e) {
-          expect((e as Error).message).toBe("No items to approve");
-        }
-      });
-
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-    });
+    expect(result.current.available).toBe(true);
+    expect(result.current.signaturesFor(6)).toBe(2);
   });
 
-  // ------------------------------------------
-  // Wallet mode
-  // ------------------------------------------
+  it("isn't available while nothing is listed", () => {
+    listing.enabled = false;
+    const { render } = setup();
+    const { result } = render();
 
-  describe("wallet mode", () => {
-    beforeEach(() => {
-      mockAuthMode = "wallet";
-    });
-
-    it("submits batch approvals via wallet submission module", async () => {
-      const items = createBatchItems(3);
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        await result.current.mutateAsync(items);
-      });
-
-      expect(mockSubmitBatchDirectly).toHaveBeenCalledOnce();
-
-      await waitFor(() => {
-        expect(result.current.data?.count).toBe(3);
-        expect(result.current.data?.hash).toBe(MOCK_TX_HASH);
-      });
-    });
-
-    it("maps items to approval format with garden/gardener addresses", async () => {
-      const items = createBatchItems(2);
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        await result.current.mutateAsync(items);
-      });
-
-      const callArgs = mockSubmitBatchDirectly.mock.calls[0][0];
-      expect(callArgs).toHaveLength(2);
-      expect(callArgs[0]).toHaveProperty("draft");
-      expect(callArgs[0]).toHaveProperty("gardenAddress", TEST_GARDEN);
-      expect(callArgs[0]).toHaveProperty("gardenerAddress", MOCK_ADDRESSES.gardener);
-    });
+    expect(result.current.available).toBe(false);
   });
 
-  // ------------------------------------------
-  // Passkey mode
-  // ------------------------------------------
+  it("keeps each work's own decision and feedback once a read proves it", async () => {
+    const { decide, landed, listWorks, workOf, render, sender } = setup();
+    const [yes, no] = [decide(true, "Lovely"), decide(false, "No photo")];
+    listWorks([yes, no]);
+    const attestations = [landed(yes), landed(no)];
+    const { result } = render();
 
-  describe("passkey mode", () => {
-    beforeEach(() => {
-      mockAuthMode = "passkey";
-      mockSmartAccountClient = createFakeSmartAccountClient();
+    let outcome: Awaited<ReturnType<typeof result.current.send>> | undefined;
+    await act(async () => {
+      outcome = await result.current.send([yes, no]);
     });
 
-    it("submits batch approvals via passkey submission module", async () => {
-      const items = createBatchItems(2);
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        await result.current.mutateAsync(items);
-      });
-
-      expect(mockSmartAccountClient!.sendTransaction).toHaveBeenCalledOnce();
-      expect(mockSubmitBatchDirectly).not.toHaveBeenCalled();
-      expect(result.current.data?.count).toBe(2);
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(outcome?.sent.map((item) => item.attestationUID)).toEqual(attestations);
+    expect(workOf(yes)).toMatchObject({
+      status: "approved",
+      reviewFeedback: "Lovely",
+      _isPending: false,
+      _txHash: hash,
     });
-
-    it("submits with the active smart account client", async () => {
-      const items = createBatchItems(1);
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        await result.current.mutateAsync(items);
-      });
-
-      expect(mockSmartAccountClient!.sendTransaction).toHaveBeenCalledOnce();
-      expect(mockSmartAccountClient!.sendTransaction).toHaveBeenCalledWith(
-        expect.objectContaining({ account: mockSmartAccountClient!.account })
-      );
-    });
-
-    it("throws when smart account client is unavailable", async () => {
-      mockSmartAccountClient = null;
-      const items = createBatchItems(1);
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        try {
-          await result.current.mutateAsync(items);
-        } catch (e) {
-          expect((e as Error).message).toContain("Smart account not available");
-        }
-      });
-
-      expect(result.current.isError).toBe(true);
-    });
+    expect(workOf(no)).toMatchObject({ status: "rejected", reviewFeedback: "No photo" });
+    // A proven decision outranks the indexer until the indexer reports it.
+    expect(workOf(yes)?._pendingUntilMs).toBeUndefined();
+    expect(toasts.success).toHaveBeenCalledOnce();
   });
 
-  // ------------------------------------------
-  // Optimistic updates
-  // ------------------------------------------
+  it("passes on a list that takes a signature per review", async () => {
+    const { decide, landed, listWorks, render, sender } = setup();
+    const decisions = [decide(), decide()];
+    listWorks(decisions);
+    decisions.forEach((decision) => landed(decision));
+    const { result } = render();
 
-  describe("optimistic updates", () => {
-    it("optimistically updates work status during mutation", async () => {
-      const items = createBatchItems(1, true);
-      const gardenAddr = items[0].work.gardenAddress;
-
-      // Seed the cache with existing works
-      const existingWorks: Work[] = [
-        createMockWork({
-          id: items[0].draft.workUID,
-          gardenAddress: gardenAddr,
-          status: "pending",
-        }),
-      ];
-
-      queryClient.setQueryData(queryKeys.works.merged(gardenAddr, TEST_CHAIN_ID), existingWorks);
-
-      // Delay resolution so we can observe optimistic state
-      let resolveSubmit!: (value: string) => void;
-      mockSubmitBatchDirectly.mockReturnValue(
-        new Promise((resolve) => {
-          resolveSubmit = resolve;
-        })
-      );
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      // Start mutation (don't await)
-      const mutationPromise = act(async () => {
-        const promise = result.current.mutateAsync(items);
-        // Give React time to process onMutate
-        await new Promise((r) => setTimeout(r, 10));
-
-        // Check optimistic update applied
-        const cached = queryClient.getQueryData<any[]>(
-          queryKeys.works.merged(gardenAddr, TEST_CHAIN_ID)
-        );
-
-        if (cached) {
-          const updatedWork = cached.find((w: any) => w.id === items[0].draft.workUID);
-          expect(updatedWork?.status).toBe("approved");
-          expect(updatedWork?._isPending).toBe(true);
-        }
-
-        // Now resolve
-        resolveSubmit(MOCK_TX_HASH);
-        return promise;
-      });
-
-      await mutationPromise;
+    await act(async () => {
+      await result.current.send(decisions, { perSignature: 1 });
     });
 
-    it("gives each work its own decision's feedback once the batch lands", async () => {
-      const [rejected, silent] = createBatchItems(2, false);
-      rejected.draft.feedback = "  Photos show a different site  ";
-      silent.draft.feedback = "";
-      const mergedKey = queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID);
-      queryClient.setQueryData(mergedKey, [
-        createMockWork({
-          id: rejected.draft.workUID,
-          gardenAddress: TEST_GARDEN,
-          status: "pending",
-        }),
-        // A cached reason from an earlier decision must not outlive this one.
-        {
-          ...createMockWork({ id: silent.draft.workUID, gardenAddress: TEST_GARDEN }),
-          reviewFeedback: "An older reason",
-        },
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(2);
+  });
+
+  it("treats two quick presses as one send, since they share the approval lock", async () => {
+    const { decide, landed, listWorks, render, sender, workOf } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landed(decision);
+    const { result } = render();
+
+    let outcomes: Awaited<ReturnType<typeof result.current.send>>[] = [];
+    await act(async () => {
+      outcomes = await Promise.all([
+        result.current.send([decision]),
+        result.current.send([decision]),
       ]);
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        await result.current.mutateAsync([rejected, silent]);
-      });
-
-      const [first, second] = queryClient.getQueryData<Work[]>(mergedKey) ?? [];
-      expect(first?.status).toBe("rejected");
-      expect(first?.reviewFeedback).toBe("Photos show a different site");
-      expect(second?.status).toBe("rejected");
-      expect(second?.reviewFeedback).toBeUndefined();
     });
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // Refused by the journal instead, the second press would let go of the first's decision.
+    expect(outcomes[1]).toBe(outcomes[0]);
+    expect(workOf(decision)).toMatchObject({ status: "approved", _txHash: hash });
   });
 
-  // ------------------------------------------
-  // Error handling & rollback
-  // ------------------------------------------
+  it("counts as sending while a single review holds the approval lock", async () => {
+    const { garden, queryClient } = setup();
+    let release = () => {};
+    const { result } = renderHookWithProviders(
+      () => ({ batch: useBatchWorkApproval(garden), lock: useMutationLock("approval") }),
+      { queryClient }
+    );
+    expect(result.current.batch.isSending).toBe(false);
 
-  describe("error handling", () => {
-    it("rolls back optimistic updates on mutation error", async () => {
-      const items = createBatchItems(1, true);
-      const gardenAddr = items[0].work.gardenAddress;
-
-      // Seed cache
-      const originalWorks: Work[] = [
-        createMockWork({
-          id: items[0].draft.workUID,
-          gardenAddress: gardenAddr,
-          status: "pending",
-        }),
-      ];
-
-      queryClient.setQueryData(queryKeys.works.merged(gardenAddr, TEST_CHAIN_ID), originalWorks);
-
-      queryClient.setQueryData(queryKeys.works.online(gardenAddr, TEST_CHAIN_ID), originalWorks);
-
-      // Make submission fail
-      mockSubmitBatchDirectly.mockRejectedValue(new Error("Wallet rejected"));
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        try {
-          await result.current.mutateAsync(items);
-        } catch {
-          // Expected
-        }
-      });
-
-      // Verify rollback: data should be restored to original
-      await waitFor(() => {
-        const mergedData = queryClient.getQueryData<Work[]>(
-          queryKeys.works.merged(gardenAddr, TEST_CHAIN_ID)
-        );
-        expect(mergedData?.[0]?.status).toBe("pending");
-      });
+    act(() => {
+      void result.current.lock.runWithLock(
+        () => new Promise<void>((resolve) => (release = resolve))
+      );
     });
+    await waitFor(() => expect(result.current.batch.isSending).toBe(true));
 
-    it("reports error state on mutation failure", async () => {
-      mockSubmitBatchDirectly.mockRejectedValue(new Error("Gas estimation failed"));
-
-      const items = createBatchItems(2);
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        try {
-          await result.current.mutateAsync(items);
-        } catch {
-          // Expected
-        }
-      });
-
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-        expect(result.current.error?.message).toBe("Gas estimation failed");
-      });
-    });
+    await act(async () => release());
+    await waitFor(() => expect(result.current.batch.isSending).toBe(false));
   });
 
-  // ------------------------------------------
-  // Query invalidation on success
-  // ------------------------------------------
+  it("doesn't take the resolver's own attestation as the decision", async () => {
+    const { decide, landedUnderAnotherSchema, listWorks, render } = setup();
+    const decision = decide();
+    listWorks([decision]);
+    landedUnderAnotherSchema(decision);
+    const { result } = render();
 
-  describe("query invalidation", () => {
-    it("invalidates work queries on success", async () => {
-      const items = createBatchItems(1);
-      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-
-      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
-
-      await act(async () => {
-        await result.current.mutateAsync(items);
-      });
-
-      // Should invalidate works.online, works.merged, workApprovals.all, and recipient-scoped approvals.
-      const invalidatedKeys = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
-      expect(invalidatedKeys).toContainEqual(queryKeys.works.online(TEST_GARDEN, TEST_CHAIN_ID));
-      expect(invalidatedKeys).toContainEqual(queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID));
-      expect(invalidatedKeys).toContainEqual(queryKeys.workApprovals.all);
-      expect(invalidatedKeys).toContainEqual(queryKeys.approvals.all);
-
-      invalidateSpy.mockRestore();
+    let outcome: Awaited<ReturnType<typeof result.current.send>> | undefined;
+    await act(async () => {
+      outcome = await result.current.send([decision]);
     });
+
+    expect(outcome?.sent).toEqual([]);
+    expect(outcome?.unknown).toEqual([decision.draft.workUID]);
+  }, 15_000);
+
+  it("keeps a decision pending, and says nothing landed, when its outcome is unknown", async () => {
+    const { decide, listWorks, workOf, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+
+    await act(async () => {
+      await result.current.send([decision]);
+    });
+
+    expect(workOf(decision)).toMatchObject({ status: "approved", _isPending: true });
+    expect(workOf(decision)?._pendingUntilMs).toBeUndefined();
+    expect(toasts.success).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.hold?.workUIDs).toHaveLength(1));
+  });
+
+  it("lets go of a decision that didn't go out, so the indexer's answer stands", async () => {
+    const { decide, listWorks, workOf, render, sender } = setup();
+    const decision = decide();
+    chainState.decided.add(decision.draft.workUID);
+    listWorks([decision]);
+    const { result } = render();
+
+    let outcome: Awaited<ReturnType<typeof result.current.send>> | undefined;
+    await act(async () => {
+      outcome = await result.current.send([decision]);
+    });
+
+    expect(outcome?.stale).toEqual([decision.draft.workUID]);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(workOf(decision)?._isPending).toBe(false);
+    expect(workOf(decision)?._pendingUntilMs).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("shows a held send after a reload, even off the list, and moving on lets it go", async () => {
+    const { decide, listWorks, workOf, queryClient, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const { result: first, unmount } = render();
+    await act(async () => {
+      await first.current.send([decision]);
+    });
+    unmount();
+    listing.enabled = false;
+    queryClient.removeQueries({ queryKey: ["greengoods", "batch", "hold"] });
+
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.hold?.workUIDs).toHaveLength(1));
+    expect(result.current.available).toBe(false);
+    await act(async () => {
+      await result.current.moveOn();
+    });
+    await waitFor(() => expect(result.current.hold).toBeNull());
+    expect(workOf(decision)?._isPending).toBe(false);
+  });
+
+  it("reads no hold while a send is in flight, even from another form, and reads it after", async () => {
+    const { decide, listWorks, sender, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const call = vi.mocked(sender.sendContractCall);
+    const realSend = call.getMockImplementation()!;
+    let wake = () => {};
+    const woken = new Promise<void>((resolve) => {
+      wake = resolve;
+    });
+    call.mockImplementationOnce(async (...args) => {
+      await woken;
+      return realSend(...args);
+    });
+    const { result: sending } = render();
+    let sent = Promise.resolve();
+    act(() => {
+      sent = sending.current.send([decision]).then(() => undefined);
+    });
+    await waitFor(() => expect(call).toHaveBeenCalledOnce());
+    const list = vi.spyOn(sender.batches!, "list");
+
+    const { result: elsewhere } = render();
+    await waitFor(() => expect(elsewhere.current.isSending).toBe(true));
+    expect(list).not.toHaveBeenCalled();
+
+    await act(async () => {
+      wake();
+      await sent;
+    });
+    await waitFor(() => expect(elsewhere.current.hold?.workUIDs).toHaveLength(1));
+  });
+
+  it("lets go of a decision whose held send turned out to revert", async () => {
+    const { decide, listWorks, workOf, sender, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+    await act(async () => {
+      await result.current.send([decision]);
+    });
+    await waitFor(() => expect(result.current.hold).not.toBeNull());
+    expect(workOf(decision)?._isPending).toBe(true);
+    sender.reconcileBatch = vi.fn(
+      async () =>
+        ({
+          status: "reverted",
+          receipts: [{ transactionHash: hash, status: "reverted" }],
+          sponsored: true,
+        }) satisfies BatchExecution
+    );
+
+    await act(async () => {
+      await result.current.checkAgain();
+    });
+
+    await waitFor(() => expect(result.current.hold).toBeNull());
+    expect(workOf(decision)?._isPending).toBe(false);
+    expect(workOf(decision)?._pendingUntilMs).toBeLessThanOrEqual(Date.now());
+    expect(toasts.success).not.toHaveBeenCalled();
+  });
+
+  it("says when a held send proves it landed, once", async () => {
+    const { decide, landed, listWorks, workOf, sender, render } = setup({});
+    const decision = decide();
+    listWorks([decision]);
+    const { result } = render();
+    await act(async () => {
+      await result.current.send([decision]);
+    });
+    await waitFor(() => expect(result.current.hold).not.toBeNull());
+    landed(decision);
+    sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
+
+    await act(async () => {
+      await result.current.checkAgain();
+    });
+
+    await waitFor(() => expect(result.current.hold).toBeNull());
+    expect(toasts.success).toHaveBeenCalledOnce();
+    expect(workOf(decision)).toMatchObject({ _isPending: false, _txHash: hash });
   });
 });
