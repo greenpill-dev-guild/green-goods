@@ -19,7 +19,7 @@ import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddr
 import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import type { SheetAction } from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
@@ -115,6 +115,7 @@ function badgeStatusLabel(intl: ReturnType<typeof useIntl>, status: ProfileBadge
 export const ProfileBadges: React.FC = () => {
   const intl = useIntl();
   const [openedBadge, setOpenedBadge] = useState<ProfileBadgeDisplay | null>(null);
+  const statusIdPrefix = useId();
   const primaryAddress = usePrimaryAddress() as Address | null;
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(primaryAddress);
   const { data: ensName } = useEnsName(primaryAddress);
@@ -373,6 +374,7 @@ export const ProfileBadges: React.FC = () => {
         {displayBadges.map((badge) => {
           const title = badgeTitle(intl, badge.slug);
           const statusLabel = badgeStatusLabel(intl, badge.profileStatus);
+          const statusId = `${statusIdPrefix}-${badge.badgeId}`;
 
           return (
             <button
@@ -381,6 +383,7 @@ export const ProfileBadges: React.FC = () => {
               data-pressable="card"
               onClick={() => setOpenedBadge(badge)}
               className="gg-card flex min-h-[11rem] flex-col items-center justify-center gap-3 p-4 text-center"
+              aria-describedby={statusId}
               aria-label={intl.formatMessage(
                 {
                   id: "app.profile.badges.viewDetails",
@@ -394,8 +397,9 @@ export const ProfileBadges: React.FC = () => {
               </span>
               <span className="flex min-w-0 flex-col items-center gap-2">
                 <span className="line-clamp-2 type-card-title text-text-strong-950">{title}</span>
-                {/* A badge's standing is read with its tile, so it is not one of the page's statuses. */}
+                {/* A badge's standing describes its tile, so it is not one of the page's statuses. */}
                 <StatusBadge
+                  id={statusId}
                   role="none"
                   size="xs"
                   variant={badge.profileStatus === "earned" ? "success" : "warning"}

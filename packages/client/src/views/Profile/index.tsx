@@ -13,7 +13,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine, RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Profile as UserProfile } from "@/components/Features";
 import { ProfileAvatarEditor } from "@/components/Features/Profile/ProfileAvatarEditor";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
@@ -31,7 +31,14 @@ const Profile: React.FC = () => {
   const { profile } = useGardenerProfile();
   const intl = useIntl();
   const navigate = useNavigate();
+  const location = useLocation();
   const { gardenId } = useActiveGarden();
+  // Back undoes the step that opened Profile, so Home and Profile never loop in the history. A
+  // Profile opened directly has no step to undo, so it becomes Home.
+  const backToHome = () => {
+    if (location.key === "default") navigate(APP_ROUTES.home, { replace: true });
+    else navigate(-1);
+  };
 
   // Allow deep-linking a tab via ?tab= (e.g. the arrival toast's "Open Help" → ?tab=help).
   const [searchParams] = useSearchParams();
@@ -109,7 +116,7 @@ const Profile: React.FC = () => {
             emphasis="secondary"
             size="compact"
             className="absolute left-4 top-[calc(var(--app-top-offset)+0.5rem)] z-10"
-            onClick={() => navigate(APP_ROUTES.home, { viewTransition: true })}
+            onClick={backToHome}
             aria-label={intl.formatMessage({ id: "app.common.back" })}
             icon={<RiArrowLeftLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
           />

@@ -21,9 +21,8 @@ import { ProfileAccount } from "./Account";
 const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 
 /**
- * The Profile's Account tab (DL-159): every section a titled, divided fact list under one heading
- * pattern, Username and Your Services as rows with their act in the right slot, and only the
- * install card, when the phone offers one, still a card. The gardens and the name are fictional.
+ * The Profile's Account tab (DL-159): every section its own cards under one heading pattern, with
+ * Username's and Your Services' act in the right slot. The gardens and the name are fictional.
  */
 const meta: Meta<typeof ProfileAccount> = {
   title: "Client/Profile/Account",

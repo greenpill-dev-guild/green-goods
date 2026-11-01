@@ -14,11 +14,13 @@ import {
   RiMapPinLine,
   RiPlantLine,
 } from "@remixicon/react";
+import { useId } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
 import { cardVariants } from "@/components/Cards/Card";
 import { Avatar } from "@/components/Display";
+import { APP_ROUTES } from "@/config/pwaRouting";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
@@ -36,6 +38,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const setGardenFilters = useUIStore((state) => state.setGardenFilters);
   const { gardens: myGardens, isLoaded, isError, refetch } = useMyGardens(primaryAddress);
   const { gardenId: activeGardenId } = useActiveGarden();
+  const detailIdPrefix = useId();
 
   if (!primaryAddress) return null;
 
@@ -86,12 +89,16 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             // The active garden's mark shares the place's line under the name, so the name
             // keeps the row's width and every row keeps one height.
             const onHome = compareAddresses(garden.id, activeGardenId);
+            const detailId = `${detailIdPrefix}-${garden.id}`;
             return (
               <li key={garden.id}>
                 <button
                   type="button"
                   data-pressable="card"
                   onClick={() => navigate(`/home/${garden.id}`)}
+                  // The name names the row; its mark and place describe it.
+                  aria-label={garden.name}
+                  aria-describedby={onHome || garden.location ? detailId : undefined}
                   className={cn(cardVariants(), "w-full items-center gap-3 text-left")}
                 >
                   <Avatar>
@@ -107,7 +114,10 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                       {garden.name}
                     </div>
                     {(onHome || garden.location) && (
-                      <div className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600">
+                      <div
+                        id={detailId}
+                        className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600"
+                      >
                         {onHome && (
                           <span className="mr-2 flex shrink-0 items-center gap-1 font-medium text-text-strong-950">
                             <RiHomeLine className="w-3 h-3 shrink-0" aria-hidden="true" />
@@ -155,7 +165,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 type="button"
                 onClick={() => {
                   setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
-                  navigate("/home");
+                  navigate(APP_ROUTES.explore);
                 }}
                 leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
               >

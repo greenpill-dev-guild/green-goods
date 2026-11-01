@@ -9,7 +9,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
 
@@ -226,6 +226,34 @@ describe("Profile View", () => {
     activeGarden.gardenId = null;
     view.rerender(wrap(createElement(Profile)));
     expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["opened from Home, undoes that step", ["/home", "/home/profile"]],
+    ["opened directly, becomes Home", ["/home/profile"]],
+  ])("Back on a Profile %s, so no history loop forms", async (_how, entries) => {
+    activeGarden.gardenId = null;
+    let at = "";
+    const Where = () => {
+      at = useLocation().pathname;
+      return null;
+    };
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: entries, initialIndex: entries.length - 1 },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(Where),
+          createElement(Profile)
+        )
+      )
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(at).toBe("/home");
   });
 
   it("renders tab bar with Account, Badges, and Help tabs", () => {
