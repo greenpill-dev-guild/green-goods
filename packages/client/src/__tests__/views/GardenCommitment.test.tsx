@@ -133,6 +133,9 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
 }));
 
 const { GardenCommitment } = await import("../../views/Home/Garden/Commitment");
+const { isCommitmentCreator, selectCommitmentActKind, selectCommitmentSeat } = await import(
+  "@green-goods/shared/commitment-pooling"
+);
 const { serviceAccessStorySnapshot } = await import(
   "../../views/Home/Garden/Commitment/serviceAccessStoryFixtures"
 );
@@ -571,6 +574,96 @@ describe("GardenCommitment", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
+  });
+
+  describe("a creator's proof (DL-151)", () => {
+    const PROOF_MOVES_IT = "No proof added yet. Proof is what moves this forward.";
+    /** The page as the controller reads this record, through the real seat and act rules. */
+    const open = (overrides: Partial<CommitmentReadModel>, takeUpOpen = false) => {
+      const record = commitment({ commitmentType: "SUPPORT_SERVICE", ...overrides });
+      const seat = selectCommitmentSeat({ commitment: record, contributors: [], viewer: VIEWER });
+      const actKind = selectCommitmentActKind({
+        commitment: record,
+        seat,
+        isCreator: isCommitmentCreator({ commitment: record, viewer: VIEWER }),
+      });
+      mockUseController.mockReturnValue(
+        controller({
+          detail: detail({ commitment: record }),
+          seat,
+          actKind,
+          linkable: false,
+          takeUpOpen,
+        })
+      );
+      render();
+    };
+    const untakenOffer = {
+      direction: "OFFER",
+      creator: VIEWER,
+      leadProvider: null,
+      counterparty: null,
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+    } as const;
+    const progress = () => screen.getByRole("region", { name: "Progress and proof" });
+
+    it("leads with Add Proof when the creator is the provider and proof can land", () => {
+      open({ direction: "OFFER", creator: VIEWER, leadProvider: VIEWER, counterparty: OTHER });
+
+      expect(screen.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBar"
+      );
+      expect(progress()).toHaveTextContent(PROOF_MOVES_IT);
+    });
+
+    it("offers a creator who is not the provider no proof, and no line that asks for any", () => {
+      open({ direction: "REQUEST", creator: VIEWER, leadProvider: OTHER, counterparty: OTHER });
+
+      expect(screen.queryByRole("button", { name: "Add Proof" })).not.toBeInTheDocument();
+      expect(progress()).toHaveTextContent("No proof added yet.");
+      expect(progress()).not.toHaveTextContent("Proof is what moves this forward");
+    });
+
+    it("promises no proof on an offer past due, which nobody can take up any more", () => {
+      open(untakenOffer, false);
+
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toBeInTheDocument();
+      expect(progress()).toHaveTextContent("No proof added yet.");
+      expect(progress()).not.toHaveTextContent("once someone takes this up");
+    });
+
+    it("keeps Withdraw before anyone takes it up, when the chain takes no proof", () => {
+      open(untakenOffer, true);
+
+      expect(screen.getByRole("button", { name: "Withdraw This" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBar"
+      );
+      expect(screen.queryByRole("button", { name: "Add Proof" })).not.toBeInTheDocument();
+      expect(progress()).toHaveTextContent(
+        "No proof added yet. You can add it once someone takes this up."
+      );
+      expect(progress()).not.toHaveTextContent("Proof is what moves this forward");
+    });
+
+    it("says it beside required work too, where Add Proof sits second", () => {
+      mockUseController.mockReturnValue(
+        controller({ detail: detail({ commitment: { commitmentType: "DOMAIN_IMPACT" } }) })
+      );
+      render();
+
+      expect(screen.getByRole("button", { name: "Link Work" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBar"
+      );
+      expect(screen.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+        "data-component",
+        "CommitmentActionBarSecondary"
+      );
+      expect(progress()).toHaveTextContent(PROOF_MOVES_IT);
+    });
   });
 
   it("names the reward among what was promised, so it stays in sight after taking one up", () => {
