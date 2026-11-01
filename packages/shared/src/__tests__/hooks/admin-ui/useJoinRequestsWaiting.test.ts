@@ -2,10 +2,9 @@
  * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 import { useJoinRequestsWaiting } from "../../../hooks/admin-ui/community/useJoinRequestsWaiting";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import {
@@ -34,10 +33,7 @@ function answers(status: number, body: unknown) {
 }
 
 function renderWaiting(gardenKey = GARDEN) {
-  const client = new QueryClient();
-  const wrapper = ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client }, children);
-  return renderHook(() => useJoinRequestsWaiting(gardenKey), { wrapper });
+  return renderHookWithQueryClient(() => useJoinRequestsWaiting(gardenKey));
 }
 
 describe("useJoinRequestsWaiting", () => {
