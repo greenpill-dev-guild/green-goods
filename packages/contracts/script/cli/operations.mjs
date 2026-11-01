@@ -224,7 +224,8 @@ export function resolveCommand(input) {
     checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'CookieJarModule'] });
     if (network === 'arbitrum') checks.push({ command: 'bun', args: ['script/utils/fork-shards.mjs', 'run', 'cookie-jar-module-upgrade-arbitrum'] });
   }
-  if (isUpgrade && mode === 'broadcast' && target === 'yield-resolver') {
+  // signal-pool-yield-wiring and all reach the same proxy through Upgrade.s.sol.
+  if (isUpgrade && mode === 'broadcast' && ['yield-resolver', 'signal-pool-yield-wiring', 'all'].includes(target)) {
     checks.push({ command: 'bash', args: ['script/check-storage-layout.sh', '--contract', 'YieldResolver'] });
     if (network === 'arbitrum') checks.push({ command: 'bun', args: ['script/utils/fork-shards.mjs', 'run', 'yield-resolver-upgrade-arbitrum'] });
   }
