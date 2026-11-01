@@ -72,7 +72,7 @@
     "state_api": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "feature/batch-review-execution",
+      "branch": "feature/batch-staged-reviews",
       "depends_on": [],
       "handoff": "handoffs/continuation.md",
       "tdd": {
