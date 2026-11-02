@@ -177,6 +177,17 @@ describe("sendReviewBatch", () => {
     });
   });
 
+  it("reads a send's transaction once, however many decisions it proves", async () => {
+    const { decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 5 }, () => decide());
+    for (const decision of decisions) landed(decision);
+
+    const outcome = await send(decisions);
+
+    expect(outcome.sent).toHaveLength(5);
+    expect(chain.attestationsIn).toHaveBeenCalledTimes(1);
+  });
+
   it("reads again when a node answers from behind the attestation's block", async () => {
     const { decide, landed, chain, send } = setup();
     const decision = decide();
@@ -268,6 +279,31 @@ describe("sendReviewBatch", () => {
     const outcome = await send(decisions);
 
     expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "OutOfGas" }));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("names a refused decision once when a later group is refused as a whole", async () => {
+    const { sender, decide, chain, send } = setup();
+    // Five share the first signature, and the last two take a second.
+    const decisions = Array.from({ length: 7 }, () => decide());
+    const [bad, , , , , sixth, seventh] = decisions.map(({ draft }) =>
+      encodeWorkApprovalData(draft, chainId)
+    );
+    chain.refusal.mockImplementation(async ({ args }) => {
+      const call = JSON.stringify(args, (_key, value) =>
+        typeof value === "bigint" ? String(value) : value
+      );
+      if (call.includes(bad)) return "ActionExpired";
+      // The last two together run out of gas, though each alone would go.
+      return call.includes(sixth) && call.includes(seventh) ? "OutOfGas" : null;
+    });
+
+    const outcome = await send(decisions);
+
+    const workUIDs = decisions.map(({ draft }) => draft.workUID);
+    expect(outcome.refused).toEqual([{ workUID: workUIDs[0], reason: "ActionExpired" }]);
+    expect(outcome.notSent).toEqual(workUIDs.slice(1));
     expect(outcome.failure).toEqual(expect.objectContaining({ message: "OutOfGas" }));
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });

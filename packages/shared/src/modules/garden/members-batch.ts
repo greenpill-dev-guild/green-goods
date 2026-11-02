@@ -215,6 +215,11 @@ export async function addGardenMembersBatch(
     toSend.slice(index * MAX_MEMBERS_PER_SIGNATURE, (index + 1) * MAX_MEMBERS_PER_SIGNATURE)
   );
 
+  // A row the chain refuses on its own is reported as refused, never also as unsent.
+  const unrefused = () => {
+    const refusedIds = new Set(outcome.refused.map(rowId));
+    return toSend.filter((row) => !refusedIds.has(rowId(row)));
+  };
   for (const group of groups) {
     const groupCall = grantRolesCall(moduleAddress, gardenAddress, group);
     const refusal = await chain.refusal(groupCall, scope.account);
@@ -234,13 +239,12 @@ export async function addGardenMembersBatch(
     );
     const refused = alone.flatMap(({ row, reason }) => (reason ? [{ ...row, reason }] : []));
     // The call is refused but no single row is: nothing is sent blind.
-    if (refused.length === 0) return { ...outcome, notSent: toSend, failure: new Error(refusal) };
+    if (refused.length === 0) {
+      return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
+    }
     outcome.refused.push(...refused);
   }
-  if (outcome.refused.length > 0) {
-    const refusedIds = new Set(outcome.refused.map(rowId));
-    return { ...outcome, notSent: toSend.filter((row) => !refusedIds.has(rowId(row))) };
-  }
+  if (outcome.refused.length > 0) return { ...outcome, notSent: unrefused() };
 
   for (const [index, group] of groups.entries()) {
     const remaining = groups.slice(index).flat();

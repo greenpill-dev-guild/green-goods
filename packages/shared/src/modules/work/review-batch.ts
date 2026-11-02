@@ -121,17 +121,24 @@ export function verifyReviews(
   { chain, retryMs }: Pick<ReviewBatchInput, "chain" | "retryMs">,
   attestationUIDs: Map<string, Hex>
 ): VerifyBatchItems {
-  const read = new Map<Hex, readonly ReviewAttestation[]>();
+  // Decisions are checked at once, so they share one read of each transaction.
+  const read = new Map<Hex, Promise<readonly ReviewAttestation[] | null>>();
+  const attestationsIn = (hash: Hex) => {
+    const reading = read.get(hash);
+    if (reading) return reading;
+    // A node can answer from before the receipt's block, so a failed read is another try.
+    const next = chain.attestationsIn(hash).catch(() => {
+      read.delete(hash);
+      return null;
+    });
+    read.set(hash, next);
+    return next;
+  };
   const madeIn = async (receipts: readonly BatchReceipt[]) => {
     const found = await Promise.all(
-      receipts.map(async ({ transactionHash: hash }) => {
-        // A node can answer from before the receipt's block, so a failed read is another try.
-        const made = read.get(hash) ?? (await chain.attestationsIn(hash).catch(() => null));
-        if (made) read.set(hash, made);
-        return made ?? [];
-      })
+      receipts.map(({ transactionHash }) => attestationsIn(transactionHash))
     );
-    return found.flat();
+    return found.flatMap((made) => made ?? []);
   };
   return (execution) => {
     const isProven = async (id: string) => {
@@ -233,6 +240,11 @@ export async function sendReviewBatch(
     fresh.slice(index * perSignature, (index + 1) * perSignature)
   );
 
+  // A decision the resolver refuses on its own is reported as refused, never also as unsent.
+  const unrefused = () => {
+    const refusedIds = new Set(outcome.refused.map(({ workUID }) => workUID));
+    return uids(fresh).filter((workUID) => !refusedIds.has(workUID));
+  };
   for (const group of groups) {
     const refusal = await chain.refusal(reviewCall(group, scope.chainId), scope.account);
     if (!refusal) continue;
@@ -245,14 +257,11 @@ export async function sendReviewBatch(
     const refused = alone.flatMap(({ workUID, reason }) => (reason ? [{ workUID, reason }] : []));
     // The call is refused but no single decision is: nothing is sent blind.
     if (refused.length === 0) {
-      return { ...outcome, notSent: uids(fresh), failure: new Error(refusal) };
+      return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
     }
     outcome.refused.push(...refused);
   }
-  if (outcome.refused.length > 0) {
-    const refusedIds = new Set(outcome.refused.map(({ workUID }) => workUID));
-    return { ...outcome, notSent: uids(fresh).filter((workUID) => !refusedIds.has(workUID)) };
-  }
+  if (outcome.refused.length > 0) return { ...outcome, notSent: unrefused() };
 
   for (const [index, group] of groups.entries()) {
     const remaining = uids(groups.slice(index).flat());

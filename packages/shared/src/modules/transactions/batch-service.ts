@@ -39,8 +39,10 @@ export function withBatchRecovery<T extends TransactionSender>(sender: T): T {
         chainId: scope.chainId,
         verify,
       }),
+    // Reading this account's own journal needs no signer: a wallet still reconnecting must still
+    // learn which items are held, or its forms would send past them. Settling a hold (reconcile,
+    // release) asserts ownership itself, and a read that cannot settle leaves the hold standing.
     list: async (scope) => {
-      await sender.assertOwnership?.(scope.account, scope.chainId);
       await storage().prune();
       return storage().list(scope.account, scope.chainId);
     },
