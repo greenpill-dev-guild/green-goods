@@ -40,6 +40,7 @@ export const ENABLED_BATCHES: readonly BatchEnablement[] = [
   { action: "garden-settings", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "pool-setup", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "add-members", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  { action: "add-members", rail: "wallet", profile: "contract-call", chainId: 42161 },
 ];
 
 export function isBatchEnabled(
