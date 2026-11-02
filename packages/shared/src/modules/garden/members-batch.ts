@@ -187,9 +187,11 @@ export async function addGardenMembersBatch(
     rail: BatchRail;
     rows: readonly GardenMemberRow[];
     onLanded?: (rows: readonly GardenMemberRow[]) => void;
+    /** Hears each group once it is signed, just before it goes out. */
+    onSending?: (rows: readonly GardenMemberRow[]) => void;
   }
 ): Promise<AddMembersOutcome> {
-  const { batches, scope, gardenAddress, chain, rail, onLanded } = input;
+  const { batches, scope, gardenAddress, chain, rail, onLanded, onSending } = input;
   const moduleAddress = await chain.hatsModule();
   if (!moduleAddress) throw new Error("Hats module is not configured for this garden");
 
@@ -267,6 +269,7 @@ export async function addGardenMembersBatch(
           if (reason) throw new Error(reason);
         },
         verify: verifyMembers(input),
+        onBroadcasting: () => onSending?.(group),
       });
       if (record.status === "confirmed") {
         const transactionHash = record.receipts[0].transactionHash;

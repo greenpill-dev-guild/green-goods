@@ -20,6 +20,7 @@ export function withBatchRecovery<T extends TransactionSender>(sender: T): T {
         prepared,
         preflight: options.preflight,
         verify: options.verify,
+        onBroadcasting: options.onBroadcasting,
       }),
     reconcile: (operationId, scope, verify) =>
       reconcileBatchOperation({

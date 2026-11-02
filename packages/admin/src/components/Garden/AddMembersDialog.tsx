@@ -14,7 +14,7 @@ import {
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { RiAddLine, RiClipboardLine } from "@remixicon/react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
@@ -103,9 +103,10 @@ export function AddMembersDialog({
       setOverCeilings(null);
     }
   }
-  // A send outlives a change of account, and what it left behind is not the new draft's.
+  // A send outlives a change of account, and what it left behind is not the new draft's. A layout
+  // effect moves the guard with the commit, before an awaited step can resume and read it.
   const draftAccountRef = useRef(draftAccount);
-  useEffect(() => {
+  useLayoutEffect(() => {
     draftAccountRef.current = draftAccount;
   }, [draftAccount]);
   const hold = batch?.hold ?? null;
