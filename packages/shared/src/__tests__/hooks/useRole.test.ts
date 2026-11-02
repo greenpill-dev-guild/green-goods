@@ -32,6 +32,9 @@ vi.mock("../../hooks/blockchain/useDeploymentRegistry", () => ({
 vi.mock("../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => mocks.chainId,
 }));
+vi.mock("../../config/blockchain", () => ({
+  getNetworkConfig: () => ({ rootGarden: { address: "garden-2", tokenId: 0 } }),
+}));
 vi.mock("../../modules/data/graphql-client", () => ({
   greenGoodsIndexer: { query: (...args: unknown[]) => mocks.query(...args) },
 }));
@@ -86,6 +89,38 @@ describe("useRole", () => {
       stewardGardens: isSteward ? [gardens[0]] : [],
       deploymentPermissions: { canDeploy: true, isOwner: true, isInAllowlist: true },
     });
+  });
+
+  it.each([
+    {
+      who: "an allowlisted creator with no role in the Community Garden",
+      registry: { canDeploy: true, isOwner: false, isInAllowlist: true },
+      steward: [gardens[0]],
+      isProtocolTeam: false,
+    },
+    {
+      who: "a Community Garden steward who is not allowlisted",
+      registry: { canDeploy: false, isOwner: false, isInAllowlist: false },
+      steward: [gardens[1]],
+      isProtocolTeam: true,
+    },
+    {
+      who: "the registry owner with no role in the Community Garden",
+      registry: { canDeploy: true, isOwner: true, isInAllowlist: false },
+      steward: [],
+      isProtocolTeam: true,
+    },
+  ])("treats $who as protocol team: $isProtocolTeam", async ({
+    registry,
+    steward,
+    isProtocolTeam,
+  }) => {
+    mocks.registry = { ...registry, loading: false };
+    mocks.query.mockResolvedValueOnce({ data: { Garden: steward } });
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isProtocolTeam).toBe(isProtocolTeam);
+    expect(result.current.isDeployer).toBe(registry.canDeploy);
   });
 
   it("does not reuse another identity's or chain's cached stewardship", async () => {

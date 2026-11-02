@@ -217,7 +217,7 @@ export function storySettlementOperations(
     sourcePaused: false,
     owner: STORY_STEWARD,
     isSettlementOwner: true,
-    isDeployer: true,
+    isProtocolTeam: true,
     canConfigureDelivery: true,
     showControl: true,
     isLoading: false,

@@ -86,7 +86,7 @@ export function SettlementOperationsCard({
           {formatMessage({
             id: "cockpit.community.settlementOps.description",
             defaultMessage:
-              "Module-level switches for G$ settlement. Only the module owner can change them; deployers can see them.",
+              "Module-level switches for G$ settlement. Only the module owner can change them; the Green Goods team can see them.",
           })}
         </p>
       </div>

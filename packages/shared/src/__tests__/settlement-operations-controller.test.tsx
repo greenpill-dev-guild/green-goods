@@ -20,7 +20,7 @@ vi.mock("../modules/commitment-pooling/data-settlement-operations", () => ({
   readSettlementOperationsState: (...args: unknown[]) => mocks.readState(...args),
 }));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => OWNER }));
-vi.mock("../hooks/gardener/useRole", () => ({ useRole: () => ({ isDeployer: false }) }));
+vi.mock("../hooks/gardener/useRole", () => ({ useRole: () => ({ isProtocolTeam: false }) }));
 vi.mock("../hooks/commitment-pooling/useCommitmentPoolingAvailability", () => ({
   useCommitmentPoolingAvailability: () => ({
     status: "available",

@@ -6,7 +6,7 @@ import type { IntlShape } from "react-intl";
 export interface CampaignCookieJarPanelViewProps {
   formatMessage: IntlShape["formatMessage"];
   moduleConfigured: boolean;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
   roleLoading: boolean;
   campaigns: readonly CampaignCookieJarCampaign[];
   campaignsLoading: boolean;

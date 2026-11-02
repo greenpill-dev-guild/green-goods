@@ -54,7 +54,7 @@ const payoutAssets = getCampaignCookieJarPayoutAssets(DEFAULT_CHAIN_ID);
 export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps = {
   formatMessage,
   moduleConfigured: true,
-  isDeployer: true,
+  isProtocolTeam: true,
   roleLoading: false,
   createPending: false,
   gardensLoading: false,
@@ -133,7 +133,7 @@ export const storybookCampaign: CampaignCookieJarCampaign = {
 export const campaignCookieJarPanelViewProps: CampaignCookieJarPanelViewProps = {
   formatMessage: panelViewFormatMessage,
   moduleConfigured: true,
-  isDeployer: true,
+  isProtocolTeam: true,
   roleLoading: false,
   campaigns: [storybookCampaign],
   campaignsLoading: false,

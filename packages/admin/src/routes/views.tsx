@@ -19,6 +19,7 @@ import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation, useParams } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";
 import RequireCommunityAccess from "@/routes/RequireCommunityAccess";
+import RequireProtocolTeam from "@/routes/RequireProtocolTeam";
 
 type LazyRoute = NonNullable<RouteObject["lazy"]>;
 
@@ -46,13 +47,6 @@ function roleGatedRoute(allowedRoles: UserRole[], lazy: LazyRoute): RouteObject 
   return {
     element: <RequireRole allowedRoles={allowedRoles} loadingFallback={<RoleGateSkeleton />} />,
     children: [{ index: true, lazy }],
-  };
-}
-
-function roleGatedBranch(allowedRoles: UserRole[], children: RouteObject[]): RouteObject {
-  return {
-    element: <RequireRole allowedRoles={allowedRoles} loadingFallback={<RoleGateSkeleton />} />,
-    children,
   };
 }
 
@@ -396,25 +390,21 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "cookies",
-    ...roleGatedBranch(
-      ["deployer"],
-      [
-        { index: true, element: <CampaignCookieJarsRedirect /> },
-        { path: "deploy", element: <CampaignCookieJarsRedirect create /> },
-      ]
-    ),
+    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} />,
+    children: [
+      { index: true, element: <CampaignCookieJarsRedirect /> },
+      { path: "deploy", element: <CampaignCookieJarsRedirect create /> },
+    ],
   },
   {
     path: "actions",
-    ...roleGatedBranch(
-      ["deployer"],
-      [
-        { index: true, lazy: actionsView },
-        { path: "create", lazy: actionsView },
-        { path: ":id", lazy: actionsView },
-        { path: ":id/edit", lazy: actionsView },
-      ]
-    ),
+    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} />,
+    children: [
+      { index: true, lazy: actionsView },
+      { path: "create", lazy: actionsView },
+      { path: ":id", lazy: actionsView },
+      { path: ":id/edit", lazy: actionsView },
+    ],
   },
   {
     path: "profile",

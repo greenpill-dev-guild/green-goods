@@ -201,7 +201,7 @@ export function canCreateCampaignCookieJar(params: {
   allowlistCount: number;
   invalidAddressCount: number;
   metadataUrlsValid?: boolean;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
 }): boolean {
   return (
     Boolean(
@@ -213,7 +213,7 @@ export function canCreateCampaignCookieJar(params: {
         params.hasValidClaimConfig &&
         params.allowlistCount > 0 &&
         (params.metadataUrlsValid ?? true) &&
-        params.isDeployer
+        params.isProtocolTeam
     ) && params.invalidAddressCount === 0
   );
 }

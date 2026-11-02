@@ -31,7 +31,7 @@ export function useSettlementOperationsController(input: {
 }): SettlementOperationsController {
   const { chainId } = input;
   const viewer = usePrimaryAddress() ?? undefined;
-  const { isDeployer } = useRole();
+  const { isProtocolTeam } = useRole();
   const availability = useCommitmentPoolingAvailability({ chainId });
   const settlementModule = getNetworkContracts(chainId).settlementModule;
   const query = useQuery({
@@ -103,9 +103,9 @@ export function useSettlementOperationsController(input: {
     sourcePaused: query.data ? query.data.sourcePaused : null,
     owner,
     isSettlementOwner,
-    isDeployer,
+    isProtocolTeam,
     canConfigureDelivery: isSettlementOwner && Boolean(viewer),
-    showControl: isSettlementOwner || isDeployer,
+    showControl: isSettlementOwner || isProtocolTeam,
     isLoading: query.isLoading,
     isError: query.isError,
     isPending: mutation.isPending,

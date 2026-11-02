@@ -774,7 +774,7 @@ export function settlementOperationsControllerFixture(
   const isSettlementOwner =
     overrides.isSettlementOwner ??
     Boolean(viewer && owner && owner.toLowerCase() === viewer.toLowerCase());
-  const isDeployer = overrides.isDeployer ?? false;
+  const isProtocolTeam = overrides.isProtocolTeam ?? false;
   return {
     chainId: DEMO_CHAIN_ID,
     viewer: viewer ?? undefined,
@@ -783,9 +783,9 @@ export function settlementOperationsControllerFixture(
     sourcePaused: false,
     owner,
     isSettlementOwner,
-    isDeployer,
+    isProtocolTeam,
     canConfigureDelivery: isSettlementOwner,
-    showControl: isSettlementOwner || isDeployer,
+    showControl: isSettlementOwner || isProtocolTeam,
     isLoading: false,
     isError: false,
     isPending: false,

@@ -41,7 +41,7 @@ export interface CampaignCookieJarPanelProps {
 export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
-  const { isDeployer, loading: roleLoading } = useRole();
+  const { isProtocolTeam, loading: roleLoading } = useRole();
   const { data: gardens = [] } = useGardens(chainId);
   const {
     campaigns,
@@ -262,7 +262,7 @@ export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelP
       {...{
         formatMessage,
         moduleConfigured,
-        isDeployer,
+        isProtocolTeam,
         roleLoading,
         campaigns,
         campaignsLoading,

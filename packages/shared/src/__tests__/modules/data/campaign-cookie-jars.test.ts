@@ -9,7 +9,10 @@ const { mockGetNetworkContracts, mockIndexerQuery, mockReadContract } = vi.hoist
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
-  getNetworkConfig: () => ({ rpcUrl: "http://localhost:3009" }),
+  getNetworkConfig: () => ({
+    rpcUrl: "http://localhost:3009",
+    rootGarden: { address: "0x8888888888888888888888888888888888888888", tokenId: 0 },
+  }),
 }));
 
 vi.mock("../../../config/default-chain", () => ({
@@ -118,34 +121,48 @@ describe("modules/data/campaign-cookie-jars", () => {
     );
   });
 
-  it("throws when DeploymentRegistry trust reads are unavailable", async () => {
+  it("throws when neither trust read answers", async () => {
     mockReadContract.mockRejectedValue(new Error("rpc offline"));
+    mockIndexerQuery.mockResolvedValueOnce({ error: new Error("indexer offline") });
 
     await expect(getCampaignCookieJarTrustedCreators(11155111)).rejects.toThrow(
-      "Campaign cookie jar trust registry reads failed: rpc offline; rpc offline"
+      "Campaign cookie jar trust reads failed: rpc offline; indexer offline"
     );
   });
 
-  it("dedupes trusted creators from the registry owner and allowlist", async () => {
-    mockReadContract.mockResolvedValueOnce(CREATOR).mockResolvedValueOnce([CREATOR, TRUSTED]);
+  it("trusts the registry owner and the Community Garden team, not the creator allowlist", async () => {
+    mockReadContract.mockImplementation(({ functionName }: { functionName: string }) => {
+      if (functionName === "owner") return Promise.resolve(CREATOR);
+      throw new Error(`unexpected read ${functionName}`);
+    });
+    mockIndexerQuery.mockResolvedValueOnce({
+      data: { Garden: [{ owners: [CREATOR], operators: [CREATOR, TRUSTED] }] },
+    });
 
     await expect(getCampaignCookieJarTrustedCreators(11155111)).resolves.toEqual([
       CREATOR,
       TRUSTED,
     ]);
+    expect(mockIndexerQuery).toHaveBeenCalledWith(
+      expect.stringContaining("operators"),
+      { chainId: 11155111, garden: "0x8888888888888888888888888888888888888888" },
+      "getCampaignCookieJarTeam"
+    );
   });
 
   it("queries indexed campaigns by trusted creator before applying the public list limit", async () => {
     mockReadContract.mockImplementation(
       ({ functionName, args }: { functionName: string; args?: unknown[] }) => {
         if (functionName === "owner") return Promise.resolve(CREATOR);
-        if (functionName === "getAllowlist") return Promise.resolve([TRUSTED]);
         if (functionName === "getMetadata" && args?.[0] === TRUSTED_JAR) {
           return Promise.resolve(campaignMetadata("earth-week", "Earth Week Cookie Jar"));
         }
         throw new Error(`unexpected read ${functionName}`);
       }
     );
+    mockIndexerQuery.mockResolvedValueOnce({
+      data: { Garden: [{ owners: [], operators: [TRUSTED] }] },
+    });
     mockIndexerQuery.mockResolvedValueOnce({
       data: {
         CampaignCookieJar: [
