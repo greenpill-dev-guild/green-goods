@@ -41,6 +41,13 @@ export interface CreateGardenStep {
   description?: string;
 }
 
+/** Why an address did not join the team plan. The form says it in the person's language. */
+export type AddGardenMemberFailure = "invalid-address" | "already-added";
+
+export type AddGardenMemberResult =
+  | { success: true }
+  | { success: false; reason: AddGardenMemberFailure };
+
 export interface CreateGardenStore {
   draftScope: string | null;
   selectDraftScope: (account: Address, chainId: number) => void;
@@ -68,10 +75,13 @@ export interface CreateGardenStore {
     field: K,
     value: CreateGardenFormState[K]
   ) => void;
-  addGardener: (address: string) => { success: boolean; error?: string };
+  addGardener: (address: string) => AddGardenMemberResult;
   removeGardener: (index: number) => void;
-  addSteward: (address: string) => { success: boolean; error?: string };
+  addSteward: (address: string) => AddGardenMemberResult;
   removeSteward: (index: number) => void;
+  /** Someone typed an address in a team field and has not added it. Never persisted. */
+  hasUnaddedMember: boolean;
+  setHasUnaddedMember: (hasUnaddedMember: boolean) => void;
   nextStep: () => void;
   previousStep: () => void;
   goToStep: (index: number) => void;
@@ -85,9 +95,9 @@ export interface CreateGardenStore {
 }
 
 const defaultSteps: CreateGardenStep[] = [
-  { id: "details", title: "Garden details", description: "Name, location & media" },
-  { id: "team", title: "Community", description: "Gardeners & stewards" },
-  { id: "review", title: "Review & deploy", description: "Confirm your setup" },
+  { id: "details", title: "Garden details", description: "Name, location and media" },
+  { id: "team", title: "Community", description: "Gardeners and stewards" },
+  { id: "review", title: "Review and create", description: "Confirm your setup" },
 ];
 
 export function createEmptyGardenForm(): CreateGardenFormState {
@@ -157,7 +167,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       addGardener: (address) => {
         const sanitized = sanitizeAddress(address);
         if (!isValidAddress(sanitized)) {
-          return { success: false, error: "Enter a valid wallet address" };
+          return { success: false, reason: "invalid-address" };
         }
 
         const validAddress = sanitized as Address;
@@ -165,7 +175,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
 
         // Check if already a gardener (case-insensitive via checksummed comparison)
         if (form.gardeners.includes(validAddress)) {
-          return { success: false, error: "Address already added as gardener" };
+          return { success: false, reason: "already-added" };
         }
 
         set((state) =>
@@ -179,7 +189,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       addSteward: (address) => {
         const sanitized = sanitizeAddress(address);
         if (!isValidAddress(sanitized)) {
-          return { success: false, error: "Enter a valid wallet address" };
+          return { success: false, reason: "invalid-address" };
         }
 
         const validAddress = sanitized as Address;
@@ -187,7 +197,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
 
         // Check if already a steward (case-insensitive via checksummed comparison)
         if (form.stewards.includes(validAddress)) {
-          return { success: false, error: "Address already added as steward" };
+          return { success: false, reason: "already-added" };
         }
 
         set((state) =>
@@ -198,6 +208,8 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       },
       removeSteward: (index) =>
         set((state) => removeGardenMemberTransition(state, { role: "stewards", index })),
+      hasUnaddedMember: false,
+      setHasUnaddedMember: (hasUnaddedMember) => set({ hasUnaddedMember }),
       nextStep: () => set((state) => moveGardenStepTransition(state, { direction: 1 })),
       previousStep: () => set((state) => moveGardenStepTransition(state, { direction: -1 })),
       goToStep: (index) => set((state) => moveGardenStepTransition(state, { index })),
@@ -315,6 +327,7 @@ export function resetCreateGardenStore() {
     form: createEmptyGardenForm(),
     steps: defaultSteps,
     currentStep: 0,
+    hasUnaddedMember: false,
   });
   // Also clear the persisted state from sessionStorage
   sessionStorage.removeItem(CREATE_GARDEN_STORAGE_KEY);

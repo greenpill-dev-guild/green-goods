@@ -93,6 +93,9 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
   const scopeKey = useMemo(() => getAdminGardenScopeKey(address, chainId), [address, chainId]);
+  const createdGarden = useAdminStore((state) =>
+    scopeKey ? state.createdGardensByScope[scopeKey] : undefined
+  );
   const configuredRoot = getNetworkConfig(chainId).rootGarden?.address;
   // The local chain configures a zero-address root garden: there is none to find.
   const rootGardenAddress =
@@ -138,7 +141,10 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
       .slice()
       .sort(compareGardenNames);
 
-    if (stewardGardens.length === 0) {
+    // A garden's creation receipt proves its owner the way the role query proves a steward, and
+    // arrives before the indexer can answer.
+    const hints = createdGarden ? [...stewardGardens, createdGarden] : stewardGardens;
+    if (hints.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
 
@@ -147,7 +153,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // base list, that's cache lag or an outage — surface them anyway via
     // minimal stubs so the steward can still reach the canvas.
     const baseListIds = new Set(fromBaseList.map((g) => g.id.toLowerCase()));
-    const missing = stewardGardens.filter((og) => !baseListIds.has(og.id.toLowerCase()));
+    const missing = hints.filter(
+      (hint, index) =>
+        !baseListIds.has(hint.id.toLowerCase()) &&
+        hints.findIndex((other) => compareAddresses(other.id, hint.id)) === index
+    );
     if (missing.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
@@ -157,6 +167,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     return { eligibleGardens: merged, hasStaleBaseList: true };
   }, [
     address,
+    createdGarden,
     gardens,
     protocolGarden,
     stewardGardens,

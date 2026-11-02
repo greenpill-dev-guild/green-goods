@@ -1,4 +1,6 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import type { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
 import { type Address, DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
@@ -11,9 +13,37 @@ const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {
   [Domain.WASTE]: { id: "app.garden.create.domain.waste", defaultMessage: "Waste" },
 };
 
-export function ReviewStep() {
+export interface ReviewStepCost {
+  estimate?: ReturnType<typeof useCreateGardenController>["costEstimate"];
+  failed?: boolean;
+  loading?: boolean;
+  gasIsSponsored?: boolean;
+}
+
+function CostValue({ children }: { children: string }) {
+  return <span className="font-normal text-text-sub">{children}</span>;
+}
+
+export function ReviewStep({ cost = {} }: { cost?: ReviewStepCost }) {
   const { formatMessage } = useIntl();
   const form = useCreateGardenStore((s) => s.form);
+  const { estimate, gasIsSponsored = false } = cost;
+  const covered = formatMessage({ id: "app.admin.garden.create.cost.covered" });
+  const pendingCost = cost.failed
+    ? formatMessage({ id: "app.admin.garden.create.confirm.estimateFallback" })
+    : formatMessage({ id: "app.admin.garden.create.confirm.estimating" });
+  const networkFee = gasIsSponsored
+    ? covered
+    : estimate
+      ? `≈ ${estimate.formatted.txFeeEth} ETH`
+      : pendingCost;
+  const nameFee = !estimate
+    ? pendingCost
+    : estimate.nameFunding === "reserve"
+      ? covered
+      : estimate.nameFunding === "creator"
+        ? `≈ ${estimate.formatted.ccipFeeEth} ETH`
+        : formatMessage({ id: "app.admin.garden.create.cost.nameLater" });
   return (
     <div className="space-y-3">
       <div className="space-y-4 rounded-xl border border-stroke-soft bg-bg-weak p-4">
@@ -31,10 +61,7 @@ export function ReviewStep() {
           />
           {form.slug && (
             <FactRow
-              label={formatMessage({
-                id: "app.garden.create.ensSubdomain",
-                defaultMessage: "ENS subdomain",
-              })}
+              label={formatMessage({ id: "app.garden.create.ensSubdomain" })}
               value={<span className="font-mono type-meta">{form.slug}.greengoods.eth</span>}
             />
           )}
@@ -91,7 +118,7 @@ export function ReviewStep() {
               form.openJoining
                 ? formatMessage({
                     id: "app.garden.create.openJoining.enabled",
-                    defaultMessage: "Anyone can request to join",
+                    defaultMessage: "Anyone can join",
                   })
                 : formatMessage({
                     id: "app.garden.create.openJoining.disabled",
@@ -147,14 +174,18 @@ export function ReviewStep() {
               )
             }
           />
+          <FactRow
+            label={formatMessage({ id: "app.admin.garden.create.confirm.gasFee" })}
+            value={<CostValue>{networkFee}</CostValue>}
+          />
+          <FactRow
+            label={formatMessage({ id: "app.admin.garden.create.confirm.ensFee" })}
+            value={<CostValue>{nameFee}</CostValue>}
+          />
         </FactList>
-        <p className="rounded-md border border-stroke-soft bg-bg-soft px-3 py-2.5 type-meta text-text-sub">
-          {formatMessage({
-            id: "app.garden.create.teamAssignmentNotice",
-            defaultMessage:
-              "Planned members are included in deployment. Verify role grants from Garden Members after creation.",
-          })}
-        </p>
+        <Alert variant="info">
+          {formatMessage({ id: "app.garden.create.teamAssignmentNotice" })}
+        </Alert>
       </div>
     </div>
   );

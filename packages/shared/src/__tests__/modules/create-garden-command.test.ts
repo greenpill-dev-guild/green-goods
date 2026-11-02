@@ -23,7 +23,13 @@ vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ gardenToken, greenGoodsENS }),
   createClients: () => ({
-    publicClient: { readContract: mocks.readContract, getTransactionReceipt: mocks.receipt },
+    publicClient: {
+      readContract: mocks.readContract,
+      getTransactionReceipt: mocks.receipt,
+      getBalance: async () => 10n ** 18n,
+      estimateGas: async () => 1n,
+      estimateFeesPerGas: async () => ({ maxFeePerGas: 1n }),
+    },
   }),
 }));
 
@@ -58,6 +64,8 @@ function createPorts(events: string[] = []): CreateGardenPorts {
         events.push("fee");
         return 5n;
       }),
+      gardenNameReserve: vi.fn(async () => 0n),
+      balanceOf: vi.fn(async () => 100n),
       simulate: vi.fn(async () => {
         events.push("simulate");
         return { success: true };
@@ -106,6 +114,25 @@ describe("createGarden", () => {
     expect(ports.reader.waitForReceipt).toHaveBeenCalledWith(txHash, 11155111);
   });
 
+  it("sends nothing for the name when the reserve covers it", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.reader.gardenNameReserve).mockResolvedValue(5n);
+
+    await createGarden(command, ports);
+
+    expect(ports.sender.send).toHaveBeenCalledWith(expect.objectContaining({ ccipFee: 0n }));
+  });
+
+  it("still creates the garden when neither the reserve nor the creator can pay for the name", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.reader.gardenNameReserve).mockResolvedValue(4n);
+    vi.mocked(ports.reader.balanceOf).mockResolvedValue(4n);
+
+    await createGarden(command, ports);
+
+    expect(ports.sender.send).toHaveBeenCalledWith(expect.objectContaining({ ccipFee: 0n }));
+  });
+
   it("stops before sending when simulation fails", async () => {
     const ports = createPorts();
     vi.mocked(ports.reader.simulate).mockResolvedValue({
@@ -129,6 +156,7 @@ describe("estimateGardenCreation", () => {
       gasPrice: 3n,
       txFee: 30n,
       ccipFee: 5n,
+      nameFunding: "creator",
       totalEstimatedFee: 35n,
       formatted: {
         txFeeEth: "0.00000000000000003",
@@ -146,7 +174,9 @@ describe("garden writes through the shared account sender", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.simulate.mockResolvedValue({ success: true });
-    mocks.readContract.mockResolvedValue(5n);
+    mocks.readContract.mockImplementation(async ({ functionName }: { functionName: string }) =>
+      functionName === "gardenNameReserve" ? 0n : 5n
+    );
     mocks.waitReceipt.mockResolvedValue({ status: "success" });
   });
   function adapter(authMode: "wallet" | "passkey") {

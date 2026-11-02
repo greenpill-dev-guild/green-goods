@@ -95,7 +95,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockGetNetworkConfig.mockReturnValue({});
     mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
-      selector({ lastGardenIdsByScope: {} })
+      selector({ lastGardenIdsByScope: {}, createdGardensByScope: {} })
     );
   });
 
@@ -134,6 +134,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({
+        createdGardensByScope: {},
         lastGardenIdsByScope: {
           "11155111:0x1111111111111111111111111111111111111111": "garden-b",
         },
@@ -163,6 +164,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({
+        createdGardensByScope: {},
         lastGardenIdsByScope: {
           "11155111:0x1111111111111111111111111111111111111111": BETA_CHECKSUMMED,
         },
@@ -348,6 +350,21 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
 
     expect(result.current.eligibleGardens).toEqual([]);
     expect(result.current.scopeKey).toBeNull();
+  });
+
+  it("selects a garden its creator just minted before the indexer lists it", () => {
+    const scope = "11155111:0x1111111111111111111111111111111111111111";
+    mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
+      selector({
+        lastGardenIdsByScope: { [scope]: "0xNewGarden" },
+        createdGardensByScope: { [scope]: { id: "0xNewGarden", name: "New Garden" } },
+      })
+    );
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.resolvedDefaultGarden?.name).toBe("New Garden");
+    expect(result.current.hasStaleBaseList).toBe(true);
   });
 
   it("merges role-confirmed steward gardens missing from the base list (stale or errored base list)", () => {

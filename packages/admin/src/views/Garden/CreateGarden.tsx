@@ -3,6 +3,7 @@ import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInli
 import { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useIntl } from "react-intl";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
@@ -16,7 +17,16 @@ export default function CreateGarden() {
   const stepRegistry = {
     details: <DetailsStep showValidation={createGarden.showValidation} />,
     team: <TeamStep />,
-    review: <ReviewStep />,
+    review: (
+      <ReviewStep
+        cost={{
+          estimate: createGarden.costEstimate,
+          failed: createGarden.costEstimateFailed,
+          loading: createGarden.costEstimateLoading,
+          gasIsSponsored: createGarden.gasIsSponsored,
+        }}
+      />
+    ),
   };
 
   return (
@@ -26,11 +36,7 @@ export default function CreateGarden() {
           id: "admin.gardens.createGarden",
           defaultMessage: "Create Garden",
         })}
-        description={intl.formatMessage({
-          id: "cockpit.garden.createDescription",
-          defaultMessage:
-            "Set the garden profile, team plan, and deployment details before you create it.",
-        })}
+        description={intl.formatMessage({ id: "cockpit.garden.createDescription" })}
         variant="canvas"
         backLink={{
           to: adminRoutes.garden(),
@@ -98,13 +104,21 @@ export default function CreateGarden() {
               disabled={createGarden.isSubmitting}
               loading={createGarden.isSubmitting}
             >
-              {intl.formatMessage({
-                id: "admin.garden.form.deploy",
-                defaultMessage: "Deploy Garden",
-              })}
+              {intl.formatMessage({ id: "admin.garden.form.deploy" })}
             </Button>
           </>
         }
+      />
+      <AdminConfirmDialog
+        isOpen={createGarden.discardPromptOpen}
+        onClose={createGarden.dismissDiscardPrompt}
+        tone="garden"
+        variant="danger"
+        title={intl.formatMessage({ id: "app.admin.garden.create.discard.title" })}
+        description={intl.formatMessage({ id: "app.admin.garden.create.discard.description" })}
+        confirmLabel={intl.formatMessage({ id: "app.admin.garden.create.discard.confirm" })}
+        cancelLabel={intl.formatMessage({ id: "app.admin.garden.create.discard.keep" })}
+        onConfirm={createGarden.discardDraft}
       />
     </CanvasRouteFrame>
   );

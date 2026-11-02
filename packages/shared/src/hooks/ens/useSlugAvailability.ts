@@ -22,6 +22,18 @@ import { useDebouncedValue } from "../utils/useDebouncedValue";
 import { isSlugAvailableAcrossChains } from "./availability";
 import { slugSchema } from "../../modules/ens/slug";
 
+/** Whether a slug can still be claimed. Throws when the chain cannot be asked. */
+export async function readSlugAvailability(slug: string): Promise<boolean> {
+  const ensAddress = getNetworkContracts(DEFAULT_CHAIN_ID).greenGoodsENS;
+  const { publicClient } = createClients(DEFAULT_CHAIN_ID);
+  return isSlugAvailableAcrossChains({
+    slug,
+    ensAddress,
+    publicClient,
+    chainId: DEFAULT_CHAIN_ID,
+  });
+}
+
 export function useSlugAvailability(slug: string | undefined) {
   const debouncedSlug = useDebouncedValue(slug, 300);
   const isValidFormat = debouncedSlug
@@ -37,13 +49,7 @@ export function useSlugAvailability(slug: string | undefined) {
       if (!debouncedSlug || !ensAddress || ensAddress === zeroAddress) return false;
 
       try {
-        const { publicClient } = createClients(DEFAULT_CHAIN_ID);
-        return isSlugAvailableAcrossChains({
-          slug: debouncedSlug,
-          ensAddress,
-          publicClient,
-          chainId: DEFAULT_CHAIN_ID,
-        });
+        return await readSlugAvailability(debouncedSlug);
       } catch (error) {
         logger.warn("Slug availability check failed", { slug: debouncedSlug, error });
         return false; // Fail closed — treat as unavailable when RPC fails

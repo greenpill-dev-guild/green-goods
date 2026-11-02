@@ -153,3 +153,38 @@ export const Documentation: Story = {
     ),
   ],
 };
+
+/** A creator paying the network fee, with the garden's name paid from the Green Goods name fund. */
+export const NameFromTheFund: Story = {
+  args: {
+    cost: {
+      estimate: {
+        gasEstimate: 23_868_920n,
+        gasPrice: 20_000_000n,
+        txFee: 477_378_400_000_000n,
+        ccipFee: 0n,
+        nameFunding: "reserve",
+        totalEstimatedFee: 477_378_400_000_000n,
+        formatted: { txFeeEth: "0.000477", ccipFeeEth: "0", totalEth: "0.000477" },
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <WithStoreState
+        seed={{
+          name: "Harbour Seed Library",
+          slug: "harbour-seeds",
+          description: "Seed saving and swap days for neighbourhood growers.",
+          location: "Lisbon, Portugal",
+          domains: [Domain.AGRO],
+          openJoining: false,
+          gardeners: [],
+          stewards: [],
+        }}
+      >
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+};

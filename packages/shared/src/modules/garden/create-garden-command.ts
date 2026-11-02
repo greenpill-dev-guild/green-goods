@@ -1,5 +1,5 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { formatEther } from "viem";
+import { encodeFunctionData, formatEther, parseEventLogs } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { CreateGardenParams } from "../../types/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -13,6 +13,7 @@ import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
 import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
+import { assertWalletCanFundTransaction } from "../transactions/wallet-funding";
 import type {
   BroadcastReference,
   BroadcastConfirmation,
@@ -37,6 +38,8 @@ export interface CreateGardenPorts {
       accountAddress: `0x${string}`;
       chainId: number;
     }): Promise<bigint>;
+    gardenNameReserve(input: { gardenToken: `0x${string}`; chainId: number }): Promise<bigint>;
+    balanceOf(input: { accountAddress: `0x${string}`; chainId: number }): Promise<bigint>;
     simulate(input: {
       gardenToken: `0x${string}`;
       config: GardenContractConfig;
@@ -71,11 +74,15 @@ export interface CreateGardenPorts {
   clock: { now(): number };
 }
 
+/** Who pays for the garden's name: the token's reserve, its creator, or nobody yet. */
+export type GardenNameFunding = "reserve" | "creator" | "later";
+
 export interface GardenCreationEstimate {
   gasEstimate: bigint;
   gasPrice: bigint;
   txFee: bigint;
   ccipFee: bigint;
+  nameFunding: GardenNameFunding;
   totalEstimatedFee: bigint;
   formatted: { txFeeEth: string; ccipFeeEth: string; totalEth: string };
 }
@@ -96,18 +103,73 @@ function buildGardenContractConfig(params: CreateGardenParams): GardenContractCo
   };
 }
 
+/**
+ * What the creator sends for the garden's name. The token's reserve pays when it can. A creator who
+ * cannot pay either, such as a passkey account with no ETH, still gets the garden, and its setup can
+ * register the name once the reserve is funded.
+ */
+async function nameFeeFromCreator(
+  command: CreateGardenCommand,
+  slug: string,
+  ports: Pick<CreateGardenPorts, "reader">
+): Promise<{ ccipFee: bigint; nameFunding: GardenNameFunding }> {
+  const contracts = ports.reader.contracts(command.chainId);
+  const fee = await ports.reader.estimateCcipFee({
+    slug,
+    ensAddress: contracts.greenGoodsENS as `0x${string}`,
+    accountAddress: command.accountAddress,
+    chainId: command.chainId,
+  });
+  if (fee === 0n) return { ccipFee: 0n, nameFunding: "later" };
+  const [reserve, balance] = await Promise.all([
+    ports.reader.gardenNameReserve({
+      gardenToken: contracts.gardenToken as `0x${string}`,
+      chainId: command.chainId,
+    }),
+    ports.reader.balanceOf({
+      accountAddress: command.accountAddress,
+      chainId: command.chainId,
+    }),
+  ]);
+  if (reserve >= fee) return { ccipFee: 0n, nameFunding: "reserve" };
+  return balance < fee
+    ? { ccipFee: 0n, nameFunding: "later" }
+    : { ccipFee: fee, nameFunding: "creator" };
+}
+
+/** The garden a confirmed creation minted, read from its receipt. Null when that cannot be told. */
+export async function readCreatedGardenAddress(
+  hash: `0x${string}`,
+  chainId: number
+): Promise<`0x${string}` | null> {
+  try {
+    const { publicClient } = createClients(chainId);
+    const gardenToken = getNetworkContracts(chainId).gardenToken.toLowerCase();
+    const receipt = await publicClient.getTransactionReceipt({ hash });
+    const [minted] = parseEventLogs({
+      abi: GardenTokenABI,
+      eventName: "GardenMinted",
+      logs: receipt.logs.filter((log) => log.address.toLowerCase() === gardenToken),
+    });
+    return (minted?.args as { account?: `0x${string}` } | undefined)?.account ?? null;
+  } catch (error) {
+    logger.warn("Could not read the created garden from its receipt", {
+      source: "readCreatedGardenAddress",
+      hash,
+      chainId,
+      error,
+    });
+    return null;
+  }
+}
+
 export async function createGarden(
   command: CreateGardenCommand,
   ports: CreateGardenPorts
 ): Promise<TxResult> {
   const config = buildGardenContractConfig(command.params);
   const contracts = ports.reader.contracts(command.chainId);
-  const ccipFee = await ports.reader.estimateCcipFee({
-    slug: config.slug,
-    ensAddress: contracts.greenGoodsENS as `0x${string}`,
-    accountAddress: command.accountAddress,
-    chainId: command.chainId,
-  });
+  const { ccipFee } = await nameFeeFromCreator(command, config.slug, ports);
   const simulation = await ports.reader.simulate({
     gardenToken: contracts.gardenToken as `0x${string}`,
     config,
@@ -138,12 +200,7 @@ export async function estimateGardenCreation(
 ): Promise<GardenCreationEstimate> {
   const config = buildGardenContractConfig(command.params);
   const contracts = ports.reader.contracts(command.chainId);
-  const ccipFee = await ports.reader.estimateCcipFee({
-    slug: config.slug,
-    ensAddress: contracts.greenGoodsENS as `0x${string}`,
-    accountAddress: command.accountAddress,
-    chainId: command.chainId,
-  });
+  const { ccipFee, nameFunding } = await nameFeeFromCreator(command, config.slug, ports);
   const { gasEstimate, gasPrice } = await ports.reader.estimateTransaction({
     gardenToken: contracts.gardenToken as `0x${string}`,
     config,
@@ -158,6 +215,7 @@ export async function estimateGardenCreation(
     gasPrice,
     txFee,
     ccipFee,
+    nameFunding,
     totalEstimatedFee,
     formatted: {
       txFeeEth: formatEther(txFee),
@@ -198,6 +256,27 @@ export function createDefaultCreateGardenPorts(input: {
           return 0n;
         }
       },
+      gardenNameReserve: async ({ gardenToken, chainId }) => {
+        try {
+          const { publicClient } = createClients(chainId);
+          return (await publicClient.readContract({
+            address: gardenToken,
+            abi: GardenTokenABI,
+            functionName: "gardenNameReserve",
+          })) as bigint;
+        } catch (error) {
+          // A token from before the reserve has nothing to pay with, and neither does an RPC failure.
+          logger.warn("Garden name reserve read failed, treating it as empty", {
+            source: "createDefaultCreateGardenPorts",
+            gardenToken,
+            chainId,
+            error,
+          });
+          return 0n;
+        }
+      },
+      balanceOf: ({ accountAddress, chainId }) =>
+        createClients(chainId).publicClient.getBalance({ address: accountAddress }),
       simulate: ({ gardenToken, config, accountAddress, chainId, ccipFee }) =>
         simulateTransaction(
           gardenToken,
@@ -247,6 +326,19 @@ export function createDefaultCreateGardenPorts(input: {
         const sender = input.transactionSender;
         const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);
         await assertOwnership();
+        // A wallet opened for a transaction it cannot pay for may show no request at all.
+        if (!sender.supportsSponsorship) {
+          await assertWalletCanFundTransaction(createClients(chainId).publicClient, {
+            account: accountAddress,
+            to: gardenToken,
+            data: encodeFunctionData({
+              abi: GardenTokenABI,
+              functionName: "mintGarden",
+              args: [config],
+            }),
+            value: ccipFee,
+          });
+        }
         const result = await sendCheckpointedCall(
           sender,
           {
