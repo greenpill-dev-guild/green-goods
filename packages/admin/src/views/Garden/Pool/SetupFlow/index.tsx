@@ -58,6 +58,21 @@ export interface PoolSetupFlowProps {
   onClose: () => void;
 }
 
+/** What a fresh open fills in. A close asks first once any of it changes. */
+interface SetupDraft {
+  purpose: string;
+  cap: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  preset: AllocationPreset;
+  allocation: AllocationPercent;
+  recognition: RecognitionPercent;
+}
+
+const sameShares = <T extends object>(a: T, b: T) =>
+  (Object.keys(a) as (keyof T)[]).every((key) => a[key] === b[key]);
+
 /**
  * W11: first-run setup, a new season, a campaign, or opening a prepared
  * cycle, in one flow dialog. Nothing is written until the last step, where the
@@ -88,6 +103,7 @@ export function PoolSetupFlow({
   const [recognition, setRecognition] = useState<RecognitionPercent>(DEFAULT_RECOGNITION_PERCENT);
   const [pinning, setPinning] = useState(false);
   const [pinFailure, setPinFailure] = useState<"charter" | "cycle" | null>(null);
+  const [opened, setOpened] = useState<SetupDraft | null>(null);
   const sequence = useCommitmentPoolSetupSequence({ chainId: pool.chainId });
   const stepRef = useStepFocus<HTMLDivElement>(stepIndex);
   const isCampaign = intent === "campaign" || intent === "open-campaign";
@@ -95,26 +111,47 @@ export function PoolSetupFlow({
   // A fresh open starts at step one with the pool's current words prefilled.
   useEffect(() => {
     if (!open) return;
-    setStepIndex(0);
-    setPurpose(pool.charter.charter?.purpose ?? "");
     const currentCap = pool.pool?.providerOpenCommitmentCap ?? 0n;
-    setCap(currentCap > 0n ? currentCap.toString() : DEFAULT_CAP);
-    setName("");
     const dates = defaultCycleDates();
-    setStartDate(dates.start);
-    setEndDate(dates.end);
-    setPreset("model1");
-    setAllocation(ALLOCATION_PRESETS.model1);
-    setRecognition(DEFAULT_RECOGNITION_PERCENT);
+    const fresh: SetupDraft = {
+      purpose: pool.charter.charter?.purpose ?? "",
+      cap: currentCap > 0n ? currentCap.toString() : DEFAULT_CAP,
+      name: "",
+      startDate: dates.start,
+      endDate: dates.end,
+      preset: "model1",
+      allocation: ALLOCATION_PRESETS.model1,
+      recognition: DEFAULT_RECOGNITION_PERCENT,
+    };
+    setOpened(fresh);
+    setStepIndex(0);
+    setPurpose(fresh.purpose);
+    setCap(fresh.cap);
+    setName(fresh.name);
+    setStartDate(fresh.startDate);
+    setEndDate(fresh.endDate);
+    setPreset(fresh.preset);
+    setAllocation(fresh.allocation);
+    setRecognition(fresh.recognition);
     setPinFailure(null);
     sequence.reset();
     // `sequence.reset` is stable; re-running on its identity would loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, intent, cycle?.id]);
 
+  // Any field moved off what this open filled in counts, whichever step the intent starts on.
   const isDirty =
     open &&
-    (purpose !== (pool.charter.charter?.purpose ?? "") || name.trim().length > 0 || stepIndex > 0);
+    opened !== null &&
+    (stepIndex > 0 ||
+      purpose !== opened.purpose ||
+      cap !== opened.cap ||
+      name.trim() !== opened.name ||
+      startDate !== opened.startDate ||
+      endDate !== opened.endDate ||
+      preset !== opened.preset ||
+      !sameShares(allocation, opened.allocation) ||
+      !sameShares(recognition, opened.recognition));
   const submitting = pinning || sequence.state.status === "running";
   // The flow closes by setting state, so its own close (X, Escape, step one's Back) confirms here,
   // and browser Back still goes through the router's guard.

@@ -385,6 +385,42 @@ describe("PoolSetupFlow (W11)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
+  it.each([
+    [
+      "the cap on first-run",
+      "first-run" as const,
+      () =>
+        fireEvent.change(within(dialog()).getByLabelText(/how many promises/i), {
+          target: { value: "30" },
+        }),
+    ],
+    [
+      "the dates on a campaign",
+      "campaign" as const,
+      () =>
+        fireEvent.change(within(dialog()).getByLabelText(/^starts/i), {
+          target: { value: "2099-01-01" },
+        }),
+    ],
+    [
+      "the split on a prepared season",
+      "open-season" as const,
+      () =>
+        fireEvent.change(within(dialog()).getAllByLabelText(/^gardeners/i)[0], {
+          target: { value: "55" },
+        }),
+    ],
+  ])("asks before discarding a change to %s, the first step it shows", async (_, intent, edit) => {
+    const cycle = intent === "open-season" ? makePreparedCycle("SEASON") : undefined;
+    const { onClose } = renderFlow({ intent, cycle });
+
+    edit();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("asks before browser Back leaves a dirty flow", async () => {
     const router = renderPoolPageFlow();
     await fillHow();
