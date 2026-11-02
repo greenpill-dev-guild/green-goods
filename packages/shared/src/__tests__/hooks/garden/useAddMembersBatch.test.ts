@@ -170,6 +170,35 @@ describe("useAddMembersBatch", () => {
     expect(tracking.failed).not.toHaveBeenCalled();
   });
 
+  it("reports each start before the add can reach the chain, so a later read's success has one", async () => {
+    const { result, sender } = renderBatch(CONFIRMED);
+    const list = rows();
+    mockRefusal.mockImplementation(async () => {
+      for (const { address, role } of list) wearing.add(`${address.toLowerCase()}:${role}`);
+      return null;
+    });
+    const send = vi.mocked(sender.sendContractCall);
+    const realSend = send.getMockImplementation()!;
+    let startedAtBroadcast = -1;
+    send.mockImplementationOnce(async (call, options) =>
+      realSend(call, {
+        ...options,
+        onBroadcastReference: async (reference) => {
+          startedAtBroadcast = tracking.started.mock.calls.length;
+          await options?.onBroadcastReference?.(reference);
+        },
+      })
+    );
+
+    await act(async () => {
+      await result.current.add(list);
+    });
+
+    expect(startedAtBroadcast).toBe(list.length);
+    expect(tracking.started).toHaveBeenCalledTimes(list.length);
+    expect(tracking.success).toHaveBeenCalledTimes(list.length);
+  });
+
   it("says there is nothing to sign only when nothing else is left to do", async () => {
     const { result, sender } = renderBatch(CONFIRMED);
     const [held, other] = rows();
