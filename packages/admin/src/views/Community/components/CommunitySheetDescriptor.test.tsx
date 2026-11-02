@@ -5,7 +5,7 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { Address } from "@green-goods/shared/types/domain";
 import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
-import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
@@ -23,21 +23,32 @@ const JAR = "0x2222222222222222222222222222222222222222" as Address;
 const ASSET = "0x3333333333333333333333333333333333333333" as Address;
 
 const jars = vi.hoisted(() => ({ current: [] as unknown[] }));
-// One object, as TanStack Query keeps `reset` stable: the dialog's open effect depends on it.
-const deposit = vi.hoisted(() => ({
-  error: null,
-  isPending: false,
-  mutate: vi.fn(),
-  reset: () => {},
-}));
+// The send stays pending until a test lands it, as a wallet keeps it waiting.
+const deposit = vi.hoisted(() => ({ mutate: vi.fn(), land: null as null | (() => void) }));
 
 // The chain and the wallet are this suite's edges; the action, the URL and the dialog are real.
 vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
   useGardenCookieJars: () => ({ jars: jars.current, moduleConfigured: true }),
 }));
-vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", () => ({
-  useCookieJarDeposit: () => deposit,
-}));
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", async () => {
+  const { useCallback, useState } = await import("react");
+  return {
+    useCookieJarDeposit: () => {
+      const [isPending, setPending] = useState(false);
+      const mutate = useCallback((params: unknown, options?: { onSuccess?: () => void }) => {
+        deposit.mutate(params, options);
+        setPending(true);
+        deposit.land = () => {
+          setPending(false);
+          options?.onSuccess?.();
+        };
+      }, []);
+      // Stable, as TanStack Query keeps it: the dialog's open effect depends on it.
+      const reset = useCallback(() => undefined, []);
+      return { error: null, isPending, mutate, reset };
+    },
+  };
+});
 vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
   useDepositPlan: () => ({
     signatures: null,
@@ -88,11 +99,12 @@ function CommunityRoute() {
 }
 
 function renderAt(path: string, before?: string) {
-  return renderWithProviders(
-    <MemoryRouter initialEntries={before ? [before, path] : [path]} initialIndex={before ? 1 : 0}>
-      <CommunityRoute />
-    </MemoryRouter>
-  );
+  // A data router, since the dialog holds route changes while a deposit is in flight.
+  const router = createMemoryRouter([{ path: "*", element: <CommunityRoute /> }], {
+    initialEntries: before ? [before, path] : [path],
+    initialIndex: before ? 1 : 0,
+  });
+  return renderWithProviders(<RouterProvider router={router} />);
 }
 
 const fundButton = () => screen.getByRole("button", { name: "Fund Cookie Jar" });
@@ -103,6 +115,7 @@ const pressBrowserBack = () => fireEvent.click(screen.getByTestId("browser-back"
 describe("CommunitySheetDescriptor: Fund Cookie Jar (DL-140)", () => {
   beforeEach(() => {
     deposit.mutate.mockClear();
+    deposit.land = null;
     jars.current = [
       {
         jarAddress: JAR,
@@ -173,7 +186,7 @@ describe("CommunitySheetDescriptor: Fund Cookie Jar (DL-140)", () => {
     await waitFor(() => expect(currentUrl()).toBe(before));
   });
 
-  it("does not move a steward who went Back before their deposit landed", async () => {
+  it("holds Back while a deposit is in flight, then closes to the tab once it lands", async () => {
     const user = userEvent.setup();
     const before = `/community/members?gardenId=${GARDEN}`;
     const tabUrl = `/community/endowment?gardenId=${GARDEN}`;
@@ -182,11 +195,13 @@ describe("CommunitySheetDescriptor: Fund Cookie Jar (DL-140)", () => {
     await user.click(fundButton());
     await user.type(screen.getByRole("textbox", { name: "How much" }), "1");
     await user.click(screen.getByRole("button", { name: "Deposit" }));
-    const sent = deposit.mutate.mock.calls[0]?.[1] as { onSuccess: () => void };
 
     pressBrowserBack();
-    await waitFor(() => expect(currentUrl()).toBe(tabUrl));
-    act(() => sent.onSuccess());
+    await act(async () => undefined);
+    expect(currentUrl()).toBe(`${tabUrl}&item=fund-jar`);
+    expect(fundDialog()).toBeInTheDocument();
+
+    act(() => deposit.land?.());
 
     await waitFor(() => expect(fundDialog()).not.toBeInTheDocument());
     expect(currentUrl()).toBe(tabUrl);

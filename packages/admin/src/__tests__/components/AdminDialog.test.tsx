@@ -485,6 +485,35 @@ describe("AdminConfirmDialog", () => {
   });
 });
 
+describe("AdminSideSheet focus", () => {
+  // The AppBar opens the global sheets through the sheet registry, with no Radix trigger.
+  function AppBarHarness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <Button type="button" onClick={() => setOpen(true)}>
+          Notifications
+        </Button>
+        <AdminSideSheet open={open} onOpenChange={setOpen} title="Notifications">
+          <p>No new notifications</p>
+        </AdminSideSheet>
+      </>
+    );
+  }
+
+  it("hands focus back to the control that opened it", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AppBarHarness />);
+    const opener = screen.getByRole("button", { name: "Notifications" });
+
+    await user.click(opener);
+    await screen.findByRole("dialog", { name: "Notifications" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+});
+
 describe("AdminSideSheet mobile geometry", () => {
   it("opens global surfaces full width on mobile and keeps the desktop rail width", () => {
     renderWithProviders(

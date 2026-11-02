@@ -116,11 +116,14 @@ export function PoolSetupFlow({
     open &&
     (purpose !== (pool.charter.charter?.purpose ?? "") || name.trim().length > 0 || stepIndex > 0);
   const submitting = pinning || sequence.state.status === "running";
+  // The flow closes by setting state, so its own close (X, Escape, step one's Back) confirms here,
+  // and browser Back still goes through the router's guard.
   const dirtyClose = useDirtyClose({
     isDirty: isDirty && sequence.state.status !== "complete",
     onClose,
     blockRouteChange: true,
     preventRouteChange: submitting,
+    closesInPlace: true,
   });
 
   const model = pool.model;

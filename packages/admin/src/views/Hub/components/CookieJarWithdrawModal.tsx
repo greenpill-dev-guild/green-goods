@@ -72,10 +72,10 @@ export function CookieJarWithdrawModal({
     }
   }, [withdrawAmount, withdrawInputError, withdrawDecimals]);
 
-  useEffect(() => {
-    if (!withdrawMutation.error) return;
-    resetWithdrawMutation();
-  }, [withdrawAmount, withdrawJar, withdrawPurpose, withdrawMutation.error, resetWithdrawMutation]);
+  // The last attempt's outcome stays on screen until the steward changes what they claim.
+  const clearWithdrawError = () => {
+    if (withdrawMutation.error) resetWithdrawMutation();
+  };
 
   const withdrawTxError = useTxErrorMessages(withdrawMutation.error);
 
@@ -156,7 +156,10 @@ export function CookieJarWithdrawModal({
           id="withdraw-jar-select"
           label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie jar" })}
           value={withdrawJar}
-          onChange={(e) => setWithdrawJar(e.target.value)}
+          onChange={(e) => {
+            setWithdrawJar(e.target.value);
+            clearWithdrawError();
+          }}
         >
           <option value="">--</option>
           {activeJars.map((jar) => (
@@ -175,7 +178,10 @@ export function CookieJarWithdrawModal({
             label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "How much" })}
             type="text"
             value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
+            onChange={(e) => {
+              setWithdrawAmount(e.target.value);
+              clearWithdrawError();
+            }}
             placeholder="0.00"
             error={withdrawInputError ? formatMessage({ id: withdrawInputError }) : undefined}
             inputProps={{ inputMode: "decimal" }}
@@ -192,6 +198,7 @@ export function CookieJarWithdrawModal({
                   ? selectedWithdrawJar.maxWithdrawal
                   : selectedWithdrawJar.balance;
               setWithdrawAmount(formatUnits(max, withdrawDecimals));
+              clearWithdrawError();
             }}
           >
             {formatMessage({ id: "app.treasury.max", defaultMessage: "Max" })}
@@ -203,7 +210,10 @@ export function CookieJarWithdrawModal({
           id="withdraw-purpose"
           label={formatMessage({ id: "app.cookieJar.purpose", defaultMessage: "Purpose" })}
           value={withdrawPurpose}
-          onChange={(e) => setWithdrawPurpose(e.target.value)}
+          onChange={(e) => {
+            setWithdrawPurpose(e.target.value);
+            clearWithdrawError();
+          }}
           placeholder={formatMessage({
             id: "app.cookieJar.purposePlaceholder",
             defaultMessage: "What will you use this for?",

@@ -121,6 +121,8 @@ describe("CookieJarPayoutPanel", () => {
     [{ allocationCount: 3 }, "3 payouts"],
     // The history stops at its limit, so a full list is a lower bound.
     [{ allocationCount: 20, allocationCountAtLeast: true }, "20+ payouts"],
+    // A history that could not be read states no total, never a zero.
+    [{ allocationCount: 0, allocationCountUnread: true }, "Couldn't read the payouts"],
   ])("says the payout total in the panel's own header line (DL-134): %o", (props, line) => {
     renderPanel(props);
 

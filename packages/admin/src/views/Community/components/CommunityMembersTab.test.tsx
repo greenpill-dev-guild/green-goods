@@ -93,7 +93,7 @@ describe("CommunityMembersTab", () => {
       .closest('[data-component="FactRow"]') as HTMLElement;
     expect(within(total).getByText("2")).toBeInTheDocument();
     // The total is the directory's own header line, not a number on the tab (DL-134).
-    const directory = screen.getByRole("heading", { name: "Member directory" });
+    const directory = screen.getByRole("heading", { name: "Member Directory" });
     expect(directory.nextElementSibling).toHaveTextContent(/^2 members$/);
     // The rail no longer repeats role counts or the header's member actions (D9, D15).
     expect(screen.queryByRole("link", { name: /^Stewards/ })).not.toBeInTheDocument();

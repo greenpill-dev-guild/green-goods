@@ -23,6 +23,16 @@ const QUIET_PLAN = {
 };
 const depositError: { current: Error | null } = { current: null };
 
+// The dialog's in-flight route hold needs a data router; CommunitySheetDescriptor.test proves it.
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
+  useDirtyClose: () => ({
+    onOpenChange: () => undefined,
+    confirmOpen: false,
+    cancelClose: () => undefined,
+    confirmClose: () => undefined,
+  }),
+}));
+
 vi.mock("wagmi", () => ({
   useBalance: (...args: unknown[]) => mockUseBalance(...args),
   useEstimateGas: (...args: unknown[]) => mockUseEstimateGas(...args),

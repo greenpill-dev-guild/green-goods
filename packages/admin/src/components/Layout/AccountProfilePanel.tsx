@@ -120,7 +120,7 @@ export function AccountProfilePanel({
         <section className="space-y-2">
           <div>
             <h2 className="type-body font-semibold text-text-strong">
-              {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your gardens" })}
+              {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your Gardens" })}
             </h2>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
@@ -133,7 +133,7 @@ export function AccountProfilePanel({
             <AdminChoiceGroup
               ariaLabel={formatMessage({
                 id: "cockpit.account.gardens",
-                defaultMessage: "Your gardens",
+                defaultMessage: "Your Gardens",
               })}
               value={selectedGardenChoiceId}
               onChange={selectGarden}

@@ -4,6 +4,7 @@ import {
   TxHoldFeedback,
   TxInlineFeedback,
 } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
@@ -139,10 +140,10 @@ export function CookieJarDepositModal({
     }
   }, [depositAmount, depositInputError, depositDecimals]);
 
-  useEffect(() => {
-    if (!depositMutation.error) return;
-    resetDepositMutation();
-  }, [depositAmount, depositJar, depositMutation.error, resetDepositMutation]);
+  // The last attempt's outcome stays on screen until the steward changes what they deposit.
+  const clearDepositError = () => {
+    if (depositMutation.error) resetDepositMutation();
+  };
 
   const depositTxError = useTxErrorMessages(depositMutation.error);
   const plan = useDepositPlan({
@@ -171,6 +172,23 @@ export function CookieJarDepositModal({
     !(plan.unconfirmedIsHeld && depositTxError.view.kind === "unconfirmed");
 
   const isPending = depositMutation.isPending;
+  // A deposit in flight holds the route as well as the dialog: Back would otherwise close it
+  // mid-send, and this dialog is the only place its outcome shows. No leave-page prompt, since a
+  // mobile wallet deep-links away to sign.
+  useDirtyClose({
+    isDirty: false,
+    onClose,
+    blockRouteChange: true,
+    preventRouteChange: isPending,
+    guardUnload: false,
+  });
+  // A landed deposit closes once that hold has let go, so the hold never stops its own close.
+  const [closeWhenSettled, setCloseWhenSettled] = useState(false);
+  useEffect(() => {
+    if (!closeWhenSettled || isPending) return;
+    setCloseWhenSettled(false);
+    onClose();
+  }, [closeWhenSettled, isPending, onClose]);
   // Funding is the last moment before gardeners meet a limit set too low. It warns, never
   // blocks: the deposit still goes through, the fix is just the first thing offered.
   const lowLimitJar =
@@ -188,7 +206,7 @@ export function CookieJarDepositModal({
       {
         onSuccess: () => {
           setDepositAmount("");
-          onClose();
+          setCloseWhenSettled(true);
         },
       }
     );
@@ -291,7 +309,10 @@ export function CookieJarDepositModal({
                 })}
                 columns={2}
                 value={depositJar || null}
-                onChange={setDepositJar}
+                onChange={(jar) => {
+                  setDepositJar(jar);
+                  clearDepositError();
+                }}
                 options={jars.map((jar) => {
                   const jarSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
                   return {
@@ -325,7 +346,10 @@ export function CookieJarDepositModal({
             label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "How much" })}
             type="text"
             value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
+            onChange={(e) => {
+              setDepositAmount(e.target.value);
+              clearDepositError();
+            }}
             placeholder="0.00"
             error={depositInputError ? formatMessage({ id: depositInputError }) : undefined}
             inputProps={{ inputMode: "decimal" }}

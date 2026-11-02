@@ -106,6 +106,9 @@ export function AdminSideSheet({
       setInstantExit(true);
     }
   }, [open]);
+  // The AppBar opens these sheets through the sheet registry, not a Radix trigger, so Radix has
+  // nothing to hand focus back to. Remember the opener, as AdminDialog does (DL-117).
+  const openedFrom = useRef<HTMLElement | null>(null);
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -168,6 +171,18 @@ export function AdminSideSheet({
             if (preventClose) event.preventDefault();
           }}
           onKeyDown={onKeyDown}
+          onOpenAutoFocus={() => {
+            const active = document.activeElement;
+            openedFrom.current =
+              active instanceof HTMLElement && active !== document.body ? active : null;
+          }}
+          onCloseAutoFocus={(event) => {
+            const target = openedFrom.current;
+            openedFrom.current = null;
+            if (!target?.isConnected) return;
+            event.preventDefault();
+            target.focus();
+          }}
         >
           {rendersAsSheet ? (
             <>

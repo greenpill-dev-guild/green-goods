@@ -478,7 +478,9 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(screen.getByText("1 signature")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
 
-    expect(await screen.findByText(/can’t share one signature right now/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/can’t share one signature.*Press Add 2 Gardeners again/)
+    ).toBeInTheDocument();
     expect(screen.getByText("Up to 2 signatures")).toBeInTheDocument();
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
@@ -614,6 +616,27 @@ describe("components/Garden/AddMembersDialog", () => {
     await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
     expect(vi.mocked(batch.add).mock.calls[1][0]).toEqual([ROW_B]);
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("names what else stopped a send, rather than promising the rest once a refused row goes", async () => {
+    const user = userEvent.setup({ delay: null });
+    const reason = "This person can't hold this role";
+    const batch = batchWith({
+      add: vi.fn<AddMembersBatch["add"]>(async () => ({
+        ...NOTHING,
+        refused: [{ ...ROW_A, reason }],
+        notSent: [ROW_B],
+        failure: new Error("The whole call reverts"),
+      })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+
+    expect(await screen.findByText(reason)).toBeInTheDocument();
+    expect(screen.getByText("Failed to add member")).toBeInTheDocument();
+    expect(screen.queryByText(/Remove them to add the rest/)).not.toBeInTheDocument();
   });
 
   it("stays open with an unknown add, and takes off the rows that did land", async () => {

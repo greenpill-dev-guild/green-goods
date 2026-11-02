@@ -4,6 +4,7 @@ import {
   TxInlineFeedback,
 } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
@@ -181,6 +182,25 @@ export function DepositModal({
     Boolean(depositMutation.error) &&
     !(plan.unconfirmedIsHeld && txError.view.kind === "unconfirmed");
 
+  const isPending = depositMutation.isPending;
+  // A deposit in flight holds the route as well as the dialog: Back would otherwise close it
+  // mid-send, and this dialog is the only place its outcome shows. No leave-page prompt, since a
+  // mobile wallet deep-links away to sign.
+  useDirtyClose({
+    isDirty: false,
+    onClose,
+    blockRouteChange: true,
+    preventRouteChange: isPending,
+    guardUnload: false,
+  });
+  // A landed deposit closes once that hold has let go, so the hold never stops its own close.
+  const [closeWhenSettled, setCloseWhenSettled] = useState(false);
+  useEffect(() => {
+    if (!closeWhenSettled || isPending) return;
+    setCloseWhenSettled(false);
+    onClose();
+  }, [closeWhenSettled, isPending, onClose]);
+
   const onSubmit = () => {
     if (!vaultAcceptingDeposits || plan.isPaused) return;
     if (!selectedVault || !primaryAddress || amountBigInt <= 0n || hasBlockingError) return;
@@ -193,7 +213,7 @@ export function DepositModal({
         amount: amountBigInt,
         receiver: primaryAddress as Address,
       },
-      { onSuccess: () => onClose() }
+      { onSuccess: () => setCloseWhenSettled(true) }
     );
   };
 

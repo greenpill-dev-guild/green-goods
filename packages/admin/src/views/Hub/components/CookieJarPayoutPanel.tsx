@@ -26,6 +26,8 @@ interface CookieJarPayoutPanelProps {
   allocationCount?: number;
   /** The payout history filled its list, so the count is a lower bound. */
   allocationCountAtLeast?: boolean;
+  /** The payout history could not be read, so there is no count to state. */
+  allocationCountUnread?: boolean;
 }
 
 export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
@@ -34,6 +36,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   routeEditLimitJar,
   allocationCount = 0,
   allocationCountAtLeast = false,
+  allocationCountUnread = false,
 }) => {
   const { formatMessage } = useIntl();
 
@@ -153,14 +156,16 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
               })}
             </AdminCardTitle>
             <p className="mt-1 type-meta text-text-sub">
-              {formatMessage(
-                {
-                  id: allocationCountAtLeast
-                    ? "cockpit.community.payouts.totalAtLeast"
-                    : "cockpit.community.payouts.total",
-                },
-                { count: allocationCount }
-              )}
+              {allocationCountUnread
+                ? formatMessage({ id: "cockpit.community.payouts.totalUnread" })
+                : formatMessage(
+                    {
+                      id: allocationCountAtLeast
+                        ? "cockpit.community.payouts.totalAtLeast"
+                        : "cockpit.community.payouts.total",
+                    },
+                    { count: allocationCount }
+                  )}
             </p>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
@@ -181,6 +186,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 gardenName={gardenName}
                 allocationCount={allocationCount}
                 allocationCountAtLeast={allocationCountAtLeast}
+                allocationCountUnread={allocationCountUnread}
                 signer={signer}
                 editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
                 onEdit={(field) => setEditing(field ? { jarAddress: jar.jarAddress, field } : null)}

@@ -274,16 +274,20 @@ export function AddMembersDialog({
       setPending((current) => [...current.filter(isHeld), ...run.remaining]);
       setInput("");
       const refusedCount = run.remaining.filter((row) => row.refusal).length;
-      if (refusedCount > 0) {
-        setError(formatMessage({ id: "admin.addMember.refused" }, { count: refusedCount }));
-      } else if (run.thrown) {
+      if (run.thrown) {
+        // Refused rows show their own reasons, so this line names what else stopped the send.
         const { message, parsed } = parseAndFormatError(run.thrown);
         setError(parsed.isKnown ? message : addFailed);
+      } else if (refusedCount > 0) {
+        setError(formatMessage({ id: "admin.addMember.refused" }, { count: refusedCount }));
       } else if (run.failedCount > 0) {
         setError(addFailed);
       } else if (run.needsMoreSignatures) {
         setOverCeilings(memberListKey(run.remaining));
-        setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }));
+        // Names the footer button that sends, not the field's Add, which only lists a person.
+        const roles = run.remaining.map((row) => row.role);
+        const action = addMembersSubmitLabel(roles, selectedRole, formatMessage);
+        setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }, { action }));
       } else if (run.remaining.length === 0 && !hold) {
         closeAndReset();
       }
