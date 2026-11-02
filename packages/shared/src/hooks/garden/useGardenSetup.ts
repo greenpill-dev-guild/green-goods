@@ -15,6 +15,7 @@ import type { Address } from "../../types/domain";
 import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
 import { COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { OCTANT_MODULE_ABI } from "../../utils/blockchain/abis/octant";
+import { isUnansweredContractRead } from "../../utils/blockchain/contract-reads";
 import {
   CommitmentPoolingModuleABI,
   createClients,
@@ -99,13 +100,12 @@ async function readGardenSetup(garden: Address, chainId: number): Promise<Garden
   const contracts = getNetworkContracts(chainId);
   const read = async <T>(address: Address, abi: unknown, functionName: string, args: unknown[]) => {
     try {
-      return (await publicClient.readContract({
-        address,
-        abi: abi as never,
-        functionName: functionName as never,
-        args: args as never,
-      })) as T;
-    } catch {
+      return (await publicClient.readContract({ address, abi, functionName, args } as never)) as T;
+    } catch (error) {
+      // A failed read leaves its part unknown. A contract from before a read answers without a
+      // value, which is expected; any other failure means the read never reached the chain.
+      if (!isUnansweredContractRead(error))
+        logger.warn("Garden setup read failed", { source: "useGardenSetup", functionName, error });
       return undefined;
     }
   };

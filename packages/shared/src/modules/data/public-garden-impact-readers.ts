@@ -6,14 +6,8 @@ import { getChain } from "../../config/chains";
 import type { Address } from "../../public-contracts/core";
 import type { PublicGardenImpactDomain } from "../../public-contracts/garden-impact";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
-import {
-  ContractFunctionExecutionError,
-  ContractFunctionRevertedError,
-  ContractFunctionZeroDataError,
-  createPublicClient,
-  getAddress,
-  http,
-} from "viem";
+import { isUnansweredContractRead } from "../../utils/blockchain/contract-reads";
+import { createPublicClient, getAddress, http } from "viem";
 import { createEasClient, greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 import { createPublicGardenImpactEasReaders } from "./public-garden-impact-eas-readers";
 import {
@@ -122,14 +116,6 @@ function defaultChainReader(chainId: number): PublicGardenImpactChainReader {
   }) as unknown as PublicGardenImpactChainReader;
 }
 
-function isMissingGardenContract(error: unknown): boolean {
-  return (
-    error instanceof ContractFunctionExecutionError &&
-    (error.cause instanceof ContractFunctionZeroDataError ||
-      error.cause instanceof ContractFunctionRevertedError)
-  );
-}
-
 function toDomain(domain: unknown): PublicGardenImpactDomain | null {
   switch (domain) {
     case "SOLAR":
@@ -170,7 +156,7 @@ export function createPublicGardenImpactReaders(
             functionName: "token",
           });
         } catch (error) {
-          if (isMissingGardenContract(error)) return null;
+          if (isUnansweredContractRead(error)) return null;
           throw error;
         }
         if (!Array.isArray(token) || token.length !== 3)
@@ -193,7 +179,7 @@ export function createPublicGardenImpactReaders(
             args: [gardenAddress],
           })) as boolean;
         } catch (error) {
-          if (!isMissingGardenContract(error)) throw error;
+          if (!isUnansweredContractRead(error)) throw error;
           // A token from before upgradeable accounts has no such read, and all its gardens derive
           // from the one implementation.
           const expectedAccount = await chainReader.readContract({

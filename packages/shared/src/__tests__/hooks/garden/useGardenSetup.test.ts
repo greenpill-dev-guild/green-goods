@@ -6,7 +6,9 @@
  */
 
 import { waitFor } from "@testing-library/react";
+import { ContractFunctionExecutionError, ContractFunctionZeroDataError } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { logger } from "../../../modules/app/logger";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -46,6 +48,16 @@ vi.mock("react-intl", () => ({ useIntl: () => ({ formatMessage: () => "" }) }));
 
 import { useGardenSetup } from "../../../hooks/garden/useGardenSetup";
 
+const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+/** What the chain answers for a read the contract does not have. */
+function unsupported(functionName: string) {
+  return new ContractFunctionExecutionError(new ContractFunctionZeroDataError({ functionName }), {
+    abi: [],
+    functionName,
+  });
+}
+
 /** A fully set up garden minted as token 18, on a token whose upgradeable accounts start at 18. */
 function chainAnswers(overrides: Record<string, unknown> = {}) {
   const answers: Record<string, unknown> = {
@@ -65,7 +77,7 @@ function chainAnswers(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
   mockReadContract.mockImplementation(async ({ functionName }: { functionName: string }) => {
-    if (!(functionName in answers)) throw new Error(`no ${functionName} here`);
+    if (!(functionName in answers)) throw unsupported(functionName);
     const answer = answers[functionName];
     if (answer instanceof Error) throw answer;
     return answer;
@@ -81,6 +93,7 @@ async function readSteps() {
 describe("useGardenSetup", () => {
   beforeEach(() => {
     mockReadContract.mockReset();
+    warn.mockClear();
   });
 
   it("waits for a Green Goods update, not the team, while no mint opens a settlement account", async () => {
@@ -106,10 +119,25 @@ describe("useGardenSetup", () => {
     expect(older.steps.map((step) => step.id)).not.toContain("settlement");
     expect(older.hasPending).toBe(false);
 
-    chainAnswers({ firstUpgradeableTokenId: new Error("no such read") });
+    chainAnswers({ firstUpgradeableTokenId: unsupported("firstUpgradeableTokenId") });
     const beforeRelease = await readSteps();
     expect(beforeRelease.steps.map((step) => step.id)).not.toContain("stewardSafe");
     expect(beforeRelease.steps.map((step) => step.id)).not.toContain("settlement");
+    // A token without a read is expected, not a failure.
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("leaves a part it could not reach unknown, keeps the rest, and warns", async () => {
+    chainAnswers({ getGardenJars: new Error("rate limited") });
+
+    const setup = await readSteps();
+
+    expect(setup.steps.find((step) => step.id === "jars")).toMatchObject({ status: "unknown" });
+    expect(setup.steps.find((step) => step.id === "community")).toMatchObject({ status: "done" });
+    expect(warn).toHaveBeenCalledWith(
+      "Garden setup read failed",
+      expect.objectContaining({ functionName: "getGardenJars" })
+    );
   });
 
   it("names the team once minting opens settlement accounts and this garden has none", async () => {
