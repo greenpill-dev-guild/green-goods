@@ -507,11 +507,29 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(input);
     await user.paste("0x5555555555555555555555555555555555555555");
     expect(screen.getByText("1 signature")).toBeInTheDocument();
+    expect(screen.queryByText(/can’t share one signature/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add 3 Gardeners" }));
 
     await waitFor(() => expect(batch.add).toHaveBeenCalledTimes(2));
     expect(vi.mocked(batch.add).mock.calls[1][0]).toHaveLength(3);
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("drops the past-ceilings note once a row is removed, so it never names a stale button", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      add: vi.fn(async () => ({ ...NOTHING, notBatchable: [ROW_A, ROW_B] })),
+    });
+    render(createElement(AddMembersDialog, { ...defaultProps, batch }));
+
+    await stage(user, ADDRESS_A, ADDRESS_B);
+    await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
+    expect(await screen.findByText(/Press Add 2 Gardeners again/)).toBeInTheDocument();
+
+    await user.click(stagedList().getAllByRole("button", { name: "Remove" })[0]);
+
+    expect(screen.getByRole("button", { name: "Add 1 Gardener" })).toBeInTheDocument();
+    expect(screen.queryByText(/can’t share one signature/)).not.toBeInTheDocument();
   });
 
   it("removes only the row pressed when a person has two", async () => {

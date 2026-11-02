@@ -284,10 +284,6 @@ export function AddMembersDialog({
         setError(addFailed);
       } else if (run.needsMoreSignatures) {
         setOverCeilings(memberListKey(run.remaining));
-        // Names the footer button that sends, not the field's Add, which only lists a person.
-        const roles = run.remaining.map((row) => row.role);
-        const action = addMembersSubmitLabel(roles, selectedRole, formatMessage);
-        setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }, { action }));
       } else if (run.remaining.length === 0 && !hold) {
         closeAndReset();
       }
@@ -317,10 +313,13 @@ export function AddMembersDialog({
   const batchRoles = batchRows.map((entry) => entry.role);
   const batchCount = batchRoles.length;
   const submitLabel = addMembersSubmitLabel(batchRoles, selectedRole, formatMessage);
+  const pastCeilings = memberListKey(batchRows) === overCeilings;
   const signatureCount =
-    batch?.available && memberListKey(batchRows) !== overCeilings
-      ? batch.signaturesFor(batchCount)
-      : batchCount;
+    batch?.available && !pastCeilings ? batch.signaturesFor(batchCount) : batchCount;
+  // Shown while the list stays as it came back, naming the footer button that sends.
+  const ceilingNote = pastCeilings
+    ? formatMessage({ id: "admin.addMember.needsMoreSignatures" }, { action: submitLabel })
+    : null;
   const closeAndReset = () => {
     // Commits the empty draft first, so a close by route change finds no guard armed.
     flushSync(() => {
@@ -420,7 +419,7 @@ export function AddMembersDialog({
                 id="member-address"
                 className="min-w-0 flex-1"
                 label={formatMessage({ id: "app.admin.roles.addressLabel" })}
-                error={error || undefined}
+                error={error || ceilingNote || undefined}
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);

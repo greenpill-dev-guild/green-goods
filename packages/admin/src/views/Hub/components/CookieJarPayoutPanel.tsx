@@ -12,7 +12,7 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarPayoutCard, type JarSettingField } from "./CookieJarPayoutCard";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
-import { resolveCookieJarReadState } from "./cookieJarReadState";
+import { type CookieJarReadState, resolveCookieJarReadState } from "./cookieJarReadState";
 
 // Jars are funded and claimed from the PWA and from other wallets, so this panel re-reads
 // them while it is open instead of waiting for a reload.
@@ -28,6 +28,71 @@ interface CookieJarPayoutPanelProps {
   allocationCountAtLeast?: boolean;
   /** The payout history could not be read, so there is no count to state. */
   allocationCountUnread?: boolean;
+}
+
+/** What the panel says while it has no jars to list. */
+function JarReadNotice({ readState }: { readState: Exclude<CookieJarReadState, "ready"> }) {
+  const { formatMessage } = useIntl();
+
+  if (readState === "unavailable") {
+    return (
+      <AdminCard density="none">
+        <AdminCardBody>
+          <EmptyState
+            icon={<RiCookieLine className="h-6 w-6" />}
+            title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+            description={formatMessage({ id: "app.cookieJar.noJarsHint" })}
+          />
+        </AdminCardBody>
+      </AdminCard>
+    );
+  }
+
+  if (readState === "offline" || readState === "failed") {
+    const state = readState === "offline" ? "jarsOffline" : "jarsReadFailed";
+    return (
+      <AdminCard density="none">
+        <AdminCardBody>
+          <EmptyState
+            icon={
+              readState === "offline" ? (
+                <RiWifiOffLine className="h-6 w-6" />
+              ) : (
+                <RiErrorWarningLine className="h-6 w-6" />
+              )
+            }
+            title={formatMessage({ id: `cockpit.community.payouts.${state}.title` })}
+            description={formatMessage({ id: `cockpit.community.payouts.${state}.body` })}
+          />
+        </AdminCardBody>
+      </AdminCard>
+    );
+  }
+
+  if (readState === "no-jar") {
+    return (
+      <AdminCard density="none">
+        <AdminCardBody>
+          <EmptyState
+            icon={<RiCookieLine className="h-6 w-6" />}
+            title={formatMessage({ id: "app.cookieJar.noJars" })}
+            // Says how a jar appears, since funding one is impossible without it (D10).
+            description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
+          />
+        </AdminCardBody>
+      </AdminCard>
+    );
+  }
+
+  // Still checking.
+  return (
+    <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
+      <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
+      {[0, 1].map((index) => (
+        <ItemRowSkeleton key={index} lead="icon" amount />
+      ))}
+    </div>
+  );
 }
 
 export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
@@ -83,121 +148,68 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     setWithdrawOpen(true);
   };
 
-  if (readState === "unavailable") {
-    return (
-      <AdminCard density="none">
-        <AdminCardBody>
-          <EmptyState
-            icon={<RiCookieLine className="h-6 w-6" />}
-            title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
-            description={formatMessage({ id: "app.cookieJar.noJarsHint" })}
-          />
-        </AdminCardBody>
-      </AdminCard>
-    );
-  }
-
-  if (readState === "offline" || readState === "failed") {
-    const state = readState === "offline" ? "jarsOffline" : "jarsReadFailed";
-    return (
-      <AdminCard density="none">
-        <AdminCardBody>
-          <EmptyState
-            icon={
-              readState === "offline" ? (
-                <RiWifiOffLine className="h-6 w-6" />
-              ) : (
-                <RiErrorWarningLine className="h-6 w-6" />
-              )
-            }
-            title={formatMessage({ id: `cockpit.community.payouts.${state}.title` })}
-            description={formatMessage({ id: `cockpit.community.payouts.${state}.body` })}
-          />
-        </AdminCardBody>
-      </AdminCard>
-    );
-  }
-
-  if (readState === "no-jar") {
-    return (
-      <AdminCard density="none">
-        <AdminCardBody>
-          <EmptyState
-            icon={<RiCookieLine className="h-6 w-6" />}
-            title={formatMessage({ id: "app.cookieJar.noJars" })}
-            // Says how a jar appears, since funding one is impossible without it (D10).
-            description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
-          />
-        </AdminCardBody>
-      </AdminCard>
-    );
-  }
-
-  if (readState === "checking") {
-    return (
-      <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
-        <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
-        {[0, 1].map((index) => (
-          <ItemRowSkeleton key={index} lead="icon" amount />
-        ))}
-      </div>
-    );
-  }
-
   return (
     <>
-      <AdminCard density="none" className="overflow-hidden">
-        <AdminCardHeader>
-          <div>
-            <AdminCardTitle>
-              {formatMessage({
-                id: "app.cookieJar.payoutTitle",
-                defaultMessage: "Cookie Jars",
-              })}
-            </AdminCardTitle>
-            <p className="mt-1 type-meta text-text-sub">
-              {allocationCountUnread
-                ? formatMessage({ id: "cockpit.community.payouts.totalUnread" })
-                : formatMessage(
-                    {
-                      id: allocationCountAtLeast
-                        ? "cockpit.community.payouts.totalAtLeast"
-                        : "cockpit.community.payouts.total",
-                    },
-                    { count: allocationCount }
-                  )}
-            </p>
-            <p className="mt-1 type-body text-text-sub">
-              {formatMessage({
-                id: "app.cookieJar.payoutDescription",
-                defaultMessage: "Gardeners claim rewards from cookie jars for completed work",
-              })}
-            </p>
-          </div>
-        </AdminCardHeader>
+      {readState !== "ready" ? (
+        <JarReadNotice readState={readState} />
+      ) : (
+        <AdminCard density="none" className="overflow-hidden">
+          <AdminCardHeader>
+            <div>
+              <AdminCardTitle>
+                {formatMessage({
+                  id: "app.cookieJar.payoutTitle",
+                  defaultMessage: "Cookie Jars",
+                })}
+              </AdminCardTitle>
+              <p className="mt-1 type-meta text-text-sub">
+                {allocationCountUnread
+                  ? formatMessage({ id: "cockpit.community.payouts.totalUnread" })
+                  : formatMessage(
+                      {
+                        id: allocationCountAtLeast
+                          ? "cockpit.community.payouts.totalAtLeast"
+                          : "cockpit.community.payouts.total",
+                      },
+                      { count: allocationCount }
+                    )}
+              </p>
+              <p className="mt-1 type-body text-text-sub">
+                {formatMessage({
+                  id: "app.cookieJar.payoutDescription",
+                  defaultMessage: "Gardeners claim rewards from cookie jars for completed work",
+                })}
+              </p>
+            </div>
+          </AdminCardHeader>
 
-        <AdminCardBody className="space-y-3">
-          <div className="flex flex-col gap-(--gg-list-gap)">
-            {jars.map((jar) => (
-              <CookieJarPayoutCard
-                key={jar.jarAddress}
-                jar={jar}
-                gardenAddress={gardenAddress}
-                gardenName={gardenName}
-                allocationCount={allocationCount}
-                allocationCountAtLeast={allocationCountAtLeast}
-                allocationCountUnread={allocationCountUnread}
-                signer={signer}
-                editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
-                onEdit={(field) => setEditing(field ? { jarAddress: jar.jarAddress, field } : null)}
-                onDeposit={() => openDeposit(jar)}
-                onClaim={() => openWithdraw(jar)}
-              />
-            ))}
-          </div>
-        </AdminCardBody>
-      </AdminCard>
+          <AdminCardBody className="space-y-3">
+            <div className="flex flex-col gap-(--gg-list-gap)">
+              {jars.map((jar) => (
+                <CookieJarPayoutCard
+                  key={jar.jarAddress}
+                  jar={jar}
+                  gardenAddress={gardenAddress}
+                  gardenName={gardenName}
+                  allocationCount={allocationCount}
+                  allocationCountAtLeast={allocationCountAtLeast}
+                  allocationCountUnread={allocationCountUnread}
+                  signer={signer}
+                  editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
+                  onEdit={(field) =>
+                    setEditing(field ? { jarAddress: jar.jarAddress, field } : null)
+                  }
+                  onDeposit={() => openDeposit(jar)}
+                  onClaim={() => openWithdraw(jar)}
+                />
+              ))}
+            </div>
+          </AdminCardBody>
+        </AdminCard>
+      )}
 
+      {/* The dialogs stay mounted whatever a later read shows: a refresh that fails or goes
+          offline mid-deposit must not take a pending deposit, its hold or its outcome with it. */}
       <CookieJarWithdrawModal
         isOpen={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
