@@ -33,12 +33,18 @@ interface ReviewBatchState {
   note: (scope: string, notes: ReadonlyMap<string, StagedReviewNote>) => void;
 }
 
+/** Whether this tab's last write was refused, which leaves what's saved older than its list. */
+let saveRefused = false;
+
 /**
  * Local storage read at call time, so a refused write (a full quota, blocked storage) is logged
- * and the list lasts for this session instead of breaking the review that added to it.
+ * and the list lasts for this session instead of breaking the review that added to it. After a
+ * refused write a read finds nothing, until a write lands again: what's saved would replace a
+ * newer list.
  */
 const deviceStorage: StateStorage = {
   getItem: (name) => {
+    if (saveRefused) return null;
     try {
       return localStorage.getItem(name);
     } catch {
@@ -48,7 +54,9 @@ const deviceStorage: StateStorage = {
   setItem: (name, value) => {
     try {
       localStorage.setItem(name, value);
+      saveRefused = false;
     } catch (error) {
+      saveRefused = true;
       logger.warn("Could not save the review batch", { source: "useReviewBatchStore", error });
     }
   },
@@ -162,13 +170,12 @@ export const useReviewBatchStore = create<ReviewBatchState>()(
       name: REVIEW_BATCH_STORAGE_KEY,
       storage: createJSONStorage(() => deviceStorage),
       partialize: (state) => ({ reviewsByScope: state.reviewsByScope }),
-      merge: (persisted, current) => ({
-        ...current,
-        reviewsByScope: parseReviewsByScope(
-          (persisted as { reviewsByScope?: unknown } | undefined)?.reviewsByScope,
-          current.reviewsByScope
-        ),
-      }),
+      // Nothing saved is nothing to pick up, not an empty list: the one this tab holds stands.
+      merge: (persisted, current) => {
+        const saved = (persisted as { reviewsByScope?: unknown } | undefined)?.reviewsByScope;
+        if (saved === undefined) return current;
+        return { ...current, reviewsByScope: parseReviewsByScope(saved, current.reviewsByScope) };
+      },
     }
   )
 );

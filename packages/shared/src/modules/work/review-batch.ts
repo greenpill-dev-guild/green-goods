@@ -2,8 +2,9 @@ import type { Hex } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { EASABI } from "../../utils/blockchain/contracts";
-import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { decodeWorkApprovalData, encodeWorkApprovalData } from "../../utils/eas/encoders";
 import { buildQueuedAttestationsCall } from "../../utils/eas/transaction-builder";
+import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
 import { verifyByReading } from "../transactions/batch-hold";
 import {
@@ -86,6 +87,22 @@ function sentFor(prepared: PreparedBatch, id: string): SentRequest | undefined {
     : (args[0] as readonly { data: readonly SentRequest[] }[])[0].data[index];
 }
 
+/** What a prepared call decided for this work, so a send proven later shows that decision. */
+export function decisionSent(
+  prepared: PreparedBatch,
+  id: string
+): Pick<WorkApprovalDraft, "approved" | "feedback"> | undefined {
+  const sent = sentFor(prepared, id);
+  if (!sent) return undefined;
+  try {
+    return decodeWorkApprovalData(sent.data, prepared.chainId);
+  } catch (error) {
+    // It still landed: the work then waits for the indexer to say what it decided.
+    logger.warn("Could not read back a sent review's decision", { source: "review-batch", error });
+    return undefined;
+  }
+}
+
 export interface ReviewBatchInput {
   batches: BatchOperations;
   scope: BatchScope;
@@ -139,6 +156,8 @@ export function verifyReviews(
 
 export interface SentReview {
   workUID: string;
+  approved: boolean;
+  feedback?: string;
   attestationUID: Hex;
   transactionHash: Hex;
 }
@@ -263,8 +282,10 @@ export async function sendReviewBatch(
       });
       if (record.status === "confirmed") {
         const transactionHash = record.receipts[0].transactionHash;
-        const sent = group.map(({ draft: { workUID } }) => ({
+        const sent = group.map(({ draft: { workUID, approved, feedback } }) => ({
           workUID,
+          approved,
+          feedback,
           attestationUID: attestationUIDs.get(itemId(workUID)) as Hex,
           transactionHash,
         }));

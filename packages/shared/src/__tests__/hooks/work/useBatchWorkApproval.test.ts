@@ -61,17 +61,22 @@ vi.mock("@wagmi/core", () => ({
   })),
   getTransactionReceipt: vi.fn(async () => ({ logs: chainState.logs })),
 }));
-// The EAS SDK is stubbed in this project, so this writes what the schema does.
+// The EAS SDK is stubbed in this project, so this writes what the schema does, and reads it back.
 vi.mock("../../../utils/eas/encoders", async (importOriginal) => {
   const viem = await import("viem");
+  const layout = viem.parseAbiParameters("bytes32,bool,string");
   return {
     ...(await importOriginal<object>()),
     encodeWorkApprovalData: (draft: WorkApprovalDraft) =>
-      viem.encodeAbiParameters(viem.parseAbiParameters("bytes32,bool,string"), [
+      viem.encodeAbiParameters(layout, [
         draft.workUID as Hex,
         draft.approved,
         draft.feedback ?? "",
       ]),
+    decodeWorkApprovalData: (data: Hex) => {
+      const [, approved, feedback] = viem.decodeAbiParameters(layout, data);
+      return { approved, feedback: feedback || undefined };
+    },
   };
 });
 
@@ -189,18 +194,40 @@ describe("useBatchWorkApproval", () => {
     expect(result.current.available).toBe(false);
   });
 
-  it("keeps each work's own decision and feedback once a read proves it", async () => {
+  it("keeps each work pending until a read proves its own decision and feedback", async () => {
     const { decide, landed, listWorks, workOf, render, sender } = setup();
     const [yes, no] = [decide(true, "Lovely"), decide(false, "No photo")];
     listWorks([yes, no]);
     const attestations = [landed(yes), landed(no)];
+    const call = vi.mocked(sender.sendContractCall);
+    const realSend = call.getMockImplementation()!;
+    let wake = () => {};
+    const woken = new Promise<void>((resolve) => {
+      wake = resolve;
+    });
+    call.mockImplementationOnce(async (...args) => {
+      await woken;
+      return realSend(...args);
+    });
     const { result } = render();
+
+    let sending: ReturnType<typeof result.current.send> = Promise.resolve(undefined as never);
+    act(() => {
+      sending = result.current.send([yes, no]);
+    });
+    await waitFor(() => expect(call).toHaveBeenCalledOnce());
+    const inFlight = [workOf(yes), workOf(no)];
 
     let outcome: Awaited<ReturnType<typeof result.current.send>> | undefined;
     await act(async () => {
-      outcome = await result.current.send([yes, no]);
+      wake();
+      outcome = await sending;
     });
 
+    // Signed and on its way, nothing said decided yet: a rejection stayed in view with the rest.
+    expect(inFlight[0]).toMatchObject({ status: "pending", _isPending: true });
+    expect(inFlight[1]?.status).toBe("pending");
+    expect(inFlight[1]?.reviewFeedback).toBeUndefined();
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
     expect(outcome?.sent.map((item) => item.attestationUID)).toEqual(attestations);
     expect(workOf(yes)).toMatchObject({
@@ -312,7 +339,8 @@ describe("useBatchWorkApproval", () => {
       await result.current.send([decision]);
     });
 
-    expect(workOf(decision)).toMatchObject({ status: "approved", _isPending: true });
+    // Pending, not decided, so its form shows Check Again rather than a summary.
+    expect(workOf(decision)).toMatchObject({ status: "pending", _isPending: true });
     expect(workOf(decision)?._pendingUntilMs).toBeUndefined();
     expect(toasts.success).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.hold?.workUIDs).toHaveLength(1));
@@ -461,14 +489,19 @@ describe("useBatchWorkApproval", () => {
     expect(toasts.success).not.toHaveBeenCalled();
   });
 
-  it("says when a held send proves it landed, once", async () => {
-    const { decide, landed, listWorks, workOf, sender, render } = setup({});
-    const decision = decide();
+  it("shows what a held send decided once it proves it landed, read back from the journal", async () => {
+    const { decide, landed, listWorks, workOf, queryClient, sender, render } = setup({});
+    const decision = decide(false, "No photo");
     listWorks([decision]);
-    const { result } = render();
+    const { result: first, unmount } = render();
     await act(async () => {
-      await result.current.send([decision]);
+      await first.current.send([decision]);
     });
+    unmount();
+    // A reload: nothing this device wrote is left, and the indexer still says pending.
+    listWorks([decision]);
+    queryClient.removeQueries({ queryKey: ["greengoods", "batch", "hold"] });
+    const { result } = render();
     await waitFor(() => expect(result.current.hold).not.toBeNull());
     landed(decision);
     sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
@@ -479,6 +512,11 @@ describe("useBatchWorkApproval", () => {
 
     await waitFor(() => expect(result.current.hold).toBeNull());
     expect(toasts.success).toHaveBeenCalledOnce();
-    expect(workOf(decision)).toMatchObject({ _isPending: false, _txHash: hash });
+    expect(workOf(decision)).toMatchObject({
+      status: "rejected",
+      reviewFeedback: "No photo",
+      _isPending: false,
+      _txHash: hash,
+    });
   });
 });
