@@ -222,16 +222,14 @@ test.describe("Admin Cockpit", () => {
     await page.goto("/actions");
     await waitForSignedInBoot(page, helper);
 
-    // Actions is gated to deployers (commit 6e88d78e); mock steward without
-    // deployer role lands on the Unauthorized state. Auth is still active —
-    // the page renders the cockpit chrome, not the connect shell.
+    // Actions belongs to the Green Goods team, and this steward's garden is not the Community
+    // Garden, so the route shows the Unauthorized state in place. Auth is still active: the page
+    // renders the cockpit chrome, not the connect shell.
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
     await expect(page).toHaveURL(/\/actions(?:\?.*)?$/);
-    await expect(
-      page
-        .getByRole("heading", { name: "Actions", exact: true })
-        .or(page.getByRole("heading", { name: "Unauthorized", exact: true }))
-    ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Unauthorized", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
