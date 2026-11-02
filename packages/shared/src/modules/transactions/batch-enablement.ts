@@ -31,10 +31,14 @@ export type BatchEnablement = RailListing &
 
 /**
  * What may send as one batch. `getBatchCapability` only checks an encoding, so a listing waits for
- * a live batch on that rail, account profile, and chain. Removing one stops new batches; a save
- * already sent still recovers, because recovery never reads this list.
+ * a live batch on that rail, account profile, and chain. A passkey signs only on a deployed host,
+ * so its entry reaches beta through `develop` and is proven there before a release carries it.
+ * Removing one stops new batches; a save already sent still recovers, because recovery never reads
+ * this list.
  */
-export const ENABLED_BATCHES: readonly BatchEnablement[] = [];
+export const ENABLED_BATCHES: readonly BatchEnablement[] = [
+  { action: "garden-settings", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+];
 
 export function isBatchEnabled(
   query: BatchEnablement,

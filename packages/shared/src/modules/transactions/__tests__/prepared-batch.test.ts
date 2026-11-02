@@ -3,6 +3,11 @@ import {
   createMockContractCall,
   createMockBatchBudget,
 } from "../../../__tests__/test-utils/transaction-fakes";
+import { poolSetupBudget } from "../../commitment-pooling/pool-setup";
+import { depositBudget } from "../../garden/deposit-route";
+import { gardenMembersBudget } from "../../garden/members-batch";
+import { gardenSettingsBudget } from "../../garden/settings-batch";
+import { reviewBudget } from "../../work/review-chain";
 import { type BatchEnablement, ENABLED_BATCHES, isBatchEnabled } from "../batch-enablement";
 import { prepareBatch, assertPreparedBatch } from "../prepared-batch";
 
@@ -113,9 +118,28 @@ describe("isBatchEnabled", () => {
     chainId: 42161,
   };
 
-  it("allows nothing until a live batch has been proven", () => {
-    expect(ENABLED_BATCHES).toEqual([]);
-    expect(isBatchEnabled(listed)).toBe(false);
+  it("lists only combinations that carry ceilings on their chain", () => {
+    const ceilings = (entry: BatchEnablement) => {
+      switch (entry.action) {
+        case "garden-settings":
+          return gardenSettingsBudget(entry.rail, entry.chainId);
+        case "add-members":
+          return gardenMembersBudget(entry.rail, entry.chainId);
+        case "bulk-reviews":
+          return reviewBudget(entry.rail, entry.chainId);
+        case "pool-setup":
+          return entry.rail === "passkey" ? poolSetupBudget(entry.chainId) : null;
+        case "vault-deposit":
+        case "jar-deposit":
+          return depositBudget(entry.rail, entry.chainId);
+      }
+    };
+
+    for (const entry of ENABLED_BATCHES) {
+      const name = `${entry.action} on ${entry.rail} ${entry.profile}`;
+      expect(ceilings(entry), name).not.toBeNull();
+      expect(entry.profile.startsWith("kernel-"), name).toBe(entry.rail === "passkey");
+    }
   });
 
   it("needs the rail, the account profile, and the chain that were proven", () => {
