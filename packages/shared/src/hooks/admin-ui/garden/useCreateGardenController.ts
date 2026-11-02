@@ -4,7 +4,7 @@ import { gardensKeys } from "../../../config/query-keys/garden";
 import { readCreatedGardenAddress } from "../../../modules/garden/create-garden-command";
 import { getAdminGardenScopeKey, useAdminStore } from "../../../stores/useAdminStore";
 import { type CreateGardenStep, useCreateGardenStore } from "../../../stores/useCreateGardenStore";
-import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { ADMIN_WORKSPACE_ROOTS, adminRoutes } from "../../../utils/navigation/admin-routes";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { readSlugAvailability } from "../../ens/useSlugAvailability";
@@ -248,7 +248,8 @@ export function useCreateGardenController() {
   const discardDraft = () => {
     setDiscardPromptOpen(false);
     closeFlow();
-    navigate(adminRoutes.garden());
+    // The workspace root leaves this page at once; a garden view would hold it until its code loads.
+    navigate(ADMIN_WORKSPACE_ROOTS.garden);
   };
 
   const handleCancel = () => {
