@@ -413,6 +413,8 @@ describe("holding reviews whose outcome is unknown", () => {
       saved: [
         {
           workUID: decision.draft.workUID.toLowerCase(),
+          // Read back from the call the journal kept, so a reload still shows what was decided.
+          approved: decision.draft.approved,
           attestationUID,
           transactionHash: hash,
         },
