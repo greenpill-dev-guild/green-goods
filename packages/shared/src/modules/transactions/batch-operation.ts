@@ -1,5 +1,6 @@
 import type { Address } from "../../types/domain";
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
+import { logger } from "../app/logger";
 import {
   assertBatchCapabilityKnown,
   BatchConfirmationPendingError,
@@ -29,6 +30,8 @@ interface ExecutionInput extends RecoveryInput {
   prepared: PreparedBatch;
   /** Domain/transport preflight must simulate the exact reviewed group and enforce its budget. */
   preflight: (prepared: PreparedBatch, itemIds: readonly string[]) => Promise<void>;
+  /** Hears a group once it is signed and saved, just before it goes out. */
+  onBroadcasting?: (itemIds: readonly string[]) => void;
 }
 
 async function owned(sender: TransactionSender, prepared: PreparedBatch) {
@@ -187,6 +190,15 @@ export async function executeBatchOperation(input: ExecutionInput): Promise<Batc
             else if (quote.authority === "user-operation")
               throw new Error("batch-reference-required");
             else await save(next);
+            try {
+              input.onBroadcasting?.([...group.itemIds]);
+            } catch (error) {
+              // What a caller does with the news never stops a signed group from going out.
+              logger.warn("A batch's broadcast listener failed", {
+                source: "batch-operation",
+                error,
+              });
+            }
           },
           onBroadcastReference: async (
             reference: Parameters<NonNullable<TransactionSender["reconcileBroadcast"]>>[0]

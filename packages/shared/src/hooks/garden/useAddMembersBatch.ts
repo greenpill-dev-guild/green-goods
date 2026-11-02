@@ -113,10 +113,28 @@ export function useAddMembersBatch(gardenId: string) {
   const add = useMutation({
     onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
     mutationFn: async ({ rows, onLanded }: AddMembersRequest): Promise<AddMembersOutcome> => {
+      // A group's start is reported as it goes out, so a tab that closes then still has one for the
+      // success a later read reports. Each row starts once.
+      const started = new Set<string>();
+      const start = (tried: readonly GardenMemberRow[]) => {
+        for (const row of tried) {
+          const key = `${row.address.toLowerCase()}:${row.role}`;
+          if (started.has(key)) continue;
+          started.add(key);
+          trackStarted(row);
+        }
+      };
+      let outcome: AddMembersOutcome;
       try {
-        return await addGardenMembersBatch({ ...batchInput(), rail: rail!, rows, onLanded });
+        outcome = await addGardenMembersBatch({
+          ...batchInput(),
+          rail: rail!,
+          rows,
+          onLanded,
+          onSending: start,
+        });
       } catch (error) {
-        return {
+        outcome = {
           added: [],
           alreadyHeld: [],
           refused: [],
@@ -126,13 +144,14 @@ export function useAddMembersBatch(gardenId: string) {
           failure: error,
         };
       }
+      // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
+      // no attempt, and a list past its ceilings has not been tried yet.
+      start([...outcome.added, ...outcome.unknown, ...outcome.refused, ...outcome.notSent]);
+      return outcome;
     },
     onSuccess: (outcome) => {
       landRows([...outcome.added, ...outcome.alreadyHeld]);
-      // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
-      // no attempt, and a list past its ceilings has not been tried yet.
       const { added, unknown, refused, notSent, notBatchable, failure } = outcome;
-      for (const row of [...added, ...unknown, ...refused, ...notSent]) trackStarted(row);
       for (const { transactionHash, ...row } of added) trackAdded(row, transactionHash);
       for (const { reason, ...row } of refused) trackFailed(row, reason);
       const stoppedBy = failure ? parseContractError(failure).message : "Not sent";
