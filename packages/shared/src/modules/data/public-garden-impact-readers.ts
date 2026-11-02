@@ -86,6 +86,16 @@ const GARDEN_ACCOUNT_IDENTITY_ABI = [
   },
 ] as const;
 
+const GARDEN_TOKEN_MEMBERSHIP_ABI = [
+  {
+    type: "function",
+    name: "isGardenAccount",
+    stateMutability: "view",
+    inputs: [{ name: "gardenAccount", type: "address" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const;
+
 const TOKENBOUND_REGISTRY_ABI = [
   {
     type: "function",
@@ -174,21 +184,34 @@ export function createPublicGardenImpactReaders(
         ) {
           return null;
         }
-        const expectedAccount = await chainReader.readContract({
-          address: getAddress(config.tokenboundRegistry) as Address,
-          abi: TOKENBOUND_REGISTRY_ABI,
-          functionName: "account",
-          args: [
-            getAddress(config.gardenAccountImpl),
-            GARDEN_ACCOUNT_SALT,
-            tokenChainId,
-            tokenContract,
-            tokenId,
-          ],
-        });
-        if (getAddress(String(expectedAccount)).toLowerCase() !== gardenAddress.toLowerCase()) {
-          return null;
+        let isGarden: boolean;
+        try {
+          isGarden = (await chainReader.readContract({
+            address: tokenContract as Address,
+            abi: GARDEN_TOKEN_MEMBERSHIP_ABI,
+            functionName: "isGardenAccount",
+            args: [gardenAddress],
+          })) as boolean;
+        } catch (error) {
+          if (!isMissingGardenContract(error)) throw error;
+          // A token from before upgradeable accounts has no such read, and all its gardens derive
+          // from the one implementation.
+          const expectedAccount = await chainReader.readContract({
+            address: getAddress(config.tokenboundRegistry) as Address,
+            abi: TOKENBOUND_REGISTRY_ABI,
+            functionName: "account",
+            args: [
+              getAddress(config.gardenAccountImpl),
+              GARDEN_ACCOUNT_SALT,
+              tokenChainId,
+              tokenContract,
+              tokenId,
+            ],
+          });
+          isGarden =
+            getAddress(String(expectedAccount)).toLowerCase() === gardenAddress.toLowerCase();
         }
+        if (!isGarden) return null;
         const [name, location] = await Promise.all([
           chainReader.readContract({
             address: gardenAddress,
