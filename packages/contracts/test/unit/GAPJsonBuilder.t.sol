@@ -191,9 +191,17 @@ contract JsonBuilderTest is Test {
         string memory json =
             wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, garden, 1_700_000_000, "");
 
-        assertTrue(_contains(json, "\"title\":\"Planted Trees\""), "Should contain title");
+        assertTrue(
+            _contains(json, "\"title\":\"Planted Trees (00000000)\""), "Should suffix the title with the short Work UID"
+        );
         assertTrue(_contains(json, "\"text\":\"Planted 100 trees"), "Should contain text");
         assertTrue(_contains(json, "\"type\":\"project-update\""), "Should have correct type");
+
+        // Karma shows only the newest update per title, so two Works sharing a title must stay distinct.
+        string memory other = wrapper.buildImpact(
+            "Planted Trees", "Planted 100 trees", "QmProof", bytes32(uint256(0xABCDEF) << 224), garden, 1_700_000_000, ""
+        );
+        assertTrue(_contains(other, "\"title\":\"Planted Trees (00abcdef)\""), "Second Work keeps its own title");
     }
 
     function testGAPJsonBuilder_impactUsesSupportedProjectUpdateDates() public {

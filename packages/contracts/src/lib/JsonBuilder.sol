@@ -133,7 +133,7 @@ library JsonBuilder {
         return string(
             abi.encodePacked(
                 "{\"title\":\"",
-                StringUtils.escapeJSON(workTitle),
+                _uniqueTitle(workTitle, workUID),
                 "\",\"text\":\"",
                 StringUtils.escapeJSON(text),
                 "\",\"startsAt\":",
@@ -174,6 +174,16 @@ library JsonBuilder {
                 "\",\"description\":\"Structured Green Goods Work metadata\"}"
             );
         return abi.encodePacked(evidence, metadata);
+    }
+
+    /// @dev Karma lists only the newest Project Update per title, so each title carries its Work's short UID.
+    function _uniqueTitle(string memory workTitle, bytes32 workUID) private pure returns (string memory) {
+        bytes memory full = bytes(StringUtils.bytes32ToHexString(workUID));
+        bytes memory short = new bytes(8);
+        for (uint256 i = 0; i < 8; i++) {
+            short[i] = full[i];
+        }
+        return string(abi.encodePacked(StringUtils.escapeJSON(workTitle), " (", short, ")"));
     }
 
     function _easScanBaseURL(uint256 chainId) private pure returns (string memory) {

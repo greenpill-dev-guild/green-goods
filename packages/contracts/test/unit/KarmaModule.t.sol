@@ -406,7 +406,7 @@ contract KarmaModuleTest is Test {
         string memory payload =
             abi.decode(_assertGAPWire(impactUID, GAP_DETAILS_SCHEMA_SEPOLIA, module.getProjectUID(GARDEN)), (string));
         VmJsonString jsonVm = VmJsonString(address(vm));
-        assertEq(jsonVm.parseJsonString(payload, ".title"), "Tree Planting");
+        assertEq(jsonVm.parseJsonString(payload, ".title"), "Tree Planting (00000000)");
         assertEq(jsonVm.parseJsonString(payload, ".type"), "project-update");
         assertEq(jsonVm.parseJsonString(payload, ".deliverables[0].description"), "Planted 50 trees");
     }
