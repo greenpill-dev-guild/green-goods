@@ -1786,6 +1786,7 @@
         "packages/shared/src/hooks/garden/useGardenInvites.ts",
         "packages/shared/src/hooks/garden/useGardenJoinRequests.ts",
         "packages/shared/src/hooks/garden/useGardenOperations.ts",
+        "packages/shared/src/hooks/garden/useGardenSetup.ts",
         "packages/shared/src/hooks/garden/useJoinGarden.ts",
         "packages/shared/src/hooks/garden/useKarmaIntegration.ts",
         "packages/shared/src/hooks/garden/useOpenMinting.ts",

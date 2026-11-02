@@ -35,6 +35,12 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 
 export { useAddMembersBatch } from "./useAddMembersBatch";
 export type { AddMembersOutcome } from "../../modules/garden/members-batch";
+export {
+  type GardenSetup,
+  type GardenSetupStep,
+  type GardenSetupStepId,
+  useGardenSetup,
+} from "./useGardenSetup";
 
 export function useGardenOperations(gardenId: string) {
   // Garden ids are token-bound account addresses; callers still pass them as route strings.

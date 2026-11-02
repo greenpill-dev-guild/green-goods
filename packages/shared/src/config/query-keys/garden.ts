@@ -3,6 +3,8 @@ export const gardensKeys = {
   byChain: (chainId: number) => ["greengoods", "gardens", chainId] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
+  setup: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "setup", gardenId, chainId] as const,
   creationEstimate: (accountAddress: string | undefined, chainId: number, form: string) =>
     ["greengoods", "gardens", "creationEstimate", accountAddress, chainId, form] as const,
   karmaStatus: (gardenId: string, chainId: number) =>
