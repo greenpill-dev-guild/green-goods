@@ -22,6 +22,12 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => identity.address,
 }));
 
+// The bottom bar waits for a garden (DL-155); the scroller's reserve follows it.
+const activeGarden = vi.hoisted(() => ({ gardenId: "garden-1" as string | null }));
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ gardenId: activeGarden.gardenId }),
+}));
+
 // The queue's failure toast opens Home's switcher through what the shell hands the provider.
 const queueProvider = vi.hoisted(() => ({
   onOpenGardenSwitcher: undefined as (() => void) | undefined,
@@ -181,6 +187,7 @@ describe("AppShell", () => {
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     useUIStore.getState().resetForAccountChange();
     identity.address = ADDRESS;
+    activeGarden.gardenId = "garden-1";
     document.documentElement.classList.remove("modal-open");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
       configurable: true,
@@ -358,6 +365,31 @@ describe("AppShell", () => {
     expect(appScroll.className).not.toMatch(/overscroll-(?:y-)?(?:contain|none)/);
     expect(main).toContainElement(appScroll);
     expect(appScroll).not.toContainElement(screen.getByTestId("authenticated-nav"));
+  });
+
+  it("reserves the bottom bar's space only where the bar can show", () => {
+    const reserveOn = (path: string, gardenId: string | null) => {
+      activeGarden.gardenId = gardenId;
+      const view = render(
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="home/*" element={<p>Screen</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      );
+      const className = document.getElementById("app-scroll")?.className ?? "";
+      view.unmount();
+      return className.includes("69px") ? "bar" : "safe area";
+    };
+
+    // Before a garden is entered no bar shows (DL-155), so Profile's pane reaches the bottom
+    // instead of ending above an empty 69px band.
+    expect(reserveOn("/home/profile", null)).toBe("safe area");
+    expect(reserveOn("/home/profile", "garden-1")).toBe("bar");
+    // An immersive route keeps the space for the fixed bar it draws where the nav would sit.
+    expect(reserveOn("/home/garden-1/work/work-1", null)).toBe("bar");
   });
 
   it("clears stale dashboard state and document locks on route changes", () => {
