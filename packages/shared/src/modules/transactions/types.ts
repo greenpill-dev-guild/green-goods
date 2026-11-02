@@ -9,7 +9,6 @@
 
 import type { Abi, Hex, TypedDataDefinition } from "viem";
 import type { Address } from "../../types/domain";
-import type { AtomicBatchAction } from "./batch-enablement";
 import type {
   BatchBudget,
   BatchQuote,
@@ -20,6 +19,13 @@ import type {
   BatchScope,
   BatchSendOptions,
 } from "./batch-types";
+
+/** What a caller names when it asks a sender whether it may group its own writes. */
+export type AtomicBatchAction =
+  | "pool-setup"
+  | "commitment-creations"
+  | "reward-edits"
+  | "marketplace-approvals";
 
 /** A single contract call to execute */
 export interface ContractCall {

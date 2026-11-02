@@ -1,16 +1,12 @@
 import type { Address } from "../../types/domain";
 import type { PasskeyAccountProfileId } from "../auth/account-profile";
+import type { AtomicBatchAction } from "./types";
+
+export type { AtomicBatchAction };
 
 export type BatchRail = "passkey" | "wallet";
 
 export type DepositAction = "vault-deposit" | "jar-deposit";
-
-/** What a caller names when it asks a sender whether it may group its own writes. */
-export type AtomicBatchAction =
-  | "pool-setup"
-  | "commitment-creations"
-  | "reward-edits"
-  | "marketplace-approvals";
 
 interface RailListing {
   rail: BatchRail;
