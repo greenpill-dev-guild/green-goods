@@ -121,17 +121,16 @@ async function nameFeeFromCreator(
     chainId: command.chainId,
   });
   if (fee === 0n) return { ccipFee: 0n, nameFunding: "later" };
-  const [reserve, balance] = await Promise.all([
-    ports.reader.gardenNameReserve({
-      gardenToken: contracts.gardenToken as `0x${string}`,
-      chainId: command.chainId,
-    }),
-    ports.reader.balanceOf({
-      accountAddress: command.accountAddress,
-      chainId: command.chainId,
-    }),
-  ]);
+  const reserve = await ports.reader.gardenNameReserve({
+    gardenToken: contracts.gardenToken as `0x${string}`,
+    chainId: command.chainId,
+  });
   if (reserve >= fee) return { ccipFee: 0n, nameFunding: "reserve" };
+  // Only a name the reserve cannot pay for depends on the creator's balance.
+  const balance = await ports.reader.balanceOf({
+    accountAddress: command.accountAddress,
+    chainId: command.chainId,
+  });
   return balance < fee
     ? { ccipFee: 0n, nameFunding: "later" }
     : { ccipFee: fee, nameFunding: "creator" };

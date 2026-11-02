@@ -114,13 +114,15 @@ describe("createGarden", () => {
     expect(ports.reader.waitForReceipt).toHaveBeenCalledWith(txHash, 11155111);
   });
 
-  it("sends nothing for the name when the reserve covers it", async () => {
+  it("sends nothing for the name when the reserve covers it, whatever the creator's balance", async () => {
     const ports = createPorts();
     vi.mocked(ports.reader.gardenNameReserve).mockResolvedValue(5n);
+    vi.mocked(ports.reader.balanceOf).mockRejectedValue(new Error("balance unavailable"));
 
     await createGarden(command, ports);
 
     expect(ports.sender.send).toHaveBeenCalledWith(expect.objectContaining({ ccipFee: 0n }));
+    expect(ports.reader.balanceOf).not.toHaveBeenCalled();
   });
 
   it("still creates the garden when neither the reserve nor the creator can pay for the name", async () => {
