@@ -56,9 +56,18 @@ vi.mock("../../../modules/data/eas", () => ({
   ),
 }));
 vi.mock("@wagmi/core", () => ({
-  readContract: vi.fn(async (_config, { args }: { args: [string] }) => ({
-    data: chainState.attestations.get(args[0]),
-  })),
+  // Every work here was made after the resolver began counting decisions, so it counts each one.
+  readContract: vi.fn(
+    async (_config, { functionName, args = [""] }: { functionName: string; args?: [string] }) => {
+      if (functionName === "latestDecisionSequence")
+        return chainState.decided.has(args[0]) ? 1n : 0n;
+      if (functionName === "commitmentModule") return `0x${"01".repeat(20)}`;
+      return {
+        data: chainState.attestations.get(args[0]),
+        time: BigInt(Date.parse("2026-11-01T00:00:00Z") / 1000),
+      };
+    }
+  ),
   getTransactionReceipt: vi.fn(async () => ({ logs: chainState.logs })),
 }));
 // The EAS SDK is stubbed in this project, so this writes what the schema does, and reads it back.

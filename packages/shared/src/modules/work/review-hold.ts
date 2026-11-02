@@ -8,7 +8,7 @@ export interface ReviewHold {
   /** The sends this hold shows. Moving on ends only these, since a person has seen them. */
   operationIds: string[];
   workUIDs: string[];
-  /** What EAS's index says now, for each work that could be read. */
+  /** Whether each work that could be read has a decision now, as `ReviewChain.isDecided` reads it. */
   onChain: { workUID: string; decided: boolean }[];
 }
 
