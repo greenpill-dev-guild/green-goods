@@ -24,6 +24,7 @@ import { useDocumentEvent } from "../utils/useEventListener";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorks } from "../work/useWorks";
 import { useGardenPermissions } from "./useGardenPermissions";
+import { useJoinRequestCount } from "./useJoinRequestCount";
 import { useMyGardens } from "./useMyGardens";
 
 /**
@@ -68,10 +69,11 @@ const WEEK_BOUNDARY_MARGIN_MS = 1_000;
 /**
  * The bell's events for the signed-in account in one garden (`modules/garden/notifications`),
  * from the garden's works, the promises the account is party to and, for whoever may decide
- * them, the take-up requests waiting in the garden's pool. Mount it once the garden is known;
- * Home passes its active garden. It reads the app's default chain, as the work list does. Of its
- * own it writes only this device's seen marks: nothing goes on chain or to the agent, and no
- * read asks to sign.
+ * them, the take-up requests waiting in the garden's pool and the join requests waiting in
+ * Gardeners. Mount it once the garden is known; Home passes its active garden. It reads the
+ * app's default chain, as the work list does. Of its own it writes only this device's records,
+ * the events it has shown and the join-request count it last read: nothing goes on chain or to
+ * the agent, and no read asks to sign.
  *
  * Newness is a question of the clock, so it is recomputed while the app stays mounted: when the
  * sheet opens, when the page becomes visible again, and when the next new event leaves the
@@ -96,6 +98,13 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     chainId
   );
   const canDecideTakeUps = stewardRead.hasRole;
+  // Gardeners answers requests to join for the work page's stewards and owners, and lists no
+  // other kind. Their count is read only with the grant a signed check of that queue left here.
+  const canAnswerJoinRequests = canReviewWork;
+  const joinRequestRead = useJoinRequestCount(gardenId, {
+    enabled: canAnswerJoinRequests,
+    kind: "garden_membership",
+  });
 
   // The garden's page of works, read as the installed app's other work screens read it, so they
   // share one projection and the bell never writes the cockpit's merged rows, which those screens
@@ -137,6 +146,23 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   );
   const writeSeen = useGardenNotificationsSeenStore((state) => state.markSeen);
   const clearMarks = useGardenNotificationsSeenStore((state) => state.clearAll);
+  const joinRequestsRecord = useGardenNotificationsSeenStore((state) =>
+    scope ? state.joinRequestsByScope[scope] : undefined
+  );
+  const noteJoinRequests = useGardenNotificationsSeenStore((state) => state.noteJoinRequests);
+
+  // Each answer of the count is noted here, and this device dates a rise as it reads one. A browser
+  // that no longer holds a grant drops the record, since nothing here can read the queue again.
+  const joinRequestsWaiting = joinRequestRead.waiting;
+  const holdsJoinRequestGrant = joinRequestRead.hasGrant;
+  useEffect(() => {
+    if (!scope) return;
+    if (canAnswerJoinRequests && !holdsJoinRequestGrant) {
+      noteJoinRequests(scope, 0, nowInSeconds());
+    } else if (joinRequestsWaiting !== undefined) {
+      noteJoinRequests(scope, joinRequestsWaiting, nowInSeconds());
+    }
+  }, [scope, canAnswerJoinRequests, holdsJoinRequestGrant, joinRequestsWaiting, noteJoinRequests]);
 
   // The moment newness is judged against. It moves when the sheet opens, when the page comes
   // back and when the next new event leaves the week; a render alone never moves it.
@@ -174,6 +200,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       works: [...works, ...thisWeek],
       commitments: (cachedCommitments ?? []).filter((commitment) => inPool(commitment.poolId)),
       takeUpRequests: (cachedTakeUps ?? []).filter((row) => inPool(row.commitment.poolId)),
+      // The record follows the read that answers; it stands only while that read says some wait.
+      joinRequests: joinRequestsWaiting ? joinRequestsRecord : undefined,
     })
       .filter((notification) => !isNotificationCleared(notification, record))
       .map((notification) => ({
@@ -194,6 +222,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     poolId,
     cachedCommitments,
     cachedTakeUps,
+    joinRequestsWaiting,
+    joinRequestsRecord,
     record,
     now,
   ]);
@@ -233,7 +263,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       activityRead.isLoading ||
       poolsRead.isLoading ||
       commitmentsRead.isLoading ||
-      takeUpsRead.isLoading,
+      takeUpsRead.isLoading ||
+      joinRequestRead.isLoading,
     isError:
       myGardens.isError ||
       Boolean(stewardRead.error) ||
@@ -241,7 +272,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       activityRead.isError ||
       poolsRead.isError ||
       commitmentsRead.isError ||
-      takeUpsRead.isError,
+      takeUpsRead.isError ||
+      joinRequestRead.isError,
     isIncomplete:
       workRead.refreshWarning ||
       workRead.hasUnknownStatuses ||

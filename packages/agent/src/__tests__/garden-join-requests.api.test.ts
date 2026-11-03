@@ -176,9 +176,11 @@ async function submitForGarden(
 function readCount(
   app: ReturnType<typeof createServer>,
   authorization?: string,
-  gardenAddress: Address = GARDEN
+  gardenAddress: Address = GARDEN,
+  kind?: string
 ) {
-  return app.request(`/public/gardens/${gardenAddress}/join-requests/count`, {
+  const query = kind === undefined ? "" : `?kind=${encodeURIComponent(kind)}`;
+  return app.request(`/public/gardens/${gardenAddress}/join-requests/count${query}`, {
     headers: {
       origin: ORIGIN,
       "x-gg-test-socket-ip": "198.51.100.10",
@@ -219,6 +221,34 @@ describe("garden join request count", () => {
     expect(await counted.json()).toEqual({ ok: true, waiting: 2 });
     expect(signatureVerifier).not.toHaveBeenCalled();
     expect(chainReader.canManage).toHaveBeenCalledWith(GARDEN, OPERATOR);
+  });
+
+  it("narrows the same grant's count to one queue, and refuses a kind it does not know", async () => {
+    const { app, countGrants, store } = createApp();
+    await submit(app);
+    await submitSteward(app);
+    const authorization = encodeGardenJoinCountAuthorization(
+      countGrants.issue({ chainId: CHAIN_ID, gardenAddress: GARDEN, accountAddress: OPERATOR }, NOW)
+        .token
+    );
+
+    // The installed app's Gardeners sheet lists requests to join alone, so Home counts those.
+    const membership = await readCount(app, authorization, GARDEN, "garden_membership");
+    expect(await membership.json()).toEqual({ ok: true, waiting: 1 });
+    // Without a kind the answer stays the garden's total, as the Members tab's badge reads it.
+    expect(await (await readCount(app, authorization)).json()).toEqual({ ok: true, waiting: 2 });
+
+    const countPending = vi.spyOn(store, "countPending");
+    for (const kind of ["", "all", "GARDEN_MEMBERSHIP"]) {
+      const refused = await readCount(app, authorization, GARDEN, kind);
+      expect(refused.status).toBe(400);
+      expect(await refused.json()).not.toHaveProperty("waiting");
+    }
+    // A kind never stands in for the grant.
+    const ungranted = await readCount(app, undefined, GARDEN, "garden_membership");
+    expect(ungranted.status).toBe(401);
+    expect(await ungranted.json()).not.toHaveProperty("waiting");
+    expect(countPending).not.toHaveBeenCalled();
   });
 
   it("lets a browser ask with the grant across origins", async () => {
