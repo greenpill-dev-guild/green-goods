@@ -14,6 +14,7 @@ import type {
   GardenNotifications,
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import en from "@green-goods/shared/i18n/en.json";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
@@ -441,6 +442,42 @@ describe("the sheet", () => {
       state: { from: "home", returnTo: "/home", work: workOfEvent(4) },
       viewTransition: true,
     });
+  });
+
+  it("lists waiting join requests under All alone, and opens the Gardeners sheet over Home from them", () => {
+    const openGardenSheet = vi.fn();
+    const real = useUIStore.getState().openGardenSheet;
+    useUIStore.setState({ openGardenSheet });
+    try {
+      // The count names nobody: the row says how many asked, dated when this device saw them.
+      const joinRequests: GardenNotification = {
+        kind: "joinRequested",
+        id: `joinRequests:${NOW - 4 * HOUR}`,
+        at: NOW - 4 * HOUR,
+        waiting: 3,
+      };
+      const listed = [...EVENTS.slice(0, 3), joinRequests, ...EVENTS.slice(3)];
+      setBell({ notifications: listed.map((event) => ({ ...event, isNew: true })) });
+      renderBell();
+      const sheet = openSheet();
+
+      const row = rowsOf(sheet)[3];
+      expect(titleOf(row)).toBe("3 people asked to join");
+      expect(within(row).getByRole("status").textContent).toBe("Join request");
+      expect(detailsOf(row)).toEqual(["4 hr. ago"]);
+      for (const tab of ["Work", "Promises"]) {
+        fireEvent.click(within(sheet).getByRole("tab", { name: tab }));
+        expect(rowsOf(sheet).map(titleOf)).not.toContain("3 people asked to join");
+      }
+
+      fireEvent.click(within(sheet).getByRole("tab", { name: "All" }));
+      fireEvent.click(within(rowsOf(sheet)[3]).getByRole("button"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(openGardenSheet).toHaveBeenCalledWith("gardeners");
+      expect(mockNavigate).not.toHaveBeenCalled();
+    } finally {
+      useUIStore.setState({ openGardenSheet: real });
+    }
   });
 
   it("shows the state block when nothing is new, and holds a row's frame while the events load", () => {
