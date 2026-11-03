@@ -12,7 +12,7 @@ error InvalidDomainValue(uint8 domain);
 ///
 ///      JSON Schemas:
 ///      - Project Details: { title, description, locationOfImpact, imageURL, slug, type }
-///      - Project Update:  { title, text, startsAt, endsAt, deliverables[], type }
+///      - Project Update:  { title, text, startDate, endDate, deliverables[], type }
 ///      - Milestone:       { title, text, startDate, endDate, domain, location, assessmentConfigCID, type }
 library JsonBuilder {
     /// @notice Builds project details JSON for Karma GAP
@@ -130,17 +130,20 @@ library JsonBuilder {
             )
         );
 
+        // Karma draws a Project Update's date line from ISO `startDate`/`endDate` only.
+        string memory date = StringUtils.timestampToISO(timestamp);
+
         return string(
             abi.encodePacked(
                 "{\"title\":\"",
                 _uniqueTitle(workTitle, workUID),
                 "\",\"text\":\"",
                 StringUtils.escapeJSON(text),
-                "\",\"startsAt\":",
-                StringUtils.uint2str(timestamp),
-                ",\"endsAt\":",
-                StringUtils.uint2str(timestamp),
-                ",\"deliverables\":[",
+                "\",\"startDate\":\"",
+                date,
+                "\",\"endDate\":\"",
+                date,
+                "\",\"deliverables\":[",
                 _buildDeliverables(updateText, proofReference, metadataReference),
                 "],\"type\":\"project-update\"}"
             )

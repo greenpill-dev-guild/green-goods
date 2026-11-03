@@ -207,10 +207,11 @@ contract JsonBuilderTest is Test {
     function testGAPJsonBuilder_impactUsesSupportedProjectUpdateDates() public {
         string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
-        assertTrue(_contains(json, "\"startsAt\":1700000000"));
-        assertTrue(_contains(json, "\"endsAt\":1700000000"));
-        assertFalse(_contains(json, "\"startDate\""));
-        assertFalse(_contains(json, "\"endDate\""));
+        // Karma's update card draws its date line from these two ISO strings.
+        assertTrue(_contains(json, "\"startDate\":\"2023-11-14T22:13:20.000Z\""));
+        assertTrue(_contains(json, "\"endDate\":\"2023-11-14T22:13:20.000Z\""));
+        assertFalse(_contains(json, "\"startsAt\""));
+        assertFalse(_contains(json, "\"endsAt\""));
     }
 
     function testImpactDeliverables() public {
@@ -294,8 +295,8 @@ contract JsonBuilderTest is Test {
 
         assertTrue(_contains(json, "\"title\""));
         assertTrue(_contains(json, "\"text\""));
-        assertTrue(_contains(json, "\"startsAt\""));
-        assertTrue(_contains(json, "\"endsAt\""));
+        assertTrue(_contains(json, "\"startDate\""));
+        assertTrue(_contains(json, "\"endDate\""));
         assertTrue(_contains(json, "\"deliverables\""));
         assertTrue(_contains(json, "\"type\":\"project-update\""));
         assertFalse(_contains(json, "\"links\""));

@@ -271,8 +271,8 @@ contract KarmaGAPReconciliationTest is Test, ERC6551Helper {
 
         string memory json = abi.decode(gap.lastData(DETAILS_SCHEMA), (string));
         assertTrue(_contains(json, "\"type\":\"project-update\""));
-        assertTrue(_contains(json, "\"startsAt\""));
-        assertTrue(_contains(json, "\"endsAt\""));
+        assertTrue(_contains(json, "\"startDate\""));
+        assertTrue(_contains(json, "\"endDate\""));
         assertTrue(_contains(json, "[View in Green Goods](https://www.greengoods.app/home/0x"));
         assertTrue(_contains(json, "https://sepolia.easscan.org/attestation/view/0x"));
         assertTrue(_contains(json, "\"proof\":\"https://cdn.example/evidence.jpg\""));
