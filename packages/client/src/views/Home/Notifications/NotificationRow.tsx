@@ -17,7 +17,7 @@ import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits"
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { RiHandHeartLine, RiSeedlingLine } from "@remixicon/react";
+import { RiHandHeartLine, RiSeedlingLine, RiUserReceivedLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 export interface NotificationRowProps {
@@ -34,6 +34,7 @@ const EVENT: Record<GardenNotification["kind"], { labelId: string; tone: ItemRow
   workSubmitted: { labelId: "app.home.notifications.event.workSubmitted", tone: "warning" },
   promiseTakenUp: { labelId: "app.home.notifications.event.promiseTakenUp", tone: "success" },
   takeUpRequested: { labelId: "app.home.notifications.event.takeUpRequested", tone: "info" },
+  joinRequested: { labelId: "app.home.notifications.event.joinRequested", tone: "info" },
 };
 
 /** The other person in the event, when there is one: who submitted, took up or asked. */
@@ -63,7 +64,9 @@ function personOf(notification: GardenNotification): Address | null {
  * One of the bell's events as the shared item row (DL-102, DL-130): the work's photo or the
  * promise's offer or request tile, the work's or the promise's name, the event as the one pill
  * with the status edge in its tone, and a detail line of who, then how long ago. A rejection
- * gives the review's feedback in the person's place, since the member is the person.
+ * gives the review's feedback in the person's place, since the member is the person. Waiting
+ * join requests have no name to give: the row says how many people asked, and its age is when
+ * this device saw the latest of them.
  */
 export function NotificationRow({ notification, promiseTitle, onOpen }: NotificationRowProps) {
   const intl = useIntl();
@@ -87,6 +90,12 @@ export function NotificationRow({ notification, promiseTitle, onOpen }: Notifica
     const feedback = work.reviewFeedback?.trim();
     if (notification.kind === "workRejected" && feedback) first = { text: feedback, tone: "error" };
     else if (notification.kind === "workApproved" && feedback) first = feedback;
+  } else if (notification.kind === "joinRequested") {
+    lead = { kind: "icon", icon: <RiUserReceivedLine /> };
+    title = formatMessage(
+      { id: "app.home.notifications.joinRequested.title" },
+      { count: notification.waiting }
+    );
   } else {
     const { commitment } = notification;
     const isRequest = commitment.direction === "REQUEST";

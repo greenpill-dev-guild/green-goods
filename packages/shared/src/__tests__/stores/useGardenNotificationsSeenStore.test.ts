@@ -1,7 +1,7 @@
 /**
- * Garden notifications seen store tests: what this device has seen of each garden's events,
- * one record per chain, account and garden, saved under its own key, brought back after a
- * reload, with malformed saved records dropped.
+ * Garden notifications seen store tests: what this device has seen of each garden's events and
+ * how many join requests it last read waiting there, one record per chain, account and garden,
+ * saved under its own key, brought back after a reload, with malformed saved records dropped.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,16 +22,16 @@ function storedKeys(): string[] {
   return Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index) ?? "");
 }
 
-function saveRecords(seenByScope: unknown) {
+function saveRecords(seenByScope: unknown, joinRequestsByScope?: unknown) {
   localStorage.setItem(
     GARDEN_NOTIFICATIONS_SEEN_STORAGE_KEY,
-    JSON.stringify({ state: { seenByScope }, version: 0 })
+    JSON.stringify({ state: { seenByScope, joinRequestsByScope }, version: 0 })
   );
 }
 
 beforeEach(() => {
   localStorage.clear();
-  useGardenNotificationsSeenStore.setState({ seenByScope: {} });
+  useGardenNotificationsSeenStore.setState({ seenByScope: {}, joinRequestsByScope: {} });
 });
 
 afterEach(() => {
@@ -64,6 +64,7 @@ describe("stores/useGardenNotificationsSeenStore", () => {
       seenByScope: {
         [ALICE_IN_A]: { seenThrough: NOW - WEEK, seen: { "submission:0xw2": NOW - 60 } },
       },
+      joinRequestsByScope: {},
     });
     expect(storedKeys()).toEqual([GARDEN_NOTIFICATIONS_SEEN_STORAGE_KEY]);
   });
@@ -90,6 +91,35 @@ describe("stores/useGardenNotificationsSeenStore", () => {
     saveRecords("not a map");
     await useGardenNotificationsSeenStore.persist.rehydrate();
     expect(useGardenNotificationsSeenStore.getState().seenByScope).toEqual({});
+  });
+
+  it("keeps how many join requests a garden's read found, writes only when that moves, and drops malformed records on reload", async () => {
+    const { noteJoinRequests } = useGardenNotificationsSeenStore.getState();
+    noteJoinRequests(ALICE_IN_A, 2, NOW);
+    expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({
+      [ALICE_IN_A]: { waiting: 2, since: NOW },
+    });
+
+    // The count is read on every arrival; a read that moves nothing writes nothing.
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    noteJoinRequests(ALICE_IN_A, 2, NOW + 60);
+    expect(write).not.toHaveBeenCalled();
+    noteJoinRequests(ALICE_IN_A, 0, NOW + 120);
+    expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({});
+
+    saveRecords(
+      {},
+      {
+        [ALICE_IN_A]: { waiting: 3, since: NOW },
+        [ALICE_IN_B]: { waiting: 0, since: NOW },
+        "1:0xc:0xd": { waiting: 1.5, since: NOW },
+        "1:0xe:0xf": { waiting: 2, since: "today" },
+      }
+    );
+    await useGardenNotificationsSeenStore.persist.rehydrate();
+    expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({
+      [ALICE_IN_A]: { waiting: 3, since: NOW },
+    });
   });
 
   it("keeps the marks for this session when storage refuses the write, and says so", () => {
