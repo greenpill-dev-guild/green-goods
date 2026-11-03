@@ -817,7 +817,7 @@
         },
         {
           "when": "When messaging is easier",
-          "what": "Report in a private chat with the Telegram bot: link a Green Goods account, describe the work, send photos, answer a few quick questions, then check the summary and confirm. The gardener signs on a Green Goods page to publish, unless their passkey account has allowed reporting in chat. The report becomes the same work record the app makes, and stewards review it the same way. Publishing needs a gardener, steward or owner role in the garden.",
+          "what": "Report in a private chat with the Telegram bot: describe the work, send photos, answer a few quick questions, then check the summary and confirm. Publishing needs a linked Green Goods account with a gardener, steward or owner role in the garden; the bot asks for the link if the chat has none. The gardener signs each report on a Green Goods page, unless their passkey account has allowed reporting in chat for that garden. The report becomes the same work record the app makes, and stewards review it the same way.",
           "where": ["agent"],
           "term_refs": ["entity:work"],
           "guide": "/community/gardener-guide/report-in-chat",
@@ -893,7 +893,7 @@
         },
         {
           "when": "When messaging is easier",
-          "what": "Send REVIEW in a private chat with the Telegram bot to see the work waiting in gardens the account stewards or owns, whether it came from the app or the chat. Approve or reject each one, confirm the summary, and sign the decision on a Green Goods page. Each decision is signed on its own.",
+          "what": "Send REVIEW in a private chat with the Telegram bot to see up to 10 pieces of work waiting in gardens the account stewards or owns, from the app or the chat. Pick one, approve or reject it, confirm the summary, and sign the decision on a Green Goods page. Each decision is signed on its own.",
           "where": ["agent"],
           "term_refs": ["entity:work-approval"],
           "guide": "/community/steward-guide/reviewing-work",
