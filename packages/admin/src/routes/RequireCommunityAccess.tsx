@@ -1,7 +1,8 @@
 import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ReactNode } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
+import PersistentRedirect from "@/routes/PersistentRedirect";
 
 export default function RequireCommunityAccess({
   loadingFallback,
@@ -11,5 +12,5 @@ export default function RequireCommunityAccess({
   const { showCommunity, isLoading } = useEffectiveToolbarPermissions();
 
   if (isLoading) return loadingFallback;
-  return showCommunity ? <Outlet /> : <Navigate to={adminRoutes.hub()} replace />;
+  return showCommunity ? <Outlet /> : <PersistentRedirect to={adminRoutes.hub()} />;
 }
