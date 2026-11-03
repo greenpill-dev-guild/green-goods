@@ -4,12 +4,15 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GardenJoinRequestsQueue } from "@/components/Features/Garden/GardenJoinRequestsQueue";
 
-const { addGardener, resolveRequest, loadQueue, queue } = vi.hoisted(() => ({
-  addGardener: vi.fn(),
-  resolveRequest: vi.fn(),
-  loadQueue: vi.fn(),
-  queue: { current: [] as Array<Record<string, unknown>> },
-}));
+const { addGardener, resolveRequest, loadQueue, keepCountGrant, readCountAgain, queue } =
+  vi.hoisted(() => ({
+    addGardener: vi.fn(),
+    resolveRequest: vi.fn(),
+    loadQueue: vi.fn(),
+    keepCountGrant: vi.fn(),
+    readCountAgain: vi.fn(),
+    queue: { current: [] as Array<Record<string, unknown>> },
+  }));
 
 const MAYA = {
   id: "request-1",
@@ -30,6 +33,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
     loadQueue,
     resolveRequest,
   }),
+  useJoinRequestCountUpdates: () => ({ keepCountGrant, readCountAgain }),
 }));
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ addGardener }),
@@ -47,7 +51,8 @@ describe("GardenJoinRequestsQueue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queue.current = [MAYA];
-    loadQueue.mockResolvedValue(undefined);
+    // An older service sends no count grant.
+    loadQueue.mockResolvedValue({ ok: true, items: [], rateLimitedRecently: false });
     addGardener.mockResolvedValue({ success: true });
     resolveRequest.mockResolvedValue({ pendingOnchainMembership: false });
   });
@@ -105,5 +110,26 @@ describe("GardenJoinRequestsQueue", () => {
     expect(
       await screen.findByRole("heading", { name: "There are no pending join requests." })
     ).toBeInTheDocument();
+    expect(keepCountGrant).not.toHaveBeenCalled();
+  });
+
+  it("keeps the count grant a signed check returns, and asks for the count again after an answer", async () => {
+    const countGrant = { token: "grant.token", expiresAt: 4_000_000_000 };
+    loadQueue.mockResolvedValue({
+      ok: true,
+      items: [MAYA],
+      rateLimitedRecently: false,
+      countGrant,
+    });
+    renderQueue();
+
+    // Home counts what waits here with this grant, without asking for a signature (PRD-1381).
+    await userEvent.click(screen.getByRole("button", { name: "Check Requests" }));
+    await waitFor(() => expect(keepCountGrant).toHaveBeenCalledWith(countGrant));
+    expect(readCountAgain).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Welcome" }));
+    expect(await screen.findByText("The gardener was welcomed.")).toBeVisible();
+    expect(readCountAgain).toHaveBeenCalledOnce();
   });
 });

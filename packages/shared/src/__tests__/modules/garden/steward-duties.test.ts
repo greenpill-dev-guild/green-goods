@@ -51,19 +51,28 @@ describe("selectStewardDuties", () => {
     expect(selectStewardDuties(NOTHING)).toEqual([]);
   });
 
-  it("lists work to review, then take-up requests, then promises to confirm, each with its count", () => {
+  it("lists work to review, then join requests, then take-up requests, then promises to confirm, each with its count", () => {
     const duties = selectStewardDuties({
       viewer: READER,
       toReview: [work("0x02", 200), work("0x01", 100)],
+      joinRequestsWaiting: 3,
       pendingClaims: [claim(4n, 10)],
       toConfirm: [commitment(9n), commitment(8n)],
     });
 
     expect(duties.map((duty) => [duty.kind, duty.count])).toEqual([
       ["review", 2],
+      ["joinRequests", 3],
       ["takeUp", 1],
       ["confirm", 2],
     ]);
+  });
+
+  it.each([
+    ["no count grant in this browser", undefined],
+    ["an empty queue", 0],
+  ])("lists no join requests with %s", (_case, joinRequestsWaiting) => {
+    expect(selectStewardDuties({ ...NOTHING, joinRequestsWaiting })).toEqual([]);
   });
 
   it("marks work to review uncounted while the garden's list is incomplete, keeping what it read", () => {

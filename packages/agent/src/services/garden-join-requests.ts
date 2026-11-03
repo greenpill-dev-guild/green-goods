@@ -89,8 +89,12 @@ export type GardenJoinRequestStore = {
     gardenAddress: Address,
     options?: { cursor?: string; limit?: number; nowIso?: string; kind?: GardenJoinRequestKind }
   ): Promise<{ items: GardenJoinRequestRecord[]; nextCursor?: string }>;
-  /** Pending requests of every kind, without decrypting any of them. */
-  countPending(gardenAddress: Address, nowIso: string): Promise<number>;
+  /** Pending requests of every kind, or of `kind` alone, without decrypting any of them. */
+  countPending(
+    gardenAddress: Address,
+    nowIso: string,
+    kind?: GardenJoinRequestKind
+  ): Promise<number>;
   resolve(
     input: ResolveGardenJoinRequestRecord
   ): Promise<
@@ -198,8 +202,8 @@ export function createSqliteGardenJoinRequestStore(
       import("./db").then((db) => db.getGardenJoinRequestById(cipher, gardenAddress, requestId)),
     listPending: (gardenAddress, options) =>
       import("./db").then((db) => db.listPendingGardenJoinRequests(cipher, gardenAddress, options)),
-    countPending: (gardenAddress, nowIso) =>
-      import("./db").then((db) => db.countPendingGardenJoinRequests(gardenAddress, nowIso)),
+    countPending: (gardenAddress, nowIso, kind) =>
+      import("./db").then((db) => db.countPendingGardenJoinRequests(gardenAddress, nowIso, kind)),
     resolve: (input) => import("./db").then((db) => db.resolveGardenJoinRequest(cipher, input)),
     reconcileWelcomed: (gardenAddress, requestId, resolvedAt, kind) =>
       import("./db").then((db) =>
