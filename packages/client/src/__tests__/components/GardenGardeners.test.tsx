@@ -198,7 +198,7 @@ describe("GardenGardeners", () => {
     // A Green Goods name shows as the username alone.
     expect(screen.getByText("river")).toBeInTheDocument();
     expect(screen.queryByText("river.greengoods.eth")).not.toBeInTheDocument();
-    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+    expect(container.querySelector(".gg-item-row-avatar > img")?.getAttribute("src")).toBe(
       "https://images.example/first.webp"
     );
     expect(useResolvedProfileAvatar).toHaveBeenCalledWith(
@@ -217,7 +217,7 @@ describe("GardenGardeners", () => {
         <GardenGardeners members={[member]} />
       </TestIntl>
     );
-    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+    expect(container.querySelector(".gg-item-row-avatar > img")?.getAttribute("src")).toBe(
       "https://images.example/replaced.webp"
     );
 
@@ -230,10 +230,12 @@ describe("GardenGardeners", () => {
         <GardenGardeners members={[member]} />
       </TestIntl>
     );
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/images/avatar.png");
+    expect(container.querySelector(".gg-item-row-avatar > img")?.getAttribute("src")).toBe(
+      "/images/avatar.png"
+    );
   });
 
-  it("shows no picture or glyph while a member's photo is still being looked up", () => {
+  it("shows the default avatar while a member's photo is still being looked up", () => {
     vi.mocked(useResolvedProfileAvatar).mockReturnValue({
       avatarUri: "/images/avatar.png",
       isLoading: true,
@@ -245,8 +247,9 @@ describe("GardenGardeners", () => {
       </TestIntl>
     );
 
-    expect(container.querySelector("img")).toBeNull();
-    expect(container.querySelector(".gg-item-row-avatar")).toBeEmptyDOMElement();
+    expect(container.querySelector(".gg-item-row-avatar img")?.getAttribute("src")).toBe(
+      "/images/avatar.png"
+    );
   });
 
   describe("how a member leaves the garden", () => {
