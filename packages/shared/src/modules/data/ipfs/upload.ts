@@ -186,7 +186,8 @@ async function publishableFile(file: File, context: FileUploadContext): Promise<
   const published = await withoutPhotoMetadata(file);
   if (published) return published;
   const refusal = new UnpublishableImageError(file.name);
-  // Counted so refusals can be seen; the image's name stays on the device.
+  // Counted so refusals can be seen. This event carries no file name, though the compressor's
+  // own events for the redraw attempt do.
   trackUploadError(refusal, {
     uploadCategory: "file_upload",
     fileSize: file.size,
