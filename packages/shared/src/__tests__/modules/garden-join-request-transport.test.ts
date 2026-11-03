@@ -329,7 +329,8 @@ describe("garden join request transport", () => {
     expect(url).toBe(`https://agent.example/public/gardens/${GARDEN}/join-requests/count`);
     expect(init.headers).toMatchObject({ Authorization: "GG-JoinCount grant.token" });
     // One queue's count names the queue, never the grant, in the address.
-    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+    const [queueUrl] = fetchMock.mock.calls[1] as unknown as [string];
+    expect(queueUrl).toBe(
       `https://agent.example/public/gardens/${GARDEN}/join-requests/count?kind=garden_membership`
     );
     vi.unstubAllGlobals();
