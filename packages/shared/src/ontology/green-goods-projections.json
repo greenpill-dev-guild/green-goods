@@ -817,10 +817,16 @@
         },
         {
           "when": "When messaging is easier",
-          "what": "Choose the garden in a chat with the Telegram bot, describe the work in a text or voice message, and confirm it. The bot holds the submission until a steward approves or rejects it there. Choosing a garden in the chat is not membership: the gardener still has to be a member of it.",
+          "what": "Report in a private chat with the Telegram bot: link a Green Goods account, describe the work, send photos, answer a few quick questions, then check the summary and confirm. The gardener signs on a Green Goods page to publish, unless their passkey account has allowed reporting in chat. The report becomes the same work record the app makes, and stewards review it the same way. Publishing needs a gardener, steward or owner role in the garden.",
           "where": ["agent"],
           "term_refs": ["entity:work"],
-          "code": ["packages/agent/src/handlers/join.ts", "packages/agent/src/handlers/submit.ts"]
+          "guide": "/community/gardener-guide/report-in-chat",
+          "code": [
+            "packages/agent/src/platforms/telegram-reporting.ts",
+            "packages/agent/src/services/reporting/coordinator/report-message.ts",
+            "packages/agent/src/services/reporting/authority.ts",
+            "packages/client/src/views/Public/AgentReporting/CeremonyView.tsx"
+          ]
         },
         {
           "when": "While a steward reviews",
@@ -886,14 +892,15 @@
           "code": ["packages/admin/src/views/Hub", "packages/client/src/views/Home/WorkDashboard"]
         },
         {
-          "when": "When work arrives by message",
-          "what": "List what gardeners sent through the Telegram bot and approve or reject each one there. An approval records the work and its approval together.",
+          "when": "When messaging is easier",
+          "what": "Send REVIEW in a private chat with the Telegram bot to see the work waiting in gardens the account stewards or owns, whether it came from the app or the chat. Approve or reject each one, confirm the summary, and sign the decision on a Green Goods page. Each decision is signed on its own.",
           "where": ["agent"],
           "term_refs": ["entity:work-approval"],
+          "guide": "/community/steward-guide/reviewing-work",
           "code": [
-            "packages/agent/src/handlers/pending.ts",
-            "packages/agent/src/handlers/approve.ts",
-            "packages/agent/src/handlers/reject.ts"
+            "packages/agent/src/services/reporting/review-jobs.ts",
+            "packages/agent/src/services/reporting/coordinator/review-steps.ts",
+            "packages/client/src/views/Public/AgentReporting/CeremonyView.tsx"
           ]
         },
         {
