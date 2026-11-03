@@ -3,6 +3,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { EASABI } from "../../utils/blockchain/contracts";
 import { decodeWorkApprovalData, encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
 import { buildQueuedAttestationsCall } from "../../utils/eas/transaction-builder";
 import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
@@ -45,6 +46,7 @@ function reviewCall(decisions: readonly ReviewDecision[], chainId: number): Cont
       schema: eas.WORK_APPROVAL.uid as Hex,
       gardenAddress: gardenAddress as Hex,
       attestationData: encodeWorkApprovalData(draft, chainId),
+      gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
     }))
   );
   return { ...call, abi: onlyFunction(EASABI, call.functionName) };

@@ -17,6 +17,7 @@ import {
 } from "../auth/smartAccountClientResolver";
 import { getUserOperationHash } from "viem/account-abstraction";
 import { logger } from "../app/logger";
+import { withGasHeadroom } from "./gas-headroom";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import {
   assertTypedDataChain,
@@ -162,11 +163,20 @@ export class PasskeySender implements TransactionSender {
       const expected = calls.length > 1 ? `0x0100${"00".repeat(30)}` : `0x${"00".repeat(32)}`;
       if (decoded.args[0].toLowerCase() !== expected) throw new Error("batch-atomic-unavailable");
     }
+    // A call that asks for headroom gets it on the bundler's call gas; the bundler sizes any other.
+    const callGasLimit = calls.some((current) => current.gasHeadroomPercent)
+      ? withGasHeadroom(
+          (await client.prepareUserOperation({ account: client.account!, calls: encoded }))
+            .callGasLimit,
+          calls
+        )
+      : undefined;
     assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
     await options.assertOwnership?.();
     const operationHash = await client.sendUserOperation({
       account: this.reportingAccount(client, options),
       calls: encoded,
+      ...(callGasLimit !== undefined ? { callGasLimit } : {}),
     });
     await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
     const receipt = await client.waitForUserOperationReceipt({
@@ -292,7 +302,11 @@ export class PasskeySender implements TransactionSender {
       })),
     });
     await this.assertOwnership?.(account, chainId);
-    return quoteUserOperation(request, budget);
+    // Quoted at the call gas the send will ask for.
+    return quoteUserOperation(
+      { ...request, callGasLimit: withGasHeadroom(request.callGasLimit, calls) },
+      budget
+    );
   }
 
   async getBatchCapability(scope: BatchScope): Promise<BatchCapability> {
