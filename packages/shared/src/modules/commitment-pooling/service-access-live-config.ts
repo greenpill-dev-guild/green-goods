@@ -1,10 +1,12 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
-import { GREEN_GOODS_SAFE } from "./service-access-chain-values";
+import { GREEN_GOODS_ACCESS_MANAGER, GREEN_GOODS_SAFE } from "./service-access-chain-values";
 
 export interface ServiceDeploymentPin {
   address: Address;
   owner: Address;
+  /** Accepted as the live owner beside `owner`. Never set on a voucher token: its owner is its issuer. */
+  accessManager?: Address;
   receipt: {
     transactionHash: Hex;
     blockNumber: bigint;
@@ -65,6 +67,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
       adapter: {
         address: "0x80a906C175ea875af8a2afcA8F91F60b201dc824",
         owner: GREEN_GOODS_SAFE,
+        accessManager: GREEN_GOODS_ACCESS_MANAGER,
         runtimeCodeHash: "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
         implementation: {
           address: "0x021368bf9958f4d535d39d571bc45f74d20e4666",
@@ -74,6 +77,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
       registry: {
         address: "0xf685212bB309F36F74B53ba0c9f1E49B4222d036",
         owner: GREEN_GOODS_SAFE,
+        accessManager: GREEN_GOODS_ACCESS_MANAGER,
         runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
         implementation: {
           address: "0x0ceb18ba6562d3227717d98c044a5849be8362ef",
@@ -83,6 +87,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
       limiter: {
         address: "0xbA96741cc022F48a1F936a085b7549AEa3B01b9C",
         owner: GREEN_GOODS_SAFE,
+        accessManager: GREEN_GOODS_ACCESS_MANAGER,
         runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
         implementation: {
           address: "0x258aad6c933f70d7f071e112800a41fb60434048",
@@ -92,6 +97,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
       pool: {
         address: "0x6AFc963B583fBB536F05B2D7ae832880662b98A4",
         owner: GREEN_GOODS_SAFE,
+        accessManager: GREEN_GOODS_ACCESS_MANAGER,
         runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
         implementation: {
           address: "0x9e694d342cab02e295262b2290b0e64a0334160d",
@@ -104,6 +110,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
     core: {
       address: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
       owner: GREEN_GOODS_SAFE,
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       receipt: {
         transactionHash: "0xf7c81fd3d697b77ac06d5834bc1fef317f7a74f95d8d31e6e6d7a319fe6cb2c6",
         blockNumber: 493952807n,
@@ -119,6 +126,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
     source: {
       address: "0xB9D3fBeaEb9Ba5635ce2FCb630af7c55c11f9BE6",
       owner: GREEN_GOODS_SAFE,
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       receipt: {
         transactionHash: "0x1f126613b0f1dd7f8d6170c0d93636d305466be9ce4f74d333851e8e71dea2f3",
         blockNumber: 517974714n,
@@ -136,6 +144,7 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
     destination: {
       address: "0x742c8935d314363e8c16df5b0791525109Fb9387",
       owner: GREEN_GOODS_SAFE,
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       receipt: {
         transactionHash: "0xa8f6972088526fbb41c5348eb8e5361425ad9da09439f06e0269c06253293ce1",
         blockNumber: 48925705n,

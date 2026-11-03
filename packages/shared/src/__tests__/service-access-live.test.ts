@@ -490,29 +490,43 @@ describe("live service access", () => {
     }
   });
 
-  it("accepts the Green Goods Safe or its access manager wherever that Safe is the pinned owner", async () => {
+  it("accepts the pinned owner or the access manager a deployment pin names", async () => {
     for (const live of [GREEN_GOODS_SAFE, GREEN_GOODS_ACCESS_MANAGER]) {
       const f = fixture();
-      for (const pin of [f.route.core, f.route.source, f.route.destination])
+      for (const pin of [f.route.core, f.route.source, f.route.destination]) {
         pin.owner = GREEN_GOODS_SAFE;
-      f.route.assets[0]!.issuer = GREEN_GOODS_SAFE;
+        pin.accessManager = GREEN_GOODS_ACCESS_MANAGER;
+      }
       const { read } = f.chain;
-      f.chain.read = async (input) => (input.functionName === "owner" ? live : read(input));
+      f.chain.read = async (input) =>
+        input.functionName === "owner" && input.address !== f.row.authorization.token
+          ? live
+          : read(input);
       await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
     }
   });
 
-  it("refuses the access manager as owner wherever another account is pinned", async () => {
+  it("refuses the access manager as owner where a pin does not name it", async () => {
     const f = fixture();
     const { read } = f.chain;
     f.chain.read = async (input) =>
-      input.functionName === "owner" ? GREEN_GOODS_ACCESS_MANAGER : read(input);
+      input.functionName === "owner" && input.address !== f.row.authorization.token
+        ? GREEN_GOODS_ACCESS_MANAGER
+        : read(input);
     await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
       "Service deployment receipt, implementation or owner changed"
     );
-    // With every deployment pinned to the Safe, a voucher token pinned to another issuer still refuses it.
+  });
+
+  it("keeps a voucher token's owner exactly its issuer, even beside managed deployments", async () => {
+    const f = fixture();
     for (const pin of [f.route.core, f.route.source, f.route.destination])
-      pin.owner = GREEN_GOODS_SAFE;
+      pin.accessManager = GREEN_GOODS_ACCESS_MANAGER;
+    const { read } = f.chain;
+    f.chain.read = async (input) =>
+      input.functionName === "owner" && input.address === f.row.authorization.token
+        ? GREEN_GOODS_ACCESS_MANAGER
+        : read(input);
     await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
       "Service voucher token changed"
     );

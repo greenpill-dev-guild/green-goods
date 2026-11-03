@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 import {
   GREEN_GOODS_ACCESS_MANAGER,
   GREEN_GOODS_SAFE,
-  serviceOwnerIs,
 } from "../modules/commitment-pooling/service-access-chain-values";
 import { SERVICE_LIVE_ROUTES } from "../modules/commitment-pooling/service-access-live-config";
+import { GREEN_GOODS_ISSUER_DEPLOYMENT } from "../modules/commitment-pooling/service-issuer-live-pins";
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 type PilotRecord = typeof gnosisPilot | typeof arbitrumPilot;
@@ -30,13 +30,31 @@ describe("the pilot's live service route", () => {
     expect(same(route.core.owner, arbitrumPilot.endpointOwner)).toBe(true);
   });
 
-  it("counts the access manager as the Green Goods Safe's owner and nobody else's", () => {
-    const techAndSunSafe = gnosisPilot.techAndSunBootstrap.safe;
-    expect(serviceOwnerIs(GREEN_GOODS_SAFE.toLowerCase(), GREEN_GOODS_SAFE)).toBe(true);
-    expect(serviceOwnerIs(GREEN_GOODS_ACCESS_MANAGER, GREEN_GOODS_SAFE)).toBe(true);
-    expect(serviceOwnerIs(GREEN_GOODS_ACCESS_MANAGER, techAndSunSafe)).toBe(false);
-    expect(serviceOwnerIs(techAndSunSafe, GREEN_GOODS_SAFE)).toBe(false);
-    expect(same(route.core.owner, GREEN_GOODS_SAFE)).toBe(true);
+  it("names the access manager on each Safe-owned deployment pin, and never on a voucher token", () => {
+    const issuer = GREEN_GOODS_ISSUER_DEPLOYMENT;
+    const managed = [
+      route.core,
+      route.source,
+      route.destination,
+      ...Object.values(route.walletState ?? {}),
+      issuer.adapterSource,
+      issuer.adapter,
+      issuer.pool.deployment,
+      issuer.pool.registry,
+      issuer.pool.limiter,
+      issuer.pool.quoter,
+      issuer.pool.feePolicy,
+      issuer.pool.protocolFee,
+    ];
+    expect(managed).toHaveLength(15);
+    for (const pin of managed) {
+      expect(same(pin.owner, GREEN_GOODS_SAFE)).toBe(true);
+      expect(pin.accessManager).toBe(GREEN_GOODS_ACCESS_MANAGER);
+    }
+    // The escrow accepts a voucher setup only while the token's owner is the issuer it names.
+    expect("accessManager" in issuer.token).toBe(false);
+    expect(same(issuer.token.owner, GREEN_GOODS_SAFE)).toBe(true);
+    for (const asset of route.assets) expect("accessManager" in asset).toBe(false);
   });
 
   it("lets two distinct gardens book, one of them the core's recorded root garden", () => {
