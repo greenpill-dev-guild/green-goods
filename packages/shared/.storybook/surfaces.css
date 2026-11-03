@@ -275,7 +275,7 @@
   /* Link-hover step: the generated DesignMD tertiary-action-hover resolves to
    * a green measuring 4.29:1 on white — one step deeper (green-900, 7.19)
    * keeps the resting→hover darkening while clearing body-text AA. Dark mode
-   * re-points the .text-primary-* classes separately below. */
+   * sets its own step in the block below. */
   --primary-darker: var(--green-900);
   /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
   --orange-50: 255 251 235;
@@ -328,6 +328,13 @@
 :root[data-surface="admin"][data-theme="dark"] body,
 [data-theme="dark"] [data-surface-scope="admin"],
 [data-surface-scope="admin"][data-theme="dark"] {
+  /* Link-hover step in dark: green-200, the canvas's own dark step. The light
+   * step sits on <body>, below theme.css's dark block on <html>, so without this
+   * the dialogs, sheets and command palette that portal to <body> would hover
+   * and select in green-900 on a dark surface (the palette's selected row read
+   * 1.46:1). */
+  --primary-darker: var(--green-200);
+
   /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
   --orange-500: 245 158 11;    /* #F59E0B */
   --red-500: 248 113 113;      /* #F87171 */
@@ -337,15 +344,17 @@
 /* The status aliases in a dark scope inside a dark cockpit document: Storybook's
    theme frame, a story's own dark section, and <body> when a palette assertion
    marks it dark. The cockpit's one dark scope is <html>, above <body>'s ramp
-   remap, so its error, warning and verified aliases keep the shared ramp and
-   --information-* takes the remap on <body>. Below <body>, theme.css's and
-   admin-m3-tokens.css's dark blocks would resolve them again against the remapped
-   ramps (--error-base 248 113 113 for the cockpit's 255 104 117), so a nested
-   scope inherits them; the container inks read --error-dark and --warning-dark and
-   follow. On <body> the remap above outranks this rule and keeps --information-*.
-   It must stay after admin-m3-tokens.css, which sets three of these at the same
-   specificity. A dark section inside a light story still resolves them against
-   the remap; the cockpit never draws one. */
+   remap, so its error, warning and verified aliases keep the shared ramp, and
+   --information-* and the link-hover step --primary-darker take the remap on
+   <body>. Below <body>, theme.css's and admin-m3-tokens.css's dark blocks would
+   resolve them again against the remapped ramps (--error-base 248 113 113 for
+   the cockpit's 255 104 117) and put back theme.css's dark-green --primary-darker
+   (22 100 59), so a nested scope inherits them; the container inks read
+   --error-dark and --warning-dark and follow. On <body> the remap above outranks
+   this rule and keeps --information-* and --primary-darker. It must stay after
+   admin-m3-tokens.css, which sets three of these at the same specificity. A dark
+   section inside a light story still resolves them against the remap; the
+   cockpit never draws one. */
 :where(:root[data-surface="admin"][data-theme="dark"]) [data-theme="dark"] {
   --error-base: inherit;
   --error-dark: inherit;
@@ -360,6 +369,7 @@
   --information-base: inherit;
   --information-light: inherit;
   --information-lighter: inherit;
+  --primary-darker: inherit;
 }
 
 /* ── Installed app and public website ──────────────────────────────────── */
