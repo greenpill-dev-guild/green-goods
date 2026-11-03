@@ -5,6 +5,7 @@ import { bytesOf } from "../../test-utils/photo-fixtures";
 import {
   aviVideo,
   chainedFragmentMp4,
+  concatenatedWebm,
   leakedRecorderDetails,
   legacySoundMp4,
   referencingMp4,
@@ -57,7 +58,8 @@ describe("withoutVideoMetadata", () => {
     ],
     ["a QuickTime movie whose sound gives each frame a size of 1, the old way", legacySoundMp4()],
     ["a WebM whose cluster runs on inside a segment that gives its size", sizedSegmentWebm()],
-    ["an MP4 whose fragment run promises an offset it has no room for", shortRunMp4()],
+    ["two WebM documents one after the other", concatenatedWebm()],
+    ["an MP4 that ends inside a run promising an offset it has no room for", shortRunMp4()],
   ])("refuses %s, since it cannot be checked in full", async (_, bytes) => {
     await expect(withoutVideoMetadata(videoFile(bytes, "clip", "video/mp4"))).resolves.toBeNull();
   });

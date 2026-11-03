@@ -102,6 +102,8 @@ export function matroskaPatches(bytes: Bytes): Patch[] | null {
     // Every level-one ID is four bytes; only Void and CRC-32 may be shorter. Anything else
     // means the file was not read as its writer meant.
     if (element.id < 0x10000000 && element.id !== VOID && element.id !== CRC32) return null;
+    // A second EBML document after this one would be voided whole, so two are refused.
+    if (element.id === EBML || element.id === SEGMENT) return null;
     if (element.id === VOID) patches.push({ start: element.body, end: element.end });
     else if (!MATROSKA_STRUCTURE.has(element.id)) patches.push(...voided(element));
     else if (element.id === INFO) {

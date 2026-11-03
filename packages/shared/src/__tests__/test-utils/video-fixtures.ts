@@ -102,6 +102,11 @@ export function subtitledWebm(): Bytes {
   return webm(false, { subtitles: true });
 }
 
+/** Two WebM documents, one after the other: the second would be voided whole. */
+export function concatenatedWebm(): Bytes {
+  return concat(webm(false), webm(false));
+}
+
 /** The WebM in a segment that gives its size around a cluster that does not. */
 export function sizedSegmentWebm(): Bytes {
   return webm(false, { sizedSegment: true });
@@ -115,7 +120,7 @@ export function chainedFragmentMp4(): Bytes {
   return fragmentedMp4(false, { base: "implicit", first: "telemetry" });
 }
 
-/** A fragmented MP4 whose telemetry run promises a data offset it has no room for. */
+/** A fragmented MP4 that ends inside a run promising a data offset it has no room for. */
 export function shortRunMp4(): Bytes {
   return fragmentedMp4(false, { shortRun: true });
 }
@@ -284,7 +289,7 @@ interface FragmentOptions {
   base?: "fragment" | "implicit";
   /** Which track fragment, and which sample in the media data, comes first. */
   first?: "picture" | "telemetry";
-  /** The telemetry run promises a data offset its box has no room for. */
+  /** The telemetry run, the last box in the file, promises a data offset it has no room for. */
   shortRun?: boolean;
 }
 
@@ -352,7 +357,10 @@ function fragmentedMp4(
     "mdat",
     ...(first === "picture" ? [...PICTURE, telemetrySample] : [telemetrySample, ...PICTURE])
   );
-  return concat(header, movie, fragment(mediaAt), media);
+  // Cut short, the file ends with that run, so reading the offset it promises would overrun it.
+  return shortRun
+    ? concat(header, movie, fragment(mediaAt))
+    : concat(header, movie, fragment(mediaAt), media);
 }
 
 function movieHeader(published: boolean): Bytes {

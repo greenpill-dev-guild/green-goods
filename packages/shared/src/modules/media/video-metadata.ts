@@ -22,6 +22,7 @@
  * @module modules/media/video-metadata
  */
 
+import { logger } from "../app/logger";
 import { moviePatches, startsLikeMovie } from "./mp4-metadata";
 import { type Bytes, type Patch, alreadyWritten } from "./video-bytes";
 import { matroskaPatches, startsLikeMatroska } from "./webm-metadata";
@@ -74,7 +75,10 @@ function patchesFor(bytes: Bytes): Patch[] | null {
   try {
     if (startsLikeMatroska(bytes)) return matroskaPatches(bytes);
     return startsLikeMovie(bytes) ? moviePatches(bytes) : null;
-  } catch {
+  } catch (error) {
+    logger.warn("[Media] A video could not be read to remove its metadata", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }

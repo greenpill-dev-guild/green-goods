@@ -87,7 +87,8 @@ function sampleSizes(
   const count = view.getUint32(box.body + 8);
   if (box.type === "stsz") {
     const fixed = view.getUint32(box.body + 4);
-    if (fixed) return { count, of: () => fixed };
+    // Samples that could not fit in the file are refused before any is counted.
+    if (fixed) return fixed * count <= bytes.length ? { count, of: () => fixed } : null;
     if (box.body + 12 + 4 * count > box.end) return null;
     return { count, of: (index) => view.getUint32(box.body + 12 + 4 * index) };
   }
@@ -185,6 +186,7 @@ export function fragmentSamples(
         at += 4;
       }
       if (runFlags & 0x4) at += 4;
+      const runStart = position;
       for (let sample = 0; sample < count; sample += 1) {
         if (runFlags & 0x100) at += 4;
         let size = defaultSize;
@@ -195,9 +197,10 @@ export function fragmentSamples(
         if (runFlags & 0x400) at += 4;
         if (runFlags & 0x800) at += 4;
         if (size === undefined) return null;
-        if (playing.has(id)) ranges.push([position, position + size]);
         position += size;
       }
+      // A run's samples sit end to end, so each run is one range.
+      if (playing.has(id)) ranges.push([runStart, position]);
       dataEnd = position;
     }
     previousEnd = dataEnd;
