@@ -2,6 +2,7 @@ import type { ApproximateWorkLocation } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
 import { withoutPhotoMetadata } from "../media/image-metadata";
+import { withoutVideoMetadata } from "../media/video-metadata";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -29,9 +30,10 @@ export class PendingHeicConversionError extends Error {
 
 /**
  * A photo that cannot lose its metadata, because neither the byte-level
- * rewrite nor a canvas can read it, so it is never published. Queued work holds
- * it, named, as needing attention, the way a HEIC photo that will not convert
- * is held; a proof ends on it.
+ * rewrite nor a canvas can read it, or a video whose container cannot be read
+ * in full, so it is never published. Queued work holds it, named, as needing
+ * attention, the way a HEIC photo that will not convert is held; a proof ends
+ * on it.
  */
 export class UnpublishablePhotoError extends InvalidWorkAttachmentError {
   /** The photo's file name. */
@@ -152,14 +154,16 @@ export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): bool
 
 /**
  * An attachment as it may be pinned. A photo loses its location and camera
- * metadata, and one that cannot lose it is refused rather than published as it
- * was picked: IPFS and the attestation cannot be withdrawn. A video is
- * published as it was picked, since removing a video container's metadata needs
- * a parser this does not have.
+ * metadata and a video its location, device and capture time, and one that
+ * cannot lose them is refused rather than published as it was picked: IPFS and
+ * the attestation cannot be withdrawn. Audio is published as it was recorded.
  */
 export async function publishableWorkFile(file: File): Promise<File> {
-  if (!PHOTO_TYPES.has(file.type)) return file;
-  const published = await withoutPhotoMetadata(file);
+  const published = PHOTO_TYPES.has(file.type)
+    ? await withoutPhotoMetadata(file)
+    : file.type.startsWith("video/")
+      ? await withoutVideoMetadata(file)
+      : file;
   if (!published) throw new UnpublishablePhotoError(file.name);
   return published;
 }

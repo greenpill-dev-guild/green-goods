@@ -20,6 +20,7 @@ import {
 import { verifyPinataGatewayAvailability } from "../../modules/data/ipfs/pinata";
 import { UnpublishableImageError } from "../../modules/data/ipfs/upload";
 import { bytesOf, cameraPhoto, cleanPhoto, photoFile } from "../test-utils/photo-fixtures";
+import { videoFile, videoVariants } from "../test-utils/video-fixtures";
 
 describe("modules/data/ipfs", () => {
   const originalFetch = globalThis.fetch;
@@ -420,7 +421,16 @@ describe("modules/data/ipfs", () => {
       expect(canvas.redraw).not.toHaveBeenCalled();
     });
 
-    it("pins a file that is not an image exactly as it is", async () => {
+    it("pins a video without its location, device or capture time", async () => {
+      const { received } = await pinningService();
+      const { recorded, published, type } = videoVariants()[1];
+
+      await uploadFileToIPFS(videoFile(recorded, "clip.mov", type));
+
+      expect(await bytesOf(received[0])).toEqual(published);
+    });
+
+    it("pins a file that is neither an image nor a video exactly as it is", async () => {
       const { received } = await pinningService();
       // Bytes a rewrite would change, under a type that says they are no image.
       const note = new File([cameraPhoto("image/jpeg")], "note.webm", { type: "audio/webm" });

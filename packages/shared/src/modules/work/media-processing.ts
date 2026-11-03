@@ -5,6 +5,7 @@ import {
   loadHeicDecoder,
 } from "./heic-conversion";
 import { withoutPhotoMetadata } from "../media/image-metadata";
+import { withoutVideoMetadata } from "../media/video-metadata";
 import { captureWorkFile, isHeicFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
@@ -139,12 +140,20 @@ export async function normalizeWorkMediaFiles(
   for (const pickedFile of files) {
     const file = await captureWorkFile(pickedFile);
     if (isVideoFile(file)) {
-      accepted.push({
-        file,
-        originalFile: file,
-        converted: false,
-        metadata: getSafeMediaMetadata(file),
-      });
+      // A video loses its location, device and capture time as it is picked
+      // too. One whose container cannot be read in full is refused: it could
+      // not be checked.
+      const published = await withoutVideoMetadata(file);
+      if (published) {
+        accepted.push({
+          file: published,
+          originalFile: file,
+          converted: false,
+          metadata: getSafeMediaMetadata(published),
+        });
+      } else {
+        rejected.push({ file, reason: "unsupported", metadata: getSafeMediaMetadata(file) });
+      }
       continue;
     }
 
@@ -235,10 +244,10 @@ export interface PreparedMedia {
 
 /**
  * Normalize a picker's files and compress the photos, the way both composers
- * do before queueing: HEIC converted, photo metadata removed, unsupported types
- * refused, large images brought under the upload ceiling, videos passed through
- * as they are. Kept here so the proof composer and the work composer cannot
- * drift on what a queued photo looks like.
+ * do before queueing: HEIC converted, photo and video metadata removed,
+ * unsupported types refused, large images brought under the upload ceiling.
+ * Kept here so the proof composer and the work composer cannot drift on what a
+ * queued photo looks like.
  */
 export async function prepareMediaForUpload(
   files: File[],
