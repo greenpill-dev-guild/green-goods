@@ -275,16 +275,16 @@ export function AddMembersDialog({
       setPending((current) => [...current.filter(isHeld), ...run.remaining]);
       setInput("");
       const refusedCount = run.remaining.filter((row) => row.refusal).length;
-      if (refusedCount > 0) {
-        setError(formatMessage({ id: "admin.addMember.refused" }, { count: refusedCount }));
-      } else if (run.thrown) {
+      if (run.thrown) {
+        // Refused rows show their own reasons, so this line names what else stopped the send.
         const { message, parsed } = parseAndFormatError(run.thrown);
         setError(parsed.isKnown ? message : addFailed);
+      } else if (refusedCount > 0) {
+        setError(formatMessage({ id: "admin.addMember.refused" }, { count: refusedCount }));
       } else if (run.failedCount > 0) {
         setError(addFailed);
       } else if (run.needsMoreSignatures) {
         setOverCeilings(memberListKey(run.remaining));
-        setError(formatMessage({ id: "admin.addMember.needsMoreSignatures" }));
       } else if (run.remaining.length === 0 && !hold) {
         closeAndReset();
       }
@@ -314,10 +314,13 @@ export function AddMembersDialog({
   const batchRoles = batchRows.map((entry) => entry.role);
   const batchCount = batchRoles.length;
   const submitLabel = addMembersSubmitLabel(batchRoles, selectedRole, formatMessage);
+  const pastCeilings = memberListKey(batchRows) === overCeilings;
   const signatureCount =
-    batch?.available && memberListKey(batchRows) !== overCeilings
-      ? batch.signaturesFor(batchCount)
-      : batchCount;
+    batch?.available && !pastCeilings ? batch.signaturesFor(batchCount) : batchCount;
+  // Shown while the list stays as it came back, naming the footer button that sends.
+  const ceilingNote = pastCeilings
+    ? formatMessage({ id: "admin.addMember.needsMoreSignatures" }, { action: submitLabel })
+    : null;
   const closeAndReset = () => {
     // Commits the empty draft first, so a close by route change finds no guard armed.
     flushSync(() => {
@@ -417,7 +420,7 @@ export function AddMembersDialog({
                 id="member-address"
                 className="min-w-0 flex-1"
                 label={formatMessage({ id: "app.admin.roles.addressLabel" })}
-                error={error || undefined}
+                error={error || ceilingNote || undefined}
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);

@@ -95,9 +95,9 @@ export interface CreateGardenStore {
 }
 
 const defaultSteps: CreateGardenStep[] = [
-  { id: "details", title: "Garden details", description: "Name, location and media" },
+  { id: "details", title: "Garden Details", description: "Name, location and media" },
   { id: "team", title: "Community", description: "Gardeners and stewards" },
-  { id: "review", title: "Review and create", description: "Confirm your setup" },
+  { id: "review", title: "Review and Create", description: "Confirm your setup" },
 ];
 
 export function createEmptyGardenForm(): CreateGardenFormState {

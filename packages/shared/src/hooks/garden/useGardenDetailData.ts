@@ -104,7 +104,11 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     atLimit: allocationsAtLimit,
     isLoading: allocationsLoading,
+    data: allocationsRead,
+    isError: allocationsFailed,
   } = useYieldAllocations(id as Address | undefined, { enabled: Boolean(id) });
+  // A failed first read leaves no history at all, which must not read as none paid out.
+  const allocationsUnread = allocationsFailed && allocationsRead === undefined;
 
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
@@ -212,6 +216,7 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsAtLimit,
     allocationsLoading,
+    allocationsUnread,
     works,
     // Current rows prove a stall alone only when they hold the whole history.
     worksComplete: worksCurrent && !hasOlderWork,

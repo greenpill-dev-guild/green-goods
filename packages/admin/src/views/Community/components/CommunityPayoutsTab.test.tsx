@@ -63,6 +63,7 @@ function renderPayouts({
           garden={storyGarden}
           allocations={allocations}
           allocationsAtLimit={allocationsAtLimit}
+          allocationsUnread={false}
           selectedItem={selectedItem}
         />
         <LocationProbe />

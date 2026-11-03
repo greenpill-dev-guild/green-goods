@@ -23,7 +23,7 @@ import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPane
 
 export type CommunityPayoutsTabProps = Pick<
   CommunityWorkspace,
-  "allocations" | "allocationsAtLimit" | "selectedItem"
+  "allocations" | "allocationsAtLimit" | "allocationsUnread" | "selectedItem"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
@@ -32,6 +32,7 @@ export function CommunityPayoutsTab({
   garden,
   allocations,
   allocationsAtLimit,
+  allocationsUnread,
   selectedItem,
 }: CommunityPayoutsTabProps) {
   const { formatMessage } = useIntl();
@@ -71,6 +72,7 @@ export function CommunityPayoutsTab({
             }
             allocationCount={allocations.length}
             allocationCountAtLeast={allocationsAtLimit}
+            allocationCountUnread={allocationsUnread}
           />
           {showCampaignJars ? (
             <section

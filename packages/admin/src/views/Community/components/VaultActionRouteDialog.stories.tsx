@@ -8,8 +8,8 @@ import {
 import {
   withAdminIdentityRole,
   withCanvasFrame,
+  withDataRouter,
   withSeededQueryClient,
-  withRouter,
 } from "../../../../../shared/.storybook/decorators";
 import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
@@ -95,7 +95,8 @@ export const RouteBackedWithdraw: Story = {
 export const RejectedGardenAddress: Story = {
   args: { action: "deposit" },
   tags: ["storybook-ci"],
-  decorators: [withRouter(["/community/endowment/vault/deposit?gardenId=community-garden"])],
+  // The garden comes from the prop; the dialog holds route changes, which needs a data router.
+  decorators: [withDataRouter("/community/endowment/vault/deposit")],
   render: () => <VaultActionRouteDialog action="deposit" gardenAddress="community-garden" />,
   play: async () => {
     const body = within(document.body);

@@ -79,6 +79,7 @@ const makeProps = (): Props => ({
   createAccount: vi.fn(async () => true),
   accountKind: null,
   sessionAccount: ACCOUNT,
+  resuming: false,
   resource: null,
   operation: null,
   issues: [],
@@ -230,6 +231,29 @@ describe("ceremony action bar", () => {
     expect(act).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent(/Can't sign this/);
     expect(act).toHaveAccessibleDescription(/won't sign/);
+  });
+
+  it("holds Continue until a refreshed tab has resumed its session", () => {
+    const props: Props = {
+      ...makeProps(),
+      stage: "intro",
+      purpose: null,
+      grant: null,
+      sessionAccount: null,
+      resuming: true,
+    };
+    const { rerender } = render(view(props));
+    // A challenge opened now would race the session the tab is resuming for the page.
+    fireEvent.click(within(bar()).getByRole("button", { name: "Continue" }));
+    rerender(view({ ...props, inAppBrowser: true }));
+    fireEvent.click(within(bar()).getByRole("button", { name: "Continue Here" }));
+    expect(props.start).not.toHaveBeenCalled();
+    // With nothing left to resume, the start is a start again.
+    rerender(view({ ...props, resuming: false }));
+    fireEvent.click(within(bar()).getByRole("button", { name: "Continue" }));
+    rerender(view({ ...props, resuming: false, inAppBrowser: true }));
+    fireEvent.click(within(bar()).getByRole("button", { name: "Continue Here" }));
+    expect(props.start).toHaveBeenCalledTimes(2);
   });
 
   it.each([
@@ -505,6 +529,29 @@ describe("top bar", () => {
     // Nothing is opened or signed for it.
     expect(props.start).not.toHaveBeenCalled();
     expect(props.prove).not.toHaveBeenCalled();
+  });
+
+  it("waits for a refreshed tab to resume its session before signing the browser out", () => {
+    const props: Props = {
+      ...makeProps(),
+      stage: "intro",
+      purpose: null,
+      grant: null,
+      sessionAccount: null,
+      resuming: true,
+    };
+    const { rerender } = render(view(props));
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    const sheet = screen.getByRole("dialog");
+    // The start screen may stand for a request that has moved on, so the account is named and
+    // nothing yet lets go of it.
+    expect(within(sheet).getByTitle(ACCOUNT)).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: /^Sign Out/ })).not.toBeInTheDocument();
+    // With nothing left to resume, the start is a start again.
+    rerender(view({ ...props, resuming: false }));
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Sign Out of This Browser" })
+    ).toBeInTheDocument();
   });
 
   it.each<[string, Props]>([

@@ -114,6 +114,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
       garden={workspace.garden}
       allocations={workspace.allocations}
       allocationsAtLimit={workspace.allocationsAtLimit}
+      allocationsUnread={workspace.allocationsUnread}
       selectedItem={workspace.selectedItem}
     />
   );

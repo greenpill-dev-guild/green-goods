@@ -6,7 +6,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { CopyValues } from "../copy";
 import { gardenScope } from "../gardens";
-import { type PromptRecord, typedChoice } from "../prompts";
+import { type PromptRecord, resolvePrompt, typedChoice } from "../prompts";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
@@ -116,7 +116,15 @@ export function handleReportAnswer(
   const { ctx, core } = writer;
   const draft = ctx.draft;
   const { prompt, option, text } = plan;
-  if (!draft || prompt.subjectId !== draft.id || !EDITABLE_STATES.has(lifecycleState(draft))) {
+  if (!draft || prompt.subjectId !== draft.id) {
+    // The question is about a report that has ended, or about another subject, so it no longer
+    // stands. Typed words are a message of their own, which may start a new report. A tap on one
+    // of its buttons puts the open report's question again, as a tap on an earlier question does.
+    resolvePrompt(core, prompt.id);
+    if (text || draft) handleReportMessage(writer, { kind: "message", text, media: [] }, external);
+    return;
+  }
+  if (!EDITABLE_STATES.has(lifecycleState(draft))) {
     writer.say("report.frozen");
     return;
   }

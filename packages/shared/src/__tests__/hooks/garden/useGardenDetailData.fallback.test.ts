@@ -81,8 +81,9 @@ vi.mock("../../../hooks/conviction/useGardenPools", () => ({
   useGardenPools: () => ({ pools: [] }),
 }));
 
+const mockUseYieldAllocations = vi.fn();
 vi.mock("../../../hooks/yield/useYieldAllocations", () => ({
-  useYieldAllocations: () => ({ allocations: [], isLoading: false }),
+  useYieldAllocations: () => mockUseYieldAllocations(),
 }));
 
 const mockUseWorks = vi.fn();
@@ -152,6 +153,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
       isError: false,
     });
     mockUseWorks.mockReturnValue(defaultWorksResult());
+    mockUseYieldAllocations.mockReturnValue({ allocations: [], isLoading: false });
     mockUseGardenPermissions.mockReturnValue({
       canManageGarden: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       canReviewGarden: vi.fn(() => false),
@@ -192,6 +194,18 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.hasStaleBaseList).toBe(true);
     expect(result.current.baseListError).toBeInstanceOf(Error);
     expect(result.current.canManage).toBe(true);
+  });
+
+  it.each([
+    ["a first read that failed", { isError: true, data: undefined }, true],
+    ["a failed refresh over a read history", { isError: true, data: [] }, false],
+    ["a read that found none", { isError: false, data: [] }, false],
+  ])("tells %s apart from an empty payout history", (_case, read, unread) => {
+    mockUseYieldAllocations.mockReturnValue({ allocations: [], isLoading: false, ...read });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.allocationsUnread).toBe(unread);
   });
 
   it("exposes a work collection failure separately from garden resolution", () => {

@@ -547,6 +547,70 @@ describe("albums", () => {
     expect(draft()?.revision).toBe(revision);
   });
 
+  it.each([
+    [
+      "a count of its own",
+      [
+        ["details.seedlings", 99],
+        ["details.species", "neem"],
+      ],
+    ],
+    [
+      "the gardener's count and the kept photos' notes",
+      [
+        ["details.seedlings", 12],
+        ["details.notes", "Seedlings in a row"],
+        ["details.species", "neem"],
+      ],
+    ],
+  ] as const)("takes back only what a photo pushed out by a late download alone read, when it read %s", async (_reading, pushedOut) => {
+    await plantingDraft();
+    await harness.say(ADA, "12");
+    const read = (facts: ReadonlyArray<readonly [string, unknown]>) => ({
+      observations: [],
+      uncertain: [],
+      facts: facts.map(([field, value]) => ({
+        field,
+        value,
+        page: null,
+        cell: null,
+        sumRange: null,
+        original: null,
+        unit: null,
+      })),
+    });
+    const notes = read([["details.notes", "Seedlings in a row"]]);
+    harness.openai = scriptedOpenAI([notes, notes, read(pushedOut), read([])]).config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "late photo" });
+    await postAlbum("kept", [{ message: 101 }, { message: 102 }]);
+    expect((await whenQuiet())[0]).toBe("2 photos added to your report.");
+
+    // The second album's first download fails, so the photo sent after it fills the last place.
+    await postAlbum("late", [{ message: 103, missing: true }, { message: 104 }]);
+    expect(await whenQuiet()).toEqual([]);
+    expect(draft()?.content.details.species).toBe("neem");
+
+    harness.mediaFiles.set("late-103", await shadedPhoto(103));
+    harness.clock.advance(20_000);
+    await harness.drain();
+    const replies = harness.transport.texts().slice(-2);
+    expect(replies[0]).toBe(`Photo added to your report. ${KEPT}`);
+    expect(replies[1]).toContain("Main species");
+    const content = draft()?.content;
+    expect(evidenceFiles(harness.core, draft())).toEqual(["kept-101", "kept-102", "late-103"]);
+    // Whatever the photo taken off agreed with stays: the gardener's answer is still theirs, and
+    // the notes keep the photos the report holds. Nothing in the report cites a photo it dropped.
+    expect(content?.details).toEqual({ seedlings: 12, notes: "Seedlings in a row" });
+    expect(content?.provenance["details.seedlings"]?.gardenerStated).toBe(true);
+    expect(content?.conflicts).toEqual([]);
+    const held = new Set(content?.evidence.map((photo) => photo.assetId));
+    const cited = Object.values(content?.provenance ?? {})
+      .flatMap((field) => field?.sources ?? [])
+      .flatMap((source) => (source.assetId ? [source.assetId] : []));
+    expect(cited).not.toHaveLength(0);
+    expect(cited.filter((assetId) => !held.has(assetId))).toEqual([]);
+  });
+
   it("withdraws a summary or confirmation when photos follow it, until they are in", async () => {
     const shown = await reportUntilSummary(harness);
     await postAlbum("late", [{ message: 41 }, { message: 42 }]);

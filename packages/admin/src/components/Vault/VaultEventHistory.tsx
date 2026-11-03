@@ -14,6 +14,7 @@ import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiHistoryLine, RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminCard } from "@/components/AdminCard";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
@@ -52,7 +53,8 @@ export function VaultEventHistory({
   const visibleEvents = useMemo(() => events.slice(0, visibleCount), [events, visibleCount]);
 
   return (
-    <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
+    // The shared card surface, as every cockpit card (DL-102).
+    <AdminCard className="sm:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="type-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.treasury.events" })}
@@ -215,6 +217,6 @@ export function VaultEventHistory({
           )}
         </>
       )}
-    </section>
+    </AdminCard>
   );
 }
