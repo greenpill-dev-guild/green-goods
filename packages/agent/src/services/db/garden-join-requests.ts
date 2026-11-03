@@ -149,7 +149,6 @@ export function listPendingGardenJoinRequests(
   };
 }
 
-/** Reads plain columns only: the waiting total never needs the cipher. */
 /** What a pending count covers: one garden at one moment, and one kind or every kind. */
 export type PendingCountScope = [
   gardenAddress: Address,
@@ -157,11 +156,11 @@ export type PendingCountScope = [
   kind?: GardenJoinRequestKind,
 ];
 
+/** Reads plain columns only: the waiting total, or one queue's, never needs the cipher. */
 export function countPendingGardenJoinRequests(
   db: Database,
   ...[gardenAddress, nowIso, kind]: PendingCountScope
 ): number {
-  // Plain columns only: a count never decrypts a request.
   const { count } = (
     kind
       ? db
