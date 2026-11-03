@@ -621,6 +621,35 @@ describe("reporting ceremony page", () => {
     ]);
   });
 
+  it("says it is resuming a refreshed tab's session until the Agent answers, either way", async () => {
+    // A link opened fresh has nothing to resume.
+    const first = render();
+    expect(first.result.current.resuming).toBe(false);
+    await reachReview(first.result);
+    first.unmount();
+
+    // Until the Agent answers, the start screen may stand for a request that has moved on.
+    let answer = () => {};
+    agent.accessReply = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    const second = render();
+    expect(second.result.current).toMatchObject({ stage: "intro", resuming: true });
+    await act(async () => answer());
+    await waitFor(() => expect(second.result.current.stage).toBe("review"));
+    expect(second.result.current.resuming).toBe(false);
+    second.unmount();
+
+    // A session that ended while the tab was away leaves the page on its start, with nothing
+    // left to resume.
+    agent.accessEnded = true;
+    const { result } = render();
+    expect(result.current.resuming).toBe(true);
+    await waitFor(() => expect(result.current.resuming).toBe(false));
+    expect(result.current.stage).toBe("intro");
+    expect(readCeremony("request-0123456789abcdef")).toBeNull();
+  });
+
   it("prepares the first report without signing, then reserves before the owner enables and publishes", async () => {
     wallet("send");
     const { result } = render();

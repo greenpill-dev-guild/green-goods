@@ -46,6 +46,7 @@ type CeremonyViewProps = Pick<
   | "createAccount"
   | "accountKind"
   | "sessionAccount"
+  | "resuming"
   | "resource"
   | "operation"
   | "grant"
@@ -141,8 +142,9 @@ export function CeremonyView(props: CeremonyViewProps) {
 
   // Until the page asks the connected account for a signature, the profile can sign this browser
   // out of it at once: no Continue and no signature, so another account can connect. On the
-  // account step this is the same release as the link under its rows.
-  const canSignOut = props.account !== null && UNSIGNED.has(stage);
+  // account step this is the same release as the link under its rows. A refreshed tab first
+  // resumes its session: until it has, its start may stand for a request that has moved on.
+  const canSignOut = props.account !== null && UNSIGNED.has(stage) && !props.resuming;
   // Past that, letting go of the connected account is offered only where the page says another
   // account must sign. Never while something is being signed or sent, and never once a code is
   // on screen, which stays the code of the account that proved it.

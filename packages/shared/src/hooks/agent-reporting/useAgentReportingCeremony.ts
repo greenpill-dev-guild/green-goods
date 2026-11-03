@@ -191,7 +191,10 @@ export function useAgentReportingCeremony(
     [openAccess, update]
   );
 
-  // A refreshed tab resumes its own session; nothing is requested for a link opened fresh.
+  // A refreshed tab resumes its own session; nothing is requested for a link opened fresh. The page
+  // shows its start until the Agent answers, so `resuming` holds until the attempt ends, however
+  // it ends.
+  const [resuming, setResuming] = useState(() => Boolean(readCeremony(requestId)?.accessId));
   useAsyncEffect(
     async ({ isMounted }) => {
       const stored = readCeremony(requestId);
@@ -218,6 +221,8 @@ export function useAgentReportingCeremony(
         if (stored.pendingGrant || stored.pendingGrantActivation) {
           if (isMounted()) update({ stage: "grant_submitted", error: "outcome_unknown" });
         } else clearCeremony(requestId);
+      } finally {
+        if (isMounted()) setResuming(false);
       }
     },
     [client, requestId]
@@ -462,6 +467,7 @@ export function useAgentReportingCeremony(
     skipCommunity,
     joinCommunity,
     sessionAccount: state.access?.account ?? null,
+    resuming,
     resource: state.resource,
     operation: state.operation,
     grant: state.grant,

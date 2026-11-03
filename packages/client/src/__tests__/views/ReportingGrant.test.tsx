@@ -79,6 +79,7 @@ const makeProps = (): Props => ({
   createAccount: vi.fn(async () => true),
   accountKind: null,
   sessionAccount: ACCOUNT,
+  resuming: false,
   resource: null,
   operation: null,
   issues: [],
@@ -505,6 +506,29 @@ describe("top bar", () => {
     // Nothing is opened or signed for it.
     expect(props.start).not.toHaveBeenCalled();
     expect(props.prove).not.toHaveBeenCalled();
+  });
+
+  it("waits for a refreshed tab to resume its session before signing the browser out", () => {
+    const props: Props = {
+      ...makeProps(),
+      stage: "intro",
+      purpose: null,
+      grant: null,
+      sessionAccount: null,
+      resuming: true,
+    };
+    const { rerender } = render(view(props));
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    const sheet = screen.getByRole("dialog");
+    // The start screen may stand for a request that has moved on, so the account is named and
+    // nothing yet lets go of it.
+    expect(within(sheet).getByTitle(ACCOUNT)).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: /^Sign Out/ })).not.toBeInTheDocument();
+    // With nothing left to resume, the start is a start again.
+    rerender(view({ ...props, resuming: false }));
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Sign Out of This Browser" })
+    ).toBeInTheDocument();
   });
 
   it.each<[string, Props]>([
