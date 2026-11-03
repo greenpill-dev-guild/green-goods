@@ -1,5 +1,6 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
+import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActionEditorController } from "@green-goods/shared/hooks/admin-ui/actions/useActionEditorController";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@green-goods/shared/utils/time";
@@ -34,6 +35,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
     isPendingEdit,
     isCheckingConfirmation,
     checkConfirmation,
+    holdFeedback,
     isLoadingInstructions,
     setInstructionConfig,
     setIsEditingInstructions,
@@ -188,6 +190,8 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           ) : null}
         </AdminCard>
 
+        {holdFeedback ? <TxHoldFeedback {...holdFeedback} /> : null}
+
         <AdminCard className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           {isPendingEdit ? (
             <>
@@ -215,7 +219,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
               type="submit"
               emphasis="primary"
               size="sm"
-              disabled={isLoading}
+              disabled={isLoading || holdFeedback !== null}
               loading={isLoading}
             >
               {formatMessage({ id: "app.actions.edit.saveChanges" })}
