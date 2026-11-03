@@ -138,3 +138,18 @@ it("uses ordinary transaction estimation for one native call without requiring a
   expect(estimateGas).toHaveBeenCalledOnce();
   expect(reader.simulateCalls).not.toHaveBeenCalled();
 });
+
+it("quotes a call that asks for headroom at the limit it is sent with", async () => {
+  const { reader, limits } = wallet();
+  const estimating = { ...reader, estimateGas: vi.fn(async () => 900n) };
+  const calls = [createMockContractCall({ account, gasHeadroomPercent: 50 })];
+  const roomy = { ...limits, maxGas: "1350", maxFee: "2700" };
+  expect(await quoteWalletBatch(estimating, calls, roomy)).toMatchObject({
+    gas: "1350",
+    maxFee: "2700",
+  });
+  // Its bare estimate fits a smaller ceiling; the limit it would be sent with does not.
+  await expect(quoteWalletBatch(estimating, calls, { ...roomy, maxGas: "1200" })).rejects.toThrow(
+    "batch-budget-exceeded"
+  );
+});

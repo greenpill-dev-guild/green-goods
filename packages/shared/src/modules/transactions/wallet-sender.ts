@@ -238,12 +238,17 @@ export class WalletSender implements TransactionSender {
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
+    let quote: BatchQuote | undefined;
     if (options.batchBudget) {
-      await this.preflightBatch([{ ...call, chainId }], options.batchBudget);
+      quote = await this.preflightBatch([{ ...call, chainId }], options.batchBudget);
       await this.assertSigner(call, options);
     }
-    // A call that asks for headroom gets its limit here; the wallet sizes any other.
-    const gas = await walletGasLimit(call, call.account!, chainId, this.deps.estimateGas!);
+    // A call that asks for headroom gets its limit here, and in a batch that is the gas its budget
+    // was checked at. The wallet sizes any other.
+    const gas =
+      quote && call.gasHeadroomPercent
+        ? BigInt(quote.gas)
+        : await walletGasLimit(call, call.account!, chainId, this.deps.estimateGas!);
     if (gas !== undefined) await this.assertSigner(call, options);
     // The wallet approves and broadcasts in one step, so the intent is recorded
     // before asking. A rejected prompt is recognised and clears it.
