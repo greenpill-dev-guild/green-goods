@@ -85,6 +85,21 @@ describe("assertWalletCanFundTransaction", () => {
     ).rejects.toMatchObject({ required: 2000n, balance: 1500n });
   });
 
+  it("prices the gas over the estimate that the send will ask for", async () => {
+    // 2040 covers 1000 of value and 100 gas at 10, but not the 105 gas a 5% headroom sends.
+    const reader = createReader({ balance: 2040n, gas: 100n, fees: { maxFeePerGas: 10n } });
+
+    await expect(
+      assertWalletCanFundTransaction(reader, {
+        account: WALLET,
+        to: ENS,
+        data: CLAIM_DATA,
+        value: 1000n,
+        gasHeadroomPercent: 5,
+      })
+    ).rejects.toMatchObject({ required: 2050n, balance: 2040n });
+  });
+
   it("prices gas with the legacy gas price when the chain reports no fee cap", async () => {
     const reader = createReader({ balance: 999n, gas: 100n, fees: { gasPrice: 10n } });
 

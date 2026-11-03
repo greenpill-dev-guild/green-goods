@@ -9,6 +9,7 @@ import {
 import { beforeEach } from "vitest";
 import { withGasHeadroom } from "../../modules/transactions/gas-headroom";
 import type { TransactionSender, TxResult } from "../../modules/transactions/types";
+import { WalletCannotFundTransactionError } from "../../modules/transactions/wallet-funding";
 import { WeightScheme } from "../../types/gardens-community";
 
 const mocks = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   readContract: vi.fn(),
   waitReceipt: vi.fn(),
   receipt: vi.fn(),
+  estimateGas: vi.fn(async () => 1n),
 }));
 vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: mocks.simulate }));
 vi.mock("@wagmi/core", () => ({ waitForTransactionReceipt: mocks.waitReceipt }));
@@ -28,7 +30,7 @@ vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
       readContract: mocks.readContract,
       getTransactionReceipt: mocks.receipt,
       getBalance: async () => 10n ** 18n,
-      estimateGas: async () => 1n,
+      estimateGas: mocks.estimateGas,
       estimateFeesPerGas: async () => ({ maxFeePerGas: 1n }),
     },
   }),
@@ -236,6 +238,16 @@ describe("garden writes through the shared account sender", () => {
     // last step needs 25,271,190. A named garden's 25,536,980 mint must stay under the 32M cap.
     expect(withGasHeadroom(24_835_549n, [mint])).toBeGreaterThanOrEqual(25_271_190n);
     expect(withGasHeadroom(25_536_980n, [mint])).toBeLessThanOrEqual(32_000_000n);
+  });
+  it("checks that a wallet can pay for the gas the mint is sent with", async () => {
+    const { sender, ports } = adapter("wallet");
+    // At 1 wei a gas, the 1 ETH balance covers this estimate but not the mint's headroom over it.
+    mocks.estimateGas.mockResolvedValueOnce(970_000_000_000_000_000n);
+
+    await expect(createGarden(command, ports)).rejects.toBeInstanceOf(
+      WalletCannotFundTransactionError
+    );
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
   it("checkpoints a garden UserOperation before receipt failure and recovers without minting twice", async () => {
     const { sender } = adapter("passkey");

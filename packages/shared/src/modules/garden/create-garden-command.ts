@@ -346,6 +346,7 @@ export function createDefaultCreateGardenPorts(input: {
               args: [config],
             }),
             value: ccipFee,
+            gasHeadroomPercent: GARDEN_MINT_GAS_HEADROOM_PERCENT,
           });
         }
         const result = await sendCheckpointedCall(
