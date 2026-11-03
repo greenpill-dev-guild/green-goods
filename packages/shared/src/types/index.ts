@@ -98,7 +98,6 @@ export type {
   CookieJarWithdrawParams,
   CreateCampaignCookieJarParams,
   IndexedCampaignCookieJar,
-  SyncCampaignCookieJarAllowlistParams,
 } from "./cookie-jar";
 // ============================================
 // Garden Detail Types
