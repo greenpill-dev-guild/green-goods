@@ -6,8 +6,18 @@ import type { ServiceIssuerAsset, ServiceIssuerRoute } from "./service-issuer-ty
 export const SERVICE_ISSUER_ROUTES: readonly ServiceIssuerRoute[] = [GREEN_GOODS_ISSUER_ROUTE];
 export const ISSUER_REVIEW_SECONDS = 300n;
 export const issuerSame = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-export const issuerDigest = (value: unknown): Hex =>
-  keccak256(stringToHex(JSON.stringify(value, (_, v) => (typeof v === "bigint" ? `${v}n` : v))));
+const digest = (value: unknown, omitted?: string): Hex =>
+  keccak256(
+    stringToHex(
+      JSON.stringify(value, (k, v) =>
+        k === omitted ? undefined : typeof v === "bigint" ? `${v}n` : v
+      )
+    )
+  );
+export const issuerDigest = (value: unknown): Hex => digest(value);
+/** What an issuer transaction commits to; the access manager a pin accepts as owner is not part of it. */
+export const issuerConfiguration = (route: ServiceIssuerRoute): Hex =>
+  digest(route, "accessManager");
 export const issuerSerialize = (value: unknown) =>
   JSON.stringify(value, (_, v) => (typeof v === "bigint" ? { bigint: v.toString() } : v));
 export const issuerDeserialize = (value: string): unknown =>

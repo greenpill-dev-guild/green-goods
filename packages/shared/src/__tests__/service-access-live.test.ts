@@ -457,6 +457,20 @@ describe("live service access", () => {
     expect(f.sender.sendContractCall).toHaveBeenCalledOnce();
   });
 
+  it("reconciles a receipt kept before its pins named the access manager", async () => {
+    const f = fixture();
+    f.setFailReceipt(true);
+    await expect(f.adapter().execute(key, f.action)).rejects.toThrow("RPC unavailable");
+    expect(f.storage.size).toBe(1);
+    for (const pin of [f.route.core, f.route.source, f.route.destination])
+      pin.accessManager = GREEN_GOODS_ACCESS_MANAGER;
+    f.setFailReceipt(false);
+    const restored = await f.adapter().read(key);
+    expect(f.storage.size).toBe(0);
+    expect(restored.voucherSetups[0]!.destination!.allowance).toBe(100n);
+    expect(f.sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
   it.each([
     "cancel",
     "revert",
