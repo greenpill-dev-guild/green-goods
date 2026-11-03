@@ -1145,7 +1145,7 @@ body {
   /* Link-hover step: the generated DesignMD tertiary-action-hover resolves to
    * a green measuring 4.29:1 on white — one step deeper (green-900, 7.19)
    * keeps the resting→hover darkening while clearing body-text AA. Dark mode
-   * re-points the .text-primary-* classes separately below. */
+   * sets its own step in the block below. */
   --primary-darker: var(--green-900);
   /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
   --orange-50: 255 251 235;
@@ -1196,6 +1196,13 @@ body {
 }
 
 [data-theme="dark"] body {
+  /* Link-hover step in dark: green-200, the canvas's own dark step. The light
+   * step sits on <body>, below theme.css's dark block on <html>, so without this
+   * the dialogs, sheets and command palette that portal to <body> would hover
+   * and select in green-900 on a dark surface (the palette's selected row read
+   * 1.46:1). */
+  --primary-darker: var(--green-200);
+
   /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
   --orange-500: 245 158 11;    /* #F59E0B */
   --red-500: 248 113 113;      /* #F87171 */

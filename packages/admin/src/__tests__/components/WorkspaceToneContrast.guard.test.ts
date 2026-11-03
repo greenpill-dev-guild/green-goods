@@ -27,6 +27,7 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(resolve(__dirname, path), "utf-8");
 const tokens = read("../../styles/admin-m3-tokens.css");
 const theme = read("../../../../shared/src/styles/theme.css");
+const generated = read("../../../../shared/src/styles/design-md.generated.css");
 const app = read("../../index.css");
 const storybook = read("../../../../shared/.storybook/surfaces.css");
 const fabButton = read("../../components/Shell/FabButton.tsx");
@@ -187,6 +188,38 @@ describe("workspace tone fills", () => {
         const opacity = STATES.find((entry) => entry.state === state)?.opacity ?? Number.NaN;
         const ratio = contrast(over(fill, layer, opacity), ink);
         expect(ratio, `${label} selected chip ${pseudo}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("gives the link-hover step a dark value, so dialogs hover and select at AA", () => {
+    // Dialogs, sheets and the command palette portal to <body>, outside the
+    // .admin-m3 block that lifts the step on the canvas, so they read <body>'s.
+    const themes = {
+      light: [RAMP.body, blocks(tokens, ":root"), blocks(theme, ":root"), generated, theme],
+      dark: [
+        RAMP_DARK.body,
+        RAMP.body,
+        blocks(tokens, '[data-theme="dark"]'),
+        blocks(theme, '[data-theme="dark"]'),
+        blocks(tokens, ":root"),
+        blocks(theme, ":root"),
+        generated,
+        theme,
+      ],
+    };
+    for (const [name, scopes] of Object.entries(themes)) {
+      const ink = resolveRgb("--primary-darker", scopes);
+      // A link hovers on the dialog's surface; the palette's selected row lays
+      // --primary-base at 16% over it (bg-primary-alpha-16).
+      const tint = resolveRgb("--primary-base", scopes);
+      for (const surface of ["--m3-surface-container", "--m3-surface-container-high"]) {
+        const fill = resolveRgb(surface, scopes);
+        expect(contrast(ink, fill), `${name} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+        const selected = over(fill, tint, 0.16);
+        expect(contrast(ink, selected), `${name} selected on ${surface}`).toBeGreaterThanOrEqual(
+          4.5
+        );
       }
     }
   });
