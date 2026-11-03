@@ -3,7 +3,7 @@
  *
  * A person is an item row led by their avatar: their profile photo, or the surface's own picture
  * or a person glyph when they have none, which also holds the circle while the photo is looked
- * up, so a slow profile or ENS read never leaves it blank (DL-161). The title
+ * up or still downloading, so a slow read never leaves it blank (DL-161). The title
  * is their name as the shared address display resolves it (their Green Goods name, then their
  * ENS name, then the name the list holds for them, then a short address), so a person reads the
  * same in every list. The row's one pill is their highest role, or the state of what they are
@@ -64,7 +64,7 @@ export const PersonRow = React.forwardRef<HTMLElement, PersonRowProps>(function 
         <ItemRow
           {...row}
           ref={ref}
-          lead={{ kind: "avatar", src: avatar.avatarUri }}
+          lead={{ kind: "avatar", src: avatar.avatarUri, fallbackSrc: fallbackAvatar }}
           title={name}
           status={pill}
         />

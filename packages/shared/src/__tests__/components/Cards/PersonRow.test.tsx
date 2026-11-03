@@ -8,7 +8,7 @@
  * browser by the PersonRow stories.
  */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
@@ -82,6 +82,22 @@ describe("PersonRow", () => {
     expect(container.querySelector("img")).toHaveAttribute("src", "/images/avatar.png");
     // A list's rows read their photos together, on the batch route.
     expect(hooks.avatar).toHaveBeenCalledWith(person, "/images/avatar.png", 42161, { list: true });
+
+    // A photo still downloading keeps the surface's picture behind it until it has loaded.
+    const photo = "https://images.example/photo.webp";
+    const sources = () =>
+      [...container.querySelectorAll(".gg-item-row-avatar img")].map((img) =>
+        img.getAttribute("src")
+      );
+    hooks.avatar.mockReturnValue({ avatarUri: photo, isLoading: false });
+    rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <PersonRow address={person} fallbackAvatar="/images/avatar.png" />
+      </IntlProvider>
+    );
+    expect(sources()).toEqual(["/images/avatar.png", photo]);
+    fireEvent.load(container.querySelector(`img[src="${photo}"]`) as HTMLImageElement);
+    expect(sources()).toEqual([photo]);
 
     const avatar = () => container.querySelector(".gg-item-row-avatar");
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: false });

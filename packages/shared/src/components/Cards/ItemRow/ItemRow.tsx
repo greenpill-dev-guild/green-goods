@@ -69,10 +69,15 @@ export type ItemRowLead =
       kind: "avatar";
       /**
        * The person's photo, or the surface's own picture for someone without one; without
-       * either, or when it fails, the circle shows a person glyph. While a photo is still being
-       * looked up this is what the person would show without one, so the circle is never blank.
+       * either the circle shows a person glyph. While a photo is still being looked up this is
+       * what the person would show without one, so the circle is never blank.
        */
       src?: string | null;
+      /**
+       * The surface's own picture for someone without a photo. It stays behind a photo until the
+       * photo has loaded and takes its place if it fails; without it the glyph does both.
+       */
+      fallbackSrc?: string;
       /** An avatar repeats the person's name, so it is decorative unless this names it. */
       alt?: string;
     };
@@ -131,6 +136,17 @@ function Mark({ children }: { children: React.ReactNode }) {
 
 function Lead({ lead }: { lead: ItemRowLead }) {
   if (lead.kind === "avatar") {
+    // What someone without a photo shows: the surface's own picture, else the glyph. It also
+    // stays behind a photo until the photo has loaded, and takes its place if it fails, so the
+    // circle is never blank while a photo is on its way.
+    const withoutPhoto = lead.fallbackSrc ? (
+      <img src={lead.fallbackSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    ) : (
+      <span className="absolute inset-0 flex items-center justify-center">
+        <RiUserLine aria-hidden="true" className="h-6 w-6" />
+      </span>
+    );
+    const isPhoto = lead.src !== lead.fallbackSrc;
     return (
       <span className="gg-item-row-lead">
         {/* A decorative avatar stays out of the row's name, a photo that failed included. */}
@@ -140,11 +156,12 @@ function Lead({ lead }: { lead: ItemRowLead }) {
               src={lead.src}
               alt={lead.alt ?? ""}
               fallbackIcon={RiUserLine}
+              backgroundFallback={isPhoto ? withoutPhoto : undefined}
               className="absolute inset-0 h-full w-full object-cover"
               fallbackClassName="absolute inset-0 h-full w-full"
             />
           ) : (
-            <RiUserLine aria-hidden="true" />
+            withoutPhoto
           )}
         </span>
       </span>
