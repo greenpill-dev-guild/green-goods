@@ -1200,4 +1200,14 @@ body {
   --orange-500: 245 158 11;    /* #F59E0B */
   --red-500: 248 113 113;      /* #F87171 */
   --sky-500: 96 165 250;       /* #60A5FA */
+
+  /* Information state in dark. The remap above sits on <body>, below theme.css's
+   * dark block on <html>, so without these the info roles keep their light
+   * shades in dark. They follow theme.css's dark roles on the azure ramp: a light
+   * ink (sky-300, since sky-400 is this --sky-500 and reads 4.1:1 on a dialog),
+   * the lifted -500 for fills, and that -500 at 24% and 16% for edge and box. */
+  --information-dark: var(--sky-300);
+  --information-base: var(--sky-500);
+  --information-light: var(--sky-500) / 24%;
+  --information-lighter: var(--sky-500) / 16%;
 }
