@@ -1705,6 +1705,7 @@
       ],
       "exact": [
         "packages/shared/src/config/passkeyServer.ts",
+        "packages/shared/src/hooks/action/useActionEditBatch.ts",
         "packages/shared/src/hooks/action/useActionOperations.ts",
         "packages/shared/src/hooks/admin-ui/actions/useActionEditorController.ts",
         "packages/shared/src/hooks/admin-ui/actions/useCreateActionController.ts",
@@ -1805,6 +1806,7 @@
         "packages/shared/src/hooks/profile/useProfileAvatar.ts",
         "packages/shared/src/hooks/yield/useAllocateYield.ts",
         "packages/shared/src/hooks/yield/useHarvestDistribution.ts",
+        "packages/shared/src/modules/action/action-edit-batch.ts",
         "packages/shared/src/modules/action/action-operation-command.ts",
         "packages/shared/src/modules/agent-reporting/browser-grant-activation.ts",
         "packages/shared/src/modules/agent-reporting/ceremony-send.ts",
