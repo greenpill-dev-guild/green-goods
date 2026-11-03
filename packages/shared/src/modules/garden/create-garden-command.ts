@@ -13,6 +13,7 @@ import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
 import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
+import { withGasHeadroom } from "../transactions/gas-headroom";
 import { assertWalletCanFundTransaction } from "../transactions/wallet-funding";
 import type {
   BroadcastReference,
@@ -80,6 +81,7 @@ export type GardenNameFunding = "reserve" | "creator" | "later";
 export interface GardenCreationEstimate {
   gasEstimate: bigint;
   gasPrice: bigint;
+  /** Gas at the limit the mint is sent with, the estimate plus its headroom, at `gasPrice`. */
   txFee: bigint;
   ccipFee: bigint;
   nameFunding: GardenNameFunding;
@@ -207,7 +209,10 @@ export async function estimateGardenCreation(
     chainId: command.chainId,
     ccipFee,
   });
-  const txFee = gasEstimate * gasPrice;
+  const gasLimit = withGasHeadroom(gasEstimate, [
+    { gasHeadroomPercent: GARDEN_MINT_GAS_HEADROOM_PERCENT },
+  ]);
+  const txFee = gasLimit * gasPrice;
   const totalEstimatedFee = txFee + ccipFee;
   return {
     gasEstimate,

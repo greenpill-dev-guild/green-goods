@@ -76,7 +76,7 @@ function createPorts(events: string[] = []): CreateGardenPorts {
       waitForReceipt: vi.fn(async () => {
         events.push("receipt");
       }),
-      estimateTransaction: vi.fn(async () => ({ gasEstimate: 10n, gasPrice: 3n })),
+      estimateTransaction: vi.fn(async () => ({ gasEstimate: 1000n, gasPrice: 3n })),
     },
     sender: {
       reconcile: vi.fn(async () => ({ status: "unresolved" as const })),
@@ -153,20 +153,21 @@ describe("createGarden", () => {
 });
 
 describe("estimateGardenCreation", () => {
-  it("returns the complete transaction and CCIP fee estimate", async () => {
+  it("prices the network fee at the gas the mint is sent with, plus the CCIP fee", async () => {
     const ports = createPorts();
 
+    // 1,000 gas estimated goes out at 1,050 with the mint's headroom, at 3 wei a gas.
     await expect(estimateGardenCreation(command, { reader: ports.reader })).resolves.toEqual({
-      gasEstimate: 10n,
+      gasEstimate: 1000n,
       gasPrice: 3n,
-      txFee: 30n,
+      txFee: 3150n,
       ccipFee: 5n,
       nameFunding: "creator",
-      totalEstimatedFee: 35n,
+      totalEstimatedFee: 3155n,
       formatted: {
-        txFeeEth: "0.00000000000000003",
+        txFeeEth: "0.00000000000000315",
         ccipFeeEth: "0.000000000000000005",
-        totalEth: "0.000000000000000035",
+        totalEth: "0.000000000000003155",
       },
     });
     expect(ports.reader.estimateTransaction).toHaveBeenCalledWith(
