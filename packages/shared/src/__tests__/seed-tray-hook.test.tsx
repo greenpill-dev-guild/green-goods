@@ -11,7 +11,7 @@
  * real queue in its own test; here it is scripted.
  */
 
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useSeedTray, type SeedCopyTerms } from "../hooks/admin-ui/pool/useSeedTray";
@@ -28,12 +28,14 @@ import { renderHookWithProviders } from "./test-utils/render-helpers";
 const send = vi.hoisted(() => ({
   script: (copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
   calls: [] as CreationCopy[][],
+  oneByOne: [] as boolean[],
 }));
 
 vi.mock("../modules/commitment-pooling/creation-send", () => ({
   creationSendMode: vi.fn(async () => "bundle"),
   sendCreationCopies: vi.fn(async (input: CreationSendInput) => {
     send.calls.push([...input.copies]);
+    send.oneByOne.push(Boolean(input.oneByOne));
     return input.copies.map((copy) => {
       const progress = {
         clientCommitmentId: copy.clientCommitmentId,
@@ -90,6 +92,7 @@ const payloadOf = (copy: CreationCopy) =>
 
 beforeEach(() => {
   send.calls = [];
+  send.oneByOne = [];
   send.script = () => ({ status: "created" });
 });
 
@@ -182,6 +185,20 @@ describe("useSeedTray", () => {
     expect(view.result.current.tray.pass?.map((copy) => copy.clientCommitmentId)).toEqual(
       retry!.map((copy) => copy.clientCommitmentId)
     );
+  });
+
+  it("asks once per promise after a bundle past its ceilings, and says so before the next Create", async () => {
+    const { view, write, create } = setup();
+    write(surveys);
+    await waitFor(() => expect(view.result.current.tray.mode).toBe("bundle"));
+    send.script = () => ({ status: "not-sent", miss: "over-ceilings" });
+
+    expect(await create()).toBe("left");
+    expect(view.result.current.tray.mode).toBe("one-by-one");
+
+    send.script = () => ({ status: "created" });
+    expect(await create()).toBe("sent");
+    expect(send.oneByOne).toEqual([false, true]);
   });
 
   it("locks a row once some of it exists: its answers can't be changed or removed", async () => {
