@@ -6,7 +6,7 @@ export type BatchRail = "passkey" | "wallet";
 export type DepositAction = "vault-deposit" | "jar-deposit";
 
 /** What a caller names when it asks a sender whether it may group its own writes. */
-export type AtomicBatchAction = "pool-setup";
+export type AtomicBatchAction = "pool-setup" | "commitment-creations" | "reward-edits";
 
 interface RailListing {
   rail: BatchRail;

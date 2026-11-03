@@ -4,9 +4,10 @@
  * The steward chooses only how many. At the first Add the new copies are fixed
  * once, like a seeding set: their ids, and payloads built from one copy of the
  * group read from the chain (`modules/commitment-pooling/group-additions`). They
- * are sent through `creation-send` exactly as a set is, so a wallet that can
- * bundle is asked once per ten, and a Try Again sends only the ones that didn't
- * send, as they were built.
+ * are sent through `creation-send` exactly as a set is, so a wallet or passkey
+ * that can bundle is asked once per ten, and a Try Again sends only the ones
+ * that didn't send, as they were built. A bundle past a passkey's ceilings is
+ * asked once per copy from then on, and `mode` says so before the next press.
  *
  * @module hooks/admin-ui/pool/useAddToGroup
  */
@@ -113,17 +114,19 @@ export function useAddToGroup(input: {
   const { chainId, owner, group, offerRoom = null } = input;
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<CreationSendMode | null>(null);
+  const [probed, setProbed] = useState<CreationSendMode | null>(null);
+  const [pastCeilings, setPastCeilings] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [set, setSet] = useState<AdditionSet | null>(null);
   const [passIds, setPassIds] = useState<readonly string[] | null>(null);
   // Progress arrives copy by copy while React batches renders.
   const setRef = useRef<AdditionSet | null>(null);
+  const mode = probed === "bundle" && pastCeilings ? "one-by-one" : probed;
 
   useAsyncEffect(
     async ({ isMounted }) => {
       const next = await creationSendMode(sender, chainId);
-      if (isMounted()) setMode(next);
+      if (isMounted()) setProbed(next);
     },
     [sender, chainId]
   );
@@ -135,6 +138,7 @@ export function useAddToGroup(input: {
   const reset = useCallback(() => {
     replaceSet(null);
     setPassIds(null);
+    setPastCeilings(false);
   }, [replaceSet]);
 
   /** The copies of a new addition, fixed once: ids, the group's deadline and terms. */
@@ -248,7 +252,7 @@ export function useAddToGroup(input: {
       setPassIds([...sentThisPass]);
       setIsSending(true);
       try {
-        await sendCreationCopies({
+        const ended = await sendCreationCopies({
           copies: toSend,
           queue: jobQueue,
           sender,
@@ -256,7 +260,9 @@ export function useAddToGroup(input: {
           chainId,
           onCopy: report,
           clearable: () => seedSetClearableAfter(progress, sentThisPass),
+          oneByOne: pastCeilings,
         });
+        if (ended.some((copy) => copy.miss === "over-ceilings")) setPastCeilings(true);
       } finally {
         setIsSending(false);
         await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
