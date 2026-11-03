@@ -160,7 +160,8 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           ) : (
             groups.map((group) => (
               <div key={group.category} role="group" aria-label={group.label}>
-                <div className="px-2 py-1.5 type-meta-sm text-text-soft">{group.label}</div>
+                {/* The sub ink: the soft ink on this fill is 3.95:1, short of AA at 11px. */}
+                <div className="px-2 py-1.5 type-meta-sm text-text-sub">{group.label}</div>
                 {group.items.map((result) => {
                   const index = flatIndex++;
                   const isActive = index === activeIndex;

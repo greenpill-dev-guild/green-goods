@@ -23,6 +23,9 @@ const cookieJarMutationState = vi.hoisted(() => ({
   withdrawMutate: vi.fn(),
   depositReset: vi.fn(),
   withdrawReset: vi.fn(),
+  // What a send fails with, kept until reset clears it, as TanStack Query keeps a mutation's error.
+  depositFailure: null as Error | null,
+  withdrawFailure: null as Error | null,
   jarOverrides: {} as Record<string, unknown>,
   extraJars: [] as Record<string, unknown>[],
   readOverrides: {} as Record<string, unknown>,
@@ -36,12 +39,35 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x9999999999999999999999999999999999999999" }),
 }));
 
-vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", () => ({
-  useCookieJarDeposit: () => ({
-    error: cookieJarMutationState.depositError,
-    isPending: cookieJarMutationState.depositPending,
-    mutate: cookieJarMutationState.depositMutate,
-    reset: cookieJarMutationState.depositReset,
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", async () => {
+  const { useCallback, useState } = await import("react");
+  return {
+    useCookieJarDeposit: () => {
+      const [failure, setFailure] = useState<Error | null>(null);
+      return {
+        error: failure ?? cookieJarMutationState.depositError,
+        isPending: cookieJarMutationState.depositPending,
+        mutate: useCallback((...args: unknown[]) => {
+          cookieJarMutationState.depositMutate(...args);
+          setFailure(cookieJarMutationState.depositFailure);
+        }, []),
+        // Stable, as TanStack Query keeps it: the dialog's open effect depends on it.
+        reset: useCallback(() => {
+          cookieJarMutationState.depositReset();
+          setFailure(null);
+        }, []),
+      };
+    },
+  };
+});
+
+// The dialog's route hold needs a data router; CommunitySheetDescriptor.test proves it.
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
+  useDirtyClose: () => ({
+    onOpenChange: () => undefined,
+    confirmOpen: false,
+    cancelClose: () => undefined,
+    confirmClose: () => undefined,
   }),
 }));
 
@@ -49,14 +75,27 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
   useDepositPlan: cookieJarMutationState.plan,
 }));
 
-vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", () => ({
-  useCookieJarWithdraw: () => ({
-    error: null,
-    isPending: cookieJarMutationState.withdrawPending,
-    mutate: cookieJarMutationState.withdrawMutate,
-    reset: cookieJarMutationState.withdrawReset,
-  }),
-}));
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", async () => {
+  const { useCallback, useState } = await import("react");
+  return {
+    useCookieJarWithdraw: () => {
+      const [failure, setFailure] = useState<Error | null>(null);
+      return {
+        error: failure,
+        isPending: cookieJarMutationState.withdrawPending,
+        mutate: useCallback((...args: unknown[]) => {
+          cookieJarMutationState.withdrawMutate(...args);
+          setFailure(cookieJarMutationState.withdrawFailure);
+        }, []),
+        // Stable, as TanStack Query keeps it: the dialog's open effect depends on it.
+        reset: useCallback(() => {
+          cookieJarMutationState.withdrawReset();
+          setFailure(null);
+        }, []),
+      };
+    },
+  };
+});
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
   useGardenCookieJars: () => ({
@@ -103,6 +142,8 @@ describe("CookieJar payout modals", () => {
     vi.clearAllMocks();
     cookieJarMutationState.plan.mockReturnValue(QUIET_PLAN);
     cookieJarMutationState.depositError = null;
+    cookieJarMutationState.depositFailure = null;
+    cookieJarMutationState.withdrawFailure = null;
     cookieJarMutationState.depositPending = false;
     cookieJarMutationState.withdrawPending = false;
     cookieJarMutationState.jarOverrides = {};
@@ -357,5 +398,47 @@ describe("CookieJar payout modals", () => {
     });
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps a deposit's unknown outcome on screen until the amount changes", () => {
+    cookieJarMutationState.depositFailure = Object.assign(new Error("No luck"), {
+      name: "TransactionConfirmationPendingError",
+    });
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+    const amount = screen.getByRole("textbox");
+    fireEvent.change(amount, { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+
+    expect(screen.queryByRole("alert") ?? screen.queryByRole("status")).toBeInTheDocument();
+
+    fireEvent.change(amount, { target: { value: "2" } });
+    expect(screen.queryByRole("alert") ?? screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps a failed claim's message on screen until the claim changes", () => {
+    cookieJarMutationState.withdrawFailure = new Error("No luck");
+    renderWithProviders(
+      <CookieJarWithdrawModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+    const amount = screen.getByRole("textbox", { name: "How much" });
+    fireEvent.change(amount, { target: { value: "0.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    fireEvent.change(amount, { target: { value: "0.4" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

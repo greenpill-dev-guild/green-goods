@@ -3,7 +3,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenVault } from "@green-goods/shared/types/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn, mocked } from "storybook/test";
-import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { withAdminIdentity, withDataRouter } from "../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { DepositModal } from "./DepositModal";
 
@@ -44,7 +44,8 @@ const meta: Meta<typeof DepositModal> = {
   title: "Admin/Workflows/Vault/DepositModal",
   component: DepositModal,
   tags: ["autodocs"],
-  decorators: [withAdminIdentity],
+  // The dialog holds route changes while a deposit is in flight, which needs a data router.
+  decorators: [withAdminIdentity, withDataRouter()],
   argTypes: {
     isOpen: {
       control: "boolean",

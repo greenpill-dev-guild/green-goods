@@ -79,9 +79,9 @@ vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
   CookieJarWithdrawModal: () => null,
 }));
 vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
-  CookieJarDepositModal: (props: { onFixLimit?: (jar: Address) => void }) => {
+  CookieJarDepositModal: (props: { isOpen: boolean; onFixLimit?: (jar: Address) => void }) => {
     mocks.depositModalProps = props;
-    return null;
+    return props.isOpen ? <div role="dialog" aria-label="Fund Cookie Jar" /> : null;
   },
 }));
 
@@ -121,6 +121,8 @@ describe("CookieJarPayoutPanel", () => {
     [{ allocationCount: 3 }, "3 payouts"],
     // The history stops at its limit, so a full list is a lower bound.
     [{ allocationCount: 20, allocationCountAtLeast: true }, "20+ payouts"],
+    // A history that could not be read states no total, never a zero.
+    [{ allocationCount: 0, allocationCountUnread: true }, "Couldn't read the payouts"],
   ])("says the payout total in the panel's own header line (DL-134): %o", (props, line) => {
     renderPanel(props);
 
@@ -183,6 +185,23 @@ describe("CookieJarPayoutPanel", () => {
 
     expect(screen.queryByText("No cookie jars found for this garden")).not.toBeInTheDocument();
     expect(screen.getByText(title)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["fails", { error: new Error("RPC timeout") }],
+    ["goes offline", { isPaused: true }],
+  ])("keeps an open deposit mounted when a later jar read %s", async (_state, read) => {
+    const rendered = renderPanel();
+    await openJar(/Active/);
+    await userEvent.setup().click(screen.getByRole("button", { name: /Deposit/ }));
+    expect(screen.getByRole("dialog", { name: "Fund Cookie Jar" })).toBeInTheDocument();
+
+    // A refresh while the steward signs in their wallet loses every jar.
+    mocks.jars = [];
+    mocks.read = { ...FINISHED_READ, ...read };
+    rendered.rerender(panel());
+
+    expect(screen.getByRole("dialog", { name: "Fund Cookie Jar" })).toBeInTheDocument();
   });
 
   // Until then each jar's amounts use an 18-decimal fallback: this six-decimal jar would misread.

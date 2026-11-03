@@ -22,6 +22,20 @@ export interface UseDirtyCloseOptions {
    */
   preventRouteChange?: boolean;
   /**
+   * With `blockRouteChange`, for a dialog whose own close only sets state: the
+   * router never sees that close, so the dialog confirms it here when dirty
+   * (and holds it while a write is pending), while route changes still go
+   * through the blocker. Defaults to false.
+   */
+  closesInPlace?: boolean;
+  /**
+   * With `blockRouteChange`, whether leaving the page also raises the
+   * browser's prompt. Pass false for a hold over a send an external wallet
+   * may sign outside the page: a mobile wallet deep-links away to sign, and
+   * `useSafeMutation` already guards in-page signers. Defaults to true.
+   */
+  guardUnload?: boolean;
+  /**
    * Optional cleanup run when the steward confirms discard (e.g. reset the
    * wizard store), before the close/navigation proceeds.
    */
@@ -59,13 +73,16 @@ const armedGuards = new Set<(blocker: Blocker) => void>();
  * - **route mode** (`blockRouteChange: true`): the dialog closes by navigating,
  *   so `onOpenChange` lets `onClose` navigate and `useBlocker` raises the
  *   confirm — covering the X-that-navigates, the back button, and nav links
- *   through one path with no double prompt.
+ *   through one path with no double prompt. A dialog that closes by setting
+ *   state adds `closesInPlace`, so its own close confirms here as well.
  */
 export function useDirtyClose({
   isDirty,
   onClose,
   blockRouteChange = false,
   preventRouteChange = false,
+  closesInPlace = false,
+  guardUnload = true,
   onDiscard,
 }: UseDirtyCloseOptions): UseDirtyCloseResult {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -81,7 +98,7 @@ export function useDirtyClose({
   );
 
   useWindowEvent("beforeunload", (event) => {
-    if (!blockRouteChange || (!isDirty && !preventRouteChange)) return;
+    if (!blockRouteChange || !guardUnload || (!isDirty && !preventRouteChange)) return;
     event.preventDefault();
     // Modern browsers ignore custom messages; this triggers the native prompt.
     event.returnValue = "";
@@ -120,19 +137,21 @@ export function useDirtyClose({
     (open: boolean) => {
       if (open) return;
       // Route mode: let onClose navigate; the blocker raises the confirm.
-      if (blockRouteChange) {
+      if (blockRouteChange && !closesInPlace) {
         if (preventRouteChange) return;
         onClose();
         return;
       }
-      // State mode: intercept here when dirty.
+      // A close the router never sees holds while a write is pending.
+      if (closesInPlace && preventRouteChange) return;
+      // State mode, or a close in place: intercept here when dirty.
       if (isDirty) {
         setConfirmOpen(true);
         return;
       }
       onClose();
     },
-    [blockRouteChange, isDirty, onClose, preventRouteChange]
+    [blockRouteChange, closesInPlace, isDirty, onClose, preventRouteChange]
   );
 
   const cancelClose = useCallback(() => {

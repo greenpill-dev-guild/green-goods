@@ -184,6 +184,23 @@ describe("addGardenMembersBatch", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("names a refused row once when a later signature's call is refused as a whole", async () => {
+    const bad = row();
+    // Ten people share the first signature, and the eleventh takes a second.
+    const rows = [bad, ...Array.from({ length: 10 }, () => row())];
+    const { input, sender } = setup(CONFIRMED, (args, fn) => {
+      if (fn === "grantRoles") return "The whole call reverts";
+      return args[1] === bad.address ? "All hats worn" : null;
+    });
+
+    const outcome = await add(input, rows);
+
+    expect(outcome.refused).toEqual([{ ...bad, reason: "All hats worn" }]);
+    expect(outcome.notSent).toEqual(rows.slice(1));
+    expect(outcome.failure).toEqual(new Error("The whole call reverts"));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("keeps earlier signatures when a later one is declined", async () => {
     const { input, sender, chain, wear } = setup(CONFIRMED);
     const rows = Array.from({ length: 11 }, () => row());
@@ -272,6 +289,22 @@ describe("holding an add whose outcome is unknown", () => {
         ],
       },
       saved: [],
+    });
+  });
+
+  it("keeps its rows held while the wallet reconnects", async () => {
+    const { input, sender } = setup();
+    const rows = [row()];
+    await add(input, rows);
+    // A wallet that has not reconnected yet fails the signer check.
+    Object.assign(sender, {
+      assertOwnership: vi.fn(async () => {
+        throw new Error("Connector not connected.");
+      }),
+    });
+
+    await expect(readAddMembersHold(input)).resolves.toMatchObject({
+      hold: { rows: rows.map(lowercased) },
     });
   });
 
