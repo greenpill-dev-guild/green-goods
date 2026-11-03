@@ -21,7 +21,7 @@ import type {
 } from "./batch-types";
 
 /** What a caller names when it asks a sender whether it may group its own writes. */
-export type AtomicBatchAction = "pool-setup";
+export type AtomicBatchAction = "pool-setup" | "commitment-creations" | "reward-edits";
 
 /** A single contract call to execute */
 export interface ContractCall {

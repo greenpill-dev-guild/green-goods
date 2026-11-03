@@ -229,6 +229,14 @@ describe("the review's status row", () => {
     expect(view([...sent])).toMatchObject({ phase, retry });
   });
 
+  it("says a bundle past its ceilings sent nothing, and that Try Again asks for each", () => {
+    expect(view(copies([10, "not-sent", "over-ceilings"]))).toMatchObject({
+      phase: "refused",
+      retry: 10,
+      description: expect.stringContaining("Try Again asks for each one on its own"),
+    });
+  });
+
   it("asks the wallet about the copies this Create sends, a bundle of ten at a time", () => {
     expect(view(copies([15, "wallet"]), { sending: true }).title).toBe(
       "Approve in your wallet: 10 promises in one request (1 of 2)"

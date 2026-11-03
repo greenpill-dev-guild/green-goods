@@ -24,7 +24,11 @@ export const gardensKeys = {
  * its target, as the batch journal does.
  */
 export const batchKeys = {
-  /** Per connector: the same account can reconnect through a wallet that batches differently. */
+  /**
+   * Per connector: the same account can reconnect through a wallet that batches differently.
+   * Every hook that asks shares this entry, so each stores the wallet's own answer
+   * (`BatchCapability["atomic"]`) and derives what it needs from that.
+   */
   capability: (account: string, chainId: number, connectorId: string) =>
     ["greengoods", "batch", "capability", account, chainId, connectorId] as const,
   hold: (domain: string, account: string, chainId: number) =>
