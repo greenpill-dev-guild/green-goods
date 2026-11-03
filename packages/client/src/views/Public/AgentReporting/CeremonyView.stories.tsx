@@ -106,6 +106,7 @@ const base: Props = {
   createAccount: async () => true,
   accountKind: null,
   sessionAccount: null,
+  resuming: false,
   resource: null,
   operation: null,
   grant: null,

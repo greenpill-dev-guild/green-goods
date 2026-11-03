@@ -20,7 +20,16 @@ function nameReady(name: string): boolean {
  * these browsers do work. Both labels are long in Spanish and Portuguese, so they are set a size
  * down: the pair shares one row on the narrowest phone and the bar keeps its height.
  */
-export function BrowserActs({ onOpen, onStay }: { onOpen: () => void; onStay: () => void }) {
+export function BrowserActs({
+  waiting,
+  onOpen,
+  onStay,
+}: {
+  /** Carrying on here waits, as Continue does, while a refreshed tab resumes its session. */
+  waiting: boolean;
+  onOpen: () => void;
+  onStay: () => void;
+}) {
   const intl = useIntl();
   return (
     <PairedActs>
@@ -30,7 +39,13 @@ export function BrowserActs({ onOpen, onStay }: { onOpen: () => void; onStay: ()
           defaultMessage: "Open in Browser",
         })}
       </Button>
-      <Button size="lg" className="!px-2 !text-sm" emphasis="secondary" onClick={onStay}>
+      <Button
+        size="lg"
+        className="!px-2 !text-sm"
+        emphasis="secondary"
+        loading={waiting}
+        onClick={onStay}
+      >
         {intl.formatMessage({
           id: "public.reporting.browser.continue",
           defaultMessage: "Continue Here",
