@@ -1627,6 +1627,7 @@
   "app.common.done": "Concluir",
   "app.common.edit": "Editar",
   "app.common.failedToLoad": "Falha ao carregar",
+  "app.common.imageUnreadable": "Não conseguimos verificar se esta imagem tem dados de localização, então ela não foi enviada. Tente salvá-la novamente como JPEG, PNG ou WebP.",
   "app.common.inGarden": "Em {garden}",
   "app.common.loading": "Carregando...",
   "app.common.loadingApp": "Carregando {appName}",

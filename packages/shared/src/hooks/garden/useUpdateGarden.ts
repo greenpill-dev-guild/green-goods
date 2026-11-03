@@ -302,12 +302,9 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
   );
 
   // Asked only once listed: until then no wallet hears from this hook.
-  const { data: atomic = false } = useQuery({
+  const { data: atomic } = useQuery({
     queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
-    queryFn: async () => {
-      const capability = await sender!.getBatchCapability!({ account: account!, chainId });
-      return capability.atomic === "supported";
-    },
+    queryFn: async () => (await sender!.getBatchCapability!({ account: account!, chainId })).atomic,
     enabled: listed,
     retry: false,
   });
@@ -358,7 +355,7 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
 
   return {
     ...held,
-    available: listed && atomic,
+    available: listed && atomic === "supported",
     send: (changes: readonly GardenSettingsChange[]) => sendBatch.mutateAsync(changes),
   };
 }

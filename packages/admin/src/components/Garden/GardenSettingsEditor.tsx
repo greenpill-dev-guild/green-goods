@@ -40,7 +40,11 @@ import {
   landedValuesOf,
   withoutReportedValues,
 } from "./gardenSettingsDraft";
-import { createBannerUploader, runGardenSettingsSave } from "./gardenSettingsRun";
+import {
+  bannerUploadFailure,
+  createBannerUploader,
+  runGardenSettingsSave,
+} from "./gardenSettingsRun";
 import { type GardenSettingsSaveRun, settleGardenSettingsRun } from "./gardenSettingsSave";
 
 /** What the hosting surface should show as the banner right now. */
@@ -347,10 +351,7 @@ export const GardenSettingsEditor = forwardRef<
             id: "app.garden.create.uploadFailed",
             defaultMessage: "Upload failed",
           }),
-          message: formatMessage({
-            id: "app.garden.settings.saveFailedMessage",
-            defaultMessage: "Your edits are still here. Review the error and save again.",
-          }),
+          message: formatMessage(bannerUploadFailure(error)),
           context: "garden settings save",
           error,
         }),

@@ -8,7 +8,9 @@ import type {
   GardenSettingsChange,
   GardenSettingsHold,
 } from "@green-goods/shared/hooks/garden/useUpdateGarden";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { UnpublishableImageError } from "@green-goods/shared/modules/data/ipfs/upload";
 import { Domain } from "@green-goods/shared/types/domain";
 import { TxProgressList } from "@/components/TxProgressList";
 import {
@@ -784,6 +786,28 @@ describe("GardenSettingsEditor explicit save", () => {
       gardenAddress,
       value: resolveIPFSUrl("bafysettingsbanner"),
     });
+  });
+
+  it("says a banner that could not be checked for its location was not uploaded, rather than to save again", async () => {
+    const user = userEvent.setup();
+    // Stubbed, so no dismiss timer outlives the test.
+    const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
+    mockUploadFileToIPFS.mockRejectedValueOnce(new UnpublishableImageError("banner.heic"));
+    const { container } = renderEditor();
+    fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, {
+      target: { files: [new File(["heic"], "banner.heic", { type: "image/heic" })] },
+    });
+    await screen.findByText(/banner\.heic/);
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: enMessages["app.common.imageUnreadable"] })
+      );
+    });
+    expect(mockUpdateBannerImage).not.toHaveBeenCalled();
+    toastError.mockRestore();
   });
 
   it("stages a saved banner for removal via the handle and clears it on Save", async () => {

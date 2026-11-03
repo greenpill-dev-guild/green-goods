@@ -487,6 +487,7 @@
         "packages/shared/src/modules/transactions/",
         "packages/shared/src/modules/job-queue/",
         "packages/shared/src/modules/work/",
+        "packages/shared/src/modules/media/",
         "packages/shared/src/modules/offline-content/",
         "packages/shared/src/modules/profile-avatar/",
         "packages/shared/src/hooks/auth/",
@@ -1687,7 +1688,7 @@
     },
     {
       "id": "shared-signing-money-queue-auth",
-      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code. checks names the complete override, which checkpoint and the strict intents apply as written. A critical push or qa run keeps the owner's typecheck and focused suite and turns each consumer suite into that consumer's source and test typecheck (D15, 2026-10-25), because CI's consumer workflows own the whole suites and production builds.",
+      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code. checks names the complete override, which checkpoint and the strict intents apply as written. A critical push or qa run keeps the owner's typecheck and focused suite and turns each consumer suite into that consumer's source and test typecheck (D15, 2026-10-25), because CI's consumer workflows own the whole suites and production builds. modules/media/, the photo and video metadata strip that every work upload publishes through, kept the critical tier when it moved out of modules/work/ (2026-11-03).",
       "prefixes": [
         "packages/shared/src/providers/Auth.tsx",
         "packages/shared/src/providers/JobQueue.tsx",
@@ -1695,6 +1696,7 @@
         "packages/shared/src/modules/auth/",
         "packages/shared/src/modules/job-queue/",
         "packages/shared/src/modules/work/",
+        "packages/shared/src/modules/media/",
         "packages/shared/src/workflows/",
         "packages/shared/src/hooks/auth/",
         "packages/shared/src/hooks/client-ui/submission/",
