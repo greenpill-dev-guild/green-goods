@@ -187,8 +187,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.cancelHint": "Para cancelar este reporte, responde CANCEL.",
   "report.nothingToCancel": "No hay ningún reporte en curso.",
   "report.confirmToken": "Para publicar, responde CONFIRM {token}.",
-  "report.frozen":
-    "Este reporte se está publicando, así que no puedo cambiarlo ahora. Si la publicación no se completa, envía tu mensaje de nuevo.",
+  "report.frozen": "Este reporte se está publicando, así que no puedo cambiarlo ahora.",
   "report.alreadyPublished": "Ese reporte ya está publicado. Envía NEW para empezar otro.",
   "report.newStarted": "Nuevo reporte iniciado. Cuéntame el trabajo que hiciste.",
   "report.resumeFirst":

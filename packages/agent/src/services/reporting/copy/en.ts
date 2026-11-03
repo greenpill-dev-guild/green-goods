@@ -185,8 +185,7 @@ export const EN_REPORTING_COPY = {
   "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
   "report.confirmToken": "To publish, reply CONFIRM {token}.",
-  "report.frozen":
-    "This report is being published, so I can't change it now. If publishing doesn't complete, send your message again.",
+  "report.frozen": "This report is being published, so I can't change it now.",
   "report.alreadyPublished": "That report is already published. Send NEW to start another report.",
   "report.newStarted": "New report started. Tell me about the work you did.",
   "report.resumeFirst":

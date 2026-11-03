@@ -190,8 +190,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.cancelHint": "Para cancelar este relato, responda CANCEL.",
   "report.nothingToCancel": "Não há nenhum relato em andamento.",
   "report.confirmToken": "Para publicar, responda CONFIRM {token}.",
-  "report.frozen":
-    "Este relato está sendo publicado, então não posso mudá-lo agora. Se a publicação não for concluída, envie sua mensagem de novo.",
+  "report.frozen": "Este relato está sendo publicado, então não posso mudá-lo agora.",
   "report.alreadyPublished": "Esse relato já foi publicado. Envie NEW para começar outro.",
   "report.newStarted": "Novo relato iniciado. Conte o trabalho que você fez.",
   "report.resumeFirst":
