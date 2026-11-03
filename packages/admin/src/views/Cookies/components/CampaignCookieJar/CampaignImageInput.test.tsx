@@ -1,4 +1,5 @@
 // TEST-QUALITY: allow-small-test-file - the campaign image input's only test, pinning what a steward reads when an image cannot be checked for its location
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import enMessages from "@green-goods/shared/i18n/en";
 import { UnpublishableImageError } from "@green-goods/shared/modules/data/ipfs/upload";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -17,6 +18,8 @@ vi.mock("@green-goods/shared/modules/data/ipfs/upload", async (importOriginal) =
 describe("CampaignImageInput", () => {
   it("says an image that could not be checked for its location was not uploaded, and sets no URL", async () => {
     mockUploadFileToIPFS.mockRejectedValue(new UnpublishableImageError("cover.heic"));
+    // Stubbed, so no dismiss timer outlives the test.
+    const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
     const onChange = vi.fn();
     const { container } = render(
       <IntlProvider locale="en" messages={enMessages}>
@@ -36,5 +39,9 @@ describe("CampaignImageInput", () => {
 
     expect(await screen.findByText(enMessages["app.common.imageUnreadable"])).toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
+    expect(toastError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: enMessages["app.common.imageUnreadable"] })
+    );
+    toastError.mockRestore();
   });
 });

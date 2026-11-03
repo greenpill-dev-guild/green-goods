@@ -790,7 +790,8 @@ describe("GardenSettingsEditor explicit save", () => {
 
   it("says a banner that could not be checked for its location was not uploaded, rather than to save again", async () => {
     const user = userEvent.setup();
-    const toastError = vi.spyOn(toastService, "error");
+    // Stubbed, so no dismiss timer outlives the test.
+    const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
     mockUploadFileToIPFS.mockRejectedValueOnce(new UnpublishableImageError("banner.heic"));
     const { container } = renderEditor();
     fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, {
