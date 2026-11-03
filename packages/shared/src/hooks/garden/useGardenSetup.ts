@@ -234,8 +234,9 @@ async function readGardenSetup(garden: Address, chainId: number): Promise<Garden
         status: answered(poolId, (id) => id > 0n),
         fix: "team",
       },
-      ...(mintedWithCrossChainSetup && stewardSafeBootstrap && stewardSafeBootstrap !== zeroAddress
-        ? [stewardSafeStep(stewardObserver)]
+      // An unread bootstrap leaves the Safe unknown; a zero one means the mint makes no Safe.
+      ...(mintedWithCrossChainSetup && stewardSafeBootstrap !== zeroAddress
+        ? [stewardSafeStep(stewardSafeBootstrap && stewardObserver)]
         : []),
       ...(mintedWithCrossChainSetup
         ? [settlementStep(settlementBootstrap, settlementAccount)]

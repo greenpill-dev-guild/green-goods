@@ -128,11 +128,17 @@ describe("useGardenSetup", () => {
   });
 
   it("leaves a part it could not reach unknown, keeps the rest, and warns", async () => {
-    chainAnswers({ getGardenJars: new Error("rate limited") });
+    chainAnswers({
+      getGardenJars: new Error("rate limited"),
+      stewardSafeBootstrap: new Error("rate limited"),
+    });
 
     const setup = await readSteps();
 
     expect(setup.steps.find((step) => step.id === "jars")).toMatchObject({ status: "unknown" });
+    expect(setup.steps.find((step) => step.id === "stewardSafe")).toMatchObject({
+      status: "unknown",
+    });
     expect(setup.steps.find((step) => step.id === "community")).toMatchObject({ status: "done" });
     expect(warn).toHaveBeenCalledWith(
       "Garden setup read failed",
