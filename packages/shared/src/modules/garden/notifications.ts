@@ -12,11 +12,12 @@
  *   `stewardsPoolGarden`, a live chain read of the pool's stewards and owners). Each is listed
  *   while it still waits and never to the account that made it. An evaluator or a gardener
  *   gets neither (decision 22).
- * - For whoever answers join requests in the Gardeners sheet (`canManageGarden` again), one
- *   event while requests wait (PRD-1381). The agent holds the requests, and a browser reads only
+ * - For whoever answers requests to join in the Gardeners sheet (`canManageGarden` again), one
+ *   event while any wait (PRD-1381). The agent holds the requests, and a browser reads only
  *   their count, with the grant a signed check of the queue left in it, so the event names
  *   nobody and the device dates it (`noteJoinRequestsWaiting`). A member hears nothing when their
- *   own request is answered: reading it takes their signature.
+ *   own request is answered: the agent shows an answer only to the member's signature, and a
+ *   decline or a withdrawal leaves no trace on chain, so an unsigned source would expose either.
  *
  * Seen state is a device record per chain, account and garden (`gardenNotificationsScope`):
  * the events the member was shown, by id, and a time at or before which everything counts as

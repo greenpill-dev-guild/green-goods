@@ -9,9 +9,10 @@
  *
  * - work to review: the work page's steward mode, `canManageGarden` (a steward or an owner on
  *   the garden's record), counted as Your Work counts its To review rows;
- * - join requests: the Gardeners sheet's queue, for the same stewards and owners, counted only
- *   with the grant a signed check of that queue left in this browser (`useJoinRequestCount`),
- *   so a browser without one reads nothing and nothing here asks for a signature;
+ * - join requests: the Gardeners sheet's queue of requests to join, for the same stewards and
+ *   owners, counted only with the grant a signed check of that queue left in this browser
+ *   (`useJoinRequestCount`), so a browser without one reads nothing and nothing here asks for a
+ *   signature;
  * - take-up requests: the claim panel's `stewardsPoolGarden`, a steward of the pool's garden as
  *   the chain answers it;
  * - promises to confirm: the To confirm tab's own, `canManageGarden`, as its rows for the garden.
@@ -61,8 +62,11 @@ export function useStewardDuties(garden: Garden): StewardDuties {
   const managesGarden = useGardenPermissions().canManageGarden(garden);
 
   const review = useNeedsReview(managesGarden ? [garden.id] : NO_GARDENS, user?.id);
-  // Gardeners answers join requests for the same stewards and owners.
-  const joinRequests = useJoinRequestCount(garden.id, { enabled: managesGarden });
+  // Gardeners answers requests to join for the same stewards and owners, and lists no other kind.
+  const joinRequests = useJoinRequestCount(garden.id, {
+    enabled: managesGarden,
+    kind: "garden_membership",
+  });
 
   const poolsRead = useCommitmentPools({ chainId, garden: garden.id as Address });
   const pool = poolsRead.pools.find((candidate) => compareAddresses(candidate.garden, garden.id));

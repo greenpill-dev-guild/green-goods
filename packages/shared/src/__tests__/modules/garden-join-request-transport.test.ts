@@ -314,6 +314,13 @@ describe("garden join request transport", () => {
     const response = await gardenJoinRequestTransport.count(
       GARDEN,
       "grant.token",
+      {},
+      "https://agent.example"
+    );
+    await gardenJoinRequestTransport.count(
+      GARDEN,
+      "grant.token",
+      { kind: "garden_membership" },
       "https://agent.example"
     );
 
@@ -321,6 +328,10 @@ describe("garden join request transport", () => {
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(`https://agent.example/public/gardens/${GARDEN}/join-requests/count`);
     expect(init.headers).toMatchObject({ Authorization: "GG-JoinCount grant.token" });
+    // One queue's count names the queue, never the grant, in the address.
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      `https://agent.example/public/gardens/${GARDEN}/join-requests/count?kind=garden_membership`
+    );
     vi.unstubAllGlobals();
   });
 
@@ -337,7 +348,7 @@ describe("garden join request transport", () => {
     );
 
     await expect(
-      gardenJoinRequestTransport.count(GARDEN, "grant.token", "https://agent.example")
+      gardenJoinRequestTransport.count(GARDEN, "grant.token", {}, "https://agent.example")
     ).rejects.toBeInstanceOf(GardenJoinRequestTransportError);
     await expect(
       gardenJoinRequestTransport.list(

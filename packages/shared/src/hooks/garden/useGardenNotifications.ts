@@ -98,10 +98,13 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     chainId
   );
   const canDecideTakeUps = stewardRead.hasRole;
-  // Gardeners answers join requests for the work page's stewards and owners. Their count is read
-  // only with the grant a signed check of that queue left in this browser.
+  // Gardeners answers requests to join for the work page's stewards and owners, and lists no
+  // other kind. Their count is read only with the grant a signed check of that queue left here.
   const canAnswerJoinRequests = canReviewWork;
-  const joinRequestRead = useJoinRequestCount(gardenId, { enabled: canAnswerJoinRequests });
+  const joinRequestRead = useJoinRequestCount(gardenId, {
+    enabled: canAnswerJoinRequests,
+    kind: "garden_membership",
+  });
 
   // The garden's page of works, read as the installed app's other work screens read it, so they
   // share one projection and the bell never writes the cockpit's merged rows, which those screens

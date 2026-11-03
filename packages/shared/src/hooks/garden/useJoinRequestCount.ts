@@ -1,17 +1,19 @@
 /**
  * useJoinRequestCount Hook
  *
- * How many join requests wait in one garden, of every kind, read with the count grant the
- * account's last signed queue read left in this browser (`useJoinRequestCountGrantStore`), so no
- * read here ever asks for a signature. Without a grant nothing is read. A grant the service
- * refuses, because it lapsed or the account lost its role, is forgotten, since only a new signed
- * check can bring it back; any other failure says nothing about the grant and keeps it.
+ * How many join requests wait in one garden, read with the count grant the account's last signed
+ * queue read left in this browser (`useJoinRequestCountGrantStore`), so no read here ever asks for
+ * a signature. Without a grant nothing is read. A grant the service refuses, because it lapsed or
+ * the account lost its role, is forgotten, since only a new signed check can bring it back; any
+ * other failure says nothing about the grant and keeps it.
  *
- * One read per garden and account serves the admin's Members tab badge (DL-134,
- * `useJoinRequestsWaiting`) and Home's Needs Your Attention row and bell (PRD-1381). The queues
- * that read signed hand over the grant each read returns, and ask for the count again once they
- * answer a request (`useJoinRequestCountUpdates`). It is read once on arrival and again on those
- * updates, never on a timer or on focus.
+ * The admin's Members tab badge (DL-134, `useJoinRequestsWaiting`) counts both queues, as that
+ * tab lists both. Home's Needs Your Attention row and bell (PRD-1381) count requests to join
+ * alone (`kind`), since the installed app's Gardeners sheet lists only those; an older service
+ * ignores the kind and answers with the total. The queues that read signed hand over the grant
+ * each read returns, and ask for the counts again once they answer a request
+ * (`useJoinRequestCountUpdates`). Each count is read once on arrival and again on those updates,
+ * never on a timer or on focus.
  *
  * @module hooks/garden/useJoinRequestCount
  */
@@ -23,7 +25,10 @@ import {
   GardenJoinRequestTransportError,
   gardenJoinRequestTransport,
 } from "../../modules/garden-join-requests";
-import type { GardenJoinRequestCountGrant } from "../../public-contracts/join-requests";
+import type {
+  GardenJoinRequestCountGrant,
+  GardenJoinRequestKind,
+} from "../../public-contracts/join-requests";
 import {
   joinRequestCountGrantScope,
   useJoinRequestCountGrantStore,
@@ -33,7 +38,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 
 export interface JoinRequestCount {
-  /** How many requests wait, of every kind; undefined without a grant and until its read answers. */
+  /** How many requests wait in the queue read; undefined without a grant and until it answers. */
   waiting: number | undefined;
   /** The grant's read has not answered yet. */
   isLoading: boolean;
@@ -55,22 +60,27 @@ function useCountSubject(gardenId: string) {
   };
 }
 
-/** The garden's waiting total, read with this browser's grant. `enabled: false` reads nothing. */
+/**
+ * The garden's waiting total, or one queue's (`kind`), read with this browser's grant.
+ * `enabled: false` reads nothing.
+ */
 export function useJoinRequestCount(
   gardenId: string,
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; kind?: GardenJoinRequestKind } = {}
 ): JoinRequestCount {
   const { chainId, garden, accountKey, grantScope } = useCountSubject(gardenId);
+  const { kind } = options;
   const token = useJoinRequestCountGrantStore((state) =>
     grantScope ? state.grantsByScope[grantScope]?.[garden]?.token : undefined
   );
   const canRead = Boolean(token) && options.enabled !== false;
 
   const read = useQuery({
-    queryKey: gardenJoinRequestKeys.count(chainId, garden, accountKey),
+    queryKey: gardenJoinRequestKeys.count(chainId, garden, accountKey, kind),
     queryFn: async () => {
       try {
-        return (await gardenJoinRequestTransport.count(garden as Address, token!)).waiting;
+        return (await gardenJoinRequestTransport.count(garden as Address, token!, { kind }))
+          .waiting;
       } catch (error) {
         // The grant lapsed or the account lost the role, so only a new signed check can bring it
         // back. Any other failure says nothing about the grant, and keeps the last answer.
@@ -108,7 +118,8 @@ export function useJoinRequestCount(
 
 /**
  * What a signed queue read does for the count: keep the grant it returned, so the count can be
- * read on arrival without a signature, and ask for the count again once a request is answered.
+ * read on arrival without a signature, and ask for the garden's counts again, the total and each
+ * queue's, once a request is answered.
  */
 export function useJoinRequestCountUpdates(gardenId: string) {
   const queryClient = useQueryClient();
@@ -117,8 +128,7 @@ export function useJoinRequestCountUpdates(gardenId: string) {
 
   const readCountAgain = useCallback(() => {
     void queryClient.invalidateQueries({
-      queryKey: gardenJoinRequestKeys.count(chainId, garden, accountKey),
-      exact: true,
+      queryKey: gardenJoinRequestKeys.counts(chainId, garden, accountKey),
     });
   }, [queryClient, chainId, garden, accountKey]);
 

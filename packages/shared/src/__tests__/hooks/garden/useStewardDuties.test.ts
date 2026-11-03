@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   reviewError: false,
   reviewRefetch: vi.fn(async () => true),
   joinEnabled: [] as boolean[],
+  joinKinds: [] as Array<string | undefined>,
   joinWaiting: undefined as number | undefined,
   joinLoading: false,
   joinError: false,
@@ -74,9 +75,10 @@ vi.mock("../../../hooks/work/useNeedsReview", () => ({
 }));
 // The count grant's read hands back nothing while it may not read, as the hook does.
 vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
-  useJoinRequestCount: (_gardenId: string, options: { enabled?: boolean } = {}) => {
+  useJoinRequestCount: (_gardenId: string, options: { enabled?: boolean; kind?: string } = {}) => {
     const enabled = options.enabled !== false;
     mocks.joinEnabled.push(enabled);
+    mocks.joinKinds.push(options.kind);
     return {
       waiting: enabled ? mocks.joinWaiting : undefined,
       isLoading: enabled && mocks.joinLoading,
@@ -178,6 +180,7 @@ describe("useStewardDuties", () => {
     mocks.reviewLoading = false;
     mocks.reviewError = false;
     mocks.joinEnabled = [];
+    mocks.joinKinds = [];
     mocks.joinWaiting = undefined;
     mocks.joinLoading = false;
     mocks.joinError = false;
@@ -224,6 +227,8 @@ describe("useStewardDuties", () => {
 
     expect(mocks.reviewGardens.at(-1)).toEqual([GARDEN]);
     expect(mocks.hatGarden.at(-1)).toBe(GARDEN.toLowerCase());
+    // Gardeners lists requests to join alone, so the row counts no other kind.
+    expect(mocks.joinKinds.at(-1)).toBe("garden_membership");
     expect(duties.duties.map((duty) => [duty.kind, duty.count])).toEqual([
       ["review", 1],
       ["joinRequests", 2],

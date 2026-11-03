@@ -56,16 +56,22 @@ describe("useJoinRequestCount", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("reads nothing for a reader who may not answer requests, though the browser holds a grant", async () => {
+  it("reads one queue for a steward, and nothing for a reader who may not answer it, grant or not", async () => {
     useJoinRequestCountGrantStore.getState().keepGrant(SCOPE, GARDEN, GRANT);
     answers(200, { ok: true, waiting: 4 });
     const queryClient = createTestQueryClient();
-    const steward = renderHookWithQueryClient(() => useJoinRequestCount(GARDEN), { queryClient });
+    const membership = { kind: "garden_membership" } as const;
+    const steward = renderHookWithQueryClient(() => useJoinRequestCount(GARDEN, membership), {
+      queryClient,
+    });
     await waitFor(() => expect(steward.result.current.waiting).toBe(4));
+    expect(fetchMock.mock.calls[0]?.[0]).toContain(
+      `/public/gardens/${GARDEN}/join-requests/count?kind=garden_membership`
+    );
 
     // The same account on a record that no longer names it: the cached answer stays unsaid.
     const { result } = renderHookWithQueryClient(
-      () => useJoinRequestCount(GARDEN, { enabled: false }),
+      () => useJoinRequestCount(GARDEN, { ...membership, enabled: false }),
       { queryClient }
     );
     result.current.refetch();

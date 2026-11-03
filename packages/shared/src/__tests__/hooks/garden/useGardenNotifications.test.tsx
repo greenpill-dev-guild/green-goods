@@ -51,7 +51,7 @@ const reads = vi.hoisted(() => ({
   /** What the count grant's read answers; undefined while this browser holds no grant. */
   joinRequestsWaiting: undefined as number | undefined,
   joinRequestsFailed: false,
-  joinRequestReads: [] as Array<{ enabled?: boolean }>,
+  joinRequestReads: [] as Array<{ enabled?: boolean; kind?: string }>,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -103,7 +103,7 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
 }));
 // How many join requests wait, read with this browser's count grant; it reads nothing disabled.
 vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
-  useJoinRequestCount: (_gardenId: string, options: { enabled?: boolean } = {}) => {
+  useJoinRequestCount: (_gardenId: string, options: { enabled?: boolean; kind?: string } = {}) => {
     reads.joinRequestReads.push(options);
     const enabled = options.enabled !== false;
     return {
@@ -265,8 +265,8 @@ describe("useGardenNotifications", () => {
     expect(result.current.isLoading).toBe(true);
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(latest(reads.takeUpReads)?.options.enabled).toBe(steward);
-    // Gardeners answers join requests for the work page's stewards and owners.
-    expect(reads.joinRequestReads.at(-1)?.enabled).toBe(steward);
+    // Gardeners answers requests to join, its only kind, for the work page's stewards and owners.
+    expect(reads.joinRequestReads.at(-1)).toEqual({ enabled: steward, kind: "garden_membership" });
     await waitFor(() =>
       expect(
         result.current.notifications

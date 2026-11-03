@@ -153,13 +153,23 @@ export function listPendingGardenJoinRequests(
 export function countPendingGardenJoinRequests(
   db: Database,
   gardenAddress: Address,
-  nowIso: string
+  nowIso: string,
+  kind?: GardenJoinRequestKind
 ): number {
-  const { count } = db
-    .query(
-      "SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt > ?"
-    )
-    .get(gardenAddress, nowIso) as { count: number };
+  // Plain columns only: a count never decrypts a request.
+  const { count } = (
+    kind
+      ? db
+          .query(
+            "SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ? AND kind = ? AND state = 'pending' AND expiresAt > ?"
+          )
+          .get(gardenAddress, kind, nowIso)
+      : db
+          .query(
+            "SELECT COUNT(*) AS count FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt > ?"
+          )
+          .get(gardenAddress, nowIso)
+  ) as { count: number };
   return count;
 }
 
