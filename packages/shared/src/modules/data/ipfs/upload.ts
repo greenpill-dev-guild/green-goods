@@ -5,6 +5,7 @@ import {
   type UploadErrorCategory,
 } from "../../app/error-tracking";
 import { logger } from "../../app/logger";
+import { withoutPhotoMetadata } from "../../work/work-attachments";
 import {
   getIpfsInitializationError,
   getIpfsInitializationStatus,
@@ -152,26 +153,59 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
 }
 
 // ============================================================================
+// WHAT MAY BE PINNED
+// ============================================================================
+
+/** An image neither the byte-level rewrite nor a canvas could read, so it was not pinned. */
+class UnpublishableImageError extends Error {
+  constructor() {
+    super(
+      "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP."
+    );
+    this.name = "UnpublishableImageError";
+  }
+}
+
+/**
+ * A file as it may be pinned. Nothing pinned to public IPFS can be withdrawn,
+ * and cameras write where a photo was taken and the device that took it into
+ * the file itself. So every image, by its type, loses that metadata first, the
+ * way a work photo does: a JPEG, PNG or WebP is rewritten without it, and an
+ * image the rewrite cannot read, in another format or damaged, is drawn again
+ * through a canvas. An image that neither can read is refused rather than
+ * pinned as it was picked. Any other file is pinned as it is.
+ */
+async function publishableFile(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  const published = await withoutPhotoMetadata(file);
+  if (!published) throw new UnpublishableImageError();
+  return published;
+}
+
+// ============================================================================
 // PUBLIC UPLOAD FUNCTIONS
 // ============================================================================
 
 /**
- * Uploads a file to IPFS using Pinata with comprehensive error tracking.
+ * Uploads a file to IPFS using Pinata with comprehensive error tracking. An
+ * image is pinned without its location, camera or other metadata.
  *
  * @param file - The file to upload
  * @param context - Optional context for batch tracking
  * @returns Object containing the IPFS CID
- * @throws Error if Pinata is not configured or upload fails
+ * @throws Error if an image cannot be read to remove its metadata, if Pinata is
+ * not configured, or if the upload fails
  */
 export async function uploadFileToIPFS(
   file: File,
   context: FileUploadContext = {}
 ): Promise<{ cid: string }> {
   try {
+    const published = await publishableFile(file);
     const result = await executeUpload(
       () =>
-        uploadFileWithPinata(file, {
-          name: file.name,
+        uploadFileWithPinata(published, {
+          name: published.name,
           category: "file_upload",
           source: context.source ?? "uploadFileToIPFS",
           gardenAddress: context.gardenAddress,
@@ -179,9 +213,9 @@ export async function uploadFileToIPFS(
       "file_upload",
       { source: context.source ?? "uploadFileToIPFS", gardenAddress: context.gardenAddress },
       {
-        size: file.size,
-        type: file.type,
-        name: file.name,
+        size: published.size,
+        type: published.type,
+        name: published.name,
         index: context.fileIndex,
         total: context.totalFiles,
       },

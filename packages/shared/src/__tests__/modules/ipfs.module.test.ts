@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const canvas = vi.hoisted(() => ({ redraw: vi.fn() }));
+// The compressor's canvas, which a Node test does not have.
+vi.mock("../../utils/work/image-compression", () => ({ imageCompressor: canvas }));
+
 import {
   canonicalizeIPFSIdentifier,
   createGatewayChain,
@@ -14,6 +18,14 @@ import {
   uploadJSONToIPFS,
 } from "../../modules/data/ipfs";
 import { verifyPinataGatewayAvailability } from "../../modules/data/ipfs/pinata";
+import {
+  type PhotoType,
+  bytesOf,
+  cameraPhoto,
+  cleanPhoto,
+  leakedCameraDetails,
+  photoFile,
+} from "../test-utils/photo-fixtures";
 
 describe("modules/data/ipfs", () => {
   const originalFetch = globalThis.fetch;
@@ -206,6 +218,7 @@ describe("modules/data/ipfs", () => {
       VITE_API_BASE_URL: "https://agent.greengoods.test",
       VITE_PINATA_GATEWAY_URL: "https://pinata.example",
     });
+    const proof = cleanPhoto("image/png");
     const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
       const url = String(input);
       if (url === "https://agent.greengoods.test/api/uploads/sign") {
@@ -213,7 +226,7 @@ describe("modules/data/ipfs", () => {
         expect(body).toMatchObject({
           filename: "proof.png",
           mimeType: "image/png",
-          size: 7,
+          size: proof.length,
           category: "file_upload",
           source: "ipfs-test",
         });
@@ -235,10 +248,9 @@ describe("modules/data/ipfs", () => {
     });
     globalThis.fetch = fetchMock;
 
-    const result = await ipfsPinner.pinFile(
-      new File(["content"], "proof.png", { type: "image/png" }),
-      { source: "ipfs-test" }
-    );
+    const result = await ipfsPinner.pinFile(photoFile(proof, "proof.png", "image/png"), {
+      source: "ipfs-test",
+    });
 
     expect(result).toEqual({ cid: validCid });
   });
@@ -368,5 +380,76 @@ describe("modules/data/ipfs", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // Garden banners, campaign and action images, assessment evidence and the
+  // profile photo all pin through uploadFileToIPFS.
+  describe("pinning an image", () => {
+    const SIGNER = "https://agent.greengoods.test/api/uploads/sign";
+    const UPLOAD = "https://uploads.pinata.test/v3/files/signed";
+
+    /** Pinata at its HTTP edge, behind the agent's signer: each file it received. */
+    async function pinningService() {
+      const received: File[] = [];
+      const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+        const url = String(input);
+        if (url === SIGNER) return Response.json({ ok: true, url: UPLOAD });
+        if (url === UPLOAD) {
+          received.push((init?.body as FormData).get("file") as File);
+          return Response.json({ data: { cid: validCid } });
+        }
+        // The gateway check that follows each upload.
+        return new Response("ok");
+      });
+      globalThis.fetch = fetchMock;
+      await initializeIpfsFromEnv({
+        MODE: "test",
+        VITE_API_BASE_URL: "https://agent.greengoods.test",
+      });
+      return { received, fetchMock };
+    }
+
+    beforeEach(() => {
+      canvas.redraw.mockReset().mockResolvedValue(null);
+    });
+
+    it.each<PhotoType>([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ])("pins %s without its location or camera details, and without redrawing it", async (type) => {
+      const { received } = await pinningService();
+
+      await uploadFileToIPFS(photoFile(cameraPhoto(type), "banner", type), { source: "banner" });
+
+      expect(received).toHaveLength(1);
+      const pinned = await bytesOf(received[0]);
+      expect(leakedCameraDetails(pinned)).toEqual([]);
+      expect(pinned).toEqual(cleanPhoto(type, { orientation: 6 }));
+      expect(canvas.redraw).not.toHaveBeenCalled();
+    });
+
+    it("pins an image in another format as a canvas drew it again, read back like any photo", async () => {
+      const { received } = await pinningService();
+      const gif = new File(["GIF89a"], "banner.gif", { type: "image/gif" });
+      canvas.redraw.mockResolvedValue(
+        photoFile(cameraPhoto("image/png"), "banner.gif", "image/png")
+      );
+
+      await uploadFileToIPFS(gif);
+
+      expect(canvas.redraw).toHaveBeenCalledWith(gif);
+      expect(await bytesOf(received[0])).toEqual(cleanPhoto("image/png", { orientation: 6 }));
+    });
+
+    it("refuses an image that neither the rewrite nor a canvas can read, and sends nothing", async () => {
+      const { fetchMock } = await pinningService();
+
+      await expect(
+        uploadFileToIPFS(new File(["not a picture"], "banner.png", { type: "image/png" }))
+      ).rejects.toMatchObject({ name: "UnpublishableImageError" });
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });
