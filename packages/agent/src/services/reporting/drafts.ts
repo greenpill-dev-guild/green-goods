@@ -58,6 +58,11 @@ function lifecycleColumn(lifecycle: ReportLifecycle): string {
     : "open";
 }
 
+/** Whether a draft in this lifecycle is still its conversation's open report. */
+export function isOpenLifecycle(lifecycle: ReportLifecycle): boolean {
+  return lifecycleColumn(lifecycle) === "open";
+}
+
 const SELECT_DRAFT = `
   SELECT d.id, d.participant_id, d.conversation_id, d.revision, d.machine_snapshot, d.author_account_id,
          d.last_participant_action_at, r.content_ciphertext, r.action_definition_snapshot

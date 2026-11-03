@@ -90,6 +90,44 @@ describe("retention", () => {
     );
   });
 
+  /** Lets a report expire while its garden question, which typed words answer, is open. */
+  async function expireMidQuestion(): Promise<void> {
+    await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
+    expect((await harness.press(ADA, "I agree")).join("\n")).toContain(
+      "Which garden is this report for?"
+    );
+    harness.clock.advance(7 * DAY);
+    await sweep();
+  }
+
+  async function expectNewReport(): Promise<void> {
+    const replies = (await harness.say(ADA, "Today I watered the baobab seedlings")).join("\n");
+    expect(replies).not.toContain("can't change it now");
+    expect(replies).toContain("Which garden is this report for?");
+    expect(
+      harness.core.db.query("SELECT lifecycle FROM work_drafts ORDER BY created_at").all()
+    ).toEqual([{ lifecycle: "expired" }, { lifecycle: "open" }]);
+  }
+
+  it("closes an expired report's question, so the next story starts a new report", async () => {
+    await expireMidQuestion();
+    expect(one("SELECT count(*) AS n FROM conversation_prompts WHERE state = 'open'")).toEqual({
+      n: 0,
+    });
+    await expectNewReport();
+  });
+
+  it("frees a chat an earlier release left on an expired report's question", async () => {
+    await expireMidQuestion();
+    // Expiry used to leave the question open, so words sent to it were taken for its answer.
+    harness.core.db
+      .query(
+        "UPDATE conversation_prompts SET state = 'open', resolved_at = NULL WHERE kind = 'select_garden'"
+      )
+      .run();
+    await expectNewReport();
+  });
+
   it("removes a published report's private content and keeps its receipt and envelope", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);
