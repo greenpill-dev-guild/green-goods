@@ -61,7 +61,7 @@ export class WalletChainMismatchError extends Error {
 }
 
 /** Every numeric error code from the outermost wrapper down to the wallet's own error. */
-function walletErrorCodes(error: unknown): number[] {
+export function walletErrorCodes(error: unknown): number[] {
   const codes: number[] = [];
   const seen = new Set<object>();
   let current = error;
