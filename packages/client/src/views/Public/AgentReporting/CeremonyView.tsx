@@ -187,16 +187,22 @@ export function CeremonyView(props: CeremonyViewProps) {
   );
 
   const actions: ReactNode = (() => {
+    // A refreshed tab's start waits for the session it resumes: a challenge opened meanwhile would
+    // race that session for the page.
     if (inApp) {
       return (
-        <BrowserActs onOpen={() => void props.openInBrowser()} onStay={() => void props.start()} />
+        <BrowserActs
+          waiting={props.resuming}
+          onOpen={() => void props.openInBrowser()}
+          onStay={() => void props.start()}
+        />
       );
     }
     if (screen.opening) {
       return (
         <FlowForward
           label={text({ id: "public.reporting.intro.continue", defaultMessage: "Continue" })}
-          loading={stage === "opening"}
+          loading={stage === "opening" || props.resuming}
           onClick={() => void props.start()}
         />
       );

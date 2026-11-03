@@ -608,20 +608,6 @@ describe("reporting ceremony page", () => {
   });
 
   it("resumes its own session after a refresh without opening a new challenge", async () => {
-    const first = render();
-    await reachReview(first.result);
-    first.unmount();
-
-    agent.calls.length = 0;
-    const { result } = render();
-    await waitFor(() => expect(result.current.stage).toBe("review"));
-    expect(agent.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
-      "GET /access/current",
-      "GET /drafts/d-1",
-    ]);
-  });
-
-  it("says it is resuming a refreshed tab's session until the Agent answers, either way", async () => {
     // A link opened fresh has nothing to resume.
     const first = render();
     expect(first.result.current.resuming).toBe(false);
@@ -633,15 +619,20 @@ describe("reporting ceremony page", () => {
     agent.accessReply = new Promise<void>((resolve) => {
       answer = resolve;
     });
-    const second = render();
-    expect(second.result.current).toMatchObject({ stage: "intro", resuming: true });
+    agent.calls.length = 0;
+    const { result } = render();
+    expect(result.current).toMatchObject({ stage: "intro", resuming: true });
     await act(async () => answer());
-    await waitFor(() => expect(second.result.current.stage).toBe("review"));
-    expect(second.result.current.resuming).toBe(false);
-    second.unmount();
+    await waitFor(() => expect(result.current.stage).toBe("review"));
+    expect(result.current.resuming).toBe(false);
+    expect(agent.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
+      "GET /access/current",
+      "GET /drafts/d-1",
+    ]);
+  });
 
-    // A session that ended while the tab was away leaves the page on its start, with nothing
-    // left to resume.
+  it("leaves a refreshed tab on its start, with nothing to resume, once its session has ended", async () => {
+    writeCeremony("request-0123456789abcdef", { accessId: "acc-1" });
     agent.accessEnded = true;
     const { result } = render();
     expect(result.current.resuming).toBe(true);
