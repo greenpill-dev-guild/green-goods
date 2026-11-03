@@ -55,15 +55,6 @@
       "owner": "shared",
       "expires": "2027-01-31",
       "note": "Consolidate HypercertSyncStatus onto WorkDisplayStatus or a declared sync-subset during the work-status consolidation."
-    },
-    {
-      "id": "domain-lowercase-split",
-      "guard": "mappings",
-      "subject": "vocab:domain/mapping:action-domain-vs-slug-prefix",
-      "detail": "only in action-domain: [agroforestry, education]; only in slug-prefix: [agro, edu]",
-      "owner": "shared",
-      "expires": "2026-11-30",
-      "note": "Two lowercase spellings of the same domains. On-chain action slugs are immutable, so expect the ActionDomain union to converge toward the slug prefixes (or an explicit map) during Domain vocabulary unification."
     }
   ]
 }

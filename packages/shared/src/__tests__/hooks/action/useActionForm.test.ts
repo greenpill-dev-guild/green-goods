@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 import { type CreateActionFormData, createActionSchema } from "../../../hooks/action/useActionForm";
+import { Domain } from "../../../types/domain";
 
 // ============================================
 // Helper
@@ -120,13 +121,22 @@ describe("createActionSchema", () => {
       }
     });
 
-    it("rejects slug that does not match selected domain", () => {
-      const data = createValidFormData({ slug: "waste.repair_event", domain: 1 });
+    // Each row is a pair of the ontology's domain-to-slug-prefix mapping.
+    it.each([
+      { name: "SOLAR", domain: Domain.SOLAR, prefix: "solar" },
+      { name: "AGRO", domain: Domain.AGRO, prefix: "agro" },
+      { name: "EDU", domain: Domain.EDU, prefix: "edu" },
+      { name: "WASTE", domain: Domain.WASTE, prefix: "waste" },
+    ])("rejects a $name slug that lacks the $prefix prefix", ({ domain, prefix }) => {
+      const otherPrefix = prefix === "waste" ? "solar" : "waste";
+      const data = { ...createValidFormData(), domain, slug: `${otherPrefix}.repair_event` };
       const result = createActionSchema.safeParse(data);
       expect(result.success).toBe(false);
       if (!result.success) {
         const slugIssue = result.error.issues.find((i) => i.path.includes("slug"));
-        expect(slugIssue?.message).toBe('Slug must start with "agro." for the selected domain');
+        expect(slugIssue?.message).toBe(
+          `Slug must start with "${prefix}." for the selected domain`
+        );
       }
     });
   });
