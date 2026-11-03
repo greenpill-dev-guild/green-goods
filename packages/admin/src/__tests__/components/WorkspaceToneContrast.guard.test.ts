@@ -78,6 +78,12 @@ function resolveRgb(property: string, scopes: string[]): Rgb {
   return [Number(triple[1]), Number(triple[2]), Number(triple[3])];
 }
 
+/** A translucent token's `R G B` triple and its alpha, 1 when it declares none. */
+function resolveRgba(property: string, scopes: string[]): [Rgb, number] {
+  const percent = declared(property, scopes).match(/\/\s*([\d.]+)%/)?.[1];
+  return [resolveRgb(property, scopes), percent ? Number(percent) / 100 : 1];
+}
+
 function luminance([r, g, b]: Rgb): number {
   const [lr, lg, lb] = [r, g, b].map((channel) => {
     const c = channel / 255;
@@ -192,6 +198,39 @@ describe("workspace tone fills", () => {
     expect(mirror.map((rule) => declarations(rule.body))).toEqual(
       [RAMP, RAMP_DARK].map((rule) => declarations(rule.body))
     );
+  });
+
+  it("gives the info roles their own dark values, so notices stay readable in dark", () => {
+    // <body>'s remap sits below theme.css's dark block on <html>, so an info role it
+    // sets keeps its light shade in dark unless the dark block sets it as well.
+    const infoRoles = (body: string) =>
+      declarations(body)
+        .map((declaration) => declaration.split(":")[0])
+        .filter((property) => property.startsWith("--information-"));
+    expect(infoRoles(RAMP_DARK.body)).toEqual(infoRoles(RAMP.body));
+    const themes = {
+      light: [RAMP.body, blocks(tokens, ":root"), blocks(theme, ":root"), theme],
+      dark: [
+        RAMP_DARK.body,
+        RAMP.body,
+        blocks(tokens, '[data-theme="dark"]'),
+        blocks(theme, '[data-theme="dark"]'),
+        blocks(tokens, ":root"),
+        blocks(theme, ":root"),
+        theme,
+      ],
+    };
+    for (const [name, scopes] of Object.entries(themes)) {
+      const [tint, alpha] = resolveRgba("--information-lighter", scopes);
+      // Info notices sit on cards and in dialogs, and carry the info ink or secondary text.
+      for (const surface of ["--m3-surface-container", "--m3-surface-container-high"]) {
+        const fill = over(resolveRgb(surface, scopes), tint, alpha);
+        for (const ink of ["--information-dark", "--text-sub-600"]) {
+          const ratio = contrast(resolveRgb(ink, scopes), fill);
+          expect(ratio, `${name} ${ink} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
   });
 
   it("fills a selected filter chip in the tone where it sits, through Shared's chip", () => {
