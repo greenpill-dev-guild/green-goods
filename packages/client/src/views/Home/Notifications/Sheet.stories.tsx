@@ -124,6 +124,7 @@ export const EventsAt375: Story = {
 
 /** Spanish: headings in sentence case, the pills in the app's words for promises. */
 export const EventsSpanish: Story = {
+  tags: ["storybook-ci"],
   decorators: [withLocale("es")],
   play: async ({ args }) => {
     await expectEvents("Notificaciones", "En TAS HUB", args.markSeen, "3 personas pidieron unirse");
@@ -132,6 +133,7 @@ export const EventsSpanish: Story = {
 
 /** Portuguese. */
 export const EventsPortuguese: Story = {
+  tags: ["storybook-ci"],
   decorators: [withLocale("pt")],
   play: async ({ args }) => {
     await expectEvents(

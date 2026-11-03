@@ -6,11 +6,12 @@ import { useJoinRequestCount, useJoinRequestCountUpdates } from "../../garden/us
 /**
  * How many join requests wait on a garden's stewards, for the Members tab's badge (DL-134). A badge
  * never asks for a signature, so this reads the service with the count grant the steward's last
- * signed check left in this browser (`useJoinRequestCount`), once on arrival and again as requests
- * are answered. Without a grant, or if that read fails before it has answered, it holds what each
- * queue's last check found; before any check it holds nothing. Those last checks live with the
- * garden's workspace state because the Community view remounts between some of its tabs; that
- * state lasts the browser tab's session and clears when a different account signs in.
+ * signed check left in this browser (`useJoinRequestCount`): on arrival, as requests are answered,
+ * and when the tab comes back into view or online with an answer more than a minute old. Without
+ * a grant, or if that read fails before it has answered, it holds what each queue's last check
+ * found; before any check it holds nothing. Those last checks live with the garden's workspace
+ * state because the Community view remounts between some of its tabs; that state lasts the
+ * browser tab's session and clears when a different account signs in.
  */
 export function useJoinRequestsWaiting(gardenKey: string) {
   const { waiting: counted } = useJoinRequestCount(gardenKey);
