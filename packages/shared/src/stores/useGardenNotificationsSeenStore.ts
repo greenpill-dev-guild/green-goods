@@ -5,7 +5,9 @@ import {
   clearNotifications,
   type GardenNotificationsSeen,
   isNotificationNew,
+  type JoinRequestsRead,
   markNotificationsSeen,
+  noteJoinRequestsWaiting,
   type SeenNotification,
 } from "../modules/garden/notifications";
 
@@ -19,6 +21,10 @@ interface GardenNotificationsSeenState {
   markSeen: (scope: string, notifications: readonly SeenNotification[], now: number) => void;
   /** Record that the member cleared these events from the sheet in one scope (DL-133). */
   clearAll: (scope: string, notifications: readonly SeenNotification[], now: number) => void;
+  /** Each garden's join-request queue as this device last read its count, by the same scope. */
+  joinRequestsByScope: Record<string, JoinRequestsRead>;
+  /** Record a read of the garden's join-request count in one scope. `now` is in seconds. */
+  noteJoinRequests: (scope: string, waiting: number, now: number) => void;
 }
 
 /**
@@ -78,15 +84,31 @@ function parseSeenByScope(value: unknown): Record<string, GardenNotificationsSee
   return records;
 }
 
+/** Saved queue records are untrusted too: each keeps a positive count and a time, or goes. */
+function parseJoinRequestsByScope(value: unknown): Record<string, JoinRequestsRead> {
+  if (!value || typeof value !== "object") return {};
+  const records: Record<string, JoinRequestsRead> = {};
+  for (const [scope, record] of Object.entries(value)) {
+    const { waiting, since } = (record ?? {}) as { waiting?: unknown; since?: unknown };
+    if (typeof waiting === "number" && Number.isSafeInteger(waiting) && waiting > 0) {
+      if (isTime(since)) records[scope] = { waiting, since };
+    }
+  }
+  return records;
+}
+
 /**
- * Which of a garden's events this device has shown, per chain, account and garden (DL-130).
- * It is keyed by `chainId:address` and the garden, so it stays when another account signs in
- * and is never read for one. It holds no event, only ids and times, and trims itself to a week.
+ * Which of a garden's events this device has shown, per chain, account and garden (DL-130), and
+ * how many join requests it last read waiting there and since when (PRD-1381), which the bell's
+ * join-request event is built from. It is keyed by `chainId:address` and the garden, so it stays
+ * when another account signs in and is never read for one. It holds no event, only ids, counts
+ * and times; the marks trim themselves to a week, and a queue's record goes once none wait.
  */
 export const useGardenNotificationsSeenStore = create<GardenNotificationsSeenState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       seenByScope: {},
+      joinRequestsByScope: {},
       // With nothing new among the events, nothing changes: a sheet that marks on every render
       // settles instead of re-rendering itself.
       markSeen: (scope, notifications, now) =>
@@ -112,17 +134,35 @@ export const useGardenNotificationsSeenStore = create<GardenNotificationsSeenSta
             },
           };
         }),
+      // Read on every answer of the count, so a read that moves nothing returns before `set`:
+      // the persist layer writes storage on every `set`, changed or not.
+      noteJoinRequests: (scope, waiting, now) => {
+        const current = get().joinRequestsByScope;
+        const record = noteJoinRequestsWaiting(current[scope], waiting, now);
+        if (record === current[scope]) return;
+        const next = { ...current };
+        if (record) next[scope] = record;
+        else delete next[scope];
+        set({ joinRequestsByScope: next });
+      },
     }),
     {
       name: GARDEN_NOTIFICATIONS_SEEN_STORAGE_KEY,
       storage: createJSONStorage(() => deviceStorage),
-      partialize: (state) => ({ seenByScope: state.seenByScope }),
-      merge: (persisted, current) => ({
-        ...current,
-        seenByScope: parseSeenByScope(
-          (persisted as { seenByScope?: unknown } | undefined)?.seenByScope
-        ),
+      partialize: (state) => ({
+        seenByScope: state.seenByScope,
+        joinRequestsByScope: state.joinRequestsByScope,
       }),
+      merge: (persisted, current) => {
+        const saved = persisted as
+          | { seenByScope?: unknown; joinRequestsByScope?: unknown }
+          | undefined;
+        return {
+          ...current,
+          seenByScope: parseSeenByScope(saved?.seenByScope),
+          joinRequestsByScope: parseJoinRequestsByScope(saved?.joinRequestsByScope),
+        };
+      },
     }
   )
 );

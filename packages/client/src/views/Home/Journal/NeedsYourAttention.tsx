@@ -19,6 +19,7 @@ import {
   RiShieldCheckLine,
   RiTaskLine,
   RiUserAddLine,
+  RiUserReceivedLine,
 } from "@remixicon/react";
 import { useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";
@@ -33,6 +34,7 @@ const NAMED = 2;
 
 const DUTY_ICONS = {
   review: RiTaskLine,
+  joinRequests: RiUserReceivedLine,
   takeUp: RiUserAddLine,
   confirm: RiShieldCheckLine,
 } satisfies Record<StewardDuty["kind"], unknown>;
@@ -50,6 +52,11 @@ function describeStewardDuty(intl: IntlShape, duty: StewardDuty) {
         title: message(
           duty.uncounted ? "app.home.attention.reviewUncounted" : "app.home.attention.review"
         ),
+        pill: message("app.pending.pill.toReview"),
+      };
+    case "joinRequests":
+      return {
+        title: message("app.home.attention.joinRequests"),
         pill: message("app.pending.pill.toReview"),
       };
     case "takeUp":
@@ -75,8 +82,9 @@ export interface NeedsYourAttentionProps {
  * Needs Your Attention (PWA Home step 19, DL-127): the queues in the active garden the account
  * can act on, one row each with its count, each opening its exact queue (`useOpenStewardDuty`).
  * It appears only with something to show: a queue that waits, or a read that failed and may
- * hide one. Join requests stay in Gardeners, since their queue can be read only through a
- * signature.
+ * hide one. Join requests are counted with the grant a signed check in Gardeners left in this
+ * browser, so their row asks for no signature, and a browser without one shows none (PRD-1381).
+ * The count names nobody, so the row says where to see who asked.
  */
 export function NeedsYourAttention({ garden, duties: stewardDuties }: NeedsYourAttentionProps) {
   const intl = useIntl();
@@ -117,6 +125,8 @@ export function NeedsYourAttention({ garden, duties: stewardDuties }: NeedsYourA
           duty.works.slice(0, NAMED).map(workTitle).join(", "),
           formatAgo(intl, duty.works[0].createdAt * 1000),
         ];
+      case "joinRequests":
+        return [message("app.home.attention.joinRequestsDetail")];
       case "takeUp":
         return [promiseTitle(duty.commitment), formatAgo(intl, duty.newestAt * 1000)];
       case "confirm":

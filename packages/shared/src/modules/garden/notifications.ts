@@ -12,9 +12,11 @@
  *   `stewardsPoolGarden`, a live chain read of the pool's stewards and owners). Each is listed
  *   while it still waits and never to the account that made it. An evaluator or a gardener
  *   gets neither (decision 22).
- *
- * Join requests are not derived here: the agent holds them, and every read needs a fresh
- * signature.
+ * - For whoever answers join requests in the Gardeners sheet (`canManageGarden` again), one
+ *   event while requests wait (PRD-1381). The agent holds the requests, and a browser reads only
+ *   their count, with the grant a signed check of the queue left in it, so the event names
+ *   nobody and the device dates it (`noteJoinRequestsWaiting`). A member hears nothing when their
+ *   own request is answered: reading it takes their signature.
  *
  * Seen state is a device record per chain, account and garden (`gardenNotificationsScope`):
  * the events the member was shown, by id, and a time at or before which everything counts as
@@ -48,7 +50,23 @@ export type GardenNotification =
       at: number;
       commitment: CommitmentReadModel;
       claim: CommitmentClaimRequestRecord;
-    };
+    }
+  /**
+   * Join requests wait in the garden, `waiting` of them. `at` is when this device first read the
+   * count at that height (`JoinRequestsRead`), so each rise is a new event and an answer is not.
+   */
+  | { kind: "joinRequested"; id: string; at: number; waiting: number };
+
+/**
+ * A garden's join-request queue as one device last read its count. A count names nobody, so an
+ * answer and a new request between two reads cancel out, and the device dates what it reads.
+ */
+export interface JoinRequestsRead {
+  /** How many waited at the last read. */
+  waiting: number;
+  /** When this device first read the count at that height or above, in seconds. */
+  since: number;
+}
 
 export interface GardenNotificationSources {
   /** The signed-in account. */
@@ -67,6 +85,11 @@ export interface GardenNotificationSources {
    * once (`ClaimsLib.requestClaim`).
    */
   takeUpRequests: readonly PoolClaimRequestRow[];
+  /**
+   * The garden's join-request queue while requests wait, for an account that may answer them.
+   * Left out without a count grant in this browser, or with nothing waiting.
+   */
+  joinRequests?: JoinRequestsRead;
 }
 
 /** How far back an event can still be new: a week, in seconds. */
@@ -143,6 +166,11 @@ export function deriveGardenNotifications(
     }
   }
 
+  if (sources.joinRequests) {
+    const { waiting, since } = sources.joinRequests;
+    notifications.push({ kind: "joinRequested", id: `joinRequests:${since}`, at: since, waiting });
+  }
+
   return notifications.sort((left, right) => right.at - left.at || left.id.localeCompare(right.id));
 }
 
@@ -173,6 +201,23 @@ export function markNotificationsSeen(
   for (const [id, at] of Object.entries(record?.seen ?? {})) if (at > seenThrough) seen[id] = at;
   for (const { id, at } of notifications) if (at > seenThrough) seen[id] = at;
   return record?.cleared ? { seenThrough, seen, cleared: record.cleared } : { seenThrough, seen };
+}
+
+/**
+ * The queue's record after a read found `waiting` requests, `now` in seconds. A rise dates it
+ * `now`, since someone asked after the last read, and always past the last date, so each rise has
+ * an id of its own; a fall keeps its date, since an answer brings nobody new; an empty queue ends
+ * it. The same record comes back when nothing moved.
+ */
+export function noteJoinRequestsWaiting(
+  record: JoinRequestsRead | undefined,
+  waiting: number,
+  now: number
+): JoinRequestsRead | undefined {
+  if (waiting <= 0) return undefined;
+  if (!record) return { waiting, since: now };
+  if (waiting > record.waiting) return { waiting, since: Math.max(now, record.since + 1) };
+  return waiting === record.waiting ? record : { waiting, since: record.since };
 }
 
 /** Whether this device has cleared an event from the bell's sheet (DL-133). */

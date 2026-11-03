@@ -22,10 +22,12 @@ import { NotificationRow } from "./NotificationRow";
 import { NotificationsSheet } from "./Sheet";
 
 const EVENTS = notificationEvents();
-const ROW_TITLES = [
+/** The rows' titles, newest first; the waiting join requests' title follows the locale. */
+const rowTitles = (joinRequests: string) => [
   "Weekend workday",
   "Hedge Planting",
   "Seedlings for the school",
+  joinRequests,
   "Compost Turn",
   "Seed Swap",
 ];
@@ -55,7 +57,8 @@ const withLocale =
  * Clear All in its bar, the garden named beneath its title,
  * listing the garden's events for the member, one item row each, newest first: own work approved,
  * or rejected with the review's feedback; a promise of theirs taken up; and, for whoever may act
- * on them, a new submission and a take-up request. Opening it marks the listed events seen.
+ * on them, a new submission, a take-up request and waiting join requests, which name nobody.
+ * Opening it marks the listed events seen.
  */
 const meta: Meta<typeof NotificationsSheet> = {
   title: "Client/Sheets/NotificationsSheet",
@@ -82,7 +85,12 @@ const meta: Meta<typeof NotificationsSheet> = {
 export default meta;
 type Story = StoryObj<typeof NotificationsSheet>;
 
-async function expectEvents(sheetName: string, gardenLine: string, markSeen: unknown) {
+async function expectEvents(
+  sheetName: string,
+  gardenLine: string,
+  markSeen: unknown,
+  joinRequests: string
+) {
   const sheet = await screen.findByRole("dialog", { name: sheetName });
   await waitFor(() => expect(sheet).toBeVisible());
   await expect(sheet).toHaveAttribute("data-sheet-size", "full");
@@ -92,7 +100,7 @@ async function expectEvents(sheetName: string, gardenLine: string, markSeen: unk
   await expect(markSeen).toHaveBeenCalled();
   const rows = within(sheet).getAllByRole("listitem");
   await expect(rows.map((row) => row.querySelector(".gg-item-row-title")?.textContent)).toEqual(
-    ROW_TITLES
+    rowTitles(joinRequests)
   );
   // Rows keep one height, and every detail is whole or dropped whole.
   await expectItemRowsFit(sheet);
@@ -102,7 +110,7 @@ async function expectEvents(sheetName: string, gardenLine: string, markSeen: unk
 export const Events: Story = {
   tags: ["storybook-ci"],
   play: async ({ args }) => {
-    await expectEvents("Notifications", "In TAS HUB", args.markSeen);
+    await expectEvents("Notifications", "In TAS HUB", args.markSeen, "3 people asked to join");
   },
 };
 
@@ -110,7 +118,7 @@ export const Events: Story = {
 export const EventsAt375: Story = {
   globals: { viewport: { value: "mobile" } },
   play: async ({ args }) => {
-    await expectEvents("Notifications", "In TAS HUB", args.markSeen);
+    await expectEvents("Notifications", "In TAS HUB", args.markSeen, "3 people asked to join");
   },
 };
 
@@ -118,7 +126,7 @@ export const EventsAt375: Story = {
 export const EventsSpanish: Story = {
   decorators: [withLocale("es")],
   play: async ({ args }) => {
-    await expectEvents("Notificaciones", "En TAS HUB", args.markSeen);
+    await expectEvents("Notificaciones", "En TAS HUB", args.markSeen, "3 personas pidieron unirse");
   },
 };
 
@@ -126,7 +134,27 @@ export const EventsSpanish: Story = {
 export const EventsPortuguese: Story = {
   decorators: [withLocale("pt")],
   play: async ({ args }) => {
-    await expectEvents("Notificações", "Em TAS HUB", args.markSeen);
+    await expectEvents(
+      "Notificações",
+      "Em TAS HUB",
+      args.markSeen,
+      "3 pessoas pediram para entrar"
+    );
+  },
+};
+
+/**
+ * A steward whose browser holds no count grant, or whose garden has no join request waiting:
+ * the same sheet without the join-request row.
+ */
+export const EventsWithoutJoinRequests: Story = {
+  args: { notifications: EVENTS.filter(({ kind }) => kind !== "joinRequested") },
+  play: async () => {
+    const sheet = await screen.findByRole("dialog", { name: "Notifications" });
+    const titles = within(sheet)
+      .getAllByRole("listitem")
+      .map((row) => row.querySelector(".gg-item-row-title")?.textContent);
+    await expect(titles).toEqual(rowTitles("").filter(Boolean));
   },
 };
 
