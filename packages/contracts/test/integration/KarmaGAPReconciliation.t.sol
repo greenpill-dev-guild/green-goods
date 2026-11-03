@@ -10,6 +10,7 @@ import { GardenToken } from "../../src/tokens/Garden.sol";
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
+import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
 import { FaithfulGap, FaithfulProjectResolver } from "../helpers/FaithfulKarmaGap.sol";
@@ -18,6 +19,7 @@ import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 contract KarmaGAPReconciliationTest is Test, ERC6551Helper {
     address internal constant GAP = 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28;
     address internal constant PROJECT_RESOLVER = 0x099787D5a5aC92779A519CfD925ACB0Dc7E8bd23;
+    address internal constant EAS = 0xC2679fBD37d54388Ce493F1DB75320D236e1815e;
     bytes32 internal constant PROJECT_SCHEMA = 0xec77990a252b54b17673955c774b9712766de5eecb22ca5aa2c440e0e93257fb;
     bytes32 internal constant DETAILS_SCHEMA = 0x2c270e35bfcdc4d611f0e9d3d2ab6924ec6c673505abc22a1dd07e19b67211af;
     bytes32 internal constant MEMBER_SCHEMA = 0xdd87b3500457931252424f4439365534ba72a367503a8805ff3482353fb90301;
@@ -272,7 +274,7 @@ contract KarmaGAPReconciliationTest is Test, ERC6551Helper {
         string memory json = abi.decode(gap.lastData(DETAILS_SCHEMA), (string));
         assertTrue(_contains(json, "\"type\":\"project-update\""));
         assertTrue(_contains(json, "\"startDate\""));
-        assertTrue(_contains(json, "\"endDate\""));
+        assertFalse(_contains(json, "\"endDate\""));
         assertTrue(_contains(json, "[View in Green Goods](https://www.greengoods.app/home/0x"));
         assertTrue(_contains(json, "https://sepolia.easscan.org/attestation/view/0x"));
         assertTrue(_contains(json, "\"proof\":\"https://cdn.example/evidence.jpg\""));
@@ -325,6 +327,9 @@ contract KarmaGAPReconciliationTest is Test, ERC6551Helper {
         vm.etch(GAP, address(gapImplementation).code);
         gap = FaithfulGap(GAP);
         gap.initialize(PROJECT_RESOLVER, PROJECT_SCHEMA);
+
+        // A Project Update reads its Work's submission time from EAS.
+        vm.etch(EAS, address(new MockEAS()).code);
     }
 
     function _gardenConfig() internal view returns (GardenToken.GardenConfig memory config) {

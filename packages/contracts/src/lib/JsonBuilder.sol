@@ -12,7 +12,7 @@ error InvalidDomainValue(uint8 domain);
 ///
 ///      JSON Schemas:
 ///      - Project Details: { title, description, locationOfImpact, imageURL, slug, type }
-///      - Project Update:  { title, text, startDate, endDate, deliverables[], type }
+///      - Project Update:  { title, text, startDate, deliverables[], type }
 ///      - Milestone:       { title, text, startDate, endDate, domain, location, assessmentConfigCID, type }
 library JsonBuilder {
     /// @notice Builds project details JSON for Karma GAP
@@ -72,7 +72,7 @@ library JsonBuilder {
     /// @param proofIPFS IPFS CID for proof media
     /// @param workUID UID of the original work attestation
     /// @param garden Garden account address (for Green Goods link)
-    /// @param timestamp Block timestamp for ISO date formatting
+    /// @param timestamp Time the update is dated by, written as its ISO `startDate`
     /// @param metadataCID IPFS CID for structured work metadata (domain-specific indicators)
     /// @return JSON string conforming to GAP project-update schema
     function buildImpact(
@@ -130,9 +130,8 @@ library JsonBuilder {
             )
         );
 
-        // Karma draws a Project Update's date line from ISO `startDate`/`endDate` only.
-        string memory date = StringUtils.timestampToISO(timestamp);
-
+        // Karma draws a Project Update's date line from ISO `startDate`/`endDate` only; a start alone shows
+        // one date, and the card's Posted time already shows when the update was attested.
         return string(
             abi.encodePacked(
                 "{\"title\":\"",
@@ -140,9 +139,7 @@ library JsonBuilder {
                 "\",\"text\":\"",
                 StringUtils.escapeJSON(text),
                 "\",\"startDate\":\"",
-                date,
-                "\",\"endDate\":\"",
-                date,
+                StringUtils.timestampToISO(timestamp),
                 "\",\"deliverables\":[",
                 _buildDeliverables(updateText, proofReference, metadataReference),
                 "],\"type\":\"project-update\"}"
