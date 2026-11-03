@@ -1,22 +1,24 @@
 /**
  * Photos without the metadata cameras write into them
  *
- * A work photo is pinned to public IPFS and named on an attestation, and
- * neither can be withdrawn. Cameras write where a photo was taken, the device
+ * A photo pinned to public IPFS cannot be withdrawn, and a work photo is named
+ * on an attestation too. Cameras write where a photo was taken, the device
  * that took it and much else into the file itself, so a photo loses that
  * metadata before it can be published. The garden keeps its own record of
  * where work happened: the rounded location stored beside the photo, never the
  * camera's.
  *
- * Only metadata is removed. The encoded image is copied byte for byte, with no
- * decoder or canvas involved, so a photo of any size keeps its quality. Two
+ * Only metadata is removed. A JPEG, PNG or WebP is copied byte for byte, with
+ * no decoder or canvas involved, so a photo of any size keeps its quality. Two
  * things that change how a photo looks stay: its color profile, and the EXIF
  * Orientation, rewritten as the only tag (`exif-orientation.ts`), since without
- * it a portrait photo shows on its side.
+ * it a portrait photo shows on its side. Only a file that rewrite cannot read
+ * is drawn again through a canvas, which writes no metadata.
  *
- * @module modules/work/image-metadata
+ * @module modules/media/image-metadata
  */
 
+import { logger } from "../app/logger";
 import { orientationExif } from "./exif-orientation";
 
 type Bytes = Uint8Array<ArrayBuffer>;
@@ -32,13 +34,40 @@ const PNG_SIGNATURE = "\x89PNG\r\n\x1a\n";
 const EXIF_HEADER = "Exif\0\0";
 
 /**
+ * A photo without its location, camera or other metadata, or null when it
+ * cannot be published. The byte-level rewrite reads the JPEG, PNG and WebP
+ * structures cameras and editors write. A file it cannot read, which a browser
+ * may still draw leniently, is drawn again through a canvas, which writes no
+ * metadata. Null only when neither can read it; the Agent has no canvas.
+ */
+export async function withoutPhotoMetadata(file: File): Promise<File | null> {
+  const stripped = await withoutImageMetadata(file);
+  if (stripped) return stripped;
+  const redrawn = await redrawPhoto(file);
+  // The canvas's output is read back like any photo, so nothing it carried over is published.
+  return redrawn ? withoutImageMetadata(redrawn) : null;
+}
+
+async function redrawPhoto(file: File): Promise<File | null> {
+  try {
+    const { imageCompressor } = await import("../../utils/work/image-compression");
+    return await imageCompressor.redraw(file);
+  } catch (error) {
+    logger.warn("[WorkMedia] The canvas to redraw a photo could not load", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+/**
  * The photo as it may be published: a JPEG, PNG or WebP without its location,
  * camera, editing or other metadata, under the same name and type. The same
  * file comes back when there was nothing to remove. Null when the bytes are not
  * an image this can read, so the caller refuses the photo rather than publish
  * what it could not check.
  */
-export async function withoutImageMetadata(file: File): Promise<File | null> {
+async function withoutImageMetadata(file: File): Promise<File | null> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const rewrite = hasText(bytes, 0, JPEG_START)
     ? rewriteJpeg(bytes)

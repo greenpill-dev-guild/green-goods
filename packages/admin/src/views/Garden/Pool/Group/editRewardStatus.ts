@@ -209,11 +209,17 @@ export function editRewardStatus(input: {
             defaultMessage:
               "Your wallet declined the request. The rewards are as they were, and Try Again asks once more.",
           })
-        : formatMessage({
-            id: "cockpit.garden.pool.reward.refusedHint",
-            defaultMessage:
-              "The request didn't go through. The rewards are as they were; check the amount, then Try Again.",
-          }),
+        : missed.every((copy) => copy.miss === "over-ceilings")
+          ? formatMessage({
+              id: "cockpit.garden.pool.reward.overCeilingsHint",
+              defaultMessage:
+                "These rewards can't change in one signature right now, so nothing was sent. They are as they were, and Try Again asks for each one on its own.",
+            })
+          : formatMessage({
+              id: "cockpit.garden.pool.reward.refusedHint",
+              defaultMessage:
+                "The request didn't go through. The rewards are as they were; check the amount, then Try Again.",
+            }),
     };
   }
   if (missed.length > 0) {

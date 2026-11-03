@@ -3,7 +3,10 @@ import { FileUploadField } from "@green-goods/shared/components/FileUploadField"
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
-import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import {
+  UnpublishableImageError,
+  uploadFileToIPFS,
+} from "@green-goods/shared/modules/data/ipfs/upload";
 import { extractErrorMessage } from "@green-goods/shared/utils/errors/extract-message";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -54,18 +57,28 @@ export function CampaignImageInput({
         suppressLogging: true,
       });
     } catch (error) {
-      const message = extractErrorMessage(error);
-      setUploadError(message);
+      // An image that could not be checked for its location never uploads; trying again cannot help.
+      const unreadable =
+        error instanceof UnpublishableImageError
+          ? formatMessage({
+              id: "app.common.imageUnreadable",
+              defaultMessage:
+                "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP.",
+            })
+          : null;
+      setUploadError(unreadable ?? extractErrorMessage(error));
       logger.error("Campaign cookie jar image upload failed", { error });
       toastService.error({
         title: formatMessage({
           id: "cockpit.community.cookies.imageUploadFailed",
           defaultMessage: "Image upload failed",
         }),
-        message: formatMessage({
-          id: "cockpit.community.cookies.imageUploadFailedMessage",
-          defaultMessage: "Could not upload the campaign image. Try again or paste a URL.",
-        }),
+        message:
+          unreadable ??
+          formatMessage({
+            id: "cockpit.community.cookies.imageUploadFailedMessage",
+            defaultMessage: "Could not upload the campaign image. Try again or paste a URL.",
+          }),
         context: "campaign cookie jar image upload",
         error,
       });

@@ -23,8 +23,11 @@ export type CreationPassState =
       request: number;
       requests: number;
     }
-  /** Nothing created or left waiting; `retry` copies didn't send. */
-  | { phase: "declined" | "refused" | "unconfirmed"; retry: number }
+  /**
+   * Nothing created or left waiting; `retry` copies didn't send. `overCeilings`:
+   * their bundle was more than one signature may carry, so it never went out.
+   */
+  | { phase: "declined" | "refused" | "unconfirmed"; retry: number; overCeilings?: boolean }
   | {
       phase: "partial";
       created: number;
@@ -96,7 +99,11 @@ export function creationPass(input: {
       return { phase: "unconfirmed", retry: counts.notSent };
     }
     const declined = missed.every((copy) => copy.miss === "declined");
-    return { phase: declined ? "declined" : "refused", retry: counts.notSent };
+    return {
+      phase: declined ? "declined" : "refused",
+      retry: counts.notSent,
+      overCeilings: missed.every((copy) => copy.miss === "over-ceilings"),
+    };
   }
   if (counts.notSent > 0) {
     return {

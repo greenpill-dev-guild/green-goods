@@ -92,6 +92,29 @@ describe("bundling sender checkpoints", () => {
     ).rejects.toThrow("ownership changed");
     expect(await bundle.outcome).toMatchObject({ status: "failed" });
   });
+  it("hands the sender its ceilings, and reads a request it proved never went out as refused", async () => {
+    const budget = {
+      maxCalls: 2,
+      maxCalldataBytes: 1_024,
+      maxGas: "1000000",
+      maxFeePerGas: "1000000000",
+      maxFee: "1000000000000000",
+      sponsorship: "required",
+    } as const;
+    const tooBig = new Error("batch-budget-exceeded");
+    const send = vi.fn(async (_calls: ContractCall[], options?: AtomicBatchOptions) => {
+      options?.onNeverSent?.();
+      throw tooBig;
+    });
+    const bundle = createBundlingSender(base(send), ["a"], { batchBudget: budget });
+
+    await expect(bundle.senderFor("a").sendContractCall(createMockContractCall())).rejects.toBe(
+      tooBig
+    );
+    expect(send.mock.calls[0]![1]?.batchBudget).toBe(budget);
+    // Nothing reached the chain, so whoever sends next may send it again.
+    expect(await bundle.outcome).toEqual({ status: "refused", error: tooBig });
+  });
   it("allows a no-op participant to finish without holding the other call", async () => {
     const send = vi.fn(async () => ({ hash, sponsored: false }));
     const bundle = createBundlingSender(base(send), ["a", "b"]);
