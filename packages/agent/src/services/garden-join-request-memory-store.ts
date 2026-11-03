@@ -116,11 +116,12 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     };
   }
 
-  async countPending(gardenAddress: Address, nowIso: string) {
+  async countPending(gardenAddress: Address, nowIso: string, kind?: GardenJoinRequestKind) {
     const now = Date.parse(nowIso);
     return [...this.records.values()].filter(
       (record) =>
         record.gardenAddress === gardenAddress &&
+        (!kind || record.kind === kind) &&
         record.state === "pending" &&
         Date.parse(record.expiresAt) > now
     ).length;

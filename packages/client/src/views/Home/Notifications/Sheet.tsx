@@ -8,6 +8,7 @@ import type {
   GardenNotification,
   GardenNotifications,
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiHammerLine, RiHandHeartLine, RiNotificationLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
@@ -47,14 +48,16 @@ const TAB_ICONS: Record<NotificationsTab, React.ReactNode> = {
   work: <RiHammerLine aria-hidden="true" />,
   promises: <RiHandHeartLine aria-hidden="true" />,
 };
-/** The events about work; every other event is about a promise. */
-const WORK_KINDS: ReadonlySet<GardenNotification["kind"]> = new Set([
-  "workApproved",
-  "workRejected",
-  "workSubmitted",
-]);
+/** The events each tab lists besides All, which lists every event, waiting join requests too. */
+const TAB_KINDS: Record<
+  Exclude<NotificationsTab, "all">,
+  ReadonlySet<GardenNotification["kind"]>
+> = {
+  work: new Set(["workApproved", "workRejected", "workSubmitted"]),
+  promises: new Set(["promiseTakenUp", "takeUpRequested"]),
+};
 const inTab = (notification: GardenNotification, tab: NotificationsTab) =>
-  tab === "all" || (tab === "work") === WORK_KINDS.has(notification.kind);
+  tab === "all" || TAB_KINDS[tab].has(notification.kind);
 
 /** How many empty frames hold the list's place while the first read runs (DL-056). */
 const LOADING_ROWS = 3;
@@ -64,14 +67,15 @@ const LOADING_ROWS = 3;
  * title, listing the garden's events for the member, one item row each, newest first, under All,
  * Work and Promises tabs. Each tab scrolls in a container of its own, so a tab opens at its top
  * however far the last one was scrolled; the sheet's body hands it scrolling, as the Wallet and
- * Promises sheets do. A row opens the work or the promise, closing the sheet first so the
- * screen it opens is not under it. Opening the sheet marks the open tab's events seen on this
- * device, as does switching to a tab, while an event under another tab stays new; Clear All in
- * the shared bar hides every listed event here for good. With nothing to list it shows the
- * shared state block, and a read that failed or answered only in part says so in one quiet line
- * while the rows it did find stay. Offline the reads pause rather than fail: a tab with nothing
- * cached says the events cannot be checked instead of reporting an empty inbox, and the rows
- * that were cached keep the partial-read line above them.
+ * Promises sheets do. A row opens the work, the promise or, for waiting join requests, the
+ * Gardeners sheet, closing this sheet first so what it opens is not under it. Join requests are
+ * about neither work nor a promise, so only All lists them. Opening the sheet marks the open
+ * tab's events seen on this device, as does switching to a tab, while an event under another tab
+ * stays new; Clear All in the shared bar hides every listed event here for good. With nothing to
+ * list it shows the shared state block, and a read that failed or answered only in part says so
+ * in one quiet line while the rows it did find stay. Offline the reads pause rather than fail: a
+ * tab with nothing cached says the events cannot be checked instead of reporting an empty inbox,
+ * and the rows that were cached keep the partial-read line above them.
  */
 export function NotificationsSheet({
   open,
@@ -87,6 +91,7 @@ export function NotificationsSheet({
 }: NotificationsSheetProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigateToTop();
+  const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const isOnline = useOnlineStatus();
   const [tab, setTab] = useState<NotificationsTab>("all");
   const shown = useMemo(
@@ -131,6 +136,10 @@ export function NotificationsSheet({
           `/home/${gardenId}/commitments/${notification.commitment.commitmentId.toString()}`,
           { state: { from: "home" } }
         );
+        return;
+      case "joinRequested":
+        // Join requests are answered in the Gardeners sheet over Home, its queue first.
+        openGardenSheet("gardeners");
         return;
     }
   };

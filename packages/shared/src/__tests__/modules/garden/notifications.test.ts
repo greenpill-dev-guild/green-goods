@@ -1,7 +1,7 @@
 /**
  * Garden notification tests: the events the bell lists for an account in one garden, read
- * from the garden's work list, its pool's promises and the take-up requests waiting there
- * (DL-130), and which of them are new on this device.
+ * from the garden's work list, its pool's promises, the take-up requests and the join requests
+ * waiting there (DL-130, PRD-1381), and which of them are new on this device.
  */
 
 import { describe, expect, it } from "vitest";
@@ -12,6 +12,7 @@ import {
   isNotificationNew,
   markNotificationsSeen,
   NEW_NOTIFICATION_WINDOW_SECONDS,
+  noteJoinRequestsWaiting,
 } from "../../../modules/garden/notifications";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types-core";
 import type { Address, Work } from "../../../types/domain";
@@ -258,6 +259,47 @@ describe("deriveGardenNotifications", () => {
       "submission:0xe3",
     ]);
     expect(again.map(({ id }) => id)).toEqual(first.map(({ id }) => id));
+  });
+
+  it("lists waiting join requests as one event, named and dated by the rise this device read", () => {
+    const since = NOW - 4 * HOUR;
+
+    expect(deriveGardenNotifications(sources({ joinRequests: { waiting: 3, since } }))).toEqual([
+      { kind: "joinRequested", id: `joinRequests:${since}`, at: since, waiting: 3 },
+    ]);
+  });
+});
+
+describe("noteJoinRequestsWaiting", () => {
+  const record = { waiting: 2, since: NOW - DAY };
+
+  it.each([
+    ["dates the first count this device reads", undefined, 2, { waiting: 2, since: NOW }],
+    [
+      "dates a rise, since someone asked after the last read",
+      record,
+      3,
+      { waiting: 3, since: NOW },
+    ],
+    [
+      "dates a rise in the same second past the last one",
+      { waiting: 2, since: NOW },
+      3,
+      { waiting: 3, since: NOW + 1 },
+    ],
+    [
+      "keeps the date through a fall, since an answer brings nobody new",
+      record,
+      1,
+      { ...record, waiting: 1 },
+    ],
+    ["ends once none wait", record, 0, undefined],
+  ])("%s", (_case, previous, waiting, expected) => {
+    expect(noteJoinRequestsWaiting(previous, waiting, NOW)).toEqual(expected);
+  });
+
+  it("hands back the same record while the count holds, so the device writes nothing", () => {
+    expect(noteJoinRequestsWaiting(record, 2, NOW)).toBe(record);
   });
 });
 

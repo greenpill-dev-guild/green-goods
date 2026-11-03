@@ -4,6 +4,7 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
+  useJoinRequestCountUpdates,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import {
@@ -21,10 +22,16 @@ import { RiCheckLine, RiCloseLine, RiGroupLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
+/**
+ * A steward's join-request queue in the Gardeners section. Reading it takes a signature, and the
+ * read hands back a count grant this browser keeps, so Home's Needs Your Attention row and bell
+ * can say how many wait without asking for one (PRD-1381); each answer asks for that count again.
+ */
 export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Address }) {
   const { formatDate, formatMessage } = useIntl();
   const isAvailable = useGardenJoinRequestAvailability();
   const join = useGardenJoinRequests(gardenAddress);
+  const { keepCountGrant, readCountAgain } = useJoinRequestCountUpdates(gardenAddress);
   const operations = useGardenOperations(gardenAddress);
   const [loaded, setLoaded] = useState(false);
   const [activeId, setActiveId] = useState<string>();
@@ -37,7 +44,10 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
   async function load(cursor?: string) {
     await join
       .loadQueue({ cursor, append: Boolean(cursor) })
-      .then(() => setLoaded(true))
+      .then((response) => {
+        setLoaded(true);
+        if (response.countGrant) keepCountGrant(response.countGrant);
+      })
       .catch(() => undefined);
   }
 
@@ -55,6 +65,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           defaultMessage: "Membership could not be added.",
         }),
       });
+      readCountAgain();
       setNotice(
         resolution.pendingOnchainMembership
           ? formatMessage({
@@ -95,6 +106,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
         expectedRevision: declining.revision,
         reason,
       });
+      readCountAgain();
       setDeclining(undefined);
       setReason("");
       setNotice(
