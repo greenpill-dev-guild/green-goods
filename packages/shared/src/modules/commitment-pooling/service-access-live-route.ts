@@ -15,7 +15,11 @@ import {
 } from "viem";
 import type { Address } from "../../types/domain";
 import type { ServiceChainRead } from "./service-access-chain";
-import { serviceAddress as address, serviceUint as uint } from "./service-access-chain-values";
+import {
+  serviceAddress as address,
+  serviceOwnerIs,
+  serviceUint as uint,
+} from "./service-access-chain-values";
 import type { ServiceDeploymentPin, ServiceLiveRoute } from "./service-access-live-config";
 
 const OWNER = parseAbi(["function owner() view returns (address)"]);
@@ -75,7 +79,7 @@ export async function verifyServiceDeploymentState(
     !same(`0x${slot.slice(-40)}`, pin.implementation.address) ||
     implementation === "0x" ||
     !same(keccak256(implementation), pin.implementation.runtimeCodeHash) ||
-    !same(address(owner), pin.owner)
+    !serviceOwnerIs(address(owner), pin.owner)
   )
     throw new Error("Service deployment receipt, implementation or owner changed");
 }
@@ -285,7 +289,7 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
         implementation === "0x" ||
         !same(keccak256(implementation), asset.implementation.runtimeCodeHash) ||
         // Snapshots show the route's issuer, symbol and decimals, so the token must still agree.
-        !same(address(issuer), asset.issuer) ||
+        !serviceOwnerIs(address(issuer), asset.issuer) ||
         symbol !== asset.symbol ||
         decimals !== asset.decimals
       )

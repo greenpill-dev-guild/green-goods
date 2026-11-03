@@ -4,6 +4,19 @@ import type { Address } from "../../types/domain";
 export type ServiceTuple = Record<string, unknown>;
 export const SERVICE_ZERO_HASH = `0x${"0".repeat(64)}` as Hex;
 export const SERVICE_ZERO_ADDRESS = `0x${"0".repeat(40)}` as Address;
+export const GREEN_GOODS_SAFE = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19" as Address;
+/** Administered by the Green Goods Safe alone; the Safe's owner roles may be held here. */
+export const GREEN_GOODS_ACCESS_MANAGER = "0xfBf07b2d0e5eA8249756F205e5214B9d7cDF4e66" as Address;
+
+/** True when `owner` is `authority`, or the access manager when `authority` is the Green Goods Safe. */
+export function serviceOwnerIs(owner: string, authority: string): boolean {
+  const live = owner.toLowerCase();
+  const pinned = authority.toLowerCase();
+  return (
+    live === pinned ||
+    (pinned === GREEN_GOODS_SAFE.toLowerCase() && live === GREEN_GOODS_ACCESS_MANAGER.toLowerCase())
+  );
+}
 
 export function serviceTuple(value: unknown, fields: readonly string[]): ServiceTuple {
   if (Array.isArray(value)) {

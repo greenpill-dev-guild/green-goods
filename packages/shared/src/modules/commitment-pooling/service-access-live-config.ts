@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
+import { GREEN_GOODS_SAFE } from "./service-access-chain-values";
 
 export interface ServiceDeploymentPin {
   address: Address;
@@ -42,7 +43,6 @@ export interface ServiceLiveRoute {
   buyerGardens: readonly { address: Address; name: string }[];
 }
 
-const GREEN_GOODS_SAFE = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19";
 const PAUSE_GUARDIAN = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
 const ERC1967_PROXY_RUNTIME = "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7";
 const CLC_TOKEN_PROXY_RUNTIME =

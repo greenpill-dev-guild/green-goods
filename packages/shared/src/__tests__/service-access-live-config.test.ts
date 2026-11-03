@@ -2,6 +2,11 @@ import arbitrumLatest from "@green-goods/contracts/deployments/42161-latest.json
 import arbitrumPilot from "@green-goods/contracts/deployments/42161-pilot-downstream.json";
 import gnosisPilot from "@green-goods/contracts/deployments/100-pilot-downstream.json";
 import { describe, expect, it } from "vitest";
+import {
+  GREEN_GOODS_ACCESS_MANAGER,
+  GREEN_GOODS_SAFE,
+  serviceOwnerIs,
+} from "../modules/commitment-pooling/service-access-chain-values";
 import { SERVICE_LIVE_ROUTES } from "../modules/commitment-pooling/service-access-live-config";
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
@@ -23,6 +28,15 @@ describe("the pilot's live service route", () => {
     expect(route.id).toBe(arbitrumPilot.releaseId);
     expect(same(route.core.address, arbitrumLatest.commitmentPoolingModule)).toBe(true);
     expect(same(route.core.owner, arbitrumPilot.endpointOwner)).toBe(true);
+  });
+
+  it("counts the access manager as the Green Goods Safe's owner and nobody else's", () => {
+    const techAndSunSafe = gnosisPilot.techAndSunBootstrap.safe;
+    expect(serviceOwnerIs(GREEN_GOODS_SAFE.toLowerCase(), GREEN_GOODS_SAFE)).toBe(true);
+    expect(serviceOwnerIs(GREEN_GOODS_ACCESS_MANAGER, GREEN_GOODS_SAFE)).toBe(true);
+    expect(serviceOwnerIs(GREEN_GOODS_ACCESS_MANAGER, techAndSunSafe)).toBe(false);
+    expect(serviceOwnerIs(techAndSunSafe, GREEN_GOODS_SAFE)).toBe(false);
+    expect(same(route.core.owner, GREEN_GOODS_SAFE)).toBe(true);
   });
 
   it("lets two distinct gardens book, one of them the core's recorded root garden", () => {

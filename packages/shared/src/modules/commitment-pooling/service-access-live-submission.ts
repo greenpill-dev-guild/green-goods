@@ -9,7 +9,7 @@ import {
   type TxResult,
 } from "../transactions/types";
 import { selectServiceAccessAction } from "./service-access";
-import { serviceAddress } from "./service-access-chain-values";
+import { serviceAddress, serviceOwnerIs } from "./service-access-chain-values";
 import type { ServiceLiveSession } from "./service-access-live";
 import type { ServiceLiveChain } from "./service-access-live-chain";
 import { serviceCallIdentity, serviceLiveCall } from "./service-access-live-commands";
@@ -207,7 +207,7 @@ export async function executeLiveServiceCall(
           abi: parseAbi(["function owner() view returns (address)"]),
           functionName: "owner",
         });
-        if (!same(serviceAddress(owner), row.authorization.issuer))
+        if (!serviceOwnerIs(serviceAddress(owner), row.authorization.issuer))
           throw new Error("Voucher issuer changed");
       }
       if (

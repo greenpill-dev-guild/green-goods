@@ -9,7 +9,11 @@ import {
 } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
-import { SERVICE_ZERO_HASH as ZERO } from "../modules/commitment-pooling/service-access-chain-values";
+import {
+  GREEN_GOODS_ACCESS_MANAGER,
+  GREEN_GOODS_SAFE,
+  SERVICE_ZERO_HASH as ZERO,
+} from "../modules/commitment-pooling/service-access-chain-values";
 import { createLiveServiceAccessAdapter } from "../modules/commitment-pooling/service-access-live";
 import {
   type ServiceLiveChain,
@@ -484,6 +488,34 @@ describe("live service access", () => {
       await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow();
       expect(f.sender.sendContractCall).not.toHaveBeenCalled();
     }
+  });
+
+  it("accepts the Green Goods Safe or its access manager wherever that Safe is the pinned owner", async () => {
+    for (const live of [GREEN_GOODS_SAFE, GREEN_GOODS_ACCESS_MANAGER]) {
+      const f = fixture();
+      for (const pin of [f.route.core, f.route.source, f.route.destination])
+        pin.owner = GREEN_GOODS_SAFE;
+      f.route.assets[0]!.issuer = GREEN_GOODS_SAFE;
+      const { read } = f.chain;
+      f.chain.read = async (input) => (input.functionName === "owner" ? live : read(input));
+      await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
+    }
+  });
+
+  it("refuses the access manager as owner wherever another account is pinned", async () => {
+    const f = fixture();
+    const { read } = f.chain;
+    f.chain.read = async (input) =>
+      input.functionName === "owner" ? GREEN_GOODS_ACCESS_MANAGER : read(input);
+    await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
+      "Service deployment receipt, implementation or owner changed"
+    );
+    // With every deployment pinned to the Safe, a voucher token pinned to another issuer still refuses it.
+    for (const pin of [f.route.core, f.route.source, f.route.destination])
+      pin.owner = GREEN_GOODS_SAFE;
+    await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
+      "Service voucher token changed"
+    );
   });
 
   it("rejects a contract wallet or unfunded EOA fallback before asking it to sign", async () => {
