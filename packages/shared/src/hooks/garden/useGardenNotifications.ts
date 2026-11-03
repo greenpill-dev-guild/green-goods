@@ -151,13 +151,18 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   );
   const noteJoinRequests = useGardenNotificationsSeenStore((state) => state.noteJoinRequests);
 
-  // Each answer of the count is noted here, and this device dates a rise as it reads one.
+  // Each answer of the count is noted here, and this device dates a rise as it reads one. A browser
+  // that no longer holds a grant drops the record, since nothing here can read the queue again.
   const joinRequestsWaiting = joinRequestRead.waiting;
+  const holdsJoinRequestGrant = joinRequestRead.hasGrant;
   useEffect(() => {
-    if (scope && joinRequestsWaiting !== undefined) {
+    if (!scope) return;
+    if (canAnswerJoinRequests && !holdsJoinRequestGrant) {
+      noteJoinRequests(scope, 0, nowInSeconds());
+    } else if (joinRequestsWaiting !== undefined) {
       noteJoinRequests(scope, joinRequestsWaiting, nowInSeconds());
     }
-  }, [scope, joinRequestsWaiting, noteJoinRequests]);
+  }, [scope, canAnswerJoinRequests, holdsJoinRequestGrant, joinRequestsWaiting, noteJoinRequests]);
 
   // The moment newness is judged against. It moves when the sheet opens, when the page comes
   // back and when the next new event leaves the week; a render alone never moves it.

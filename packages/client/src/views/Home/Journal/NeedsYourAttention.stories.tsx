@@ -232,6 +232,7 @@ function SceneColumn({ scene, duties }: { scene: string; duties: Duty[] }) {
  * the other queues keep their places.
  */
 export const JoinRequestsEveryLanguage: Story = {
+  tags: ["storybook-ci"],
   globals: { viewport: { value: "desktop" } },
   parameters: { layout: "padded" },
   render: () => (

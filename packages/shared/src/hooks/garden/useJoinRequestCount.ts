@@ -12,8 +12,9 @@
  * alone (`kind`), since the installed app's Gardeners sheet lists only those; an older service
  * ignores the kind and answers with the total. The queues that read signed hand over the grant
  * each read returns, and ask for the counts again once they answer a request
- * (`useJoinRequestCountUpdates`). Each count is read once on arrival and again on those updates,
- * never on a timer or on focus.
+ * (`useJoinRequestCountUpdates`). Each count is read on arrival, after those updates, and when the
+ * app comes back into view or online with an answer more than a minute old; never on a timer.
+ * Offline the read waits instead of failing, so the installed app reads it once it is back.
  *
  * @module hooks/garden/useJoinRequestCount
  */
@@ -40,6 +41,8 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 export interface JoinRequestCount {
   /** How many requests wait in the queue read; undefined without a grant and until it answers. */
   waiting: number | undefined;
+  /** This browser holds a grant for the garden and account, whether or not it is read here. */
+  hasGrant: boolean;
   /** The grant's read has not answered yet. */
   isLoading: boolean;
   /** The grant's read failed and kept the grant, so requests may wait unseen. */
@@ -78,9 +81,14 @@ export function useJoinRequestCount(
   const read = useQuery({
     queryKey: gardenJoinRequestKeys.count(chainId, garden, accountKey, kind),
     queryFn: async () => {
+      // The grant kept last, read as the request leaves: a signed check can replace it after this
+      // render and ask for the count again before the next one.
+      const grant = grantScope
+        ? useJoinRequestCountGrantStore.getState().grantsByScope[grantScope]?.[garden]?.token
+        : undefined;
+      if (!grant) return null;
       try {
-        return (await gardenJoinRequestTransport.count(garden as Address, token!, { kind }))
-          .waiting;
+        return (await gardenJoinRequestTransport.count(garden as Address, grant, { kind })).waiting;
       } catch (error) {
         // The grant lapsed or the account lost the role, so only a new signed check can bring it
         // back. Any other failure says nothing about the grant, and keeps the last answer.
@@ -88,17 +96,19 @@ export function useJoinRequestCount(
           error instanceof GardenJoinRequestTransportError &&
           (error.status === 401 || error.status === 403)
         ) {
-          useJoinRequestCountGrantStore.getState().forgetGrant(grantScope!, garden, token!);
+          useJoinRequestCountGrantStore.getState().forgetGrant(grantScope!, garden, grant);
           return null;
         }
         throw error;
       }
     },
     enabled: canRead,
+    // Offline it waits rather than failing, and goes once the connection is back.
+    networkMode: "online",
     staleTime: 60_000,
     retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // A refetch runs even when a query is disabled, so it waits for a grant to read with.
@@ -110,6 +120,7 @@ export function useJoinRequestCount(
   // A disabled read still hands back what it answered before; without a grant it says nothing.
   return {
     waiting: canRead ? (read.data ?? undefined) : undefined,
+    hasGrant: Boolean(token),
     isLoading: canRead && read.isLoading,
     isError: canRead && read.isError,
     refetch: readAgain,

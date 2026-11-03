@@ -50,6 +50,8 @@ const reads = vi.hoisted(() => ({
   takeUpReads: [] as ReadCall[],
   /** What the count grant's read answers; undefined while this browser holds no grant. */
   joinRequestsWaiting: undefined as number | undefined,
+  /** Whether this browser holds a count grant for the garden. */
+  joinRequestsHasGrant: true,
   joinRequestsFailed: false,
   joinRequestReads: [] as Array<{ enabled?: boolean; kind?: string }>,
 }));
@@ -108,6 +110,7 @@ vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
     const enabled = options.enabled !== false;
     return {
       waiting: enabled ? reads.joinRequestsWaiting : undefined,
+      hasGrant: reads.joinRequestsHasGrant,
       isLoading: false,
       isError: enabled && reads.joinRequestsFailed,
       refetch: () => {},
@@ -200,6 +203,7 @@ beforeEach(() => {
   useGardenNotificationsSeenStore.setState({ seenByScope: {}, joinRequestsByScope: {} });
   reads.account = ALICE;
   reads.joinRequestsWaiting = undefined;
+  reads.joinRequestsHasGrant = true;
   reads.joinRequestsFailed = false;
   reads.joinRequestReads = [];
   reads.worksFailed = false;
@@ -377,7 +381,7 @@ describe("useGardenNotifications", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("lists waiting join requests as one event, new with each rise and not when one is answered", async () => {
+  it("lists waiting join requests as one event, new with each rise and not when one is answered, and keeps no record without them", async () => {
     seedGarden({ stewards: [ALICE] });
     const clock = vi.spyOn(Date, "now").mockReturnValue(now * 1000);
     reads.joinRequestsWaiting = 2;
@@ -409,6 +413,18 @@ describe("useGardenNotifications", () => {
     rerender({ id: GARDEN });
     await waitFor(() => expect(joinEvent()).toBeUndefined());
     expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({});
+
+    // Nor once its grant is gone (it lapsed, or the session ended), since nothing reads it again.
+    reads.joinRequestsWaiting = 2;
+    rerender({ id: GARDEN });
+    await waitFor(() => expect(joinEvent()).toMatchObject({ waiting: 2 }));
+    reads.joinRequestsWaiting = undefined;
+    reads.joinRequestsHasGrant = false;
+    rerender({ id: GARDEN });
+    await waitFor(() =>
+      expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({})
+    );
+    expect(joinEvent()).toBeUndefined();
 
     // A count read that failed may hide join requests, so the list says it may be missing events.
     reads.joinRequestsFailed = true;

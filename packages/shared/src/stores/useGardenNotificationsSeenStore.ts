@@ -102,7 +102,8 @@ function parseJoinRequestsByScope(value: unknown): Record<string, JoinRequestsRe
  * how many join requests it last read waiting there and since when (PRD-1381), which the bell's
  * join-request event is built from. It is keyed by `chainId:address` and the garden, so it stays
  * when another account signs in and is never read for one. It holds no event, only ids, counts
- * and times; the marks trim themselves to a week, and a queue's record goes once none wait.
+ * and times; the marks trim themselves to a week, and a queue's record goes once none wait or
+ * once this browser holds no grant to read the queue with.
  */
 export const useGardenNotificationsSeenStore = create<GardenNotificationsSeenState>()(
   persist(

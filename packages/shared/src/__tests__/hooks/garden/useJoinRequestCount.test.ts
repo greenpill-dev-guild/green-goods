@@ -7,9 +7,13 @@
  * @vitest-environment happy-dom
  */
 
-import { waitFor } from "@testing-library/react";
+import { onlineManager } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useJoinRequestCount } from "../../../hooks/garden/useJoinRequestCount";
+import {
+  useJoinRequestCount,
+  useJoinRequestCountUpdates,
+} from "../../../hooks/garden/useJoinRequestCount";
 import {
   joinRequestCountGrantScope,
   useJoinRequestCountGrantStore,
@@ -89,6 +93,63 @@ describe("useJoinRequestCount", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.waiting).toBeUndefined();
     expect(useJoinRequestCountGrantStore.getState().grantsByScope[SCOPE]?.[GARDEN]).toEqual(GRANT);
+  });
+
+  it("waits offline instead of failing, and reads once the connection is back", async () => {
+    useJoinRequestCountGrantStore.getState().keepGrant(SCOPE, GARDEN, GRANT);
+    // The app's client tries a read once even offline (config/react-query.ts), where it fails.
+    const queryClient = createTestQueryClient();
+    const defaults = queryClient.getDefaultOptions();
+    queryClient.setDefaultOptions({
+      ...defaults,
+      queries: { ...defaults.queries, networkMode: "offlineFirst" },
+    });
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    onlineManager.setOnline(false);
+    try {
+      const { result } = renderHookWithQueryClient(() => useJoinRequestCount(GARDEN), {
+        queryClient,
+      });
+
+      // No "Couldn't load it all" for a phone that is merely offline.
+      expect(result.current).toMatchObject({
+        waiting: undefined,
+        isLoading: false,
+        isError: false,
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      answers(200, { ok: true, waiting: 3 });
+      act(() => onlineManager.setOnline(true));
+      await waitFor(() => expect(result.current.waiting).toBe(3));
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
+  it("reads with the grant a signed check just kept, though the last read used an older one", async () => {
+    const newer = { token: "newer.token", expiresAt: 4_100_000_000 };
+    useJoinRequestCountGrantStore.getState().keepGrant(SCOPE, GARDEN, GRANT);
+    answers(200, { ok: true, waiting: 4 });
+    const { result } = renderHookWithQueryClient(() => ({
+      count: useJoinRequestCount(GARDEN),
+      updates: useJoinRequestCountUpdates(GARDEN),
+    }));
+    await waitFor(() => expect(result.current.count.waiting).toBe(4));
+
+    // By now the older grant has lapsed; only the one the new check returned reads.
+    fetchMock.mockImplementation(async (_url, init) =>
+      new Headers(init?.headers).get("Authorization") === "GG-JoinCount newer.token"
+        ? Response.json({ ok: true, waiting: 2 })
+        : Response.json(
+            { ok: false, errorCode: "signature_invalid", message: "expired" },
+            { status: 401 }
+          )
+    );
+    act(() => result.current.updates.keepCountGrant(newer));
+
+    await waitFor(() => expect(result.current.count.waiting).toBe(2));
+    expect(useJoinRequestCountGrantStore.getState().grantsByScope[SCOPE]?.[GARDEN]).toEqual(newer);
   });
 
   it("forgets a lapsed grant without calling it a failure, so Home shows nothing", async () => {

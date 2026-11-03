@@ -24,8 +24,9 @@
  * language, debug mode, install and shell flags (the offline banner, the admin
  * sidebar), the media policy, the reading cache's shared reads, the admin's
  * last garden and the app's active garden (`useActiveGardenStore`; each keyed
- * by chain and address), the garden events this device has shown
- * (`useGardenNotificationsSeenStore`, keyed by chain, address and garden),
+ * by chain and address), the garden events this device has shown and the
+ * join-request counts it last read for a steward (`useGardenNotificationsSeenStore`,
+ * keyed by chain, address and garden),
  * the join requests this device sent that still wait for a steward
  * (`useAwaitingJoinRequestsStore`, keyed by chain and address),
  * drafts and queued work, and a
