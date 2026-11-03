@@ -1,4 +1,4 @@
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { matchQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
@@ -237,11 +237,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     () =>
       queryClient.getQueryCache().subscribe((event) => {
         if (event.type !== "updated" || event.action.type !== "invalidate") return;
-        if (
-          JSON.stringify(event.query.queryKey) !==
-          JSON.stringify(worksKeys.merged(gardenId, chainId))
-        )
-          return;
+        // Another query's key can hold a bigint, as wagmi reads do, so match by the cache's hash.
+        const merged = { queryKey: worksKeys.merged(gardenId, chainId), exact: true };
+        if (!matchQuery(merged, event.query)) return;
         void queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
       }),
     [queryClient, gardenId, chainId]

@@ -8,6 +8,7 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
+import { hashFn } from "@wagmi/core/query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
@@ -571,6 +572,24 @@ describe("hooks/work/useWorks", () => {
       expect(result.current.isLoading).toBe(false);
     });
     expect(result.current.offlineCount).toBe(0);
+  });
+
+  it("re-reads the list when its merged key is invalidated, and passes over a wagmi read", async () => {
+    mockGetWorkListPage.mockResolvedValue([]);
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const reads = mockGetWorkListPage.mock.calls.length;
+
+    // A wagmi read keeps bigints in its key, and a deposit's success handler invalidates it.
+    queryClient.setQueryDefaults(["readContract"], { queryKeyHashFn: hashFn });
+    queryClient.setQueryData(["readContract", { args: [1n] }], 1n);
+    await queryClient.invalidateQueries({ queryKey: ["readContract"] });
+    expect(mockGetWorkListPage).toHaveBeenCalledTimes(reads);
+
+    await queryClient.invalidateQueries({
+      queryKey: ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID],
+    });
+    await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalledTimes(reads + 1));
   });
 
   describe("decisions covering indexer lag", () => {

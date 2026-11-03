@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { matchQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
@@ -41,11 +41,9 @@ export function useGardenReviewQueue(
         const followed =
           action.type === "invalidate" || (action.type === "success" && !action.manual);
         if (!followed) return;
-        if (
-          JSON.stringify(event.query.queryKey) !==
-          JSON.stringify(worksKeys.online(gardenId, chainId))
-        )
-          return;
+        // Another query's key can hold a bigint, as wagmi reads do, so match by the cache's hash.
+        const workList = { queryKey: worksKeys.online(gardenId, chainId), exact: true };
+        if (!matchQuery(workList, event.query)) return;
         void queryClient.invalidateQueries({ queryKey: worksKeys.reviewQueue(gardenId, chainId) });
       }),
     [queryClient, gardenId, chainId]
