@@ -5,7 +5,7 @@ sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-10-25
+last_verified: 2026-11-02
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -26,6 +26,7 @@ source_of_truth:
   - packages/indexer/src/handlers/commitment-pool-lifecycle.ts
   - packages/shared/src/config/app.ts
   - packages/shared/src/modules/commitment-pooling/service-access-live-config.ts
+  - packages/shared/src/modules/commitment-pooling/service-issuer-metadata.ts
   - packages/shared/src/hooks/commitment-pooling/useCredit.ts
   - packages/shared/src/modules/job-queue
   - packages/shared/src/modules/data/eas.ts
@@ -202,7 +203,7 @@ contract is not the same as a feature someone can use, so keep these apart in co
 |---|---|---|
 | Promises, pools, seasons and campaigns | Released in Green Goods 2.0; in use during the network's Season One program | Members make, take up, evidence and confirm promises, and stewards set up and run the pool. Commitments are pooling-module records on Arbitrum One, never EAS attestations |
 | G$ settlement for fulfilled commitments | Deployed and on in the apps after v2.0.1; no member payout sent yet | `SETTLEMENT_ENABLED` is true in `packages/shared/src/config/app.ts`, so a steward can add a G$ reward and run a payout in a garden whose settlement account is active. Release v2.0.1 shipped with the flag off, so production gets this with the next release. All 18 gardens on the production indexer had an active account on 30 October 2026. A new garden has none until the protocol owner registers it, which needs the module paused, and no app screen sets up or changes an account. The Arbitrum `SettlementModule` read unpaused with `gardenerDeliveryEnabled()` true on the same day. The flag is the app's off switch: it blocks these writes before signing and leaves the contracts alone |
-| Tech and Sun Hub service-voucher pilot with Cosmo-Local Credit | Deployed and adopted; no voucher offer published yet | Its contracts were deployed on 24 October 2026: 16 on Gnosis and 7 on Arbitrum One, recorded in `100-pilot-downstream.json` and `42161-pilot-downstream.json`. On 25 October the Green Goods and Tech and Sun Safes ran their owner transactions: the voucher endpoints are unpaused, and each issuer has minted 20 vouchers, 10 of them in the shared pool. `SERVICE_LIVE_ROUTES` in `packages/shared/src/modules/commitment-pooling/service-access-live-config.ts` pins that deployment, so a promise page reads a voucher offer from those contracts. No voucher offer has been published, the issuers' service terms and capacity are unconfirmed, and `SERVICE_ISSUER_ROUTES` stays empty until they are confirmed |
+| Tech and Sun Hub service-voucher pilot with Cosmo-Local Credit | Offers published; none requested yet | Its contracts were deployed on 24 October 2026: 16 on Gnosis and 7 on Arbitrum One, recorded in `100-pilot-downstream.json` and `42161-pilot-downstream.json`. On 25 October the Green Goods and Tech and Sun Safes ran their owner transactions: the voucher endpoints are unpaused, and each issuer minted 20 vouchers, 10 of them in the shared pool; Green Goods has since minted 100 more. `SERVICE_LIVE_ROUTES` in `packages/shared/src/modules/commitment-pooling/service-access-live-config.ts` pins that deployment, so a promise page reads a voucher offer from those contracts. The route has two buyer gardens, TAS HUB and the Green Goods Community Garden, so only their members can request an offer. On 27 October, 40 offers were published as promises: 20 in the Green Goods Community Garden's pool with the Green Goods Safe as issuer, and 20 hub days in the TAS HUB pool with the Tech and Sun Safe as issuer. `SERVICE_ISSUER_ROUTES` in `service-issuer-metadata.ts` holds only Green Goods' route, with its confirmed terms and capacity; Tech and Sun has not confirmed its own. Release v2.0.1 predates the voucher route, so production apps get it with the next release. On 2 November 2026 no offer had been requested and no voucher earned, exchanged or redeemed |
 | Commitment Credit, a records-only borrow-and-repay companion | Not available | The credit registry (`packages/contracts/src/registries/Credit.sol`), its indexer projection and its shared hooks (`packages/shared/src/hooks/commitment-pooling/useCredit.ts`) exist, but no client or admin screen uses them, so no garden can borrow or repay through Green Goods |
 
 [Entity Matrix](./architecture/entity-matrix) carries each entity's per-chain availability, and

@@ -5,7 +5,7 @@ slug: /community/steward-guide/funding-and-governance
 description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the dashboard does not offer yet."
 audience: steward
 owner: docs
-last_verified: 2026-10-25
+last_verified: 2026-11-02
 feature_status: Live
 goal: "Let a steward look after the garden's shared fund and endowment, and set honest expectations with gardeners and funders."
 difficulty: "advanced"
@@ -32,6 +32,7 @@ source_of_truth:
   - packages/contracts/deployments/42220-settlement-safes.json
   - packages/contracts/deployments/100-pilot-downstream.json
   - packages/shared/src/modules/commitment-pooling/service-access-live-config.ts
+  - packages/shared/src/modules/commitment-pooling/service-issuer-live-config.ts
   - docs/releases/2.0.0/README.md
   - packages/contracts/src/modules/CookieJar.sol
   - packages/contracts/src/modules/Octant.sol
@@ -176,7 +177,7 @@ Say these plainly when your community asks.
 - **Creating or pausing a shared fund.** A garden's jars are created with the garden.
 - **Paying a gardener when work is approved.** Approval and payment are separate. Nothing is paid automatically.
 - **Borrowing and repaying through the pool.** A borrow-and-repay companion to promises has been designed, but no app offers it.
-- **Service vouchers.** Tech and Sun Hub is preparing a pilot of service vouchers with Cosmo-Local Credit. Its contracts were deployed on 24 October 2026, paused and with no vouchers issued, and issuer terms and activation were still pending on 25 October 2026. The app does not use them yet, so nobody can earn, buy or redeem a voucher through Green Goods.
+- **Service vouchers.** These are a pilot between two issuers, Green Goods and Tech and Sun Hub, run with Cosmo-Local Credit. Other gardens cannot issue vouchers or publish voucher offers through Green Goods. The pilot's contracts have been running since 25 October 2026, and on 27 October each issuer published its offers as promises in its own garden. Only members of those two gardens, the Green Goods Community Garden and TAS HUB, can request an offer in the app. The pilot is still being set up: Tech and Sun has not yet confirmed its terms and capacity as its own.
 
 ## Money promises to avoid
 
