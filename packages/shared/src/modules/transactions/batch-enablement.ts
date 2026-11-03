@@ -1,3 +1,4 @@
+import type { Address } from "../../types/domain";
 import type { PasskeyAccountProfileId } from "../auth/account-profile";
 
 export type BatchRail = "passkey" | "wallet";
@@ -26,7 +27,7 @@ export type BatchEnablement = RailListing &
         action: "garden-settings" | "add-members" | "bulk-reviews" | AtomicBatchAction;
         asset?: never;
       }
-    | { action: DepositAction; asset: string }
+    | { action: DepositAction; asset: Address }
   );
 
 /**
