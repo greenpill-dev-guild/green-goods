@@ -127,6 +127,15 @@ describe("useGardenSetup", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it("leaves the steward Safe off, and keeps settlement, when the token's mints make no Safe", async () => {
+    chainAnswers({ stewardSafeBootstrap: ZERO });
+
+    const setup = await readSteps();
+
+    expect(setup.steps.map((step) => step.id)).not.toContain("stewardSafe");
+    expect(setup.steps.map((step) => step.id)).toContain("settlement");
+  });
+
   it("leaves a part it could not reach unknown, keeps the rest, and warns", async () => {
     chainAnswers({
       getGardenJars: new Error("rate limited"),
