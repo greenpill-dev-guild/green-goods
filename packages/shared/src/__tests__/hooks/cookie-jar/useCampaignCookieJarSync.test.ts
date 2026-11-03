@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type CampaignJarSync,
   useCampaignCookieJarSync,
-} from "../../../hooks/cookie-jar/useCampaignCookieJar";
+} from "../../../hooks/cookie-jar/useCampaignCookieJarSync";
 import type { BatchExecution } from "../../../modules/transactions/batch-types";
 import type { TransactionSender } from "../../../modules/transactions/types";
 import type { Address } from "../../../types/domain";
