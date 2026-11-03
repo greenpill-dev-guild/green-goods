@@ -16,9 +16,8 @@ import { toSafeDate } from "../../../utils/time";
 import {
   ACTION_EDIT_WRITES,
   type ActionEditChange,
-  type ActionEditHold,
   actionEditArgs,
-} from "../../../modules/action/action-edit-batch";
+} from "../../../modules/action/action-edit";
 import {
   fingerprintActionArguments,
   type ActionOperationResult,
@@ -50,12 +49,6 @@ const editActionSchema = z.object({
 
 export type EditActionFormData = z.infer<typeof editActionSchema>;
 const INSTRUCTION_LOAD_TIMEOUT_MS = 8_000;
-
-const HOLD_FIELD_LABELS = {
-  title: "app.assessment.table.title",
-  startTime: "app.actions.detail.startTime",
-  endTime: "app.actions.detail.endTime",
-} as const;
 
 function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
   return {
@@ -90,7 +83,7 @@ export function useActionEditorController() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { formatDate, formatMessage } = useIntl();
+  const { formatMessage } = useIntl();
   const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((candidate) => candidate.id === id);
   const actionUID = id?.split("-")[1];
@@ -468,38 +461,6 @@ export function useActionEditorController() {
     }
   };
 
-  const holdLine = (hold: ActionEditHold, change: ActionEditChange) => {
-    if (change.field === "instructions")
-      return formatMessage({
-        id: hold.attempted.some(
-          (attempt) => attempt.field === "instructions" && attempt.value === change.value
-        )
-          ? "app.actions.edit.hold.instructionsSent"
-          : "app.actions.edit.hold.instructionsEarlier",
-      });
-    return formatMessage(
-      { id: "app.actions.edit.hold.onChain" },
-      {
-        field: formatMessage({ id: HOLD_FIELD_LABELS[change.field] }),
-        value:
-          typeof change.value === "number"
-            ? formatDate(change.value * 1000, { dateStyle: "medium", timeStyle: "short" })
-            : change.value,
-      }
-    );
-  };
-  const holdFeedback = batch.hold
-    ? {
-        title: formatMessage({ id: "app.actions.edit.hold.title" }),
-        message: formatMessage({ id: "app.actions.edit.hold.body" }),
-        detail: batch.hold.onChain.map((change) => holdLine(batch.hold!, change)).join(" · "),
-        hasUnreadValues: batch.hold.onChain.length < batch.hold.fields.length,
-        isSettling: batch.isSettlingHold,
-        onCheckAgain: () => void batch.checkAgain(),
-        onMoveOn: () => void batch.moveOn(),
-      }
-    : null;
-
   return {
     action,
     actionDetailHref,
@@ -519,7 +480,7 @@ export function useActionEditorController() {
     isCheckingConfirmation,
     checkConfirmation,
     /** An earlier save whose outcome is unknown; saving waits until it is settled. */
-    holdFeedback,
+    holdFeedback: batch.holdFeedback,
     isLoadingInstructions,
     setInstructionConfig,
     setIsEditingInstructions,

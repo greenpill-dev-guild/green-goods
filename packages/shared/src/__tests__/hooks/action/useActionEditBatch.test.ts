@@ -8,7 +8,7 @@ import { act, waitFor } from "@testing-library/react";
 import { toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { actionsKeys } from "../../../config/query-keys/garden";
-import type { ActionEditChange } from "../../../modules/action/action-edit-batch";
+import type { ActionEditChange } from "../../../modules/action/action-edit";
 import type { BatchCapability, BatchExecution } from "../../../modules/transactions/batch-types";
 import type { Address } from "../../../types/domain";
 import { createTestQueryClient } from "../../test-utils/query-client";
@@ -45,8 +45,8 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
 vi.mock("../../../modules/transactions/batch-enablement", () => ({
   isBatchEnabled: mockIsBatchEnabled,
 }));
-vi.mock("../../../modules/action/action-edit-batch", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../../modules/action/action-edit-batch")>()),
+vi.mock("../../../modules/action/action-edit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/action/action-edit")>()),
   createActionEditChain: () => ({ read: async () => ({ ...action }), simulate: mockSimulate }),
 }));
 
@@ -145,6 +145,7 @@ describe("useActionEditBatch", () => {
     await waitFor(() =>
       expect(result.current.hold?.fields).toEqual(["title", "endTime", "startTime"])
     );
+    expect(result.current.holdFeedback?.detail).toContain("Title on chain: Plant the August beds");
 
     sender.reconcileBatch = vi.fn(async () => ({
       status: "confirmed" as const,

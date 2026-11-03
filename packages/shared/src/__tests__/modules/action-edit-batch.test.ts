@@ -1,9 +1,8 @@
 import "fake-indexeddb/auto";
 import { decodeFunctionData, type Hex, toHex } from "viem";
 import { describe, expect, it, vi } from "vitest";
+import type { ActionEditChain, ActionEditChange } from "../../modules/action/action-edit";
 import {
-  type ActionEditChain,
-  type ActionEditChange,
   moveOnFromActionEditHold,
   prepareActionEditBatch,
   readActionEditHold,

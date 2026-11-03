@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
 const batch = vi.hoisted(() => ({
   available: false,
   hold: null as unknown,
+  holdFeedback: null as unknown,
   saved: [] as unknown[],
   lastReadAt: 0,
   isSettlingHold: false,
@@ -178,7 +179,13 @@ describe("useActionEditorController", () => {
     mocks.updateInstructions.mockResolvedValue({ success: true });
     mocks.updateStartTime.mockResolvedValue({ success: true });
     mocks.updateTitle.mockResolvedValue({ success: true });
-    Object.assign(batch, { available: false, hold: null, saved: [], lastReadAt: 0 });
+    Object.assign(batch, {
+      available: false,
+      hold: null,
+      holdFeedback: null,
+      saved: [],
+      lastReadAt: 0,
+    });
     batch.order.mockImplementation(async (changes: unknown[]) => changes);
   });
 
@@ -441,7 +448,6 @@ describe("useActionEditorController", () => {
     await waitFor(() =>
       expect(restored.result.current.form.getValues("title")).toBe(UPDATED.title)
     );
-    expect(restored.result.current.holdFeedback).not.toBeNull();
     await act(() => restored.result.current.submit(UPDATED));
 
     // Checking again finds that it landed.

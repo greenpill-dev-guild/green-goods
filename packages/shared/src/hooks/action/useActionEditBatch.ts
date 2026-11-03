@@ -4,14 +4,16 @@ import { useAccount } from "wagmi";
 import { toastService } from "../../components/toast";
 import { actionsKeys, batchKeys } from "../../config/query-keys/garden";
 import {
-  type ActionEditBatchOutcome,
   type ActionEditChange,
+  createActionEditChain,
+  orderActionEditOnChain,
+} from "../../modules/action/action-edit";
+import {
+  type ActionEditBatchOutcome,
   type ActionEditHold,
   actionEditBudget,
   actionEditDomain,
-  createActionEditChain,
   moveOnFromActionEditHold,
-  orderActionEditOnChain,
   readActionEditHold,
   sendActionEditBatch,
 } from "../../modules/action/action-edit-batch";
@@ -21,6 +23,12 @@ import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useHeldBatches } from "../garden/useHeldBatches";
 
+const HOLD_FIELD_LABELS = {
+  title: "app.assessment.table.title",
+  startTime: "app.actions.detail.startTime",
+  endTime: "app.actions.detail.endTime",
+} as const;
+
 /**
  * Save an action's changed fields under one signature, and settle a save whose outcome is unknown.
  *
@@ -29,7 +37,7 @@ import { useHeldBatches } from "../garden/useHeldBatches";
  * batching is switched off. A failed save is explained here, so a caller acts only on the outcome.
  */
 export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
-  const { formatMessage } = useIntl();
+  const { formatDate, formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const sender = useTransactionSender();
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
@@ -108,8 +116,42 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
     onError: (error) => handleError(error, { authMode: rail }),
   });
 
+  /** What the action holds now, for each field a held save wrote. */
+  const onChainLine = (hold: ActionEditHold, change: ActionEditChange) => {
+    if (change.field === "instructions")
+      return formatMessage({
+        id: hold.attempted.some(
+          (attempt) => attempt.field === "instructions" && attempt.value === change.value
+        )
+          ? "app.actions.edit.hold.instructionsSent"
+          : "app.actions.edit.hold.instructionsEarlier",
+      });
+    return formatMessage(
+      { id: "app.actions.edit.hold.onChain" },
+      {
+        field: formatMessage({ id: HOLD_FIELD_LABELS[change.field] }),
+        value:
+          typeof change.value === "number"
+            ? formatDate(change.value * 1000, { dateStyle: "medium", timeStyle: "short" })
+            : change.value,
+      }
+    );
+  };
+  const { hold } = held;
+
   return {
     ...held,
+    holdFeedback: hold
+      ? {
+          title: formatMessage({ id: "app.actions.edit.hold.title" }),
+          message: formatMessage({ id: "app.actions.edit.hold.body" }),
+          detail: hold.onChain.map((change) => onChainLine(hold, change)).join(" · "),
+          hasUnreadValues: hold.onChain.length < hold.fields.length,
+          isSettling: held.isSettlingHold,
+          onCheckAgain: () => void held.checkAgain(),
+          onMoveOn: () => void held.moveOn(),
+        }
+      : null,
     available: listed && atomic,
     isSending: sendBatch.isPending,
     send: (changes: readonly ActionEditChange[]) => sendBatch.mutateAsync(changes),
