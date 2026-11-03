@@ -8,6 +8,7 @@
 
 import {
   createFakeSmartAccountClient,
+  createMockBatchBudget,
   createMockContractCall,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
@@ -69,6 +70,42 @@ describe("PasskeySender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("asks for the bundler's call gas plus the headroom a call wants", async () => {
+      const prepareUserOperation = vi.fn(async () =>
+        fakePreparedUserOperation(client.account!.address)
+      );
+      Object.assign(client, { prepareUserOperation });
+
+      await sender.sendContractCall(
+        createMockContractCall({ chainId: undefined, gasHeadroomPercent: 50 })
+      );
+      expect(prepareUserOperation).toHaveBeenCalledOnce();
+      expect(mockSendUserOperation).toHaveBeenCalledWith(
+        expect.objectContaining({ callGasLimit: 150_000n })
+      );
+
+      // Any other call is still sized by the bundler.
+      prepareUserOperation.mockClear();
+      mockSendUserOperation.mockClear();
+      await sender.sendContractCall(TEST_CALL);
+      expect(prepareUserOperation).not.toHaveBeenCalled();
+      expect(mockSendUserOperation.mock.calls[0][0]).not.toHaveProperty("callGasLimit");
+    });
+
+    it("quotes a batch at the call gas its send will ask for", async () => {
+      Object.assign(client, {
+        prepareUserOperation: vi.fn(async () => fakePreparedUserOperation(client.account!.address)),
+      });
+      const budget = createMockBatchBudget({ sponsorship: "required" });
+
+      const plain = await sender.preflightBatch([TEST_CALL], budget);
+      const withHeadroom = await sender.preflightBatch(
+        [createMockContractCall({ chainId: undefined, gasHeadroomPercent: 50 })],
+        budget
+      );
+      expect(BigInt(withHeadroom.gas) - BigInt(plain.gas)).toBe(50_000n);
+    });
+
     it.each([
       "kernel-failure",
       "other-account",

@@ -38,6 +38,13 @@ export interface ContractCall {
   /** Authoritative execution chain; omitted calls use the primary application account. */
   chainId?: number;
   value?: bigint;
+  /**
+   * Gas to send over the estimate, in whole percent, for a call whose contract runs best-effort
+   * work inside try/catch. An estimate stops at the first limit where the call succeeds, and the
+   * call succeeds when that work runs out of gas and is caught, so a bare estimate can drop it.
+   * A sender that sets the limit applies it; a wallet's own batch request (EIP-5792) cannot.
+   */
+  gasHeadroomPercent?: number;
 }
 
 export type BroadcastReference =

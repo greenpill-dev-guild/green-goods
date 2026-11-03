@@ -17,6 +17,7 @@
 import {
   signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
+  estimateGas as defaultEstimateGas,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
   getCallsStatus as defaultGetCallsStatus,
@@ -46,6 +47,7 @@ import {
 } from "./wallet-atomic-batch";
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
+import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { quoteWalletBatch } from "./wallet-batch-preflight";
 import { logger } from "../app/logger";
@@ -71,6 +73,7 @@ import {
 
 /** Injectable dependency for testability */
 export interface WalletSenderDeps extends WalletBatchDeps {
+  estimateGas?: EstimateTransactionGas;
   preflightBatch?: (calls: readonly ContractCall[], budget: BatchBudget) => Promise<BatchQuote>;
   reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
@@ -100,6 +103,7 @@ export class WalletSender implements TransactionSender {
     args: readonly unknown[];
     chainId?: number;
     value?: bigint;
+    gas?: bigint;
   }) => Promise<`0x${string}`>;
   private deps: WalletSenderDeps;
 
@@ -113,6 +117,7 @@ export class WalletSender implements TransactionSender {
       args: readonly unknown[];
       chainId?: number;
       value?: bigint;
+      gas?: bigint;
     }) => Promise<`0x${string}`>,
     _erc7677ProxyUrl?: string,
     deps?: WalletSenderDeps
@@ -151,6 +156,7 @@ export class WalletSender implements TransactionSender {
         typeof defaultSignTypedData
       >[1]);
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
+    this.deps.estimateGas ??= (request) => defaultEstimateGas(this.config, request);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
       ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
@@ -232,10 +238,18 @@ export class WalletSender implements TransactionSender {
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
+    let quote: BatchQuote | undefined;
     if (options.batchBudget) {
-      await this.preflightBatch([{ ...call, chainId }], options.batchBudget);
+      quote = await this.preflightBatch([{ ...call, chainId }], options.batchBudget);
       await this.assertSigner(call, options);
     }
+    // A call that asks for headroom gets its limit here, and in a batch that is the gas its budget
+    // was checked at. The wallet sizes any other.
+    const gas =
+      quote && call.gasHeadroomPercent
+        ? BigInt(quote.gas)
+        : await walletGasLimit(call, call.account!, chainId, this.deps.estimateGas!);
+    if (gas !== undefined) await this.assertSigner(call, options);
     // The wallet approves and broadcasts in one step, so the intent is recorded
     // before asking. A rejected prompt is recognised and clears it.
     await options.onBeforeBroadcast?.();
@@ -253,6 +267,7 @@ export class WalletSender implements TransactionSender {
           args: call.args,
           chainId,
           ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+          ...(gas !== undefined ? { gas } : {}),
         }),
       () => this.readyWallet(call, chainId, options, "retry")
     );

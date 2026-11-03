@@ -26,6 +26,7 @@ import { type EASConfig, getEASConfig } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../types/work-media";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
 import type { QueuedAttestation } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { jobQueueDB } from "../job-queue/db";
@@ -197,6 +198,7 @@ const approval: UploadKind<ApprovalJobPayload> = {
       schema: easConfig.WORK_APPROVAL.uid as Hex,
       gardenAddress: job.payload.gardenAddress as Hex,
       attestationData: encodeApproval(buildQueuedApprovalDraft(job.payload), chainId),
+      gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
     };
   },
 };

@@ -139,15 +139,18 @@ const ARBITRUM_CEILINGS = {
 };
 
 /**
- * Ceilings for one signature, on the chains they were sized for. Sized from Arbitrum receipts, not
- * a fork run: a decision used 1.25M to 1.34M gas with its resolver's Karma and commitment hooks, so
- * five come to about 6.7M, and a Green Goods passkey UserOperation adds about 730k. Past them a list
- * goes one review at a time. The first live batch on each rail confirms them before it is listed.
+ * Ceilings for one signature, on the chains they were sized for, checked against the gas each rail
+ * asks for. On forks of Arbitrum, five decisions in one `multiAttest` used 7.0M gas with the
+ * current Karma module and 9.9M with its upgrade, whose Project Updates are larger. A wallet asks
+ * for the node's estimate plus `APPROVAL_GAS_HEADROOM_PERCENT`, about 14.8M for those five; a
+ * passkey asks for the bundler's call gas plus the same, and a Green Goods passkey UserOperation
+ * adds about 730k. So five fit 20M on either. Past them a list goes one review at a time. The first
+ * live batch on each rail confirms them before it is listed.
  */
 const REVIEW_BUDGETS: Partial<Record<number, Record<BatchRail, BatchBudget>>> = {
   42161: {
-    passkey: { ...ARBITRUM_CEILINGS, maxGas: "9000000", sponsorship: "required" },
-    wallet: { ...ARBITRUM_CEILINGS, maxGas: "8000000", sponsorship: "wallet" },
+    passkey: { ...ARBITRUM_CEILINGS, maxGas: "20000000", sponsorship: "required" },
+    wallet: { ...ARBITRUM_CEILINGS, maxGas: "20000000", sponsorship: "wallet" },
   },
 };
 

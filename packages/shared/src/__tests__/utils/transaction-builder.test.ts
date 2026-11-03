@@ -2,7 +2,11 @@ import { encodeFunctionData } from "viem";
 import { describe, expect, it } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import { EASABI } from "../../utils/blockchain/contracts";
-import { buildQueuedAttestationsCall } from "../../utils/eas/transaction-builder";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
+import {
+  buildApprovalAttestContractCall,
+  buildQueuedAttestationsCall,
+} from "../../utils/eas/transaction-builder";
 
 const mockEasConfig: EASConfig = {
   ASSESSMENT: { uid: "0x" + "1".repeat(64), schema: "" },
@@ -125,6 +129,45 @@ describe("utils/eas/transaction-builder", () => {
 
     it("refuses an empty send", () => {
       expect(() => buildQueuedAttestationsCall(EAS, [])).toThrow("Nothing is queued to send");
+    });
+
+    // A decision's resolver runs the Karma update inside try/catch; a send at the bare estimate
+    // would land without it, so the call carries the most headroom any of its items asks for.
+    it.each([
+      { name: "work alone", items: [work(GARDEN_A, data("ab"))], headroom: undefined },
+      {
+        name: "a decision alone",
+        items: [{ ...decision(GARDEN_A, data("ef")), gasHeadroomPercent: 50 }],
+        headroom: 50,
+      },
+      {
+        name: "work and a decision",
+        items: [
+          work(GARDEN_A, data("ab")),
+          { ...decision(GARDEN_B, data("ef")), gasHeadroomPercent: 50 },
+        ],
+        headroom: 50,
+      },
+    ])("asks for the most gas headroom of its items: $name", ({ items, headroom }) => {
+      expect(buildQueuedAttestationsCall(EAS, items).gasHeadroomPercent).toBe(headroom);
+    });
+  });
+
+  describe("buildApprovalAttestContractCall", () => {
+    it("sends one decision attestation with the approval gas headroom", () => {
+      const attestationData = `0x${"ef".repeat(32)}` as `0x${string}`;
+      const garden = "0x00000000000000000000000000000000000000aa" as const;
+      const call = buildApprovalAttestContractCall(mockEasConfig, garden, attestationData);
+
+      expect(call.gasHeadroomPercent).toBe(APPROVAL_GAS_HEADROOM_PERCENT);
+      expect(APPROVAL_GAS_HEADROOM_PERCENT).toBeGreaterThanOrEqual(25);
+      expect(call.functionName).toBe("attest");
+      expect(call.args).toEqual([
+        {
+          schema: mockEasConfig.WORK_APPROVAL.uid,
+          data: expect.objectContaining({ recipient: garden, data: attestationData }),
+        },
+      ]);
     });
   });
 });
