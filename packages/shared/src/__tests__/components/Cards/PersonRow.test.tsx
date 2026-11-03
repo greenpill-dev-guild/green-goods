@@ -3,9 +3,9 @@
  * @vitest-environment happy-dom
  *
  * A person row names someone the way the shared address display does, shows their highest
- * role as its one chip, and leads with their photo, the surface's own picture, a glyph, or
- * nothing while the photo is still being looked up. Layout is measured in a real browser by
- * the PersonRow stories.
+ * role as its one chip, and leads with their photo, the surface's own picture or a glyph, which
+ * also holds the circle while the photo is still being looked up. Layout is measured in a real
+ * browser by the PersonRow stories.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -73,7 +73,7 @@ describe("PersonRow", () => {
     expect(screen.getByText("0x11...111")).toBeInTheDocument();
   });
 
-  it("leads with their photo, the surface's picture, a glyph, or nothing while it loads", () => {
+  it("leads with their photo, the surface's picture or a glyph, never a blank while it loads", () => {
     hooks.avatar.mockReturnValue({ avatarUri: "/images/avatar.png", isLoading: false });
     const { container, rerender } = renderRow({
       fallbackAvatar: "/images/avatar.png",
@@ -93,12 +93,13 @@ describe("PersonRow", () => {
     expect(container.querySelector("img")).toBeNull();
     expect(avatar()?.querySelector("svg")).not.toBeNull();
 
+    // A photo still being looked up keeps the glyph, as in the cockpit, never an empty circle.
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: true });
     rerender(
       <IntlProvider locale="en" messages={messages}>
         <PersonRow address={person} />
       </IntlProvider>
     );
-    expect(avatar()).toBeEmptyDOMElement();
+    expect(avatar()?.querySelector("svg")).not.toBeNull();
   });
 });

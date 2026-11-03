@@ -1,8 +1,9 @@
 /**
  * PersonRow — one person in a list, the same on the installed app and the cockpit.
  *
- * A person is an item row led by their avatar: their profile photo, the surface's own picture
- * or a person glyph when they have none, and nothing while the photo is looked up. The title
+ * A person is an item row led by their avatar: their profile photo, or the surface's own picture
+ * or a person glyph when they have none, which also holds the circle while the photo is looked
+ * up, so a slow profile or ENS read never leaves it blank (DL-161). The title
  * is their name as the shared address display resolves it (their Green Goods name, then their
  * ENS name, then the name the list holds for them, then a short address), so a person reads the
  * same in every list. The row's one pill is their highest role, or the state of what they are
@@ -46,6 +47,7 @@ export const PersonRow = React.forwardRef<HTMLElement, PersonRowProps>(function 
 ) {
   const { formatMessage } = useIntl();
   // A list's rows read their photos together, on the batch route (ProfileAvatarReadOptions).
+  // Until a photo arrives the avatar resolves to the surface's picture, or to none for the glyph.
   const avatar = useResolvedProfileAvatar(address, fallbackAvatar, chainId, { list: true });
   // GARDEN_ROLE_ORDER runs from the most to the least responsibility.
   const role = roles ? GARDEN_ROLE_ORDER.find((candidate) => roles.includes(candidate)) : undefined;
@@ -62,7 +64,7 @@ export const PersonRow = React.forwardRef<HTMLElement, PersonRowProps>(function 
         <ItemRow
           {...row}
           ref={ref}
-          lead={{ kind: "avatar", src: avatar.avatarUri, loading: avatar.isLoading }}
+          lead={{ kind: "avatar", src: avatar.avatarUri }}
           title={name}
           status={pill}
         />

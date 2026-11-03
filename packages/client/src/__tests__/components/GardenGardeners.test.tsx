@@ -233,7 +233,7 @@ describe("GardenGardeners", () => {
     expect(container.querySelector("img")?.getAttribute("src")).toBe("/images/avatar.png");
   });
 
-  it("shows no picture or glyph while a member's photo is still being looked up", () => {
+  it("shows the default avatar while a member's photo is still being looked up", () => {
     vi.mocked(useResolvedProfileAvatar).mockReturnValue({
       avatarUri: "/images/avatar.png",
       isLoading: true,
@@ -245,8 +245,9 @@ describe("GardenGardeners", () => {
       </TestIntl>
     );
 
-    expect(container.querySelector("img")).toBeNull();
-    expect(container.querySelector(".gg-item-row-avatar")).toBeEmptyDOMElement();
+    expect(container.querySelector(".gg-item-row-avatar img")?.getAttribute("src")).toBe(
+      "/images/avatar.png"
+    );
   });
 
   describe("how a member leaves the garden", () => {

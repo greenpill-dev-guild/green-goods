@@ -67,12 +67,14 @@ export type ItemRowLead =
     }
   | {
       kind: "avatar";
-      /** The person's photo; without one, or when it fails, the circle shows a person glyph. */
+      /**
+       * The person's photo, or the surface's own picture for someone without one; without
+       * either, or when it fails, the circle shows a person glyph. While a photo is still being
+       * looked up this is what the person would show without one, so the circle is never blank.
+       */
       src?: string | null;
       /** An avatar repeats the person's name, so it is decorative unless this names it. */
       alt?: string;
-      /** The photo is still being looked up: the circle stays empty, so no glyph flashes. */
-      loading?: boolean;
     };
 
 export interface ItemRowProps
@@ -133,7 +135,7 @@ function Lead({ lead }: { lead: ItemRowLead }) {
       <span className="gg-item-row-lead">
         {/* A decorative avatar stays out of the row's name, a photo that failed included. */}
         <span className="gg-item-row-avatar" aria-hidden={lead.alt ? undefined : true}>
-          {lead.loading ? null : lead.src ? (
+          {lead.src ? (
             <ImageWithFallback
               src={lead.src}
               alt={lead.alt ?? ""}
