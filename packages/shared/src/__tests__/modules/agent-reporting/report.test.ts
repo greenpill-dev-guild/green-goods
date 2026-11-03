@@ -91,8 +91,11 @@ describe("applyReportChanges", () => {
       [change("timeSpentMinutes", 90, gardener())],
       snapshot
     ).content;
+    // One that agrees leaves the value the gardener's, so one that disagrees later is still asked.
+    const agreed = applyReportChanges(stated, [change("timeSpentMinutes", 90, model())], snapshot);
+    expect(agreed.content.provenance.timeSpentMinutes).toEqual(gardener());
     const outcome = applyReportChanges(
-      stated,
+      agreed.content,
       [change("timeSpentMinutes", 120, model())],
       snapshot
     );
@@ -118,6 +121,21 @@ describe("applyReportChanges", () => {
     );
     expect(corrected.content.timeSpentMinutes).toBe(150);
     expect(corrected.content.conflicts).toEqual([]);
+  });
+
+  it("keeps the sources of a value read again, and not those of a value it replaces", () => {
+    const from = (assetId: string): FieldProvenance => ({
+      ...model(),
+      sources: [{ sourceEntryId: assetId, assetId }],
+    });
+    const read = (content: ReportContent, value: string, assetId: string) =>
+      applyReportChanges(content, [change("details.notes", value, from(assetId))], snapshot)
+        .content;
+    const assets = (content: ReportContent) =>
+      content.provenance["details.notes"]?.sources.map((source) => source.assetId);
+    const twice = read(read({ ...emptyReport(), actionUID: 7 }, "Rows", "a1"), "Rows", "a2");
+    expect(assets(twice)).toEqual(["a1", "a2"]);
+    expect(assets(read(twice, "Fence", "a3"))).toEqual(["a3"]);
   });
 
   it("rejects details until the Action and its snapshot are established", () => {
