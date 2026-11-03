@@ -66,8 +66,10 @@ const TITLES = new Map([
 
 /**
  * What the derivation (`useStewardDuties`, which HomeJournal calls once) hands a steward of
- * Riverside Commons who wears its steward hat: two works waiting, the older first; take-up requests on two promises, newest first;
- * one promise to confirm. It hands a gardener nothing, whatever waits: each row follows the
+ * Riverside Commons who wears its steward hat: two works waiting, the older first; three join
+ * requests, counted with the grant a signed check in Gardeners left in this browser; take-up
+ * requests on two promises, newest first; one promise to confirm. It hands a gardener nothing,
+ * whatever waits, and a browser without a grant no join requests: each row follows the
  * predicate of its act (useStewardDuties.test.ts proves who gets which).
  */
 const REVIEW: Duty = {
@@ -75,6 +77,7 @@ const REVIEW: Duty = {
   count: 2,
   works: [submitted("0x5eed0a11", 2, 50), submitted("0x5eed0a12", 1, 5)],
 };
+const JOIN_REQUESTS: Duty = { kind: "joinRequests", count: 3 };
 const TAKE_UPS: Duty[] = [
   { kind: "takeUp", count: 2, commitment: EAST_BEDS as never, newestAt: hoursAgo(3) },
   { kind: "takeUp", count: 1, commitment: SEED_SWAP as never, newestAt: hoursAgo(30) },
@@ -84,7 +87,11 @@ const CONFIRM: Duty = { kind: "confirm", count: 1, commitments: [FENCE as never]
 type Scene = "stewardWaiting" | "stewardNothing" | "gardener" | "readFailed";
 
 const SCENES: Record<Scene, Omit<StewardDuties, "refetch">> = {
-  stewardWaiting: { duties: [REVIEW, ...TAKE_UPS, CONFIRM], isLoading: false, isError: false },
+  stewardWaiting: {
+    duties: [REVIEW, JOIN_REQUESTS, ...TAKE_UPS, CONFIRM],
+    isLoading: false,
+    isError: false,
+  },
   stewardNothing: { duties: [], isLoading: false, isError: false },
   gardener: { duties: [], isLoading: false, isError: false },
   // The work-to-review read failed; the other queues answered.
@@ -154,12 +161,15 @@ const meta: Meta<typeof NeedsYourAttentionStory> = {
 export default meta;
 type Story = StoryObj<typeof NeedsYourAttentionStory>;
 
-/** A steward with work to review, take-up requests on two promises and one promise to confirm. */
+/**
+ * A steward with work to review, join requests, take-up requests on two promises and one promise
+ * to confirm.
+ */
 export const StewardWithWaiting: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Needs Your Attention" })).toBeInTheDocument();
-    await expect(canvas.getAllByRole("listitem")).toHaveLength(4);
+    await expect(canvas.getAllByRole("listitem")).toHaveLength(5);
   },
 };
 
@@ -195,4 +205,61 @@ export const ReadFailedOffline: Story = { args: { scene: "readFailed", offline: 
 export const ReadFailedPortuguese: Story = {
   args: { scene: "readFailed" },
   parameters: { locale: "pt" },
+};
+
+/** The join-request row's title in each language, for three waiting. */
+const JOIN_REQUEST_TITLES: Record<Locale, string> = {
+  en: "3 join requests",
+  es: "3 solicitudes para unirse",
+  pt: "3 solicitações para entrar",
+};
+
+function SceneColumn({ scene, duties }: { scene: string; duties: Duty[] }) {
+  return (
+    <div style={{ width: 360 }} className="flex shrink-0 flex-col bg-bg-canvas" data-scene={scene}>
+      <p className="type-meta px-4 pt-3 text-text-sub">{scene}</p>
+      <NeedsYourAttention
+        garden={JOURNEY_GARDEN_RECORD as Garden}
+        duties={{ duties, isLoading: false, isError: false, refetch }}
+      />
+    </div>
+  );
+}
+
+/**
+ * A steward with join requests waiting beside the same steward with none waiting, or whose
+ * browser holds no count grant, in English, Spanish and Portuguese: the row comes and goes, and
+ * the other queues keep their places.
+ */
+export const JoinRequestsEveryLanguage: Story = {
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "desktop" } },
+  parameters: { layout: "padded" },
+  render: () => (
+    <div className="flex flex-col gap-6">
+      {(Object.keys(MESSAGES) as Locale[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={MESSAGES[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            <SceneColumn
+              scene={`${locale}: join requests waiting`}
+              duties={[REVIEW, JOIN_REQUESTS, CONFIRM]}
+            />
+            <SceneColumn scene={`${locale}: none waiting`} duties={[REVIEW, CONFIRM]} />
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const titles = (column: Element) =>
+      [...column.querySelectorAll(".gg-item-row-title")].map((title) => title.textContent);
+    for (const locale of Object.keys(MESSAGES) as Locale[]) {
+      const [waiting, none] = canvasElement.querySelectorAll(
+        `[data-locale="${locale}"] [data-scene]`
+      );
+      await expect(titles(waiting)).toContain(JOIN_REQUEST_TITLES[locale]);
+      await expect(titles(none)).toHaveLength(2);
+      await expect(titles(none)).not.toContain(JOIN_REQUEST_TITLES[locale]);
+    }
+  },
 };

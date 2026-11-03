@@ -261,12 +261,21 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
  * How many requests wait in a garden, for a steward's badge: no signature, no decryption, and no
  * name, note or address in the answer. A row added to the garden by hand counts until a signed
  * queue read returns it and reconciles it, since matching it here would mean decrypting.
+ *
+ * Without `kind` it is the garden's total, the Members tab's badge; with one, that queue's alone,
+ * as the installed app's Gardeners sheet lists only requests to join (PRD-1381). The filter only
+ * narrows the same grant's answer, and a kind it does not know is refused, never answered with
+ * the total.
  */
 async function handleCount(c: Context, ctx: GardenJoinRequestRouteContext) {
   const preflight = prepareGardenJoinRequest(c, ctx);
   if (!preflight.ok) return preflight.response;
   const rateError = checkRateLimit(c, ctx.deps, "join_request_read", preflight.garden);
   if (rateError) return publicBrowserCorsResponse(c, ctx.deps, rateError, 429);
+  const kind = c.req.query("kind");
+  if (kind !== undefined && kind !== "garden_membership" && kind !== "steward_access") {
+    return gardenJoinRequestFailure(c, ctx, "invalid_request", "Invalid request kind.", 400);
+  }
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   const grants = ctx.deps.gardenJoinRequestCountGrants;
@@ -303,7 +312,7 @@ async function handleCount(c: Context, ctx: GardenJoinRequestRouteContext) {
       );
     }
     stage = "store_count";
-    const waiting = await store.countPending(preflight.garden, new Date(now).toISOString());
+    const waiting = await store.countPending(preflight.garden, new Date(now).toISOString(), kind);
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, waiting });
   } catch (error) {
     reportGardenJoinRequestUnavailable("count", stage, error);
