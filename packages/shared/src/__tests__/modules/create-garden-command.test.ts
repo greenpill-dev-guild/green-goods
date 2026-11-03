@@ -7,6 +7,7 @@ import {
   type CreateGardenPorts,
 } from "../../modules/garden/create-garden-command";
 import { beforeEach } from "vitest";
+import { withGasHeadroom } from "../../modules/transactions/gas-headroom";
 import type { TransactionSender, TxResult } from "../../modules/transactions/types";
 import { WeightScheme } from "../../types/gardens-community";
 
@@ -225,6 +226,16 @@ describe("garden writes through the shared account sender", () => {
       expect.objectContaining({ assertOwnership: expect.any(Function) })
     );
     expect(mocks.waitReceipt).not.toHaveBeenCalled(); // The shared sender has already confirmed it.
+  });
+  it("sends the mint with enough gas over the estimate for its last cross-chain step", async () => {
+    const { sender, ports } = adapter("wallet");
+    await createGarden(command, ports);
+    const [mint] = vi.mocked(sender.sendContractCall).mock.calls[0];
+
+    // On forks of Arbitrum an unnamed garden's mint succeeds at its 24,835,549 estimate, but its
+    // last step needs 25,271,190. A named garden's 25,536,980 mint must stay under the 32M cap.
+    expect(withGasHeadroom(24_835_549n, [mint])).toBeGreaterThanOrEqual(25_271_190n);
+    expect(withGasHeadroom(25_536_980n, [mint])).toBeLessThanOrEqual(32_000_000n);
   });
   it("checkpoints a garden UserOperation before receipt failure and recovers without minting twice", async () => {
     const { sender } = adapter("passkey");

@@ -224,6 +224,16 @@ export async function estimateGardenCreation(
   };
 }
 
+/**
+ * Gas, in percent over the estimate, that a garden mint sends. The mint runs each cross-chain step
+ * inside try/catch, and an estimate stops at the first limit where the mint succeeds, so a mint
+ * sent at the bare estimate can land without its last step. On forks of Arbitrum an unnamed
+ * garden's last step needed 435,641 gas, 1.75%, over its 24,835,549 estimate. 5% covers that
+ * close to three times, and a named garden's 25,536,980 mint goes out at about 26.8M, inside the
+ * 32M gas cap per transaction.
+ */
+const GARDEN_MINT_GAS_HEADROOM_PERCENT = 5;
+
 export function createDefaultCreateGardenPorts(input: {
   transactionSender: TransactionSender;
   addPending(hash: `0x${string}`): void;
@@ -348,6 +358,7 @@ export function createDefaultCreateGardenPorts(input: {
             args: [config],
             value: ccipFee,
             chainId,
+            gasHeadroomPercent: GARDEN_MINT_GAS_HEADROOM_PERCENT,
           },
           (result) => input.checkpoint?.(result),
           (result) => input.clearCheckpoint?.(result),

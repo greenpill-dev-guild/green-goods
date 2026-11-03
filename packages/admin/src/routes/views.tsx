@@ -17,6 +17,7 @@ import {
 } from "@green-goods/shared/utils/navigation/admin-routes";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation, useParams } from "react-router-dom";
+import PersistentRedirect from "@/routes/PersistentRedirect";
 import RequireRole from "@/routes/RequireRole";
 import RequireCommunityAccess from "@/routes/RequireCommunityAccess";
 import RequireProtocolTeam from "@/routes/RequireProtocolTeam";
@@ -86,7 +87,7 @@ function AssessmentRecordRedirect() {
 function CampaignCookieJarsRedirect({ create = false }: { create?: boolean }) {
   const chainId = useCurrentChain();
   const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
-  return <Navigate to={resolveCampaignCookieJarsRoute(rootGarden, { create })} replace />;
+  return <PersistentRedirect to={resolveCampaignCookieJarsRoute(rootGarden, { create })} />;
 }
 
 const governanceRoute: Pick<RouteObject, "lazy" | "element"> = GOVERNANCE_ENABLED

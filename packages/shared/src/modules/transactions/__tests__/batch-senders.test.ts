@@ -1,5 +1,12 @@
 import { toKernelSmartAccount } from "permissionless/accounts";
-import { createPublicClient, custom, toEventSelector } from "viem";
+import {
+  createPublicClient,
+  custom,
+  MethodNotFoundRpcError,
+  MethodNotSupportedRpcError,
+  toEventSelector,
+  UnsupportedProviderMethodError,
+} from "viem";
 import { toAccount } from "viem/accounts";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { encode7579Calls } from "permissionless/utils";
@@ -104,9 +111,21 @@ function passkey(deps: { accountProfile?: PasskeyAccountProfileId } = {}) {
 }
 
 describe("explicit wallet batching", () => {
-  it("takes a wallet reporting no atomic capability as one that cannot batch", async () => {
+  const noHandler = new Error("method [wallet_getCapabilities] doesn't has corresponding handler");
+  it.each([
+    ["reports no atomic capability", async () => ({}) as { atomic: { status: string } }],
+    ["has no such method (-32601)", () => Promise.reject(new MethodNotFoundRpcError(noHandler))],
+    [
+      "doesn't support the method (4200)",
+      () => Promise.reject(new UnsupportedProviderMethodError(noHandler)),
+    ],
+    [
+      "doesn't support the method (-32004)",
+      () => Promise.reject(new MethodNotSupportedRpcError(noHandler)),
+    ],
+  ])("takes a wallet that %s as one that cannot batch", async (_case, read) => {
     const { sender, deps, calls } = wallet();
-    deps.getCapabilities.mockResolvedValue({} as { atomic: { status: string } });
+    deps.getCapabilities.mockImplementation(read);
 
     const refusal = await sender
       .submitAtomicBatch(calls, { batchBudget: walletBudget })
