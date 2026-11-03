@@ -339,9 +339,16 @@ export const gardenJoinRequestTransport = {
     );
   },
 
-  async count(gardenAddress: Address, token: string, baseUrl?: string) {
+  /** The garden's waiting total, or one queue's with `kind`; an older service sends the total. */
+  async count(
+    gardenAddress: Address,
+    token: string,
+    options: { kind?: GardenJoinRequestKind } = {},
+    baseUrl?: string
+  ) {
+    const query = options.kind ? `?kind=${encodeURIComponent(options.kind)}` : "";
     const response = await request<GardenJoinRequestCountResponse>(
-      `${collectionRoute(gardenAddress)}/count`,
+      `${collectionRoute(gardenAddress)}/count${query}`,
       null,
       { method: "GET", headers: { Authorization: encodeGardenJoinCountAuthorization(token) } },
       baseUrl

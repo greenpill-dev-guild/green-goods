@@ -302,8 +302,8 @@ class DB {
     );
   }
 
-  async countPendingGardenJoinRequests(gardenAddress: PublicAddress, nowIso: string) {
-    return gardenJoinRequests.countPendingGardenJoinRequests(this.db, gardenAddress, nowIso);
+  async countPendingGardenJoinRequests(...scope: gardenJoinRequests.PendingCountScope) {
+    return gardenJoinRequests.countPendingGardenJoinRequests(this.db, ...scope);
   }
 
   async resolveGardenJoinRequest(
