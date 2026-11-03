@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:87ea43fa58c423bc08576486735faff7608574882e467bb09088352c28d00462"
+source_digest: "sha256:0d94235fb75dc2ee6d98c6d42a41e49adbdfceecda9407c61a5f8e7f08105b4c"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -131,15 +131,15 @@ Category of regenerative work — where the work happens. Four production domain
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Domain</code> | <code>SOLAR=0, AGRO=1, EDU=2, WASTE=3</code> |  |
-| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when all of its work shares one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) publishes the same words from its own list. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
-| slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy validation and the create-action form reject a slug whose prefix is not its domain's. |
+| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when its work names exactly one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) publishes the same words from its own list. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
+| slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy actions validator and the create-action form reject a slug whose prefix is not its domain's. |
 
 - **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; bijective): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
   - Code anchor: `packages/shared/src/modules/data/hypercerts-filters.ts`
 
 - **Mapping `domain-to-slug-prefix`** (solidity → slug-prefix; explicit; total; bijective): SOLAR → solar, AGRO → agro, EDU → edu, WASTE → waste.
   - Code anchor: `packages/shared/src/hooks/action/useActionForm.ts`
-  - Each domain has two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO.
+  - AGRO and EDU each have two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO.
 
 ### `garden-role`
 
