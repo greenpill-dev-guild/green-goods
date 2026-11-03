@@ -86,12 +86,14 @@ rather than only inside this package.
 - Application defaults use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, never wallet chain state.
 - Shared gates decide what the apps may offer, so check them before describing a feature as
   available. `SETTLEMENT_ENABLED` in `src/config/app.ts` is on today; when it is false, the shared
-  mutations and job executor refuse settlement writes and new G$ rewards in every app. The voucher pilot reads its
-  deployed contracts only for voucher offers, through the receipt-backed `SERVICE_LIVE_ROUTES` in
+  mutations and job executor refuse settlement writes and new G$ rewards in every app. The voucher
+  pilot reads its deployed contracts only for voucher offers and the voucher reward a request can
+  carry. Offers come through the receipt-backed `SERVICE_LIVE_ROUTES` in
   `src/modules/commitment-pooling/service-access-live-config.ts`. `SERVICE_ISSUER_ROUTES` in
-  `src/modules/commitment-pooling/service-issuer-metadata.ts` holds only Green Goods' issuer route,
-  with its confirmed terms and capacity; Tech and Sun has not confirmed its own. The credit hooks
-  in `src/hooks/commitment-pooling/useCredit.ts` have no app consumer.
+  `src/modules/commitment-pooling/service-issuer-metadata.ts` pins the reward module a request's
+  reward binds, and it holds only Green Goods' issuer route, with its confirmed terms and capacity;
+  Tech and Sun has not confirmed its own. The credit hooks in
+  `src/hooks/commitment-pooling/useCredit.ts` have no app consumer.
 - Prefer event-driven invalidation over polling.
 - New user-facing strings land in all three locale files in the same change, or the i18n gate
   fails.
