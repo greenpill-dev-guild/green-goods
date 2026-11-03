@@ -4,11 +4,12 @@ import {
   prepareQueuedJob,
   type PrepareQueuedJobDependencies,
 } from "../../../modules/work/prepare-queued-work";
+import { jobToWork } from "../../../modules/work/queued-work";
 import { mergeUploadProgress } from "../../../modules/work/upload-kinds";
 import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import { SimulationRejected } from "../../../modules/work/simulation-rejected";
 import { UnpublishablePhotoError } from "../../../modules/work/work-attachments";
-import type { Job } from "../../../types/job-queue";
+import type { Job, WorkJobPayload } from "../../../types/job-queue";
 import {
   QUEUED_JOB_GARDEN,
   QUEUED_JOB_USER,
@@ -96,19 +97,28 @@ describe("preparing a queued item for Upload all", () => {
     expect(raw.encodeWork).not.toHaveBeenCalled();
   });
 
-  it("holds work whose photo cannot be published, naming the photo, instead of retrying", async () => {
+  it.each([
+    ["photo", new UnpublishablePhotoError("beds.png"), { photo: "beds.png" }, undefined],
+    [
+      "video",
+      new UnpublishablePhotoError("beds.mp4", { video: true }),
+      { photo: "beds.mp4", video: true },
+      true,
+    ],
+  ] as const)("holds work whose %s cannot be published, naming it, instead of retrying", async (_, refusal, held, heldVideo) => {
     const work = queuedWork();
-    const { deps } = dependencies({
-      encodeWork: vi.fn().mockRejectedValue(new UnpublishablePhotoError("beds.png")),
-    });
+    const { deps } = dependencies({ encodeWork: vi.fn().mockRejectedValue(refusal) });
 
     await expect(prepareQueuedJob(work, 42161, CLAIM, deps)).resolves.toBe("photo-needs-attention");
     expect(work.meta?.preparation).toEqual({
       status: "photo-needs-attention",
-      photo: "beds.png",
+      ...held,
       checkedAt: CHECKED_AT,
     });
-    expect(queuedUploadStatus(work)).toEqual({ state: "photo-needs-attention", photo: "beds.png" });
+    expect(queuedUploadStatus(work)).toEqual({ state: "photo-needs-attention", ...held });
+    // What the work card reads: a video is told as one, a photo as before.
+    const shown = JSON.parse(jobToWork(work as Job<WorkJobPayload>).metadata);
+    expect([shown.submissionState, shown.heldVideo]).toEqual(["photo-needs-attention", heldVideo]);
   });
 
   it("blocks work the chain would refuse, with the reason, before uploading anything", async () => {

@@ -11,6 +11,8 @@ import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 function queuedSubmissionState(job: Job<WorkJobPayload>): {
   submissionState: string;
   blockedReason?: string;
+  /** The file a held work waits on is a video. */
+  heldVideo?: true;
 } {
   const upload = queuedUploadStatus(job);
   switch (upload.state) {
@@ -27,6 +29,11 @@ function queuedSubmissionState(job: Job<WorkJobPayload>): {
       return { submissionState: "retry-required" };
     case "blocked":
       return { submissionState: "blocked", blockedReason: upload.reason };
+    case "photo-needs-attention":
+      return {
+        submissionState: upload.state,
+        ...(upload.video ? { heldVideo: upload.video } : {}),
+      };
     default:
       return { submissionState: upload.state };
   }

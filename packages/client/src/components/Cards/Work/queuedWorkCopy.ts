@@ -5,18 +5,21 @@ export interface QueuedWorkState {
   submissionState?: string;
   /** The contract error the chain would refuse a blocked work with. */
   blockedReason?: string;
+  /** The file a held work waits on is a video, not a photo. */
+  heldVideo?: true;
 }
 
 /** Reads the queued state from work metadata. Remote metadata can be a CID, which has none. */
 export function readQueuedWorkState(metadata: string | undefined): QueuedWorkState {
   try {
-    const { submissionState, blockedReason } = JSON.parse(metadata || "{}") as Record<
+    const { submissionState, blockedReason, heldVideo } = JSON.parse(metadata || "{}") as Record<
       string,
       unknown
     >;
     return {
       submissionState: typeof submissionState === "string" ? submissionState : undefined,
       blockedReason: typeof blockedReason === "string" ? blockedReason : undefined,
+      ...(heldVideo === true ? { heldVideo } : {}),
     };
   } catch {
     return {};
@@ -166,7 +169,9 @@ const SHORT_BLOCKED_REASONS = new Map<string, MessageDescriptor>([
 
 export function blockedShortReasonMessage(state: QueuedWorkState): MessageDescriptor {
   if (state.submissionState === "photo-needs-attention")
-    return { id: "app.uploads.blocked.short.photo", defaultMessage: "A photo won't convert" };
+    return state.heldVideo
+      ? { id: "app.uploads.blocked.short.video", defaultMessage: "A video can't be read" }
+      : { id: "app.uploads.blocked.short.photo", defaultMessage: "A photo won't convert" };
   return (
     (state.blockedReason && SHORT_BLOCKED_REASONS.get(state.blockedReason)) || {
       id: "app.uploads.blocked.short.refused",
@@ -203,6 +208,7 @@ export function queuedWorkStatusMessage(
 export function queuedWorkDetailMessage({
   submissionState,
   blockedReason,
+  heldVideo,
 }: QueuedWorkState): MessageDescriptor | undefined {
   switch (submissionState) {
     case "reverted":
@@ -219,10 +225,16 @@ export function queuedWorkDetailMessage({
         defaultMessage: "A photo is still converting",
       };
     case "photo-needs-attention":
-      return {
-        id: "app.uploads.state.photoNeedsAttention",
-        defaultMessage: "A photo couldn't be converted",
-      };
+      // A video is not converted: one this cannot read is refused, and the same file would be again.
+      return heldVideo
+        ? {
+            id: "app.uploads.state.videoNeedsAttention",
+            defaultMessage: "A video couldn't be read",
+          }
+        : {
+            id: "app.uploads.state.photoNeedsAttention",
+            defaultMessage: "A photo couldn't be converted",
+          };
     case "blocked":
       return blockedReasonMessage(blockedReason);
     default:

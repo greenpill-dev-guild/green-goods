@@ -36,13 +36,16 @@ export class PendingHeicConversionError extends Error {
  * on it.
  */
 export class UnpublishablePhotoError extends InvalidWorkAttachmentError {
-  /** The photo's file name. */
+  /** The photo's file name, or the video's. */
   readonly photo: string;
+  /** The file is a video, which the person is told about as one. */
+  readonly video: boolean;
 
-  constructor(photo: string) {
+  constructor(photo: string, { video = false }: { video?: boolean } = {}) {
     super("photo-unreadable");
     this.name = "UnpublishablePhotoError";
     this.photo = photo;
+    this.video = video;
   }
 }
 
@@ -159,12 +162,13 @@ export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): bool
  * the attestation cannot be withdrawn. Audio is published as it was recorded.
  */
 export async function publishableWorkFile(file: File): Promise<File> {
+  const video = !PHOTO_TYPES.has(file.type) && file.type.startsWith("video/");
   const published = PHOTO_TYPES.has(file.type)
     ? await withoutPhotoMetadata(file)
-    : file.type.startsWith("video/")
+    : video
       ? await withoutVideoMetadata(file)
       : file;
-  if (!published) throw new UnpublishablePhotoError(file.name);
+  if (!published) throw new UnpublishablePhotoError(file.name, { video });
   return published;
 }
 
