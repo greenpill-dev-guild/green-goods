@@ -200,7 +200,7 @@
       "currentCeremonyEndOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
       "finalArtifact": "Karma.sol/KarmaGAPModule.json",
       "constructorArguments": [],
-      "expectedImplementationCreationCodeHash": "0x116b0ddaa0d385a5dc872e0904f52ff7e1998db94ad32b954db1e09d1d36882c",
+      "expectedImplementationCreationCodeHash": "0x7f0b9921ef371664ff1a36b52e2b176302d9e12d1582fcead4525f227ef4aec2",
       "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
       "initializerPolicy": "preserve-existing-initializer-state",
       "linkedLibraries": {}
