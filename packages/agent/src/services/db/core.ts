@@ -302,12 +302,8 @@ class DB {
     );
   }
 
-  async countPendingGardenJoinRequests(
-    gardenAddress: PublicAddress,
-    nowIso: string,
-    kind?: GardenJoinRequestKind
-  ) {
-    return gardenJoinRequests.countPendingGardenJoinRequests(this.db, gardenAddress, nowIso, kind);
+  async countPendingGardenJoinRequests(...scope: gardenJoinRequests.PendingCountScope) {
+    return gardenJoinRequests.countPendingGardenJoinRequests(this.db, ...scope);
   }
 
   async resolveGardenJoinRequest(
