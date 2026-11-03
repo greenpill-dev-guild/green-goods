@@ -6,6 +6,7 @@ import {
   outstandingFieldQuestions,
   reconcileDetailsWithAction,
   type ReportContent,
+  type SourceRef,
 } from "@green-goods/shared/modules/agent-reporting";
 import { resolveWorkSubmissionTitle } from "@green-goods/shared/utils/work/workTitles";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -138,15 +139,50 @@ export function takeSoleGarden(
 
 /**
  * A report holds no more photos than its activity accepts. Evidence is kept in the order its
- * files were sent, so the first ones sent stay; the rest stay private and out of the report.
- * Returns the activity's maximum when photos were taken off, otherwise null.
+ * files were sent, so the first ones sent stay; the rest stay private and out of the report, and
+ * so does what only they gave. Returns the activity's maximum when photos were taken off,
+ * otherwise null.
  */
 export function keepAcceptedPhotos(work: Working): number | null {
   const maximum = work.snapshot?.definition.media.maxImageCount ?? null;
   if (maximum === null || work.content.evidence.length <= maximum) return null;
-  work.content = { ...work.content, evidence: work.content.evidence.slice(0, maximum) };
+  const takenOff = new Set(work.content.evidence.slice(maximum).map((photo) => photo.assetId));
+  work.content = withoutFactsFrom(
+    { ...work.content, evidence: work.content.evidence.slice(0, maximum) },
+    takenOff
+  );
   work.changed = true;
   return maximum;
+}
+
+/**
+ * Takes the given photos out of what the report read. A detail another source also gave keeps
+ * that source; one only these photos gave goes, and so do the disagreements they raised. A value
+ * one of them replaced is not brought back, so a required detail is asked for again. A photo is
+ * read only for its activity's details, so nothing else in the report can come from one.
+ */
+function withoutFactsFrom(content: ReportContent, photos: ReadonlySet<string>): ReportContent {
+  const others = (sources: readonly SourceRef[]) =>
+    sources.filter(({ assetId }) => assetId === undefined || !photos.has(assetId));
+  const details = { ...content.details };
+  const provenance = { ...content.provenance };
+  for (const key of Object.keys(details)) {
+    const field = `details.${key}` as const;
+    const read = provenance[field];
+    if (!read) continue;
+    const kept = others(read.sources);
+    if (kept.length === read.sources.length) continue;
+    if (kept.length > 0) {
+      provenance[field] = { ...read, sources: kept };
+      continue;
+    }
+    delete details[key];
+    delete provenance[field];
+  }
+  const conflicts = content.conflicts.filter(
+    (conflict) => others(conflict.provenance.sources).length > 0
+  );
+  return { ...content, details, provenance, conflicts };
 }
 
 /** Fills garden and Action only when the chat's gardens and the catalog leave no ambiguity. */
