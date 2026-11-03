@@ -18,6 +18,7 @@ import {
   useUpdateGardenName,
 } from "@green-goods/shared/hooks/garden/useUpdateGarden";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { UnpublishableImageError } from "@green-goods/shared/modules/data/ipfs/upload";
 import { type Address, DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -347,10 +348,18 @@ export const GardenSettingsEditor = forwardRef<
             id: "app.garden.create.uploadFailed",
             defaultMessage: "Upload failed",
           }),
-          message: formatMessage({
-            id: "app.garden.settings.saveFailedMessage",
-            defaultMessage: "Your edits are still here. Review the error and save again.",
-          }),
+          // Saving again cannot upload a banner that could not be checked for its location.
+          message:
+            error instanceof UnpublishableImageError
+              ? formatMessage({
+                  id: "app.common.imageUnreadable",
+                  defaultMessage:
+                    "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP.",
+                })
+              : formatMessage({
+                  id: "app.garden.settings.saveFailedMessage",
+                  defaultMessage: "Your edits are still here. Review the error and save again.",
+                }),
           context: "garden settings save",
           error,
         }),

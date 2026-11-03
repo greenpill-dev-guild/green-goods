@@ -4,7 +4,7 @@ import {
   trackAdminActionCreateStarted,
 } from "../../../modules/app/analytics-events";
 import { logger } from "../../../modules/app/logger";
-import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
+import { UnpublishableImageError, uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 import { Domain } from "../../../types/domain";
 import { buildActionInstructionsV2 } from "../../../utils/action/translations";
@@ -65,6 +65,8 @@ export function useCreateActionController() {
   // before the state above re-renders; this lock is set synchronously.
   const sendLockRef = useRef(false);
   const txError = useTxErrorMessages(sendError);
+  // An image that could not be checked for its location stops the send before any transaction.
+  const unreadableImage = sendError instanceof UnpublishableImageError;
   const mounted = useRef(true);
   const activeScope = useRef(registrationScope);
   activeScope.current = registrationScope;
@@ -390,8 +392,16 @@ export function useCreateActionController() {
   return {
     currentStep,
     domainOptions,
-    errorMessage: txError.message,
-    errorTitle: txError.title,
+    errorMessage: unreadableImage
+      ? formatMessage({
+          id: "app.common.imageUnreadable",
+          defaultMessage:
+            "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP.",
+        })
+      : txError.message,
+    errorTitle: unreadableImage
+      ? formatMessage({ id: "app.garden.create.uploadFailed", defaultMessage: "Upload failed" })
+      : txError.title,
     form,
     goToStep: stepValidation.handleStepClick,
     handleBack: stepValidation.handleBack,

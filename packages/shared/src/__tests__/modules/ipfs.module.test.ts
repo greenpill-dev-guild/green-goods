@@ -18,14 +18,8 @@ import {
   uploadJSONToIPFS,
 } from "../../modules/data/ipfs";
 import { verifyPinataGatewayAvailability } from "../../modules/data/ipfs/pinata";
-import {
-  type PhotoType,
-  bytesOf,
-  cameraPhoto,
-  cleanPhoto,
-  leakedCameraDetails,
-  photoFile,
-} from "../test-utils/photo-fixtures";
+import { UnpublishableImageError } from "../../modules/data/ipfs/upload";
+import { bytesOf, cameraPhoto, cleanPhoto, photoFile } from "../test-utils/photo-fixtures";
 
 describe("modules/data/ipfs", () => {
   const originalFetch = globalThis.fetch;
@@ -413,19 +407,27 @@ describe("modules/data/ipfs", () => {
       canvas.redraw.mockReset().mockResolvedValue(null);
     });
 
-    it.each<PhotoType>([
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ])("pins %s without its location or camera details, and without redrawing it", async (type) => {
+    // Each format's rewrite is proven in work-media-processing; this proves the upload runs it.
+    it("pins a photo without its location or camera details, and without redrawing it", async () => {
       const { received } = await pinningService();
 
-      await uploadFileToIPFS(photoFile(cameraPhoto(type), "banner", type), { source: "banner" });
+      await uploadFileToIPFS(photoFile(cameraPhoto("image/jpeg"), "banner", "image/jpeg"), {
+        source: "banner",
+      });
 
       expect(received).toHaveLength(1);
-      const pinned = await bytesOf(received[0]);
-      expect(leakedCameraDetails(pinned)).toEqual([]);
-      expect(pinned).toEqual(cleanPhoto(type, { orientation: 6 }));
+      expect(await bytesOf(received[0])).toEqual(cleanPhoto("image/jpeg", { orientation: 6 }));
+      expect(canvas.redraw).not.toHaveBeenCalled();
+    });
+
+    it("pins a file that is not an image exactly as it is", async () => {
+      const { received } = await pinningService();
+      // Bytes a rewrite would change, under a type that says they are no image.
+      const note = new File([cameraPhoto("image/jpeg")], "note.webm", { type: "audio/webm" });
+
+      await uploadFileToIPFS(note);
+
+      expect(await bytesOf(received[0])).toEqual(await bytesOf(note));
       expect(canvas.redraw).not.toHaveBeenCalled();
     });
 
@@ -444,12 +446,16 @@ describe("modules/data/ipfs", () => {
 
     it("refuses an image that neither the rewrite nor a canvas can read, and sends nothing", async () => {
       const { fetchMock } = await pinningService();
+      const onFileProgress = vi.fn();
 
       await expect(
-        uploadFileToIPFS(new File(["not a picture"], "banner.png", { type: "image/png" }))
-      ).rejects.toMatchObject({ name: "UnpublishableImageError" });
+        uploadFileToIPFS(new File(["not a picture"], "banner.png", { type: "image/png" }), {
+          onFileProgress,
+        })
+      ).rejects.toEqual(new UnpublishableImageError("banner.png"));
 
       expect(fetchMock).not.toHaveBeenCalled();
+      expect(onFileProgress).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
     });
   });
 });

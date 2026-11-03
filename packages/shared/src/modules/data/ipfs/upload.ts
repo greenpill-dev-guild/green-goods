@@ -156,13 +156,19 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
 // WHAT MAY BE PINNED
 // ============================================================================
 
-/** An image neither the byte-level rewrite nor a canvas could read, so it was not pinned. */
-class UnpublishableImageError extends Error {
-  constructor() {
-    super(
-      "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP."
-    );
+/**
+ * An image neither the byte-level rewrite nor a canvas could read, so it was
+ * not pinned. A screen shows `app.common.imageUnreadable` for it; the message
+ * is for logs.
+ */
+export class UnpublishableImageError extends Error {
+  /** The image's file name. */
+  readonly image: string;
+
+  constructor(image: string) {
+    super("The image could not be read to remove its metadata, so it was not uploaded");
     this.name = "UnpublishableImageError";
+    this.image = image;
   }
 }
 
@@ -175,11 +181,22 @@ class UnpublishableImageError extends Error {
  * through a canvas. An image that neither can read is refused rather than
  * pinned as it was picked. Any other file is pinned as it is.
  */
-async function publishableFile(file: File): Promise<File> {
+async function publishableFile(file: File, context: FileUploadContext): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
   const published = await withoutPhotoMetadata(file);
-  if (!published) throw new UnpublishableImageError();
-  return published;
+  if (published) return published;
+  const refusal = new UnpublishableImageError(file.name);
+  // Counted so refusals can be seen; the image's name stays on the device.
+  trackUploadError(refusal, {
+    uploadCategory: "file_upload",
+    fileSize: file.size,
+    fileType: file.type,
+    source: context.source ?? "uploadFileToIPFS",
+    gardenAddress: context.gardenAddress,
+    severity: "warning",
+    recoverable: false,
+  });
+  throw refusal;
 }
 
 // ============================================================================
@@ -201,7 +218,7 @@ export async function uploadFileToIPFS(
   context: FileUploadContext = {}
 ): Promise<{ cid: string }> {
   try {
-    const published = await publishableFile(file);
+    const published = await publishableFile(file, context);
     const result = await executeUpload(
       () =>
         uploadFileWithPinata(published, {
