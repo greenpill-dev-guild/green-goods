@@ -4,14 +4,18 @@
  * `createJobQueue` runs for real here: identity dedupe, claims, `processJob`,
  * `retryJob` and `discardJob`. Only the edges are fakes: the executor stands in
  * for the commitment executor (recover from the chain first, wait once a send
- * is on record, otherwise send), and the wallet records what reached a fake
- * chain, keyed by each copy's creation id.
+ * is on record, otherwise send), and the wallet or passkey records what reached
+ * a fake chain, keyed by each copy's creation id.
  */
 
 import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
 
-import { type CreationCopy, sendCreationCopies } from "../modules/commitment-pooling/creation-send";
+import {
+  type CreationCopy,
+  creationBudget,
+  sendCreationCopies,
+} from "../modules/commitment-pooling/creation-send";
 import {
   copiesToRetry,
   mintSeedSet,
@@ -21,7 +25,14 @@ import {
 import type { JobExecution, JobQueueHandle } from "../modules/job-queue/ports";
 import { createJobQueue } from "../modules/job-queue/queue";
 import { MAX_RETRIES } from "../modules/job-queue/queue-policy";
-import type { ContractCall, TransactionSender } from "../modules/transactions/types";
+import type { AtomicBatchAction } from "../modules/transactions/batch-enablement";
+import { BatchConfirmationPendingError } from "../modules/transactions/batch-types";
+import type {
+  AtomicBatchOptions,
+  ContractCall,
+  TransactionSender,
+  TransactionSendOptions,
+} from "../modules/transactions/types";
 import type { Job } from "../types/job-queue";
 import type { Address } from "../types/domain";
 import {
@@ -64,7 +75,67 @@ function wallet(
     supportsSponsorship: false,
     canSendAtomicBatch: vi.fn(async () => options.bundles),
     sendAtomicBatch: vi.fn((calls: ContractCall[]) => answer(calls)),
-    sendContractCall: vi.fn((call: ContractCall) => answer([call])),
+    // A wallet asks and broadcasts in one step, so it reaches the boundary just before asking.
+    sendContractCall: vi.fn(async (call: ContractCall, sendOptions?: TransactionSendOptions) => {
+      await sendOptions?.onBeforeBroadcast?.();
+      return answer([call]);
+    }),
+  } satisfies TransactionSender;
+}
+
+/** The prompt a passkey closes without answering, as the browser names it. */
+const promptClosed = () =>
+  Object.assign(new Error("Failed to request credential."), {
+    cause: Object.assign(new Error("The operation either timed out or was not allowed."), {
+      name: "NotAllowedError",
+    }),
+  });
+
+/**
+ * A passkey asks for its signature before anything can go out, so a refusal of
+ * its own (a closed prompt, a bundle past its ceilings) leaves nothing on chain,
+ * and a bundle groups only for an action listed for it.
+ */
+function passkey(
+  chain: ReturnType<typeof fakeChain>,
+  options: {
+    listed?: readonly AtomicBatchAction[];
+    /** The prompt for this send closes, or the bundle is past its ceilings, before anything goes out. */
+    unsent?: (calls: readonly ContractCall[]) => "prompt-closed" | "past-ceilings" | null;
+    /** The send went out and landed, but its answer never came back. */
+    lost?: boolean;
+  } = {}
+) {
+  return {
+    authMode: "passkey",
+    supportsBatching: false,
+    supportsSponsorship: true,
+    canSendAtomicBatch: vi.fn(async (_chainId: number, action?: AtomicBatchAction) =>
+      Boolean(action && options.listed?.includes(action))
+    ),
+    sendAtomicBatch: vi.fn(async (calls: ContractCall[], batch?: AtomicBatchOptions) => {
+      const unsent = options.unsent?.(calls);
+      if (unsent) {
+        batch?.onNeverSent?.();
+        throw unsent === "past-ceilings" ? new Error("batch-budget-exceeded") : promptClosed();
+      }
+      chain.land(calls);
+      if (options.lost) {
+        throw new BatchConfirmationPendingError({
+          status: "unresolved",
+          receipts: [],
+          sponsored: true,
+        });
+      }
+      return { hash: TX, sponsored: true };
+    }),
+    // A single send has no ceilings of its own; only its prompt can close.
+    sendContractCall: vi.fn(async (call: ContractCall, sendOptions?: TransactionSendOptions) => {
+      if (options.unsent?.([call]) === "prompt-closed") throw promptClosed();
+      await sendOptions?.onBeforeBroadcast?.();
+      chain.land([call]);
+      return { hash: TX, sponsored: true };
+    }),
   } satisfies TransactionSender;
 }
 
@@ -296,20 +367,123 @@ describe("sending a set's creations", () => {
     expect(await store.getJobs({ userAddress: STEWARD })).toHaveLength(4);
   });
 
-  it("leaves a passkey account's set to the background flush", async () => {
-    const { chain, store, queue } = setUp();
-    const passkey = { ...wallet(chain, { bundles: true }), authMode: "passkey" as const };
+  it("asks a passkey once per copy while creations aren't listed for it", async () => {
+    const { chain, queue } = setUp();
+    const copies = setOf(3);
+    const closed = copies[1]!.clientCommitmentId;
+    const sender = passkey(chain, {
+      listed: ["reward-edits"],
+      unsent: (calls) => (creationIds(calls)[0] === closed ? "prompt-closed" : null),
+    });
 
     const result = await sendCreationCopies({
-      copies: setOf(3),
+      copies,
       queue,
-      sender: passkey,
+      sender,
       owner: STEWARD,
       chainId: 42161,
     });
 
-    expect(result.map((row) => row.status)).toEqual(["later", "later", "later"]);
-    expect(passkey.sendAtomicBatch).not.toHaveBeenCalled();
-    expect(await store.getJobs({ userAddress: STEWARD })).toHaveLength(3);
+    expect(sender.canSendAtomicBatch).toHaveBeenCalledWith(42161, "commitment-creations");
+    expect(sender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(3);
+    // The queue keeps only an error's message; the closed prompt still reads as declined.
+    expect(result.map((row) => [row.status, row.miss])).toEqual([
+      ["created", undefined],
+      ["not-sent", "declined"],
+      ["created", undefined],
+    ]);
+  });
+
+  it("asks a listed passkey once per ten, within the measured ceilings", async () => {
+    const { chain, store, queue } = setUp();
+    const sender = passkey(chain, { listed: ["commitment-creations"] });
+    const copies = setOf(12);
+
+    const result = await sendCreationCopies({
+      copies,
+      queue,
+      sender,
+      owner: STEWARD,
+      chainId: 42161,
+    });
+
+    expect(sender.sendAtomicBatch.mock.calls.map(([calls]) => calls.length)).toEqual([10, 2]);
+    for (const [, batch] of sender.sendAtomicBatch.mock.calls) {
+      expect(batch?.batchBudget).toEqual(creationBudget(42161));
+    }
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(result.map((row) => row.status)).toEqual(Array(12).fill("created"));
+    expect(chain.created.size).toBe(12);
+    expect(await store.getJobs({ userAddress: STEWARD })).toEqual([]);
+  });
+
+  it("creates nothing past a passkey's ceilings, and the next pass asks once per copy", async () => {
+    const { chain, store, queue } = setUp();
+    const sender = passkey(chain, {
+      listed: ["commitment-creations"],
+      unsent: () => "past-ceilings",
+    });
+    const copies = setOf(3);
+
+    const past = await sendCreationCopies({
+      copies,
+      queue,
+      sender,
+      owner: STEWARD,
+      chainId: 42161,
+    });
+    // It never went out, so the set is still the steward's to edit and the queue holds none of it.
+    expect(past.map((row) => row.miss)).toEqual(Array(3).fill("over-ceilings"));
+    expect(seedSetLocked(past)).toBe(false);
+    expect(await store.getJobs({ userAddress: STEWARD })).toEqual([]);
+
+    const again = await sendCreationCopies({
+      copies,
+      queue,
+      sender,
+      owner: STEWARD,
+      chainId: 42161,
+      oneByOne: true,
+    });
+    expect(sender.sendAtomicBatch).toHaveBeenCalledTimes(1);
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(3);
+    expect(again.map((row) => row.status)).toEqual(Array(3).fill("created"));
+  });
+
+  it("sends no copy twice after a reload, when a passkey bundle's answer was lost", async () => {
+    const { chain, store, queue } = setUp();
+    const copies = setOf(4);
+    const lost = await sendCreationCopies({
+      copies,
+      queue,
+      sender: passkey(chain, { listed: ["commitment-creations"], lost: true }),
+      owner: STEWARD,
+      chainId: 42161,
+    });
+    expect(lost.map((row) => row.miss)).toEqual(Array(4).fill("failed"));
+    expect(seedSetLocked(lost)).toBe(true);
+    expect(chain.created.size).toBe(4);
+
+    // A reload: the same stored queue, a new queue over it, a new sender. Finish Creating
+    // reads each copy back from the chain before anything could be sent again.
+    const reloaded = createJobQueue(
+      createJobQueueDependencies({ store, executors: executorOver(chain) })
+    );
+    const sender = passkey(chain, { listed: ["commitment-creations"] });
+    const finished = await sendCreationCopies({
+      copies,
+      queue: reloaded,
+      sender,
+      owner: STEWARD,
+      chainId: 42161,
+      clearable: () => false,
+    });
+
+    expect(sender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(finished.map((row) => row.status)).toEqual(Array(4).fill("created"));
+    expect([...chain.created.keys()]).toEqual(copies.map((copy) => copy.clientCommitmentId));
+    expect(await store.getJobs({ userAddress: STEWARD })).toEqual([]);
   });
 });
