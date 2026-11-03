@@ -1637,6 +1637,7 @@
   "app.common.done": "Listo",
   "app.common.edit": "Editar",
   "app.common.failedToLoad": "Error al cargar",
+  "app.common.imageUnreadable": "No pudimos revisar si esta imagen tiene datos de ubicación, así que no se subió. Intenta guardarla de nuevo como JPEG, PNG o WebP.",
   "app.common.inGarden": "En {garden}",
   "app.common.loading": "Cargando...",
   "app.common.loadingApp": "Cargando {appName}",

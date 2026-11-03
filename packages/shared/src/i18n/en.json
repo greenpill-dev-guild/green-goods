@@ -1637,6 +1637,7 @@
   "app.common.done": "Done",
   "app.common.edit": "Edit",
   "app.common.failedToLoad": "Failed to load",
+  "app.common.imageUnreadable": "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP.",
   "app.common.inGarden": "In {garden}",
   "app.common.loading": "Loading...",
   "app.common.loadingApp": "Loading {appName}",
