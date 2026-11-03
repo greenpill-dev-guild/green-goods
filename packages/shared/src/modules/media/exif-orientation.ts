@@ -7,7 +7,7 @@
  * fixed form, since without it a portrait photo shows on its side. The GPS
  * directory and the camera's make, model and serial go with everything else.
  *
- * @module modules/work/exif-orientation
+ * @module modules/media/exif-orientation
  */
 
 type Bytes = Uint8Array<ArrayBuffer>;
