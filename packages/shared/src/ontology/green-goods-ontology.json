@@ -981,7 +981,7 @@
           "extract": "ts-union",
           "ordered": false,
           "members": ["solar", "waste", "agroforestry", "education"],
-          "note": "Long-form lowercase spellings used in hypercert metadata. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain."
+          "note": "Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when all of its work shares one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) publishes the same words from its own list. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain."
         },
         {
           "id": "slug-prefix",
@@ -991,7 +991,7 @@
           "extract": "ts-object-values",
           "ordered": true,
           "members": ["solar", "agro", "edu", "waste"],
-          "note": "Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*)."
+          "note": "Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy validation and the create-action form reject a slug whose prefix is not its domain's."
         }
       ],
       "mappings": [
@@ -1011,12 +1011,20 @@
           "code_anchor": "packages/shared/src/modules/data/hypercerts-filters.ts"
         },
         {
-          "id": "action-domain-vs-slug-prefix",
-          "from": "action-domain",
+          "id": "domain-to-slug-prefix",
+          "from": "solidity",
           "to": "slug-prefix",
-          "kind": "identity",
-          "total_from": false,
-          "note": "The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined."
+          "kind": "explicit",
+          "total_from": true,
+          "bijective": true,
+          "pairs": {
+            "SOLAR": "solar",
+            "AGRO": "agro",
+            "EDU": "edu",
+            "WASTE": "waste"
+          },
+          "code_anchor": "packages/shared/src/hooks/action/useActionForm.ts",
+          "note": "Each domain has two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO."
         }
       ],
       "source_status": "implemented"
