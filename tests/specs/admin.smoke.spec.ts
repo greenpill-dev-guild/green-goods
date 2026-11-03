@@ -36,6 +36,23 @@ const MOCK_GARDENS = [
     createdAt: Math.floor(Date.now() / 1000),
   },
 ];
+interface CockpitFixture {
+  gardens?: typeof MOCK_GARDENS;
+  /** Who may create gardens; the RPC mock's own list when left out. */
+  allowlisted?: readonly string[];
+}
+
+// The same garden with the signed-in address as an evaluator only, and nobody allowed to create
+// gardens, so Community stays closed.
+const EVALUATOR_ONLY: CockpitFixture = {
+  gardens: MOCK_GARDENS.map((garden) => ({
+    ...garden,
+    operators: [],
+    owners: [],
+    evaluators: [MOCK_STEWARD_ADDRESS],
+  })),
+  allowlisted: [],
+};
 const MOCK_GARDEN_DOMAINS = MOCK_GARDENS.map((garden) => ({
   garden: garden.id,
   domainMask: 1,
@@ -63,7 +80,10 @@ function getGraphQLQueryText(request: { postData(): string | null }): string {
   return "";
 }
 
-async function mockAdminCockpitBackend(page: Page) {
+async function mockAdminCockpitBackend(
+  page: Page,
+  { gardens = MOCK_GARDENS, allowlisted }: CockpitFixture = {}
+) {
   const handleIndexerRoute = async (route: Route) => {
     if (route.request().method() === "OPTIONS") {
       return route.fulfill({
@@ -80,7 +100,7 @@ async function mockAdminCockpitBackend(page: Page) {
         headers: GRAPHQL_HEADERS,
         body: JSON.stringify({
           data: {
-            Garden: MOCK_GARDENS,
+            Garden: gardens,
             GardenDomains: MOCK_GARDEN_DOMAINS,
           },
         }),
@@ -93,7 +113,11 @@ async function mockAdminCockpitBackend(page: Page) {
         headers: GRAPHQL_HEADERS,
         body: JSON.stringify({
           data: {
-            Garden: MOCK_GARDENS.map(({ id, name }) => ({ id, name })),
+            Garden: gardens
+              .filter((garden) =>
+                [...garden.operators, ...garden.owners].includes(MOCK_STEWARD_ADDRESS)
+              )
+              .map(({ id, name }) => ({ id, name })),
           },
         }),
       });
@@ -152,13 +176,13 @@ async function mockAdminCockpitBackend(page: Page) {
     });
   });
 
-  await mockSepoliaRpc(page, { garden: MOCK_GARDENS[0] });
+  await mockSepoliaRpc(page, { garden: gardens[0], allowlisted });
 }
 
-async function setupMockSteward(page: Page) {
+async function setupMockSteward(page: Page, fixture: CockpitFixture = {}) {
   const helper = new AdminTestHelper(page);
   await helper.enableMockAuth("steward");
-  await mockAdminCockpitBackend(page);
+  await mockAdminCockpitBackend(page, fixture);
   return helper;
 }
 
@@ -232,6 +256,19 @@ test.describe("Admin Cockpit", () => {
         .getByRole("heading", { name: "Actions", exact: true })
         .or(page.getByRole("heading", { name: "Unauthorized", exact: true }))
     ).toBeVisible({ timeout: 15000 });
+  });
+
+  test("sends someone without Community access to Hub", async ({ page }) => {
+    // As the page arrives, the garden sync writes the garden into the address while the guard's
+    // redirect is still loading Hub. The redirect has to land anyway, not leave a blank page.
+    test.setTimeout(SIGNED_IN_LOAD_MS);
+    const helper = await setupMockSteward(page, EVALUATOR_ONLY);
+
+    await page.goto(helper.buildMockAuthPath("/community", "steward"));
+    await waitForSignedInBoot(page, helper);
+
+    await expect(page).toHaveURL(/\/hub\b/, { timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible({ timeout: 15000 });
   });
 
   test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
