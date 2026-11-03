@@ -5,7 +5,7 @@ import {
   type UploadErrorCategory,
 } from "../../app/error-tracking";
 import { logger } from "../../app/logger";
-import { withoutPhotoMetadata } from "../../work/work-attachments";
+import { withoutPhotoMetadata } from "../../media/image-metadata";
 import {
   getIpfsInitializationError,
   getIpfsInitializationStatus,

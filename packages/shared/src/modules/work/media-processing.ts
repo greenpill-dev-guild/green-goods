@@ -4,7 +4,8 @@ import {
   convertHeicToJpeg,
   loadHeicDecoder,
 } from "./heic-conversion";
-import { captureWorkFile, isHeicFile, withoutPhotoMetadata } from "./work-attachments";
+import { withoutPhotoMetadata } from "../media/image-metadata";
+import { captureWorkFile, isHeicFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
