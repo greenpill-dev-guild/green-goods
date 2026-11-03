@@ -4,8 +4,12 @@ import { withoutVideoMetadata } from "../../../modules/media/video-metadata";
 import { bytesOf } from "../../test-utils/photo-fixtures";
 import {
   aviVideo,
+  chainedFragmentMp4,
   leakedRecorderDetails,
+  legacySoundMp4,
   referencingMp4,
+  shortRunMp4,
+  sizedSegmentWebm,
   subtitledWebm,
   telemetryOnlyMp4,
   videoFile,
@@ -46,6 +50,14 @@ describe("withoutVideoMetadata", () => {
     ["an MP4 whose picture is kept in another file", referencingMp4()],
     ["an MP4 with nothing to play but its telemetry", telemetryOnlyMp4()],
     ["a WebM with a subtitle track, which cannot be removed in place", subtitledWebm()],
+    // Each of these would play differently, or not at all, once blanked.
+    [
+      "a fragmented MP4 whose picture starts where a telemetry fragment ended",
+      chainedFragmentMp4(),
+    ],
+    ["a QuickTime movie whose sound gives each frame a size of 1, the old way", legacySoundMp4()],
+    ["a WebM whose cluster runs on inside a segment that gives its size", sizedSegmentWebm()],
+    ["an MP4 whose fragment run promises an offset it has no room for", shortRunMp4()],
   ])("refuses %s, since it cannot be checked in full", async (_, bytes) => {
     await expect(withoutVideoMetadata(videoFile(bytes, "clip", "video/mp4"))).resolves.toBeNull();
   });

@@ -62,10 +62,22 @@ export function videoVariants(): VideoVariant[] {
       published: fragmentedMp4(true),
     },
     {
+      name: "a fragmented MP4 whose track fragments each start where the one before ended",
+      type: "video/mp4",
+      recorded: fragmentedMp4(false, { base: "implicit" }),
+      published: fragmentedMp4(true, { base: "implicit" }),
+    },
+    {
       name: "a WebM, with its place in tags and a title, date and names beside them",
       type: "video/webm",
       recorded: webm(false),
       published: webm(true),
+    },
+    {
+      name: "a WebM whose cluster holds an element this does not know, between its blocks",
+      type: "video/webm",
+      recorded: webm(false, { unknownInCluster: true }),
+      published: webm(true, { unknownInCluster: true }),
     },
   ];
 }
@@ -88,6 +100,29 @@ export function telemetryOnlyMp4(): Bytes {
 /** The WebM with a subtitle track, which this cannot clean in place. */
 export function subtitledWebm(): Bytes {
   return webm(false, { subtitles: true });
+}
+
+/** The WebM in a segment that gives its size around a cluster that does not. */
+export function sizedSegmentWebm(): Bytes {
+  return webm(false, { sizedSegment: true });
+}
+
+/**
+ * A fragmented MP4 whose picture starts where a telemetry fragment ended:
+ * blanking that fragment would move the picture for every player.
+ */
+export function chainedFragmentMp4(): Bytes {
+  return fragmentedMp4(false, { base: "implicit", first: "telemetry" });
+}
+
+/** A fragmented MP4 whose telemetry run promises a data offset it has no room for. */
+export function shortRunMp4(): Bytes {
+  return fragmentedMp4(false, { shortRun: true });
+}
+
+/** The Android MP4 with its sound sized the old QuickTime way, by its sample description. */
+export function legacySoundMp4(): Bytes {
+  return androidMp4(false, { legacySound: true });
 }
 
 export function videoFile(bytes: Bytes, name: string, type: string) {
@@ -150,6 +185,8 @@ function sampleOffsets(start: number, handlers: Handler[]): Record<Handler, numb
 interface MovieOptions {
   selfContained?: boolean;
   tracks?: Handler[];
+  /** Sound sized the old QuickTime way: every frame given a size of 1. */
+  legacySound?: boolean;
 }
 
 /**
@@ -158,7 +195,11 @@ interface MovieOptions {
  */
 function androidMp4(
   published: boolean,
-  { selfContained = true, tracks = ["vide", "soun", "meta"] }: MovieOptions = {}
+  {
+    selfContained = true,
+    tracks = ["vide", "soun", "meta"],
+    legacySound = false,
+  }: MovieOptions = {}
 ): Bytes {
   const header = box("ftyp", "isom", u32(512), "isomiso2mp41");
   const media = mediaData(published, tracks);
@@ -177,11 +218,11 @@ function androidMp4(
   const movie = box(
     "moov",
     movieHeader(published),
-    ...tracks.map((handler) =>
-      handler === "meta" && published
-        ? freeSpace(track(handler, offsets[handler], { published, selfContained }))
-        : track(handler, offsets[handler], { published, selfContained })
-    ),
+    ...tracks.map((handler) => {
+      const legacySizes = legacySound && handler === "soun";
+      const built = track(handler, offsets[handler], { published, selfContained, legacySizes });
+      return handler === "meta" && published ? freeSpace(built) : built;
+    }),
     published ? freeSpace(userData) : userData
   );
   const xmp = box(
@@ -238,13 +279,26 @@ function iphoneMovie(published: boolean): Bytes {
   return concat(header, stale, build(mediaStart), mediaData(published, handlers));
 }
 
+interface FragmentOptions {
+  /** Where each track fragment counts from: the fragment, or where the one before it ended. */
+  base?: "fragment" | "implicit";
+  /** Which track fragment, and which sample in the media data, comes first. */
+  first?: "picture" | "telemetry";
+  /** The telemetry run promises a data offset its box has no room for. */
+  shortRun?: boolean;
+}
+
 /**
  * A fragmented MP4: an empty movie, then one fragment whose runs place the
  * picture and the telemetry track's sample in the media data that follows.
  */
-function fragmentedMp4(published: boolean): Bytes {
+function fragmentedMp4(
+  published: boolean,
+  { base = "fragment", first = "picture", shortRun = false }: FragmentOptions = {}
+): Bytes {
   const header = box("ftyp", "iso6", u32(512), "iso6mp41");
   const telemetry = RECORDER_DETAILS.track.length;
+  const pictureLength = PICTURE.join("").length;
   const userData = box(
     "udta",
     box("\xa9xyz", u16(18), u16(0x15c7), `${RECORDER_DETAILS.location}/`)
@@ -262,33 +316,43 @@ function fragmentedMp4(published: boolean): Bytes {
     ),
     published ? freeSpace(userData) : userData
   );
-  const fragment = (pictureOffset: number) => {
-    // Both track fragments count from the start of the fragment.
-    const pictureRun = full(
-      "trun",
-      0,
-      0x201,
-      u32(2),
-      u32(pictureOffset),
-      ...PICTURE.map((frame) => u32(frame.length))
-    );
-    const pictureLength = PICTURE.join("").length;
-    const telemetryRun = full("trun", 0, 0x1, u32(1), u32(pictureOffset + pictureLength));
+  const baseFlag = base === "fragment" ? 0x20000 : 0;
+  // `mediaAt` is where the media data's contents start, counted from the fragment.
+  const fragment = (mediaAt: number) => {
+    const pictureAt = first === "picture" ? mediaAt : mediaAt + telemetry;
+    const telemetryAt = first === "picture" ? mediaAt + pictureLength : mediaAt;
+    // A run names its offset when it counts from the fragment; the second of two implicit
+    // track fragments starts where the first one's data ended, so its run names none.
+    const names = (which: "picture" | "telemetry") => base === "fragment" || first === which;
+    const sizes = PICTURE.map((frame) => u32(frame.length));
+    const pictureRun = names("picture")
+      ? full("trun", 0, 0x201, u32(2), u32(pictureAt), ...sizes)
+      : full("trun", 0, 0x200, u32(2), ...sizes);
+    const telemetryRun = shortRun
+      ? full("trun", 0, 0x1, u32(1))
+      : names("telemetry")
+        ? full("trun", 0, 0x1, u32(1), u32(telemetryAt))
+        : full("trun", 0, 0, u32(1));
+    const pictureFragment = box("traf", full("tfhd", 0, baseFlag, u32(TRACK_IDS.vide)), pictureRun);
     const telemetryFragment = box(
       "traf",
-      full("tfhd", 0, 0x20000, u32(TRACK_IDS.meta)),
+      full("tfhd", 0, baseFlag, u32(TRACK_IDS.meta)),
       telemetryRun
     );
+    const telemetryOut = published ? freeSpace(telemetryFragment) : telemetryFragment;
     return box(
       "moof",
       full("mfhd", 0, 0, u32(1)),
-      box("traf", full("tfhd", 0, 0x20000, u32(TRACK_IDS.vide)), pictureRun),
-      published ? freeSpace(telemetryFragment) : telemetryFragment
+      ...(first === "picture" ? [pictureFragment, telemetryOut] : [telemetryOut, pictureFragment])
     );
   };
-  const pictureOffset = fragment(0).length + 8;
-  const media = box("mdat", ...PICTURE, published ? zeros(telemetry) : RECORDER_DETAILS.track);
-  return concat(header, movie, fragment(pictureOffset), media);
+  const mediaAt = fragment(0).length + 8;
+  const telemetrySample = published ? zeros(telemetry) : RECORDER_DETAILS.track;
+  const media = box(
+    "mdat",
+    ...(first === "picture" ? [...PICTURE, telemetrySample] : [telemetrySample, ...PICTURE])
+  );
+  return concat(header, movie, fragment(mediaAt), media);
 }
 
 function movieHeader(published: boolean): Bytes {
@@ -315,6 +379,8 @@ interface TrackOptions {
   selfContained?: boolean;
   entry?: string;
   userData?: boolean;
+  /** One chunk of frames each given a size of 1, sized by the sample description instead. */
+  legacySizes?: boolean;
 }
 
 /**
@@ -324,14 +390,20 @@ interface TrackOptions {
 function track(
   handler: Handler,
   offsets: number[],
-  { published, selfContained = true, entry, userData = false }: TrackOptions
+  { published, selfContained = true, entry, userData = false, legacySizes = false }: TrackOptions
 ): Bytes {
   const time = published ? 0 : RECORDED_AT;
-  const sizes = SAMPLES.filter((sample) => sample.handler === handler)
+  const sampleBytes = SAMPLES.filter((sample) => sample.handler === handler)
     .slice(0, offsets.length)
     .map(({ bytes }) => bytes.length);
-  const perChunk = handler === "vide" && offsets.length === 2 ? 2 : 1;
-  const chunks = offsets.filter((_, index) => index % perChunk === 0);
+  // The old way counts one "sample" per byte of sound and gives each a size of 1.
+  const sizes = legacySizes
+    ? Array.from({ length: sampleBytes.reduce((sum, size) => sum + size, 0) }, () => 1)
+    : sampleBytes;
+  const perChunk = legacySizes ? sizes.length : handler === "vide" && offsets.length === 2 ? 2 : 1;
+  const chunks = legacySizes
+    ? offsets.slice(0, 1)
+    : offsets.filter((_, index) => index % perChunk === 0);
   const mediaHeader = {
     vide: full("vmhd", 0, 1, zeros(8)),
     soun: full("smhd", 0, 0, zeros(4)),
@@ -374,7 +446,9 @@ function track(
             u32(chunks.length ? 1 : 0),
             ...(chunks.length ? [u32(1), u32(perChunk), u32(1)] : [])
           ),
-          full("stsz", 0, 0, u32(0), u32(sizes.length), ...sizes.map(u32)),
+          legacySizes
+            ? full("stsz", 0, 0, u32(1), u32(sizes.length))
+            : full("stsz", 0, 0, u32(0), u32(sizes.length), ...sizes.map(u32)),
           full("stco", 0, 0, u32(chunks.length), ...chunks.map(u32))
         )
       )
@@ -408,7 +482,19 @@ const UNKNOWN_SIZE = [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
  * a title and recording date in the segment's info, named tracks, and tags
  * holding the place.
  */
-function webm(published: boolean, { subtitles = false } = {}): Bytes {
+interface WebmOptions {
+  /** A third track, of subtitles. */
+  subtitles?: boolean;
+  /** An element of an ID Matroska does not define, between the cluster's blocks. */
+  unknownInCluster?: boolean;
+  /** The segment gives its size, while its cluster still runs until something ends it. */
+  sizedSegment?: boolean;
+}
+
+function webm(
+  published: boolean,
+  { subtitles = false, unknownInCluster = false, sizedSegment = false }: WebmOptions = {}
+): Bytes {
   const scrub = (element: Bytes) => (published ? voidOf(element) : element);
   const header = element(
     0x1a45dfa3,
@@ -456,9 +542,12 @@ function webm(published: boolean, { subtitles = false } = {}): Bytes {
     UNKNOWN_SIZE,
     element(0xe7, [0]),
     element(0xa3, [0x81, 0, 0, 0x80], PICTURE[0]),
+    ...(unknownInCluster ? [element(0x5a5a, "vendor note")] : []),
     element(0xa3, [0x82, 0, 0, 0x80], SOUND)
   );
-  return concat(header, [0x18, 0x53, 0x80, 0x67], UNKNOWN_SIZE, info, tracks, scrub(tags), cluster);
+  const body = concat(info, tracks, scrub(tags), cluster);
+  const size = sizedSegment ? sizeField(body.length, 8) : UNKNOWN_SIZE;
+  return concat(header, [0x18, 0x53, 0x80, 0x67], size, body);
 }
 
 /** An EBML element: its ID's own bytes, then its size in the fewest bytes that hold it. */

@@ -9,11 +9,15 @@
  * place as it moves.
  *
  * Nothing is re-encoded and no byte moves, so every offset the container
- * records and every frame of picture and sound stay exactly as they were. A
- * video keeps the structures its picture and sound play from. Every other box
- * or element is blanked where it lies: renamed as free space and filled with
- * zeros. Media bytes that no picture or sound track reads are zeroed, and so
- * are the capture times in the movie and track headers.
+ * records and every frame of picture and sound stay exactly as they were. At
+ * the top of a file and in its movie, a video keeps only the structures its
+ * picture and sound play from; inside a picture or sound track, its user data,
+ * metadata and XMP go. What goes is blanked where it lies: renamed as free
+ * space, or a Void element, and filled with zeros. A track that is neither
+ * picture nor sound goes whole, media bytes that no picture or sound track
+ * reads are zeroed, and so are the capture times in the movie and track
+ * headers. What a camera writes into the encoded picture itself, as some
+ * drones do, is part of what plays and stays.
  *
  * @module modules/media/video-metadata
  */
@@ -52,11 +56,7 @@ export async function withoutVideoMetadata(file: File): Promise<File | null> {
 
 async function rewriteVideo(file: File): Promise<File | null> {
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const patches = hasBytes(bytes, 0, EBML_MAGIC)
-    ? matroskaPatches(bytes)
-    : ISO_FIRST_BOXES.has(text(bytes, 4, 4))
-      ? isoPatches(bytes)
-      : null;
+  const patches = patchesFor(bytes);
   if (!patches) return null;
   const changes = patches.filter((patch) => !alreadyWritten(bytes, patch));
   if (!changes.length) return file;
@@ -70,6 +70,20 @@ async function rewriteVideo(file: File): Promise<File | null> {
   }
   parts.push(file.slice(position));
   return new File(parts, file.name, { type: file.type, lastModified: file.lastModified });
+}
+
+/**
+ * What has to be written over a video's bytes, or null when they are not a
+ * container this can read in full. A file malformed enough to throw is one it
+ * cannot read.
+ */
+function patchesFor(bytes: Bytes): Patch[] | null {
+  try {
+    if (hasBytes(bytes, 0, EBML_MAGIC)) return matroskaPatches(bytes);
+    return ISO_FIRST_BOXES.has(text(bytes, 4, 4)) ? isoPatches(bytes) : null;
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -237,7 +251,8 @@ function readTrack(bytes: Bytes, box: Box): Track | null {
   const handler = mediaChildren?.find(({ type }) => type === "hdlr");
   const info = mediaChildren?.find(({ type }) => type === "minf");
   if (!handler || !info || handler.end - handler.body < 12) return null;
-  const plays = PICTURE_OR_SOUND.has(text(bytes, handler.body + 8, 4));
+  const kind = text(bytes, handler.body + 8, 4);
+  const plays = PICTURE_OR_SOUND.has(kind);
   // A track that neither plays as picture nor sound is blanked whole, whatever its tables say.
   if (!plays) return { id, box, plays, children, samples: [] };
   const infoChildren = boxesIn(bytes, info.body, info.end);
@@ -248,6 +263,9 @@ function readTrack(bytes: Bytes, box: Box): Track | null {
   if (tableChildren.some(({ type }) => ENCRYPTION_DATA.has(type))) return null;
   if (sampleEntryTypes(bytes, tableChildren).some((type) => ENCRYPTED_ENTRIES.has(type)))
     return null;
+  // Old QuickTime sound gives every frame a size of 1 and sizes its chunks from the sample
+  // description. Read as one byte a frame, most of its sound would be zeroed, so it is refused.
+  if (kind === "soun" && fixedSampleSize(bytes, tableChildren) === 1) return null;
   const samples = sampleRanges(bytes, tableChildren);
   return samples ? { id, box, plays, children, samples } : null;
 }
@@ -269,9 +287,10 @@ function sampleEntryTypes(bytes: Bytes, table: Box[]): string[] {
 }
 
 /**
- * Where each sample of a track lies, from its sample table: the chunks' offsets,
- * how many samples each chunk holds, and each sample's size. Null when the
- * tables are missing or disagree.
+ * Where a track's samples lie, from its sample table: the chunks' offsets, how
+ * many samples each chunk holds, and each sample's size. A chunk's samples sit
+ * end to end, so each chunk is one range. Null when the tables are missing or
+ * disagree.
  */
 function sampleRanges(bytes: Bytes, table: Box[]): Range[] | null {
   const view = viewOf(bytes);
@@ -298,13 +317,12 @@ function sampleRanges(bytes: Bytes, table: Box[]): Range[] | null {
   for (let chunk = 1; chunk <= chunkCount && sample < sampleSize.count; chunk += 1) {
     while (run + 1 < runs && view.getUint32(toChunk.body + 8 + 12 * (run + 1)) <= chunk) run += 1;
     if (!runs || view.getUint32(toChunk.body + 8 + 12 * run) > chunk) return null;
-    let position = offsets[chunk - 1];
+    const start = offsets[chunk - 1];
+    let position = start;
     const perChunk = view.getUint32(toChunk.body + 12 + 12 * run);
-    for (let index = 0; index < perChunk && sample < sampleSize.count; index += 1, sample += 1) {
-      const size = sampleSize.of(sample);
-      ranges.push([position, position + size]);
-      position += size;
-    }
+    for (let index = 0; index < perChunk && sample < sampleSize.count; index += 1, sample += 1)
+      position += sampleSize.of(sample);
+    ranges.push([start, position]);
   }
   return sample === sampleSize.count ? ranges : null;
 
@@ -314,6 +332,12 @@ function sampleRanges(bytes: Bytes, table: Box[]): Range[] | null {
     const count = view.getUint32(box.body + 4);
     return box.body + 8 + count * entrySize <= box.end ? count : null;
   }
+}
+
+/** The size every sample of a track shares, from its `stsz` box; 0 when each has its own. */
+function fixedSampleSize(bytes: Bytes, table: Box[]): number {
+  const sizes = table.find(({ type }) => type === "stsz");
+  return sizes && sizes.body + 8 <= sizes.end ? viewOf(bytes).getUint32(sizes.body + 4) : 0;
 }
 
 function sampleSizes(
@@ -379,6 +403,7 @@ function fragmentSamples(
   if (!children || children.some(({ type }) => type === "pssh")) return null;
   const ranges: Range[] = [];
   let previousEnd = fragment.start;
+  let blankedBefore = false;
   for (const box of children.filter(({ type }) => type === "traf")) {
     const parts = boxesIn(bytes, box.body, box.end);
     const header = parts?.find(({ type }) => type === "tfhd");
@@ -386,6 +411,10 @@ function fragmentSamples(
     const id = view.getUint32(header.body + 4);
     if (playing.has(id) && parts.some(({ type }) => ENCRYPTION_DATA.has(type))) return null;
     const flags = view.getUint32(header.body) & 0xffffff;
+    // A track fragment that names no base starts where the one before it ended. Once that one is
+    // blanked, a player would count from somewhere else, so such a fragment is refused.
+    if (!(flags & 0x1) && !(flags & 0x20000) && blankedBefore) return null;
+    if (!playing.has(id)) blankedBefore = true;
     let field = header.body + 8;
     const take = (length: number) => {
       field += length;
@@ -409,14 +438,15 @@ function fragmentSamples(
       const runFlags = view.getUint32(run.body) & 0xffffff;
       const count = view.getUint32(run.body + 4);
       let at = run.body + 8;
+      const perSample = 4 * [0x100, 0x200, 0x400, 0x800].filter((bit) => runFlags & bit).length;
+      const fields = (runFlags & 0x1 ? 4 : 0) + (runFlags & 0x4 ? 4 : 0);
+      if (at + fields + perSample * count > run.end) return null;
       let position = dataEnd;
       if (runFlags & 0x1) {
         position = base + view.getInt32(at);
         at += 4;
       }
       if (runFlags & 0x4) at += 4;
-      const perSample = 4 * [0x100, 0x200, 0x400, 0x800].filter((bit) => runFlags & bit).length;
-      if (at + perSample * count > run.end) return null;
       for (let sample = 0; sample < count; sample += 1) {
         if (runFlags & 0x100) at += 4;
         let size = defaultSize;
@@ -486,6 +516,7 @@ function merged(ranges: Range[]): Range[] {
 // ---------------------------------------------------------------------------
 
 const EBML_MAGIC = [0x1a, 0x45, 0xdf, 0xa3];
+const EBML = 0x1a45dfa3;
 const SEGMENT = 0x18538067;
 const DOC_TYPE = 0x4282;
 const INFO = 0x1549a966;
@@ -500,11 +531,24 @@ const CRC32 = 0xbf;
 /** Level-one elements a WebM plays from; the rest (tags, attachments, chapters) are voided. */
 const MATROSKA_STRUCTURE = new Set([0x114d9b74, INFO, TRACKS, CLUSTER, 0x1c53bb6b, CRC32]);
 
-/** What an unknown-size cluster can hold; the first element that is not one of these ends it. */
-const CLUSTER_CHILDREN = new Set([0xe7, 0x5854, 0xa7, 0xab, 0xa3, 0xa0, 0xaf, VOID, CRC32]);
+/**
+ * Every level-one element Matroska defines. An element of unknown size, such
+ * as a recording browser's cluster, ends only where one of these, a segment or
+ * an EBML header begins (RFC 8794); anything else inside it is its own.
+ */
+const LEVEL_ONE = new Set([
+  0x114d9b74,
+  INFO,
+  TRACKS,
+  CLUSTER,
+  0x1c53bb6b,
+  0x1043a770,
+  0x1254c367,
+  0x1941a469,
+]);
 
-/** The segment's title, the date it was recorded, and a track's name. */
-const MATROSKA_METADATA = new Set([0x7ba9, 0x4461, 0x536e]);
+/** The segment's title, file names and recording date, and a track's name. */
+const MATROSKA_METADATA = new Set([0x7ba9, 0x7384, 0x3c83ab, 0x3e83bb, 0x4461, 0x536e]);
 
 const VIDEO_TRACK = 1;
 const AUDIO_TRACK = 2;
@@ -514,6 +558,8 @@ interface Element {
   start: number;
   body: number;
   end: number;
+  /** False for an element whose size field says it runs until something ends it. */
+  sized: boolean;
 }
 
 /**
@@ -527,8 +573,9 @@ function matroskaPatches(bytes: Bytes): Patch[] | null {
   const header = elementAt(bytes, 0, bytes.length);
   if (!header) return null;
   const docType = childrenOf(bytes, header)?.find((child) => child.id === DOC_TYPE);
+  if (!docType || docType.end - docType.body > 16) return null;
   // An EBML string may be padded with trailing zero bytes.
-  const type = docType && text(bytes, docType.body, docType.end - docType.body).split("\0")[0];
+  const type = text(bytes, docType.body, docType.end - docType.body).split("\0")[0];
   if (type !== "webm" && type !== "matroska") return null;
   const segment = elementAt(bytes, header.end, bytes.length);
   // Anything after the segment would be published unread.
@@ -536,8 +583,14 @@ function matroskaPatches(bytes: Bytes): Patch[] | null {
 
   const elements = childrenOf(bytes, segment);
   if (!elements) return null;
+  // A cluster that runs until something ends it, inside a segment that gives its size, is
+  // where players' seeking goes wrong once an element the seek head names is voided.
+  if (segment.sized && elements.some(({ id, sized }) => id === CLUSTER && !sized)) return null;
   const patches: Patch[] = [];
   for (const element of elements) {
+    // Every level-one ID is four bytes; only Void and CRC-32 may be shorter. Anything else
+    // means the file was not read as its writer meant.
+    if (element.id < 0x10000000 && element.id !== VOID && element.id !== CRC32) return null;
     if (element.id === VOID) patches.push({ start: element.body, end: element.end });
     else if (!MATROSKA_STRUCTURE.has(element.id)) patches.push(...voided(element));
     else if (element.id === INFO) {
@@ -581,7 +634,7 @@ function clearedChildren(bytes: Bytes, parent: Element): Patch[] | null {
 /**
  * The elements laid end to end inside `parent`, or null when they do not fit.
  * A segment or cluster of unknown size, as a recording browser writes them,
- * runs to the end of the file or to the first element it cannot hold.
+ * runs to the end of the file or to the next element that cannot be inside it.
  */
 function childrenOf(bytes: Bytes, parent: Element): Element[] | null {
   const children: Element[] = [];
@@ -604,7 +657,8 @@ function clusterEnd(bytes: Bytes, cluster: Element, limit: number): number {
   let position = cluster.body;
   while (position < limit) {
     const element = elementAt(bytes, position, limit);
-    if (!element || !CLUSTER_CHILDREN.has(element.id)) return element ? position : -1;
+    if (!element) return -1;
+    if (LEVEL_ONE.has(element.id) || element.id === SEGMENT || element.id === EBML) return position;
     if (element.end === -1) return -1;
     position = element.end;
   }
@@ -624,9 +678,16 @@ function elementAt(bytes: Bytes, position: number, limit: number): Element | nul
   const body = position + id.length + size.length;
   const unknown = size.value === 2 ** (7 * size.length) - 1;
   const idValue = id.raw;
-  if (unknown) return { id: idValue, start: position, body, end: idValue === SEGMENT ? limit : -1 };
+  if (unknown)
+    return {
+      id: idValue,
+      start: position,
+      body,
+      end: idValue === SEGMENT ? limit : -1,
+      sized: false,
+    };
   const end = body + size.value;
-  return end <= limit ? { id: idValue, start: position, body, end } : null;
+  return end <= limit ? { id: idValue, start: position, body, end, sized: true } : null;
 }
 
 /** A variable-length integer: its length from the leading zeros, its value without that marker. */
@@ -692,7 +753,10 @@ function hasBytes(bytes: Bytes, offset: number, expected: number[]): boolean {
 }
 
 function text(bytes: Bytes, offset: number, length: number): string {
-  return String.fromCharCode(...bytes.subarray(offset, offset + length));
+  let value = "";
+  for (let index = offset; index < Math.min(offset + length, bytes.length); index += 1)
+    value += String.fromCharCode(bytes[index]);
+  return value;
 }
 
 function ascii(value: string): Bytes {

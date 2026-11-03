@@ -430,6 +430,16 @@ describe("modules/data/ipfs", () => {
       expect(await bytesOf(received[0])).toEqual(published);
     });
 
+    it("refuses a video it cannot read in full, and sends nothing", async () => {
+      const { fetchMock } = await pinningService();
+
+      await expect(
+        uploadFileToIPFS(new File(["not a movie"], "clip.mp4", { type: "video/mp4" }))
+      ).rejects.toMatchObject({ name: "UnpublishableVideoError" });
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it("pins a file that is neither an image nor a video exactly as it is", async () => {
       const { received } = await pinningService();
       // Bytes a rewrite would change, under a type that says they are no image.
