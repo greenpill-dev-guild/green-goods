@@ -15,7 +15,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 
@@ -28,7 +28,12 @@ import type {
   EvidenceJobPayload,
   WorkLinkJobPayload,
 } from "../../modules/commitment-pooling/jobs";
-import type { JobSendPhase, ProcessJobResult } from "../../modules/job-queue/ports";
+import {
+  proofAndSendBudget,
+  queueSendAfterProof,
+} from "../../modules/commitment-pooling/proof-and-send";
+import type { AddJobOptions, JobSendPhase, ProcessJobResult } from "../../modules/job-queue/ports";
+import type { BatchBudget } from "../../modules/transactions/batch-types";
 import {
   TakeUpNotSent,
   takeUpBeforeWork,
@@ -43,6 +48,7 @@ import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useAsyncEffect } from "../utils/useAsyncEffect";
 
 /** What a view asks for, before the queue fills in keys and hashes. */
 export type CommitmentJobInput =
@@ -105,14 +111,19 @@ async function assertClaimAgreed(payload: ClaimJobPayload, owner: Address, chain
 }
 
 /** Put the act into the queue as the job kind its executor expects. */
-function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): Promise<string> {
+function queueAct(
+  input: CommitmentJobInput,
+  owner: Address,
+  chainId: number,
+  options?: AddJobOptions
+): Promise<string> {
   const meta = { chainId };
 
   switch (input.act) {
     case "claim":
       return jobQueue.addJob("claim", input.payload, owner, meta);
     case "evidence":
-      return jobQueue.addJob("evidence", input.payload, owner, meta);
+      return jobQueue.addJob("evidence", input.payload, owner, meta, options);
     case "workLink":
       // `operationKey` is derived by the queue from `clientOperationId`, so a
       // retry behind the same button reuses the key rather than minting one.
@@ -142,47 +153,6 @@ function queueAct(input: CommitmentJobInput, owner: Address, chainId: number): P
       );
     case "create":
       return jobQueue.addJob("commitment", input.payload as CommitmentCreationPayload, owner, meta);
-  }
-}
-
-/**
- * Add and Send's second act, queued behind the proof it goes after (O7: two
- * calls, two signatures). Queued now rather than once the proof lands, so the
- * send is kept whatever happens to this screen: an offline add, a reload, a try
- * the queue repeats. The queue refuses a second, different send for the same
- * promise, so a send already queued there stands and this one is left out.
- *
- * Any other refusal takes the proof back out of the queue and rejects, so Add
- * and Send never quietly becomes Add: the form stays with its draft. Only a
- * proof already on its way, which can't be taken back, goes on alone, and the
- * promise then offers the send.
- */
-async function queueSendAfterProof(
-  proof: EvidenceJobPayload,
-  proofJobId: string,
-  owner: Address,
-  chainId: number
-): Promise<string | undefined> {
-  try {
-    return await jobQueue.addJob(
-      "confirmation",
-      {
-        action: "submit",
-        commitmentId: proof.commitmentId,
-        gardenAddress: proof.gardenAddress,
-        afterEvidenceJobId: proofJobId,
-      },
-      owner,
-      { chainId }
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.startsWith("offline_job_identity_conflict:")) return undefined;
-    if (await jobQueue.discardJob(proofJobId).catch(() => false)) throw error;
-    logger.warn("[useCommitmentJobs] Add and Send's send was not queued; the proof goes alone", {
-      error: message,
-    });
-    return undefined;
   }
 }
 
@@ -287,6 +257,10 @@ async function sendAndSettle(
  * that reaches a job already queued would otherwise add to its failures until
  * the queue gave up on it, and the press after that would file a second
  * creation beside the spent one.
+ *
+ * Add and Send's proof goes `withSend` its send where the rail sends both as
+ * one request (decision 20): both land or neither does, and a declined request
+ * keeps both queued. A passkey's flush pairs them the same way.
  */
 async function sendFromTap(
   jobId: string,
@@ -295,7 +269,12 @@ async function sendFromTap(
   {
     keepDeclined = false,
     foreground = false,
-  }: { keepDeclined?: boolean; foreground?: boolean } = {}
+    withSend,
+  }: {
+    keepDeclined?: boolean;
+    foreground?: boolean;
+    withSend?: { jobId: string; budget: BatchBudget };
+  } = {}
 ): Promise<void> {
   if (!foreground && sender?.authMode !== "wallet") {
     // The client background processor owns these sends.
@@ -304,7 +283,17 @@ async function sendFromTap(
   }
   if (!sender) throw new Error("Sign in before sending a commitment");
   await jobQueue.retryJob(jobId);
-  const result = await sendAndSettle(jobId, sender, report);
+  if (withSend) await jobQueue.retryJob(withSend.jobId);
+  const result = withSend
+    ? (
+        await jobQueue.processTogether(
+          jobId,
+          withSend.jobId,
+          { transactionSender: sender, explicit: true, onPhase: report },
+          withSend.budget
+        )
+      ).lead
+    : await sendAndSettle(jobId, sender, report);
   if (result.success) {
     tell(report, { stage: "landed", txHash: result.txHash ?? null });
     return;
@@ -373,20 +362,42 @@ export function useCommitmentJobs(
     [formatMessage]
   );
 
+  const [sendsProofWithItsSend, setSendsProofWithItsSend] = useState(false);
+  useAsyncEffect(
+    async ({ isMounted }) => {
+      const budget = await proofAndSendBudget(sender, chainId);
+      if (isMounted()) setSendsProofWithItsSend(budget !== null);
+    },
+    [sender, chainId]
+  );
+
   const mutation = useMutation({
     mutationFn: async ({ report, ...input }: CommitmentJobVariables) => {
       if (!viewer) throw new Error("Sign in before making a commitment");
       if (input.act === "claim") await assertClaimAgreed(input.payload, viewer, chainId);
-      const jobId = await queueAct(input as CommitmentJobInput, viewer, chainId);
+      const addAndSend = input.act === "evidence" && input.sendToo === true;
+      // Add and Send wakes the background flush once both acts are in, so a
+      // flush never finds the proof without the send that may go with it.
+      const jobId = await queueAct(input as CommitmentJobInput, viewer, chainId, {
+        wake: !addAndSend,
+      });
       const followUpJobId =
-        input.act === "evidence" && input.sendToo
-          ? await queueSendAfterProof(input.payload, jobId, viewer, chainId)
+        input.act === "evidence" && addAndSend
+          ? await queueSendAfterProof(jobQueue, {
+              proof: input.payload,
+              proofJobId: jobId,
+              owner: viewer,
+              chainId,
+            })
           : undefined;
+      if (addAndSend && !followUpJobId) jobQueue.requestSync();
       // From here the act is durable: whatever the send does, the queue holds it.
       tell(report, { stage: "admitted", jobId, ...(followUpJobId ? { followUpJobId } : {}) });
+      const budget = followUpJobId ? await proofAndSendBudget(sender, chainId) : null;
       await sendFromTap(jobId, sender, report, {
         keepDeclined: input.act === "evidence",
         foreground,
+        ...(followUpJobId && budget ? { withSend: { jobId: followUpJobId, budget } } : {}),
       });
       return jobId;
     },
@@ -475,6 +486,8 @@ export function useCommitmentJobs(
     error: mutation.error,
     /** Admin sends from the tap in every auth mode; the client retains its background policy. */
     sendsFromTap: foreground || sender?.authMode === "wallet",
+    /** Add and Send goes as one request here, so it asks for one signature, not two. */
+    sendsProofWithItsSend,
     /** Absent until somebody is signed in; every act needs an owner. */
     viewer: viewer as Address | null,
   };

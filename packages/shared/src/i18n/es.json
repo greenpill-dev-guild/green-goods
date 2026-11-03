@@ -3722,6 +3722,7 @@
   "app.toast.proof.added.messageTeammate": "Ya está en la promesa. Quien lidera la envía para confirmar cuando el equipo termine.",
   "app.toast.proof.adding.message": "Firma para enviarla. Se queda en este teléfono hasta que llegue.",
   "app.toast.proof.adding.messageSendToo": "Luego se envía para confirmar. Firma dos veces: la prueba y después el envío.",
+  "app.toast.proof.adding.messageSendTogether": "Luego se envía para confirmar. Firma una sola vez: la prueba y el envío llegan juntos, o no llega ninguno.",
   "app.toast.proof.confirming.message": "Confirmándola en el registro del jardín. Puedes salir de esta pantalla.",
   "app.toast.proof.couldNotAdd.title": "No se pudo añadir la prueba",
   "app.toast.proof.couldNotAdd.message": "Sigue guardada en este teléfono. Inténtalo de nuevo aquí o desde Tu trabajo.",

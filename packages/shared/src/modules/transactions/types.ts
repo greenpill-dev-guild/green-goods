@@ -148,6 +148,13 @@ export interface TransactionSender {
    */
   sendAtomicBatch?(calls: ContractCall[], options?: AtomicBatchOptions): Promise<TxResult>;
 
+  /**
+   * Set on the sender a bundling sender hands one participant: every participant
+   * whose call goes out in the same atomic request, in the order the calls go. A
+   * call there lands with every earlier one or not at all, so it may rely on them.
+   */
+  readonly bundledWith?: readonly string[];
+
   /** Whether this sender supports gas sponsorship (paymaster) */
   readonly supportsSponsorship: boolean;
 
