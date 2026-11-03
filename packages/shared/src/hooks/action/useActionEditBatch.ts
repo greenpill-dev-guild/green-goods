@@ -61,12 +61,13 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
       isBatchEnabled({ action: "action-edit", rail, profile, chainId })
   );
 
-  // Asked only once listed: until then no wallet hears from this hook.
-  const { data: atomic = false } = useQuery({
+  // Asked only once listed: until then no wallet hears from this hook. Other batches share this
+  // key, so it holds the wallet's answer itself.
+  const { data: capability } = useQuery({
     queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
     queryFn: async () => {
-      const capability = await sender!.getBatchCapability!({ account: account!, chainId });
-      return capability.atomic === "supported";
+      const { atomic } = await sender!.getBatchCapability!({ account: account!, chainId });
+      return atomic;
     },
     enabled: listed,
     retry: false,
@@ -152,7 +153,7 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
           onMoveOn: () => void held.moveOn(),
         }
       : null,
-    available: listed && atomic,
+    available: listed && capability === "supported",
     isSending: sendBatch.isPending,
     send: (changes: readonly ActionEditChange[]) => sendBatch.mutateAsync(changes),
     /** For a save that goes one write at a time: the registry checks each against the last. */

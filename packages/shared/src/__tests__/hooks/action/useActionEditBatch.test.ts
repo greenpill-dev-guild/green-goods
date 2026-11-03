@@ -7,7 +7,7 @@ import "fake-indexeddb/auto";
 import { act, waitFor } from "@testing-library/react";
 import { toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { actionsKeys } from "../../../config/query-keys/garden";
+import { actionsKeys, batchKeys } from "../../../config/query-keys/garden";
 import type { ActionEditChange } from "../../../modules/action/action-edit";
 import type { BatchCapability, BatchExecution } from "../../../modules/transactions/batch-types";
 import type { Address } from "../../../types/domain";
@@ -60,26 +60,35 @@ const MOVED_TO_OCTOBER: ActionEditChange[] = [
   { field: "endTime", value: 1793404800 },
 ];
 
+/** Every batch that asks this wallet shares one answer under this key. */
+const capabilityKey = (account: Address) => batchKeys.capability(account, 42161, "wallet");
+
 function renderBatch(
   execution: Partial<BatchExecution> = {},
-  { atomic = "supported", authMode = "passkey" } = {} as {
+  { atomic = "supported", authMode = "passkey", cached } = {} as {
     atomic?: BatchCapability["atomic"];
     authMode?: "passkey" | "wallet";
+    /** What another batch already cached for this wallet. */
+    cached?: BatchCapability["atomic"];
   }
 ) {
   const account: Address = toHex(crypto.getRandomValues(new Uint8Array(20)));
   // Each test edits its own action: the journal outlives each one.
   const actionUID = BigInt(crypto.getRandomValues(new Uint32Array(1))[0]);
   const sender = Object.assign(createFakeBatchingSender(account, execution), { authMode });
-  sender.getBatchCapability = vi.fn(async (scope) => ({ ...scope, atomic }));
+  sender.getBatchCapability = vi.fn(async (scope) =>
+    // While this wallet's own answer is out, the cached one stands.
+    cached ? new Promise<never>(() => undefined) : { ...scope, atomic }
+  );
   auth.primaryAddress = account;
   sending.sender = sender;
   const queryClient = createTestQueryClient();
+  if (cached) queryClient.setQueryData(capabilityKey(account), cached);
   const invalidate = vi.spyOn(queryClient, "invalidateQueries");
   const { result } = renderHookWithProviders(() => useActionEditBatch(42161, actionUID), {
     queryClient,
   });
-  return { result, sender, invalidate };
+  return { result, sender, invalidate, queryClient, account };
 }
 
 describe("useActionEditBatch", () => {
@@ -106,6 +115,8 @@ describe("useActionEditBatch", () => {
       profile: "kernel-0.3.1-legacy",
       chainId: 42161,
     });
+    // Deposits read this answer from the same key, so it stays the wallet's own word.
+    expect(passkey.queryClient.getQueryData(capabilityKey(passkey.account))).toBe("supported");
 
     const wallet = renderBatch({}, { atomic: "ready", authMode: "wallet" });
     await waitFor(() => expect(wallet.sender.getBatchCapability).toHaveBeenCalled());
@@ -114,6 +125,15 @@ describe("useActionEditBatch", () => {
     expect(mockIsBatchEnabled).toHaveBeenLastCalledWith(
       expect.objectContaining({ rail: "wallet", profile: "eip-5792" })
     );
+  });
+
+  it("edits field by field on a wallet another batch already found unable to batch", async () => {
+    const { result, sender } = renderBatch({}, { authMode: "wallet", cached: "unsupported" });
+
+    await waitFor(() => expect(sender.getBatchCapability).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isSettlingHold).toBe(false));
+
+    expect(result.current.available).toBe(false);
   });
 
   it("explains a save that failed once, whether it reverted or never went out", async () => {
