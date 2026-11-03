@@ -115,8 +115,18 @@ vi.mock("@/components/Inputs", async () => {
         children
       );
     },
-    SelectTrigger: ({ children, className }: any) =>
-      React.createElement("div", { "data-testid": "select-trigger", className }, children),
+    // The trigger is the select's combo box (Radix renders one); its name comes from the caller.
+    SelectTrigger: ({ children, className, "aria-labelledby": labelledBy }: any) =>
+      React.createElement(
+        "div",
+        {
+          "data-testid": "select-trigger",
+          role: "combobox",
+          "aria-labelledby": labelledBy,
+          className,
+        },
+        children
+      ),
     SelectValue: ({ placeholder }: any) => React.createElement("span", null, placeholder),
   };
 });
@@ -192,6 +202,14 @@ describe("AppSettings", () => {
     await user.click(screen.getByRole("option", { name: "Spanish" }));
 
     expect(mockAppState.switchLanguage).toHaveBeenCalledWith("es");
+  });
+
+  it("names the theme and language selects by their row titles", () => {
+    // Unnamed, a screen reader announced each as a bare combo box (axe button-name, critical).
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByRole("combobox", { name: "Theme" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeInTheDocument();
   });
 
   it("keeps every select value on one line", () => {

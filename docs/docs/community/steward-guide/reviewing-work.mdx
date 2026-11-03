@@ -5,7 +5,7 @@ slug: /community/steward-guide/reviewing-work
 description: "Review what gardeners submit: what good evidence looks like, how to choose a confidence level, and how to reject in a way that helps."
 audience: steward
 owner: docs
-last_verified: 2026-10-13
+last_verified: 2026-11-02
 feature_status: Live
 goal: "Walk a steward through approving or rejecting a submission, with the judgment to do it consistently."
 difficulty: "standard"
@@ -28,6 +28,11 @@ source_of_truth:
   - packages/shared/src/hooks/work/useWorkApprovalActions.ts
   - packages/shared/src/modules/work/submit-approval-command.ts
   - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/agent/src/services/reporting/coordinator/review-steps.ts
+  - packages/agent/src/services/reporting/coordinator/review-prompts.ts
+  - packages/agent/src/services/reporting/review-jobs.ts
+  - packages/agent/src/services/reporting/copy/en.ts
+  - packages/shared/src/modules/agent-reporting/grants.ts
   - packages/shared/src/i18n/en.json
 keywords:
   - approve work
@@ -51,7 +56,7 @@ Reviewing is the heart of a steward's job. A gardener says "I did this." You loo
 
 <StewardPathNav />
 
-Start with the judgment below, then follow either the [dashboard steps](#steps-in-the-dashboard) or the [phone steps](#steps-in-the-app).
+Start with the judgment below, then follow the [dashboard steps](#steps-in-the-dashboard), the [phone steps](#steps-in-the-app), or the [chat steps](#steps-in-chat).
 
 ## Before you start
 
@@ -147,10 +152,25 @@ Use the app on your phone when you are at the garden.
 
 With no signal, the app saves your decision on the phone. Send it later from **Your Work** with **Upload all**.
 
+## Steps in chat
+
+Gardeners can [report work in chat](/community/gardener-guide/report-in-chat) with the Green Goods bot in Telegram. Their reports wait in the same queue as work sent from the app, so you can review them in the dashboard, the app, or the same chat. Chat review is still being tested, and it works in Telegram only.
+
+1. In a private chat with the bot, agree to its notice if it asks, then send **REVIEW**. If the chat isn't linked to your account yet, the bot sends a link to verify it first, the same way a gardener [links an account](/community/gardener-guide/report-in-chat#step-2-link-your-account). Once it's linked, send **REVIEW** again.
+2. The bot lists up to 10 pieces of work waiting in the gardens where you're a steward or owner, leaving out your own. Tap the one to review.
+3. Tap **Approve** or **Reject**.
+4. For an approval, choose a confidence level: **Low**, **Medium**, or **High**.
+5. Write feedback of up to 2,000 characters. It is public. A rejection needs a reason; for an approval you can reply **SKIP**.
+6. Check the summary, then tap **Confirm** to record it, **Edit** to change it, or **Cancel**.
+7. Tap **Check and sign**. On the page, show it's your account, check your decision under **Check and Record**, and tap **Record Decision**. Approve in your wallet or passkey prompt.
+
+Every decision needs its own signature, because chat can't hold a standing permission for reviews yet. The **Check and sign** link works for 10 minutes. If it expires, send **EDIT**, answer again and confirm, and the bot sends a new link.
+
 ## How you know it worked
 
 - **In the dashboard:** a message says **Approval submitted** or **Decision submitted**, and the submission leaves the **Pending** list. Approved work appears under the **Approved** filter.
 - **In the app:** a message says **Work approved** or **Work rejected**, and the submission shows **Approved** or **Rejected** with no buttons.
+- **In chat:** the bot says **Your review is recorded ✅**, with a link to the work.
 
 ## What happens next
 
