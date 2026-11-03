@@ -78,6 +78,26 @@ describe("WalletSender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("gives a call that asks for headroom that much gas over the node's estimate", async () => {
+      const estimateGas = vi.fn(async () => 100_000n);
+      mockDeps.estimateGas = estimateGas;
+
+      await sender.sendContractCall(createMockContractCall({ gasHeadroomPercent: 50 }));
+      expect(estimateGas).toHaveBeenCalledWith(
+        expect.objectContaining({ account: MOCK_ADDRESSES.deployer, chainId: 42161 })
+      );
+      expect(mockWriteContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ gas: 150_000n })
+      );
+
+      // Any other call is still sized by the wallet.
+      estimateGas.mockClear();
+      mockWriteContractAsync.mockClear();
+      await sender.sendContractCall(TEST_CALL);
+      expect(estimateGas).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync.mock.calls[0][0]).not.toHaveProperty("gas");
+    });
+
     it("sends transaction via writeContractAsync", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
