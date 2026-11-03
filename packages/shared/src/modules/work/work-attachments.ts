@@ -1,8 +1,7 @@
 import type { ApproximateWorkLocation } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
-import { logger } from "../app/logger";
-import { withoutImageMetadata } from "./image-metadata";
+import { withoutPhotoMetadata } from "../media/image-metadata";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -149,33 +148,6 @@ export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
  */
 export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): boolean {
   return PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
-}
-
-/**
- * A photo without its location, camera or other metadata, or null when it
- * cannot be published. The byte-level rewrite reads the JPEG, PNG and WebP
- * structures cameras and editors write. A file it cannot read, which a browser
- * may still draw leniently, is drawn again through a canvas, which writes no
- * metadata. Null only when neither can read it; the Agent has no canvas.
- */
-export async function withoutPhotoMetadata(file: File): Promise<File | null> {
-  const stripped = await withoutImageMetadata(file);
-  if (stripped) return stripped;
-  const redrawn = await redrawPhoto(file);
-  // The canvas's output is read back like any photo, so nothing it carried over is published.
-  return redrawn ? withoutImageMetadata(redrawn) : null;
-}
-
-async function redrawPhoto(file: File): Promise<File | null> {
-  try {
-    const { imageCompressor } = await import("../../utils/work/image-compression");
-    return await imageCompressor.redraw(file);
-  } catch (error) {
-    logger.warn("[WorkMedia] The canvas to redraw a photo could not load", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
 }
 
 /**

@@ -8,6 +8,7 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createActionDefaultValues } from "../../../hooks/admin-ui/actions/createAction.utils";
 import { useCreateActionController } from "../../../hooks/admin-ui/actions/useCreateActionController";
+import { UnpublishableImageError } from "../../../modules/data/ipfs/upload";
 
 const mockNavigate = vi.fn();
 const mockRegisterAction = vi.fn();
@@ -87,7 +88,8 @@ vi.mock("../../../modules/app/analytics-events", () => ({
   trackAdminActionCreateSuccess: (...args: unknown[]) => mockTrackSuccess(...args),
 }));
 
-vi.mock("../../../modules/data/ipfs/upload", () => ({
+vi.mock("../../../modules/data/ipfs/upload", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/data/ipfs/upload")>()),
   uploadFileToIPFS: (...args: unknown[]) => mockUploadFileToIPFS(...args),
 }));
 
@@ -343,6 +345,22 @@ describe("useCreateActionController ending (DL-080)", () => {
     expect(mockRegisterAction).toHaveBeenCalledTimes(2);
     expect(result.current.hasError).toBe(false);
     expect(result.current.isSent).toBe(true);
+  });
+
+  it("names an image that could not be checked for its location, not a failed transaction, and registers nothing", async () => {
+    mockUploadFileToIPFS.mockRejectedValueOnce(new UnpublishableImageError("cover.heic"));
+    const { result } = await onReviewWithEdits();
+
+    await act(async () => {
+      await result.current.onSubmit({
+        ...createFormData(),
+        media: [new File(["heic"], "cover.heic", { type: "image/heic" })],
+      });
+    });
+
+    expect(mockRegisterAction).not.toHaveBeenCalled();
+    expect(result.current.errorTitle).toBe("Upload failed");
+    expect(result.current.errorMessage).toMatch(/couldn't check this image for location details/);
   });
 
   it("starts another action from empty answers on the first step", async () => {
