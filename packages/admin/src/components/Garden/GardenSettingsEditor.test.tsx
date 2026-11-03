@@ -806,6 +806,7 @@ describe("GardenSettingsEditor explicit save", () => {
       );
     });
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
+    toastError.mockRestore();
   });
 
   it("stages a saved banner for removal via the handle and clears it on Save", async () => {
