@@ -382,6 +382,28 @@
   --primary-darker: inherit;
 }
 
+/* The remap's colors where the cockpit resolves them. Its workspace stylesheet
+   compiles against `@reference "../index.css"` and leaves these Tailwind aliases
+   undeclared (only the dark .admin-m3 canvas sets --color-primary-darker), so
+   `bg-information-lighter` reads
+   `var(--color-information-lighter, rgb(var(--information-lighter)))` and the
+   fallback resolves on each element, against the azure ramp and the link-hover
+   step the remap above sets on <body>. Storybook's stylesheet declares these
+   aliases on :root, where they resolve once against the shared values and every
+   story inherits them. Declared on each element instead, they read the remap in
+   both themes, in the dialogs a story portals and in a scope column. Kept apart
+   from the mirror, which WorkspaceToneContrast.guard compares with index.css. */
+:root[data-surface="admin"] body,
+:root[data-surface="admin"] body *,
+[data-surface-scope="admin"],
+[data-surface-scope="admin"] * {
+  --color-information-dark: rgb(var(--information-dark));
+  --color-information-base: rgb(var(--information-base));
+  --color-information-light: rgb(var(--information-light));
+  --color-information-lighter: rgb(var(--information-lighter));
+  --color-primary-darker: rgb(var(--primary-darker));
+}
+
 /* ── Installed app and public website ──────────────────────────────────── */
 /* The client sets Inter on :root and, in the installed app's presentation,
    Plus Jakarta Sans, the cockpit's face (index.css). The app frame and <body>
