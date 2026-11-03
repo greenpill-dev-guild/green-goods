@@ -1,3 +1,4 @@
+import type { Address } from "../../types/domain";
 import type { PasskeyAccountProfileId } from "../auth/account-profile";
 
 export type BatchRail = "passkey" | "wallet";
@@ -26,7 +27,7 @@ export type BatchEnablement = RailListing &
         action: "garden-settings" | "add-members" | "bulk-reviews" | AtomicBatchAction;
         asset?: never;
       }
-    | { action: DepositAction; asset: string }
+    | { action: DepositAction; asset: Address }
   );
 
 /**
@@ -43,6 +44,20 @@ export const ENABLED_BATCHES: readonly BatchEnablement[] = [
   { action: "add-members", rail: "wallet", profile: "contract-call", chainId: 42161 },
   { action: "bulk-reviews", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "bulk-reviews", rail: "wallet", profile: "contract-call", chainId: 42161 },
+  {
+    action: "vault-deposit",
+    rail: "wallet",
+    profile: "sequential",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "jar-deposit",
+    rail: "wallet",
+    profile: "sequential",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
 ];
 
 export function isBatchEnabled(

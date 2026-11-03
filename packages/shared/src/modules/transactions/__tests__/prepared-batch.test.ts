@@ -9,6 +9,7 @@ import { gardenMembersBudget } from "../../garden/members-batch";
 import { gardenSettingsBudget } from "../../garden/settings-batch";
 import { reviewBudget } from "../../work/review-chain";
 import { type BatchEnablement, ENABLED_BATCHES, isBatchEnabled } from "../batch-enablement";
+import type { Address } from "../../../types/domain";
 import { prepareBatch, assertPreparedBatch } from "../prepared-batch";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
@@ -154,7 +155,9 @@ describe("isBatchEnabled", () => {
     const dai = "0xdA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
     const deposit: BatchEnablement = { ...listed, action: "vault-deposit", asset: dai };
 
-    expect(isBatchEnabled({ ...deposit, asset: dai.toLowerCase() }, [deposit])).toBe(true);
+    expect(isBatchEnabled({ ...deposit, asset: dai.toLowerCase() as Address }, [deposit])).toBe(
+      true
+    );
     expect(isBatchEnabled({ ...deposit, asset: account }, [deposit])).toBe(false);
 
     const namesNone = { ...deposit, asset: undefined } as unknown as BatchEnablement;

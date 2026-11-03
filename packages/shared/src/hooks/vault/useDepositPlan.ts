@@ -61,9 +61,9 @@ export function useDepositPlan(input: {
   const asset = target?.asset ?? "";
   const canAskWallet =
     enabled &&
-    Boolean(target) &&
+    target !== null &&
     rail === "wallet" &&
-    walletRouteListed({ action, chainId, asset });
+    walletRouteListed({ action, chainId, asset: target.asset });
 
   // Asked only when it can change the route: until then no wallet hears from this hook.
   const { data: capability, isLoading: isAskingWallet } = useQuery({
@@ -83,7 +83,7 @@ export function useDepositPlan(input: {
         passkeyProfile: passkeyAccountProfile,
         walletAtomic,
         chainId,
-        asset,
+        asset: target.asset,
       })
     : null;
 

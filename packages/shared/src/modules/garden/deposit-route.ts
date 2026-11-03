@@ -5,6 +5,7 @@ import {
   isBatchEnabled,
 } from "../transactions/batch-enablement";
 import type { BatchBudget } from "../transactions/batch-types";
+import type { Address } from "../../types/domain";
 
 const ARBITRUM_CEILINGS = {
   maxCalls: 3,
@@ -42,7 +43,7 @@ export function depositRoute(input: {
   passkeyProfile: BatchEnablement["profile"] | null | undefined;
   walletAtomic: boolean | undefined;
   chainId: number;
-  asset: string;
+  asset: Address;
 }): { atomic: boolean } | null {
   const { action, rail, passkeyProfile, walletAtomic, chainId, asset } = input;
   if (!rail || !depositBudget(rail, chainId)) return null;
@@ -56,7 +57,7 @@ export function depositRoute(input: {
 export function walletRouteListed(input: {
   action: DepositAction;
   chainId: number;
-  asset: string;
+  asset: Address;
 }): boolean {
   return (["eip-5792", "sequential"] as const).some((profile) =>
     isBatchEnabled({ ...input, rail: "wallet", profile })
