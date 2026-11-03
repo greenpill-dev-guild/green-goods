@@ -547,6 +547,55 @@ describe("albums", () => {
     expect(draft()?.revision).toBe(revision);
   });
 
+  it("takes back what it read in a photo pushed out by an earlier one downloaded late", async () => {
+    await plantingDraft();
+    await harness.say(ADA, "12");
+    const read = (facts: Array<[string, unknown]>) => ({
+      observations: [],
+      uncertain: [],
+      facts: facts.map(([field, value]) => ({
+        field,
+        value,
+        page: null,
+        cell: null,
+        sumRange: null,
+        original: null,
+        unit: null,
+      })),
+    });
+    const notes = read([["details.notes", "Seedlings in a row"]]);
+    harness.openai = scriptedOpenAI([
+      notes,
+      notes,
+      read([
+        ["details.seedlings", 99],
+        ["details.species", "neem"],
+      ]),
+      read([]),
+    ]).config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "late photo" });
+    await postAlbum("kept", [{ message: 101 }, { message: 102 }]);
+    expect((await whenQuiet())[0]).toBe("2 photos added to your report.");
+
+    // The second album's first download fails, so the photo sent after it fills the last place.
+    await postAlbum("late", [{ message: 103, missing: true }, { message: 104 }]);
+    expect(await whenQuiet()).toEqual([]);
+    expect(draft()?.content.details.species).toBe("neem");
+
+    harness.mediaFiles.set("late-103", await shadedPhoto(103));
+    harness.clock.advance(20_000);
+    await harness.drain();
+    const replies = harness.transport.texts().slice(-2);
+    expect(replies[0]).toBe(`Photo added to your report. ${KEPT}`);
+    expect(replies[1]).toContain("Main species");
+    expect(evidenceFiles(harness.core, draft())).toEqual(["kept-101", "kept-102", "late-103"]);
+    // Only what the photo taken off said goes with it: the gardener's answer and the notes read in
+    // a photo the report still holds stay.
+    expect(draft()?.content.details).toEqual({ seedlings: 12, notes: "Seedlings in a row" });
+    expect(draft()?.content.provenance).not.toHaveProperty(["details.species"]);
+    expect(draft()?.content.conflicts).toEqual([]);
+  });
+
   it("withdraws a summary or confirmation when photos follow it, until they are in", async () => {
     const shown = await reportUntilSummary(harness);
     await postAlbum("late", [{ message: 41 }, { message: 42 }]);
