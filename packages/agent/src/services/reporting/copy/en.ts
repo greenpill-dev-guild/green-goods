@@ -41,7 +41,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• ACCOUNT shows which account this chat uses, DISCONNECT unlinks it, and SWITCH links a different one.\n• LANGUAGE lets you choose English, Spanish or Portuguese.\n• STOP stops processing, DELETE removes unpublished data.{menu}\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. RECOVER reconnects an account after losing chat access.\n• ACCOUNT shows which account this chat uses, DISCONNECT unlinks it, and SWITCH links a different one.\n• LANGUAGE lets you choose English, Spanish or Portuguese.\n• STOP stops processing, DELETE removes unpublished data.{menu}\nSupport: {support}",
   "menu.commands": "\n• Tap Menu, next to where you type, to see these commands.",
   "menu.account":
     " Account commands are in the Menu too: /account, /connect, /switch and /disconnect.",
@@ -186,7 +186,7 @@ export const EN_REPORTING_COPY = {
   "report.nothingToCancel": "There's no report in progress.",
   "report.confirmToken": "To publish, reply CONFIRM {token}.",
   "report.frozen":
-    "This report is being published, so I can't change it now. I've kept your message and will use it if publishing doesn't complete.",
+    "This report is being published, so I can't change it now. If publishing doesn't complete, send your message again.",
   "report.alreadyPublished": "That report is already published. Send NEW to start another report.",
   "report.newStarted": "New report started. Tell me about the work you did.",
   "report.resumeFirst":
