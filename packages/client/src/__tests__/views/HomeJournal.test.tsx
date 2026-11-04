@@ -743,6 +743,27 @@ describe("Home journal", () => {
       expect(promises.recorded.opener).toBe(card);
     });
 
+    // DL-162: the last open cycle leaves What's Open the second it ends, with the section; a
+    // details sheet open on it stays, and turns to Ended, rather than vanishing with its card.
+    it("keeps a cycle's open details when that cycle ends and the section goes", async () => {
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+      const user = userEvent.setup();
+      const { rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
+      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const sheet = await screen.findByRole("dialog");
+
+      mocks.cycles.mockReturnValue(cycles({ state: { status: "empty" } }));
+      rerender(
+        <MemoryRouter>
+          <HighlightsCarousel gardenId={GARDEN} />
+        </MemoryRouter>
+      );
+      expect(screen.queryByRole("heading", { name: "What's Open" })).toBeNull();
+      expect(screen.getByRole("dialog")).toBe(sheet);
+    });
+
     it("holds its height while the cycles load, and is absent when their read failed or none is open", () => {
       mocks.cycles.mockReturnValue(cycles({ state: { status: "loading" } }));
       const { container, rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
