@@ -97,7 +97,7 @@ export const storyRoster: RoleDirectoryEntry[] = ROSTER_PEOPLE.map(({ address, r
   roles,
 }));
 
-export const storyRosterRoleMembers = Object.fromEntries(
+const storyRosterRoleMembers = Object.fromEntries(
   (["owner", "steward", "evaluator", "gardener", "funder", "community"] as GardenRole[]).map(
     (role) => [
       role,
