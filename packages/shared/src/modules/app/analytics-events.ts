@@ -167,16 +167,7 @@ export const trackAuthPasskeyLoginFailed = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_FAILED
 );
 
-export const trackAuthWalletConnectStarted = () =>
-  track(ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_STARTED, {});
-
-export const trackAuthWalletConnectSuccess = createTracker<{ walletAddress: string }>(
-  ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_SUCCESS
-);
-
-export const trackAuthWalletConnectFailed = createTracker<{ error: string }>(
-  ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_FAILED
-);
+// Wallet sign-in trackers live in authWalletConnectAnalytics, beside the restore ones.
 
 export const trackAuthSessionRestored = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_SESSION_RESTORED

@@ -3169,6 +3169,8 @@
   "app.login.error.recoveryNameTaken": "Ese nombre ya está registrado.",
   "app.login.error.unsupportedBrowser": "Abre Green Goods en el navegador recomendado.",
   "app.login.error.usernameTooShort": "El nombre debe tener al menos 3 caracteres.",
+  "app.login.error.walletConnectFailed": "No pudimos conectar tu billetera. Inténtalo de nuevo o inicia sesión con una passkey.",
+  "app.login.error.walletNotOpened": "La app de tu billetera no se abrió. Inténtalo de nuevo o inicia sesión con una passkey.",
   "app.login.guidance.copyLinkSafari": "Copia este enlace y ábrelo en Safari",
   "app.login.guidance.openInChrome": "Abre en Chrome para la mejor experiencia",
   "app.login.guidance.openInSafari": "Para una mejor experiencia, abre en Safari",
