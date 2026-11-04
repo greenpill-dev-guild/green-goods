@@ -1,8 +1,11 @@
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   type CommitmentCycleRecord,
+  cycleStanding,
   useCommitmentCycleNames,
+  useCycleClock,
 } from "@green-goods/shared/commitment-pooling";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { AppSheet } from "@/components/Sheets/AppSheet";
@@ -27,6 +30,9 @@ interface CycleDetailsSheetProps {
  * more than this (its metadata is a name), so it never needs the tall tier. A
  * campaign that runs as a project brief adds its brief note (PRD-1299, SBrief):
  * how its separate promises fit together, in its stewards' words.
+ *
+ * One past its end that no steward has closed reads Ended, and says when it
+ * ended and that a steward still needs to close it (DL-162).
  */
 export function CycleDetailsSheet({
   cycle,
@@ -36,9 +42,12 @@ export function CycleDetailsSheet({
 }: CycleDetailsSheetProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const { byCycleId } = useCommitmentCycleNames(cycle ? [cycle] : []);
+  const shown = useMemo(() => (cycle ? [cycle] : []), [cycle]);
+  const { byCycleId } = useCommitmentCycleNames(shown);
+  const now = useCycleClock(shown);
   if (!cycle) return null;
 
+  const standing = cycleStanding(cycle, now);
   const isCampaign = cycle.cycleType === "CAMPAIGN";
   const kindLabel = formatMessage({
     id: isCampaign ? "app.pool.rail.campaign" : "app.pool.rail.season",
@@ -46,6 +55,20 @@ export function CycleDetailsSheet({
   const metadata = byCycleId.get(cycle.cycleId.toString());
   const name = metadata?.name ?? kindLabel;
   const brief = isCampaign && metadata?.status === "resolved" ? metadata.brief : undefined;
+  // Said ahead of what counts toward it, in a long month: a short Portuguese one ends in its own
+  // period ("out.").
+  const endedNote =
+    standing === "ended" && cycle.endTime
+      ? formatMessage(
+          { id: "app.pool.cycle.ended" },
+          {
+            date: intl.formatDate(new Date(Number(cycle.endTime) * 1000), {
+              month: "long",
+              day: "numeric",
+            }),
+          }
+        )
+      : null;
   const facts: [string, string][] = [
     [
       formatMessage({ id: "app.pool.cycle.liveNow" }),
@@ -80,8 +103,9 @@ export function CycleDetailsSheet({
       }}
     >
       <div className="space-y-4">
-        <CycleIdentity cycle={cycle} />
+        <CycleIdentity cycle={cycle} standing={standing} />
         <p className="text-sm leading-relaxed text-text-strong-950">
+          {endedNote ? `${endedNote} ` : null}
           {formatMessage({
             id: isCampaign ? "app.pool.cycle.intro.campaign" : "app.pool.cycle.intro.season",
           })}

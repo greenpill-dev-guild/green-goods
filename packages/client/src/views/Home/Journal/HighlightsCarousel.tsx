@@ -97,7 +97,8 @@ function CycleHighlight({
   return (
     <HighlightCard
       kind="cycle"
-      eyebrow={<CycleIdentity cycle={cycle} />}
+      // What's Open lists a cycle only until it ends on the chain's clock (DL-162).
+      eyebrow={<CycleIdentity cycle={cycle} standing="open" />}
       title={
         name ??
         formatMessage({

@@ -232,7 +232,8 @@ function CycleLines({ gardenId }: { gardenId: string }) {
               className="flex min-h-12 w-full min-w-0 items-center gap-2 text-start"
             >
               <span className="flex shrink-0">
-                <CycleIdentity cycle={cycle} />
+                {/* Listed only until it ends on the chain's clock (DL-162). */}
+                <CycleIdentity cycle={cycle} standing="open" />
               </span>
               <span className="min-w-0 truncate type-meta text-text-sub-600">
                 {formatMessage(
