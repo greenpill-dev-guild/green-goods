@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:0d94235fb75dc2ee6d98c6d42a41e49adbdfceecda9407c61a5f8e7f08105b4c"
+source_digest: "sha256:31e8683a623a4db3e0d1ce09faee03fa94a71f066a50477dc42c59ecd5bd4452"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -114,11 +114,11 @@ Eight Forms of Capital used to tag actions and assessments by the kind of value 
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel for unmapped on-chain values — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Capital</code> | <code>SOCIAL=0, MATERIAL=1, FINANCIAL=2, LIVING=3, INTELLECTUAL=4, EXPERIENTIAL=5, SPIRITUAL=6, CULTURAL=7</code> |  |
-| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Ordered deliberately: the union is declared here in canonical machine order because index-based bridges between Capital and CapitalType lists are a live bug risk. The current file deviates (living-first presentational order) — baselined until reordered or a mapping function lands. |
+| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Declared in canonical machine order. Minted hypercert metadata, saved hypercert drafts and the hypercert editor's label keys hold the words themselves, never positions, so this order is declarative; the editor lists the words living-first for display only. Convert to and from the numeric enum through the explicit mapping, never by list position. |
 
 - **Mapping `capital-enum-to-capital-type`** (shared-enum → capital-type; explicit; total; bijective): SOCIAL → social, MATERIAL → material, FINANCIAL → financial, LIVING → living, INTELLECTUAL → intellectual, EXPERIENTIAL → experiential, SPIRITUAL → spiritual, CULTURAL → cultural.
-  - Code anchor: none — no runtime mapping function exists yet.
-  - No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn.
+  - Code anchor: `packages/shared/src/types/hypercerts.ts`
+  - capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. A shared test checks both directions against these pairs.
 
 ### `domain`
 
@@ -984,7 +984,6 @@ Use `maturity.availability` and the returned evidence before making a release cl
 
 ## Known Issues
 
-- **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
 - **`community-surface-token`** — The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim. _(`docs/docs/reference/glossary.generated.mdx`, `packages/shared/src/ontology/green-goods-ontology.json`)_
 
 ## Deliberately excluded from v1

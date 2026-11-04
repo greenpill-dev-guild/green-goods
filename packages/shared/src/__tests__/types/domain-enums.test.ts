@@ -7,7 +7,13 @@
 
 import { describe, expect, it } from "vitest";
 
+import { getOntology } from "../../ontology";
 import { Capital, Confidence, CynefinPhase, Domain, VerificationMethod } from "../../types/domain";
+import {
+  type CapitalType,
+  capitalToCapitalType,
+  capitalTypeToCapital,
+} from "../../types/hypercerts";
 
 describe("types/domain enums", () => {
   describe("Domain enum", () => {
@@ -71,6 +77,20 @@ describe("types/domain enums", () => {
     it("still has 8 values", () => {
       expect(Capital.SOCIAL).toBe(0);
       expect(Capital.CULTURAL).toBe(7);
+    });
+
+    it("converts each form of capital to its hypercert word and back as the ontology declares", () => {
+      const pairs =
+        getOntology()
+          .vocabularies.find((vocabulary) => vocabulary.id === "capital")
+          ?.mappings.find((mapping) => mapping.id === "capital-enum-to-capital-type")?.pairs ?? {};
+
+      expect(Object.keys(pairs)).toHaveLength(8);
+      for (const [name, word] of Object.entries(pairs)) {
+        const capital = Capital[name as keyof typeof Capital];
+        expect(capitalToCapitalType(capital)).toBe(word);
+        expect(capitalTypeToCapital(word as CapitalType)).toBe(capital);
+      }
     });
   });
 });
