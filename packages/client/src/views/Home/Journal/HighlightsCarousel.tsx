@@ -2,7 +2,7 @@
 // (DL-127, DL-133).
 import { type CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
 import { useGardenOpenCycles } from "@green-goods/shared/hooks/garden/useGardenJournal";
-import { useContext, useState } from "react";
+import { type ReactNode, useContext, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { CycleIdentity } from "@/components/Features/Commitments";
@@ -36,8 +36,9 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
 
+  let section: ReactNode = null;
   if (state.status === "loading") {
-    return (
+    section = (
       <JournalSection
         data-component="HighlightsCarousel"
         title={formatMessage({ id: "app.home.journal.highlights" })}
@@ -47,32 +48,39 @@ export function HighlightsCarousel({ gardenId }: HighlightsCarouselProps) {
         <li aria-hidden="true" className="h-28 rounded-[var(--gg-card-radius)] bg-bg-soft-200" />
       </JournalSection>
     );
+  } else if (state.status === "ready" && state.items.length > 0) {
+    const single = state.items.length === 1;
+    section = (
+      <JournalSection
+        data-component="HighlightsCarousel"
+        title={formatMessage({ id: "app.home.journal.highlights" })}
+        layout={single ? "rows" : "carousel"}
+      >
+        {state.items.map(({ cycle, name, daysLeft }) => (
+          <CycleHighlight
+            key={`cycle:${cycle.id}`}
+            cycle={cycle}
+            name={name}
+            daysLeft={daysLeft}
+            wide={single}
+            onOpen={() => setDetails({ cycle, open: true })}
+          />
+        ))}
+      </JournalSection>
+    );
   }
-  if (state.status !== "ready" || state.items.length === 0) return null;
-  const single = state.items.length === 1;
 
+  // The details sit outside the section, so a sheet open on the last cycle stays as that cycle
+  // ends and the section goes (DL-162): it turns to Ended rather than vanishing.
   return (
-    <JournalSection
-      data-component="HighlightsCarousel"
-      title={formatMessage({ id: "app.home.journal.highlights" })}
-      layout={single ? "rows" : "carousel"}
-    >
-      {state.items.map(({ cycle, name, daysLeft }) => (
-        <CycleHighlight
-          key={`cycle:${cycle.id}`}
-          cycle={cycle}
-          name={name}
-          daysLeft={daysLeft}
-          wide={single}
-          onOpen={() => setDetails({ cycle, open: true })}
-        />
-      ))}
+    <>
+      {section}
       <JournalCycleDetails
         cycle={details.cycle}
         isOpen={details.open}
         onClose={() => setDetails((current) => ({ ...current, open: false }))}
       />
-    </JournalSection>
+    </>
   );
 }
 
@@ -97,7 +105,8 @@ function CycleHighlight({
   return (
     <HighlightCard
       kind="cycle"
-      eyebrow={<CycleIdentity cycle={cycle} />}
+      // What's Open lists a cycle only until it ends on the chain's clock (DL-162).
+      eyebrow={<CycleIdentity cycle={cycle} standing="open" />}
       title={
         name ??
         formatMessage({

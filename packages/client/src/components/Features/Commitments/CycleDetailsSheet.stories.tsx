@@ -15,6 +15,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
+import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { CycleDetailsSheet } from "./CycleDetailsSheet";
 
 /**
@@ -105,5 +106,52 @@ export const SeasonWithoutBrief: Story = {
   play: async () => {
     const sheet = within(await screen.findByRole("dialog", { name: "Autumn Planting 2026" }));
     await expect(sheet.queryByRole("heading", { name: "How the brief works" })).toBeNull();
+    await expect(sheet.getByText("Open")).toBeVisible();
+  },
+};
+
+/**
+ * A season past its end that no steward has closed (DL-162): still Open on chain, it reads Ended,
+ * says on which day, and that a steward still needs to close it. Its counts stay as they are.
+ */
+const ENDED_SEASON = {
+  ...AUTUMN_PLANTING,
+  startTime: BigInt(daysAgo(60)),
+  endTime: BigInt(daysAgo(26)),
+};
+
+export const SeasonEnded: Story = {
+  args: { cycle: ENDED_SEASON },
+  play: async () => {
+    const sheet = within(await screen.findByRole("dialog", { name: "Autumn Planting 2026" }));
+    await expect(sheet.getByText("Ended")).toBeVisible();
+    await expect(
+      sheet.getByText(/^Ended \w+ \d+\. A steward still needs to close it\. Promises made/)
+    ).toBeVisible();
+    await expect(sheet.getByText("3 of 7 kept")).toBeVisible();
+  },
+};
+
+export const SeasonEndedSpanish: Story = {
+  args: { cycle: ENDED_SEASON },
+  parameters: { locale: "es" },
+  play: async () => {
+    const sheet = within(await screen.findByRole("dialog", { name: "Autumn Planting 2026" }));
+    await expect(sheet.getByText("Terminada")).toBeVisible();
+    await expect(
+      sheet.getByText(/^Terminó el .+\. Un responsable aún tiene que cerrarla\. Las promesas/)
+    ).toBeVisible();
+  },
+};
+
+export const SeasonEndedPortuguese: Story = {
+  args: { cycle: ENDED_SEASON },
+  parameters: { locale: "pt" },
+  play: async () => {
+    const sheet = within(await screen.findByRole("dialog", { name: "Autumn Planting 2026" }));
+    await expect(sheet.getByText("Terminada")).toBeVisible();
+    await expect(
+      sheet.getByText(/^Terminou em .+\. Um responsável ainda precisa encerrá-la\. As promessas/)
+    ).toBeVisible();
   },
 };

@@ -27,6 +27,8 @@ const mocks = vi.hoisted(() => ({
   isOnline: true,
   pools: [] as ReturnType<typeof poolFixture>[],
   cycles: [] as ReturnType<typeof cycleFixture>[],
+  /** The chain's time, Unix seconds: the fixtures' season runs March to May 2026. */
+  chainNow: 1_775_000_000n,
   steward: { hasRole: false, isLoading: false },
   owner: { hasRole: false, isLoading: false },
   enqueue: vi.fn<Enqueue>(),
@@ -53,6 +55,11 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentCycleNames", () => ({
   useCommitmentCycleNames: () => ({ byCycleId: new Map(), isLoading: false }),
+}));
+
+// Time is the edge here; which cycles stay on offer is decided for real.
+vi.mock("../../../hooks/commitment-pooling/useCycleClock", () => ({
+  useCycleClock: () => mocks.chainNow,
 }));
 
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
@@ -100,6 +107,7 @@ beforeEach(() => {
   mocks.isOnline = true;
   mocks.pools = [poolFixture()];
   mocks.cycles = [];
+  mocks.chainNow = 1_775_000_000n;
   mocks.steward = { hasRole: false, isLoading: false };
   mocks.owner = { hasRole: false, isLoading: false };
   mocks.pending = false;
@@ -197,6 +205,24 @@ describe("useCommitmentComposerController", () => {
 
     mocks.cycles = [];
     rerender();
+    await waitFor(() => expect(result.current.form.getValues("cycleId")).toBe("0"));
+  });
+
+  // DL-162: the chain still takes a promise into an Open cycle past its end, past due as it is
+  // made, so the composer offers none that has ended, and a chosen one falls back as it ends.
+  it("offers no cycle past its end, and lets go of a chosen one the second it ends", async () => {
+    mocks.cycles = [
+      cycleFixture({ cycleId: 8n, cycleType: "SEASON", endTime: 100n }),
+      cycleFixture({ cycleId: 9n, cycleType: "CAMPAIGN", endTime: 200n }),
+    ];
+    mocks.chainNow = 150n;
+    const { result, rerender } = renderController();
+    expect(result.current.openCycles.map((cycle) => cycle.cycleId)).toEqual([9n]);
+
+    act(() => result.current.form.setValue("cycleId", "9", { shouldDirty: true }));
+    mocks.chainNow = 201n;
+    rerender();
+    expect(result.current.openCycles).toEqual([]);
     await waitFor(() => expect(result.current.form.getValues("cycleId")).toBe("0"));
   });
 

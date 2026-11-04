@@ -14,6 +14,7 @@ import {
   commitmentComposerDraftKey,
   useCommitmentComposerDraftStore,
 } from "../../../stores/useCommitmentComposerDraftStore";
+import { cycleStanding } from "../../../modules/commitment-pooling/due-dates";
 import type { Address } from "../../../types/domain";
 import { isActionOpen, msUntilActionWindowChange } from "../../../utils/action/window";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
@@ -32,6 +33,7 @@ import {
   useCommitmentPools,
 } from "../../commitment-pooling/useCommitmentPooling";
 import { useComposeAgainValues } from "../../commitment-pooling/useComposeAgainValues";
+import { useCycleClock } from "../../commitment-pooling/useCycleClock";
 import { useHasRole } from "../../roles/useHasRole";
 import { useTimeout } from "../../utils/useTimeout";
 import { selectClosedActionUIDs } from "./composerBeats";
@@ -63,14 +65,19 @@ export function useCommitmentComposerController(
     poolId: pool?.poolId ?? 0n,
     state: "OPEN",
   });
+  // The chain takes a promise into an Open cycle past its end, past due as it is made, so one
+  // that has ended is not offered; it leaves the choice the second it ends (DL-162).
+  const chainNow = useCycleClock(cycles);
   const openCycles = useMemo(
     () =>
       pool
-        ? [...cycles].sort((left, right) =>
-            left.cycleType === right.cycleType ? 0 : left.cycleType === "SEASON" ? -1 : 1
-          )
+        ? cycles
+            .filter((cycle) => cycleStanding(cycle, chainNow) === "open")
+            .sort((left, right) =>
+              left.cycleType === right.cycleType ? 0 : left.cycleType === "SEASON" ? -1 : 1
+            )
         : [],
-    [cycles, pool]
+    [chainNow, cycles, pool]
   );
   const cycleNames = useCommitmentCycleNames(openCycles);
   const steward = useHasRole(

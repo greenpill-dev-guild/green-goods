@@ -399,6 +399,16 @@ function renderGarden() {
   );
 }
 
+/** The record reads the device's clock as it opens; draw it on the day `seconds` names. */
+function renderGardenAt(seconds: bigint) {
+  vi.useFakeTimers({ toFake: ["Date"], now: Number(seconds) * 1000 });
+  try {
+    return renderGarden();
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 function commitmentsSection(): HTMLElement {
   const section = document.querySelector(
     'section[aria-labelledby="public-garden-detail-commitments"]'
@@ -813,7 +823,7 @@ describe("GardenDetail § 02 Commitments", () => {
         })
       )
     );
-    renderGarden();
+    renderGardenAt(T0);
     const section = commitmentsSection();
 
     const seasonRow = within(section)
@@ -1062,7 +1072,7 @@ describe("GardenDetail § 02 Commitments", () => {
         })
       )
     );
-    renderGarden();
+    renderGardenAt(T0);
     const section = commitmentsSection();
     expect(section).toHaveTextContent(en["public.pool.garden.empty"]);
     const seasonRow = within(section)
@@ -1071,6 +1081,29 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(seasonRow).toHaveTextContent(/Season · Open now · Runs through/);
     expect(seasonRow.textContent).not.toMatch(/made|kept so far/);
     expect(within(section).queryByText(en["public.pool.garden.record.made"])).toBeNull();
+  });
+
+  // DL-162: still Open on chain because no steward has closed it, but its window has passed.
+  it("says an open Season past its end ended on its date, never that it is open now", () => {
+    mockUsePublicGardenPool.mockReturnValue(
+      poolResult(
+        poolData({
+          openSeason: makeCycle({
+            cycleId: 7n,
+            state: "OPEN",
+            name: "Season of First Rains",
+            endTime: T0 - 2n * DAY,
+          }),
+        })
+      )
+    );
+    renderGardenAt(T0);
+    const seasonRow = within(commitmentsSection())
+      .getByText("Season of First Rains")
+      .closest("li") as HTMLElement;
+    expect(seasonRow).toHaveTextContent(/Season · Ended \w+ \d+, \d{4}/);
+    expect(seasonRow).not.toHaveTextContent(/Open now|Runs through/);
+    expect(seasonRow).toHaveTextContent("10 made · 8 kept so far");
   });
 
   it("says so when an open pool has no commitments yet", () => {
