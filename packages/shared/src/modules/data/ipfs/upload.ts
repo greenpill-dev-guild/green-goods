@@ -6,6 +6,7 @@ import {
 } from "../../app/error-tracking";
 import { logger } from "../../app/logger";
 import { withoutPhotoMetadata } from "../../media/image-metadata";
+import { withoutVideoMetadata } from "../../media/video-metadata";
 import {
   getIpfsInitializationError,
   getIpfsInitializationStatus,
@@ -172,22 +173,32 @@ export class UnpublishableImageError extends Error {
   }
 }
 
+/** A video whose container could not be read in full, so it was not pinned. */
+class UnpublishableVideoError extends Error {
+  constructor() {
+    super("The video could not be read to remove its metadata, so it was not uploaded");
+    this.name = "UnpublishableVideoError";
+  }
+}
+
 /**
  * A file as it may be pinned. Nothing pinned to public IPFS can be withdrawn,
- * and cameras write where a photo was taken and the device that took it into
- * the file itself. So every image, by its type, loses that metadata first, the
- * way a work photo does: a JPEG, PNG or WebP is rewritten without it, and an
- * image the rewrite cannot read, in another format or damaged, is drawn again
- * through a canvas. An image that neither can read is refused rather than
- * pinned as it was picked. Any other file is pinned as it is.
+ * and cameras write where a photo or video was taken and the device that took
+ * it into the file itself. So every image and video, by its type, loses that
+ * metadata first, the way work media does: a JPEG, PNG or WebP is rewritten
+ * without it, an image the rewrite cannot read, in another format or damaged,
+ * is drawn again through a canvas, and a video's container is blanked where it
+ * holds metadata. One that cannot be read is refused rather than pinned as it
+ * was picked. Any other file is pinned as it is.
  */
 async function publishableFile(file: File, context: FileUploadContext): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
-  const published = await withoutPhotoMetadata(file);
+  const image = file.type.startsWith("image/");
+  if (!image && !file.type.startsWith("video/")) return file;
+  const published = image ? await withoutPhotoMetadata(file) : await withoutVideoMetadata(file);
   if (published) return published;
-  const refusal = new UnpublishableImageError(file.name);
+  const refusal = image ? new UnpublishableImageError(file.name) : new UnpublishableVideoError();
   // Counted so refusals can be seen. This event carries no file name, though the compressor's
-  // own events for the redraw attempt do.
+  // own events for an image's redraw attempt do.
   trackUploadError(refusal, {
     uploadCategory: "file_upload",
     fileSize: file.size,
@@ -206,13 +217,13 @@ async function publishableFile(file: File, context: FileUploadContext): Promise<
 
 /**
  * Uploads a file to IPFS using Pinata with comprehensive error tracking. An
- * image is pinned without its location, camera or other metadata.
+ * image or video is pinned without its location, camera or other metadata.
  *
  * @param file - The file to upload
  * @param context - Optional context for batch tracking
  * @returns Object containing the IPFS CID
- * @throws Error if an image cannot be read to remove its metadata, if Pinata is
- * not configured, or if the upload fails
+ * @throws Error if an image or video cannot be read to remove its metadata, if
+ * Pinata is not configured, or if the upload fails
  */
 export async function uploadFileToIPFS(
   file: File,

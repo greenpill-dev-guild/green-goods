@@ -76,7 +76,10 @@ function createDefaultExecutorRegistry() {
           return { status: "waiting", reason: error.reason };
         // A photo that cannot be published waits for the person, like one that will not convert.
         if (error instanceof UnpublishablePhotoError)
-          return { status: "waiting", reason: "photo-needs-attention" };
+          return {
+            status: "waiting",
+            reason: error.video ? "video-needs-attention" : "photo-needs-attention",
+          };
         if (error instanceof WorkTransactionReverted)
           return { status: "unavailable", reason: "work-transaction-reverted" };
         if (error instanceof InvalidWorkAttachmentError)
