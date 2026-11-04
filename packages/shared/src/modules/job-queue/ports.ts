@@ -5,6 +5,7 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../../types/job-queue";
+import type { BatchBudget } from "../transactions/batch-types";
 import type { TransactionSender } from "../transactions/types";
 
 /**
@@ -41,6 +42,20 @@ export interface FlushContext extends ProcessJobContext {
   userAddress: string;
   /** Send only these job kinds; every kind when omitted. */
   kinds?: readonly string[];
+  /**
+   * The ceilings a job and the one waiting on it in this pass go out under as
+   * one atomic request, when the sender sends them that way (Add and Send's
+   * proof and send). Null, or absent, sends them one after the other.
+   */
+  sendsWith?: (lead: Job, follower: Job) => Promise<BatchBudget | null>;
+}
+
+export interface AddJobOptions {
+  /**
+   * False leaves the background flush asleep, for a caller that admits another
+   * job with this one and wakes it once both are in (`requestSync`).
+   */
+  wake?: boolean;
 }
 
 export interface FlushResult {
@@ -219,10 +234,25 @@ export interface JobQueueHandle {
     kind: K,
     payload: JobKindMap[K],
     userAddress: string,
-    meta?: Record<string, unknown>
+    meta?: Record<string, unknown>,
+    options?: AddJobOptions
   ): Promise<string>;
   processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult>;
+  /**
+   * Send a job and the one that waits on it as one atomic request, the lead's
+   * call first (Add and Send's proof and send). Each runs through its own
+   * `processJob`, with its claim and send record; the request goes only with
+   * both calls in it.
+   */
+  processTogether(
+    leadJobId: string,
+    followerJobId: string,
+    context: ProcessJobContext,
+    batchBudget: BatchBudget
+  ): Promise<{ lead: ProcessJobResult; follower: ProcessJobResult }>;
   flush(context: FlushContext): Promise<FlushResult>;
+  /** Wake the background flush, after admitting jobs that did not (`AddJobOptions.wake`). */
+  requestSync(): void;
   retryJob(jobId: string): Promise<void>;
   /**
    * Resolves whether the job was removed. `beforeDelete` runs once the job is

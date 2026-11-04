@@ -10,7 +10,8 @@ export type AtomicBatchAction =
   | "pool-setup"
   | "commitment-creations"
   | "reward-edits"
-  | "marketplace-approvals";
+  | "marketplace-approvals"
+  | "proof-and-send";
 
 interface RailListing {
   rail: BatchRail;

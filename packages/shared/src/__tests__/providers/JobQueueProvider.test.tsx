@@ -43,6 +43,19 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: vi.fn(() => mockTransactionSender),
 }));
 
+/** A passkey whose rail is listed for Add and Send in one request, for as long as `run` takes. */
+async function asListedPasskey(run: () => Promise<void>) {
+  const listed = mockTransactionSender as unknown as Record<string, unknown>;
+  listed.sendAtomicBatch = vi.fn();
+  listed.canSendAtomicBatch = vi.fn(async () => true);
+  try {
+    await run();
+  } finally {
+    delete listed.sendAtomicBatch;
+    delete listed.canSendAtomicBatch;
+  }
+}
+
 // Mock primary address hook
 vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: vi.fn(() => "0xSmartAccount"),
@@ -679,6 +692,28 @@ describe("providers/JobQueueProvider", () => {
       expect(context.kinds).not.toContain("approval");
     });
 
+    it("pairs only Add and Send's proof with its send in a flush", () =>
+      asListedPasskey(async () => {
+        Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+        mockUseAuth.mockReturnValue({ authMode: "passkey" });
+        renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+        await waitFor(() => expect(mockJobQueue.flush).toHaveBeenCalled());
+        const [{ sendsWith }] = mockJobQueue.flush.mock.calls[0];
+        const proof = { id: "proof", kind: "evidence", chainId: 42161, payload: {} } as never;
+        const send = {
+          id: "send",
+          kind: "confirmation",
+          payload: { action: "submit", afterEvidenceJobId: "proof" },
+        } as never;
+        const workLink = { id: "link", kind: "workLink", payload: { sourceWorkJobId: "proof" } };
+        await expect(sendsWith?.(proof, send)).resolves.toMatchObject({
+          maxCalls: 2,
+          sponsorship: "required",
+        });
+        await expect(sendsWith?.(proof, workLink as never)).resolves.toBeNull();
+      }));
+
     it("holds embedded-wallet work and decisions for an explicit upload", async () => {
       Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
       mockUseAuth.mockReturnValue({ authMode: "embedded" });
@@ -876,6 +911,44 @@ describe("providers/JobQueueProvider", () => {
         confirmed.mockRestore();
       }
     });
+
+    it("sends either half of an Add and Send with the other as one request, where the rail can", () =>
+      asListedPasskey(async () => {
+        // No automatic flush may run beside it in this test.
+        const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);
+        try {
+          const { queue, result } = renderWithQueue({ success: true, txHash: "0xabc" });
+          vi.mocked(queue.getJobs).mockResolvedValue([
+            { id: "proof", kind: "evidence", synced: false, chainId: 42161, payload: {} },
+            {
+              id: "send",
+              kind: "confirmation",
+              synced: false,
+              chainId: 42161,
+              payload: { action: "submit", afterEvidenceJobId: "proof" },
+            },
+          ] as never);
+          vi.mocked(queue.processTogether).mockResolvedValue({
+            lead: { success: true, txHash: "0xabc" },
+            follower: { success: true, txHash: "0xabc" },
+          });
+
+          await act(async () => result.current.retryAndSend("send"));
+
+          expect(queue.retryJob).toHaveBeenCalledWith("proof");
+          expect(queue.retryJob).toHaveBeenCalledWith("send");
+          expect(queue.processTogether).toHaveBeenCalledWith(
+            "proof",
+            "send",
+            { transactionSender: mockTransactionSender, explicit: true },
+            expect.objectContaining({ maxCalls: 2, sponsorship: "required" })
+          );
+          expect(queue.processJob).not.toHaveBeenCalled();
+          expect(queueToasts.syncSuccess).toHaveBeenCalledWith(1);
+        } finally {
+          confirmed.mockRestore();
+        }
+      }));
 
     it("says the job is still queued when it cannot be sent now", async () => {
       const confirmed = vi.spyOn(connectivityStore, "isConfirmedOnline").mockReturnValue(false);

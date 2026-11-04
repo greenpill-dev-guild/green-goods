@@ -19,11 +19,17 @@
  * also needs the reviewed ceilings it is checked against before the prompt
  * (`batchBudget`).
  *
+ * The calls go in the order the participants were named, so a later one can
+ * rely on an earlier one: Add and Send's send reverts unless its proof runs
+ * first. Such a pair asks for `everyOrNone`, and then the request goes only
+ * with every call in it. Each job records its intent where the sender says the
+ * request can go out: after a passkey signs, or just before a wallet asks.
+ *
  * @module modules/transactions/bundling-sender
  */
 
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
-import type { BatchBudget } from "./batch-types";
+import { type BatchBudget, BatchNotSubmittedError, BundleIncompleteError } from "./batch-types";
 import type { ContractCall, TransactionSender, TransactionSendOptions, TxResult } from "./types";
 
 /** How the one request ended, for whoever sends the next thing. */
@@ -77,6 +83,8 @@ export function createBundlingSender(
     onAccepted?: () => void;
     /** The ceilings the one request is checked against; a passkey sends none without them. */
     batchBudget?: BatchBudget;
+    /** Send only with every participant's call: none of them may go without the others. */
+    everyOrNone?: boolean;
   } = {}
 ): BundlingSender {
   if (!base.sendAtomicBatch) throw new Error("This sender cannot send an atomic batch");
@@ -91,9 +99,20 @@ export function createBundlingSender(
   });
 
   const flush = async () => {
-    const calls = [...held.values()];
+    const calls = participants.flatMap((participant) => {
+      const call = held.get(participant);
+      return call ? [call] : [];
+    });
     if (calls.length === 0) {
       settle({ status: "empty" });
+      return;
+    }
+    if (hooks.everyOrNone && calls.length < participants.length) {
+      // One finished without a call (it had landed, or must wait), and the rest
+      // can't go without it. Nothing was asked of the wallet.
+      const error = new BundleIncompleteError();
+      settle({ status: "refused", error });
+      for (const { reject } of calls) reject(error);
       return;
     }
     const checkpointAll = async (
@@ -110,7 +129,6 @@ export function createBundlingSender(
       // anything can reach the wallet. One that doesn't stops the whole request.
       for (const { options } of calls) await options.assertOwnership?.();
       hooks.onAsking?.();
-      for (const { options } of calls) await options.onBeforeBroadcast?.();
       const result = await sendAtomicBatch(
         calls.map(({ call }) => call),
         {
@@ -120,6 +138,10 @@ export function createBundlingSender(
           },
           assertOwnership: async () => {
             for (const { options } of calls) await options.assertOwnership?.();
+          },
+          // A job whose intent can't be recorded stops the request before it goes.
+          onBeforeBroadcast: async (reference) => {
+            for (const { options } of calls) await options.onBeforeBroadcast?.(reference);
           },
           onBatchReference: async (reference) => {
             await checkpointAll((options) => options.onBatchReference?.(reference));
@@ -137,7 +159,12 @@ export function createBundlingSender(
       for (const { resolve } of calls) resolve(result);
     } catch (error) {
       settle(outcomeOfError(error, neverSent));
-      for (const { reject } of calls) reject(error);
+      // Proven unsent, so each job's own send record reads it so, intent or not.
+      const answer =
+        neverSent && !(error instanceof BatchNotSubmittedError)
+          ? new BatchNotSubmittedError(error)
+          : error;
+      for (const { reject } of calls) reject(answer);
     }
   };
 
@@ -163,6 +190,7 @@ export function createBundlingSender(
         authMode: base.authMode,
         supportsBatching: base.supportsBatching,
         supportsSponsorship: base.supportsSponsorship,
+        bundledWith: participants,
         ...(base.assertOwnership ? { assertOwnership: base.assertOwnership.bind(base) } : {}),
         ...(base.reconcileBatch ? { reconcileBatch: base.reconcileBatch.bind(base) } : {}),
         ...(base.reconcileBroadcast
