@@ -1149,6 +1149,7 @@ describe("AuthProvider wallet login bridge", () => {
       Object.defineProperty(document, "visibilityState", { configurable: true, value });
       act(() => document.dispatchEvent(new Event("visibilitychange")));
     };
+    const tap = () => act(() => document.dispatchEvent(new Event("pointerdown")));
 
     beforeEach(() => {
       appKit = createFakeAppKit();
@@ -1170,10 +1171,15 @@ describe("AuthProvider wallet login bridge", () => {
         act(() => view.result.current.loginWithWallet());
         expect(appKit.open).toHaveBeenCalledTimes(1);
 
-        // The modal hands MetaMask a WalletConnect request; the page never leaves the front.
+        // The modal hands MetaMask a WalletConnect request, but MetaMask never comes up.
         setAccount({ isConnecting: true });
         view.rerender();
         appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        await settle(15_000);
+        // The screen turns off and on again: that is not the wallet app opening.
+        setVisibility("hidden");
+        await settle(60_000);
+        setVisibility("visible");
         await settle(15_000);
         appKit.renotify();
         await settle(4_999);
@@ -1185,14 +1191,17 @@ describe("AuthProvider wallet login bridge", () => {
             reason: "timeout",
             wallet: "metamask",
             platform: "mobile",
-            backgrounded: false,
+            app_opened: false,
           }),
         ]);
         expect(view.result.current.walletConnectFailure).toBe("timeout");
         // The modal stays open: its own Open button can still reach the wallet.
         expect(appKit.close).not.toHaveBeenCalled();
 
+        // Open brings MetaMask up; the member declines once, then approves.
+        tap();
         setVisibility("hidden");
+        appKit.emit("USER_REJECTED", { message: "User rejected the request." });
         await settle(10_000);
         setVisibility("visible");
         setAccount({ address: TEST_WALLET, isConnected: true, connector: walletConnectConnector });
@@ -1217,10 +1226,20 @@ describe("AuthProvider wallet login bridge", () => {
         const view = renderAuth();
         await settle();
         act(() => view.result.current.loginWithWallet());
-        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
-        await settle(3_000);
 
-        // MetaMask comes to the front, and the member returns before it answers.
+        // MetaMask comes up as soon as it is chosen, and the member returns unanswered.
+        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        await settle(1_000);
+        setVisibility("hidden");
+        await settle(60_000);
+        setVisibility("visible");
+        await settle(30_000);
+
+        // Rainbow comes up only from the modal's Open button.
+        appKit.emit("SELECT_WALLET", { name: "Rainbow", platform: "mobile" });
+        await settle(12_000);
+        tap();
+        await settle(500);
         setVisibility("hidden");
         await settle(60_000);
         setVisibility("visible");
@@ -1231,9 +1250,9 @@ describe("AuthProvider wallet login bridge", () => {
         expect(recorded("auth_wallet_connect_failed")).toEqual([
           expect.objectContaining({
             reason: "cancelled",
-            wallet: "metamask",
+            wallet: "rainbow",
             platform: "mobile",
-            backgrounded: true,
+            app_opened: true,
           }),
         ]);
         expect(view.result.current.walletConnectFailure).toBeNull();
@@ -1269,11 +1288,18 @@ describe("AuthProvider wallet login bridge", () => {
         act(() => view.result.current.loginWithWallet());
         expect(view.result.current.walletConnectFailure).toBeNull();
         appKit.renotify();
+        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        appKit.emit("CONNECT_ERROR", { message: "Connection failed" });
+        expect(view.result.current.walletConnectFailure).toBe("connect_error");
+
+        // Choosing another wallet sets the error aside; a browser wallet is never timed.
         appKit.emit("SELECT_WALLET", { name: "Rabby Wallet", platform: "browser" });
+        expect(view.result.current.walletConnectFailure).toBeNull();
         await settle(30_000);
         appKit.dismiss();
 
         expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({ reason: "connect_error", wallet: "metamask" }),
           expect.objectContaining({ reason: "connect_error", wallet: "metamask" }),
           expect.objectContaining({ reason: "cancelled", wallet: "rabby", platform: "browser" }),
         ]);

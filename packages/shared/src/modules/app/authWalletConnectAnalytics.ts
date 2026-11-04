@@ -46,7 +46,7 @@ export const trackAuthWalletConnectSuccess = createTracker<
 export const trackAuthWalletConnectFailed = createTracker<
   AuthWalletConnectEvent & {
     reason: AuthWalletConnectFailureReason;
-    /** The page went to the background after the choice, as it does when a wallet app opens. */
-    backgrounded?: boolean;
+    /** The page left the front within 5 s of the choice or a tap, as when the wallet app opens. */
+    appOpened?: boolean;
   }
 >(ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_FAILED, WALLET_CONNECT_TRACK_OPTIONS);

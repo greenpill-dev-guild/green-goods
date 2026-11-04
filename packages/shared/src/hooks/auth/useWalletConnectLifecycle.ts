@@ -14,10 +14,16 @@ import type { WalletConnectFailure } from "../../types/auth";
 import type { AuthActor } from "../../workflows/authActor";
 
 /**
- * Time on screen a phone wallet gets to answer once it is chosen. A wallet app
- * that opens sends this page to the background, and time there does not count.
+ * Time on screen a phone wallet gets to answer once it is chosen, counted afresh
+ * each time the page comes back to the front.
  */
 const WALLET_ANSWER_TIMEOUT_MS = 20_000;
+/**
+ * A wallet app that opens takes the page out of the front this soon after the choice
+ * or the tap that opened it. A screen that turns off, or a later switch to another
+ * app, comes later than that.
+ */
+const WALLET_APP_SWITCH_MS = 5_000;
 
 const NAMED_WALLETS = ["metamask", "rabby", "rainbow", "coinbase"] as const;
 
@@ -26,10 +32,9 @@ type AuthSnapshot = ReturnType<AuthActor["getSnapshot"]>;
 interface WalletChoice {
   wallet: AuthWalletConnectWallet;
   platform: AuthWalletConnectPlatform;
-  foregroundMs: number;
-  foregroundSince: number | null;
-  /** The page went to the background after the choice, so the wallet app opened. */
-  backgrounded: boolean;
+  chosenAt: number;
+  /** The page left the front right after the choice or a tap: the wallet app opened. */
+  appOpened: boolean;
   /** This choice already ended in a failure record. */
   reported: boolean;
 }
@@ -60,7 +65,7 @@ function successRecord(attempt: WalletConnectAttempt) {
 }
 
 function failureRecord(attempt: WalletConnectAttempt, reason: AuthWalletConnectFailureReason) {
-  return { ...choiceRecord(attempt), reason, backgrounded: attempt.choice?.backgrounded };
+  return { ...choiceRecord(attempt), reason, appOpened: attempt.choice?.appOpened };
 }
 
 /**
@@ -95,57 +100,57 @@ export function useWalletConnectLifecycle(
     };
 
     let timer: number | null = null;
+    let lastTapAt = 0;
     const stopClock = () => {
       if (timer !== null) window.clearTimeout(timer);
       timer = null;
-      const choice = current()?.choice;
-      if (!choice || choice.foregroundSince === null) return;
-      choice.foregroundMs += Date.now() - choice.foregroundSince;
-      choice.foregroundSince = null;
+    };
+    // One failure record per choice, so a later rejection or cancel adds none.
+    const fail = (attempt: WalletConnectAttempt, reason: AuthWalletConnectFailureReason) => {
+      stopClock();
+      if (attempt.choice?.reported) return;
+      if (attempt.choice) attempt.choice.reported = true;
+      trackAuthWalletConnectFailed(failureRecord(attempt, reason));
     };
     const timeOut = () => {
       timer = null;
       const attempt = current();
       if (!attempt?.choice) return;
-      attempt.choice.reported = true;
       attempt.timedOut = true;
-      trackAuthWalletConnectFailed(failureRecord(attempt, "timeout"));
+      fail(attempt, "timeout");
       setFailure("timeout");
       logger.warn("[AuthProvider] The chosen wallet app did not open");
     };
     // Only a phone wallet takes the member away from this page, so only its silence
-    // on screen, before the page ever leaves the front, means its app never opened.
+    // on screen, while its app has not opened, means it never did.
     const startClock = () => {
       const choice = current()?.choice;
       if (
         !choice ||
         choice.platform !== "mobile" ||
         choice.reported ||
-        choice.backgrounded ||
-        choice.foregroundSince !== null ||
+        choice.appOpened ||
+        timer !== null ||
         document.visibilityState !== "visible"
       ) {
         return;
       }
-      choice.foregroundSince = Date.now();
-      timer = window.setTimeout(
-        timeOut,
-        Math.max(0, WALLET_ANSWER_TIMEOUT_MS - choice.foregroundMs)
-      );
+      timer = window.setTimeout(timeOut, WALLET_ANSWER_TIMEOUT_MS);
     };
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         startClock();
         return;
       }
+      stopClock();
       const choice = current()?.choice;
-      if (choice) choice.backgrounded = true;
-      stopClock();
+      if (choice && Date.now() - Math.max(choice.chosenAt, lastTapAt) <= WALLET_APP_SWITCH_MS) {
+        choice.appOpened = true;
+      }
     };
-    const fail = (attempt: WalletConnectAttempt, reason: AuthWalletConnectFailureReason) => {
-      stopClock();
-      if (attempt.choice) attempt.choice.reported = true;
-      trackAuthWalletConnectFailed(failureRecord(attempt, reason));
+    // A tap that opens the wallet (the modal's Open button) comes just before the page leaves.
+    const handleTap = () => {
+      lastTapAt = Date.now();
     };
 
     let lastEvent: unknown = null;
@@ -160,9 +165,8 @@ export function useWalletConnectLifecycle(
         attempt.choice = {
           wallet: toWallet(data.properties.name),
           platform: data.properties.platform,
-          foregroundMs: 0,
-          foregroundSince: null,
-          backgrounded: false,
+          chosenAt: timestamp,
+          appOpened: false,
           reported: false,
         };
         setFailure(null);
@@ -176,10 +180,12 @@ export function useWalletConnectLifecycle(
       }
     });
     document.addEventListener("visibilitychange", handleVisibility);
+    document.addEventListener("pointerdown", handleTap, true);
     return () => {
       stopClock();
       unsubscribe?.();
       document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("pointerdown", handleTap, true);
     };
   }, [attemptStartedAt]);
 
