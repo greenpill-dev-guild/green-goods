@@ -41,6 +41,7 @@ import {
   resolveHubRouteState,
 } from "./hub.workbenchModel";
 import { useHubConfirmStage } from "./useHubConfirmStage";
+import { useHubOlderRecords } from "./useHubOlderRecords";
 import { useHubStageQueues } from "./useHubStageQueues";
 
 /** One choice in the Hub's sort control. */
@@ -123,7 +124,9 @@ export function useHubWorkbenchController() {
     worksLoading,
     worksFetching,
     worksError,
+    isWorksPaused,
     refreshWorks,
+    workPages,
     assessments,
     fetchingAssessments,
     assessmentsError,
@@ -131,6 +134,7 @@ export function useHubWorkbenchController() {
     hypercerts,
     hypercertsLoading,
     hypercertsError,
+    hypercertPages,
     allocations,
     allocationsLoading,
     gardenVaults,
@@ -165,6 +169,15 @@ export function useHubWorkbenchController() {
     if (requestedStage === stage) return;
     navigate(adminRoutes.hubMode(stage, { ...hubContext, item: routeItem }), { replace: true });
   }, [hubContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
+
+  const older = useHubOlderRecords({
+    garden: selectedGardenId,
+    stage,
+    sortDirection,
+    workPages,
+    hypercertPages,
+    workReadable: !worksError && !isWorksPaused,
+  });
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
@@ -413,6 +426,7 @@ export function useHubWorkbenchController() {
   );
 
   return {
+    ...older,
     actionsMap,
     activeWorkDetailId,
     allocationsLoading,
