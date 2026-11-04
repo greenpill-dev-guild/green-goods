@@ -26,6 +26,7 @@ import {
   leakedCameraDetails,
   photoFile,
 } from "../../test-utils/photo-fixtures";
+import { leakedRecorderDetails, videoFile, videoVariants } from "../../test-utils/video-fixtures";
 import {
   QUEUED_JOB_GARDEN,
   QUEUED_JOB_USER,
@@ -846,6 +847,21 @@ describe("Upload all publishing a photo", () => {
       "beds.jpg",
       "metadata.json",
     ]);
+  });
+
+  it("pins a phone's video without its location, device or capture time, and attests exactly those bytes", async () => {
+    const { pinned } = await pinningService();
+    const { recorded, published } = videoVariants()[0];
+    const { ports } = queuedWithPhoto(videoFile(recorded, "beds.mp4", "video/mp4"));
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 1 });
+
+    const [, , , , media] = attested(sender);
+    const video = pinned.get(media[0])!;
+    expect([video.name, video.type]).toEqual(["beds.mp4", "video/mp4"]);
+    expect(leakedRecorderDetails(await bytesOf(video))).toEqual([]);
+    expect(await bytesOf(video)).toEqual(published);
   });
 
   it("pins a photo prepared before stripping again, and attests the stripped bytes", async () => {

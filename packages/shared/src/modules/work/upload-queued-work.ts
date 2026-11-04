@@ -233,6 +233,7 @@ export async function uploadQueuedWork(
             await flagItem(claim, id, {
               status: "photo-needs-attention",
               photo: error.photo,
+              ...(error.video ? { video: true as const } : {}),
               checkedAt: checkedAt(),
             }).catch(() => undefined);
             continue;

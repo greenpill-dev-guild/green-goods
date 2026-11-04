@@ -2,6 +2,7 @@ import en from "@green-goods/shared/i18n/en";
 import { describe, expect, it } from "vitest";
 import {
   blockedReasonMessage,
+  blockedShortReasonMessage,
   queuedWorkDetailMessage,
   queuedWorkExplanation,
   queuedWorkStatusMessage,
@@ -91,6 +92,17 @@ describe("queuedWorkDetailMessage", () => {
     "retry-required",
   ])("keeps the existing line for %s work", (submissionState) => {
     expect(textOf(queuedWorkDetailMessage({ submissionState }))).toBeTruthy();
+  });
+});
+
+describe("a work held on a file it cannot publish", () => {
+  it("names a video as a video, not as a photo that would not convert", () => {
+    const state = readQueuedWorkState(
+      JSON.stringify({ submissionState: "photo-needs-attention", heldVideo: true })
+    );
+
+    expect(textOf(queuedWorkDetailMessage(state))).toBe("A video couldn't be read");
+    expect(textOf(blockedShortReasonMessage(state))).toBe("A video can't be read");
   });
 });
 

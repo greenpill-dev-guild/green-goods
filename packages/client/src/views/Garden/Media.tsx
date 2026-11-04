@@ -325,6 +325,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         });
       }
 
+      // A video over the size limit is refused before it is read; it gets the size line.
+      if (normalized.rejected.some((item) => item.reason === "too_large"))
+        setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
+
       const normalizedFiles = normalized.accepted.map((item) => item.file);
       const processedImages: File[] = [];
       const validVideos: File[] = [];
