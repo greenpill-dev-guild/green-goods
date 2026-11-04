@@ -32,6 +32,7 @@ export type BatchEnablement = RailListing &
           | "garden-settings"
           | "add-members"
           | "bulk-reviews"
+          | "campaign-jar-sync"
           | "karma-reconcile"
           | AtomicBatchAction;
         asset?: never;
