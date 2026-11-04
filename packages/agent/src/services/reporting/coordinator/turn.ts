@@ -53,7 +53,7 @@ import {
 import { loadTurnContext, planEventTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
 import { answeredGarden, readGardensForTurn } from "./garden-step";
-import { handleReportAnswer } from "./report-answer";
+import { handleReportAnswer, lapsedJoinReply } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
 import { gardenToDrop, type TurnExternal } from "./report-work";
@@ -316,9 +316,9 @@ function applyTurn(
           handleReportMessage(writer, { kind: "message", text: null, media: [] }, external);
       } else if (plan.prompt.kind === "grant_choice" && plan.option) {
         answerGrantChoice(writer, plan.option.value);
-      } else if (plan.prompt.kind === "join_community") {
-        // Its one choice reads the account's role again, and so does any other reply: the report
-        // is waiting on nothing else.
+      } else if (plan.prompt.kind === "join_community" && !lapsedJoinReply(writer.ctx, plan)) {
+        // Its one choice reads the account's role again, and so does any other reply while its
+        // report is open. After that report ends, the reply goes to the answer handler below.
         handleReportCommand(writer, { kind: "retry" }, external);
       } else if (plan.prompt.kind === "connect_offer") {
         answerConnectionOffer(writer, plan.option !== null);
@@ -419,7 +419,7 @@ async function runTurn(
     });
   }
   const { ctx, plan, wholeAlbum } = planEventTurn(core, loaded);
-  const external = await gatherExternal(deps, ctx, plan);
+  const external = await gatherExternal(deps, ctx, lapsedJoinReply(ctx, plan) ?? plan);
   try {
     return inTransaction(core.db, () => {
       if (!holdsLease(core, lease)) return "fenced" as const;
