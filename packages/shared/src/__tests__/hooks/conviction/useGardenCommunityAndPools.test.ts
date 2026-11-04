@@ -329,13 +329,13 @@ describe("useGardenPools — subgraph path", () => {
     mockGetGardenPools.mockResolvedValueOnce([
       {
         poolAddress: TEST_POOL_1,
-        poolType: PoolType.Action,
+        poolType: PoolType.ActionSignal,
         gardenAddress: TEST_GARDEN.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
       {
         poolAddress: TEST_POOL_2,
-        poolType: PoolType.Hypercert,
+        poolType: PoolType.HypercertSignal,
         gardenAddress: TEST_GARDEN.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
@@ -353,9 +353,9 @@ describe("useGardenPools — subgraph path", () => {
 
     expect(result.current.pools).toHaveLength(2);
     expect(result.current.pools[0].poolAddress).toBe(TEST_POOL_1);
-    expect(result.current.pools[0].poolType).toBe(PoolType.Action);
+    expect(result.current.pools[0].poolType).toBe(PoolType.ActionSignal);
     expect(result.current.pools[1].poolAddress).toBe(TEST_POOL_2);
-    expect(result.current.pools[1].poolType).toBe(PoolType.Hypercert);
+    expect(result.current.pools[1].poolType).toBe(PoolType.HypercertSignal);
     expect(result.current.pools[0].gardenAddress).toBe(TEST_GARDEN.toLowerCase());
     expect(result.current.pools[0].communityAddress).toBe(TEST_COMMUNITY);
   });
@@ -384,6 +384,23 @@ describe("useGardenPools — subgraph path", () => {
     expect(result.current.pools).toEqual([]);
   });
 
+  it("fails rather than label every pool an action pool when the hypercert pool read fails", async () => {
+    mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
+    mockReadContract.mockRejectedValueOnce(new Error("RPC error")); // gardenHypercertSignalPools
+
+    const { result } = renderHookWithQueryClient(
+      () =>
+        useGardenPools(TEST_GARDEN as Address, {
+          communityAddress: TEST_COMMUNITY as Address,
+        }),
+      { queryClient }
+    );
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(mockGetGardenPools).not.toHaveBeenCalled();
+    expect(result.current.pools).toEqual([]);
+  });
+
   it("handles empty pool list from subgraph", async () => {
     mockGetGardenPools.mockResolvedValueOnce([]);
 
@@ -403,7 +420,7 @@ describe("useGardenPools — subgraph path", () => {
     mockGetGardenPools.mockResolvedValueOnce([
       {
         poolAddress: TEST_POOL_1,
-        poolType: PoolType.Action,
+        poolType: PoolType.ActionSignal,
         gardenAddress: TEST_GARDEN.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
@@ -420,7 +437,7 @@ describe("useGardenPools — subgraph path", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.pools).toHaveLength(1);
-    expect(result.current.pools[0].poolType).toBe(PoolType.Action);
+    expect(result.current.pools[0].poolType).toBe(PoolType.ActionSignal);
   });
 
   it("normalizes garden address before subgraph query", async () => {
@@ -428,7 +445,7 @@ describe("useGardenPools — subgraph path", () => {
     mockGetGardenPools.mockResolvedValueOnce([
       {
         poolAddress: TEST_POOL_1,
-        poolType: PoolType.Action,
+        poolType: PoolType.ActionSignal,
         gardenAddress: mixedCase.toLowerCase(),
         communityAddress: TEST_COMMUNITY,
       },
@@ -494,8 +511,8 @@ describe("useGardenPools — RPC fallback", () => {
 
     expect(mockGetGardenPools).not.toHaveBeenCalled();
     expect(result.current.pools).toHaveLength(2);
-    expect(result.current.pools[0].poolType).toBe(PoolType.Action);
-    expect(result.current.pools[1].poolType).toBe(PoolType.Hypercert);
+    expect(result.current.pools[0].poolType).toBe(PoolType.ActionSignal);
+    expect(result.current.pools[1].poolType).toBe(PoolType.HypercertSignal);
     expect(result.current.pools[0].communityAddress).toBe(TEST_COMMUNITY);
   });
 

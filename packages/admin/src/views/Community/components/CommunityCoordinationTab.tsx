@@ -32,8 +32,8 @@ export function CommunityCoordinationTab({
 }: CommunityCoordinationTabProps) {
   const { formatMessage } = useIntl();
   const gardenRouteContext = { gardenId: garden.id };
-  const hypercertPool = pools.find((pool) => pool.poolType === PoolType.Hypercert);
-  const actionPool = pools.find((pool) => pool.poolType === PoolType.Action);
+  const hypercertPool = pools.find((pool) => pool.poolType === PoolType.HypercertSignal);
+  const actionPool = pools.find((pool) => pool.poolType === PoolType.ActionSignal);
   const communityConfig = community as { weightScheme?: number } | null | undefined;
   const weightScheme =
     typeof communityConfig?.weightScheme === "number"

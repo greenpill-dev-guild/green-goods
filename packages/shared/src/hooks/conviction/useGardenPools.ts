@@ -25,17 +25,15 @@ async function readTypedHypercertPool(
 ): Promise<Address | undefined> {
   if (!gardensModule) return undefined;
 
-  try {
-    return (await readContract(getWagmiConfig(), {
-      address: gardensModule,
-      abi: GARDENS_MODULE_ABI,
-      functionName: "gardenHypercertSignalPools",
-      args: [gardenAddress],
-      chainId,
-    })) as Address;
-  } catch {
-    return undefined;
-  }
+  // A failed read fails the query: without this address every pool, the
+  // hypercert pool included, would be labeled an action pool.
+  return (await readContract(getWagmiConfig(), {
+    address: gardensModule,
+    abi: GARDENS_MODULE_ABI,
+    functionName: "gardenHypercertSignalPools",
+    args: [gardenAddress],
+    chainId,
+  })) as Address;
 }
 
 /**

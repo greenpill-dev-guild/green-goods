@@ -18,13 +18,13 @@ export const storyGarden = {
 
 export const storyPools = [
   {
-    poolType: PoolType.Hypercert,
+    poolType: PoolType.HypercertSignal,
     poolAddress: "0x4444444444444444444444444444444444444444" as Address,
     gardenAddress: STORY_GARDEN_ID,
     communityAddress: STORY_GARDEN_ID,
   },
   {
-    poolType: PoolType.Action,
+    poolType: PoolType.ActionSignal,
     poolAddress: "0x6666666666666666666666666666666666666666" as Address,
     gardenAddress: STORY_GARDEN_ID,
     communityAddress: STORY_GARDEN_ID,

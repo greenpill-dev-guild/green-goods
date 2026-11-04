@@ -8,12 +8,12 @@ import { GardenCommunityCard } from "./GardenCommunityCard";
 const GARDEN_ID = "0x1234567890123456789012345678901234567890";
 
 const HYPERCERT_POOL = {
-  poolType: PoolType.Hypercert,
+  poolType: PoolType.HypercertSignal,
   poolAddress: "0x00000000000000000000000000000000000Aaab1" as Address,
 };
 
 const ACTION_POOL = {
-  poolType: PoolType.Action,
+  poolType: PoolType.ActionSignal,
   poolAddress: "0x00000000000000000000000000000000000Aaab2" as Address,
 };
 

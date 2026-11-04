@@ -97,13 +97,13 @@ describe("Community coordination status actions", () => {
             community={{} as CommunityCoordinationTabProps["community"]}
             pools={[
               {
-                poolType: PoolType.Hypercert,
+                poolType: PoolType.HypercertSignal,
                 poolAddress: HYPERCERT_POOL,
                 gardenAddress: GARDEN_ID,
                 communityAddress: GARDEN_ID,
               },
               {
-                poolType: PoolType.Action,
+                poolType: PoolType.ActionSignal,
                 poolAddress: ACTION_POOL,
                 gardenAddress: GARDEN_ID,
                 communityAddress: GARDEN_ID,

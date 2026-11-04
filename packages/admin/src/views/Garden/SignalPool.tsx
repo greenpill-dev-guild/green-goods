@@ -33,8 +33,8 @@ import {
  * Unified signal pool management view.
  *
  * Supports both pool types via the :poolType URL param:
- * - "hypercert" -> PoolType.Hypercert (index 0) — hypercert curation
- * - "action"    -> PoolType.Action    (index 1) — action signaling
+ * - "hypercert" -> PoolType.HypercertSignal (index 1) — hypercert curation
+ * - "action"    -> PoolType.ActionSignal    (index 0) — action signaling
  *
  * Both pool types share the same contract ABI (registerHypercert/deregisterHypercert)
  * because "hypercertId" at the contract level is a generic proposal identifier.
@@ -67,7 +67,7 @@ export default function GardenSignalPoolView({
 
   const activePoolType = poolType ?? poolTypeParam;
   const isActionPool = activePoolType === "action";
-  const targetPoolType = isActionPool ? PoolType.Action : PoolType.Hypercert;
+  const targetPoolType = isActionPool ? PoolType.ActionSignal : PoolType.HypercertSignal;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => compareAddresses(item.id, gardenId));

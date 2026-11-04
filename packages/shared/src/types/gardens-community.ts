@@ -62,12 +62,12 @@ export interface GardenCommunity {
 // Signal Pools
 // ============================================
 
-/** Type of signal pool attached to a garden */
+/** Type of signal pool attached to a garden, in IGardensModule.PoolType's order */
 export enum PoolType {
-  /** Hypercert curation pool -- members signal support for registered hypercerts */
-  Hypercert = 0,
   /** Action signaling pool -- members signal priority on registered Actions */
-  Action = 1,
+  ActionSignal = 0,
+  /** Hypercert curation pool -- members signal support for registered hypercerts */
+  HypercertSignal = 1,
 }
 
 /** On-chain state for a garden's signal pool (CV strategy) */

@@ -35,7 +35,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
   useGardenPermissions: () => ({ canManageGarden: () => true }),
 }));
 vi.mock("@green-goods/shared/hooks/conviction/useGardenPools", () => ({
-  useGardenPools: () => ({ pools: [{ poolType: PoolType.Hypercert, poolAddress: POOL }] }),
+  useGardenPools: () => ({ pools: [{ poolType: PoolType.HypercertSignal, poolAddress: POOL }] }),
 }));
 vi.mock("@green-goods/shared/hooks/conviction/useRegisteredHypercerts", () => ({
   useRegisteredHypercerts: () => state.registered,
