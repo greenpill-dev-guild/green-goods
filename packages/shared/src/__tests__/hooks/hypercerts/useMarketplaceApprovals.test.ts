@@ -6,6 +6,7 @@
  */
 
 import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
+import { BatchConfirmationPendingError } from "../../../modules/transactions/batch-types";
 import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +32,10 @@ const APPROVE_MINTER = {
 const mocks = vi.hoisted(() => ({
   authMode: "wallet" as "wallet" | "passkey",
   address: "0x2222222222222222222222222222222222222222",
+  listed: false,
+  chainId: 11155111,
+  sendAtomicBatch: vi.fn(),
+  reconcileBatch: vi.fn(),
   assertOwnership: vi.fn(),
   buildApprovalTransactions: vi.fn(),
   readyWalletClient: vi.fn(),
@@ -41,23 +46,33 @@ const mocks = vi.hoisted(() => ({
   getReceipt: vi.fn(),
 }));
 
-vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => mocks.address,
+vi.mock("../../../hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mocks.address, passkeyAccountProfile: "kernel-0.3.1-legacy" }),
 }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => ({
     authMode: mocks.authMode,
     assertOwnership: mocks.assertOwnership,
     sendContractCall: mocks.sendTransaction,
+    sendAtomicBatch: mocks.sendAtomicBatch,
+    reconcileBatch: mocks.reconcileBatch,
+    getBatchCapability: async (scope: object) => ({ ...scope, atomic: "supported" }),
   }),
+}));
+vi.mock("wagmi", () => ({ useAccount: () => ({ connector: undefined }) }));
+// No rail lists the approvals yet; a test lists them to reach the pair.
+vi.mock("../../../modules/transactions/batch-enablement", () => ({
+  isBatchEnabled: (query: { action: string }) =>
+    mocks.listed && query.action === "marketplace-approvals",
 }));
 
 vi.mock("../../../stores/useAdminStore", () => ({
   useAdminStore: (selector: (state: { selectedChainId: number }) => unknown) =>
-    selector({ selectedChainId: 11155111 }),
+    selector({ selectedChainId: mocks.chainId }),
 }));
 
-vi.mock("../../../modules/marketplace/approvals", () => ({
+vi.mock("../../../modules/marketplace/approvals", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/marketplace/approvals")>()),
   checkMarketplaceApprovals: mocks.checkApprovals,
   buildApprovalTransactions: mocks.buildApprovalTransactions,
 }));
@@ -74,11 +89,13 @@ vi.mock("../../../config/pimlico", () => ({
   }),
 }));
 
-vi.mock("../../../modules/app/logger", () => ({
-  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: mocks.loggerError },
-}));
+vi.mock("../../../modules/app/logger", () => {
+  const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: mocks.loggerError };
+  return { logger, createLogger: () => logger };
+});
 
 import {
+  type MarketplacePendingSubmission,
   marketplaceSubmissionScope,
   useMarketplacePendingStore,
 } from "../../../stores/useMarketplacePendingStore";
@@ -98,6 +115,8 @@ describe("useMarketplaceApprovals grant", () => {
     queryClient = createTestQueryClient();
     mocks.authMode = "wallet";
     mocks.address = STEWARD;
+    mocks.listed = false;
+    mocks.chainId = CHAIN;
     mocks.assertOwnership.mockReset();
     mocks.buildApprovalTransactions.mockResolvedValue({
       grantExchange: GRANT_EXCHANGE,
@@ -173,7 +192,7 @@ describe("useMarketplaceApprovals grant", () => {
         useMarketplacePendingStore.getState().pending[
           marketplaceSubmissionScope(CHAIN, STEWARD as `0x${string}`)!
         ]
-      ).toMatchObject({ kind: "approval", step: "exchangeApproved" })
+      ).toMatchObject({ kind: "approval", steps: ["exchangeApproved"] })
     );
     expect(mocks.sendTransaction).toHaveBeenCalledOnce();
     expect(mocks.loggerError).not.toHaveBeenCalled();
@@ -217,8 +236,8 @@ describe("useMarketplaceApprovals grant", () => {
 
   it("does not let an old confirmation clear a newer pending step", () => {
     const scope = marketplaceSubmissionScope(CHAIN, STEWARD as `0x${string}`)!;
-    const old = { kind: "approval", step: "exchangeApproved" } as const;
-    const current = { kind: "approval", step: "minterApproved" } as const;
+    const old: MarketplacePendingSubmission = { kind: "approval", steps: ["exchangeApproved"] };
+    const current: MarketplacePendingSubmission = { kind: "approval", steps: ["minterApproved"] };
     useMarketplacePendingStore.getState().checkpoint(scope, old);
     useMarketplacePendingStore.getState().checkpoint(scope, current);
     useMarketplacePendingStore.getState().clear(scope, old);
@@ -302,5 +321,114 @@ describe("useMarketplaceApprovals grant", () => {
     });
     expect(view.result.current.isPending).toBe(false);
     expect(mocks.sendTransaction).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("useMarketplaceApprovals on a listed rail", () => {
+  // The pair's ceilings are sized on Arbitrum only.
+  const ARBITRUM = 42161;
+  let queryClient: QueryClient;
+  const scope = marketplaceSubmissionScope(ARBITRUM, STEWARD as `0x${string}`)!;
+  const pendingRecord = () => useMarketplacePendingStore.getState().pending[scope];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useMarketplacePendingStore.setState({ pending: {}, active: {} });
+    queryClient = createTestQueryClient();
+    mocks.authMode = "passkey";
+    mocks.address = STEWARD;
+    mocks.listed = true;
+    mocks.chainId = ARBITRUM;
+    mocks.checkApprovals.mockResolvedValue({ exchangeApproved: false, minterApproved: false });
+    mocks.buildApprovalTransactions.mockResolvedValue({
+      grantExchange: GRANT_EXCHANGE,
+      approveMinter: APPROVE_MINTER,
+    });
+  });
+
+  it("grants both under one signature, recording both until the approval reads show them", async () => {
+    let recordedWhileSending: unknown;
+    mocks.sendAtomicBatch.mockImplementation(async (_calls, options) => {
+      await options.onBeforeBroadcast({ kind: "user-operation", hash: `0x${"cd".repeat(32)}` });
+      recordedWhileSending = pendingRecord();
+      mocks.checkApprovals.mockResolvedValue({ exchangeApproved: true, minterApproved: true });
+      return { hash: `0x${"ef".repeat(32)}`, sponsored: true };
+    });
+    const { result } = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+
+    act(() => result.current.grantApprovals());
+
+    await waitFor(() => expect(result.current.isGranting).toBe(false));
+    expect(mocks.sendAtomicBatch).toHaveBeenCalledOnce();
+    expect(mocks.sendAtomicBatch.mock.calls[0][0]).toEqual([
+      expect.objectContaining({ ...GRANT_EXCHANGE, account: STEWARD, chainId: ARBITRUM }),
+      expect.objectContaining({ ...APPROVE_MINTER, account: STEWARD, chainId: ARBITRUM }),
+    ]);
+    expect(mocks.sendAtomicBatch.mock.calls[0][1].batchBudget).toMatchObject({ maxCalls: 2 });
+    expect(mocks.sendTransaction).not.toHaveBeenCalled();
+    expect(recordedWhileSending).toMatchObject({
+      kind: "approval",
+      steps: ["exchangeApproved", "minterApproved"],
+    });
+    expect(pendingRecord()).toBeUndefined();
+  });
+
+  it("keeps both approvals pending until the reads can show them", async () => {
+    mocks.sendAtomicBatch.mockImplementation(async () => {
+      mocks.checkApprovals.mockRejectedValue(new Error("RPC unavailable"));
+      return { hash: `0x${"ef".repeat(32)}`, sponsored: true };
+    });
+    const { result } = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+
+    act(() => result.current.grantApprovals());
+
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+    expect(result.current.pendingSteps).toEqual(["exchangeApproved", "minterApproved"]);
+  });
+
+  it("holds both behind a wallet's call ID when nobody can say yet whether they landed", async () => {
+    mocks.authMode = "wallet";
+    const reference = { kind: "wallet-calls", id: "0xcalls", account: STEWARD, chainId: ARBITRUM };
+    mocks.sendAtomicBatch.mockImplementation(async (_calls, options) => {
+      await options.onBeforeBroadcast();
+      await options.onBatchReference(reference);
+      throw new BatchConfirmationPendingError({
+        status: "unresolved",
+        reference,
+        receipts: [],
+        sponsored: false,
+      } as never);
+    });
+    mocks.reconcileBatch.mockResolvedValue({ status: "unresolved", reference, receipts: [] });
+    const { result } = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    await waitFor(() => expect(result.current.signatures).toBe(1));
+
+    act(() => result.current.grantApprovals());
+
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+    expect(result.current.error).toBeNull();
+    expect(result.current.pendingReference).toBe("0xcalls");
+    act(() => result.current.checkPending());
+    await waitFor(() => expect(result.current.isChecking).toBe(false));
+    expect(mocks.reconcileBatch).toHaveBeenCalledWith(reference);
+    expect(result.current.isPending).toBe(true);
+  });
+
+  it("reads a one-step record saved before both could go together", async () => {
+    localStorage.setItem(
+      "green-goods:marketplace-pending",
+      JSON.stringify({
+        state: { pending: { [scope]: { kind: "approval", step: "minterApproved" } } },
+        version: 0,
+      })
+    );
+    await useMarketplacePendingStore.persist.rehydrate();
+
+    const { result } = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+
+    expect(result.current.pendingSteps).toEqual(["minterApproved"]);
+    expect(result.current.isPending).toBe(true);
   });
 });

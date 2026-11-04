@@ -82,6 +82,9 @@ const DEFAULT_APPROVALS_STATE = {
   isClearing: false,
   confirmWalletCancellation: vi.fn(),
   checkPending: vi.fn(),
+  pendingSteps: [],
+  pendingReference: null,
+  signatures: null,
 };
 
 const READY_READINESS = {
@@ -177,6 +180,19 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
       expect(screen.queryByTestId("gate-children")).not.toBeInTheDocument();
     });
 
+    it("says how many signatures Approve All brings before the first", () => {
+      mockUseMarketplaceApprovals.mockReturnValue({
+        ...DEFAULT_APPROVALS_STATE,
+        approvals: { exchangeApproved: false, minterApproved: false },
+        isFullyApproved: false,
+        signatures: 1,
+      });
+
+      renderGate();
+
+      expect(screen.getByText("1 signature")).toBeInTheDocument();
+    });
+
     it("invokes grantApprovals when the steward confirms the approval CTA", async () => {
       mockUseMarketplaceApprovals.mockReturnValue({
         ...DEFAULT_APPROVALS_STATE,
@@ -265,5 +281,19 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
     await userEvent.click(screen.getByRole("button", { name: "I confirmed cancellation" }));
     expect(confirmWalletCancellation).toHaveBeenCalledWith(true);
     expect(mockGrantApprovals).not.toHaveBeenCalled();
+  });
+  it("names both approvals when one send carried them", async () => {
+    mockUseMarketplaceApprovals.mockReturnValue({
+      ...DEFAULT_APPROVALS_STATE,
+      isFullyApproved: false,
+      isPending: true,
+      pendingSteps: ["exchangeApproved", "minterApproved"],
+    });
+    mockGetMarketplaceReadiness.mockReturnValue(READY_READINESS);
+    renderGate();
+    await userEvent.click(screen.getByRole("button", { name: "Review Cancellation" }));
+    expect(
+      screen.getByText("Grant Exchange Approval, Approve Transfer Manager")
+    ).toBeInTheDocument();
   });
 });

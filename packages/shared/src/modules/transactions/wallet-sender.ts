@@ -325,8 +325,7 @@ export class WalletSender implements TransactionSender {
     return { hash: confirmedHash, sponsored: false };
   }
 
-  // sendBatch (one call after another) is intentionally not implemented for
-  // wallet mode. The atomic path below is the only batch a wallet is offered.
+  // The atomic path below is the only batch a wallet is offered.
 
   private batchPort(): WalletBatchPort {
     return {

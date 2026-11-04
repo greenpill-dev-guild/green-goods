@@ -53,7 +53,13 @@ const KARMA_INTEGRATION = {
   isReconciling: false,
   isPending: false,
   error: null,
-  reconcile: async () => "0x1" as const,
+  reconcile: async () => undefined,
+  signatures: 1,
+  progress: null,
+  hold: null,
+  isSettlingHold: false,
+  checkHoldAgain: async () => undefined,
+  moveOnFromHold: async () => undefined,
 } satisfies KarmaIntegrationController;
 
 const meta: Meta<typeof OverviewTab> = {
