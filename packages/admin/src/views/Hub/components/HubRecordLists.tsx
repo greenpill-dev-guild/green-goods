@@ -2,6 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { HubOlderRecords } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import { formatReportingPeriod, normalizeTimestamp } from "@green-goods/shared/utils/time";
@@ -10,6 +11,7 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { assessmentDomainLabelId } from "../assessmentDisplay";
+import { HubShowOlder, HubShowOlderButton } from "./HubShowOlder";
 
 // The Hub's two record tabs (DL-082): the garden's assessments and its minted
 // hypercerts, each record the shared item row (step 16) that opens it. Both
@@ -41,6 +43,8 @@ interface HubRecordGridProps extends Omit<HubRecordListStateProps, "createHref">
   isEmpty: boolean;
   /** What the tab says when the garden has none of its records yet. */
   empty: ReactNode;
+  /** The garden's next page of older records, with what the tab calls it. */
+  older?: { records: HubOlderRecords; label: string; notLoaded: string };
   children: ReactNode;
 }
 
@@ -51,6 +55,7 @@ function HubRecordGrid({
   onClearSearch,
   isEmpty,
   empty,
+  older,
   children,
 }: HubRecordGridProps) {
   const { formatMessage } = useIntl();
@@ -97,10 +102,14 @@ function HubRecordGrid({
             { id: "cockpit.hub.noMatch", defaultMessage: 'Nothing matching "{query}"' },
             { query: searchQuery }
           )}
+          description={older?.notLoaded}
           action={
-            <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
-              {formatMessage({ id: "cockpit.hub.clearSearch", defaultMessage: "Clear Search" })}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              {older ? <HubShowOlderButton older={older.records} label={older.label} /> : null}
+              <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
+                {formatMessage({ id: "cockpit.hub.clearSearch", defaultMessage: "Clear Search" })}
+              </Button>
+            </div>
           }
         />
       </EmptyStateShell>
@@ -112,10 +121,15 @@ function HubRecordGrid({
   }
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
-    <ul className="hub-workbench-grid" role="list">
-      {children}
-    </ul>
+    <>
+      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them */}
+      <ul className="hub-workbench-grid" role="list">
+        {children}
+      </ul>
+      {older ? (
+        <HubShowOlder older={older.records} label={older.label} notLoaded={older.notLoaded} />
+      ) : null}
+    </>
   );
 }
 
@@ -204,6 +218,8 @@ export function HubAssessmentList({
 export interface HubHypercertListProps extends HubRecordListStateProps {
   items: HubHypercertListItem[];
   onOpenHypercert: (hypercertId: string) => void;
+  /** The garden's next page of older hypercerts, while it has more than the list holds. */
+  older?: HubOlderRecords;
 }
 
 /** The Hypercerts tab: every hypercert the garden has minted, each opening its record. */
@@ -211,6 +227,7 @@ export function HubHypercertList({
   items,
   onOpenHypercert,
   createHref,
+  older,
   ...state
 }: HubHypercertListProps) {
   const { formatMessage, formatDate } = useIntl();
@@ -218,6 +235,21 @@ export function HubHypercertList({
   return (
     <HubRecordGrid
       {...state}
+      older={
+        older
+          ? {
+              records: older,
+              label: formatMessage({
+                id: "cockpit.hub.hypercerts.showOlder",
+                defaultMessage: "Show Older Hypercerts",
+              }),
+              notLoaded: formatMessage({
+                id: "cockpit.hub.hypercerts.olderNotLoaded",
+                defaultMessage: "Older hypercerts aren't loaded yet.",
+              }),
+            }
+          : undefined
+      }
       isEmpty={items.length === 0}
       empty={
         <EmptyState

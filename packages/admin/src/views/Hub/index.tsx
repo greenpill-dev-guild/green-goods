@@ -188,7 +188,8 @@ export default function HubView() {
                   workScope={hub.workScope}
                   assessments={hub.assessmentList}
                   hypercerts={hub.hypercertList}
-                  worksLoading={hub.worksLoading}
+                  // Oldest first lists nothing until the whole history is read.
+                  worksLoading={hub.worksLoading || hub.readsWorkHistory}
                   fetchingAssessments={hub.fetchingAssessments}
                   hypercertsLoading={hub.hypercertsLoading}
                   hasDataError={hub.hasDataError}
@@ -215,6 +216,8 @@ export default function HubView() {
                   onOpenCertification={hub.handleOpenCertification}
                   onOpenHypercert={hub.handleOpenHypercert}
                   reviewBatch={hub.reviewBatch}
+                  olderWork={hub.olderWork}
+                  olderHypercerts={hub.olderHypercerts}
                 />
               </div>
             </section>
