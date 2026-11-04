@@ -20,7 +20,7 @@
  * ```
  */
 
-import type { SmartAccountClientResolver } from "../../types/auth";
+import type { SmartAccountClientResolver, WalletConnectFailure } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
@@ -52,6 +52,7 @@ interface UseAuthReturn {
   reconcilePilotAccount?: AuthActionsValue["reconcilePilotAccount"];
   cancelPilotAccountEnrollment?: AuthActionsValue["cancelPilotAccountEnrollment"];
   walletReleaseStalled?: boolean;
+  walletConnectFailure?: WalletConnectFailure | null;
   // Core state
   authMode: AuthMode;
   isReady: boolean;
@@ -117,6 +118,7 @@ export function useAuth(): UseAuthReturn {
     reconcilePilotAccount: auth.reconcilePilotAccount,
     cancelPilotAccountEnrollment: auth.cancelPilotAccountEnrollment,
     walletReleaseStalled: auth.walletReleaseStalled,
+    walletConnectFailure: auth.walletConnectFailure,
     // Core state
     authMode: auth.authMode,
     isReady: auth.isReady,

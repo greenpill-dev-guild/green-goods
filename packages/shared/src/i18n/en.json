@@ -3163,6 +3163,8 @@
   "app.login.error.recoveryNameTaken": "That name is already registered.",
   "app.login.error.unsupportedBrowser": "Open Green Goods in the recommended browser.",
   "app.login.error.usernameTooShort": "Display name must be at least 3 characters.",
+  "app.login.error.walletConnectFailed": "We couldn't connect your wallet. Try again, or sign in with a passkey.",
+  "app.login.error.walletNotOpened": "Your wallet app didn't open. Try again, or sign in with a passkey.",
   "app.login.guidance.copyLinkSafari": "Copy this link and open it in Safari",
   "app.login.guidance.openInChrome": "Open in Chrome for the best experience",
   "app.login.guidance.openInSafari": "For the best experience, open in Safari",
