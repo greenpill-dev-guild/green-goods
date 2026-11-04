@@ -31,7 +31,13 @@ function createIntegration(
     isReconciling: status === "retrying",
     isPending: status === "retrying",
     error: status === "failed" ? new Error("Project admin sync failed") : null,
-    reconcile: async () => "0x1" as const,
+    reconcile: async () => undefined,
+    signatures: 1,
+    progress: null,
+    hold: null,
+    isSettlingHold: false,
+    checkHoldAgain: async () => undefined,
+    moveOnFromHold: async () => undefined,
     ...overrides,
   };
 }
@@ -81,6 +87,27 @@ export const Failed: Story = {
 
 export const Retrying: Story = {
   args: { integration: createIntegration("retrying") },
+};
+
+/** A garden with many accounts on a rail that signs each call: the count comes before the press. */
+export const RetryTakesSeveralSignatures: Story = {
+  args: { integration: createIntegration("access-pending", { signatures: 4 }) },
+};
+
+/** The second of three signatures is out. */
+export const SyncingSecondSignature: Story = {
+  args: {
+    integration: createIntegration("retrying", { progress: { signature: 2, signatures: 3 } }),
+  },
+};
+
+/** An earlier sync nobody can confirm pauses the next one until it is checked or moved on from. */
+export const HeldSync: Story = {
+  args: {
+    integration: createIntegration("access-pending", {
+      hold: { operationIds: ["held-sync"], calls: 3 },
+    }),
+  },
 };
 
 export const Unsupported: Story = {

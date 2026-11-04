@@ -36,7 +36,13 @@ const karmaIntegration = {
   isReconciling: false,
   isPending: false,
   error: null,
-  reconcile: vi.fn(async () => "0x1" as const),
+  reconcile: vi.fn(async () => undefined),
+  signatures: 1,
+  progress: null,
+  hold: null,
+  isSettlingHold: false,
+  checkHoldAgain: vi.fn(async () => undefined),
+  moveOnFromHold: vi.fn(async () => undefined),
 } satisfies KarmaIntegrationController;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

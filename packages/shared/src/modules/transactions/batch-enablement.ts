@@ -24,7 +24,12 @@ interface RailListing {
 export type BatchEnablement = RailListing &
   (
     | {
-        action: "garden-settings" | "add-members" | "bulk-reviews" | AtomicBatchAction;
+        action:
+          | "garden-settings"
+          | "add-members"
+          | "bulk-reviews"
+          | "karma-reconcile"
+          | AtomicBatchAction;
         asset?: never;
       }
     | { action: DepositAction; asset: Address }

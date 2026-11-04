@@ -7,7 +7,7 @@
  * to standard writeContract from @wagmi/core — meaning transactions are NOT
  * gas-sponsored yet.
  *
- * When EIP-5792 support is available, sendContractCall and sendBatch should
+ * When EIP-5792 support is available, sendContractCall should
  * use sendCalls() with paymasterService capability and poll with
  * getCallsStatus() for completion.
  *
@@ -213,20 +213,5 @@ export class EmbeddedSender implements TransactionSender {
     });
 
     return { hash: confirmedHash, sponsored: false };
-  }
-
-  async sendBatch(calls: ContractCall[]): Promise<TxResult> {
-    if (calls.length === 0) {
-      throw new Error("Cannot send empty batch");
-    }
-
-    // TODO: Use EIP-5792 sendCalls for atomic batching when available.
-    // For now, send calls sequentially.
-    let lastResult: TxResult | null = null;
-    for (const call of calls) {
-      lastResult = await this.sendContractCall(call);
-    }
-
-    return lastResult!;
   }
 }
