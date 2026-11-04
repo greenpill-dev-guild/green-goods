@@ -187,17 +187,24 @@ export function fragmentSamples(
       }
       if (runFlags & 0x4) at += 4;
       const runStart = position;
-      for (let sample = 0; sample < count; sample += 1) {
-        if (runFlags & 0x100) at += 4;
-        let size = defaultSize;
-        if (runFlags & 0x200) {
-          size = view.getUint32(at);
-          at += 4;
+      if (!perSample) {
+        // With nothing given for each sample, the run's bytes do not bound its count, and every
+        // sample takes the default size. So its extent is counted rather than walked.
+        if (count > 0 && defaultSize === undefined) return null;
+        position += (defaultSize ?? 0) * count;
+      } else {
+        for (let sample = 0; sample < count; sample += 1) {
+          if (runFlags & 0x100) at += 4;
+          let size = defaultSize;
+          if (runFlags & 0x200) {
+            size = view.getUint32(at);
+            at += 4;
+          }
+          if (runFlags & 0x400) at += 4;
+          if (runFlags & 0x800) at += 4;
+          if (size === undefined) return null;
+          position += size;
         }
-        if (runFlags & 0x400) at += 4;
-        if (runFlags & 0x800) at += 4;
-        if (size === undefined) return null;
-        position += size;
       }
       // A run's samples sit end to end, so each run is one range.
       if (playing.has(id)) ranges.push([runStart, position]);

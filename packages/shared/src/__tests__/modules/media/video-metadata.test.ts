@@ -6,6 +6,7 @@ import {
   aviVideo,
   chainedFragmentMp4,
   concatenatedWebm,
+  countedRunMp4,
   leakedRecorderDetails,
   legacySoundMp4,
   referencingMp4,
@@ -63,4 +64,11 @@ describe("withoutVideoMetadata", () => {
   ])("refuses %s, since it cannot be checked in full", async (_, bytes) => {
     await expect(withoutVideoMetadata(videoFile(bytes, "clip", "video/mp4"))).resolves.toBeNull();
   });
+
+  // The run names no size for each sample, so nothing in the file bounds its count. Its extent is
+  // counted, not walked sample by sample, which would hold the tab for billions of steps.
+  it("refuses a run counting more samples than the file holds, without walking them", async () => {
+    const file = videoFile(countedRunMp4(), "clip", "video/mp4");
+    await expect(withoutVideoMetadata(file)).resolves.toBeNull();
+  }, 1000);
 });

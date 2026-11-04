@@ -125,6 +125,14 @@ export function shortRunMp4(): Bytes {
   return fragmentedMp4(false, { shortRun: true });
 }
 
+/**
+ * A fragmented MP4 whose picture run gives nothing for each sample and counts
+ * more samples of the default size than the file could hold.
+ */
+export function countedRunMp4(): Bytes {
+  return fragmentedMp4(false, { countedRun: true });
+}
+
 /** The Android MP4 with its sound sized the old QuickTime way, by its sample description. */
 export function legacySoundMp4(): Bytes {
   return androidMp4(false, { legacySound: true });
@@ -291,6 +299,8 @@ interface FragmentOptions {
   first?: "picture" | "telemetry";
   /** The telemetry run, the last box in the file, promises a data offset it has no room for. */
   shortRun?: boolean;
+  /** The picture run counts 2^32 - 1 samples, each the size its track fragment gives as default. */
+  countedRun?: boolean;
 }
 
 /**
@@ -299,7 +309,12 @@ interface FragmentOptions {
  */
 function fragmentedMp4(
   published: boolean,
-  { base = "fragment", first = "picture", shortRun = false }: FragmentOptions = {}
+  {
+    base = "fragment",
+    first = "picture",
+    shortRun = false,
+    countedRun = false,
+  }: FragmentOptions = {}
 ): Bytes {
   const header = box("ftyp", "iso6", u32(512), "iso6mp41");
   const telemetry = RECORDER_DETAILS.track.length;
@@ -330,15 +345,20 @@ function fragmentedMp4(
     // track fragments starts where the first one's data ended, so its run names none.
     const names = (which: "picture" | "telemetry") => base === "fragment" || first === which;
     const sizes = PICTURE.map((frame) => u32(frame.length));
-    const pictureRun = names("picture")
-      ? full("trun", 0, 0x201, u32(2), u32(pictureAt), ...sizes)
-      : full("trun", 0, 0x200, u32(2), ...sizes);
+    const pictureRun = countedRun
+      ? full("trun", 0, 0x1, u32(0xffffffff), u32(pictureAt))
+      : names("picture")
+        ? full("trun", 0, 0x201, u32(2), u32(pictureAt), ...sizes)
+        : full("trun", 0, 0x200, u32(2), ...sizes);
     const telemetryRun = shortRun
       ? full("trun", 0, 0x1, u32(1))
       : names("telemetry")
         ? full("trun", 0, 0x1, u32(1), u32(telemetryAt))
         : full("trun", 0, 0, u32(1));
-    const pictureFragment = box("traf", full("tfhd", 0, baseFlag, u32(TRACK_IDS.vide)), pictureRun);
+    const pictureHeader = countedRun
+      ? full("tfhd", 0, baseFlag | 0x10, u32(TRACK_IDS.vide), u32(PICTURE[0].length))
+      : full("tfhd", 0, baseFlag, u32(TRACK_IDS.vide));
+    const pictureFragment = box("traf", pictureHeader, pictureRun);
     const telemetryFragment = box(
       "traf",
       full("tfhd", 0, baseFlag, u32(TRACK_IDS.meta)),
