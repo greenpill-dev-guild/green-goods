@@ -205,6 +205,7 @@ import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { connectivityStore } from "../../stores/connectivity";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import {
   createMockAction,
   createMockFiles,
@@ -753,7 +754,7 @@ describe("hooks/work/useWorkMutation", () => {
             draft: createMockWorkDraft(),
             images: createMockFiles(1),
           })
-        ).rejects.toThrow("Offline queue is disabled");
+        ).rejects.toThrow(ConnectionNeededError);
       });
 
       expect(submitWorkToQueue).not.toHaveBeenCalled();

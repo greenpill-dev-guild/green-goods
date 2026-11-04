@@ -10,6 +10,7 @@ import {
 } from "./work-confirmation";
 export { isNetworkError } from "./work-confirmation";
 import { findActionByUID } from "../../utils/action/parsers";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { resolveKnownWorkTitle, resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
@@ -42,7 +43,7 @@ export interface SubmitWorkCommand {
   draft: WorkDraft;
   images: File[];
   allowOfflineQueue: boolean;
-  /** Retain an online wallet send for confirmation recovery without offline fallback. */
+  /** Retain an online send for confirmation recovery without offline fallback. */
   retainSubmission?: boolean;
 }
 
@@ -175,11 +176,13 @@ export async function submitWork(
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
   if ((resolved.allowOfflineQueue || resolved.retainSubmission) && ports.queue.admit) {
-    if (
-      !resolved.allowOfflineQueue &&
-      (resolved.authMode !== "wallet" || !(await ports.connectivity.confirm()))
-    )
-      throw new Error("Offline queue is disabled for this submission surface");
+    // Without the offline queue nothing is admitted that cannot be sent now: a
+    // wallet signs its own send, and every other session needs the sender.
+    if (!resolved.allowOfflineQueue) {
+      if (resolved.authMode !== "wallet" && !ports.sender)
+        throw new Error("submission-sender-unavailable");
+      if (!(await ports.connectivity.confirm())) throw new ConnectionNeededError();
+    }
     return submitAdmittedWork(resolved, ports);
   }
   const online = await ports.connectivity.confirm();
@@ -224,9 +227,7 @@ export async function submitWork(
 
   if (resolved.authMode === "wallet") {
     if (!online) {
-      if (!resolved.allowOfflineQueue) {
-        throw new Error("Offline queue is disabled for this submission surface");
-      }
+      if (!resolved.allowOfflineQueue) throw new ConnectionNeededError();
       return queuedOutcome(await ports.queue.enqueue(resolved), ports.sender);
     }
 
@@ -253,9 +254,9 @@ export async function submitWork(
     }
   }
 
-  if (!resolved.allowOfflineQueue) {
-    throw new Error("Offline queue is disabled for this submission surface");
-  }
+  // Every other session sends through a queued job, which only admission (above)
+  // holds when the offline queue is off.
+  if (!resolved.allowOfflineQueue) throw new Error("submission-requires-admission");
 
   if (online) {
     await ports.simulate({

@@ -8,10 +8,14 @@ import {
   type SubmitWorkCommand,
 } from "../../modules/work/submit-work-command";
 import type { Action } from "../../types/domain";
-import type { DraftWorkLink, WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
+import type { DraftWorkLink, Job, WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { createJobQueueDependencies } from "../test-utils/job-queue-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import type { JobExecution, JobQueueConnectivity } from "../../modules/job-queue/ports";
+import { createJobQueue } from "../../modules/job-queue/queue";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { draftDB } from "../../modules/job-queue/draft-db";
 import {
   deleteDraftOfQueuedWork,
@@ -73,6 +77,37 @@ function fixture() {
   });
   ports.direct.submitWork = send;
   return { command, ports, send };
+}
+
+/**
+ * A steward's Submit in the admin cockpit from a passkey or embedded account:
+ * no offline queue, the submission retained, and the send made by the queue's
+ * own processing. Only the executor, where the account signs, is a stand-in.
+ */
+function adminQueueSubmit(
+  authMode: "passkey" | "embedded",
+  execute: (jobId: string, job: Job) => Promise<JobExecution>,
+  canSend: JobQueueConnectivity["canSend"] = async () => null
+) {
+  const { command } = fixture();
+  Object.assign(command, { authMode, allowOfflineQueue: false, retainSubmission: true });
+  const queue = createJobQueue(
+    createJobQueueDependencies({
+      store: jobQueueDB,
+      executors: { execute },
+      connectivity: { isOnline: () => true, canSend },
+    })
+  );
+  const ports = createDefaultSubmitWorkPorts({
+    sender: createMockTransactionSender({ authMode }),
+    jobQueue: queue,
+  });
+  ports.connectivity = { isOnline: () => true, confirm: async () => true };
+  const retained = async () =>
+    (await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false })).find(
+      (job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+    );
+  return { command, ports, retained };
 }
 
 /**
@@ -531,7 +566,7 @@ describe("PWA durable submission boundary", () => {
     command.allowOfflineQueue = false;
     command.retainSubmission = true;
     ports.connectivity.confirm = async () => false;
-    await expect(submitWork(command, ports)).rejects.toThrow("Offline queue is disabled");
+    await expect(submitWork(command, ports)).rejects.toThrow(ConnectionNeededError);
     expect(send).not.toHaveBeenCalled();
     const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
     expect(
@@ -546,6 +581,101 @@ describe("PWA durable submission boundary", () => {
         ?.meta?.requiresExplicitSend
     ).toBe(true);
   });
+
+  // Beta, 4 Nov: a passkey steward's Submit was refused before any send, and
+  // the refusal read as work saved offline.
+  it.each([
+    "passkey",
+    "embedded",
+  ] as const)("sends a %s admin submission on Submit, and never a second copy", async (authMode) => {
+    const execute = vi.fn(
+      async (): Promise<JobExecution> => ({ status: "complete", txHash: hash })
+    );
+    const { command, ports } = adminQueueSubmit(authMode, execute);
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "processed",
+      txHash: hash,
+    });
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ txHash: hash });
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { after: "a send that failed", blocked: null, error: "Network request failed", sends: 2 },
+    {
+      after: "an unconfirmed connection",
+      blocked: "connection-unconfirmed" as const,
+      error: ConnectionNeededError,
+      sends: 1,
+    },
+  ])("fails a passkey admin Submit after $after, and the next Submit sends the held work", async ({
+    blocked,
+    error,
+    sends,
+  }) => {
+    let sendBlocked: Awaited<ReturnType<JobQueueConnectivity["canSend"]>> = blocked;
+    let failNext = !blocked;
+    const execute = vi.fn(async (_jobId: string, job: Job): Promise<JobExecution> => {
+      if (!failNext) return { status: "complete", txHash: hash };
+      failNext = false;
+      // The executor stores the job as it uploads; the explicit send has lifted its hold.
+      await jobQueueDB.updateJob(job);
+      throw new Error("Network request failed");
+    });
+    const { command, ports, retained } = adminQueueSubmit(
+      "passkey",
+      execute,
+      async () => sendBlocked
+    );
+
+    await expect(submitWork(command, ports)).rejects.toThrow(error);
+    expect((await retained())?.meta?.requiresExplicitSend).toBe(true);
+
+    sendBlocked = null;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "processed",
+      txHash: hash,
+    });
+    expect(execute).toHaveBeenCalledTimes(sends);
+  });
+
+  it("checks a passkey admin send awaiting confirmation through the queue, never sending it twice", async () => {
+    let confirmed = false;
+    const broadcast = vi.fn();
+    const execute = vi.fn(async (_jobId: string, job: Job): Promise<JobExecution> => {
+      const payload = job.payload as WorkJobPayload;
+      if (!payload.uploadCheckpoint?.transactionHash) {
+        broadcast();
+        payload.uploadCheckpoint = {
+          submittedAt: "2026-11-04T00:00:00Z",
+          files: {},
+          transactionHash: hash,
+        };
+        await jobQueueDB.updateJob(job);
+      }
+      return confirmed
+        ? { status: "complete", txHash: hash }
+        : { status: "waiting", reason: "awaiting-confirmation" };
+    });
+    const { command, ports } = adminQueueSubmit("passkey", execute);
+
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+    });
+    // Check Confirmation submits again.
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+    });
+    confirmed = true;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "processed",
+      txHash: hash,
+    });
+    expect(execute).toHaveBeenCalledTimes(3);
+    expect(broadcast).toHaveBeenCalledOnce();
+  });
+
   it("queues a submission instead of sending while the connection is unconfirmed", async () => {
     const { command, ports, send } = fixture();
     ports.connectivity = { isOnline: () => true, confirm: async () => false };

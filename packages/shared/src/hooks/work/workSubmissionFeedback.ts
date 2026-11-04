@@ -11,8 +11,17 @@ import {
 } from "../../modules/app/analytics-events";
 import { trackContractError, trackUploadError } from "../../modules/app/error-tracking";
 import { walletProgressToasts, toastService } from "../../components/toast";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { formatErrorForToast, parseAndFormatError } from "../../utils/errors/contract-errors";
+import { connectionNeededFailure } from "../../utils/errors/unsent-failures";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
+
+/** Without the offline queue nothing is kept to sync, so offline means nothing was sent. */
+function parseSubmissionFailure(error: unknown, allowOfflineQueue: boolean) {
+  const formatted = parseAndFormatError(error);
+  if (allowOfflineQueue || formatted.parsed.name !== "Offline") return formatted;
+  const parsed = connectionNeededFailure(formatted.parsed.raw);
+  return { ...formatErrorForToast(parsed), parsed };
+}
 
 export function showWorkSubmissionFailure(
   error: unknown,
@@ -64,11 +73,11 @@ export function showWorkSubmissionFailure(
     toastService.info({
       id: "work-upload",
       title: intl.formatMessage({ id: "app.work.sendCancelled.title" }),
+      // Only the queue keeps declined work to send from Your Work later.
       message: intl.formatMessage({
-        id:
-          allowOfflineQueue || originalError instanceof WorkSendCancelledError
-            ? "app.work.sendCancelled.message"
-            : "app.errors.blockchain.userRejected.message",
+        id: allowOfflineQueue
+          ? "app.work.sendCancelled.message"
+          : "app.errors.blockchain.userRejected.message",
       }),
       context: "work upload",
     });
@@ -76,7 +85,7 @@ export function showWorkSubmissionFailure(
   }
 
   // Parse contract error for user-friendly message
-  const { title, message, parsed } = parseAndFormatError(originalError);
+  const { title, message, parsed } = parseSubmissionFailure(originalError, allowOfflineQueue);
 
   // Track submission failure - funnel event
   trackWorkSubmissionFailed({

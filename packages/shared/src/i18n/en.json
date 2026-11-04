@@ -2062,6 +2062,8 @@
   "app.errors.blockchain.unknown.message": "An unexpected error occurred. Please try again.",
   "app.errors.blockchain.userRejected.message": "Transaction was canceled. Please try again when ready.",
   "app.errors.blockchain.wrongChain.message": "Your wallet is on the wrong network. Switch to the Green Goods network and try again.",
+  "app.errors.connectionNeeded.message": "Nothing was sent. Check your connection, then try again.",
+  "app.errors.connectionNeeded.title": "Connection needed",
   "app.errors.contract.selfAttestation.action": "Ask another garden steward to approve or reject this work",
   "app.errors.contract.selfAttestation.message": "You cannot review your own work submission",
   "app.errors.network": "Network error. Please check your connection.",

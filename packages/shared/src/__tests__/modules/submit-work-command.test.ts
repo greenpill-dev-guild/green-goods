@@ -32,6 +32,7 @@ import {
   type SubmitWorkPorts,
 } from "../../modules/work/submit-work-command";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import {
   createMockAction,
   createMockWorkDraft,
@@ -133,9 +134,33 @@ describe("submitWork", () => {
   it("rejects an offline wallet before enqueue when queue fallback is disabled", async () => {
     const { ports, enqueue } = createPorts({ online: false });
     await expect(submitWork({ ...baseCommand, allowOfflineQueue: false }, ports)).rejects.toThrow(
-      "Offline queue is disabled for this submission surface"
+      ConnectionNeededError
     );
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { authMode: "wallet", online: false, sender: undefined, refusal: ConnectionNeededError },
+    { authMode: "passkey", online: false, sender: undefined, refusal: ConnectionNeededError },
+    { authMode: "embedded", online: true, sender: null, refusal: "submission-sender-unavailable" },
+  ] as const)("refuses a retained $authMode submission it cannot send now, before admitting it", async ({
+    authMode,
+    online,
+    sender,
+    refusal,
+  }) => {
+    const { ports, process, direct } = createPorts({ online, sender });
+    const admit = vi.fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>();
+    ports.queue.admit = admit;
+    await expect(
+      submitWork(
+        { ...baseCommand, authMode, allowOfflineQueue: false, retainSubmission: true },
+        ports
+      )
+    ).rejects.toThrow(refusal);
+    expect(admit).not.toHaveBeenCalled();
+    expect(process).not.toHaveBeenCalled();
+    expect(direct).not.toHaveBeenCalled();
   });
 
   it("queues an offline wallet without simulation or inline processing", async () => {
@@ -242,11 +267,11 @@ describe("submitWork", () => {
     "passkey",
     "embedded",
     null,
-  ] as const)("rejects %s mode before simulation when queue fallback is disabled", async (authMode) => {
+  ] as const)("rejects %s mode without durable admission when queue fallback is disabled", async (authMode) => {
     const { ports, simulate, enqueue } = createPorts();
     await expect(
       submitWork({ ...baseCommand, authMode, allowOfflineQueue: false }, ports)
-    ).rejects.toThrow("Offline queue is disabled for this submission surface");
+    ).rejects.toThrow("submission-requires-admission");
     expect(simulate).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });
