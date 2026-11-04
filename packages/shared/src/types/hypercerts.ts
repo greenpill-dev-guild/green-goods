@@ -1,4 +1,5 @@
 import type { Address, Hex } from "viem";
+import { Capital } from "./domain";
 
 // =============================================================================
 // Domain enums
@@ -29,15 +30,44 @@ export type ActionType =
   | "commitment"
   | "exchange";
 
+/** Forms of capital as hypercert metadata spells them, in the `Capital` enum's order. */
 export type CapitalType =
-  | "living"
   | "social"
   | "material"
   | "financial"
+  | "living"
   | "intellectual"
   | "experiential"
   | "spiritual"
   | "cultural";
+
+/**
+ * Actions carry the numeric `Capital` enum and hypercert metadata carries the
+ * words. Convert through this map, never by list position: lists of the words
+ * keep their own display order.
+ */
+const CAPITAL_TYPE_BY_CAPITAL: Record<Capital, CapitalType> = {
+  [Capital.SOCIAL]: "social",
+  [Capital.MATERIAL]: "material",
+  [Capital.FINANCIAL]: "financial",
+  [Capital.LIVING]: "living",
+  [Capital.INTELLECTUAL]: "intellectual",
+  [Capital.EXPERIENTIAL]: "experiential",
+  [Capital.SPIRITUAL]: "spiritual",
+  [Capital.CULTURAL]: "cultural",
+};
+
+const CAPITAL_BY_CAPITAL_TYPE = Object.fromEntries(
+  Object.entries(CAPITAL_TYPE_BY_CAPITAL).map(([capital, word]) => [word, Number(capital)])
+) as Record<CapitalType, Capital>;
+
+export function capitalToCapitalType(capital: Capital): CapitalType {
+  return CAPITAL_TYPE_BY_CAPITAL[capital];
+}
+
+export function capitalTypeToCapital(capitalType: CapitalType): Capital {
+  return CAPITAL_BY_CAPITAL_TYPE[capitalType];
+}
 
 // =============================================================================
 // Metrics

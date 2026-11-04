@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:0d94235fb75dc2ee6d98c6d42a41e49adbdfceecda9407c61a5f8e7f08105b4c"
+source_digest: "sha256:33337e3f16b3dc3dcb1e0dd9ab9e8965a231d85f9af4c69692021305b2498661"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -114,11 +114,11 @@ Eight Forms of Capital used to tag actions and assessments by the kind of value 
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel for unmapped on-chain values — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Capital</code> | <code>SOCIAL=0, MATERIAL=1, FINANCIAL=2, LIVING=3, INTELLECTUAL=4, EXPERIENTIAL=5, SPIRITUAL=6, CULTURAL=7</code> |  |
-| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Ordered deliberately: the union is declared here in canonical machine order because index-based bridges between Capital and CapitalType lists are a live bug risk. The current file deviates (living-first presentational order) — baselined until reordered or a mapping function lands. |
+| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Declared in the Capital enum's order. Consumers store the words, never positions; convert only through capitalToCapitalType and capitalTypeToCapital. |
 
 - **Mapping `capital-enum-to-capital-type`** (shared-enum → capital-type; explicit; total; bijective): SOCIAL → social, MATERIAL → material, FINANCIAL → financial, LIVING → living, INTELLECTUAL → intellectual, EXPERIENTIAL → experiential, SPIRITUAL → spiritual, CULTURAL → cultural.
-  - Code anchor: none — no runtime mapping function exists yet.
-  - No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn.
+  - Code anchor: `packages/shared/src/types/hypercerts.ts`
+  - capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. packages/shared/src/__tests__/types/domain-enums.test.ts checks both directions against these pairs.
 
 ### `domain`
 
@@ -252,9 +252,17 @@ Canonical display status for work items across the UI — protocol states plus c
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | shared-union | shared | <code>packages/shared/src/types/domain.ts · WorkDisplayStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> |  |
-| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent five-value list (failed instead of sync_failed; missing uploading/offline) — baselined. |
-| offline-work-item | shared | <code>packages/shared/src/types/offline.ts · OfflineWorkItem.status</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent four-value list — baselined pending status-union consolidation. |
-| hypercert-sync-status | shared | <code>packages/shared/src/hooks/hypercerts/useHypercerts.ts · HypercertSyncStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation. |
+| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected</code> | The decided subset of the canonical union, declared in code as Extract&lt;WorkDisplayStatus, "approved" \| "rejected"&gt;: every review read from the attestation history has decided its work, so pending and the upload and sync states never apply to it. |
+
+### `hypercert-sync-status`
+
+How far a newly minted hypercert has caught up with the indexer; not the hypercert's lifecycle status (hypercert-status). It shares the word syncing with the work display status but not its meaning: it tracks a hypercert's indexing, not a work's upload or review.
+
+**Canonical members:** synced · syncing · optimistic · failed
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| shared-union | shared | <code>packages/shared/src/hooks/hypercerts/useHypercerts.ts · HypercertSyncStatus</code> | <code>synced, syncing, optimistic, failed</code> |  |
 
 ### `cynefin-phase`
 
@@ -984,7 +992,6 @@ Use `maturity.availability` and the returned evidence before making a release cl
 
 ## Known Issues
 
-- **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
 - **`community-surface-token`** — The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim. _(`docs/docs/reference/glossary.generated.mdx`, `packages/shared/src/ontology/green-goods-ontology.json`)_
 
 ## Deliberately excluded from v1

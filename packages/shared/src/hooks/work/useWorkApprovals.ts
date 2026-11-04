@@ -7,14 +7,15 @@ import { getWorksByUIDs, parseWorkApprovalAttestation } from "../../modules/data
 import { easStoredAddress } from "../../modules/data/eas-read-validation";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
-import { type Address, type WorkApproval } from "../../types/domain";
+import { type Address, type WorkApproval, type WorkDisplayStatus } from "../../types/domain";
 import { STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { workApprovalsKeys } from "../../config/query-keys/work";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
   type: "work_approval";
-  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+  /** Every review read from the attestation history has decided its work. */
+  status: Extract<WorkDisplayStatus, "approved" | "rejected">;
   size: number;
   gardenName?: string;
   // Add missing properties that UI expects
@@ -145,14 +146,9 @@ export function useWorkApprovals(attesterAddress?: Address) {
 
   return {
     approvals: sortedApprovals,
-    pendingApprovals: sortedApprovals.filter((a) =>
-      ["pending", "syncing", "failed"].includes(a.status)
-    ),
-    completedApprovals: sortedApprovals.filter((a) => ["approved", "rejected"].includes(a.status)),
+    completedApprovals: sortedApprovals,
     approvedCount: sortedApprovals.filter((a) => a.status === "approved").length,
     rejectedCount: sortedApprovals.filter((a) => a.status === "rejected").length,
-    pendingCount: sortedApprovals.filter((a) => ["pending", "syncing", "failed"].includes(a.status))
-      .length,
     isLoading: onlineApprovalsQuery.isLoading,
     isFetching: onlineApprovalsQuery.isFetching,
     /** When the review history last read successfully; 0 before the first read. */
