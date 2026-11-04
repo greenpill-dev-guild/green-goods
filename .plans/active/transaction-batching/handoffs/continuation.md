@@ -52,6 +52,56 @@ Pool setup on passkeys (slice 6) is on `feature/batch-pool-setup`, built on stag
 
 Still open for add members, and all of it needs the user's approval to broadcast: recheck `grantRoles` live on Arbitrum, list the rails, and prove one live batch on each, which confirms the ceilings.
 
+## State on 2026-11-04
+
+Every rail in the proof brief is listed with live evidence on Arbitrum, or stopped for an observed reason. The user pressed every send and approved every prompt, and each proof is labelled authenticated Brave. The full records are private and stay out of the repository.
+
+| Rail | Listed in | Proof | Signatures, today → after |
+|---|---|---|---|
+| Garden settings, legacy passkey | #1425 `504be1d82`, 2 Nov 03:57Z | Beta, 2 Nov: three fields in one prompt. A declined prompt sent nothing and kept the draft. A tab closed mid-send recovered as confirmed when the dialog reopened | 3 → 1 |
+| Pool setup, legacy passkey | #1428 `3ceaadf51`, 2 Nov 05:48Z | Beta, 2 Nov: Edit Pool's agreement and limit in one prompt | 2 → 1 |
+| Add members, legacy passkey | #1431 `cd0d1219e`, 2 Nov 06:34Z | Beta, 2 Nov: two people in one prompt | 2 → 1 |
+| Add members, `contract-call` wallet | #1432 `90dd887c9`, 2 Nov 06:46Z | Local build with the entry uncommitted, 2 Nov: one person, one confirmation | 1 per person → 1 per group |
+| Bulk reviews, legacy passkey | #1433 `702b5bec9`, 2 Nov 06:54Z | Beta, 2 Nov: groups of two and three, one prompt each | 1 per review → 1 per group |
+| Bulk reviews, `contract-call` wallet | #1434 `fc060504e`, 2 Nov 22:59Z | Local build, 2 Nov: two decisions in one confirmation | 2 → 1 |
+| Vault and jar deposits, `sequential` wallet, DAI | #1450 `437c7001e`, 3 Nov 07:36Z | Local build, 3 Nov: 1 wei to each. On the jar a declined deposit step sent nothing, and the next press took one signature | 2 → 2, now held by the journal |
+| Vault and jar deposits, legacy passkey, DAI | #1451 `bfaf31f4b`, 3 Nov 07:59Z | Beta, 3 Nov: 1 wei to each, one sponsored prompt | 2 → 1 |
+| Every action, `eip-5792` wallet | Not listed | Stopped: the only wallet available for the proof answers `wallet_getCapabilities` with -32601 | |
+
+Each merge ran `git merge-tree --write-tree origin/develop <head>` first, then `gh pr merge <n> --merge --match-head-commit <head>`, and the landed tree matched the prediction.
+
+The proof found these fixes, each merged on its own:
+
+- #1426 (`aae8046c5`): three gaps in the review batch.
+- #1429 (`e2aa1df21`): member starts are reported before the send.
+- #1435 (`b967f1e58`): the already-decided check reads the resolver instead of EAS. Send to prompt for one approval went from 14.5–23.7 s to 6.0 s.
+- #1444 (`178af9b92`): a wallet without `wallet_getCapabilities` reads as unable to batch instead of unknown, so a listed wallet deposit no longer stops.
+- #1446 (`b75dfc620`): a read keyed with a bigint no longer turns a landed deposit into "Transaction failed".
+- #1448 (`5d8b7d321`): the logger serializes bigints.
+- #1462 (`460dc6b62`): garden settings caches the wallet's own capability answer, the shape the deposit form shares.
+
+Slices 7–12 merged with their rails unlisted, so a rail changes nothing until its own live proof lists it: #1461 (`bc5ad7aa3`) slice 7, #1464 (`07bdd33e2`) slice 8, #1463 (`737ad9cb6`) slice 9, #1460 (`df7d9587e`) slice 10 and #1466 (`086d47df6`) slice 12. Each PR body says what reaches everyone on merge. Passkeys now send creations and reward edits one copy at a time, Karma reconcile asks for 50% gas headroom, and the action edit orders its window by what the chain holds.
+
+Not yet proven:
+
+- a wallet review group larger than two, and a member group of several people on a wallet
+- a pool's first run, and the opening of a seeded season
+- a send that also deploys the account
+- the settings banner
+- an unknown outcome on a deposit
+- any deposit asset but DAI
+- the `kernel-0.3.3-pilot` profile
+
+Open findings and where each goes:
+
+- **Progress copy.** A single change on a passkey reads "1 change · 1 wallet confirmation". The review bar holds "Signature 1 of 1" through the whole wait. Both go to the copy PR, wording discussed first.
+- **Review ceiling.** The passkey review ceiling has been 20M gas since #1449, above Alto's 16M default. Check Pimlico's limit before a five-decision passkey group.
+- **Hub layout.** The Hub hides a loaded list when the works read fails. The batch bar overlaps the queue's last row. For about 0.4 s after a send, every card reads Pending. These go to PRD-1344.
+- **Quote timing.** The quote round runs twice before a passkey prompt (0.6 s), and the bundler's gas price call took 4.3 s. This goes to PRD-1344.
+- **Flaky test.** `scripts/harness/agent-hooks.test.mjs:58` races an early exit (EPIPE), and a rerun passed.
+
+Next: prove and list slices 7–10 and 12 one rail at a time (checkpoint 12.2), then slice 11.
+
 ## Start here
 
 1. Start with [publication.md](publication.md) for the isolated `develop` base, implementation commit, and current proof. Confirm the PR head, clean working tree, and validation status. The original 35 unpublished parent commits were excluded from this branch.

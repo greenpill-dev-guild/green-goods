@@ -695,6 +695,14 @@
       "status": "tdd_recorded",
       "branch": "feature/batch-staged-reviews",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-04T05:16:59.277Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "chore/batching-proof-closeout",
+      "note": "Live proof closeout: slices 1–6 listed on Arbitrum with evidence, the eip-5792 wallet rail stopped; slices 7–10 and 12 merged unlisted; QA cases updated and ADM-198 added."
     }
   ],
   "execution_sub_lanes": {
