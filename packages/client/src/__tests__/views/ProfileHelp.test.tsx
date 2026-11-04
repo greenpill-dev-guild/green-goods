@@ -40,7 +40,7 @@ describe("ProfileHelp", () => {
     expect(screen.getByTestId("faq-content-photoStorage")).toBeInTheDocument();
 
     // Account/app-management + declined-work topics render
-    expect(screen.getByTestId("faq-content-profileName")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-profilePicture")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-changeLanguage")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-switchingAccounts")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-workDeclined")).toBeInTheDocument();

@@ -60,7 +60,7 @@ export function ServiceAssets() {
                 density="condensed"
                 value={selection}
                 onChange={(e) => setSelection(e.target.value)}
-                // Under the sentence on a phone under 390px, as Username's act is.
+                // Under the sentence on a phone under 390px.
                 className="w-[120px] shrink-0 sm:w-[140px] @max-[358px]:w-full @max-[358px]:basis-full"
               >
                 <option value="">{text("chooseShort")}</option>

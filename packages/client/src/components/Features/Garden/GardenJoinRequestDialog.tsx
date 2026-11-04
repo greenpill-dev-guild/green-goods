@@ -21,11 +21,9 @@ import { RiCloseCircleLine, RiRefreshLine, RiSendPlaneLine } from "@remixicon/re
 import { GardenJoinRequestStatus } from "./GardenJoinRequestStatus";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
 
 export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Address }) {
   const { formatMessage } = useIntl();
-  const navigate = useNavigate();
   const formId = useId();
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -71,12 +69,12 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const ensName = useEnsName(join.accountAddress);
   // While a lookup that outranks the name in hand is still running, the name can
   // change, so nothing is shown or sent until it settles. This reads `isFetching`,
-  // not `isLoading`: a cached empty answer refetching in the background (claiming a
-  // username invalidates these keys) would otherwise look settled and let a request
-  // go out under a lower-priority name. A lookup that fails falls through to the next
-  // name and finally to the display-name field, which is what every account was asked
-  // before: a name service being down must not block a request, and the request is
-  // tied to the account's address either way.
+  // not `isLoading`: a cached empty answer refetching in the background would
+  // otherwise look settled and let a request go out under a lower-priority name. A
+  // lookup that fails falls through to the next name and finally to the display-name
+  // field, which is what every account was asked before: a name service being down
+  // must not block a request, and the request is tied to the account's address
+  // either way.
   const isResolvingName = greenGoodsName.isFetching || (!greenGoodsName.data && ensName.isFetching);
   const accountName = isResolvingName
     ? null
@@ -214,7 +212,8 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
     );
   }
   const requestState = join.request?.state;
-  const actions: SheetActionsProps =
+  // A welcomed request leaves nothing to act on; the dialog's close button ends it.
+  const actions: SheetActionsProps | undefined =
     requestState === "pending"
       ? {
           primary: {
@@ -247,18 +246,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           },
         }
       : requestState === "welcomed"
-        ? {
-            primary: {
-              label: formatMessage({
-                id: "app.garden.joinRequest.claimUsername",
-                defaultMessage: "Claim a Username",
-              }),
-              onClick: () => {
-                setOpen(false);
-                navigate("/profile");
-              },
-            },
-          }
+        ? undefined
         : {
             primary: {
               label: actionLabel(
