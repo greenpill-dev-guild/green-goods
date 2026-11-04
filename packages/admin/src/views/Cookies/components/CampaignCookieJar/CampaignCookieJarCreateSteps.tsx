@@ -59,8 +59,8 @@ export function campaignCreateSteps(formatMessage: IntlShape["formatMessage"]): 
 }
 
 function CampaignCreateNotices({ form }: { form: CampaignCookieJarCreateFormProps }) {
-  const { formatMessage, moduleConfigured, isDeployer, roleLoading } = form;
-  if (moduleConfigured && (isDeployer || roleLoading)) return null;
+  const { formatMessage, moduleConfigured, isProtocolTeam, roleLoading } = form;
+  if (moduleConfigured && (isProtocolTeam || roleLoading)) return null;
   return (
     <AdminCard variant="outlined" className="space-y-2 type-meta text-text-sub">
       {!moduleConfigured ? (
@@ -71,12 +71,12 @@ function CampaignCreateNotices({ form }: { form: CampaignCookieJarCreateFormProp
           })}
         </p>
       ) : null}
-      {!isDeployer && !roleLoading ? (
+      {!isProtocolTeam && !roleLoading ? (
         <p>
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
-              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
+              "This surface is for the Green Goods team. Connect a team account to create jars, or the jar owner to sync an existing jar.",
           })}
         </p>
       ) : null}

@@ -66,7 +66,7 @@ export function useProtocolFundingOperationsController(input: {
   const { chainId, protocolGarden, targetGarden } = input;
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
-  const { isDeployer } = useRole();
+  const { isProtocolTeam } = useRole();
   const sourceQuery = usePoolFunding(
     { chainId, garden: protocolGarden ?? ZERO_ADDRESS },
     { enabled: Boolean(protocolGarden) }
@@ -80,7 +80,7 @@ export function useProtocolFundingOperationsController(input: {
     account: viewer,
     protocolGarden,
     executorGarden: protocolGarden,
-    isDeployer,
+    isProtocolTeam,
   });
   const mutation = useSettlementMutation({ chainId });
   const [lastAct, setLastAct] = useState<SettlementActStatus | null>(null);

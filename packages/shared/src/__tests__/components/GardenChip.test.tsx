@@ -30,6 +30,8 @@ import { GardenChip } from "../../components/Canvas/GardenChip";
 
 const GARDEN_A = { id: "0x1111", name: "Wildflower Meadow" };
 const GARDEN_B = { id: "0x2222", name: "Urban Composting" };
+/** The menu loads on the first press, which can take over a second on a busy machine. */
+const MENU_LOAD = { timeout: 5000 };
 
 describe("GardenChip", () => {
   const user = userEvent.setup();
@@ -108,7 +110,7 @@ describe("GardenChip", () => {
     // Should see both garden names and "Create Garden"; there is no all-gardens mode.
     // "Wildflower Meadow" appears in both the trigger chip and the dropdown list. The menu's
     // code arrives with the first press, so the list is awaited.
-    expect(await screen.findByText("Urban Composting")).toBeTruthy();
+    expect(await screen.findByText("Urban Composting", {}, MENU_LOAD)).toBeTruthy();
     expect(screen.queryByText("All Gardens")).toBeNull();
     expect(screen.getAllByText("Wildflower Meadow").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Create Garden")).toBeTruthy();
@@ -126,7 +128,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    await screen.findByText("Urban Composting");
+    await screen.findByText("Urban Composting", {}, MENU_LOAD);
     expect(screen.queryByText("All Gardens")).toBeNull();
     expect(onSelectGarden).not.toHaveBeenCalled();
   });
@@ -143,7 +145,9 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    const gardenBBtn = (await screen.findByText("Urban Composting")).closest("button")!;
+    const gardenBBtn = (await screen.findByText("Urban Composting", {}, MENU_LOAD)).closest(
+      "button"
+    )!;
     await user.click(gardenBBtn);
 
     expect(onSelectGarden).toHaveBeenCalledWith(GARDEN_B);
@@ -162,7 +166,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    const createBtn = (await screen.findByText("Create Garden")).closest("button")!;
+    const createBtn = (await screen.findByText("Create Garden", {}, MENU_LOAD)).closest("button")!;
     await user.click(createBtn);
 
     expect(onCreateGarden).toHaveBeenCalledOnce();
@@ -179,7 +183,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    await screen.findByText("Urban Composting");
+    await screen.findByText("Urban Composting", {}, MENU_LOAD);
     expect(screen.queryByText("Create Garden")).toBeNull();
   });
 
@@ -197,7 +201,7 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    await screen.findByText("Urban Composting");
+    await screen.findByText("Urban Composting", {}, MENU_LOAD);
     expect(screen.queryByText("Create Garden")).toBeNull();
     expect(onCreateGarden).not.toHaveBeenCalled();
   });
@@ -332,7 +336,7 @@ describe("GardenChip", () => {
 
     const menuOnScreen = () =>
       document.querySelector<HTMLElement>("[data-component='GardenChip'][data-slot='menu']");
-    await waitFor(() => expect(menuOnScreen()).toBeTruthy());
+    await waitFor(() => expect(menuOnScreen()).toBeTruthy(), MENU_LOAD);
     const menu = menuOnScreen();
     expect(menu?.style.width).toBe("max-content");
     expect(menu?.style.maxWidth).toBe("calc(100vw - 2rem)");

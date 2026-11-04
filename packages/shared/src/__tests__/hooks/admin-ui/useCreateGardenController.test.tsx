@@ -14,6 +14,8 @@ import { createTestWrapper } from "../../test-utils/render-helpers";
 const ACCOUNT = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
 const mockCreateGarden = vi.hoisted(() => vi.fn());
 const mockToastError = vi.hoisted(() => vi.fn());
+const mockReadCreatedGarden = vi.hoisted(() => vi.fn());
+const mockReadSlugAvailability = vi.hoisted(() => vi.fn());
 const draft = vi.hoisted(() => ({
   draftKey: "garden-draft",
   loadDraft: async () => null,
@@ -33,7 +35,11 @@ vi.mock("../../../hooks/garden/useGardenDraft", () => ({ useGardenDraft: () => d
 vi.mock("../../../modules/garden/create-garden-command", () => ({
   createGarden: mockCreateGarden,
   createDefaultCreateGardenPorts: () => ({}),
-  estimateGardenCreation: vi.fn(),
+  estimateGardenCreation: vi.fn(async () => ({})),
+  readCreatedGardenAddress: mockReadCreatedGarden,
+}));
+vi.mock("../../../hooks/ens/useSlugAvailability", () => ({
+  readSlugAvailability: mockReadSlugAvailability,
 }));
 vi.mock("../../../components/Toast/toast.service", () => ({
   toastService: { error: mockToastError, success: vi.fn(), info: vi.fn() },
@@ -73,6 +79,7 @@ describe("Create Garden one-page submission", () => {
     onlineManager.setOnline(true);
     // Pause at the transaction boundary, before any wallet or chain interaction.
     mockCreateGarden.mockImplementation(() => new Promise(() => {}));
+    mockReadSlugAvailability.mockResolvedValue(true);
   });
   afterEach(cleanup);
 
@@ -123,5 +130,71 @@ describe("Create Garden one-page submission", () => {
     });
     await waitFor(() => expect(mockCreateGarden).toHaveBeenCalledOnce());
     expect(result.current.isSubmitting).toBe(true);
+  });
+
+  it("holds a name someone else took instead of minting a garden without it", async () => {
+    mockReadSlugAvailability.mockResolvedValue(false);
+    const { result } = renderController();
+    act(fillGarden);
+
+    await act(() => result.current.handleSubmit());
+
+    expect(mockCreateGarden).not.toHaveBeenCalled();
+    expect(mockToastError).toHaveBeenCalledOnce();
+  });
+
+  it("does not hold the garden back when the name cannot be checked", async () => {
+    mockReadSlugAvailability.mockRejectedValue(new Error("RPC unavailable"));
+    const { result } = renderController();
+    act(fillGarden);
+
+    await act(() => result.current.handleSubmit());
+
+    await waitFor(() => expect(mockCreateGarden).toHaveBeenCalledOnce());
+  });
+
+  it("waits for an address typed in a team field and never added", async () => {
+    const { result } = renderController();
+    act(() => {
+      fillGarden();
+      useCreateGardenStore.getState().setHasUnaddedMember(true);
+    });
+
+    await act(() => result.current.handleSubmit());
+
+    expect(mockCreateGarden).not.toHaveBeenCalled();
+    expect(mockToastError).toHaveBeenCalledOnce();
+  });
+
+  it("asks before discarding what someone entered", async () => {
+    const { result } = renderController();
+    act(fillGarden);
+
+    act(() => result.current.handleCancel());
+    expect(result.current.discardPromptOpen).toBe(true);
+    expect(useCreateGardenStore.getState().form.name).toBe("Test Garden");
+
+    act(() => result.current.discardDraft());
+    expect(useCreateGardenStore.getState().form.name).toBe("");
+  });
+
+  it("lands its creator on the new garden, named by the receipt", async () => {
+    const garden = "0x4444444444444444444444444444444444444444";
+    mockCreateGarden.mockResolvedValue({ hash: "0xabc", sponsored: false });
+    mockReadCreatedGarden.mockResolvedValue(garden);
+    const { result } = renderController();
+    act(fillGarden);
+
+    await act(() => result.current.handleSubmit());
+
+    const scope = `11155111:${ACCOUNT.toLowerCase()}`;
+    await waitFor(() =>
+      expect(useAdminStore.getState().createdGardensByScope[scope]).toEqual({
+        id: garden,
+        name: "Test Garden",
+      })
+    );
+    expect(useAdminStore.getState().lastGardenIdsByScope[scope]).toBe(garden);
+    expect(useCreateGardenStore.getState().form.name).toBe("");
   });
 });

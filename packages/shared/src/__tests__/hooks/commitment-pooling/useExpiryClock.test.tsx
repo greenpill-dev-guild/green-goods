@@ -23,6 +23,8 @@ vi.mock("@wagmi/core", async (importOriginal) => ({
 }));
 
 const CHAIN_ID = 11155111;
+/** The chain clock's reader loads on its first read, which can take over a second when busy. */
+const CHAIN_READ = { timeout: 5000 };
 const cycleEndTimes = new Map<string, bigint | null>();
 const live = (dueDate: bigint) => ({
   onchainState: "ACCEPTED" as const,
@@ -102,7 +104,7 @@ describe("useExpiryClock", () => {
 
     // On the device's clock alone it is already half an hour past due.
     expect(dueAt(commitments, result.current)).toHaveLength(1);
-    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)));
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)), CHAIN_READ);
     expect(dueAt(commitments, result.current)).toHaveLength(0);
     expect(mocks.getBlock).toHaveBeenCalledExactlyOnceWith({}, { chainId: CHAIN_ID });
 
@@ -131,7 +133,7 @@ describe("useExpiryClock", () => {
       }),
       { wrapper: providers({ wallet: true }) }
     );
-    await vi.waitFor(() => expect(result.current.now).toBe(BigInt(chainNow)));
+    await vi.waitFor(() => expect(result.current.now).toBe(BigInt(chainNow)), CHAIN_READ);
 
     await act(async () => vi.advanceTimersByTimeAsync(2_000));
     expect(result.current.now).toBe(BigInt(chainNow + 2));
@@ -152,14 +154,14 @@ describe("useExpiryClock", () => {
       () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes }),
       { wrapper: providers({ wallet: true }) }
     );
-    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)));
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)), CHAIN_READ);
 
     // The device's clock is corrected to the chain's while the app is away.
     vi.setSystemTime(chainNow * 1000 + 60_000);
     mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow + 60) });
     act(() => window.dispatchEvent(new Event("focus")));
-    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow + 60)));
+    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2), CHAIN_READ);
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow + 60)), CHAIN_READ);
     expect(dueAt(commitments, result.current)).toHaveLength(0);
   });
 
@@ -177,15 +179,15 @@ describe("useExpiryClock", () => {
     const wrapper = providers({ wallet: true, client });
     const clock = () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes });
     const first = renderHook(clock, { wrapper });
-    await vi.waitFor(() => expect(first.result.current).toBe(BigInt(chainNow)));
+    await vi.waitFor(() => expect(first.result.current).toBe(BigInt(chainNow)), CHAIN_READ);
     first.unmount();
 
     // Corrected while no clock surface is open, well inside the offset's 30 minutes.
     vi.setSystemTime(chainNow * 1000 + 60_000);
     mocks.getBlock.mockResolvedValue({ timestamp: BigInt(chainNow + 60) });
     const second = renderHook(clock, { wrapper });
-    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => expect(second.result.current).toBe(BigInt(chainNow + 60)));
+    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(2), CHAIN_READ);
+    await vi.waitFor(() => expect(second.result.current).toBe(BigInt(chainNow + 60)), CHAIN_READ);
   });
 
   // A failed read keeps TanStack's last answer, and that offset would carry the old skew onto a
@@ -201,7 +203,7 @@ describe("useExpiryClock", () => {
       () => useExpiryClock({ chainId: CHAIN_ID, commitments, cycleEndTimes }),
       { wrapper: providers({ wallet: true }) }
     );
-    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)));
+    await vi.waitFor(() => expect(result.current).toBe(BigInt(chainNow)), CHAIN_READ);
 
     // The device's clock is corrected while the app is away, and the RPC fails on return.
     vi.setSystemTime(chainNow * 1000 + 60_000);
@@ -209,8 +211,11 @@ describe("useExpiryClock", () => {
     act(() => window.dispatchEvent(new Event("focus")));
     // The read and its one retry, a second apart.
     await act(async () => vi.advanceTimersByTimeAsync(1_000));
-    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(3));
-    await vi.waitFor(() => expect(result.current).toBeGreaterThanOrEqual(BigInt(chainNow + 60)));
+    await vi.waitFor(() => expect(mocks.getBlock).toHaveBeenCalledTimes(3), CHAIN_READ);
+    await vi.waitFor(
+      () => expect(result.current).toBeGreaterThanOrEqual(BigInt(chainNow + 60)),
+      CHAIN_READ
+    );
     expect(result.current).toBeLessThan(BigInt(chainNow + 70));
     expect(dueAt(commitments, result.current)).toHaveLength(0);
   });

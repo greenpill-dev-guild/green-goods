@@ -78,6 +78,7 @@ function makeGarden(
 function defaultRole() {
   return {
     role: "user" as const,
+    isProtocolTeam: false,
     stewardGardens: [] as Array<{ id: string; name: string }>,
     loading: false,
     gardensError: false,
@@ -94,7 +95,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockGetNetworkConfig.mockReturnValue({});
     mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
-      selector({ lastGardenIdsByScope: {} })
+      selector({ lastGardenIdsByScope: {}, createdGardensByScope: {} })
     );
   });
 
@@ -133,6 +134,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({
+        createdGardensByScope: {},
         lastGardenIdsByScope: {
           "11155111:0x1111111111111111111111111111111111111111": "garden-b",
         },
@@ -162,6 +164,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({
+        createdGardensByScope: {},
         lastGardenIdsByScope: {
           "11155111:0x1111111111111111111111111111111111111111": BETA_CHECKSUMMED,
         },
@@ -192,9 +195,9 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.scopeKey).toBe("11155111:0x1111111111111111111111111111111111111111");
   });
 
-  it("adds the protocol garden for a deployer without a role there, so its campaign jars stay reachable (DL-046)", () => {
+  it("adds the protocol garden for a team member without a role there, so its campaign jars stay reachable (DL-046)", () => {
     const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
-    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", isProtocolTeam: true });
     mockGetNetworkConfig.mockReturnValue({
       rootGarden: { address: "0xF401F34378384713222D1D21F63359CC4E8A858A", tokenId: 0 },
     });
@@ -213,9 +216,12 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([root, "garden-z"]);
   });
 
-  it("does not add the protocol garden for anyone but a deployer", () => {
+  it.each([
+    "steward",
+    "deployer",
+  ] as const)("does not add the protocol garden for a %s outside the team", (role) => {
     const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
-    mockUseRole.mockReturnValue({ ...defaultRole(), role: "steward" });
+    mockUseRole.mockReturnValue({ ...defaultRole(), role });
     mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: root, tokenId: 0 } });
     mockUseGardens.mockReturnValue({
       data: [makeGarden(root, "Green Goods Community Garden")],
@@ -226,16 +232,17 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.eligibleGardens).toEqual([]);
+    expect(result.current.canCreateGarden).toBe(role === "deployer");
   });
 
   describe("a chain past the base list's newest 50 gardens (PRD-988)", () => {
     const ROOT = "0xF401F34378384713222D1D21F63359CC4E8A858A";
     const ZETA = makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] });
-    // The newest 50 hold the deployer's own garden but not the chain's first, the protocol garden.
+    // The newest 50 hold the team member's own garden but not the chain's first, the protocol garden.
     const listWithoutRoot = { data: [ZETA], isFetched: true, isError: false };
 
     beforeEach(() => {
-      mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
+      mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", isProtocolTeam: true });
       mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: ROOT, tokenId: 0 } });
       mockUseGardens.mockReturnValue(listWithoutRoot);
     });
@@ -343,6 +350,21 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
 
     expect(result.current.eligibleGardens).toEqual([]);
     expect(result.current.scopeKey).toBeNull();
+  });
+
+  it("selects a garden its creator just minted before the indexer lists it", () => {
+    const scope = "11155111:0x1111111111111111111111111111111111111111";
+    mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
+      selector({
+        lastGardenIdsByScope: { [scope]: "0xNewGarden" },
+        createdGardensByScope: { [scope]: { id: "0xNewGarden", name: "New Garden" } },
+      })
+    );
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.resolvedDefaultGarden?.name).toBe("New Garden");
+    expect(result.current.hasStaleBaseList).toBe(true);
   });
 
   it("merges role-confirmed steward gardens missing from the base list (stale or errored base list)", () => {

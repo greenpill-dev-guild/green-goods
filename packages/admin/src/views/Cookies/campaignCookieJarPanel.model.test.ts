@@ -166,7 +166,7 @@ describe("campaign cookie jar admin model", () => {
       hasValidClaimConfig: true,
       allowlistCount: 1,
       invalidAddressCount: 0,
-      isDeployer: true,
+      isProtocolTeam: true,
       metadataUrlsValid: true,
     };
 

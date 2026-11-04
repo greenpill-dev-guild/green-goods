@@ -110,7 +110,7 @@ test.describe("Admin Production Flows CI", () => {
     await expect(page.getByRole("heading", { name: "Create Garden", exact: true })).toBeVisible({
       timeout: 30000,
     });
-    await page.getByRole("button", { name: "Deploy Garden", exact: true }).click();
+    await page.getByRole("button", { name: "Create Garden", exact: true }).click();
     await expect(page.getByText("Garden name is required", { exact: true })).toBeVisible();
     await expect(page.getByText("Description is required", { exact: true })).toBeVisible();
     // A deliberately short name keeps the generated slug invalid: this scenario proves
@@ -125,6 +125,10 @@ test.describe("Admin Production Flows CI", () => {
       contentType: "image/png",
     });
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    // The draft has content now, so cancelling asks before throwing it away.
+    const discard = page.getByRole("alertdialog", { name: "Discard this garden?" });
+    await expect(discard).toBeVisible();
+    await discard.getByRole("button", { name: "Discard", exact: true }).click();
     await expect(page).toHaveURL(/\/garden(?:\?|$)/);
     await expect(page.getByRole("heading", { name: "Create Garden", exact: true })).toBeHidden();
     await expect(page.getByText(MOCK_GARDEN.name, { exact: true }).first()).toBeVisible({
