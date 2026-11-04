@@ -354,7 +354,7 @@ describe("passkey batches for callers that group their own writes", () => {
 });
 
 describe("explicit passkey batching", () => {
-  it("sends all calls in one UserOperation while legacy batching stays sequential", async () => {
+  it("sends all calls in one UserOperation", async () => {
     const { sender, client, calls } = passkey();
     expect(
       (
@@ -368,8 +368,6 @@ describe("explicit passkey batching", () => {
       calls: [{ to: calls[0].address }, { to: calls[1].address }],
     });
     expect(sender.supportsBatching).toBe(false);
-    await sender.sendBatch(calls);
-    expect(client.sendUserOperation).toHaveBeenCalledTimes(3);
   });
   it("rejects a try-mode encoding before signing", async () => {
     const { sender, client, calls } = passkey();

@@ -193,10 +193,9 @@ export { useAccessibleCookieJars } from "./cookie-jar/useAccessibleCookieJars";
 export {
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
+  useCampaignCookieJarSync,
   useCampaignCookieJarWithdraw,
   useCreateCampaignCookieJar,
-  useSyncCampaignCookieJarAllowlist,
-  useUpdateCampaignCookieJarMetadata,
 } from "./cookie-jar/useCampaignCookieJar";
 export { useCampaignCookieJarCampaigns } from "./cookie-jar/useCampaignCookieJarCampaigns";
 export {

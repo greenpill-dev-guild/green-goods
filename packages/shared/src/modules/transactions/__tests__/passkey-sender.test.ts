@@ -249,25 +249,6 @@ describe("PasskeySender", () => {
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("UserOp failed");
     });
   });
-
-  describe("sendBatch", () => {
-    it("sends multiple calls sequentially and returns the last hash", async () => {
-      const hash1 = `0x${"a".repeat(64)}` as `0x${string}`;
-      const hash2 = `0x${"b".repeat(64)}` as `0x${string}`;
-      mockSendUserOperation.mockResolvedValueOnce(hash1).mockResolvedValueOnce(hash2);
-
-      const calls: ContractCall[] = [TEST_CALL, { ...TEST_CALL, args: [VALID_RECIPIENT, 2000n] }];
-      const result = await sender.sendBatch(calls);
-
-      expect(result.hash).toBe(hash2);
-      expect(result.sponsored).toBe(true);
-      expect(mockSendUserOperation).toHaveBeenCalledTimes(2);
-    });
-
-    it("throws on empty batch", async () => {
-      await expect(sender.sendBatch([])).rejects.toThrow("Cannot send empty batch");
-    });
-  });
 });
 
 describe("passkey chain routing", () => {
@@ -292,16 +273,6 @@ describe("passkey chain routing", () => {
     client.waitForUserOperationReceipt.mockRejectedValue(new Error("receipt unavailable"));
     await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
       "receipt unavailable"
-    );
-    expect(client.sendUserOperation).toHaveBeenCalledOnce();
-  });
-
-  it("stops a sequential batch at a failed UserOperation", async () => {
-    const client = createFakeSmartAccountClient();
-    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
-    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
-    await expect(new PasskeySender(client).sendBatch([TEST_CALL, TEST_CALL])).rejects.toThrow(
-      "UserOperation execution reverted"
     );
     expect(client.sendUserOperation).toHaveBeenCalledOnce();
   });

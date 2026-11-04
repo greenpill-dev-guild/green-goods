@@ -7,7 +7,7 @@ import "fake-indexeddb/auto";
 import { act, waitFor } from "@testing-library/react";
 import { toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { gardensKeys } from "../../../config/query-keys/garden";
+import { batchKeys, gardensKeys } from "../../../config/query-keys/garden";
 import type { GardenSettingsChange } from "../../../modules/garden/settings-batch";
 import type { BatchCapability, BatchExecution } from "../../../modules/transactions/batch-types";
 import type { Address } from "../../../types/domain";
@@ -76,15 +76,26 @@ const landing = () =>
 
 function renderBatch(
   execution: Partial<BatchExecution> = {},
-  atomic: BatchCapability["atomic"] = "supported"
+  atomic: BatchCapability["atomic"] = "supported",
+  {
+    authMode = "passkey",
+    cached,
+  }: { authMode?: "passkey" | "wallet"; cached?: BatchCapability["atomic"] } = {}
 ) {
   const account: Address = toHex(crypto.getRandomValues(new Uint8Array(20)));
   const gardenAddress: Address = toHex(crypto.getRandomValues(new Uint8Array(20)));
   const sender = createFakeBatchingSender(account, execution);
+  Object.assign(sender, { authMode });
   sender.getBatchCapability = vi.fn(async (scope) => ({ ...scope, atomic }));
   auth.primaryAddress = account;
   sending.sender = sender;
   const queryClient = createTestQueryClient();
+  if (cached) {
+    // Another screen asked this wallet first, and the app keeps the answer fresh for five minutes.
+    const key = batchKeys.capability(account, 42161, "first-wallet");
+    queryClient.setQueryDefaults(key, { staleTime: 5 * 60_000, gcTime: Number.POSITIVE_INFINITY });
+    queryClient.setQueryData(key, cached);
+  }
   const invalidate = vi.spyOn(queryClient, "invalidateQueries");
   const { result, rerender } = renderHookWithProviders(
     () => useGardenSettingsBatch(gardenAddress),
@@ -144,6 +155,18 @@ describe("useGardenSettingsBatch", () => {
 
     await waitFor(() => expect(result.current.available).toBe(true));
     expect(sender.getBatchCapability).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads a no that the deposit form cached for this wallet as a no", async () => {
+    // Both ask under one key, so whichever asks first answers for the other.
+    const { result, sender } = renderBatch({}, "unsupported", {
+      authMode: "wallet",
+      cached: "unsupported",
+    });
+    await waitFor(() => expect(result.current.isSettlingHold).toBe(false));
+
+    expect(sender.getBatchCapability).not.toHaveBeenCalled();
+    expect(result.current.available).toBe(false);
   });
 
   it("refreshes the garden after a save lands", async () => {

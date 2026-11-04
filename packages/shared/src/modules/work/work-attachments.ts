@@ -2,6 +2,7 @@ import type { ApproximateWorkLocation } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
 import { withoutPhotoMetadata } from "../media/image-metadata";
+import { withoutVideoMetadata } from "../media/video-metadata";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -29,18 +30,22 @@ export class PendingHeicConversionError extends Error {
 
 /**
  * A photo that cannot lose its metadata, because neither the byte-level
- * rewrite nor a canvas can read it, so it is never published. Queued work holds
- * it, named, as needing attention, the way a HEIC photo that will not convert
- * is held; a proof ends on it.
+ * rewrite nor a canvas can read it, or a video whose container cannot be read
+ * in full, so it is never published. Queued work holds it, named, as needing
+ * attention, the way a HEIC photo that will not convert is held; a proof ends
+ * on it.
  */
 export class UnpublishablePhotoError extends InvalidWorkAttachmentError {
-  /** The photo's file name. */
+  /** The photo's file name, or the video's. */
   readonly photo: string;
+  /** The file is a video, which the person is told about as one. */
+  readonly video: boolean;
 
-  constructor(photo: string) {
+  constructor(photo: string, { video = false }: { video?: boolean } = {}) {
     super("photo-unreadable");
     this.name = "UnpublishablePhotoError";
     this.photo = photo;
+    this.video = video;
   }
 }
 
@@ -63,6 +68,8 @@ const HEIC_TYPES = new Set([
 ]);
 const HEIC_EXTENSIONS = new Set(["heic", "heif"]);
 const MIB = 1024 * 1024;
+/** The largest video a work takes. */
+export const WORK_VIDEO_MAX_BYTES = 20 * MIB;
 const identities = new WeakMap<
   File,
   Promise<{ id: string; contentHash: string; fileData: SerializedFileData }>
@@ -152,15 +159,18 @@ export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): bool
 
 /**
  * An attachment as it may be pinned. A photo loses its location and camera
- * metadata, and one that cannot lose it is refused rather than published as it
- * was picked: IPFS and the attestation cannot be withdrawn. A video is
- * published as it was picked, since removing a video container's metadata needs
- * a parser this does not have.
+ * metadata and a video its location, device and capture time, and one that
+ * cannot lose them is refused rather than published as it was picked: IPFS and
+ * the attestation cannot be withdrawn. Audio is published as it was recorded.
  */
 export async function publishableWorkFile(file: File): Promise<File> {
-  if (!PHOTO_TYPES.has(file.type)) return file;
-  const published = await withoutPhotoMetadata(file);
-  if (!published) throw new UnpublishablePhotoError(file.name);
+  const video = !PHOTO_TYPES.has(file.type) && file.type.startsWith("video/");
+  const published = PHOTO_TYPES.has(file.type)
+    ? await withoutPhotoMetadata(file)
+    : video
+      ? await withoutVideoMetadata(file)
+      : file;
+  if (!published) throw new UnpublishablePhotoError(file.name, { video });
   return published;
 }
 
@@ -176,7 +186,9 @@ export function validateWorkAttachments(
   if (media.length > 10) errors.push("media-count");
   if (media.some((file) => !isPhoto(file) && !VIDEO_TYPES.has(file.type)))
     errors.push("media-type");
-  if (media.some((file) => file.size > (VIDEO_TYPES.has(file.type) ? 20 : 10) * MIB))
+  if (
+    media.some((file) => file.size > (VIDEO_TYPES.has(file.type) ? WORK_VIDEO_MAX_BYTES : 10 * MIB))
+  )
     errors.push("media-size");
   if (audio.some((file) => !file.type.startsWith("audio/"))) errors.push("audio-type");
   if ([...media, ...audio].some((file) => file.size === 0)) errors.push("empty-media");
@@ -186,7 +198,7 @@ export function validateWorkAttachments(
 }
 
 export async function validateWorkVideo(file: File): Promise<boolean> {
-  if (!VIDEO_TYPES.has(file.type) || file.size > 20 * MIB) return false;
+  if (!VIDEO_TYPES.has(file.type) || file.size > WORK_VIDEO_MAX_BYTES) return false;
   return new Promise((resolve) => {
     const video = document.createElement("video");
     const url = URL.createObjectURL(file);
