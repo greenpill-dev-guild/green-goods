@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-11-01T06:51:29.707Z"
+    "updated_at": "2026-11-04T17:44:07.487Z"
   },
   "links": {
     "brief": "brief.md",
@@ -711,6 +711,14 @@
       "status": "in_progress",
       "branch": "chore/batching-proof-record-two",
       "note": "Second listing (#1478): reward edits and creations proven on beta; proof-and-send listed, proof pending; four rails stay unlisted with reasons."
+    },
+    {
+      "timestamp": "2026-11-04T17:44:07.487Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "chore/batching-proof-record-two",
+      "note": "Sub-lanes 7–10 and 12 marked in progress: all five merged; 7 proven and listed, 12 listed with its proof pending, 8–10 unlisted."
     }
   ],
   "execution_sub_lanes": {
@@ -773,7 +781,7 @@
     "phase_7_creations_rewards": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["phase_6_pool_writes"],
       "handoff": "handoffs/ui.md"
@@ -781,7 +789,7 @@
     "phase_8_karma_marketplace": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["phase_2_settings"],
       "handoff": "handoffs/ui.md"
@@ -789,7 +797,7 @@
     "phase_9_campaign_jar": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["phase_2_settings"],
       "handoff": "handoffs/ui.md"
@@ -797,7 +805,7 @@
     "phase_10_action_edit": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["phase_2_settings"],
       "handoff": "handoffs/ui.md"
@@ -813,7 +821,7 @@
     "phase_12_add_and_send_proof": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["phase_7_creations_rewards"],
       "handoff": "handoffs/ui.md"

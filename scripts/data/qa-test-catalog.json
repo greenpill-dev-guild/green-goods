@@ -7228,7 +7228,7 @@
         "Read the wizard, press Back to Review, and read the review and the pool tab",
         "Press Seed This Commitment again and confirm in the wallet"
       ],
-      "expected": "After the rejection the wizard stays open and says nothing was created and the commitment was not sent ('Nothing was created. Your wallet declined the request.'), offering Back to Review and Try Again; Back to Review returns to the review with every answer intact; no queued row appears on the pool tab; the second press sends it, and exactly one commitment with that title appears",
+      "expected": "After the rejection the wizard stays open and says nothing was created and the commitment was not sent ('Nothing was created', then 'Your wallet declined the request.'), offering Back to Review and Try Again; Back to Review returns to the review with every answer intact; no queued row appears on the pool tab; the second press sends it, and exactly one commitment with that title appears",
       "evidence": "Screenshots of the review after the rejection and of the list afterwards",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -10492,18 +10492,19 @@
       "area": "Garden · Pool",
       "scenario": "Edit a group's reward: one prompt per promise on a plain wallet, one request on a legacy passkey",
       "preconditions": [
-        "Steward with manage rights on a pool with a group of at least two available promises, none of them kept",
+        "Steward with manage rights on a pool with a group of exactly two available promises, none of them kept",
         "A plain wallet, and a legacy passkey on Arbitrum"
       ],
       "steps": [
         "Open the group and press Edit Reward",
         "Type a new amount and read the summary and the wallet note",
-        "With the plain wallet, press Change 2 Rewards and confirm each prompt",
+        "With the plain wallet, press Change 2 Rewards, confirm the first prompt and decline the second",
+        "Press Try Again (1), confirm, and read the group",
         "With the passkey, set another amount, press Change 2 Rewards and decline the prompt",
         "Press it again and approve, then read the group"
       ],
-      "expected": "Edit Reward is offered until one of the group is kept. The summary names the available promises with the old and new amounts, and anyone who already took one keeps theirs. A plain wallet asks once per promise ('Confirm in your wallet (1 of 2)'), and declining one leaves only that one as it was. On the passkey the note reads 'Your wallet will ask you once, for all 2' and the prompt asks for '2 rewards in one request'; a declined prompt changes nothing ('Nothing was changed. Your wallet declined the request.'), and an approved one changes both together. The group then shows the new reward.",
-      "evidence": "Screenshots of the summary and note, the declined state, and the group's new reward",
+      "expected": "Edit Reward is offered until one of the group is kept. The summary names the available promises with the old and new amounts, and anyone who already took one keeps theirs. A plain wallet asks once per promise ('Confirm in your wallet (1 of 2)'). Declining the second prompt leaves only that promise as it was: the dialog reads '1 changed · 1 didn't change', and Try Again (1) changes only that one, to the same amount. On the passkey the note reads 'Your wallet will ask you once, for all 2' and the prompt asks for '2 rewards in one request'. A declined prompt changes nothing ('Nothing was changed', then 'Your wallet declined the request.'), and an approved one changes both together. The group then shows the new reward.",
+      "evidence": "Screenshots of the summary and note, the partial and declined states, and the group's new reward",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "tx"],
       "requiresProduction": false,

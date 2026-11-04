@@ -122,7 +122,7 @@ Each run was one sponsored UserOperation, and the screen said "Your wallet will 
 
 Found on the way: while the creation prompt was open, the pool list behind the dialog already showed the new promises, then rearranged once they landed (PRD-1396). For about 200 ms around each press, the dialog shows the one-promise line before the line for both; that goes to the copy PR.
 
-Next: prove `proof-and-send` once the proving passkey has taken up a promise, then slice 11.
+Next: prove `proof-and-send` once the proving passkey has taken up a promise, and before `develop` is next released (or take it off the list), then slice 11.
 
 ## Start here
 
