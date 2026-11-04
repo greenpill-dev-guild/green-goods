@@ -11,7 +11,7 @@ import {
   type WorkApprovalDraft,
 } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, mocked, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import { daysAgo, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
@@ -285,5 +285,33 @@ export const LongWaiting: Story = {
       work("w-old-2", "Cleared 40kg of debris", 45, 2, 1),
       work("w-old-3", "Led composting workshop", 200, 3, 0),
     ],
+  },
+};
+
+/**
+ * A garden with more work than the newest page holds: the list says so under its
+ * rows and reads the next page on request (PRD-1086).
+ */
+export const WithOlderWork: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    items: PENDING_WORK,
+    worksLoading: false,
+    hasDataError: false,
+    older: { onShowOlder: fn(), isLoading: false },
+  },
+  play: async ({ args, canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Show Older Work" }));
+    await expect(args.older?.onShowOlder).toHaveBeenCalledTimes(1);
+  },
+};
+
+/** Nothing pending in the newest page is not "All caught up" while older work is unread. */
+export const NothingPendingInRecentWork: Story = {
+  args: {
+    items: [],
+    worksLoading: false,
+    hasDataError: false,
+    older: { onShowOlder: fn(), isLoading: false },
   },
 };

@@ -164,7 +164,7 @@ const GARDEN_HYPERCERTS_QUERY = /* GraphQL */ `
   query GardenHypercerts($gardenId: String!, $chainId: Int!, $limit: Int!,
     $excludedRecords: [Hypercert_bool_exp!]!, $metadataStates: [Boolean!]!) {
     Hypercert(
-      where: { garden: { _eq: $gardenId }, chainId: { _eq: $chainId },
+      where: { garden: { _eq: $gardenId }, chainId: { _eq: $chainId }, metadataUri: { _neq: "" },
         metadataReconciliationRequired: { _in: $metadataStates },
         _not: { _or: $excludedRecords }
       }
