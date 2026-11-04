@@ -251,6 +251,9 @@ function HubWorkQueueList({
             id: "cockpit.hub.error.description",
             defaultMessage: "Refresh the workspace and try again.",
           })}
+          // Any failed work read replaces the list, so a page of older work
+          // that failed to load is asked for again from here.
+          action={older ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined}
         />
       </EmptyStateShell>
     );

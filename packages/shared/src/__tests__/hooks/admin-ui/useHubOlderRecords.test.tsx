@@ -9,6 +9,11 @@ import { useHubOlderRecords } from "../../../hooks/admin-ui/hub/useHubOlderRecor
 import type { GardenListPages } from "../../../types/garden-detail";
 
 const PAGE = 50;
+
+interface PendingRead {
+  land: () => void;
+  fail: () => void;
+}
 const connectivity = vi.hoisted(() => ({ online: true }));
 
 vi.mock("../../../hooks/app/useOnlineStatus", () => ({
@@ -19,9 +24,10 @@ vi.mock("../../../hooks/app/useOnlineStatus", () => ({
  * A garden's work read a page at a time, the way `useWorks` reads it: one row
  * past the window says there is more, a widened window shows nothing older
  * until its read lands, and a landed read carries a new read time. Each read
- * waits in `reads` until the test lands it.
+ * waits in `reads` until the test lands it or fails it; a failed read changes
+ * nothing but ending.
  */
-function usePagedWork(total: number, reads: Array<() => void>): GardenListPages {
+function usePagedWork(total: number, reads: PendingRead[]): GardenListPages {
   const [take, setTake] = useState(PAGE);
   const [read, setRead] = useState({ rows: Math.min(total, PAGE + 1), at: 1 });
   const [inFlight, setInFlight] = useState(false);
@@ -29,9 +35,12 @@ function usePagedWork(total: number, reads: Array<() => void>): GardenListPages 
     const widened = take + PAGE;
     setTake(widened);
     setInFlight(true);
-    reads.push(() => {
-      setRead((last) => ({ rows: Math.min(total, widened + 1), at: last.at + 1 }));
-      setInFlight(false);
+    reads.push({
+      land: () => {
+        setRead((last) => ({ rows: Math.min(total, widened + 1), at: last.at + 1 }));
+        setInFlight(false);
+      },
+      fail: () => setInFlight(false),
     });
   }, [reads, take, total]);
   return {
@@ -57,7 +66,7 @@ interface Props {
 }
 
 function renderHub(total: number, initial: Props, hypercertPages = OLDER_HYPERCERTS) {
-  const reads: Array<() => void> = [];
+  const reads: PendingRead[] = [];
   const asked = { pages: 0 };
   const view = renderHook(
     (props: Props) => {
@@ -73,8 +82,9 @@ function renderHub(total: number, initial: Props, hypercertPages = OLDER_HYPERCE
     },
     { initialProps: initial }
   );
-  const landNextRead = () => act(() => reads.shift()?.());
-  return { ...view, asked, landNextRead, pendingReads: () => reads.length };
+  const landNextRead = () => act(() => reads.shift()?.land());
+  const failNextRead = () => act(() => reads.shift()?.fail());
+  return { ...view, asked, landNextRead, failNextRead, pendingReads: () => reads.length };
 }
 
 describe("useHubOlderRecords", () => {
@@ -120,6 +130,17 @@ describe("useHubOlderRecords", () => {
     // 130 works fill the third page, so nothing is left to offer.
     expect(hub.asked.pages).toBe(2);
     expect(hub.result.current.olderWork).toBeUndefined();
+  });
+
+  it("keeps the button after its page fails to load, idle, to ask again", () => {
+    const hub = renderHub(130, { stage: "work", sortDirection: "newest", workReadable: true });
+
+    act(() => hub.result.current.olderWork?.onShowOlder());
+    hub.failNextRead();
+    expect(hub.result.current.olderWork?.isLoading).toBe(false);
+
+    act(() => hub.result.current.olderWork?.onShowOlder());
+    expect(hub.asked.pages).toBe(2);
   });
 
   // A failed or paused read never lands its page: reading on would hold the

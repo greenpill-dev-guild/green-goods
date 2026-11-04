@@ -288,14 +288,18 @@ describe("Hub lists with older records", () => {
   const renderQueue = (
     items: Work[],
     older: ReturnType<typeof olderPage>,
-    { scope = "pending", search = "" }: { scope?: "pending" | "approved"; search?: string } = {}
+    {
+      scope = "pending",
+      search = "",
+      failed = false,
+    }: { scope?: "pending" | "approved"; search?: string; failed?: boolean } = {}
   ) =>
     renderWithIntl(
       <HubWorkQueue
         items={items}
         scope={scope}
         worksLoading={false}
-        hasDataError={false}
+        hasDataError={failed}
         normalizedSearch={search}
         debouncedSearch={search}
         actionsMap={new Map()}
@@ -315,6 +319,17 @@ describe("Hub lists with older records", () => {
     const older = olderPage();
     renderQueue([TEST_WORK], older);
 
+    fireEvent.click(screen.getByRole("button", { name: "Show Older Work" }));
+    expect(older.onShowOlder).toHaveBeenCalledTimes(1);
+  });
+
+  // A failed read replaces the whole list, so the page that failed is asked
+  // for again from the failure itself.
+  it("asks for older work again from a failed read", () => {
+    const older = olderPage();
+    renderQueue([TEST_WORK], older, { failed: true });
+
+    expect(screen.getByText("Hub data could not be loaded")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show Older Work" }));
     expect(older.onShowOlder).toHaveBeenCalledTimes(1);
   });
