@@ -13,6 +13,9 @@ export const hypercertsKeys = {
     ] as const,
   list: (gardenId?: string, chainId?: number, status?: string) =>
     ["greengoods", "hypercerts", "list", gardenId, chainId, status] as const,
+  /** How many of a garden's newest hypercerts its list reads; every observer shares it. */
+  window: (gardenId?: string, chainId?: number) =>
+    ["greengoods", "hypercerts", "window", gardenId, chainId] as const,
   detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,
   drafts: (gardenId?: string, stewardAddress?: string) =>
     ["greengoods", "hypercerts", "drafts", gardenId, stewardAddress] as const,

@@ -1,3 +1,4 @@
+import type { EnhancedWorkApproval } from "@green-goods/shared/hooks/work/useWorkApprovals";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { compareAddresses, ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
 
@@ -35,7 +36,7 @@ interface CompletedApproval {
   media?: string[];
   feedback?: string;
   createdAt: number;
-  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+  status: EnhancedWorkApproval["status"];
 }
 
 /** Shape of a received approval from fetchApprovalsByRecipients. */
@@ -62,20 +63,18 @@ function isConcreteGardenAddress(address: Address | undefined): address is Addre
  * Convert completed approvals (reviewed by you) to Work shape for MinimalWorkCard.
  */
 export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[] {
-  return approvals
-    .filter((approval) => ["approved", "rejected"].includes(approval.status))
-    .map((approval) => ({
-      id: approval.workUID,
-      title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
-      actionUID: toActionUID(approval.actionUID),
-      gardenerAddress: approval.gardenerAddress,
-      gardenAddress: approval.gardenId ?? ZERO_ADDRESS,
-      feedback: approval.feedback || "",
-      metadata: "",
-      media: approval.media ?? [],
-      createdAt: approval.createdAt,
-      status: approval.status as "approved" | "rejected" | "pending",
-    }));
+  return approvals.map((approval) => ({
+    id: approval.workUID,
+    title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
+    actionUID: toActionUID(approval.actionUID),
+    gardenerAddress: approval.gardenerAddress,
+    gardenAddress: approval.gardenId ?? ZERO_ADDRESS,
+    feedback: approval.feedback || "",
+    metadata: "",
+    media: approval.media ?? [],
+    createdAt: approval.createdAt,
+    status: approval.status,
+  }));
 }
 
 /**
