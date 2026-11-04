@@ -743,24 +743,23 @@ describe("Home journal", () => {
       expect(promises.recorded.opener).toBe(card);
     });
 
-    // DL-162: the last open cycle leaves What's Open the second it ends, with the section; a
-    // details sheet open on it stays, and turns to Ended, rather than vanishing with its card.
-    it("keeps a cycle's open details when that cycle ends and the section goes", async () => {
+    // DL-162: the last open cycle leaves What's Open, and Take Part's lines, the second it ends;
+    // a details sheet open on it stays, and turns to Ended, rather than vanishing with its entry.
+    it.each([
+      ["What's Open", () => <HighlightsCarousel gardenId={GARDEN} />],
+      ["Take Part's cycle lines", () => <TakePart gardenId={GARDEN} withCycleLines />],
+    ])("keeps a cycle's open details in %s as that cycle ends and leaves", async (_view, view) => {
       mocks.cycles.mockReturnValue(
         cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
       );
       const user = userEvent.setup();
-      const { rerender } = render(<HighlightsCarousel gardenId={GARDEN} />);
+      const { rerender } = render(view());
       await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
       const sheet = await screen.findByRole("dialog");
 
       mocks.cycles.mockReturnValue(cycles({ state: { status: "empty" } }));
-      rerender(
-        <MemoryRouter>
-          <HighlightsCarousel gardenId={GARDEN} />
-        </MemoryRouter>
-      );
-      expect(screen.queryByRole("heading", { name: "What's Open" })).toBeNull();
+      rerender(<MemoryRouter>{view()}</MemoryRouter>);
+      expect(screen.queryByRole("button", { name: /Autumn Planting 2026/ })).toBeNull();
       expect(screen.getByRole("dialog")).toBe(sheet);
     });
 
