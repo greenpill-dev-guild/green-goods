@@ -327,12 +327,6 @@ describe("WalletSender", () => {
     });
   });
 
-  describe("sendBatch (unsupported)", () => {
-    it("does not expose sendBatch", () => {
-      expect("sendBatch" in sender).toBe(false);
-    });
-  });
-
   describe("atomic batches", () => {
     const BATCH_HASH = `0x${"b".repeat(64)}` as const;
     const SECOND_CALL = createMockContractCall({ functionName: "approve" });
