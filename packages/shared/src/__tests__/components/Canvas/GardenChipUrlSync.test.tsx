@@ -14,6 +14,9 @@ import { useGardenUrlSync } from "../../../hooks/navigation/useGardenUrlSync";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
+/** The menu loads on the first press, which can take over a second on a busy machine. */
+const MENU_LOAD = { timeout: 5000 };
+
 const TEST_GARDENS: Garden[] = [
   {
     id: "0x1111111111111111111111111111111111111111",
@@ -134,7 +137,7 @@ describe("GardenChip + useGardenUrlSync integration", () => {
     expect(trigger).toHaveAttribute("data-slot", "trigger");
 
     await user.click(trigger);
-    await user.click(await screen.findByRole("button", { name: "Garden Two" }));
+    await user.click(await screen.findByRole("button", { name: "Garden Two" }, MENU_LOAD));
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /garden two/i })).toBeInTheDocument();

@@ -1,6 +1,5 @@
 import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { ToolbarSlot } from "../../../components/Canvas";
-import type { UserRole } from "../../gardener/useRole";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 
 export type AdminPrimaryWorkspaceId = "hub" | "garden" | "community" | "actions";
@@ -14,7 +13,6 @@ export interface AdminWorkspaceViewDefinition {
   rootPath: string;
   href: string;
   permission: AdminWorkspacePermission;
-  commandRoles?: UserRole[];
 }
 
 export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
@@ -53,7 +51,6 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
     rootPath: "/actions",
     href: adminRoutes.actions(),
     permission: "showActions",
-    commandRoles: ["deployer"],
   },
 ];
 
@@ -63,7 +60,7 @@ const ADMIN_TEAM_COMMAND_ROUTES = [
     labelId: "cockpit.community.cookies.title",
     defaultLabel: "Campaign Cookie Jars",
     href: adminRoutes.cookies(),
-    roles: ["deployer"] as UserRole[],
+    permission: "showActions" as AdminWorkspacePermission,
   },
 ];
 
@@ -73,7 +70,6 @@ export const ADMIN_COMMAND_ROUTES = [
     labelId: view.labelId,
     defaultLabel: view.label,
     href: view.href,
-    roles: view.commandRoles,
     permission: view.permission,
   })),
   ...ADMIN_TEAM_COMMAND_ROUTES,

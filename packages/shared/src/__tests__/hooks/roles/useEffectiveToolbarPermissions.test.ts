@@ -70,7 +70,7 @@ function setupDefaults(
     eligibleGardensLoaded?: boolean;
     eligibleGardensError?: boolean;
     hasStaleBaseList?: boolean;
-    isDeployer?: boolean;
+    isProtocolTeam?: boolean;
     isSteward?: boolean;
     gardens?: ReturnType<typeof makeGarden>[];
   } = {}
@@ -82,7 +82,7 @@ function setupDefaults(
     eligibleGardensLoaded = true,
     eligibleGardensError = false,
     hasStaleBaseList = false,
-    isDeployer = false,
+    isProtocolTeam = false,
     isSteward = false,
     gardens = [],
   } = overrides;
@@ -93,7 +93,7 @@ function setupDefaults(
       selector({ selectedGarden })
   );
   mockUseRole.mockReturnValue({
-    isDeployer,
+    isProtocolTeam,
     isSteward,
     loading: roleLoading,
   });
@@ -170,7 +170,7 @@ describe("useEffectiveToolbarPermissions", () => {
       stewards: [ADDR_USER],
     });
 
-    setupDefaults({ gardens: [gardenA], isDeployer: true });
+    setupDefaults({ gardens: [gardenA], isProtocolTeam: true });
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 

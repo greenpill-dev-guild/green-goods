@@ -65,7 +65,7 @@ describe("settlement authority and action separation", () => {
         isProtocolSteward: false,
         isExecutorSteward: false,
         isDispatcher: false,
-        isDeployer: false,
+        isProtocolTeam: false,
       },
       expected: {
         canQueueFunding: true,
@@ -81,7 +81,7 @@ describe("settlement authority and action separation", () => {
         isProtocolSteward: true,
         isExecutorSteward: false,
         isDispatcher: false,
-        isDeployer: false,
+        isProtocolTeam: false,
       },
       expected: {
         canQueueFunding: true,
@@ -97,7 +97,7 @@ describe("settlement authority and action separation", () => {
         isProtocolSteward: false,
         isExecutorSteward: false,
         isDispatcher: true,
-        isDeployer: false,
+        isProtocolTeam: false,
       },
       expected: {
         canQueueFunding: false,
@@ -113,7 +113,7 @@ describe("settlement authority and action separation", () => {
         isProtocolSteward: false,
         isExecutorSteward: true,
         isDispatcher: false,
-        isDeployer: false,
+        isProtocolTeam: false,
       },
       expected: {
         canQueueFunding: false,
@@ -129,7 +129,7 @@ describe("settlement authority and action separation", () => {
         isProtocolSteward: false,
         isExecutorSteward: false,
         isDispatcher: false,
-        isDeployer: true,
+        isProtocolTeam: true,
       },
       expected: {
         canQueueFunding: false,
@@ -150,7 +150,7 @@ describe("settlement authority and action separation", () => {
         isProtocolSteward: true,
         isExecutorSteward: true,
         isDispatcher: true,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     ).toEqual({
       canQueueFunding: false,

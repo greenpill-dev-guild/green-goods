@@ -1,4 +1,5 @@
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
 import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
@@ -10,7 +11,7 @@ import { DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
 import { suggestSlug, validateSlug } from "@green-goods/shared/utils/blockchain/ens";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
-import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "../../AdminFieldGroup";
@@ -95,10 +96,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           : null,
       slug:
         trimmedSlug.length === 0
-          ? formatMessage({
-              id: "app.garden.create.slugRequired",
-              defaultMessage: "ENS slug is required",
-            })
+          ? formatMessage({ id: "app.garden.create.slugRequired" })
           : slugValidation.valid
             ? null
             : slugValidation.error,
@@ -252,10 +250,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       </div>
       <AdminTextField
         id="create-garden-slug"
-        label={formatMessage({
-          id: "app.garden.create.ensSubdomainLabel",
-          defaultMessage: "ENS subdomain",
-        })}
+        label={formatMessage({ id: "app.garden.create.ensSubdomainLabel" })}
         required
         value={form.slug}
         onChange={(event) => {
@@ -291,10 +286,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         helperText={
           trimmedSlug
             ? `${trimmedSlug}.greengoods.eth`
-            : formatMessage({
-                id: "app.garden.create.ensHint",
-                defaultMessage: "This will be your garden's ENS name on greengoods.eth",
-              })
+            : formatMessage({ id: "app.garden.create.ensHint" })
         }
         inputProps={{
           className: "font-mono",
@@ -358,8 +350,18 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           </div>
         )}
         {form.bannerImage && !bannerFile && (
-          <div className="mt-2">
+          <div className="relative mt-2">
             <img src={form.bannerImage} alt="" className="h-24 w-full rounded-lg object-cover" />
+            <IconButton
+              className="absolute right-2 top-2"
+              emphasis="secondary"
+              tone="danger"
+              size="compact"
+              onClick={handleRemoveBanner}
+              aria-label={formatMessage({ id: "app.common.remove" })}
+              title={formatMessage({ id: "app.common.remove" })}
+              icon={<RiDeleteBinLine />}
+            />
           </div>
         )}
       </div>

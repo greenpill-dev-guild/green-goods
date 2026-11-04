@@ -11,6 +11,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OverviewTab } from "./OverviewTab";
 
+vi.mock("./GardenSetupCard", () => ({ GardenSetupPanel: () => null }));
 vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
   useActionsByUID: () => [
     { id: "42161-7", slug: "agro.harvest_yield", title: "Harvest & Yield Record", inputs: [] },
@@ -57,6 +58,8 @@ function renderOverview({
     <IntlProvider locale="pt" messages={pt}>
       <MemoryRouter>
         <OverviewTab
+          gardenId="0x1111111111111111111111111111111111111111"
+          canManage={false}
           mode="health"
           section={undefined}
           selectedItem={undefined}

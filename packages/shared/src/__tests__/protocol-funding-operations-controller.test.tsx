@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => PROTOCOL }));
 vi.mock("../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
-vi.mock("../hooks/gardener/useRole", () => ({ useRole: () => ({ isDeployer: false }) }));
+vi.mock("../hooks/gardener/useRole", () => ({ useRole: () => ({ isProtocolTeam: false }) }));
 vi.mock("../hooks/commitment-pooling/useSettlement", () => ({
   useSettlementOperationsCapabilities: () => mocks.capabilities,
   useSettlementMutation: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),

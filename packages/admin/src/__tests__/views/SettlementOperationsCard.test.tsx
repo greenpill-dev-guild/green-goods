@@ -27,7 +27,7 @@ describe("SettlementOperationsCard", () => {
       <SettlementOperationsCard
         operations={settlementOperationsControllerFixture({
           isSettlementOwner: false,
-          isDeployer: false,
+          isProtocolTeam: false,
           canConfigureDelivery: false,
           showControl: false,
         })}
@@ -41,7 +41,7 @@ describe("SettlementOperationsCard", () => {
       <SettlementOperationsCard
         operations={settlementOperationsControllerFixture({
           isSettlementOwner: false,
-          isDeployer: true,
+          isProtocolTeam: true,
           canConfigureDelivery: false,
           showControl: true,
           gardenerDeliveryEnabled: false,
