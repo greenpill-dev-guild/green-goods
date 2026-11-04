@@ -65,9 +65,7 @@ sb.mock(import("../src/hooks/conviction/useMemberVotingPower.ts"), { spy: true }
 sb.mock(import("../src/hooks/cookie-jar/useAccessibleCookieJars.ts"), { spy: true });
 sb.mock(import("../src/hooks/cookie-jar/useCookieJarWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/cookie-jar/useGardenCookieJars.ts"), { spy: true });
-sb.mock(import("../src/hooks/ens/useENSClaim.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useENSRegistrationStatus.ts"), { spy: true });
-sb.mock(import("../src/hooks/ens/useENSReleaseName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useGreenGoodsEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useProtocolMemberStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useSlugAvailability.ts"), { spy: true });

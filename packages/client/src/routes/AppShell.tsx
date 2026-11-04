@@ -12,7 +12,7 @@ import {
   useDashboardRestoration,
 } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
 import { InstallNudge } from "@/components/Communication/Offline/InstallNudge";
@@ -23,11 +23,10 @@ import { markArrivalPassed } from "@/views/Home/arrivalToast";
 
 const OfflineContentPreparation = lazy(() =>
   import("@/components/Communication/Offline/OfflineContentPreparation")
-    // Background preparation is optional, like the reminder below. It starts
-    // loading as the shell mounts, so a connection that drops before its chunk
-    // arrives (on demand in dev, or before the precache finishes) skips
-    // preparation for this visit instead of replacing the route with the error
-    // boundary.
+    // Background preparation is optional. It starts loading as the shell
+    // mounts, so a connection that drops before its chunk arrives (on demand in
+    // dev, or before the precache finishes) skips preparation for this visit
+    // instead of replacing the route with the error boundary.
     .catch((error: unknown) => {
       logger.warn("[AppShell] Offline content preparation did not load", {
         error: error instanceof Error ? error.message : String(error),
@@ -35,36 +34,6 @@ const OfflineContentPreparation = lazy(() =>
       return { default: () => null };
     })
 );
-
-const ENSClaimReminder = lazy(() =>
-  import("./ENSClaimReminder")
-    .then((module) => ({ default: module.ENSClaimReminder }))
-    // The reminder is an optional adjunct: failing to load it (typically while
-    // offline in dev, where chunks are served on demand) must not take down
-    // the route through the error boundary.
-    .catch(() => ({ default: () => null }))
-);
-
-function DeferredEnsClaimReminder() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const idleCallback =
-      window.requestIdleCallback ??
-      ((callback: IdleRequestCallback) => window.setTimeout(callback, 1_000));
-    const handle = idleCallback(() => setReady(true));
-    return () => {
-      if (window.cancelIdleCallback) window.cancelIdleCallback(handle);
-      else window.clearTimeout(handle);
-    };
-  }, []);
-
-  return ready ? (
-    <Suspense fallback={null}>
-      <ENSClaimReminder />
-    </Suspense>
-  ) : null;
-}
 
 export default function AppShell() {
   const { pathname } = useLocation();
@@ -105,7 +74,6 @@ export default function AppShell() {
       </Suspense>
       <PwaBadgeCoordinator />
       <WorkProvider>
-        <DeferredEnsClaimReminder />
         {/* Content scrolls inside #app-scroll, never the document. Android Chrome
             stretches everything on an overscrolled document, the fixed AppBar
             included; an inner scroller stretches only its own content. A pull
