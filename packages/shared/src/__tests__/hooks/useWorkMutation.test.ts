@@ -205,6 +205,7 @@ import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
 import { connectivityStore } from "../../stores/connectivity";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import {
   createMockAction,
   createMockFiles,
@@ -445,6 +446,50 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(result.current.lastSubmissionOutcome?.clientWorkId).not.toBe(first?.clientWorkId);
     expect(broadcast).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a recorded admin send awaiting when its check has no confirmed connection, and says so", async () => {
+    vi.mocked(submitWorkDirectly).mockImplementationOnce(
+      async (_draft, _garden, _action, _title, _chain, _images, options) => {
+        await options?.onBroadcast?.(MOCK_TX_HASH);
+        throw new AwaitingWorkConfirmation(MOCK_TX_HASH);
+      }
+    );
+    const { result } = renderHook(
+      () =>
+        useWorkMutation({
+          ...defaultOptions,
+          completeClientFlow: false,
+          allowOfflineQueue: false,
+          retainSubmission: true,
+        }),
+      { wrapper: createWrapper() }
+    );
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(result.current.lastSubmissionOutcome?.kind).toBe("awaiting-confirmation");
+
+    vi.mocked(toastService.info).mockClear();
+    const confirm = vi.spyOn(connectivityStore, "confirmOnline").mockResolvedValue(false);
+    try {
+      await act(async () => {
+        await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+      });
+    } finally {
+      confirm.mockRestore();
+    }
+    expect(result.current.lastSubmissionOutcome).toMatchObject({
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+    });
+    expect(toastService.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "app.work.awaitingConfirmation",
+        message: "app.work.confirmationUnchecked",
+      })
+    );
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(1);
   });
 
   it("clears the awaiting outcome when the same submission is confirmed reverted", async () => {
@@ -753,7 +798,7 @@ describe("hooks/work/useWorkMutation", () => {
             draft: createMockWorkDraft(),
             images: createMockFiles(1),
           })
-        ).rejects.toThrow("Offline queue is disabled");
+        ).rejects.toThrow(ConnectionNeededError);
       });
 
       expect(submitWorkToQueue).not.toHaveBeenCalled();

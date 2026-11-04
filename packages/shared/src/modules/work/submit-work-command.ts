@@ -1,7 +1,7 @@
-import { queuedOutcome, submitAdmittedWork } from "./admitted-submission";
+import { queuedOutcome, submitAdmittedWork, uncheckedOutcome } from "./admitted-submission";
 import { connectivityStore } from "../../stores/connectivity";
 import { jobQueueDB } from "../job-queue/db";
-import { createOfflineTxHash } from "../job-queue/queue-policy";
+import { createOfflineTxHash, hasRecordedSend } from "../job-queue/queue-policy";
 import {
   AwaitingWorkConfirmation,
   WorkTransactionReverted,
@@ -10,6 +10,7 @@ import {
 } from "./work-confirmation";
 export { isNetworkError } from "./work-confirmation";
 import { findActionByUID } from "../../utils/action/parsers";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { resolveKnownWorkTitle, resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { Action, Address, Work, WorkDraft, WorkUploadCheckpoint } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
@@ -17,7 +18,7 @@ import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { suspendUploadPreparation } from "./upload-preparation";
 import { type WalletSubmissionStage } from "./wallet-submission/types";
-import type { DraftWorkLink } from "../../types/job-queue";
+import type { DraftWorkLink, WorkJobPayload } from "../../types/job-queue";
 
 export interface SubmitWorkCommand {
   linkIntent?: DraftWorkLink | null;
@@ -42,7 +43,7 @@ export interface SubmitWorkCommand {
   draft: WorkDraft;
   images: File[];
   allowOfflineQueue: boolean;
-  /** Retain an online wallet send for confirmation recovery without offline fallback. */
+  /** Retain an online send for confirmation recovery without offline fallback. */
   retainSubmission?: boolean;
 }
 
@@ -70,6 +71,8 @@ export interface SubmitWorkPorts {
   queue: {
     /** Durable admission is required by the PWA runtime; injected legacy ports may omit it. */
     admit?: (input: ResolvedSubmitWorkCommand) => Promise<QueuedWorkSubmission>;
+    /** The retained work whose send is already on record and may still land; null otherwise. */
+    sendOnRecord?: (input: ResolvedSubmitWorkCommand) => Promise<QueuedWorkSubmission | null>;
     enqueue: (input: ResolvedSubmitWorkCommand) => Promise<QueuedWorkSubmission>;
     process: (
       jobId: string,
@@ -104,7 +107,10 @@ export type SubmitWorkOutcome =
       sponsored: boolean;
       jobId: string;
       clientWorkId: string;
-      /** The browser reported online, but the origin did not confirm it, so nothing was sent. */
+      /**
+       * The connection was not confirmed, so nothing went out now: queued work waits for it, and
+       * a send already on record waits for it to be checked.
+       */
       reason?: "connection-unconfirmed";
     }
   | {
@@ -175,11 +181,18 @@ export async function submitWork(
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
   if ((resolved.allowOfflineQueue || resolved.retainSubmission) && ports.queue.admit) {
-    if (
-      !resolved.allowOfflineQueue &&
-      (resolved.authMode !== "wallet" || !(await ports.connectivity.confirm()))
-    )
-      throw new Error("Offline queue is disabled for this submission surface");
+    // Without the offline queue nothing is admitted that cannot be sent now: a
+    // wallet signs its own send, and every other session needs the sender.
+    if (!resolved.allowOfflineQueue) {
+      if (resolved.authMode !== "wallet" && !ports.sender)
+        throw new Error("submission-sender-unavailable");
+      if (!(await ports.connectivity.confirm())) {
+        // A send already on record is only checked from here, so it stays awaiting.
+        const recorded = await ports.queue.sendOnRecord?.(resolved);
+        if (recorded) return uncheckedOutcome(recorded, ports.sender);
+        throw new ConnectionNeededError();
+      }
+    }
     return submitAdmittedWork(resolved, ports);
   }
   const online = await ports.connectivity.confirm();
@@ -224,9 +237,7 @@ export async function submitWork(
 
   if (resolved.authMode === "wallet") {
     if (!online) {
-      if (!resolved.allowOfflineQueue) {
-        throw new Error("Offline queue is disabled for this submission surface");
-      }
+      if (!resolved.allowOfflineQueue) throw new ConnectionNeededError();
       return queuedOutcome(await ports.queue.enqueue(resolved), ports.sender);
     }
 
@@ -253,9 +264,9 @@ export async function submitWork(
     }
   }
 
-  if (!resolved.allowOfflineQueue) {
-    throw new Error("Offline queue is disabled for this submission surface");
-  }
+  // Every other session sends through a queued job, which only admission (above)
+  // holds when the offline queue is off.
+  if (!resolved.allowOfflineQueue) throw new Error("submission-requires-admission");
 
   if (online) {
     await ports.simulate({
@@ -352,6 +363,26 @@ export function createDefaultSubmitWorkPorts(
           txHash: createOfflineTxHash(jobId),
           newlyAdmitted: job?.meta?.admissionToken === admissionToken,
         };
+      },
+      sendOnRecord: async (input) => {
+        const retained = (
+          await jobQueueDB.getJobs({ userAddress: input.userAddress, kind: "work", synced: false })
+        ).find(
+          (job) =>
+            job.chainId === input.chainId &&
+            (job.payload as WorkJobPayload).clientWorkId === input.clientWorkId
+        );
+        // A reverted send is settled, not awaiting.
+        const reverted =
+          retained?.meta?.workTransactionReverted ||
+          (retained?.payload as WorkJobPayload | undefined)?.uploadCheckpoint?.transactionReverted;
+        return retained && hasRecordedSend(retained) && !reverted
+          ? {
+              jobId: retained.id,
+              clientWorkId: input.clientWorkId,
+              txHash: createOfflineTxHash(retained.id),
+            }
+          : null;
       },
       enqueue: async (input) => {
         const { submitWorkToQueue } = await import("./work-submission");
