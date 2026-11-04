@@ -1,4 +1,5 @@
 import { type NormalizeWorkMediaOptions, normalizeWorkMediaFiles } from "./media-processing";
+import { WORK_VIDEO_MAX_BYTES } from "./work-attachments";
 import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import type { WorkablePromise } from "../commitment-pooling/work-link-intent";
 import { WorkTab } from "../../stores/workFlowTypes";
@@ -249,6 +250,7 @@ export function adjacentWorkSubmissionTab(tab: WorkTab, direction: "next" | "pre
   return WORK_SUBMISSION_TAB_ORDER[nextIndex] ?? tab;
 }
 
+/** The gardener's picked media, as the work takes it: a video over its limit is refused unread. */
 export async function prepareWorkSubmission(files: File[], options?: NormalizeWorkMediaOptions) {
-  return normalizeWorkMediaFiles(files, options);
+  return normalizeWorkMediaFiles(files, { ...options, maxVideoBytes: WORK_VIDEO_MAX_BYTES });
 }

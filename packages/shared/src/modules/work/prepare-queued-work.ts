@@ -69,6 +69,7 @@ export async function prepareQueuedJob(
       return record({
         status: "photo-needs-attention",
         photo: error.photo,
+        ...(error.video ? { video: true as const } : {}),
         checkedAt: checkedAt(),
       }).catch(() => "retry-later" as const);
     logger.warn("[UploadPreparation] Queued item will be prepared again later", {

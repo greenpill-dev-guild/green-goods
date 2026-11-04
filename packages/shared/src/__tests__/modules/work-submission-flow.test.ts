@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GARDENS_HIDDEN_EVERYWHERE } from "../../config/garden-visibility";
 import type {
   WorkablePromise,
@@ -17,8 +17,10 @@ import {
   startPromiseKind,
 } from "../../modules/work/submission-flow";
 import { WorkTab } from "../../stores/workFlowTypes";
+import { WORK_VIDEO_MAX_BYTES } from "../../modules/work/work-attachments";
 import { type Action, Domain } from "../../types/domain";
 import { cleanPhoto, photoFile } from "../test-utils/photo-fixtures";
+import { videoFile, videoVariants } from "../test-utils/video-fixtures";
 
 const ACTIVE = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const NAVIGATION = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -159,6 +161,19 @@ describe("work submission flow", () => {
 
     expect(result.accepted.map((item) => item.file)).toEqual([photo]);
     expect(result.rejected).toEqual([]);
+  });
+
+  it("refuses a video over the work limit before reading it, as too large", async () => {
+    const recording = videoFile(videoVariants()[0].recorded, "walk.mp4", "video/mp4");
+    // A long phone recording, without making one.
+    Object.defineProperty(recording, "size", { value: WORK_VIDEO_MAX_BYTES + 1 });
+    const read = vi.spyOn(recording, "arrayBuffer");
+
+    const result = await prepareWorkSubmission([recording]);
+
+    expect(result.accepted).toEqual([]);
+    expect(result.rejected).toEqual([expect.objectContaining({ reason: "too_large" })]);
+    expect(read).not.toHaveBeenCalled();
   });
 });
 
