@@ -82,8 +82,9 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
     isChecking,
     confirmWalletCancellation,
     isClearing,
-    pendingStep,
+    pendingSteps,
     pendingReference,
+    signatures,
     error,
   } = useMarketplaceApprovals();
 
@@ -193,12 +194,17 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             confirmLabel={formatMessage({ id: "app.account.confirmCancellation" })}
             target={
               <span>
-                {formatMessage({
-                  id:
-                    pendingStep === "exchangeApproved"
-                      ? "app.marketplace.grantExchange"
-                      : "app.marketplace.approveTransfer",
-                })}
+                {/* One send can carry both approvals, and then both are named. */}
+                {pendingSteps
+                  .map((step) =>
+                    formatMessage({
+                      id:
+                        step === "exchangeApproved"
+                          ? "app.marketplace.grantExchange"
+                          : "app.marketplace.approveTransfer",
+                    })
+                  )
+                  .join(", ")}
                 {pendingReference && (
                   <code className="ml-2 break-all type-meta">{pendingReference}</code>
                 )}
@@ -208,17 +214,24 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
           />
           {error && <p className="mt-3 type-meta text-error-base">{error.message}</p>}
 
-          <Button
-            size="sm"
-            type="button"
-            onClick={() => grantApprovals()}
-            disabled={isGranting || isPending}
-            loading={isGranting}
-            leadingIcon={<RiShieldCheckLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-            className="mt-4"
-          >
-            {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
-          </Button>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              type="button"
+              onClick={() => grantApprovals()}
+              disabled={isGranting || isPending}
+              loading={isGranting}
+              leadingIcon={<RiShieldCheckLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+            >
+              {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
+            </Button>
+            {/* How many prompts Approve All brings, said before the first. */}
+            {signatures !== null && !isPending ? (
+              <span className="type-meta text-text-soft">
+                {formatMessage({ id: "app.treasury.signatures" }, { count: signatures })}
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

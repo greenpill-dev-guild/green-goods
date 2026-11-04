@@ -53,7 +53,6 @@ export function createMockTransactionSender(
     supportsBatching = false,
     supportsSponsorship = authMode === "passkey",
     sendContractCall: sendContractCallOverride,
-    sendBatch,
     result = { hash: MOCK_TX_HASH, sponsored: supportsSponsorship },
     fail,
   } = options;
@@ -70,7 +69,6 @@ export function createMockTransactionSender(
     supportsBatching,
     supportsSponsorship,
     sendContractCall,
-    ...(sendBatch ? { sendBatch: vi.fn(sendBatch) } : {}),
   };
 }
 
