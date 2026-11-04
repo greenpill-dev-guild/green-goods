@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-23T22:19:58.286Z",
-    "updated_at": "2026-11-04T17:44:07.487Z"
+    "updated_at": "2026-11-04T19:08:59.052Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,9 +23,10 @@
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
+    "lastSyncedAt": "2026-11-04T19:08:59.052Z",
     "lanes": {},
-    "laneSyncMode": "parent_only"
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "engineering-quality",
@@ -719,6 +720,22 @@
       "status": "in_progress",
       "branch": "chore/batching-proof-record-two",
       "note": "Sub-lanes 7–10 and 12 marked in progress: all five merged; 7 proven and listed, 12 listed with its proof pending, 8–10 unlisted."
+    },
+    {
+      "timestamp": "2026-11-04T19:08:50.465Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": "chore/close-transaction-batching",
+      "note": "Closed as closed: slices 1–10 and 12 shipped in #1208 through #1481 (last merge beb4985bb); reward edits, creations and the slice 2–6 rails proven live; proof-and-send's proof, slice 11, four unlisted rails and the follow-ups moved to PRD-1399; PRD-1344 is Done."
+    },
+    {
+      "timestamp": "2026-11-04T19:08:59.052Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ],
   "execution_sub_lanes": {

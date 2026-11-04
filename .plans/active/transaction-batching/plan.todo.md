@@ -1,6 +1,6 @@
 # Transaction Batching and Recovery Plan
 
-**Feature:** `transaction-batching` · **Stage/status:** active; slices 7–10 and 12 await live proof
+**Feature:** `transaction-batching` · **Stage/status:** `CLOSED — shipped in #1208 through #1481; proof-and-send's live proof, the Octant checkout and the follow-ups moved to PRD-1399`
 **Created:** 2026-10-23 · **Updated:** 2026-11-04 · **Implementation:** Slices 1–6 proven live on Arbitrum and listed, except the `eip-5792` wallet rail, stopped because no available wallet reports atomic calls; slices 7–10 and 12 merged; their reward-edit and creation rails proven live and listed, proof-and-send listed with its proof pending; slice 11 not started
 
 Execute in the user's order: **shared batching and recovery → garden settings → adding members → deposits → bulk work approvals**, then the remaining actions in [the slice table](#slices). Each phase covers passkeys and wallets. [spec.md](spec.md) owns behavior; [eval.md](eval.md) owns acceptance evidence; [status.json](status.json) owns lane state.
@@ -256,3 +256,41 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 - No dependency installation, root-env change, contract deployment, branch change, external publication, or unrelated repair is implied.
 - Any contract/profile incompatibility, concurrency-rule change, or broader client UX requirement returns as explicit new scope.
 - Keep implementation status and TDD pending until the corresponding work and fresh receipts exist. Use [eval.md](eval.md) and lane handoffs for proof; documentation validation is not runtime proof.
+
+## Closeout (2026-11-04)
+
+Closed as `closed`. Shipped in #1208 through #1481; the last merged on 2026-11-04 as `beb4985bb`. Batching runs live on Arbitrum for these actions, each proven with the user signing:
+
+- garden settings, pool setup, add members and bulk reviews, on legacy passkeys and contract-call wallets
+- DAI vault and jar deposits, on legacy passkeys and sequential wallets
+- reward edits and creations, on legacy passkeys
+
+Closed rather than completed, because:
+
+- the lanes carry no clean-commit receipts
+- slice 11 never started
+- proof-and-send is listed without its live proof
+- the `eip-5792` wallet rail stopped, because no available wallet reports atomic calls
+
+Sub-lanes 8–10 are merged but blocked: each waits on something that doesn't exist on chain yet.
+
+Still open:
+
+- Proof-and-send's live proof on a legacy passkey, and its AC-19 measurement → PRD-1399, also noted on PRD-1054. If it's still unproven when a release is cut, it comes off the list first.
+- Slice 11, the Octant checkout → PRD-1399.
+- Action edit, campaign jar sync, marketplace approvals and Karma reconcile, unlisted until each can run as one live group → PRD-1399.
+- These proofs → PRD-1399:
+  - larger wallet groups for members and reviews
+  - a pool's first run and the opening of a seeded season
+  - a WETH deposit
+  - the `kernel-0.3.3-pilot` passkey and `eip-5792` wallet rails
+- These fixes → PRD-1399:
+  - the message when a whole group is refused
+  - the live-proof findings
+  - one hook for the capability read
+  - the plain-wallet action-edit resend
+  - the bundler gas check
+  - the copy items
+  - ADM-199's line about takers
+- The keyboard checks, completion times and the acceptance matrix in [eval.md](eval.md) → PRD-1399.
+- The pool list showing new promises before their signature is approved → PRD-1396.
