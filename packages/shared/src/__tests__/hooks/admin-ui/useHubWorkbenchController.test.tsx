@@ -1,26 +1,35 @@
-// TEST-QUALITY: allow-small-test-file - the stage redirect's route item is wiring only this controller owns.
+// TEST-QUALITY: allow-small-test-file - the stage redirect's route item and the older-work reading are wiring only this controller owns.
 import { render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useHubWorkbenchController } from "../../../hooks/admin-ui/hub/useHubWorkbenchController";
 
 const GARDEN = "0x1111111111111111111111111111111111111111";
 
-// The reader is an evaluator: no Work stage, so a link to it moves to Assessments.
+const pages = () => ({
+  hasOlder: false,
+  loadOlder: vi.fn(),
+  reread: vi.fn(),
+  isLoadingOlder: false,
+  readAt: 1,
+});
+// By default the reader is an evaluator: no Work stage, so a link to it moves to Assessments.
+const evaluatorGarden = () => ({
+  canManage: false,
+  canReview: true,
+  works: [],
+  workPages: pages(),
+  assessments: [],
+  hypercerts: [],
+  hypercertPages: pages(),
+  allocations: [],
+  gardenVaults: [],
+  roleMembers: {},
+});
+const detail = vi.hoisted(() => ({ current: {} as Record<string, unknown> }));
 vi.mock("../../../hooks/garden/useGardenDetailData", () => ({
-  useGardenDetailData: () => ({
-    canManage: false,
-    canReview: true,
-    works: [],
-    workPages: { hasOlder: false, loadOlder: () => {}, isLoadingOlder: false },
-    assessments: [],
-    hypercerts: [],
-    hypercertPages: { hasOlder: false, loadOlder: () => {}, isLoadingOlder: false },
-    allocations: [],
-    gardenVaults: [],
-    roleMembers: {},
-  }),
+  useGardenDetailData: () => detail.current,
 }));
 vi.mock("../../../hooks/garden/useAdminGardenWorkspaceSelection", () => ({
   useAdminGardenWorkspaceSelection: () => ({
@@ -59,8 +68,17 @@ vi.mock("../../../hooks/admin-ui/hub/useHubStageQueues", () => ({
 
 function Probe() {
   const hub = useHubWorkbenchController();
-  return <output data-testid="route-item">{hub.routeItem ?? "none"}</output>;
+  return (
+    <>
+      <output data-testid="route-item">{hub.routeItem ?? "none"}</output>
+      <output data-testid="reads-work-history">{String(hub.readsWorkHistory)}</output>
+    </>
+  );
 }
+
+beforeEach(() => {
+  detail.current = evaluatorGarden();
+});
 
 function renderAt(path: string) {
   const router = createMemoryRouter([{ path: "/hub/:stage", element: <Probe /> }], {
@@ -105,5 +123,24 @@ describe("useHubWorkbenchController: a create flow's route item (DL-140)", () =>
       expect(currentUrl(router)).toBe(`/hub/assess?gardenId=${GARDEN}&sort=newest`)
     );
     expect(screen.getByTestId("route-item")).toHaveTextContent("none");
+  });
+});
+
+// Oldest first reads a steward's whole work history before listing it, but a
+// failed read never lands its page: reading on would hide the tab's error.
+describe("useHubWorkbenchController: reading older work for Oldest first", () => {
+  it.each([
+    { read: "succeeds", worksError: null, reads: true },
+    { read: "fails", worksError: new Error("EAS unavailable"), reads: false },
+  ])("reads the history while the work read $read", async ({ worksError, reads }) => {
+    const workPages = { ...pages(), hasOlder: true };
+    detail.current = { ...evaluatorGarden(), canManage: true, workPages, worksError };
+
+    renderAt(`/hub/work?gardenId=${GARDEN}&sort=oldest`);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("reads-work-history")).toHaveTextContent(String(reads))
+    );
+    expect(workPages.loadOlder).toHaveBeenCalledTimes(reads ? 1 : 0);
   });
 });

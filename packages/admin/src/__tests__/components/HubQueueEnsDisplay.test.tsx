@@ -2,6 +2,7 @@
  * @vitest-environment happy-dom
  */
 
+import type { HubOlderRecords } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import enMessages from "@green-goods/shared/i18n/en.json";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -287,7 +288,7 @@ describe("Hub lists with older records", () => {
   const olderPage = () => ({ onShowOlder: vi.fn(), isLoading: false });
   const renderQueue = (
     items: Work[],
-    older: ReturnType<typeof olderPage>,
+    older: HubOlderRecords,
     {
       scope = "pending",
       search = "",
@@ -321,6 +322,13 @@ describe("Hub lists with older records", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show Older Work" }));
     expect(older.onShowOlder).toHaveBeenCalledTimes(1);
+  });
+
+  it("says older work isn't loaded where no page can be read, as offline, without a button", () => {
+    renderQueue([TEST_WORK], { isLoading: false });
+
+    expect(screen.getByText("Older work isn't loaded yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show Older Work" })).not.toBeInTheDocument();
   });
 
   // A failed read replaces the whole list, so the page that failed is asked

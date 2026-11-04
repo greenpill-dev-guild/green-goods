@@ -235,8 +235,11 @@ describe("useGardenDetailData eligible garden fallback", () => {
   it("hands on each list's next page", () => {
     const loadOlderWork = vi.fn();
     const loadOlderHypercerts = vi.fn();
+    const refetchWorks = vi.fn();
+    const refetchHypercerts = vi.fn(async () => []);
     mockUseWorks.mockReturnValue({
       ...defaultWorksResult(),
+      refetch: refetchWorks,
       hasOlderWork: true,
       loadOlderWork,
       isLoadingOlder: false,
@@ -249,6 +252,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
       loadOlder: loadOlderHypercerts,
       isLoadingOlder: true,
       listReadAt: 2_000,
+      refetch: refetchHypercerts,
     });
 
     const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
@@ -256,15 +260,22 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.workPages).toEqual({
       hasOlder: true,
       loadOlder: loadOlderWork,
+      reread: expect.any(Function),
       isLoadingOlder: false,
       readAt: 1_000,
     });
     expect(result.current.hypercertPages).toEqual({
       hasOlder: true,
       loadOlder: loadOlderHypercerts,
+      reread: expect.any(Function),
       isLoadingOlder: true,
       readAt: 2_000,
     });
+    // A retry rereads each list at the width it has.
+    result.current.workPages.reread();
+    result.current.hypercertPages.reread();
+    expect(refetchWorks).toHaveBeenCalledTimes(1);
+    expect(refetchHypercerts).toHaveBeenCalledTimes(1);
   });
 
   // Rows left from the last good read cannot show that no review landed since.
@@ -287,6 +298,14 @@ describe("useGardenDetailData eligible garden fallback", () => {
       gardenWide: false,
     },
     { name: "older work", works: { hasOlderWork: true }, complete: false, gardenWide: true },
+    // A widened read has nothing older to show until it lands: its rows are
+    // not the whole history while it runs.
+    {
+      name: "a page of older work on its way",
+      works: { isLoadingOlder: true },
+      complete: false,
+      gardenWide: true,
+    },
     {
       name: "older work and rows a later read left out",
       works: { hasOlderWork: true, hasUnknownStatuses: true },
@@ -324,6 +343,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
       ...defaultWorksResult(),
       isPaused: false,
       hasOlderWork: false,
+      isLoadingOlder: false,
       hasUnknownStatuses: false,
       readThisSession: true,
       ...works,
@@ -335,7 +355,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.gardenReviewQueue).toBe(gardenWide ? queue : undefined);
     // The garden's whole queue is read only when the page cannot hold it.
     expect(mockUseGardenReviewQueue).toHaveBeenLastCalledWith(recoveredGarden.id, {
-      enabled: "hasOlderWork" in works,
+      enabled: "hasOlderWork" in works || "isLoadingOlder" in works,
     });
   });
 });

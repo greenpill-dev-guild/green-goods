@@ -152,11 +152,15 @@ export function useGardenDetailData(id: string | undefined) {
   // before it started.
   const worksCurrent =
     !hasUnknownStatuses && !isWorksError && !isWorksPaused && worksReadThisSession;
-  const gardenReviewQueue = useGardenReviewQueue(gardenId, { enabled: hasOlderWork });
+  // A widened read in flight has nothing older to show until it lands, so its
+  // rows are not the whole history yet.
+  const olderWorkUnread = hasOlderWork || isLoadingOlderWork;
+  const gardenReviewQueue = useGardenReviewQueue(gardenId, { enabled: olderWorkUnread });
   const {
     hypercerts,
     isLoading: hypercertsLoading,
     error: hypercertsError,
+    refetch: refetchHypercerts,
     hasOlder: hasOlderHypercerts,
     loadOlder: loadOlderHypercerts,
     isLoadingOlder: isLoadingOlderHypercerts,
@@ -227,13 +231,13 @@ export function useGardenDetailData(id: string | undefined) {
     allocationsUnread,
     works,
     // Current rows prove a stall alone only when they hold the whole history.
-    worksComplete: worksCurrent && !hasOlderWork,
+    worksComplete: worksCurrent && !olderWorkUnread,
     // Past the newest page, the garden's whole queue speaks for older work.
     // Beside its list, the rows add only decisions, which stay true however old
     // the rows are. Beside a floor, their own waiting work counts too, so it
     // must be current.
     gardenReviewQueue:
-      hasOlderWork && (gardenReviewQueue?.waiting !== null || worksCurrent)
+      olderWorkUnread && (gardenReviewQueue?.waiting !== null || worksCurrent)
         ? gardenReviewQueue
         : undefined,
     worksLoading,
@@ -246,6 +250,7 @@ export function useGardenDetailData(id: string | undefined) {
     workPages: {
       hasOlder: hasOlderWork,
       loadOlder: loadOlderWork,
+      reread: refreshWorks,
       isLoadingOlder: isLoadingOlderWork,
       readAt: worksReadAt,
     } satisfies GardenListPages,
@@ -255,6 +260,7 @@ export function useGardenDetailData(id: string | undefined) {
     hypercertPages: {
       hasOlder: hasOlderHypercerts,
       loadOlder: loadOlderHypercerts,
+      reread: () => void refetchHypercerts(),
       isLoadingOlder: isLoadingOlderHypercerts,
       readAt: hypercertsReadAt,
     } satisfies GardenListPages,

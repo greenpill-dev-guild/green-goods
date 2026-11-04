@@ -44,6 +44,8 @@ export interface GardenListPages {
   hasOlder: boolean;
   /** Widen the list by one page and read it. */
   loadOlder: () => void;
+  /** Read the list again at the width it has, as when a widened read failed. */
+  reread: () => void;
   isLoadingOlder: boolean;
   /** When the list last read successfully, in milliseconds; undefined before its first read. */
   readAt?: number;

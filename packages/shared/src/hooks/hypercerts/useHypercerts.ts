@@ -161,6 +161,22 @@ function shownRecords(
   return status ? listed.filter((record) => record.status === status) : listed;
 }
 
+/**
+ * Adds what a metadata read learned. A read that learned nothing about a field
+ * (the SDK and the document both failed) leaves what an earlier read knew.
+ */
+function withLearnedMetadata(
+  current: Record<string, Partial<HypercertRecord>>,
+  learned: Record<string, Partial<HypercertRecord>>
+): Record<string, Partial<HypercertRecord>> {
+  const next = { ...current };
+  for (const [id, metadata] of Object.entries(learned)) {
+    const known = Object.entries(metadata).filter(([, value]) => value !== undefined);
+    next[id] = { ...next[id], ...Object.fromEntries(known) };
+  }
+  return next;
+}
+
 function mergeRecordWithMetadata(
   record: HypercertRecord,
   metadata?: Partial<HypercertRecord>
@@ -254,13 +270,16 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
     ] as const,
     queryFn: async () =>
       hydrateHypercertRecords(shownRecords(listQuery.data, take, status), chainId),
-    enabled: Boolean(listQuery.data?.length) && !hypercertId,
+    // A widened window shows nothing new until its read lands, so the list is
+    // hydrated once per landed read, not again for the rows it is replacing.
+    enabled: Boolean(listQuery.data?.length) && !hypercertId && !listQuery.isFetching,
     staleTime: STALE_TIME_MEDIUM,
   });
 
   useEffect(() => {
     if (!listMetadataQuery.data) return;
-    setMetadataById((current) => ({ ...current, ...listMetadataQuery.data }));
+    const learned = listMetadataQuery.data;
+    setMetadataById((current) => withLearnedMetadata(current, learned));
   }, [listMetadataQuery.data]);
 
   // Should poll: have optimistic data, haven't found real data yet, haven't exceeded attempts
@@ -297,13 +316,8 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
 
   useEffect(() => {
     if (!detailMetadataQuery.data || !hypercertId) return;
-    setMetadataById((current) => ({
-      ...current,
-      [hypercertId]: {
-        ...(current[hypercertId] ?? {}),
-        ...detailMetadataQuery.data,
-      },
-    }));
+    const learned = { [hypercertId]: detailMetadataQuery.data };
+    setMetadataById((current) => withLearnedMetadata(current, learned));
   }, [detailMetadataQuery.data, hypercertId]);
 
   // Track polling attempts and update sync status

@@ -89,9 +89,10 @@ export interface HubActionSummary {
   domain?: Domain;
 }
 
-/** The control that reads a Hub list's next page, offered while the garden has more. */
+/** A Hub list's older records, present while the garden has more than the list holds. */
 export interface HubOlderRecords {
-  onShowOlder: () => void;
+  /** Reads the next page; absent offline, where the list can only say there is more. */
+  onShowOlder?: () => void;
   isLoading: boolean;
 }
 

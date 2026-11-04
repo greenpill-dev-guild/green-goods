@@ -171,6 +171,7 @@ export function useHubWorkbenchController() {
   }, [hubContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
 
   const older = useHubOlderRecords({
+    garden: selectedGardenId,
     stage,
     sortDirection,
     workPages,

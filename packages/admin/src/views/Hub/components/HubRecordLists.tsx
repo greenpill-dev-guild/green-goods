@@ -126,7 +126,9 @@ function HubRecordGrid({
       <ul className="hub-workbench-grid" role="list">
         {children}
       </ul>
-      {older ? <HubShowOlder older={older.records} label={older.label} /> : null}
+      {older ? (
+        <HubShowOlder older={older.records} label={older.label} notLoaded={older.notLoaded} />
+      ) : null}
     </>
   );
 }

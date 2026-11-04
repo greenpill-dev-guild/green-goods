@@ -214,12 +214,44 @@ describe("useHypercerts", () => {
       await waitFor(() => expect(result.current.hypercerts).toHaveLength(120));
       expect(result.current.hasOlder).toBe(false);
       expect(result.current.hypercerts.at(-1)?.id).toBe("hc-119");
+      // Each landed read is hydrated once; a widened window waiting on its read
+      // is not hydrated again for the rows it is about to replace.
+      await waitFor(() =>
+        expect(mockHydrateHypercertRecords.mock.calls.map(([records]) => records.length)).toEqual([
+          PAGE,
+          2 * PAGE,
+          120,
+        ])
+      );
       expect(mockGetGardenHypercerts).toHaveBeenLastCalledWith(
         MOCK_ADDRESSES.garden,
         TEST_CHAIN_ID,
         undefined,
         3 * PAGE + 1
       );
+    });
+
+    it("keeps a title it knows when a later metadata read learns nothing", async () => {
+      mockHydrateHypercertRecords.mockImplementation(async (records: { id: string }[]) =>
+        Object.fromEntries(
+          records.map((record) => [
+            record.id,
+            {
+              title: record.id === "hc-0" && records.length === PAGE ? "Canopy survey" : undefined,
+            },
+          ])
+        )
+      );
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+      await waitFor(() => expect(result.current.hypercerts[0]?.title).toBe("Canopy survey"));
+
+      act(() => result.current.loadOlder());
+      await waitFor(() => expect(result.current.hypercerts).toHaveLength(2 * PAGE));
+      await waitFor(() => expect(mockHydrateHypercertRecords).toHaveBeenCalledTimes(2));
+      expect(result.current.hypercerts[0]?.title).toBe("Canopy survey");
     });
 
     it("keeps one window for every screen that lists the same garden", async () => {

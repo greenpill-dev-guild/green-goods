@@ -226,12 +226,10 @@ function HubWorkQueueList({
     id: "cockpit.hub.work.showOlder",
     defaultMessage: "Show Older Work",
   });
-  const olderNotLoaded = older
-    ? formatMessage({
-        id: "cockpit.hub.work.olderNotLoaded",
-        defaultMessage: "Older work isn't loaded yet.",
-      })
-    : undefined;
+  const olderNotLoaded = formatMessage({
+    id: "cockpit.hub.work.olderNotLoaded",
+    defaultMessage: "Older work isn't loaded yet.",
+  });
   // From the cockpit's desktop breakpoint each card lies wide, its mosaic on
   // the left, and the grid holds two to a row at 1280px (F12).
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -253,7 +251,9 @@ function HubWorkQueueList({
           })}
           // Any failed work read replaces the list, so a page of older work
           // that failed to load is asked for again from here.
-          action={older ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined}
+          action={
+            older?.onShowOlder ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined
+          }
         />
       </EmptyStateShell>
     );
@@ -287,7 +287,7 @@ function HubWorkQueueList({
             },
             { query: debouncedSearch }
           )}
-          description={olderNotLoaded}
+          description={older ? olderNotLoaded : undefined}
           action={
             <div className="flex flex-wrap justify-center gap-2">
               {older ? <HubShowOlderButton older={older} label={olderLabel} /> : null}
@@ -312,8 +312,10 @@ function HubWorkQueueList({
           title={formatMessage(
             older ? EMPTY_RECENT_SCOPE_TITLE[scope] : EMPTY_SCOPE_COPY[scope].title
           )}
-          description={olderNotLoaded ?? formatMessage(EMPTY_SCOPE_COPY[scope].description)}
-          action={older ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined}
+          description={older ? olderNotLoaded : formatMessage(EMPTY_SCOPE_COPY[scope].description)}
+          action={
+            older?.onShowOlder ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined
+          }
         />
       </EmptyStateShell>
     );
@@ -346,7 +348,7 @@ function HubWorkQueueList({
           );
         })}
       </ul>
-      {older ? <HubShowOlder older={older} label={olderLabel} /> : null}
+      {older ? <HubShowOlder older={older} label={olderLabel} notLoaded={olderNotLoaded} /> : null}
     </>
   );
 }

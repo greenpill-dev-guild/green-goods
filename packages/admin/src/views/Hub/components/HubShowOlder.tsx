@@ -1,7 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { HubOlderRecords } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 
-interface HubShowOlderProps {
+interface HubShowOlderButtonProps {
   older: HubOlderRecords;
   label: string;
 }
@@ -9,9 +9,10 @@ interface HubShowOlderProps {
 /**
  * Reads the next page of a Hub list's older records. A list holds its
  * garden's newest page, so while the garden has more this is how a steward
- * reaches the rest, and its presence is what says there is more.
+ * reaches the rest. Offline, where no page can be read, there is no button.
  */
-export function HubShowOlderButton({ older, label }: HubShowOlderProps) {
+export function HubShowOlderButton({ older, label }: HubShowOlderButtonProps) {
+  if (!older.onShowOlder) return null;
   return (
     <Button
       type="button"
@@ -25,11 +26,20 @@ export function HubShowOlderButton({ older, label }: HubShowOlderProps) {
   );
 }
 
+interface HubShowOlderProps extends HubShowOlderButtonProps {
+  /** What the list says when it cannot read the next page, as offline. */
+  notLoaded: string;
+}
+
 /** The foot of a Hub list that has more: its next page, centered under the rows. */
-export function HubShowOlder(props: HubShowOlderProps) {
+export function HubShowOlder({ older, label, notLoaded }: HubShowOlderProps) {
   return (
     <div className="flex justify-center" data-slot="show-older">
-      <HubShowOlderButton {...props} />
+      {older.onShowOlder ? (
+        <HubShowOlderButton older={older} label={label} />
+      ) : (
+        <p className="type-meta text-text-sub">{notLoaded}</p>
+      )}
     </div>
   );
 }

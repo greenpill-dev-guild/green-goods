@@ -27,7 +27,7 @@ vi.mock("../../../hooks/app/useOnlineStatus", () => ({
  * waits in `reads` until the test lands it or fails it; a failed read changes
  * nothing but ending.
  */
-function usePagedWork(total: number, reads: PendingRead[]): GardenListPages {
+function usePagedWork(total: number, reads: PendingRead[], reread: () => void): GardenListPages {
   const [take, setTake] = useState(PAGE);
   const [read, setRead] = useState({ rows: Math.min(total, PAGE + 1), at: 1 });
   const [inFlight, setInFlight] = useState(false);
@@ -46,6 +46,7 @@ function usePagedWork(total: number, reads: PendingRead[]): GardenListPages {
   return {
     hasOlder: read.rows > take,
     loadOlder,
+    reread,
     isLoadingOlder: inFlight && take > PAGE,
     readAt: read.at,
   };
@@ -55,11 +56,13 @@ function usePagedWork(total: number, reads: PendingRead[]): GardenListPages {
 const OLDER_HYPERCERTS: GardenListPages = {
   hasOlder: true,
   loadOlder: () => undefined,
+  reread: () => undefined,
   isLoadingOlder: false,
   readAt: 1,
 };
 
 interface Props {
+  garden?: string;
   stage: HubPipelineStage;
   sortDirection: SortDirection;
   workReadable: boolean;
@@ -67,10 +70,13 @@ interface Props {
 
 function renderHub(total: number, initial: Props, hypercertPages = OLDER_HYPERCERTS) {
   const reads: PendingRead[] = [];
-  const asked = { pages: 0 };
+  const asked = { pages: 0, rereads: 0 };
+  const reread = () => {
+    asked.rereads += 1;
+  };
   const view = renderHook(
     (props: Props) => {
-      const pages = usePagedWork(total, reads);
+      const pages = usePagedWork(total, reads, reread);
       const workPages = {
         ...pages,
         loadOlder: () => {
@@ -78,7 +84,7 @@ function renderHub(total: number, initial: Props, hypercertPages = OLDER_HYPERCE
           pages.loadOlder();
         },
       };
-      return useHubOlderRecords({ ...props, workPages, hypercertPages });
+      return useHubOlderRecords({ garden: "0xgarden", ...props, workPages, hypercertPages });
     },
     { initialProps: initial }
   );
@@ -132,7 +138,9 @@ describe("useHubOlderRecords", () => {
     expect(hub.result.current.olderWork).toBeUndefined();
   });
 
-  it("keeps the button after its page fails to load, idle, to ask again", () => {
+  // Widening again after a failure would ask a bigger read of a source that
+  // just failed, so the retry reads the same width.
+  it("keeps the button after its page fails to load, and asks for the same page again", () => {
     const hub = renderHub(130, { stage: "work", sortDirection: "newest", workReadable: true });
 
     act(() => hub.result.current.olderWork?.onShowOlder());
@@ -140,7 +148,7 @@ describe("useHubOlderRecords", () => {
     expect(hub.result.current.olderWork?.isLoading).toBe(false);
 
     act(() => hub.result.current.olderWork?.onShowOlder());
-    expect(hub.asked.pages).toBe(2);
+    expect(hub.asked).toEqual({ pages: 1, rereads: 1 });
   });
 
   // A failed or paused read never lands its page: reading on would hold the
@@ -159,14 +167,29 @@ describe("useHubOlderRecords", () => {
     expect(hub.asked.pages).toBe(2);
   });
 
-  it("offers no older page offline, where none can be read", () => {
+  it("still says there is more offline, where no page can be read, without offering one", () => {
     connectivity.online = false;
     const hub = renderHub(130, { stage: "work", sortDirection: "oldest", workReadable: true });
 
     expect(hub.result.current.readsWorkHistory).toBe(false);
-    expect(hub.result.current.olderWork).toBeUndefined();
-    expect(hub.result.current.olderHypercerts).toBeUndefined();
+    expect(hub.result.current.olderWork).toEqual({ isLoading: false });
+    expect(hub.result.current.olderHypercerts).toEqual({ isLoading: false });
     expect(hub.asked.pages).toBe(0);
     expect(hub.pendingReads()).toBe(0);
+  });
+
+  it("keeps a page on its way with its garden while another garden is open", () => {
+    const hub = renderHub(130, { stage: "work", sortDirection: "newest", workReadable: true });
+    act(() => hub.result.current.olderWork?.onShowOlder());
+
+    hub.rerender({ garden: "0xother", stage: "work", sortDirection: "newest", workReadable: true });
+    expect(hub.result.current.olderWork).toBeUndefined();
+    hub.rerender({
+      garden: "0xgarden",
+      stage: "work",
+      sortDirection: "newest",
+      workReadable: true,
+    });
+    expect(hub.result.current.olderWork?.isLoading).toBe(true);
   });
 });
