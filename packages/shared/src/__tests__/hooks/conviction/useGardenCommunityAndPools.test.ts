@@ -384,23 +384,6 @@ describe("useGardenPools — subgraph path", () => {
     expect(result.current.pools).toEqual([]);
   });
 
-  it("fails rather than label every pool an action pool when the hypercert pool read fails", async () => {
-    mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
-    mockReadContract.mockRejectedValueOnce(new Error("RPC error")); // gardenHypercertSignalPools
-
-    const { result } = renderHookWithQueryClient(
-      () =>
-        useGardenPools(TEST_GARDEN as Address, {
-          communityAddress: TEST_COMMUNITY as Address,
-        }),
-      { queryClient }
-    );
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(mockGetGardenPools).not.toHaveBeenCalled();
-    expect(result.current.pools).toEqual([]);
-  });
-
   it("handles empty pool list from subgraph", async () => {
     mockGetGardenPools.mockResolvedValueOnce([]);
 
@@ -532,6 +515,18 @@ describe("useGardenPools — RPC fallback", () => {
     mockReadContract
       .mockResolvedValueOnce(TEST_POOL_2) // gardenHypercertSignalPools
       .mockRejectedValueOnce(new Error("RPC error"));
+
+    const { result } = renderHookWithQueryClient(() => useGardenPools(TEST_GARDEN as Address), {
+      queryClient,
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.pools).toEqual([]);
+  });
+
+  it("fails rather than label every pool an action pool when the hypercert pool read fails", async () => {
+    mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
+    mockReadContract.mockRejectedValueOnce(new Error("RPC error")); // gardenHypercertSignalPools
 
     const { result } = renderHookWithQueryClient(() => useGardenPools(TEST_GARDEN as Address), {
       queryClient,

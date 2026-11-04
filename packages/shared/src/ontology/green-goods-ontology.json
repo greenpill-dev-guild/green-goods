@@ -1197,7 +1197,7 @@
           "ordered": true,
           "members": ["ActionSignal", "HypercertSignal"],
           "values": [0, 1],
-          "note": "Pools are still classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type."
+          "note": "Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type."
         }
       ],
       "mappings": [],

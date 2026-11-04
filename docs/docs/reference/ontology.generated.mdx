@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:2c390b9907628212af8ddb851f993c9792706e64058c8e42d29765ce6f229e86"
+source_digest: "sha256:1609d23e77abbf6ffd2f5da7413a3b218c66f2b0ea04d8e97d4e9b6b321586d6"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -207,7 +207,7 @@ Kind of Gardens V2 conviction signal pool attached to a garden. Distinct from th
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/IGardensModule.sol · PoolType</code> | <code>ActionSignal, HypercertSignal</code> |  |
-| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Pools are still classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type. |
+| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type. |
 
 ### `vault-event-type`
 
