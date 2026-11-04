@@ -1,4 +1,3 @@
-import { useRefreshAction } from "../../../components/Canvas/RefreshActionContext";
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
@@ -41,7 +40,9 @@ import {
   resolveHubRouteState,
 } from "./hub.workbenchModel";
 import { useHubConfirmStage } from "./useHubConfirmStage";
+import { useHubOlderRecords } from "./useHubOlderRecords";
 import { useHubStageQueues } from "./useHubStageQueues";
+import { useHubStageRefresh } from "./useHubStageRefresh";
 
 /** One choice in the Hub's sort control. */
 interface SortOption {
@@ -123,14 +124,23 @@ export function useHubWorkbenchController() {
     worksLoading,
     worksFetching,
     worksError,
+    isWorksPaused,
     refreshWorks,
+    workPages,
     assessments,
     fetchingAssessments,
+    assessmentsFetching,
     assessmentsError,
+    refreshAssessments,
     error,
     hypercerts,
     hypercertsLoading,
+    hypercertsFetching,
     hypercertsError,
+    refreshHypercerts,
+    hypercertPages,
+    refreshGardens,
+    gardensFetching,
     allocations,
     allocationsLoading,
     gardenVaults,
@@ -165,6 +175,15 @@ export function useHubWorkbenchController() {
     if (requestedStage === stage) return;
     navigate(adminRoutes.hubMode(stage, { ...hubContext, item: routeItem }), { replace: true });
   }, [hubContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
+
+  const older = useHubOlderRecords({
+    garden: selectedGardenId,
+    stage,
+    sortDirection,
+    workPages,
+    hypercertPages,
+    workReadable: !worksError && !isWorksPaused,
+  });
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
@@ -318,10 +337,6 @@ export function useHubWorkbenchController() {
     [updateSearch]
   );
 
-  const handleRefresh = useCallback(() => {
-    void Promise.resolve(refreshWorks()).finally(() => setLastRefreshAt(Date.now()));
-  }, [refreshWorks]);
-
   const viewActions = useMemo(
     () =>
       selectedGardenId
@@ -336,17 +351,20 @@ export function useHubWorkbenchController() {
     blocked: hasOpenHubInspector,
   });
 
-  // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
-  // keeps refresh implicit — the action set in the page header is the only
-  // chrome the steward needs.
-  const mobileRefreshAction = useMemo(
-    () =>
-      selectedGardenId && !isDesktop
-        ? { onRefresh: handleRefresh, isFetching: worksFetching }
-        : null,
-    [handleRefresh, isDesktop, selectedGardenId, worksFetching]
-  );
-  useRefreshAction(mobileRefreshAction);
+  // The AppBar shows this refresh on phones and tablets; desktop keeps none.
+  const markRefreshed = useCallback(() => setLastRefreshAt(Date.now()), []);
+  const handleRefresh = useHubStageRefresh({
+    stage,
+    enabled: Boolean(selectedGardenId),
+    reads: {
+      work: { refresh: refreshWorks, isFetching: worksFetching },
+      assess: { refresh: refreshAssessments, isFetching: assessmentsFetching },
+      certify: { refresh: refreshHypercerts, isFetching: hypercertsFetching },
+      confirm: { refresh: toConfirm.refetch, isFetching: toConfirm.isFetching ?? false },
+    },
+    failedShared: error ? { refresh: refreshGardens, isFetching: gardensFetching } : undefined,
+    onRefreshed: markRefreshed,
+  });
 
   const resultCount = getHubResultCount(stage, {
     works: scopedWorks.length,
@@ -413,6 +431,7 @@ export function useHubWorkbenchController() {
   );
 
   return {
+    ...older,
     actionsMap,
     activeWorkDetailId,
     allocationsLoading,

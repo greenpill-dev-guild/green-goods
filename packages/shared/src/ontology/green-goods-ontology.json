@@ -1189,16 +1189,6 @@
           "members": ["ActionSignal", "HypercertSignal"]
         },
         {
-          "id": "indexer",
-          "layer": "indexer",
-          "file": "packages/indexer/schema.graphql",
-          "symbol": "PoolType",
-          "extract": "graphql-enum",
-          "ordered": true,
-          "members": ["ACTION_SIGNAL", "HYPERCERT_SIGNAL"],
-          "note": "Currently {HYPERCERT, ACTION} — inverted vs chain and referenced by zero entity fields (dead surface). Baselined; fix direction is deletion or correction alongside the shared enum."
-        },
-        {
           "id": "shared",
           "layer": "shared",
           "file": "packages/shared/src/types/gardens-community.ts",
@@ -1207,7 +1197,7 @@
           "ordered": true,
           "members": ["ActionSignal", "HypercertSignal"],
           "values": [0, 1],
-          "note": "Currently {Hypercert = 0, Action = 1} — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down."
+          "note": "Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type."
         }
       ],
       "mappings": [],

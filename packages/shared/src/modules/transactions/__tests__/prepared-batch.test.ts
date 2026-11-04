@@ -3,14 +3,22 @@ import {
   createMockContractCall,
   createMockBatchBudget,
 } from "../../../__tests__/test-utils/transaction-fakes";
+import { actionEditBudget } from "../../action/action-edit-batch";
+import { creationBudget } from "../../commitment-pooling/creation-send";
 import { poolSetupBudget } from "../../commitment-pooling/pool-setup";
+import { proofAndSendBudget } from "../../commitment-pooling/proof-and-send";
+import { rewardEditBudget } from "../../commitment-pooling/reward-edit";
+import { campaignJarSyncBudget } from "../../garden/campaign-jar-sync-route";
 import { depositBudget } from "../../garden/deposit-route";
+import { karmaReconcileBudget } from "../../garden/karma-batch";
 import { gardenMembersBudget } from "../../garden/members-batch";
 import { gardenSettingsBudget } from "../../garden/settings-batch";
+import { marketplaceApprovalBudget } from "../../marketplace/approvals";
 import { reviewBudget } from "../../work/review-chain";
 import { type BatchEnablement, ENABLED_BATCHES, isBatchEnabled } from "../batch-enablement";
 import type { Address } from "../../../types/domain";
 import { prepareBatch, assertPreparedBatch } from "../prepared-batch";
+import type { TransactionSender } from "../types";
 
 const account = "0x1111111111111111111111111111111111111111" as const;
 const input = () => ({
@@ -119,8 +127,14 @@ describe("isBatchEnabled", () => {
     chainId: 42161,
   };
 
-  it("lists only combinations that carry ceilings on their chain", () => {
-    const ceilings = (entry: BatchEnablement) => {
+  it("lists only combinations that carry ceilings on their chain", async () => {
+    // A passkey that can batch, so the proof-and-send ceilings answer from their own table.
+    const passkey = {
+      authMode: "passkey",
+      sendAtomicBatch: async () => ({}),
+      canSendAtomicBatch: async () => true,
+    } as unknown as TransactionSender;
+    const ceilings = async (entry: BatchEnablement) => {
       switch (entry.action) {
         case "garden-settings":
           return gardenSettingsBudget(entry.rail, entry.chainId);
@@ -130,15 +144,32 @@ describe("isBatchEnabled", () => {
           return reviewBudget(entry.rail, entry.chainId);
         case "pool-setup":
           return entry.rail === "passkey" ? poolSetupBudget(entry.chainId) : null;
+        case "commitment-creations":
+          return entry.rail === "passkey" ? creationBudget(entry.chainId) : null;
+        case "reward-edits":
+          return entry.rail === "passkey" ? rewardEditBudget(entry.chainId) : null;
+        case "proof-and-send":
+          return entry.rail === "passkey" ? proofAndSendBudget(passkey, entry.chainId) : null;
+        case "marketplace-approvals":
+          return marketplaceApprovalBudget(entry.rail, entry.chainId);
+        case "karma-reconcile":
+          return karmaReconcileBudget(entry.rail, entry.chainId);
+        case "campaign-jar-sync":
+          return campaignJarSyncBudget(entry.rail, entry.chainId);
+        case "action-edit":
+          return actionEditBudget(entry.rail, entry.chainId);
         case "vault-deposit":
         case "jar-deposit":
           return depositBudget(entry.rail, entry.chainId);
+        default:
+          // An action this test doesn't know yet has no ceilings to show, so it fails here.
+          return null;
       }
     };
 
     for (const entry of ENABLED_BATCHES) {
       const name = `${entry.action} on ${entry.rail} ${entry.profile}`;
-      expect(ceilings(entry), name).not.toBeNull();
+      expect(await ceilings(entry), name).not.toBeNull();
       expect(entry.profile.startsWith("kernel-"), name).toBe(entry.rail === "passkey");
     }
   });

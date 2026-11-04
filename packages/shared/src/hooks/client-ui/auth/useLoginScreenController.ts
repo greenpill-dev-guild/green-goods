@@ -172,6 +172,24 @@ export function useLoginScreenController(routes: { login: string; home: string }
     }
   }, [auth.error, auth.isAuthenticating, intl]);
 
+  // A failed wallet sign-in points the member to a passkey. Declared after the effect
+  // above, so a passkey error the machine still holds does not cover the newer failure.
+  useEffect(() => {
+    if (!auth.walletConnectFailure || auth.isAuthenticating) return;
+    setLoginError(
+      auth.walletConnectFailure === "timeout"
+        ? intl.formatMessage({
+            id: "app.login.error.walletNotOpened",
+            defaultMessage: "Your wallet app didn't open. Try again, or sign in with a passkey.",
+          })
+        : intl.formatMessage({
+            id: "app.login.error.walletConnectFailed",
+            defaultMessage:
+              "We couldn't connect your wallet. Try again, or sign in with a passkey.",
+          })
+    );
+  }, [auth.walletConnectFailure, auth.isAuthenticating, intl]);
+
   const unsupportedPasskeyContext =
     isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser");
   const blockUnsupportedPasskeyCeremony = useCallback(() => {

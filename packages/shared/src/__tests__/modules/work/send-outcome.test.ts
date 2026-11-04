@@ -1,5 +1,6 @@
 /** @vitest-environment node */
 import { describe, expect, it } from "vitest";
+import { BatchNotSubmittedError } from "../../../modules/transactions/batch-types";
 import { WorkSendCancelledError, classifySendFailure } from "../../../modules/work/send-outcome";
 import { isWorkSubmissionCancelled } from "../../../modules/work/work-confirmation";
 import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
@@ -52,6 +53,21 @@ describe("what a failed send means for the work it carried", () => {
     expect(
       classifySendFailure(lostResponse(), { intentRecorded: true, broadcastKnown: false })
     ).toEqual({ kind: "may-have-sent" });
+  });
+
+  it("clears an intent the sender proved never went out, as one bundled job's can be", () => {
+    // Another job's intent in the same request could not be written, so it stopped.
+    const stopped = new BatchNotSubmittedError(new Error("storage unavailable"));
+    expect(classifySendFailure(stopped, { intentRecorded: true, broadcastKnown: false })).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+    expect(
+      classifySendFailure(new BatchNotSubmittedError(declinedPasskey()), {
+        intentRecorded: true,
+        broadcastKnown: false,
+      })
+    ).toEqual({ kind: "not-sent", cancelled: true });
   });
 
   it("clears the intent when the write was refused for the wallet's network, which is before anything is signed", () => {

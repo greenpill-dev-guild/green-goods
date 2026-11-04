@@ -39,7 +39,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
   const primaryAddress = usePrimaryAddress();
 
   const hypercertPool = useMemo(
-    () => pools.find((pool) => pool.poolType === PoolType.Hypercert),
+    () => pools.find((pool) => pool.poolType === PoolType.HypercertSignal),
     [pools]
   );
 

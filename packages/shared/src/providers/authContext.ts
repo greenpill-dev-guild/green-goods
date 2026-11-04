@@ -2,7 +2,7 @@ import { createContext } from "react";
 import type { SmartAccountClient } from "permissionless";
 import type { Hex } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
-import type { AuthMode, SmartAccountClientResolver } from "../types/auth";
+import type { AuthMode, SmartAccountClientResolver, WalletConnectFailure } from "../types/auth";
 import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
 import type {
   PilotAccountPreview,
@@ -13,6 +13,8 @@ import type {
 export interface AuthStateValue {
   /** An abandoned connector needs an explicit fresh-page retry. */
   walletReleaseStalled?: boolean;
+  /** The last wallet sign-in ended without the wallet answering; cleared by the next attempt. */
+  walletConnectFailure?: WalletConnectFailure | null;
   authMode: AuthMode;
   isReady: boolean;
   isAuthenticated: boolean;

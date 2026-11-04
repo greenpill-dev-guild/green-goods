@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:33337e3f16b3dc3dcb1e0dd9ab9e8965a231d85f9af4c69692021305b2498661"
+source_digest: "sha256:1609d23e77abbf6ffd2f5da7413a3b218c66f2b0ea04d8e97d4e9b6b321586d6"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -207,8 +207,7 @@ Kind of Gardens V2 conviction signal pool attached to a garden. Distinct from th
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/IGardensModule.sol · PoolType</code> | <code>ActionSignal, HypercertSignal</code> |  |
-| indexer | indexer | <code>packages/indexer/schema.graphql · PoolType</code> | <code>ACTION_SIGNAL, HYPERCERT_SIGNAL</code> | Currently &#123;HYPERCERT, ACTION&#125; — inverted vs chain and referenced by zero entity fields (dead surface). Baselined; fix direction is deletion or correction alongside the shared enum. |
-| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Currently &#123;Hypercert = 0, Action = 1&#125; — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down. |
+| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type. |
 
 ### `vault-event-type`
 

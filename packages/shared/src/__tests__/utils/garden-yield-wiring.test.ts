@@ -146,13 +146,13 @@ describe("annotateGardenSignalPools", () => {
     expect(pools).toEqual([
       {
         poolAddress: TEST_HYPERCERT_POOL,
-        poolType: PoolType.Hypercert,
+        poolType: PoolType.HypercertSignal,
         gardenAddress: TEST_GARDEN,
         communityAddress: TEST_COMMUNITY,
       },
       {
         poolAddress: TEST_ACTION_POOL,
-        poolType: PoolType.Action,
+        poolType: PoolType.ActionSignal,
         gardenAddress: TEST_GARDEN,
         communityAddress: TEST_COMMUNITY,
       },
