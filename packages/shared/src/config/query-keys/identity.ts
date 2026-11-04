@@ -59,5 +59,5 @@ export const communityKeys = {
   garden: (gardenAddress: string, chainId: number) =>
     ["greengoods", "community", "garden", gardenAddress, chainId] as const,
   pools: (gardenAddress: string, chainId: number) =>
-    ["greengoods", "community", "pools", gardenAddress, chainId] as const,
+    ["greengoods", "community", "signal-pools", gardenAddress, chainId] as const,
 } as const;

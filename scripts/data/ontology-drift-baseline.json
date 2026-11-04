@@ -1,24 +1,5 @@
 {
   "version": 1,
   "description": "Known ontology drift, burned down over time. scripts/quality/check-ontology.mjs reconciles this bidirectionally: unlisted findings fail CI, stale entries fail CI once the drift is fixed, and entries expire at most 250 days out. Renew an entry consciously with a fresh note — never let one roll silently.",
-  "entries": [
-    {
-      "id": "signal-pool-type-indexer",
-      "guard": "graphql-enums",
-      "subject": "vocab:signal-pool-type/rep:indexer",
-      "detail": "missing [ACTION_SIGNAL, HYPERCERT_SIGNAL]; unexpected [HYPERCERT, ACTION]",
-      "owner": "indexer",
-      "expires": "2027-02-28",
-      "note": "Dead surface: the GraphQL PoolType enum is referenced by zero entity fields and its only consumer (mapPoolType/POOL_TYPE_MAP) is locked in by its own test. Fix or delete alongside the shared enum flip."
-    },
-    {
-      "id": "signal-pool-type-shared",
-      "guard": "shared-ts-vocab",
-      "subject": "vocab:signal-pool-type/rep:shared",
-      "detail": "missing [ActionSignal, HypercertSignal]; unexpected [Hypercert, Action]",
-      "owner": "shared",
-      "expires": "2027-02-28",
-      "note": "Inverted vs the Solidity enum but verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Flipping touches ~20 find() call sites, fixtures, stories, and i18n keys — re-verify blast radius at burn-down."
-    }
-  ]
+  "entries": []
 }

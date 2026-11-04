@@ -75,8 +75,8 @@ through `packages/contracts/config/schemas.json`.
 Solidity has two unrelated `PoolType` enums:
 
 - `IGardensModule.PoolType { ActionSignal, HypercertSignal }` describes Gardens V2 signal pools
-  (`signal-pool-type`). Its shared and GraphQL representations remain intentionally baselined while
-  their compatibility migration is planned.
+  (`signal-pool-type`). Shared's `PoolType` follows the contract's index order; the indexer declares
+  no pool type because it indexes no signal pool.
 - `ICommitmentPoolingModule.PoolType { Garden, Protocol }` describes commitment-pooling anchors
   (`commitment-pool-type`) and is implemented across contracts, shared, and the indexer.
 

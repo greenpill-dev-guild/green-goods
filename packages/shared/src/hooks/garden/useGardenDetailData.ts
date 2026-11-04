@@ -106,7 +106,12 @@ export function useGardenDetailData(id: string | undefined) {
   const { community, isLoading: communityLoading } = useGardenCommunity(id as Address | undefined, {
     enabled: Boolean(id),
   });
-  const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
+  const {
+    pools,
+    poolsRead,
+    poolsUnread,
+    refetch: refetchPools,
+  } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
   const { mutate: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
@@ -230,6 +235,9 @@ export function useGardenDetailData(id: string | undefined) {
     communityLoading,
     weightSchemeLabel,
     pools,
+    poolsRead,
+    poolsUnread,
+    rereadPools: () => void refetchPools(),
     createPools,
     isCreatingPools,
     gardenVaults,

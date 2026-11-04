@@ -50,8 +50,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
 }) => {
   const { formatMessage } = useIntl();
 
-  const hypercertPool = pools.find((p) => p.poolType === PoolType.Hypercert);
-  const actionPool = pools.find((p) => p.poolType === PoolType.Action);
+  const hypercertPool = pools.find((p) => p.poolType === PoolType.HypercertSignal);
+  const actionPool = pools.find((p) => p.poolType === PoolType.ActionSignal);
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
   const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(_gardenId as Address);

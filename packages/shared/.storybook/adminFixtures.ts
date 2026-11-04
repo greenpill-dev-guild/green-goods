@@ -272,13 +272,13 @@ const STORYBOOK_ADMIN_COMMUNITY: GardenCommunity = {
 const STORYBOOK_ADMIN_POOLS: GardenSignalPool[] = [
   {
     poolAddress: RIO_ACTION_POOL_ADDRESS,
-    poolType: PoolType.Action,
+    poolType: PoolType.ActionSignal,
     gardenAddress: RIO_GARDEN_ADDRESS,
     communityAddress: RIO_COMMUNITY_ADDRESS,
   },
   {
     poolAddress: RIO_HYPERCERT_POOL_ADDRESS,
-    poolType: PoolType.Hypercert,
+    poolType: PoolType.HypercertSignal,
     gardenAddress: RIO_GARDEN_ADDRESS,
     communityAddress: RIO_COMMUNITY_ADDRESS,
   },

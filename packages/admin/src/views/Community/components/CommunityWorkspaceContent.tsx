@@ -86,6 +86,9 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           canManage={workspace.canManage}
           community={workspace.community}
           pools={workspace.pools}
+          poolsRead={workspace.poolsRead}
+          poolsUnread={workspace.poolsUnread}
+          rereadPools={workspace.rereadPools}
           createPools={workspace.createPools}
           isCreatingPools={workspace.isCreatingPools}
         />
@@ -94,7 +97,10 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         railContent={
           <CommunityYieldStatus
             gardenId={workspace.gardenId as Address}
-            enabled={Boolean(workspace.community) && workspace.pools.length > 0}
+            // The wiring check makes its own reads, so an unread pool list must not hide it.
+            enabled={
+              Boolean(workspace.community) && (workspace.pools.length > 0 || workspace.poolsUnread)
+            }
           />
         }
         chainId={workspace.garden.chainId}
