@@ -86,6 +86,11 @@ export interface CommitmentsToConfirm {
   isProtocolSteward: boolean;
   availability: ReturnType<typeof useCommitmentPoolingAvailability>;
   isLoading: boolean;
+  /**
+   * Whether any of its reads is in flight, the first or a refresh. Optional so
+   * a fixture may leave it out; this hook always answers.
+   */
+  isFetching?: boolean;
   isError: boolean;
   refetch: () => Promise<unknown>;
 }

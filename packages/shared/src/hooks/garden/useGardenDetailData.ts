@@ -50,7 +50,9 @@ export function useGardenDetailData(id: string | undefined) {
   const {
     data: assessmentList = [],
     isLoading: fetchingAssessments,
+    isFetching: assessmentsFetching,
     error: assessmentsError,
+    refetch: refreshAssessments,
   } = useGardenAssessments(id);
 
   const assessments = assessmentList;
@@ -164,6 +166,7 @@ export function useGardenDetailData(id: string | undefined) {
   const {
     hypercerts,
     isLoading: hypercertsLoading,
+    isFetching: hypercertsFetching,
     error: hypercertsError,
     refetch: refetchHypercerts,
     hasOlder: hasOlderHypercerts,
@@ -212,7 +215,9 @@ export function useGardenDetailData(id: string | undefined) {
     isOwner,
     assessments,
     fetchingAssessments,
+    assessmentsFetching,
     assessmentsError,
+    refreshAssessments,
     roleMembers,
     roleActions,
     isOperationLoading,
@@ -264,7 +269,9 @@ export function useGardenDetailData(id: string | undefined) {
     } satisfies GardenListPages,
     hypercerts,
     hypercertsLoading,
+    hypercertsFetching,
     hypercertsError,
+    refreshHypercerts: refetchHypercerts,
     hypercertPages: {
       hasOlder: hasOlderHypercerts,
       loadOlder: loadOlderHypercerts,

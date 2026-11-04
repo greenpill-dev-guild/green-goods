@@ -30,8 +30,11 @@ const mocks = vi.hoisted(() => ({
   addJob: vi.fn(),
   getJobs: vi.fn(),
   processJob: vi.fn(),
+  processTogether: vi.fn(),
   retryJob: vi.fn(),
   discardJob: vi.fn(),
+  requestSync: vi.fn(),
+  proofAndSendBudget: vi.fn(),
   viewer: "0x1111111111111111111111111111111111111111" as string | null,
   sender: null as { authMode: "wallet" | "passkey" | "embedded" } | null,
   assertEarnedRewardAgreed: vi.fn(),
@@ -40,14 +43,21 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../modules/commitment-pooling/earned-agreement", () => ({
   assertEarnedRewardAgreed: mocks.assertEarnedRewardAgreed,
 }));
+// Which rail sends the pair as one request is the module's own, tested beside it.
+vi.mock("../modules/commitment-pooling/proof-and-send", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../modules/commitment-pooling/proof-and-send")>()),
+  proofAndSendBudget: mocks.proofAndSendBudget,
+}));
 
 vi.mock("../modules/job-queue/default-instance", () => ({
   jobQueue: {
     addJob: mocks.addJob,
     getJobs: mocks.getJobs,
     processJob: mocks.processJob,
+    processTogether: mocks.processTogether,
     retryJob: mocks.retryJob,
     discardJob: mocks.discardJob,
+    requestSync: mocks.requestSync,
   },
 }));
 vi.mock("../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.viewer }));
@@ -67,6 +77,7 @@ describe("useCommitmentJobs", () => {
     mocks.sender = null;
     mocks.addJob.mockResolvedValue("job-1");
     mocks.processJob.mockResolvedValue({ success: true, txHash: "0xabc" });
+    mocks.proofAndSendBudget.mockResolvedValue(null);
     mocks.assertEarnedRewardAgreed.mockResolvedValue(undefined);
   });
 
@@ -363,9 +374,57 @@ describe("useCommitmentJobs", () => {
           jobId: "job-1",
           followUpJobId: "job-2",
         });
-        // Only the proof goes from this tap.
+        // The proof wakes no flush; the send's own admission does, once both are in.
+        expect(mocks.addJob.mock.calls[0]?.[4]).toEqual({ wake: false });
+        expect(mocks.requestSync).not.toHaveBeenCalled();
+        // A plain wallet signs twice: only the proof goes from this tap.
         expect(mocks.processJob).toHaveBeenCalledOnce();
         expect(mocks.processJob).toHaveBeenCalledWith("job-1", expect.anything());
+        expect(mocks.processTogether).not.toHaveBeenCalled();
+      });
+
+      const BUDGET = { maxCalls: 2 } as never;
+
+      it.each([
+        // A wallet's prompt answers this tap; a passkey's flush pairs them the same way.
+        [{ authMode: "wallet" }, "landed", 1],
+        [{ authMode: "passkey" }, "queued", 0],
+      ] as const)("sends the proof and its send as one request from a %o where the rail can", async (sender, ended, sends) => {
+        mocks.sender = sender;
+        mocks.proofAndSendBudget.mockResolvedValue(BUDGET);
+        mocks.addJob.mockResolvedValueOnce("job-1").mockResolvedValueOnce("job-2");
+        mocks.processTogether.mockResolvedValue({
+          lead: { success: true, txHash: "0xabc" },
+          follower: { success: true, txHash: "0xabc" },
+        });
+        const report = vi.fn();
+
+        await jobs().current.enqueue({ ...proof, report });
+
+        expect(mocks.processJob).not.toHaveBeenCalled();
+        expect(mocks.processTogether).toHaveBeenCalledTimes(sends);
+        if (sends)
+          expect(mocks.processTogether).toHaveBeenCalledWith(
+            "job-1",
+            "job-2",
+            expect.objectContaining({ explicit: true }),
+            BUDGET
+          );
+        expect(report).toHaveBeenLastCalledWith(expect.objectContaining({ stage: ended }));
+      });
+
+      it("keeps the proof and its send queued when their one request is declined", async () => {
+        mocks.sender = { authMode: "wallet" };
+        mocks.proofAndSendBudget.mockResolvedValue(BUDGET);
+        mocks.addJob.mockResolvedValueOnce("job-1").mockResolvedValueOnce("job-2");
+        const declined = { success: false, error: "User rejected the request." };
+        mocks.processTogether.mockResolvedValue({ lead: declined, follower: declined });
+        const report = vi.fn();
+
+        await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
+        // Neither landed, and the proof stays on the phone for the person to send.
+        expect(report).toHaveBeenLastCalledWith({ stage: "declined" });
+        expect(mocks.discardJob).not.toHaveBeenCalled();
       });
 
       it.each([
@@ -384,6 +443,8 @@ describe("useCommitmentJobs", () => {
         await expect(jobs().current.enqueue({ ...proof, report })).resolves.toBe("job-1");
         expect(report.mock.calls[0]?.[0]).toEqual({ stage: "admitted", jobId: "job-1" });
         expect(mocks.discardJob).toHaveBeenCalledTimes(takeBacks);
+        // Alone, the proof still wakes the flush it skipped waking when it was admitted.
+        expect(mocks.requestSync).toHaveBeenCalledOnce();
       });
 
       it("takes the proof back out when its send can't be queued, so Add and Send never quietly becomes Add", async () => {

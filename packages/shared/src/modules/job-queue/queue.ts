@@ -8,7 +8,15 @@ import {
 } from "../commitment-pooling/job-identity";
 import { JobMaintenance } from "./job-maintenance";
 import { createJobProcessor } from "./process-job";
-import type { FlushContext, FlushResult, JobQueueDependencies, JobQueueHandle } from "./ports";
+import { processTogether } from "./process-together";
+import type {
+  AddJobOptions,
+  FlushContext,
+  FlushResult,
+  JobQueueDependencies,
+  JobQueueHandle,
+  ProcessJobResult,
+} from "./ports";
 import { isTerminallyFailedJob, payloadWithoutSendRecord } from "./queue-policy";
 import { createQueueReaders } from "./queue-readers";
 import { createJobRecovery } from "./job-recovery";
@@ -37,6 +45,14 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
     return cachedStorageQuota;
   };
 
+  const requestSync = () => {
+    try {
+      deps.backgroundSync.request();
+    } catch (error) {
+      deps.logger.debug("[JobQueue] Failed to register background sync", { error });
+    }
+  };
+
   const flushInternal = async (context: FlushContext): Promise<FlushResult> => {
     if (!context.userAddress) throw new Error("userAddress is required for flush operation");
     const jobs = (
@@ -51,25 +67,62 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
     // A job that goes after another in this pass (Add and Send's send after its
     // proof) is taken once that one has landed, and left untried when it has not.
     // Tried first, it would be held back as waiting well after its proof landed.
+    // Where the sender takes the two as one request, they go together instead.
     const unsent = new Set(jobs.map((job) => job.id));
     const waitsInPass = (job: Job) =>
       unsent.has(commitmentJobPrerequisite(job.kind, job.payload) ?? "");
     const ordered = [...jobs.filter((job) => !waitsInPass(job)), ...jobs.filter(waitsInPass)];
+    const followerOf = new Map<string, Job>();
+    for (const job of jobs) {
+      const lead = commitmentJobPrerequisite(job.kind, job.payload);
+      if (lead && unsent.has(lead)) followerOf.set(lead, job);
+    }
+    const sentWithLead = new Set<string>();
 
     let processed = 0;
     let failed = 0;
     let skipped = 0;
+    const count = (job: Job, result: ProcessJobResult) => {
+      if (result.success) {
+        processed += 1;
+        unsent.delete(job.id);
+      } else if (result.skipped) skipped += 1;
+      else failed += 1;
+    };
     for (let index = 0; index < ordered.length; index += 1) {
       const job = ordered[index];
+      if (sentWithLead.has(job.id)) continue;
       if (waitsInPass(job)) skipped += 1;
       else {
         try {
-          const result = await deps.scheduler.schedule(() => processJob(job.id, context));
-          if (result.success) {
-            processed += 1;
-            unsent.delete(job.id);
-          } else if (result.skipped) skipped += 1;
-          else failed += 1;
+          const follower = followerOf.get(job.id);
+          // A check that fails pairs nothing: the two go the plain way, one signature each.
+          const budget =
+            follower && context.sendsWith
+              ? await context.sendsWith(job, follower).catch((error: unknown) => {
+                  deps.logger.warn("[JobQueue] Pairing check failed; sending the pair one by one", {
+                    jobId: job.id,
+                    followerJobId: follower.id,
+                    error,
+                  });
+                  return null;
+                })
+              : null;
+          if (follower && budget) {
+            sentWithLead.add(follower.id);
+            const pair = await deps.scheduler.schedule(() =>
+              processTogether(processJob, {
+                leadJobId: job.id,
+                followerJobId: follower.id,
+                context,
+                batchBudget: budget,
+              })
+            );
+            count(job, pair.lead);
+            count(follower, pair.follower);
+          } else {
+            count(job, await deps.scheduler.schedule(() => processJob(job.id, context)));
+          }
         } catch (error) {
           failed += 1;
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -88,7 +141,8 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
       kind: K,
       payload: JobKindMap[K],
       userAddress: Address,
-      meta?: Record<string, unknown>
+      meta?: Record<string, unknown>,
+      options?: AddJobOptions
     ): Promise<string> {
       if (!userAddress) throw new Error("userAddress is required when adding a job");
       const chainId = (meta as { chainId?: number })?.chainId || deps.config.defaultChainId;
@@ -149,15 +203,16 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
         });
       }
       deps.events.emit("job:added", { jobId, job });
-      try {
-        deps.backgroundSync.request();
-      } catch (error) {
-        deps.logger.debug("[JobQueue] Failed to register background sync", { error });
-      }
+      if (options?.wake !== false) requestSync();
       return jobId;
     },
 
     processJob,
+
+    processTogether: (leadJobId, followerJobId, context, batchBudget) =>
+      processTogether(processJob, { leadJobId, followerJobId, context, batchBudget }),
+
+    requestSync,
 
     flush(context) {
       // Only a flush of the same scope can stand in for this one. A passkey's

@@ -14,6 +14,7 @@ import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync
 import { useUploadFailureToast } from "../hooks/work/useUploadFailureToast";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
+import { sendsWithProof, sendWithItsPartner } from "../modules/commitment-pooling/proof-and-send";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { gaveUpAfter, JOB_DISCARDED } from "../modules/job-queue/queue-policy";
@@ -372,6 +373,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
           // Work and decisions always wait for an explicit Upload action. Only
           // commitment acts keep their established background send behavior.
           kinds: COMMITMENT_JOB_KINDS,
+          // Add and Send's proof and send go as one request where the rail can do it.
+          sendsWith: sendsWithProof(sender),
         });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
@@ -447,15 +450,19 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
           return;
         }
         try {
-          await queue.retryJob(jobId);
-          // The person asked for this one job, so nothing else in the queue is sent.
+          // Only this job is sent, with its Add and Send half where the two go as one.
           const context = { transactionSender: sender ?? null, explicit: true };
-          let result = await queue.processJob(jobId, context);
-          // A creation's first pass only submits it; a second reads the new
-          // commitment back and completes the job. A wallet has no background
-          // flush to make that pass, so it is made here, in the same tap.
-          if (!result.success && result.skipped && result.txHash) {
+          const owner = currentUserAddress;
+          let result = await sendWithItsPartner(queue, { owner, jobId, context });
+          if (!result) {
+            await queue.retryJob(jobId);
             result = await queue.processJob(jobId, context);
+            // A creation's first pass only submits it; a second reads the new
+            // commitment back and completes the job. A wallet has no background
+            // flush to make that pass, so it is made here, in the same tap.
+            if (!result.success && result.skipped && result.txHash) {
+              result = await queue.processJob(jobId, context);
+            }
           }
           await refreshStats();
           if (result.success) {

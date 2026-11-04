@@ -453,6 +453,12 @@ export function useCommitmentsToConfirm({
       poolsQuery.isLoading ||
       protocolPool.isLoading ||
       queries.some((q) => q.isLoading),
+    isFetching:
+      own.isFetching ||
+      confirmed.isFetching ||
+      poolsQuery.isFetching ||
+      protocolPool.isFetching ||
+      queries.some((query) => query.isFetching),
     isError:
       own.isError ||
       confirmed.isError ||

@@ -167,7 +167,11 @@ export function createFakeJobQueueHandle(overrides: Partial<JobQueueHandle> = {}
   return {
     addJob: vi.fn(async <K extends keyof JobKindMap>(_kind: K) => "job-1"),
     processJob: vi.fn().mockResolvedValue({ success: true }),
+    processTogether: vi
+      .fn()
+      .mockResolvedValue({ lead: { success: true }, follower: { success: true } }),
     flush: vi.fn().mockResolvedValue(empty),
+    requestSync: vi.fn(),
     retryJob: vi.fn().mockResolvedValue(undefined),
     discardJob: vi.fn().mockResolvedValue(true),
     getStats: vi.fn().mockResolvedValue({ total: 0, pending: 0, failed: 0, synced: 0 }),
