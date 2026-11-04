@@ -139,6 +139,8 @@ export function useHubWorkbenchController() {
     hypercertsError,
     refreshHypercerts,
     hypercertPages,
+    refreshGardens,
+    gardensFetching,
     allocations,
     allocationsLoading,
     gardenVaults,
@@ -360,6 +362,7 @@ export function useHubWorkbenchController() {
       certify: { refresh: refreshHypercerts, isFetching: hypercertsFetching },
       confirm: { refresh: toConfirm.refetch, isFetching: toConfirm.isFetching ?? false },
     },
+    failedShared: error ? { refresh: refreshGardens, isFetching: gardensFetching } : undefined,
     onRefreshed: markRefreshed,
   });
 
