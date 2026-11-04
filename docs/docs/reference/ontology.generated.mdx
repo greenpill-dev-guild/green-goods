@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:56fc45d196a9384b935e2adce437ebe42a4c0b613bb114831e48641284b3ab0f"
+source_digest: "sha256:33337e3f16b3dc3dcb1e0dd9ab9e8965a231d85f9af4c69692021305b2498661"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -252,11 +252,11 @@ Canonical display status for work items across the UI — protocol states plus c
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | shared-union | shared | <code>packages/shared/src/types/domain.ts · WorkDisplayStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> |  |
-| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected</code> | The decided subset of the canonical union, declared in code as Extract&lt;WorkDisplayStatus, "approved" \| "rejected"&gt;: every review read from the attestation history has decided its work, so the upload and sync states never apply to it. |
+| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected</code> | The decided subset of the canonical union, declared in code as Extract&lt;WorkDisplayStatus, "approved" \| "rejected"&gt;: every review read from the attestation history has decided its work, so pending and the upload and sync states never apply to it. |
 
 ### `hypercert-sync-status`
 
-How far a newly minted hypercert has caught up with the indexer. It shares the words syncing and failed with the work display status but not their meaning: it tracks a hypercert's indexing, not a work's upload or review.
+How far a newly minted hypercert has caught up with the indexer; not the hypercert's lifecycle status (hypercert-status). It shares the word syncing with the work display status but not its meaning: it tracks a hypercert's indexing, not a work's upload or review.
 
 **Canonical members:** synced · syncing · optimistic · failed
 
