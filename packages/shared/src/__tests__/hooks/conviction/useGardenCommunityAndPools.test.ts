@@ -497,6 +497,7 @@ describe("useGardenPools — RPC fallback", () => {
     expect(result.current.pools[0].poolType).toBe(PoolType.ActionSignal);
     expect(result.current.pools[1].poolType).toBe(PoolType.HypercertSignal);
     expect(result.current.pools[0].communityAddress).toBe(TEST_COMMUNITY);
+    expect(result.current.poolsRead).toBe(true);
   });
 
   it("returns empty when no GardensModule configured (RPC fallback)", async () => {
@@ -508,6 +509,9 @@ describe("useGardenPools — RPC fallback", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.pools).toEqual([]);
+    // A confirmed empty list: the views may show the pools as missing.
+    expect(result.current.poolsRead).toBe(true);
+    expect(result.current.poolsUnread).toBe(false);
   });
 
   it("returns isError when RPC rejects", async () => {
@@ -534,6 +538,9 @@ describe("useGardenPools — RPC fallback", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.pools).toEqual([]);
+    // Unknown, not empty: no view may show a pool as missing or offer to create one.
+    expect(result.current.poolsRead).toBe(false);
+    expect(result.current.poolsUnread).toBe(true);
   });
 
   it("normalizes garden address in RPC path", async () => {

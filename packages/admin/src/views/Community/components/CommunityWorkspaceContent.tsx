@@ -86,6 +86,9 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           canManage={workspace.canManage}
           community={workspace.community}
           pools={workspace.pools}
+          poolsRead={workspace.poolsRead}
+          poolsUnread={workspace.poolsUnread}
+          rereadPools={workspace.rereadPools}
           createPools={workspace.createPools}
           isCreatingPools={workspace.isCreatingPools}
         />

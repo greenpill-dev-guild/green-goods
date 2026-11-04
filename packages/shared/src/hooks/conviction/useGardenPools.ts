@@ -98,5 +98,9 @@ export function useGardenPools(gardenAddress?: Address, options: UseGardenPoolsO
   return {
     ...query,
     pools: (query.data ?? []) as GardenSignalPool[],
+    /** The list has been read. Until it has, no pool may be shown as missing or offered for creation. */
+    poolsRead: query.data !== undefined,
+    /** The first read failed: the list is unknown, not empty. */
+    poolsUnread: query.isError && query.data === undefined,
   };
 }

@@ -1,7 +1,8 @@
 /**
  * The signal pool view decides which item IDs a steward may register, hides registration while the
  * registered list cannot be read (the duplicate check would be blind), shows each item's share of
- * the pool's conviction, and removes an item only after confirmation.
+ * the pool's conviction, removes an item only after confirmation, and calls a pool missing only once
+ * the garden's pool list has been read.
  */
 
 import { PoolType } from "@green-goods/shared/types/gardens-community";
@@ -14,6 +15,12 @@ const GARDEN = "0x2222222222222222222222222222222222222222";
 const POOL = "0x6666666666666666666666666666666666666666";
 
 const state = vi.hoisted(() => ({
+  pools: {
+    pools: [] as { poolType: number; poolAddress: string }[],
+    poolsRead: true,
+    poolsUnread: false,
+    refetch: (() => {}) as () => unknown,
+  },
   registered: { hypercertIds: [] as bigint[], isLoading: false, isError: false, refetch: () => {} },
   conviction: {
     weights: [] as { hypercertId: bigint; weight: bigint }[],
@@ -35,7 +42,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
   useGardenPermissions: () => ({ canManageGarden: () => true }),
 }));
 vi.mock("@green-goods/shared/hooks/conviction/useGardenPools", () => ({
-  useGardenPools: () => ({ pools: [{ poolType: PoolType.HypercertSignal, poolAddress: POOL }] }),
+  useGardenPools: () => state.pools,
 }));
 vi.mock("@green-goods/shared/hooks/conviction/useRegisteredHypercerts", () => ({
   useRegisteredHypercerts: () => state.registered,
@@ -69,6 +76,12 @@ function register(id: string) {
 }
 
 beforeEach(() => {
+  state.pools = {
+    pools: [{ poolType: PoolType.HypercertSignal, poolAddress: POOL }],
+    poolsRead: true,
+    poolsUnread: false,
+    refetch: () => {},
+  };
   state.registered = { hypercertIds: [7n], isLoading: false, isError: false, refetch: () => {} };
   state.conviction = { weights: [], isLoading: false, isError: false, refetch: () => {} };
   state.register.mockReset();
@@ -106,6 +119,24 @@ describe("GardenSignalPoolView", () => {
 
     expect(screen.queryByLabelText("Hypercert token ID")).toBeNull();
     expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+  });
+
+  it("offers a retry, not a missing pool, when the garden's pool list cannot be read", () => {
+    const refetch = vi.fn();
+    state.pools = { pools: [], poolsRead: false, poolsUnread: true, refetch };
+    renderPool();
+
+    expect(screen.queryByText("Signal pool not found for this garden.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls the pool missing once the garden's pool list is read without it", () => {
+    state.pools = { ...state.pools, pools: [] };
+    renderPool();
+
+    expect(screen.getByText("Signal pool not found for this garden.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
   });
 
   it("shows each item's share of the pool's conviction", () => {
