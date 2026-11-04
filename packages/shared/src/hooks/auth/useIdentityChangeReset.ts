@@ -27,16 +27,11 @@
  * by chain and address), the garden events this device has shown
  * (`useGardenNotificationsSeenStore`, keyed by chain, address and garden),
  * the join requests this device sent that still wait for a steward
- * (`useAwaitingJoinRequestsStore`, keyed by chain and address),
- * drafts and queued work, and a
- * username change in flight (`useUsernameChangeStore`). That change is keyed by
- * its owner on the default chain, where names live: its release is already on
- * the chain, the next account never reads it, and only the same account coming
- * back can claim the name it chose and hear once that it is ready. The
- * commitment drafts and queued jobs are keyed by their owner; the admin's
- * create-garden and create-assessment drafts and a hypercert mint in flight
- * live in this tab's session storage and keep their own rules, since clearing
- * drafts is outside this reset.
+ * (`useAwaitingJoinRequestsStore`, keyed by chain and address), and drafts
+ * and queued work. The commitment drafts and queued jobs are keyed by their
+ * owner; the admin's create-garden and create-assessment drafts and a
+ * hypercert mint in flight live in this tab's session storage and keep their
+ * own rules, since clearing drafts is outside this reset.
  *
  * Only a ready session decides: a restore that may yet fail names an account
  * before it has signed in. The first account on a device adopts what is there.
