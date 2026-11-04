@@ -83,21 +83,30 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const address = usePrimaryAddress();
   const chainId = useCurrentChain();
   const { data: gardens = [], isFetched, isError: baseListError } = useGardens();
-  const { role, stewardGardens, loading: roleLoading, gardensError: roleGardensError } = useRole();
+  const {
+    role,
+    isProtocolTeam,
+    stewardGardens,
+    loading: roleLoading,
+    gardensError: roleGardensError,
+  } = useRole();
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
   const scopeKey = useMemo(() => getAdminGardenScopeKey(address, chainId), [address, chainId]);
+  const createdGarden = useAdminStore((state) =>
+    scopeKey ? state.createdGardensByScope[scopeKey] : undefined
+  );
   const configuredRoot = getNetworkConfig(chainId).rootGarden?.address;
   // The local chain configures a zero-address root garden: there is none to find.
   const rootGardenAddress =
     configuredRoot && !isZeroAddress(configuredRoot) ? configuredRoot : null;
 
   // The base list holds a chain's newest 50 gardens and the protocol garden is
-  // a chain's first, so past 50 a deployer's protocol garden is read by id
+  // a chain's first, so past 50 the team's protocol garden is read by id
   // (PRD-988). Only a fetched, non-empty list can be missing it: an empty or
   // failed list is an outage, and must stay one, never a garden that cannot load.
   const needsProtocolGarden =
-    role === "deployer" &&
+    isProtocolTeam &&
     rootGardenAddress !== null &&
     isFetched &&
     !baseListError &&
@@ -121,10 +130,10 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
           isAddressInList(address, garden.stewards) ||
           isAddressInList(address, garden.owners) ||
           isAddressInList(address, garden.evaluators) ||
-          // Deployers run the protocol garden's campaign cookie jars (DL-046)
-          // whether or not they hold a role in it; its writes stay gated by
-          // garden permissions.
-          (role === "deployer" &&
+          // The team runs the protocol garden's campaign cookie jars (DL-046),
+          // and the registry's owner is on it whether or not it holds a role in
+          // that garden; its writes stay gated by garden permissions.
+          (isProtocolTeam &&
             rootGardenAddress !== null &&
             compareAddresses(garden.id, rootGardenAddress))
         );
@@ -132,7 +141,10 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
       .slice()
       .sort(compareGardenNames);
 
-    if (stewardGardens.length === 0) {
+    // A garden's creation receipt proves its owner the way the role query proves a steward, and
+    // arrives before the indexer can answer.
+    const hints = createdGarden ? [...stewardGardens, createdGarden] : stewardGardens;
+    if (hints.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
 
@@ -141,7 +153,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // base list, that's cache lag or an outage — surface them anyway via
     // minimal stubs so the steward can still reach the canvas.
     const baseListIds = new Set(fromBaseList.map((g) => g.id.toLowerCase()));
-    const missing = stewardGardens.filter((og) => !baseListIds.has(og.id.toLowerCase()));
+    const missing = hints.filter(
+      (hint, index) =>
+        !baseListIds.has(hint.id.toLowerCase()) &&
+        hints.findIndex((other) => compareAddresses(other.id, hint.id)) === index
+    );
     if (missing.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
@@ -149,7 +165,16 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     const stubs = missing.map((og) => stubGardenFromStewardHint(og, chainId, address as Address));
     const merged = [...fromBaseList, ...stubs].sort(compareGardenNames);
     return { eligibleGardens: merged, hasStaleBaseList: true };
-  }, [address, gardens, protocolGarden, stewardGardens, chainId, role, rootGardenAddress]);
+  }, [
+    address,
+    createdGarden,
+    gardens,
+    protocolGarden,
+    stewardGardens,
+    chainId,
+    isProtocolTeam,
+    rootGardenAddress,
+  ]);
 
   const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;
 

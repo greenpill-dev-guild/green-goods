@@ -14,7 +14,7 @@ import { useGardenUrlSync } from "../../navigation/useGardenUrlSync";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
-  deployer: { id: "cockpit.role.deployer", defaultMessage: "deployer" },
+  deployer: { id: "cockpit.role.deployer", defaultMessage: "garden creator" },
   steward: { id: "cockpit.role.steward", defaultMessage: "steward" },
   user: { id: "cockpit.role.user", defaultMessage: "user" },
 };

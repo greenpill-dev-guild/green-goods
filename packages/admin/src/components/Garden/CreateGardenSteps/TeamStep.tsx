@@ -1,9 +1,16 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useAddressInput } from "@green-goods/shared/hooks/utils/useAddressInput";
-import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import {
+  type AddGardenMemberResult,
+  useCreateGardenStore,
+} from "@green-goods/shared/stores/useCreateGardenStore";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
+import { useCallback, useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -14,36 +21,79 @@ export function TeamStep() {
   const removeGardener = useCreateGardenStore((s) => s.removeGardener);
   const addSteward = useCreateGardenStore((s) => s.addSteward);
   const removeSteward = useCreateGardenStore((s) => s.removeSteward);
+  const setHasUnaddedMember = useCreateGardenStore((s) => s.setHasUnaddedMember);
+  const setField = useCreateGardenStore((s) => s.setField);
   const { formatMessage } = useIntl();
 
+  const toInputResult = useCallback(
+    (result: AddGardenMemberResult, alreadyAddedId: string) =>
+      result.success
+        ? { success: true }
+        : {
+            success: false,
+            error: formatMessage({
+              id:
+                result.reason === "already-added"
+                  ? alreadyAddedId
+                  : "app.admin.garden.create.invalidAddress",
+            }),
+          },
+    [formatMessage]
+  );
+  const addGardenerInput = useCallback(
+    (address: string) =>
+      toInputResult(addGardener(address), "app.admin.garden.create.alreadyGardener"),
+    [addGardener, toInputResult]
+  );
+  const addStewardInput = useCallback(
+    (address: string) =>
+      toInputResult(addSteward(address), "app.admin.garden.create.alreadySteward"),
+    [addSteward, toInputResult]
+  );
+
   // Use shared hook for both gardener and steward inputs
-  const gardenerInput = useAddressInput(addGardener, formatMessage);
-  const stewardInput = useAddressInput(addSteward, formatMessage);
+  const gardenerInput = useAddressInput(addGardenerInput, formatMessage);
+  const stewardInput = useAddressInput(addStewardInput, formatMessage);
+
+  // An address typed and never added would silently miss the team, so creating waits for it.
+  const hasUnaddedMember = Boolean(gardenerInput.trimmedInput || stewardInput.trimmedInput);
+  useEffect(() => {
+    setHasUnaddedMember(hasUnaddedMember);
+    return () => setHasUnaddedMember(false);
+  }, [hasUnaddedMember, setHasUnaddedMember]);
+  const addHint = formatMessage({ id: "app.admin.garden.create.addHint" });
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 type-body text-text-sub">
-        <p className="type-label-sm text-text-strong">
-          {formatMessage({
-            id: "app.admin.garden.create.teamAdvisory.title",
-            defaultMessage: "Planned team members",
-          })}
-        </p>
+      <Alert
+        variant="info"
+        title={formatMessage({ id: "app.admin.garden.create.teamAdvisory.title" })}
+      >
+        <p>{formatMessage({ id: "app.admin.garden.create.teamAdvisory.message" })}</p>
         <p className="mt-1">
-          {formatMessage({
-            id: "app.admin.garden.create.teamAdvisory.message",
-            defaultMessage:
-              "These addresses are included in deployment. Verify the role grants from Garden Members after the garden is created.",
-          })}
+          {formatMessage({ id: "app.admin.garden.create.teamAdvisory.stewardNote" })}
         </p>
-        <p className="mt-1">
-          {formatMessage({
-            id: "app.admin.garden.create.teamAdvisory.stewardNote",
-            defaultMessage:
-              "Note: Stewards automatically have gardener access. You don't need to add them to both lists.",
+      </Alert>
+
+      <FactList frame="inset">
+        <FactRow
+          labelId="create-garden-open-joining-label"
+          label={formatMessage({ id: "app.garden.create.openJoining" })}
+          description={formatMessage({
+            id: form.openJoining
+              ? "app.garden.create.openJoining.enabled"
+              : "app.garden.create.openJoining.disabled",
           })}
-        </p>
-      </div>
+          action={
+            <Switch
+              surface="admin"
+              checked={form.openJoining}
+              onCheckedChange={(checked) => setField("openJoining", checked === true)}
+              aria-labelledby="create-garden-open-joining-label"
+            />
+          }
+        />
+      </FactList>
 
       {/* Stewards section — shown first since they have broader permissions */}
       <div>
@@ -63,7 +113,7 @@ export function TeamStep() {
               defaultMessage: "0x... or vitalik.eth",
             })}
             error={stewardInput.error || undefined}
-            helperText={" "}
+            helperText={stewardInput.trimmedInput ? addHint : " "}
           />
           <Button
             type="button"
@@ -136,7 +186,7 @@ export function TeamStep() {
               defaultMessage: "0x... or vitalik.eth",
             })}
             error={gardenerInput.error || undefined}
-            helperText={" "}
+            helperText={gardenerInput.trimmedInput ? addHint : " "}
           />
           <Button
             type="button"

@@ -31,16 +31,8 @@ export function CanvasGardenAccessState({
         })}
         description={
           canCreateGarden
-            ? formatMessage({
-                id: "cockpit.access.noGardenDescriptionCanCreate",
-                defaultMessage:
-                  "This wallet is not assigned to a steward or evaluator garden yet. Create a garden to start working in the canvas.",
-              })
-            : formatMessage({
-                id: "cockpit.access.noGardenDescription",
-                defaultMessage:
-                  "This wallet is not assigned to a steward or evaluator garden yet. Ask a garden owner or steward to add you before using the canvas.",
-              })
+            ? formatMessage({ id: "cockpit.access.noGardenDescriptionCanCreate" })
+            : formatMessage({ id: "cockpit.access.noGardenDescription" })
         }
         action={
           stewardAccess || canCreateGarden ? (

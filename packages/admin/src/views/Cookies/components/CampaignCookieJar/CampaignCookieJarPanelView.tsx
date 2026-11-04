@@ -20,7 +20,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
   const {
     formatMessage,
     moduleConfigured,
-    isDeployer,
+    isProtocolTeam,
     roleLoading,
     campaigns,
     campaignsLoading,
@@ -74,12 +74,12 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
           })}
         </AdminCard>
       ) : null}
-      {!isDeployer && !roleLoading ? (
+      {!isProtocolTeam && !roleLoading ? (
         <AdminCard variant="outlined" className="type-meta text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
-              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
+              "This surface is for the Green Goods team. Connect a team account to create jars, or the jar owner to sync an existing jar.",
           })}
         </AdminCard>
       ) : null}

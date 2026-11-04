@@ -465,7 +465,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: ACCOUNT,
         executorGarden: OTHER,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(owner.result.current).toMatchObject({
@@ -490,7 +490,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: ACCOUNT,
         executorGarden: OTHER,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(stewardDispatcher.result.current).toMatchObject({
@@ -509,7 +509,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: null,
         executorGarden: null,
-        isDeployer: true,
+        isProtocolTeam: true,
       })
     );
     expect(unresolved.result.current).toMatchObject({
@@ -528,7 +528,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: null,
         executorGarden: null,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(errored.result.current).toMatchObject({
@@ -546,7 +546,7 @@ describe("useSettlementOperationsCapabilities", () => {
         account: ACCOUNT,
         protocolGarden: null,
         executorGarden: null,
-        isDeployer: false,
+        isProtocolTeam: false,
       })
     );
     expect(unavailable.result.current).toMatchObject({

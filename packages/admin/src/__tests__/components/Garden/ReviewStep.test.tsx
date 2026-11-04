@@ -65,7 +65,7 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
     expect(screen.getByText("meadow")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Planned members are included in deployment. Verify role grants from Garden Members after creation."
+        "We add these people when the garden is created. You can check their roles under Members afterward."
       )
     ).toBeInTheDocument();
   });
