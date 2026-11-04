@@ -3702,6 +3702,7 @@
   "app.toast.proof.added.messageTeammate": "It's on the promise. The lead sends it for confirmation when the team is done.",
   "app.toast.proof.adding.message": "Sign to send it. It stays on this phone until it lands.",
   "app.toast.proof.adding.messageSendToo": "Then it goes to be confirmed. Sign twice: the proof, then the send.",
+  "app.toast.proof.adding.messageSendTogether": "Then it goes to be confirmed. Sign once: the proof and the send land together, or neither does.",
   "app.toast.proof.confirming.message": "Confirming it on the garden record. You can leave this screen.",
   "app.toast.proof.couldNotAdd.title": "Couldn't add proof",
   "app.toast.proof.couldNotAdd.message": "It's still saved on this phone. Try again here or from Your Work.",

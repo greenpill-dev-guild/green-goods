@@ -12,12 +12,18 @@ const PROOF_TOAST_ID = "proof-send";
 export function createProofToasts(formatMessage: FormatMessageFn) {
   const say = (id: string) => formatMessage({ id: `app.toast.proof.${id}` });
   return {
-    /** The prompt is about to open; with Add and Send, twice. */
-    adding: ({ sendToo }: { sendToo: boolean }) =>
+    /** The prompt is about to open; with Add and Send, twice, or once where both go as one. */
+    adding: ({ sendToo, together = false }: { sendToo: boolean; together?: boolean }) =>
       toastService.loading({
         id: PROOF_TOAST_ID,
         title: say("adding.title"),
-        message: say(sendToo ? "adding.messageSendToo" : "adding.message"),
+        message: say(
+          sendToo
+            ? together
+              ? "adding.messageSendTogether"
+              : "adding.messageSendToo"
+            : "adding.message"
+        ),
         context: "proof",
         suppressLogging: true,
       }),
