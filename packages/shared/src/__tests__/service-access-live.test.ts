@@ -9,7 +9,11 @@ import {
 } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
-import { SERVICE_ZERO_HASH as ZERO } from "../modules/commitment-pooling/service-access-chain-values";
+import {
+  GREEN_GOODS_ACCESS_MANAGER,
+  GREEN_GOODS_SAFE,
+  SERVICE_ZERO_HASH as ZERO,
+} from "../modules/commitment-pooling/service-access-chain-values";
 import { createLiveServiceAccessAdapter } from "../modules/commitment-pooling/service-access-live";
 import {
   type ServiceLiveChain,
@@ -453,6 +457,20 @@ describe("live service access", () => {
     expect(f.sender.sendContractCall).toHaveBeenCalledOnce();
   });
 
+  it("reconciles a receipt kept before its pins named the access manager", async () => {
+    const f = fixture();
+    f.setFailReceipt(true);
+    await expect(f.adapter().execute(key, f.action)).rejects.toThrow("RPC unavailable");
+    expect(f.storage.size).toBe(1);
+    for (const pin of [f.route.core, f.route.source, f.route.destination])
+      pin.accessManager = GREEN_GOODS_ACCESS_MANAGER;
+    f.setFailReceipt(false);
+    const restored = await f.adapter().read(key);
+    expect(f.storage.size).toBe(0);
+    expect(restored.voucherSetups[0]!.destination!.allowance).toBe(100n);
+    expect(f.sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
   it.each([
     "cancel",
     "revert",
@@ -484,6 +502,48 @@ describe("live service access", () => {
       await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow();
       expect(f.sender.sendContractCall).not.toHaveBeenCalled();
     }
+  });
+
+  it("accepts the pinned owner or the access manager a deployment pin names", async () => {
+    for (const live of [GREEN_GOODS_SAFE, GREEN_GOODS_ACCESS_MANAGER]) {
+      const f = fixture();
+      for (const pin of [f.route.core, f.route.source, f.route.destination]) {
+        pin.owner = GREEN_GOODS_SAFE;
+        pin.accessManager = GREEN_GOODS_ACCESS_MANAGER;
+      }
+      const { read } = f.chain;
+      f.chain.read = async (input) =>
+        input.functionName === "owner" && input.address !== f.row.authorization.token
+          ? live
+          : read(input);
+      await expect(verifyServiceLiveRoute(f.route, f.chain)).resolves.toBeUndefined();
+    }
+  });
+
+  it("refuses the access manager as owner where a pin does not name it", async () => {
+    const f = fixture();
+    const { read } = f.chain;
+    f.chain.read = async (input) =>
+      input.functionName === "owner" && input.address !== f.row.authorization.token
+        ? GREEN_GOODS_ACCESS_MANAGER
+        : read(input);
+    await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
+      "Service deployment receipt, implementation or owner changed"
+    );
+  });
+
+  it("keeps a voucher token's owner exactly its issuer, even beside managed deployments", async () => {
+    const f = fixture();
+    for (const pin of [f.route.core, f.route.source, f.route.destination])
+      pin.accessManager = GREEN_GOODS_ACCESS_MANAGER;
+    const { read } = f.chain;
+    f.chain.read = async (input) =>
+      input.functionName === "owner" && input.address === f.row.authorization.token
+        ? GREEN_GOODS_ACCESS_MANAGER
+        : read(input);
+    await expect(verifyServiceLiveRoute(f.route, f.chain)).rejects.toThrow(
+      "Service voucher token changed"
+    );
   });
 
   it("rejects a contract wallet or unfunded EOA fallback before asking it to sign", async () => {

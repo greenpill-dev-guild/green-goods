@@ -86,10 +86,13 @@ export async function verifyWalletExecution(
 export function sessionIdentity(s: ServiceLiveSession) {
   return `${s.authMode}:${s.address?.toLowerCase()}:${s.profile}:${s.generation}`;
 }
+/** What a stored submission commits to; the access manager a pin accepts as owner is not part of it. */
 export function configIdentity(route: ServiceLiveRoute) {
   return keccak256(
     stringToHex(
-      JSON.stringify(route, (_, value) => (typeof value === "bigint" ? value.toString() : value))
+      JSON.stringify(route, (key, value) =>
+        key === "accessManager" ? undefined : typeof value === "bigint" ? value.toString() : value
+      )
     )
   );
 }
