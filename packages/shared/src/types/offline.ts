@@ -6,7 +6,7 @@
  *
  * @example
  * ```typescript
- * import type { OfflineStatus, SyncMetrics, OfflineWorkItem } from '@green-goods/shared';
+ * import type { OfflineStatus, SyncMetrics } from '@green-goods/shared';
  * ```
  */
 
@@ -24,38 +24,6 @@ export interface OfflineStatus {
     current: number;
     total: number;
     status: "idle" | "syncing" | "completed" | "error";
-  };
-}
-
-export interface OfflineDashboardData {
-  status: OfflineStatus;
-  metrics: SyncMetrics;
-  workItems: OfflineWorkItem[];
-  retryableItems: string[];
-  storageInfo: {
-    usedSpace: number;
-    totalSpace: number;
-    needsCleanup: boolean;
-  };
-}
-
-export interface OfflineWorkItem {
-  id: string;
-  type: "work" | "work_approval";
-  title: string;
-  description?: string;
-  gardenId: string;
-  status: "pending" | "syncing" | "failed" | "synced";
-  priority: "high" | "medium" | "low";
-  createdAt: number;
-  lastAttempt?: number;
-  retryCount: number;
-  error?: string;
-  contentHash?: string;
-  size: number;
-  images?: {
-    count: number;
-    totalSize: number;
   };
 }
 
@@ -120,13 +88,6 @@ export interface OfflineCapabilities {
 // ============================================
 // Conflict Resolution Types
 // ============================================
-
-export interface WorkConflict {
-  localWork: OfflineWorkItem;
-  remoteWork: OfflineWorkItem;
-  conflictType: "duplicate" | "modified" | "version_mismatch";
-  similarity?: number;
-}
 
 export interface DuplicateCheckResult {
   conflictType?: string;
