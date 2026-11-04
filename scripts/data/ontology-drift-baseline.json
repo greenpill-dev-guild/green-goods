@@ -3,15 +3,6 @@
   "description": "Known ontology drift, burned down over time. scripts/quality/check-ontology.mjs reconciles this bidirectionally: unlisted findings fail CI, stale entries fail CI once the drift is fixed, and entries expire at most 250 days out. Renew an entry consciously with a fresh note — never let one roll silently.",
   "entries": [
     {
-      "id": "capital-type-order",
-      "guard": "shared-ts-vocab",
-      "subject": "vocab:capital/rep:capital-type",
-      "detail": "order expected [social, material, financial, living, intellectual, experiential, spiritual, cultural] found [living, social, material, financial, intellectual, experiential, spiritual, cultural]",
-      "owner": "shared",
-      "expires": "2026-12-31",
-      "note": "Reorder CapitalType to the canonical machine order, or land the Capital-to-CapitalType mapping function first — index-based bridges between the two lists are unsafe until one of those happens."
-    },
-    {
       "id": "signal-pool-type-indexer",
       "guard": "graphql-enums",
       "subject": "vocab:signal-pool-type/rep:indexer",
