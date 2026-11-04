@@ -2,10 +2,7 @@
  * Slug Availability Hook
  *
  * Debounced RPC check for ENS slug availability across the L2 cache and L1 receiver.
- * This is tier 2 of the three-tier validation:
- *   1. Sync Zod (instant) -- useSlugForm
- *   2. Debounced RPC (300ms) -- this hook
- *   3. On-submit recheck -- useENSClaim
+ * A slug that fails the format check (`slugSchema`) is never sent.
  *
  * @module hooks/ens/useSlugAvailability
  */

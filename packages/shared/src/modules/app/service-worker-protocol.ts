@@ -27,7 +27,6 @@ export const SW_MESSAGE = {
   MEDIA_SWEEP: "MEDIA_SWEEP",
   REGISTER_SYNC: "REGISTER_SYNC",
   SKIP_WAITING: "SKIP_WAITING",
-  ENS_REGISTRATION_COMPLETE: "ENS_REGISTRATION_COMPLETE",
 } as const;
 
 export type ServiceWorkerMessageType = (typeof SW_MESSAGE)[keyof typeof SW_MESSAGE];
@@ -45,20 +44,9 @@ export interface MediaPolicyMessage {
   keep: string[];
 }
 
-export interface EnsRegistrationCompleteMessage {
-  type: typeof SW_MESSAGE.ENS_REGISTRATION_COMPLETE;
-  slug: string;
-}
-
 export type ServiceWorkerMessage =
-  | {
-      type: Exclude<
-        ServiceWorkerMessageType,
-        MediaPolicyMessage["type"] | EnsRegistrationCompleteMessage["type"]
-      >;
-    }
-  | MediaPolicyMessage
-  | EnsRegistrationCompleteMessage;
+  | { type: Exclude<ServiceWorkerMessageType, MediaPolicyMessage["type"]> }
+  | MediaPolicyMessage;
 
 export type TailStatus = "ready" | "unavailable" | "paused" | "blocked" | "failed";
 
