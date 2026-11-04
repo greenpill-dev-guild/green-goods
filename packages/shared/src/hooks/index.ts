@@ -213,16 +213,10 @@ export { useUserCookieJars } from "./cookie-jar/useUserCookieJars";
 // ============================================================================
 // ENS (Subdomain registration via CCIP)
 // ============================================================================
-export type { ENSClaimResult } from "./ens/useENSClaim";
-export { useENSClaim } from "./ens/useENSClaim";
 export { useENSRegistrationStatus } from "./ens/useENSRegistrationStatus";
-export type { ENSReleaseResult } from "./ens/useENSReleaseName";
-export { useENSReleaseName } from "./ens/useENSReleaseName";
 export { useGreenGoodsEnsName } from "./ens/useGreenGoodsEnsName";
 export { useProtocolMemberStatus } from "./ens/useProtocolMemberStatus";
 export { useSlugAvailability } from "./ens/useSlugAvailability";
-export type { SlugFormValues } from "./ens/useSlugForm";
-export { slugSchema, useSlugForm } from "./ens/useSlugForm";
 // ============================================================================
 // GARDEN
 // ============================================================================

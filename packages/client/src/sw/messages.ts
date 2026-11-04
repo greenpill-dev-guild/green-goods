@@ -145,19 +145,6 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
         );
         return;
       }
-      case SW_MESSAGE.ENS_REGISTRATION_COMPLETE: {
-        const slug = message.slug ?? "";
-        event.waitUntil(
-          scope.registration.showNotification("ENS Name Active", {
-            body: `Your name ${slug}.greengoods.eth is now active!`,
-            icon: "/icon-192.png",
-            badge: "/images/android-icon-72x72.png",
-            tag: `ens-complete-${slug}`,
-            data: { url: "/home/profile", slug },
-          })
-        );
-        return;
-      }
       default:
         return;
     }
