@@ -120,7 +120,7 @@ vi.mock("../../../components/Toast/toast.service", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
-  logger: { error: mocks.loggerError },
+  logger: { error: mocks.loggerError, warn: vi.fn() },
 }));
 
 vi.mock("../../../stores/useSheetOrchestratorStore", () => ({

@@ -339,7 +339,9 @@ export function useActionEditorController() {
         JSON.stringify(JSON.parse(raw)) ===
         JSON.stringify(buildActionInstructionsV2(data.title, instructionConfig, translations))
       );
-    } catch {
+    } catch (error) {
+      // The edit stays open; saving again skips the writes that already landed.
+      logger.warn("Could not check the uploaded instructions", { error });
       return false;
     }
   };

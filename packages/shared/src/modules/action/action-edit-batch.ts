@@ -1,6 +1,7 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
 import { provenItems, settleOpenBatches, verifyByReading } from "../transactions/batch-hold";
 import {
@@ -226,7 +227,14 @@ async function settleOpenEdits(
 
   const fields = attempted.map((change) => change.field);
   const registry = getNetworkContracts(scope.chainId).actionRegistry;
-  const action = await readAction(registry, actionUID, chain).catch(() => null);
+  const action = await readAction(registry, actionUID, chain).catch((error: unknown) => {
+    // The hold stands and shows its values as unread until a read finds them.
+    logger.warn("Could not read the action for a held edit", {
+      error,
+      actionUID: actionUID.toString(),
+    });
+    return null;
+  });
   return {
     hold: {
       operationIds: held.map((record) => record.id),
