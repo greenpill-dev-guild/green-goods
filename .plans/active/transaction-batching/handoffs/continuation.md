@@ -102,6 +102,28 @@ Open findings and where each goes:
 
 Next: prove and list slices 7–10 and 12 one rail at a time (checkpoint 12.2), then slice 11.
 
+## State on 2026-11-04, later
+
+#1478 merged as `c41836796` at 06:36Z. It lists three rails for legacy passkeys on Arbitrum: `reward-edits`, `commitment-creations` and `proof-and-send`. Four new rails stay unlisted, because no live account can run them as one group yet:
+
+- `action-edit`: only the registry's owner can create an action, and no passkey owns one.
+- `campaign-jar-sync`: there is no campaign jar on Arbitrum yet.
+- `marketplace-approvals`: the proving garden has no hypercert to list.
+- `karma-reconcile`: on the original gardens a project-access call can't succeed yet. The group send assumes no step reverts, so one batched signature would fail as a whole, project call included, where one call at a time still lands the project. The project call also needs about 3M gas for a long description.
+
+Two rails were proven on beta that morning, with the user signing on a legacy passkey (authenticated Brave):
+
+| Rail | Proof | Signatures, today → after | Gas |
+|---|---|---|---|
+| Reward edits | Two available promises went $1.00 → $0.50 → $1.00 in two runs. A declined prompt sent nothing and the dialog said "Nothing was changed" | 2 → 1 | 693,626 and 695,754 of 8,000,000 |
+| Creations | "Seed More Like This" started a new group of two promises, because the old group's deadline had passed. A declined prompt sent nothing and the dialog said "Nothing was created" | 2 → 1 | 1,911,384 of 12,000,000 |
+
+Each run was one sponsored UserOperation, and the screen said "Your wallet will ask you once, for all 2" before the press. Reward edits send through the bundle path and write no batch journal record. A creation's prompt comes about 4 s after the press, because the promises' metadata is pinned first.
+
+Found on the way: while the creation prompt was open, the pool list behind the dialog already showed the new promises, then rearranged once they landed (PRD-1396). For about 200 ms around each press, the dialog shows the one-promise line before the line for both; that goes to the copy PR.
+
+Next: prove `proof-and-send` once the proving passkey has taken up a promise, then slice 11.
+
 ## Start here
 
 1. Start with [publication.md](publication.md) for the isolated `develop` base, implementation commit, and current proof. Confirm the PR head, clean working tree, and validation status. The original 35 unpublished parent commits were excluded from this branch.

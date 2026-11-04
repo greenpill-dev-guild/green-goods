@@ -703,6 +703,14 @@
       "status": "in_progress",
       "branch": "chore/batching-proof-closeout",
       "note": "Live proof closeout: slices 1–6 listed on Arbitrum with evidence, the eip-5792 wallet rail stopped; slices 7–10 and 12 merged unlisted; QA cases updated and ADM-198 added."
+    },
+    {
+      "timestamp": "2026-11-04T17:04:23.042Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "chore/batching-proof-record-two",
+      "note": "Second listing (#1478): reward edits and creations proven on beta; proof-and-send listed, proof pending; four rails stay unlisted with reasons."
     }
   ],
   "execution_sub_lanes": {

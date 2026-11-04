@@ -1,7 +1,7 @@
 # Transaction Batching and Recovery Plan
 
 **Feature:** `transaction-batching` · **Stage/status:** active; slices 7–10 and 12 await live proof
-**Created:** 2026-10-23 · **Updated:** 2026-11-04 · **Implementation:** Slices 1–6 proven live on Arbitrum and listed, except the `eip-5792` wallet rail, stopped because no available wallet reports atomic calls; slices 7–10 and 12 merged with their rails unlisted; slice 11 not started
+**Created:** 2026-10-23 · **Updated:** 2026-11-04 · **Implementation:** Slices 1–6 proven live on Arbitrum and listed, except the `eip-5792` wallet rail, stopped because no available wallet reports atomic calls; slices 7–10 and 12 merged; their reward-edit and creation rails proven live and listed, proof-and-send listed with its proof pending; slice 11 not started
 
 Execute in the user's order: **shared batching and recovery → garden settings → adding members → deposits → bulk work approvals**, then the remaining actions in [the slice table](#slices). Each phase covers passkeys and wallets. [spec.md](spec.md) owns behavior; [eval.md](eval.md) owns acceptance evidence; [status.json](status.json) owns lane state.
 
@@ -44,7 +44,7 @@ Execute in the user's order: **shared batching and recovery → garden settings 
 | Approve and deposit together, with no double deposit | 4.1–4.4 | AC-20–22 | Listed for DAI on `sequential` wallets (#1450) and legacy passkeys (#1451) |
 | Bulk attestations with individual outcomes | 5.1–5.5 | AC-13–16 | Listed on legacy passkeys (#1433) and `contract-call` wallets (#1434) |
 | Accessible, localized progress and selection | 2.2–5.5 | AC-17 | The settings passkey journey passed by keyboard; the other journeys are pending |
-| Every remaining batchable action | 6.1–12.1 | AC-24–27 | Pool setup listed on legacy passkeys (#1428); slices 7–10 and 12 merged unlisted; slice 11 not started |
+| Every remaining batchable action | 6.1–12.1 | AC-24–27 | Pool setup (#1428), reward edits and creations (#1478) listed and proven on legacy passkeys; proof-and-send listed, proof pending; action edit, campaign jar sync, marketplace approvals and Karma reconcile unlisted; slice 11 not started |
 | Compatibility and measurable improvement | Every phase; 5.6 | AC-18–19 | Prompts measured on every listed rail; see [the continuation](handoffs/continuation.md#state-on-2026-11-04) |
 
 ## Start gate
@@ -70,12 +70,12 @@ Each slice is one PR. Signatures read "today, then after" for passkeys and atomi
 | 5A | Bulk review execution (#1420) | No UI yet | 4 | Strict execution before any UI |
 | 5B | Staged reviews in the Hub (#1422; listed in #1433 and #1434) | 1 per work, then 1 per group, on every wallet | 5A | Largest UI change |
 | 6 | Pool setup on passkeys, opening a seeded season (#1423; listed in #1428) | Up to 6, then 2; 1–2, then 1 | 2 | Adds the passkey path pool callers use |
-| 7 | Seed set, Add to Group, Finish Creating, Edit Reward on passkeys (#1461, unlisted) | 1 per copy, then 1 per group; Edit Reward starts working | 6 | These share `creationSendMode` |
+| 7 | Seed set, Add to Group, Finish Creating, Edit Reward on passkeys (#1461; listed in #1478) | 1 per copy, then 1 per group; Edit Reward starts working | 6 | These share `creationSendMode` |
 | 8 | Karma reconcile, marketplace approvals (#1464, unlisted) | 1 + N, then 1 per group; 1–2, then 1 | 2 | Fixed calls, confirmed by reads |
 | 9 | Campaign jar sync (#1463, unlisted) | 1–3, then 1 | 2 | Changes who can withdraw |
 | 10 | Action edit (#1460, unlisted) | 1–4, then 1 | 2 | Upload order and its own recovery |
 | 11 | Octant checkout | 1–4, then 1, atomic wallets only | 4 | Wallet only, on mainnet |
-| 12 | Add and send proof (#1466, unlisted) | 2, then 1 | 7 | Reverses a recorded decision, approved in decision 20 |
+| 12 | Add and send proof (#1466; listed in #1478) | 2, then 1 | 7 | Reverses a recorded decision, approved in decision 20 |
 
 After slice 2, slices 3, 6, 8, 9, and 10 share no code and can run in parallel worktrees. Slice 4 waits for 3 only by decision 13.
 
@@ -230,7 +230,7 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 **PR 12.** Depends on slice 7. The user reversed the recorded decision on 2026-11-01 (decision 20).
 
 - [x] **12.1 Batch it.** `useCommitmentJobs.ts` records "two calls, two signatures" for this flow, so a proof is kept even when its send fails. Batching means the queue carries both as one job: the second job waits for the proof today, its solo simulation reverts `EvidenceRequired`, and the client's passkey send is a flush, not a tap. Built in #1466 with its rails unlisted.
-- [ ] **12.2 Prove and list slices 7–10 and 12.** Each new rail stays unlisted until one live group runs on beta with the user signing, as slices 2–6 did. That first group confirms its ceilings.
+- [ ] **12.2 Prove and list slices 7–10 and 12.** Each new rail stays unlisted until one live group runs on beta with the user signing, as slices 2–6 did. That first group confirms its ceilings. **4 Nov:** #1478 listed reward edits, creations and proof-and-send on legacy passkeys. Reward edits and creations were proven on beta that day, each with two copies under one sponsored signature and a declined prompt that sent nothing. Proof-and-send waits until the proving passkey takes up a promise. Action edit, campaign jar sync, marketplace approvals and Karma reconcile stay unlisted; [the continuation](handoffs/continuation.md#state-on-2026-11-04-later) gives each reason.
 
 **Phase exit:** AC-27 passes, and a proof still survives a failed send.
 
