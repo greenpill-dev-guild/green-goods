@@ -9,7 +9,7 @@ import { withoutVideoMetadata } from "../media/video-metadata";
 import { captureWorkFile, isHeicFile } from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
 export type WorkMediaKind = "image" | "video" | "unknown";
-export type MediaRejectedReason = "unsupported" | "heic_conversion_failed";
+export type MediaRejectedReason = "unsupported" | "heic_conversion_failed" | "too_large";
 
 export interface SafeMediaMetadata {
   extension: string;
@@ -55,6 +55,8 @@ export interface NormalizeWorkMediaOptions {
   onHeicConversionFailed?: (file: File, error: unknown) => void;
   /** The decoder could not load yet, so the photo was kept to convert once it can. */
   onHeicConversionDeferred?: (file: File) => void;
+  /** The largest video the flow takes. A larger one is refused before it is read. */
+  maxVideoBytes?: number;
 }
 
 export { HEIC_JPEG_QUALITY, WORK_PHOTO_COMPRESSION };
@@ -138,6 +140,20 @@ export async function normalizeWorkMediaFiles(
   const converted: ConvertedWorkMediaFile[] = [];
 
   for (const pickedFile of files) {
+    // Reading a long recording whole only to refuse it can run a phone out of memory, so a
+    // video over the flow's limit is refused unread.
+    if (
+      options.maxVideoBytes !== undefined &&
+      isVideoFile(pickedFile) &&
+      pickedFile.size > options.maxVideoBytes
+    ) {
+      rejected.push({
+        file: pickedFile,
+        reason: "too_large",
+        metadata: getSafeMediaMetadata(pickedFile),
+      });
+      continue;
+    }
     const file = await captureWorkFile(pickedFile);
     if (isVideoFile(file)) {
       // A video loses its location, device and capture time as it is picked

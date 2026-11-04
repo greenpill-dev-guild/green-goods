@@ -68,6 +68,8 @@ const HEIC_TYPES = new Set([
 ]);
 const HEIC_EXTENSIONS = new Set(["heic", "heif"]);
 const MIB = 1024 * 1024;
+/** The largest video a work takes. */
+export const WORK_VIDEO_MAX_BYTES = 20 * MIB;
 const identities = new WeakMap<
   File,
   Promise<{ id: string; contentHash: string; fileData: SerializedFileData }>
@@ -184,7 +186,9 @@ export function validateWorkAttachments(
   if (media.length > 10) errors.push("media-count");
   if (media.some((file) => !isPhoto(file) && !VIDEO_TYPES.has(file.type)))
     errors.push("media-type");
-  if (media.some((file) => file.size > (VIDEO_TYPES.has(file.type) ? 20 : 10) * MIB))
+  if (
+    media.some((file) => file.size > (VIDEO_TYPES.has(file.type) ? WORK_VIDEO_MAX_BYTES : 10 * MIB))
+  )
     errors.push("media-size");
   if (audio.some((file) => !file.type.startsWith("audio/"))) errors.push("audio-type");
   if ([...media, ...audio].some((file) => file.size === 0)) errors.push("empty-media");
@@ -194,7 +198,7 @@ export function validateWorkAttachments(
 }
 
 export async function validateWorkVideo(file: File): Promise<boolean> {
-  if (!VIDEO_TYPES.has(file.type) || file.size > 20 * MIB) return false;
+  if (!VIDEO_TYPES.has(file.type) || file.size > WORK_VIDEO_MAX_BYTES) return false;
   return new Promise((resolve) => {
     const video = document.createElement("video");
     const url = URL.createObjectURL(file);
