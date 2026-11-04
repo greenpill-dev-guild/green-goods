@@ -15,12 +15,15 @@
  * that didn't.
  *
  * The request is all or nothing, so every job in it ends the same way: sent
- * with one transaction hash, or refused with one error.
+ * with one transaction hash, or refused with one error. A passkey's request
+ * also needs the reviewed ceilings it is checked against before the prompt
+ * (`batchBudget`).
  *
  * @module modules/transactions/bundling-sender
  */
 
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
+import type { BatchBudget } from "./batch-types";
 import type { ContractCall, TransactionSender, TransactionSendOptions, TxResult } from "./types";
 
 /** How the one request ended, for whoever sends the next thing. */
@@ -28,7 +31,10 @@ export type BundleOutcome =
   | { status: "sent"; hash: `0x${string}` }
   /** The person declined in the wallet: nothing reached the chain. */
   | { status: "declined"; error: unknown }
-  /** Refused before or on the chain (reverted, unaffordable): nothing was recorded. */
+  /**
+   * Refused before or on the chain (reverted, unaffordable, or stopped by the
+   * sender's own checks before it went out): nothing was recorded.
+   */
   | { status: "refused"; error: unknown }
   /** Anything else. The answer may have been lost, so the chain must be read before sending again. */
   | { status: "failed"; error: unknown }
@@ -53,10 +59,11 @@ interface HeldCall {
   reject: (error: unknown) => void;
 }
 
-function outcomeOfError(error: unknown): BundleOutcome {
+/** A sender that proves the request never went out has answered, whatever its error says. */
+function outcomeOfError(error: unknown, neverSent: boolean): BundleOutcome {
   const { kind } = classifyTxError(error);
   if (kind === "cancelled") return { status: "declined", error };
-  if (kind === "reverted") return { status: "refused", error };
+  if (kind === "reverted" || neverSent) return { status: "refused", error };
   return { status: "failed", error };
 }
 
@@ -68,6 +75,8 @@ export function createBundlingSender(
     onAsking?: () => void;
     /** The wallet accepted the request; its receipt is still to come. */
     onAccepted?: () => void;
+    /** The ceilings the one request is checked against; a passkey sends none without them. */
+    batchBudget?: BatchBudget;
   } = {}
 ): BundlingSender {
   if (!base.sendAtomicBatch) throw new Error("This sender cannot send an atomic batch");
@@ -95,6 +104,7 @@ export function createBundlingSender(
       const failed = results.find((result) => result.status === "rejected");
       if (failed?.status === "rejected") throw failed.reason;
     };
+    let neverSent = false;
     try {
       // Each job checks it still owns its send, as a single send would, before
       // anything can reach the wallet. One that doesn't stops the whole request.
@@ -104,6 +114,10 @@ export function createBundlingSender(
       const result = await sendAtomicBatch(
         calls.map(({ call }) => call),
         {
+          batchBudget: hooks.batchBudget,
+          onNeverSent: () => {
+            neverSent = true;
+          },
           assertOwnership: async () => {
             for (const { options } of calls) await options.assertOwnership?.();
           },
@@ -122,7 +136,7 @@ export function createBundlingSender(
       settle({ status: "sent", hash: result.hash });
       for (const { resolve } of calls) resolve(result);
     } catch (error) {
-      settle(outcomeOfError(error));
+      settle(outcomeOfError(error, neverSent));
       for (const { reject } of calls) reject(error);
     }
   };

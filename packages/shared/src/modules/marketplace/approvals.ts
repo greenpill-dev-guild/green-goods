@@ -13,6 +13,8 @@
  */
 
 import type { Address } from "viem";
+import type { BatchRail } from "../transactions/batch-enablement";
+import type { BatchBudget } from "../transactions/batch-types";
 import type { ContractCall } from "../transactions/types";
 
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -21,6 +23,30 @@ import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
 
 const log = createLogger({ source: "marketplace/approvals" });
+
+const ARBITRUM_CEILINGS = {
+  maxCalls: 2,
+  maxCalldataBytes: 1_024,
+  maxFeePerGas: "1000000000",
+  maxFee: "1000000000000000",
+};
+
+/**
+ * Ceilings for both approvals under one signature, on the chains they were sized for. Sized from
+ * the calls, not from receipts: each sets one approval flag, about 50k gas apiece, and a Green Goods
+ * passkey UserOperation adds about 730k. The first live batch on each rail confirms them before that
+ * rail is listed.
+ */
+const APPROVAL_BUDGETS: Partial<Record<number, Record<BatchRail, BatchBudget>>> = {
+  42161: {
+    passkey: { ...ARBITRUM_CEILINGS, maxGas: "3000000", sponsorship: "required" },
+    wallet: { ...ARBITRUM_CEILINGS, maxGas: "1500000", sponsorship: "wallet" },
+  },
+};
+
+export function marketplaceApprovalBudget(rail: BatchRail, chainId: number): BatchBudget | null {
+  return APPROVAL_BUDGETS[chainId]?.[rail] ?? null;
+}
 
 // ---------------------------------------------------------------------------
 // ERC1155 isApprovedForAll / setApprovalForAll ABI fragments

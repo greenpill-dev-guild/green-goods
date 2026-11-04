@@ -123,6 +123,9 @@ export const Approving: Story = { args: { phase: "asking" } };
 
 export const Declined: Story = { args: { phase: "declined" } };
 
+/** The bundle was past one signature's ceilings and never went out: Try Again asks once per promise. */
+export const PastCeilings: Story = { args: { phase: "overCeilings", mode: "one-by-one" } };
+
 /** The answer was lost: the answers are fixed, and Try Again finishes what the chain has. */
 export const Unconfirmed: Story = { args: { phase: "unconfirmed" } };
 

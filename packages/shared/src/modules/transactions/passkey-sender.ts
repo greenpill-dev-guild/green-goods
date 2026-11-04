@@ -472,18 +472,4 @@ export class PasskeySender implements TransactionSender {
     }
     return atomicBatchTxResult(execution);
   }
-
-  async sendBatch(calls: ContractCall[]): Promise<TxResult> {
-    if (calls.length === 0) {
-      throw new Error("Cannot send empty batch");
-    }
-
-    // This sender advertises no atomic batching; preserve sequential call semantics.
-    let lastResult: TxResult | null = null;
-    for (const call of calls) {
-      lastResult = await this.sendContractCall(call);
-    }
-
-    return lastResult!;
-  }
 }

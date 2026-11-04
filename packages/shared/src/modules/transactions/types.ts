@@ -129,9 +129,6 @@ export interface TransactionSender {
   /** Send a single contract call */
   sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;
 
-  /** Send multiple calls in a batch (optional — check supportsBatching first) */
-  sendBatch?(calls: ContractCall[]): Promise<TxResult>;
-
   /**
    * Whether this account can run several calls as one transaction on this chain
    * for `action`. Asking never prompts the person. A wallet answers for itself
@@ -142,9 +139,8 @@ export interface TransactionSender {
 
   /**
    * Several calls, one approval, one transaction: all of them land or none do.
-   * Only call it after `canSendAtomicBatch` said yes for the chain. Unlike
-   * `sendBatch`, which may send one call after another, a later call here can
-   * rely on an earlier one having run.
+   * Only call it after `canSendAtomicBatch` said yes for the chain. A later
+   * call here can rely on an earlier one having run.
    */
   sendAtomicBatch?(calls: ContractCall[], options?: AtomicBatchOptions): Promise<TxResult>;
 

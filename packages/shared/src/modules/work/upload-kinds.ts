@@ -15,8 +15,8 @@
  *      lookup for a send whose answer was lost (stranded-intent.ts).
  *
  * A kind that sends some other contract call, such as a commitment act, cannot
- * ride in EAS.multiAttest. One signature for it needs TransactionSender.sendBatch
- * to carry several calls atomically, and no sender does that yet.
+ * ride in EAS.multiAttest. One signature for it needs an atomic batch
+ * (TransactionSender.sendAtomicBatch), and the queue sends none yet.
  *
  * @module modules/work/upload-kinds
  */

@@ -4,8 +4,10 @@
  * The steward names the copies nobody has taken and the new G$ amount; this
  * sends one `setDeclaredConsideration` per copy through
  * `modules/commitment-pooling/reward-edit`, in one approval where the wallet
- * can do that, and says where each copy stands. The dollars are the caller's:
- * it converts them at the price it read just before calling.
+ * or passkey can do that, and says where each copy stands. A group past a
+ * passkey's ceilings is asked once per copy from then on, and `mode` says so
+ * before the next press. The dollars are the caller's: it converts them at the
+ * price it read just before calling.
  *
  * @module hooks/admin-ui/pool/useEditReward
  */
@@ -16,13 +18,11 @@ import { useCallback, useState } from "react";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
-import {
-  type CreationSendMode,
-  creationSendMode,
-} from "../../../modules/commitment-pooling/creation-send";
+import type { CreationSendMode } from "../../../modules/commitment-pooling/creation-send";
 import {
   goodDollarConsideration,
   type RewardEditProgress,
+  rewardEditSendMode,
   sendRewardEdit,
 } from "../../../modules/commitment-pooling/reward-edit";
 import type { Address } from "../../../types/domain";
@@ -58,14 +58,16 @@ export function useEditReward(input: { chainId: number }): EditRewardController 
   const { chainId } = input;
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<CreationSendMode | null>(null);
+  const [probed, setProbed] = useState<CreationSendMode | null>(null);
+  const [pastCeilings, setPastCeilings] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [copies, setCopies] = useState<readonly RewardEditProgress[] | null>(null);
+  const mode = probed === "bundle" && pastCeilings ? "one-by-one" : probed;
 
   useAsyncEffect(
     async ({ isMounted }) => {
-      const next = await creationSendMode(sender, chainId);
-      if (isMounted()) setMode(next);
+      const next = await rewardEditSendMode(sender, chainId);
+      if (isMounted()) setProbed(next);
     },
     [sender, chainId]
   );
@@ -102,7 +104,9 @@ export function useEditReward(input: { chainId: number }): EditRewardController 
           latest.set(progress.commitmentId, progress);
           setCopies([...latest.values()]);
         },
+        oneByOne: pastCeilings,
       });
+      if (ended.some((copy) => copy.miss === "over-ceilings")) setPastCeilings(true);
       return ended.some((copy) => copy.status !== "changed") ? "left" : "changed";
     } finally {
       setIsSending(false);
@@ -110,6 +114,9 @@ export function useEditReward(input: { chainId: number }): EditRewardController 
     }
   };
 
-  const reset = useCallback(() => setCopies(null), []);
+  const reset = useCallback(() => {
+    setCopies(null);
+    setPastCeilings(false);
+  }, []);
   return { mode, isSending, copies, change, reset };
 }

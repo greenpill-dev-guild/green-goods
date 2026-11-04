@@ -15,7 +15,7 @@ import type { Hex } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { EmbeddedSender } from "../embedded-sender";
 import { PasskeySender } from "../passkey-sender";
-import type { ContractCall, TransactionSender } from "../types";
+import type { TransactionSender } from "../types";
 import { WalletSender } from "../wallet-sender";
 
 const SECOND_TX_HASH = `0x${"b".repeat(64)}` as Hex;
@@ -52,7 +52,6 @@ type SenderExpectations = {
   authMode: TransactionSender["authMode"];
   sponsored: boolean;
   supportsBatching: boolean;
-  batch: true | string;
   chainSource: "resolver" | "call";
   receipt: "none" | "always" | "canonical-only";
   revertedReceipt: true | string;
@@ -78,7 +77,6 @@ const cases: SenderCase[] = [
       authMode: "wallet",
       sponsored: false,
       supportsBatching: false,
-      batch: "wallet mode intentionally has no batch surface",
       chainSource: "call",
       receipt: "canonical-only",
       revertedReceipt: true,
@@ -132,7 +130,6 @@ const cases: SenderCase[] = [
       authMode: "passkey",
       sponsored: true,
       supportsBatching: false,
-      batch: true,
       chainSource: "resolver",
       receipt: "always",
       revertedReceipt: true,
@@ -213,7 +210,6 @@ const cases: SenderCase[] = [
       authMode: "embedded",
       sponsored: false,
       supportsBatching: false,
-      batch: true,
       chainSource: "call",
       receipt: "always",
       revertedReceipt: true,
@@ -275,7 +271,6 @@ const laws: ConformanceLaw<SenderCase>[] = [
       expect(sender.authMode).toBe(expectations.authMode);
       expect(sender.supportsSponsorship).toBe(expectations.sponsored);
       expect(sender.supportsBatching).toBe(expectations.supportsBatching);
-      expect(typeof sender.sendBatch === "function").toBe(expectations.batch === true);
     },
   },
   {
@@ -446,29 +441,6 @@ const laws: ConformanceLaw<SenderCase>[] = [
       await expect(sender.sendContractCall(createMockContractCall())).rejects.toThrow(
         "sender transport failed"
       );
-    },
-  },
-  {
-    name: "rejects an empty batch",
-    applicable: ({ expectations }) => expectations.batch,
-    verify: async ({ make }) => {
-      await expect(make().sender.sendBatch?.([])).rejects.toThrow("Cannot send empty batch");
-    },
-  },
-  {
-    name: "sends a multi-call batch sequentially and returns the last result",
-    applicable: ({ expectations }) => expectations.batch,
-    verify: async ({ make, expectations }) => {
-      const harness = make({ hashes: [SECOND_TX_HASH, NON_CANONICAL_HASH] });
-      const calls: ContractCall[] = [
-        createMockContractCall(),
-        createMockContractCall({ args: ["0x1111111111111111111111111111111111111111", 2000n] }),
-      ];
-      await expect(harness.sender.sendBatch?.(calls)).resolves.toEqual({
-        hash: NON_CANONICAL_HASH,
-        sponsored: expectations.sponsored,
-      });
-      expect(harness.forwarded).toHaveLength(2);
     },
   },
 ];
