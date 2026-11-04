@@ -5,7 +5,7 @@ import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
 import { holdWorkClaims } from "../job-queue/work-claims";
 import { holdingSend } from "../job-queue/send-guards";
-import { MAX_RETRIES } from "../job-queue/queue-policy";
+import { hasRecordedSend, MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
 import { findTakeUpOf } from "../job-queue/take-up-hold";
@@ -41,6 +41,30 @@ export function queuedOutcome(
     clientWorkId: queued.clientWorkId,
     ...(reason ? { reason } : {}),
   };
+}
+
+/** A send already on record that could not be checked now: it is still awaiting confirmation. */
+export function uncheckedOutcome(
+  queued: QueuedWorkSubmission,
+  sender: TransactionSender | null
+): SubmitWorkOutcome {
+  return {
+    ...queuedOutcome(queued, sender, "connection-unconfirmed"),
+    kind: "awaiting-confirmation",
+  } as SubmitWorkOutcome;
+}
+
+/**
+ * Without the offline queue a send that cannot go out now fails, and says nothing was
+ * sent, unless a send is already on record: that one only waits for its check.
+ */
+async function refuseForConnection(
+  queued: QueuedWorkSubmission,
+  ports: SubmitWorkPorts
+): Promise<SubmitWorkOutcome> {
+  const job = await jobQueueDB.getJob(queued.jobId);
+  if (job && hasRecordedSend(job)) return uncheckedOutcome(queued, ports.sender);
+  throw new ConnectionNeededError();
 }
 
 function rejectTerminalWork(job: Job | undefined, onTerminalUnsentFailure?: () => void) {
@@ -136,7 +160,7 @@ async function admitAndSend(
   }
   // Admission is durable; on an unconfirmed connection the work waits in the queue.
   if (!(await ports.connectivity.confirm())) {
-    if (!input.allowOfflineQueue) throw new ConnectionNeededError();
+    if (!input.allowOfflineQueue) return refuseForConnection(queued, ports);
     return queuedOutcome(
       queued,
       ports.sender,
@@ -166,9 +190,9 @@ async function admitAndSend(
         await jobQueueDB.amendJob(queued.jobId, (job) => {
           job.meta = { ...job.meta, requiresExplicitSend: true };
         });
-        throw result.error === "offline" || result.error === "connection-unconfirmed"
-          ? new ConnectionNeededError()
-          : new Error(result.error ?? "submission-failed");
+        if (result.error === "offline" || result.error === "connection-unconfirmed")
+          return refuseForConnection(queued, ports);
+        throw new Error(result.error ?? "submission-failed");
       }
     }
     return result.success && result.txHash

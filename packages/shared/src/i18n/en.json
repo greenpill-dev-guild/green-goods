@@ -6649,6 +6649,7 @@
   "app.admin.work.submit.checkConfirmation": "Check confirmation",
   "app.work.awaitingConfirmation": "Awaiting confirmation",
   "app.work.confirmationExplanation": "Your work was sent. We will check its status automatically when online.",
+  "app.work.confirmationUnchecked": "Your work was sent. Check its confirmation again once you're back online.",
   "app.work.confirmationFailed": "This upload didn't go through. Your media is saved; try again when you're ready.",
   "app.garden.draft.reselectAction": "Reselect",
   "app.offline.label": "App is in offline mode",

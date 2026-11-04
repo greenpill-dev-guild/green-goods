@@ -163,6 +163,30 @@ describe("submitWork", () => {
     expect(direct).not.toHaveBeenCalled();
   });
 
+  it("keeps a retained send on record awaiting, unchecked, while the connection is unconfirmed", async () => {
+    const { ports, process, direct } = createPorts({ online: false });
+    const admit = vi.fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>();
+    ports.queue.admit = admit;
+    ports.queue.sendOnRecord = async (input) => ({
+      jobId: "job-sent",
+      clientWorkId: input.clientWorkId,
+      txHash: QUEUED_HASH,
+    });
+    await expect(
+      submitWork(
+        { ...baseCommand, authMode: "passkey", allowOfflineQueue: false, retainSubmission: true },
+        ports
+      )
+    ).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+      jobId: "job-sent",
+    });
+    expect(admit).not.toHaveBeenCalled();
+    expect(process).not.toHaveBeenCalled();
+    expect(direct).not.toHaveBeenCalled();
+  });
+
   it("queues an offline wallet without simulation or inline processing", async () => {
     const { ports, simulate, enqueue, process, direct } = createPorts({ online: false });
     const outcome = await submitWork(baseCommand, ports);

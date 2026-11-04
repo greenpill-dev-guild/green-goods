@@ -676,6 +676,37 @@ describe("PWA durable submission boundary", () => {
     expect(broadcast).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    { blockedBy: "the browser", queueRefuses: false },
+    { blockedBy: "the queue", queueRefuses: true },
+  ])("keeps a recorded passkey admin send awaiting when $blockedBy confirms no connection", async ({
+    queueRefuses,
+  }) => {
+    let sendBlocked: Awaited<ReturnType<JobQueueConnectivity["canSend"]>> = null;
+    const execute = vi.fn(async (_jobId: string, job: Job): Promise<JobExecution> => {
+      (job.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: "2026-11-04T00:00:00Z",
+        files: {},
+        transactionHash: hash,
+      };
+      await jobQueueDB.updateJob(job);
+      return { status: "waiting", reason: "awaiting-confirmation" };
+    });
+    const { command, ports } = adminQueueSubmit("passkey", execute, async () => sendBlocked);
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+    });
+
+    if (queueRefuses) sendBlocked = "connection-unconfirmed";
+    else ports.connectivity.confirm = async () => false;
+    // Check Confirmation: the send is on record, so it is unchecked, never "nothing was sent".
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "awaiting-confirmation",
+      reason: "connection-unconfirmed",
+    });
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("queues a submission instead of sending while the connection is unconfirmed", async () => {
     const { command, ports, send } = fixture();
     ports.connectivity = { isOnline: () => true, confirm: async () => false };

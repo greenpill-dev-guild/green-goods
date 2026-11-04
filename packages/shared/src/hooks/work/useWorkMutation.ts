@@ -369,11 +369,17 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const workSubmissionJourneyId = origin.journeyId;
 
       const awaiting = origin.outcome?.kind === "awaiting-confirmation";
+      // A send on record whose check could not run now says so, not that it is being checked.
+      const unchecked =
+        origin.outcome?.kind === "awaiting-confirmation" &&
+        origin.outcome.reason === "connection-unconfirmed";
       if (awaiting) {
         walletProgressToasts.dismiss();
         toastService.info({
           title: intl.formatMessage({ id: "app.work.awaitingConfirmation" }),
-          message: intl.formatMessage({ id: "app.work.confirmationExplanation" }),
+          message: intl.formatMessage({
+            id: unchecked ? "app.work.confirmationUnchecked" : "app.work.confirmationExplanation",
+          }),
           context: "work",
         });
       }

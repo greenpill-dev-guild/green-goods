@@ -6649,6 +6649,7 @@
   "app.admin.work.submit.checkConfirmation": "Comprobar confirmación",
   "app.work.awaitingConfirmation": "Esperando confirmación",
   "app.work.confirmationExplanation": "Tu trabajo se envió. Comprobaremos su estado automáticamente cuando haya conexión.",
+  "app.work.confirmationUnchecked": "Tu trabajo se envió. Vuelve a comprobar su confirmación cuando haya conexión.",
   "app.work.confirmationFailed": "Esta subida no se completó. Tus archivos están guardados; vuelve a intentarlo cuando quieras.",
   "app.garden.draft.reselectAction": "Volver a seleccionar",
   "app.offline.label": "La aplicación está sin conexión",
