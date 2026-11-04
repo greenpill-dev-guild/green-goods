@@ -1349,53 +1349,30 @@
           "extract": "ts-property-union",
           "property": "status",
           "ordered": false,
-          "members": [
-            "approved",
-            "rejected",
-            "pending",
-            "syncing",
-            "uploading",
-            "sync_failed",
-            "offline"
-          ],
-          "note": "Declared as the canonical union; the current file carries a divergent five-value list (failed instead of sync_failed; missing uploading/offline) — baselined."
-        },
+          "members": ["approved", "rejected"],
+          "note": "The decided subset of the canonical union, declared in code as Extract<WorkDisplayStatus, \"approved\" | \"rejected\">: every review read from the attestation history has decided its work, so pending and the upload and sync states never apply to it."
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
+    },
+    {
+      "id": "hypercert-sync-status",
+      "definition": "How far a newly minted hypercert has caught up with the indexer; not the hypercert's lifecycle status (hypercert-status). It shares the word syncing with the work display status but not its meaning: it tracks a hypercert's indexing, not a work's upload or review.",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": ["synced", "syncing", "optimistic", "failed"]
+      },
+      "representations": [
         {
-          "id": "offline-work-item",
-          "layer": "shared",
-          "file": "packages/shared/src/types/offline.ts",
-          "symbol": "OfflineWorkItem",
-          "extract": "ts-property-union",
-          "property": "status",
-          "ordered": false,
-          "members": [
-            "approved",
-            "rejected",
-            "pending",
-            "syncing",
-            "uploading",
-            "sync_failed",
-            "offline"
-          ],
-          "note": "Declared as the canonical union; the current file carries a divergent four-value list — baselined pending status-union consolidation."
-        },
-        {
-          "id": "hypercert-sync-status",
+          "id": "shared-union",
           "layer": "shared",
           "file": "packages/shared/src/hooks/hypercerts/useHypercerts.ts",
           "symbol": "HypercertSyncStatus",
           "extract": "ts-union",
           "ordered": false,
-          "members": [
-            "approved",
-            "rejected",
-            "pending",
-            "syncing",
-            "uploading",
-            "sync_failed",
-            "offline"
-          ],
-          "note": "Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation."
+          "members": ["synced", "syncing", "optimistic", "failed"]
         }
       ],
       "mappings": [],
