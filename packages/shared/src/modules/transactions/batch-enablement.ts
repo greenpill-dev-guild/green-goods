@@ -51,18 +51,10 @@ export const ENABLED_BATCHES: readonly BatchEnablement[] = [
   { action: "add-members", rail: "wallet", profile: "contract-call", chainId: 42161 },
   { action: "bulk-reviews", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "bulk-reviews", rail: "wallet", profile: "contract-call", chainId: 42161 },
-  { action: "action-edit", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "reward-edits", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
-  { action: "campaign-jar-sync", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "karma-reconcile", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   {
     action: "commitment-creations",
-    rail: "passkey",
-    profile: "kernel-0.3.1-legacy",
-    chainId: 42161,
-  },
-  {
-    action: "marketplace-approvals",
     rail: "passkey",
     profile: "kernel-0.3.1-legacy",
     chainId: 42161,
