@@ -29,6 +29,7 @@ import { verifyIssuerReceipt } from "./service-issuer-receipt";
 import { issuerReadback, prepareIssuerCall } from "./service-issuer-commands";
 import {
   issuerAsset,
+  issuerConfiguration,
   issuerDigest,
   issuerSame,
   SERVICE_ISSUER_ROUTES,
@@ -90,7 +91,7 @@ export function createServiceIssuerOperations(deps: Dependencies): ServiceIssuer
   const pending = pendingStore.read;
   const complete = async (p: ServiceIssuerPending, sender: TransactionSender, hash: Hex) => {
     const route = routeFor(p.actor);
-    if (issuerDigest(route) !== p.review.configuration)
+    if (issuerConfiguration(route) !== p.review.configuration)
       throw new Error(
         "Issuer configuration changed; retain the pending receipt for reconciliation"
       );
@@ -154,7 +155,7 @@ export function createServiceIssuerOperations(deps: Dependencies): ServiceIssuer
       actor: structuredClone(actor),
       action: structuredClone(action),
       session: identity,
-      configuration: issuerDigest(route),
+      configuration: issuerConfiguration(route),
       state: prepared.state,
       expected: prepared.expected,
       expiresAt,
@@ -184,7 +185,7 @@ export function createServiceIssuerOperations(deps: Dependencies): ServiceIssuer
           r.version !== 1 ||
           r.evidence !== "live-review" ||
           r.fingerprint !== issuerReviewFingerprint(r) ||
-          r.configuration !== issuerDigest(route)
+          r.configuration !== issuerConfiguration(route)
         )
           throw new Error("Issuer review or terms changed");
         const next = await prepareIssuerCall(chain, route, r.actor, r.action, r.expiresAt);

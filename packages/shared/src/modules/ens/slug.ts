@@ -12,7 +12,6 @@ export const ensSlugSchema = z
   .refine((slug) => !slug.includes("--"), "No consecutive hyphens");
 
 export const slugSchema = z.object({ slug: ensSlugSchema });
-export type SlugFormValues = z.infer<typeof slugSchema>;
 
 export interface SlugValidationResult {
   valid: boolean;

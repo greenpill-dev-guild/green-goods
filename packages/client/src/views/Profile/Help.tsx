@@ -60,8 +60,8 @@ const faqCategories: FaqCategory[] = [
     id: "account",
     topics: [
       "smartAccountAddress",
-      "profileName",
-      "badgesAndIdentity",
+      "profilePicture",
+      "badges",
       "changeLanguage",
       "switchingAccounts",
       "accountRecovery",

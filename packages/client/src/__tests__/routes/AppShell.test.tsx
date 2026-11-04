@@ -74,10 +74,6 @@ vi.mock("@/components/Layout/AppBar", () => ({
   AppBar: () => <nav data-testid="authenticated-nav" />,
 }));
 
-vi.mock("@/routes/ENSClaimReminder", () => ({
-  ENSClaimReminder: () => null,
-}));
-
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return { ...actual, ScrollRestoration: () => null };
