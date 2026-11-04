@@ -54,6 +54,7 @@ import {
   type OptimisticHypercertData,
   useHypercerts,
 } from "../../../hooks/hypercerts/useHypercerts";
+import type { HypercertRecord } from "../../../types/hypercerts";
 import { createMockHypercertRecord, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 
 // ============================================
@@ -172,6 +173,35 @@ describe("useHypercerts", () => {
       });
 
       expect(result.current.error).toBeInstanceOf(Error);
+    });
+
+    // The Hub's Hypercerts tab says its read failed until a refresh succeeds.
+    it("clears a failed read once a refresh succeeds, busy while it runs", async () => {
+      mockGetGardenHypercerts.mockRejectedValueOnce(new Error("indexer unavailable"));
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+      await waitFor(() => expect(result.current.hasError).toBe(true));
+      expect(result.current.isFetching).toBe(false);
+
+      let land: (records: HypercertRecord[]) => void = () => undefined;
+      mockGetGardenHypercerts.mockImplementationOnce(
+        () => new Promise<HypercertRecord[]>((resolve) => (land = resolve))
+      );
+      let refreshed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        refreshed = result.current.refetch();
+      });
+      await waitFor(() => expect(result.current.isFetching).toBe(true));
+
+      await act(async () => {
+        land([createMockHypercertRecord({ id: "hc-1" })]);
+        await refreshed;
+      });
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.hasError).toBe(false);
+      expect(result.current.hypercerts.map((record) => record.id)).toEqual(["hc-1"]);
     });
   });
 

@@ -240,7 +240,10 @@ export async function enqueueProof({
   onEnqueueSettled,
   onOpenYourWork,
 }: {
-  jobs: Pick<ReturnType<typeof useCommitmentJobs>, "enqueue" | "sendQueued" | "sendsFromTap">;
+  jobs: Pick<
+    ReturnType<typeof useCommitmentJobs>,
+    "enqueue" | "sendQueued" | "sendsFromTap" | "sendsProofWithItsSend"
+  >;
   payload: EvidenceJobPayload;
   send: Omit<ProofSend, "landed"> & { key: string; owner: Address };
   withSend: boolean;
@@ -323,7 +326,7 @@ export async function enqueueProof({
     }
   };
 
-  if (isOnline) toasts.adding({ sendToo: withSend });
+  if (isOnline) toasts.adding({ sendToo: withSend, together: jobs.sendsProofWithItsSend });
   try {
     await jobs.enqueue({
       act: "evidence",

@@ -3704,6 +3704,7 @@
   "app.toast.proof.added.messageTeammate": "Ela já está na promessa. Quem lidera envia para confirmação quando a equipe terminar.",
   "app.toast.proof.adding.message": "Assine para enviá-la. Ela fica neste telefone até chegar.",
   "app.toast.proof.adding.messageSendToo": "Depois ela vai para confirmação. Assine duas vezes: a prova e depois o envio.",
+  "app.toast.proof.adding.messageSendTogether": "Depois ela vai para confirmação. Assine uma vez só: a prova e o envio chegam juntos, ou nenhum chega.",
   "app.toast.proof.confirming.message": "Confirmando no registro do jardim. Você pode sair desta tela.",
   "app.toast.proof.couldNotAdd.title": "Não foi possível adicionar a prova",
   "app.toast.proof.couldNotAdd.message": "Ela continua salva neste telefone. Tente de novo aqui ou em Seu trabalho.",
