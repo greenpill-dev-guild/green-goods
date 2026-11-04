@@ -1,4 +1,8 @@
 import { Button } from "@green-goods/shared/components/Button";
+import {
+  TxHoldFeedback,
+  TxInlineFeedback,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -28,8 +32,10 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     selectedCampaign,
     selectedCampaignTitle,
     selectedCampaignPublicUrl,
-    syncAllowlist,
-    updateMetadata,
+    syncPending,
+    syncSignatureLine,
+    syncHold,
+    syncError,
     canSync,
     handleSync,
     syncCampaignDescription,
@@ -107,18 +113,22 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         })}
         size="lg"
         tone="community"
-        preventClose={syncAllowlist.isPending || updateMetadata.isPending}
+        preventClose={syncPending}
         actions={
-          <>
-            {/* Disabled while a write is in flight: the sync/metadata hooks
-                report errors inline, so a Cancel-close mid-write would render
-                the failure into a dialog nobody can see. */}
+          // One row at every width, so this line appearing never moves the buttons under a finger.
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto type-meta text-text-soft empty:hidden" aria-live="polite">
+              {syncSignatureLine}
+            </p>
+            {/* Disabled while a write is in flight: the sync reports its outcome
+                inline, so a Cancel-close mid-write would render it into a dialog
+                nobody can see. */}
             <Button
               type="button"
               emphasis="tertiary"
               size="sm"
               onClick={() => setSelectedCampaign(null)}
-              disabled={syncAllowlist.isPending || updateMetadata.isPending}
+              disabled={syncPending}
             >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
             </Button>
@@ -127,19 +137,20 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               type="button"
               leadingIcon={<RiRefreshLine className="h-[18px] w-[18px]" aria-hidden="true" />}
               onClick={handleSync}
-              disabled={!canSync || syncAllowlist.isPending || updateMetadata.isPending}
-              loading={syncAllowlist.isPending || updateMetadata.isPending}
+              disabled={!canSync || syncPending}
+              loading={syncPending}
             >
               {formatMessage({
                 id: "cockpit.community.cookies.sync",
                 defaultMessage: "Sync Allowlist",
               })}
             </Button>
-          </>
+          </div>
         }
       >
         {selectedCampaign ? (
           <div className="space-y-5">
+            {syncHold ? <TxHoldFeedback {...syncHold} isBusy={syncPending} /> : null}
             <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft p-3">
               <p className="type-label-sm text-text-strong">
                 {formatMessage({
@@ -189,7 +200,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 onChange={setSyncCampaignImage}
                 file={syncCampaignImageFile}
                 onFileChange={setSyncCampaignImageFile}
-                disabled={syncAllowlist.isPending || updateMetadata.isPending}
+                disabled={syncPending}
                 source="campaign-cookie-jar-manage-image"
               />
               <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white p-3">
@@ -264,6 +275,15 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                     "Connect the jar owner or ops Safe to grant, revoke, and update campaign metadata.",
                 })}
               </p>
+            ) : null}
+            {syncError ? (
+              <TxInlineFeedback
+                visible
+                severity={syncError.severity}
+                title={syncError.title}
+                message={syncError.message}
+                reserveClassName=""
+              />
             ) : null}
           </div>
         ) : null}

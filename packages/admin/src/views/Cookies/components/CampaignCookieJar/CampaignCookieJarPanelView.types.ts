@@ -1,4 +1,8 @@
 import type { ReactNode } from "react";
+import type {
+  TxHoldFeedbackProps,
+  TxInlineFeedbackSeverity,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
@@ -18,8 +22,13 @@ export interface CampaignCookieJarPanelViewProps {
   selectedCampaign: CampaignCookieJarCampaign | null;
   selectedCampaignTitle: string;
   selectedCampaignPublicUrl: string;
-  syncAllowlist: { isPending: boolean };
-  updateMetadata: { isPending: boolean };
+  syncPending: boolean;
+  /** How many signatures the sync takes, once there is one to send. */
+  syncSignatureLine: string | null;
+  /** A sync whose outcome is unknown, which holds the next one. */
+  syncHold: Omit<TxHoldFeedbackProps, "isBusy" | "className"> | null;
+  /** Why the last sync did not land, or that nobody can say yet. */
+  syncError: { severity: TxInlineFeedbackSeverity; title: string; message: string } | null;
   canSync: boolean;
   handleSync: () => void;
   syncCampaignDescription: string;

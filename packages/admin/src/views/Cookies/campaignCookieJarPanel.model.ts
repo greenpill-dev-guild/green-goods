@@ -90,12 +90,15 @@ export function canSyncCampaignCookieJarAllowlist(params: {
   metadataUrlsValid?: boolean;
   /** The description is within the limit the metadata builder refuses past. */
   metadataDescriptionFits?: boolean;
+  /** An earlier sync of this jar has an unknown outcome, or its read has not finished. */
+  earlierSyncInDoubt?: boolean;
 }): boolean {
   const hasAllowlistDiff = params.grantCount > 0 || params.revokeCount > 0;
   const hasMetadataRefresh = Boolean(params.metadataChanged && params.canUpdateMetadata);
 
   return (
     Boolean(params.jarAddress && params.isJarOwner) &&
+    !params.earlierSyncInDoubt &&
     params.invalidAddressCount === 0 &&
     (params.metadataUrlsValid ?? true) &&
     (params.metadataDescriptionFits ?? true) &&
