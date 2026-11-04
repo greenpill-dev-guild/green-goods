@@ -123,7 +123,7 @@ describe("useHubOlderRecords", () => {
     expect(hub.result.current.olderHypercerts).toBeDefined();
     expect(hub.asked.pages).toBe(0);
 
-    act(() => hub.result.current.olderWork?.onShowOlder());
+    act(() => hub.result.current.olderWork?.onShowOlder?.());
     expect(hub.asked.pages).toBe(1);
     // The widened window has nothing older to show until its read lands, and the
     // control stays, busy, so a steward's focus is not dropped while it loads.
@@ -131,7 +131,7 @@ describe("useHubOlderRecords", () => {
     hub.landNextRead();
     expect(hub.result.current.olderWork?.isLoading).toBe(false);
 
-    act(() => hub.result.current.olderWork?.onShowOlder());
+    act(() => hub.result.current.olderWork?.onShowOlder?.());
     hub.landNextRead();
     // 130 works fill the third page, so nothing is left to offer.
     expect(hub.asked.pages).toBe(2);
@@ -143,11 +143,11 @@ describe("useHubOlderRecords", () => {
   it("keeps the button after its page fails to load, and asks for the same page again", () => {
     const hub = renderHub(130, { stage: "work", sortDirection: "newest", workReadable: true });
 
-    act(() => hub.result.current.olderWork?.onShowOlder());
+    act(() => hub.result.current.olderWork?.onShowOlder?.());
     hub.failNextRead();
     expect(hub.result.current.olderWork?.isLoading).toBe(false);
 
-    act(() => hub.result.current.olderWork?.onShowOlder());
+    act(() => hub.result.current.olderWork?.onShowOlder?.());
     expect(hub.asked).toEqual({ pages: 1, rereads: 1 });
   });
 
@@ -180,7 +180,7 @@ describe("useHubOlderRecords", () => {
 
   it("keeps a page on its way with its garden while another garden is open", () => {
     const hub = renderHub(130, { stage: "work", sortDirection: "newest", workReadable: true });
-    act(() => hub.result.current.olderWork?.onShowOlder());
+    act(() => hub.result.current.olderWork?.onShowOlder?.());
 
     hub.rerender({ garden: "0xother", stage: "work", sortDirection: "newest", workReadable: true });
     expect(hub.result.current.olderWork).toBeUndefined();
