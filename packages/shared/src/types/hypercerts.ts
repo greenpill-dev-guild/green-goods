@@ -43,8 +43,8 @@ export type CapitalType =
 
 /**
  * Actions carry the numeric `Capital` enum and hypercert metadata carries the
- * words. Convert through this map, never by list position: the hypercert
- * editor lists the words living-first.
+ * words. Convert through this map, never by list position: lists of the words
+ * keep their own display order.
  */
 const CAPITAL_TYPE_BY_CAPITAL: Record<Capital, CapitalType> = {
   [Capital.SOCIAL]: "social",

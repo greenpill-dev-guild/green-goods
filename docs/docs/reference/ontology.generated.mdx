@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:31e8683a623a4db3e0d1ce09faee03fa94a71f066a50477dc42c59ecd5bd4452"
+source_digest: "sha256:7f9025a75001ca91c29cd55e59c757ad544e6f9886f7967cf01933aa12ff00f4"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -114,11 +114,11 @@ Eight Forms of Capital used to tag actions and assessments by the kind of value 
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel for unmapped on-chain values — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Capital</code> | <code>SOCIAL=0, MATERIAL=1, FINANCIAL=2, LIVING=3, INTELLECTUAL=4, EXPERIENTIAL=5, SPIRITUAL=6, CULTURAL=7</code> |  |
-| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Declared in canonical machine order. Minted hypercert metadata, saved hypercert drafts and the hypercert editor's label keys hold the words themselves, never positions, so this order is declarative; the editor lists the words living-first for display only. Convert to and from the numeric enum through the explicit mapping, never by list position. |
+| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Declared in the Capital enum's order. Consumers store the words, never positions; convert only through capitalToCapitalType and capitalTypeToCapital. |
 
 - **Mapping `capital-enum-to-capital-type`** (shared-enum → capital-type; explicit; total; bijective): SOCIAL → social, MATERIAL → material, FINANCIAL → financial, LIVING → living, INTELLECTUAL → intellectual, EXPERIENTIAL → experiential, SPIRITUAL → spiritual, CULTURAL → cultural.
   - Code anchor: `packages/shared/src/types/hypercerts.ts`
-  - capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. A shared test checks both directions against these pairs.
+  - capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. packages/shared/src/__tests__/types/domain-enums.test.ts checks both directions against these pairs.
 
 ### `domain`
 

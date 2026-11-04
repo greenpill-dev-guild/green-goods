@@ -2,7 +2,8 @@
  * Domain Enum Tests
  *
  * Validates that Domain, Confidence, and VerificationMethod enums
- * mirror Solidity values exactly for correct EAS encoding.
+ * mirror Solidity values exactly for correct EAS encoding, and that the
+ * Capital enum converts to the hypercert capital words as the ontology declares.
  */
 
 import { describe, expect, it } from "vitest";
@@ -78,7 +79,9 @@ describe("types/domain enums", () => {
       expect(Capital.SOCIAL).toBe(0);
       expect(Capital.CULTURAL).toBe(7);
     });
+  });
 
+  describe("Capital and CapitalType", () => {
     it("converts each form of capital to its hypercert word and back as the ontology declares", () => {
       const pairs =
         getOntology()

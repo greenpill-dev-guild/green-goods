@@ -908,7 +908,7 @@
             "spiritual",
             "cultural"
           ],
-          "note": "Declared in canonical machine order. Minted hypercert metadata, saved hypercert drafts and the hypercert editor's label keys hold the words themselves, never positions, so this order is declarative; the editor lists the words living-first for display only. Convert to and from the numeric enum through the explicit mapping, never by list position."
+          "note": "Declared in the Capital enum's order. Consumers store the words, never positions; convert only through capitalToCapitalType and capitalTypeToCapital."
         }
       ],
       "mappings": [
@@ -930,7 +930,7 @@
             "CULTURAL": "cultural"
           },
           "code_anchor": "packages/shared/src/types/hypercerts.ts",
-          "note": "capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. A shared test checks both directions against these pairs."
+          "note": "capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. packages/shared/src/__tests__/types/domain-enums.test.ts checks both directions against these pairs."
         }
       ],
       "source_status": "implemented"
