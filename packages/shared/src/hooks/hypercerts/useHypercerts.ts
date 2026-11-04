@@ -39,6 +39,8 @@ export interface UseHypercertsResult {
   hypercerts: HypercertRecord[];
   hypercert: HypercertRecord | null;
   isLoading: boolean;
+  /** Whether a read is in flight, the first or a refresh. */
+  isFetching: boolean;
   error: Error | null;
   hasError: boolean;
   /**
@@ -389,6 +391,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
     hypercerts: mergedList,
     hypercert,
     isLoading: isLoading && !optimisticData, // Don't show loading if we have optimistic data
+    isFetching: listQuery.isFetching || detailQuery.isFetching,
     error,
     hasError: Boolean(error),
     syncStatus,

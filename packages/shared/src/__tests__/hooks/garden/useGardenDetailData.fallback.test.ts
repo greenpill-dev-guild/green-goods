@@ -34,8 +34,9 @@ vi.mock("../../../hooks/utils/useTimeout", () => ({
   useDelayedInvalidation: () => ({ start: vi.fn() }),
 }));
 
+const assessmentsRead = vi.hoisted(() => ({ refetch: () => {}, isFetching: false }));
 vi.mock("../../../hooks/assessment/useGardenAssessments", () => ({
-  useGardenAssessments: () => ({ data: [], isLoading: false, error: null }),
+  useGardenAssessments: () => ({ data: [], isLoading: false, error: null, ...assessmentsRead }),
 }));
 
 vi.mock("../../../hooks/garden/useGardenOperations", () => ({
@@ -154,6 +155,9 @@ describe("useGardenDetailData eligible garden fallback", () => {
       isError: false,
     });
     mockUseWorks.mockReturnValue(defaultWorksResult());
+    mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
+    assessmentsRead.refetch = () => {};
+    assessmentsRead.isFetching = false;
     mockUseYieldAllocations.mockReturnValue({ allocations: [], isLoading: false });
     mockUseGardenPermissions.mockReturnValue({
       canManageGarden: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
@@ -228,6 +232,27 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.garden).toBe(recoveredGarden);
     expect(result.current.isWorksError).toBe(true);
     expect(result.current.worksError).toBe(worksError);
+  });
+
+  // PRD-1087: the Hub's refresh rereads the open tab's list, so each record
+  // list's reread and busy state must reach it.
+  it("hands on what a refresh of each record list rereads", () => {
+    const refetchHypercerts = vi.fn(async () => []);
+    assessmentsRead.refetch = vi.fn();
+    assessmentsRead.isFetching = true;
+    mockUseHypercerts.mockReturnValue({
+      hypercerts: [],
+      isLoading: false,
+      isFetching: true,
+      refetch: refetchHypercerts,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.refreshAssessments).toBe(assessmentsRead.refetch);
+    expect(result.current.assessmentsFetching).toBe(true);
+    expect(result.current.refreshHypercerts).toBe(refetchHypercerts);
+    expect(result.current.hypercertsFetching).toBe(true);
   });
 
   // The Hub reads only what this hook hands it: a list whose next page stops

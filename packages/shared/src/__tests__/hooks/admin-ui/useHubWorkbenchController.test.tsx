@@ -1,8 +1,12 @@
-// TEST-QUALITY: allow-small-test-file - the stage redirect's route item and the older-work reading are wiring only this controller owns.
-import { render, screen, waitFor } from "@testing-library/react";
+// TEST-QUALITY: allow-small-test-file - the stage redirect's route item, the older-work reading and the refresh's stage are wiring only this controller owns.
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  RefreshActionProvider,
+  useRefreshActionValue,
+} from "../../../components/Canvas/RefreshActionContext";
 import { useHubWorkbenchController } from "../../../hooks/admin-ui/hub/useHubWorkbenchController";
 
 const GARDEN = "0x1111111111111111111111111111111111111111";
@@ -47,11 +51,12 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/work/useReviewBatch", () => ({
   useReviewBatch: () => ({}),
 }));
+const confirmStage = vi.hoisted(() => ({ toConfirm: {} as Record<string, unknown> }));
 vi.mock("../../../hooks/admin-ui/hub/useHubConfirmStage", () => ({
   useHubConfirmStage: () => ({
     chainId: 42161,
     viewer: null,
-    toConfirm: { isSteward: false, count: 0 },
+    toConfirm: confirmStage.toConfirm,
     handleOpenCommitment: () => {},
     handleCloseCommitment: () => {},
   }),
@@ -76,8 +81,23 @@ function Probe() {
   );
 }
 
+/** The top bar's refresh, as the AppBar reads it. */
+function RefreshProbe() {
+  const action = useRefreshActionValue();
+  if (!action) return null;
+  return (
+    <button
+      type="button"
+      data-testid="refresh"
+      data-busy={String(Boolean(action.isFetching))}
+      onClick={action.onRefresh}
+    />
+  );
+}
+
 beforeEach(() => {
   detail.current = evaluatorGarden();
+  confirmStage.toConfirm = { isSteward: false, count: 0 };
 });
 
 function renderAt(path: string) {
@@ -86,7 +106,10 @@ function renderAt(path: string) {
   });
   render(
     <IntlProvider locale="en" messages={{}} onError={() => {}}>
-      <RouterProvider router={router} />
+      <RefreshActionProvider>
+        <RouterProvider router={router} />
+        <RefreshProbe />
+      </RefreshActionProvider>
     </IntlProvider>
   );
   return router;
@@ -142,5 +165,56 @@ describe("useHubWorkbenchController: reading older work for Oldest first", () =>
       expect(screen.getByTestId("reads-work-history")).toHaveTextContent(String(reads))
     );
     expect(workPages.loadOlder).toHaveBeenCalledTimes(reads ? 1 : 0);
+  });
+});
+
+// PRD-1087: the refresh rereads the list the open tab shows, and its busy state
+// follows that read. It used to reread work, and spin with it, on every tab.
+describe("useHubWorkbenchController: the top bar's refresh", () => {
+  const STAGES = ["work", "assess", "certify", "confirm"] as const;
+
+  function openTab(stage: (typeof STAGES)[number], running: (read: string) => boolean) {
+    const refresh = {
+      work: vi.fn(),
+      assess: vi.fn(async () => undefined),
+      certify: vi.fn(async () => []),
+      confirm: vi.fn(async () => undefined),
+    };
+    detail.current = {
+      ...evaluatorGarden(),
+      canManage: true,
+      refreshWorks: refresh.work,
+      worksFetching: running("work"),
+      refreshAssessments: refresh.assess,
+      assessmentsFetching: running("assess"),
+      refreshHypercerts: refresh.certify,
+      hypercertsFetching: running("certify"),
+    };
+    confirmStage.toConfirm = {
+      isSteward: true,
+      count: 0,
+      refetch: refresh.confirm,
+      isFetching: running("confirm"),
+    };
+    renderAt(`/hub/${stage}?gardenId=${GARDEN}`);
+    return refresh;
+  }
+
+  it.each(STAGES)("rereads only what the %s tab lists", async (stage) => {
+    // Every other tab's read is running, so a busy button would be one of theirs.
+    const refresh = openTab(stage, (read) => read !== stage);
+
+    const button = await screen.findByTestId("refresh");
+    expect(button).toHaveAttribute("data-busy", "false");
+    fireEvent.click(button);
+    for (const read of STAGES) {
+      expect(refresh[read]).toHaveBeenCalledTimes(read === stage ? 1 : 0);
+    }
+  });
+
+  it.each(STAGES)("is busy while the %s tab's read runs", async (stage) => {
+    openTab(stage, (read) => read === stage);
+
+    expect(await screen.findByTestId("refresh")).toHaveAttribute("data-busy", "true");
   });
 });
