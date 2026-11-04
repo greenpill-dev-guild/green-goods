@@ -189,6 +189,17 @@ describe("useCommitmentsToConfirm", () => {
     expect(mocks.getCommitments).not.toHaveBeenCalled();
   });
 
+  // The Hub's refresh calls this queue's refetch on the Confirm tab; it must not
+  // run a read the queue's own gate keeps off.
+  it("asks nothing for a plain member on a refresh either", async () => {
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { gardeners: [VIEWER] })];
+
+    const result = await toConfirm();
+    await act(() => result.current.refetch());
+
+    expect(mocks.getCommitments).not.toHaveBeenCalled();
+  });
+
   it("lists only what a steward can confirm for the garden", async () => {
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { owners: [VIEWER] })];
     answerWith([

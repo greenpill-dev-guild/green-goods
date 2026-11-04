@@ -31,7 +31,14 @@ export function useGardenDetailData(id: string | undefined) {
   const queryClient = useQueryClient();
   const gardenPermissions = useGardenPermissions();
 
-  const { data: gardens = [], isLoading: fetching, error, isError } = useGardens();
+  const {
+    data: gardens = [],
+    isLoading: fetching,
+    isFetching: gardensFetching,
+    error,
+    isError,
+    refetch: refreshGardens,
+  } = useGardens();
   const {
     eligibleGardens,
     hasStaleBaseList,
@@ -208,6 +215,9 @@ export function useGardenDetailData(id: string | undefined) {
     isBaseListError: isError || eligibleGardenBaseListError,
     fetching,
     error,
+    // A failed garden list read fails every Hub tab, so their refresh rereads it.
+    refreshGardens,
+    gardensFetching,
     gardenId,
     canManage,
     canReview,

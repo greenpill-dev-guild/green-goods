@@ -1,7 +1,7 @@
 # Transaction Batching and Recovery Plan
 
-**Feature:** `transaction-batching` · **Stage/status:** active, Phase 1 implementation
-**Created:** 2026-10-23 · **Updated:** 2026-10-30 · **Implementation:** Phase 1 local source and automated evidence recorded; live gates pending
+**Feature:** `transaction-batching` · **Stage/status:** active; slices 7–10 and 12 await live proof
+**Created:** 2026-10-23 · **Updated:** 2026-11-04 · **Implementation:** Slices 1–6 proven live on Arbitrum and listed, except the `eip-5792` wallet rail, stopped because no available wallet reports atomic calls; slices 7–10 and 12 merged with their rails unlisted; slice 11 not started
 
 Execute in the user's order: **shared batching and recovery → garden settings → adding members → deposits → bulk work approvals**, then the remaining actions in [the slice table](#slices). Each phase covers passkeys and wallets. [spec.md](spec.md) owns behavior; [eval.md](eval.md) owns acceptance evidence; [status.json](status.json) owns lane state.
 
@@ -37,15 +37,15 @@ Execute in the user's order: **shared batching and recovery → garden settings 
 
 | Requirement | Checkpoints | Acceptance | Status |
 |---|---|---|---|
-| Both passkey and wallet execution | 1.1–1.8 | AC-01–08 | Pending |
-| Durable recovery and no blind resend | 1.1–1.13 | AC-02–07, AC-23 | Pending |
-| Save changed settings together | 2.1–2.3 | AC-09–10 | Pending |
-| Add reviewed member list | 3.1–3.3 | AC-11–12 | Pending |
-| Approve and deposit together, with no double deposit | 4.1–4.4 | AC-20–22 | Pending |
-| Bulk attestations with individual outcomes | 5.1–5.5 | AC-13–16 | Pending |
-| Accessible, localized progress and selection | 2.2–5.5 | AC-17 | Pending |
-| Every remaining batchable action | 6.1–12.1 | AC-24–27 | Pending |
-| Compatibility and measurable improvement | Every phase; 5.6 | AC-18–19 | Pending |
+| Both passkey and wallet execution | 1.1–1.8 | AC-01–08 | Proven live on legacy passkeys and on `contract-call` and `sequential` wallets; `eip-5792` stopped |
+| Durable recovery and no blind resend | 1.1–1.13 | AC-02–07, AC-23 | Proven live: a declined prompt and a tab closed mid-send on settings, and a declined deposit step; an unknown deposit outcome is not yet exercised |
+| Save changed settings together | 2.1–2.3 | AC-09–10 | Listed on legacy passkeys (#1425) |
+| Add reviewed member list | 3.1–3.3 | AC-11–12 | Listed on legacy passkeys (#1431) and `contract-call` wallets (#1432) |
+| Approve and deposit together, with no double deposit | 4.1–4.4 | AC-20–22 | Listed for DAI on `sequential` wallets (#1450) and legacy passkeys (#1451) |
+| Bulk attestations with individual outcomes | 5.1–5.5 | AC-13–16 | Listed on legacy passkeys (#1433) and `contract-call` wallets (#1434) |
+| Accessible, localized progress and selection | 2.2–5.5 | AC-17 | The settings passkey journey passed by keyboard; the other journeys are pending |
+| Every remaining batchable action | 6.1–12.1 | AC-24–27 | Pool setup listed on legacy passkeys (#1428); slices 7–10 and 12 merged unlisted; slice 11 not started |
+| Compatibility and measurable improvement | Every phase; 5.6 | AC-18–19 | Prompts measured on every listed rail; see [the continuation](handoffs/continuation.md#state-on-2026-11-04) |
 
 ## Start gate
 
@@ -64,18 +64,18 @@ Each slice is one PR. Signatures read "today, then after" for passkeys and atomi
 | 1 | Batch engine (PR #1208, merged) | No change | | Nothing calls it |
 | 1D | Recovery gaps and review findings (PR #1396, merged) | No change | 1 | Must land before anything calls the engine |
 | 1E | Remaining recovery races | No change | 1D | Must land before anything calls the engine |
-| 2 | Garden settings, enablement list, first live proof | 1–7, then 1 | 1E | No funds at risk; first live batches |
-| 3 | Add members | N, then 1, on every wallet | 2 | Uses `grantRoles`; Arbitrum only |
-| 4 | Vault and cookie jar deposits | 1–3 and 1–2, then 1 | 3 | Moves money |
-| 5A | Bulk review execution | No UI yet | 4 | Strict execution before any UI |
-| 5B | Staged reviews in the Hub | 1 per work, then 1 per group, on every wallet | 5A | Largest UI change |
-| 6 | Pool setup on passkeys, opening a seeded season | Up to 6, then 2; 1–2, then 1 | 2 | Adds the passkey path pool callers use |
-| 7 | Seed set, Add to Group, Finish Creating, Edit Reward on passkeys | 1 per copy, then 1 per group; Edit Reward starts working | 6 | These share `creationSendMode` |
-| 8 | Karma reconcile, marketplace approvals | 1 + N, then 1 per group; 1–2, then 1 | 2 | Fixed calls, confirmed by reads |
-| 9 | Campaign jar sync | 1–3, then 1 | 2 | Changes who can withdraw |
-| 10 | Action edit | 1–4, then 1 | 2 | Upload order and its own recovery |
+| 2 | Garden settings, enablement list, first live proof (#1398, #1399; listed on legacy passkeys in #1425) | 1–7, then 1 | 1E | No funds at risk; first live batches |
+| 3 | Add members (#1400; listed in #1431 and #1432) | N, then 1, on every wallet | 2 | Uses `grantRoles`; Arbitrum only |
+| 4 | Vault and cookie jar deposits (#1409, #1415, #1417; listed for DAI in #1450 and #1451) | 1–3 and 1–2, then 1 | 3 | Moves money |
+| 5A | Bulk review execution (#1420) | No UI yet | 4 | Strict execution before any UI |
+| 5B | Staged reviews in the Hub (#1422; listed in #1433 and #1434) | 1 per work, then 1 per group, on every wallet | 5A | Largest UI change |
+| 6 | Pool setup on passkeys, opening a seeded season (#1423; listed in #1428) | Up to 6, then 2; 1–2, then 1 | 2 | Adds the passkey path pool callers use |
+| 7 | Seed set, Add to Group, Finish Creating, Edit Reward on passkeys (#1461, unlisted) | 1 per copy, then 1 per group; Edit Reward starts working | 6 | These share `creationSendMode` |
+| 8 | Karma reconcile, marketplace approvals (#1464, unlisted) | 1 + N, then 1 per group; 1–2, then 1 | 2 | Fixed calls, confirmed by reads |
+| 9 | Campaign jar sync (#1463, unlisted) | 1–3, then 1 | 2 | Changes who can withdraw |
+| 10 | Action edit (#1460, unlisted) | 1–4, then 1 | 2 | Upload order and its own recovery |
 | 11 | Octant checkout | 1–4, then 1, atomic wallets only | 4 | Wallet only, on mainnet |
-| 12 | Add and send proof | 2, then 1 | 7 | Reverses a recorded decision, approved in decision 20 |
+| 12 | Add and send proof (#1466, unlisted) | 2, then 1 | 7 | Reverses a recorded decision, approved in decision 20 |
 
 After slice 2, slices 3, 6, 8, 9, and 10 share no code and can run in parallel worktrees. Slice 4 waits for 3 only by decision 13.
 
@@ -95,7 +95,7 @@ Checkpoints target two to four implementation/test files; split a checkpoint fur
 
 - [x] **1.4 Implement explicit passkey atomic execution.** Update `passkey-sender.ts` and passkey/conformance tests. Preserve recipes, session checks, sponsorship rules, and existing single-call behavior. Prove default batch mode, all-or-nothing failure, UserOperation failure inside an outer successful receipt, and identity change during signing.
 - [x] **1.5 Harden wallet batching.** Update `wallet-sender.ts`/reconciliation and tests. Save opaque call IDs, keep all receipts, classify pending/partial/failure, and distinguish known pre-send fallback from ambiguous submission. Prove `ready` never triggers an upgrade and a timeout never triggers fallback.
-- [ ] **1.6 Wire production composition and limits.** Update `useTransactionSender` and focused composition/budget tests using the existing wallet/passkey adapters. Apply account/chain capability, group simulation, and bounded sizing including sponsorship/deployment cost. Prove no transport switch or changed group is sent without the reviewed intent.
+- [x] **1.6 Wire production composition and limits.** Update `useTransactionSender` and focused composition/budget tests using the existing wallet/passkey adapters. Apply account/chain capability, group simulation, and bounded sizing including sponsorship/deployment cost. Prove no transport switch or changed group is sent without the reviewed intent. **2 and 3 Nov:** closed by the live proof. Sponsored passkey groups landed on beta for settings, pool setup, members, reviews and deposits, and wallet groups for members, reviews and deposits, each within its ceilings.
 
 **PR 1C: compatibility and work integration.** Depends on 1B; required before Phase 2.
 
@@ -104,7 +104,7 @@ Checkpoints target two to four implementation/test files; split a checkpoint fur
 
 **Current implementation:** `TransactionSender.batches` exposes explicit execution, scoped listing, and reconciliation through the existing factory. The work queue retains its own journal/claims; optional batch references are bridged to its individual checkpoints. Domain preflight and receipt verification remain required caller ports. Native multi-attestation can use `single-call` mode without EIP-5792. No product bulk UI has been enabled.
 
-Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, ordered wallet estimation, and passkey signing-time gas/sponsorship checks are implemented. Both Kernel profiles passed software-signed execution on an isolated fork. Authenticated device/wallet execution, configured sponsorship acceptance, and representative product action limits remain pending before enablement. See [the current compatibility evidence](handoffs/phase-1-compatibility.md) and [the foundation evidence](handoffs/phase-1.md).
+Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, ordered wallet estimation, and passkey signing-time gas/sponsorship checks are implemented. Both Kernel profiles passed software-signed execution on an isolated fork. Authenticated device/wallet execution, configured sponsorship acceptance, and representative product action limits remain pending before enablement. See [the current compatibility evidence](handoffs/phase-1-compatibility.md) and [the foundation evidence](handoffs/phase-1.md). The live proof on 2 and 3 Nov closed what remained; see [the continuation](handoffs/continuation.md#state-on-2026-11-04).
 
 **PR 1D: close the recovery gaps.** Depends on #1208. Found while reading it on 2026-10-30, and raised independently by its review. Nothing calls this code yet, so no user was exposed.
 
@@ -128,10 +128,10 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 **PR 2: settings preparation and UI.** Depends on all Phase 1 checkpoints.
 
 - [x] **2.0 Add the enablement list.** One Shared list of action, rail, account profile, and chain that may batch, empty by default. `getBatchCapability` only checks an encoding, so it cannot decide this. Proven: an unlisted combination sends as it does today and asks no wallet anything, and a hold stays readable after its rail is off the list.
-- [ ] **2.1 Prepare settings in Shared.** Done except for two checks only the live proof can make. `modules/garden/settings-batch.ts` prepares changed fields only, reuses an uploaded banner's address, confirms a field only when the chain holds what it wrote, and simulates each call as the sender before signing, so a stale role stops the save with its own reason. Still open: the plan asked for a measured fork run and a check that the configured RPC answers `simulateCalls`, and neither can run here because this environment cannot reach an RPC. The ceilings are sized from Arbitrum receipts instead: a Green Goods passkey UserOperation quoted 1.59M gas at 0.029 gwei, and `updateBannerImage` used 135k from a wallet. Both checks happen at the first live batch on each rail, before that rail is listed.
+- [x] **2.1 Prepare settings in Shared.** Done except for two checks only the live proof can make. `modules/garden/settings-batch.ts` prepares changed fields only, reuses an uploaded banner's address, confirms a field only when the chain holds what it wrote, and simulates each call as the sender before signing, so a stale role stops the save with its own reason. Still open: the plan asked for a measured fork run and a check that the configured RPC answers `simulateCalls`, and neither can run here because this environment cannot reach an RPC. The ceilings are sized from Arbitrum receipts instead: a Green Goods passkey UserOperation quoted 1.59M gas at 0.029 gwei, and `updateBannerImage` used 135k from a wallet. Both checks happen at the first live batch on each rail, before that rail is listed. **2 Nov:** the passkey group fit its ceilings at the first live batch, and `simulateCalls` matters only for multi-call `eip-5792` sends, which stay unlisted.
 - [x] **2.2 Integrate the existing editor.** Where a batch is allowed, Save sends one group: the banner uploads first, the rows wait together and land together, and a decline or revert saves nothing and keeps the draft. An unknown outcome is not sent again. Its fields lock, the dialog shows what the chain holds with Check Again and Move On, and a reload restores what was typed, except a banner, whose file was not kept. A save past its ceilings goes one field at a time, with nothing sent first. Plain wallets keep today's flow by the user's rollout decision, so unlike the spec's durable sequential saves, their per-field progress still does not survive a reload (AC-10's last clause).
 - [x] **2.4 Close the last review gaps on #1398.** Merged past the two-round cap on review because no rail was listed, and fixed first in the next PR. A passkey batch refused by its own last checks reports as never sent, so it falls back. Save waits for the first read of held saves, though a read that fails outright still allows one, so a browser that cannot read its journal does not lock anyone out. What someone types during that read stays. A read reports what ended among the saves a tab was showing, so a save another tab proved still lands here. Only a definite no from a sender falls back: a capability check that fails reports `unknown`, which now shows as a failure.
-- [ ] **2.3 Complete presentation proof.** Stories and en/es/pt strings are in, with Storybook proof at desktop and 375px. Still open, and all of it needs the user's approval to broadcast: list each rail in a small follow-up, prove one live group on each, measure requests for an identical multi-field edit before and after, and check both rail journeys by keyboard. This closes the rest of checkpoint 1.6. Then update test cases ADM-048 and ADM-179, which still describe one wallet confirmation per field.
+- [ ] **2.3 Complete presentation proof.** Stories and en/es/pt strings are in, with Storybook proof at desktop and 375px. Still open, and all of it needs the user's approval to broadcast: list each rail in a small follow-up, prove one live group on each, measure requests for an identical multi-field edit before and after, and check both rail journeys by keyboard. This closes the rest of checkpoint 1.6. Then update test cases ADM-048 and ADM-179, which still describe one wallet confirmation per field. **4 Nov:** the passkey rail is listed (#1425) and was proven on 2 Nov, three fields in one prompt, with a declined prompt and a tab closed mid-send, and the passkey journey passed by keyboard. ADM-048 and ADM-179 now carry both paths. Still open: the plain-wallet journey by keyboard, and the `eip-5792` wallet rail, stopped because no available wallet reports atomic calls.
 
 **Phase exit:** AC-09–10 and shared recovery cases pass. Demonstrate one supported group and ordinary-wallet sequential fallback. Roll out settings before enabling member batching.
 
@@ -139,9 +139,9 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 3: prepared member additions.** Depends on Phase 2 acceptance.
 
-- [ ] **3.1 Prepare member calls in Shared.** Done except for two checks only the live proof can make. `modules/garden/members-batch.ts` collapses repeated rows, skips anyone already wearing the hat, and checks every group with `grantRoles` before anything is signed, checking each row alone when a group is refused, so a refused row is named and nothing is sent until the person changes the list. It sends one `grantRoles` call per group of ten in `single-call` mode, so every wallet signs once, and proves each row by reading its hat, because `RoleGranted` fires only on a new mint. Still open: recheck the selector live on Arbitrum before listing (the 23 Oct upgrade is in `packages/contracts/deployments/tx-plans/42161-hats-module-1792782642075-plan.json`, and Celo records no Hats module), and confirm the ceilings, which were sized from receipts, at the first live batch.
+- [x] **3.1 Prepare member calls in Shared.** Done except for two checks only the live proof can make. `modules/garden/members-batch.ts` collapses repeated rows, skips anyone already wearing the hat, and checks every group with `grantRoles` before anything is signed, checking each row alone when a group is refused, so a refused row is named and nothing is sent until the person changes the list. It sends one `grantRoles` call per group of ten in `single-call` mode, so every wallet signs once, and proves each row by reading its hat, because `RoleGranted` fires only on a new mint. Still open: recheck the selector live on Arbitrum before listing (the 23 Oct upgrade is in `packages/contracts/deployments/tx-plans/42161-hats-module-1792782642075-plan.json`, and Celo records no Hats module), and confirm the ceilings, which were sized from receipts, at the first live batch. **2 Nov:** a passkey group of two (#1431) and a wallet `grantRoles` call (#1432) landed on Arbitrum within their ceilings.
 - [x] **3.2 Integrate member selection and progress.** `AddMembersDialog.tsx` and `CommunityMembersDialogs.tsx` take the batch. On a listed rail the list goes under as few signatures as the rail allows, even for one person, because the journal is what refuses a row another tab still holds; unlisted rails keep today's flow, and typed-entry folding stays. Rows past the ceilings come back untried, with the footer's count corrected, and take another press to go one at a time. Rows that land leave the list at once, so they stay out of a retry after a later group stops. A refused row keeps its reason until the person changes the list, and a role read that fails stops the list before signing. A draft ends when another account signs in, because a hold belongs to who sent it. An unknown outcome keeps its rows listed and locked, each saying what the chain shows, with Check Again and Move On. The footer now says how many signatures a list takes, on both paths.
-- [ ] **3.3 Complete presentation proof.** Stories and en/es/pt strings are in, with Storybook proof at desktop and 375px of one signature for two people, a refused row, and held rows. Still open, and all of it needs the user's approval to broadcast: list each rail (`contract-call` for wallets, the passkey profile), prove one live group on each, measure prompts and completion time for the same reviewed list, and check ordinary wallets and account change by keyboard.
+- [ ] **3.3 Complete presentation proof.** Stories and en/es/pt strings are in, with Storybook proof at desktop and 375px of one signature for two people, a refused row, and held rows. Still open, and all of it needs the user's approval to broadcast: list each rail (`contract-call` for wallets, the passkey profile), prove one live group on each, measure prompts and completion time for the same reviewed list, and check ordinary wallets and account change by keyboard. **4 Nov:** both rails are listed (#1431, #1432) and proven, two people in one passkey prompt and one person on a plain wallet, and ADM-052 carries the one-signature path. Still open: a multi-person wallet group, completion time for the same list, and the keyboard checks.
 
 **Phase exit:** AC-11–12 pass; successful additions survive retry/reload, unauthorized rows never send, and no removal behavior changes.
 
@@ -153,7 +153,7 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 - [x] **4.1 Prepare the vault deposit group.** Built with its rails unlisted in `modules/garden/deposit-batch.ts`, and the ceilings stay on receipts until a live batch confirms them. In `useVaultDeposit.ts`, finish the limit, preview, and allowance reads, then freeze the reset (only when the allowance is nonzero and too low), the exact-amount approval, and the deposit for one account and chain. These calls omit `chainId` and `account` today, so set them. Set the budget from receipts, as settings and members did, until a fork run or live batch confirms it: a vault deposit used about 155k gas from a wallet, and a jar deposit about 94k. Prove the reset case, the enough-allowance case, and that a changed amount is a new operation.
 - [x] **4.2 Send it through the batch boundary and verify it.** Built with its rails unlisted, so nobody takes this path until each rail is listed, and a hold still shows after a rail comes off the list. Use atomic mode when the capability reads `supported`, and sequential mode otherwise. Confirm from a receipt's `Deposit` event that matches the vault, depositor, receiver, and amount; `OCTANT_VAULT_ABI` lacks that event, so add it. Prove a reverted atomic group leaves no allowance, an unknown outcome holds the next deposit into that vault across a reload, and a confirmed deposit does not.
 - [x] **4.3 Apply it to cookie jars.** Built with its rails unlisted, and both hooks share `useDepositRoute`. Every Green Goods jar has a zero deposit fee, so the event's amount equals the call's. Move `useCookieJarDepositMutation.ts` from the deprecated `useContractTxSender` to `useTransactionSender` and the same boundary. A real deposit on Arbitrum (`0x3b6ed28e6885ea14667cbd229425649b46332b28e7d01f071ed214f40f031664`) shows the jar emits `Deposit(address indexed depositor, uint256 amount, address indexed token)`, though its ABI omits it, so add it. Both flows then hold the same rule, a matching `Deposit` event, so they can share a helper. Only the vault resets its allowance today.
-- [ ] **4.4 Update progress on every surface.** All five forms are done, and the signature count they show reaches everyone on merge. What's left is measuring prompts per rail, which needs the live proof. Cover `EndowmentSheet`, `PublicFundingCard`, `PublicCookieJarCard`, and the admin `DepositModal` and `CookieJarDepositModal`, with stories and en/es/pt strings. Say how many signatures come up front, show each one landing on plain wallets, and show an unknown outcome as pending, never as failed. Measure prompts per rail before and after.
+- [x] **4.4 Update progress on every surface.** All five forms are done, and the signature count they show reaches everyone on merge. What's left is measuring prompts per rail, which needs the live proof. Cover `EndowmentSheet`, `PublicFundingCard`, `PublicCookieJarCard`, and the admin `DepositModal` and `CookieJarDepositModal`, with stories and en/es/pt strings. Say how many signatures come up front, show each one landing on plain wallets, and show an unknown outcome as pending, never as failed. Measure prompts per rail before and after. **3 Nov:** measured on both listed DAI rails. A plain wallet keeps two signatures, approval then deposit, now held by the journal, and a legacy passkey goes from two to one. ADM-066, ADM-070, PUB-015, PUB-035, PUB-039 and PWA-057 carry the listed paths.
 
 **Phase exit:** AC-20–22 pass on both rails. No double deposit from a retry, and the signature count on screen matches what the wallet asks for.
 
@@ -169,7 +169,7 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 - [x] **5.3 Add a bounded Shared review-selection hook.** Built as `hooks/work/useReviewBatch` over `stores/useReviewBatchStore`, in `hooks/work` because the review form needs it as well as the Hub. It is re-exported from the `useWorkApproval` leaf, so there's no new export path, and the workbench controller only composes it. There are no checkboxes: per decision 18 a work joins the list from its own review, so a filter can't add a hidden item and nothing unseen can go. Tests cover scoping by account and chain, stale decisions, notes, a closed tab's hold, and another tab's list.
 - [x] **5.4 Wire review staging.** `ReviewForm.tsx` adds Add to Batch beside Approve and in the reject dialog, only on a listed rail, and immediate Approve and Reject are unchanged. A draft keeps confidence, the rejection reason, feedback, verification method, and the audio note's link, and the upload finishes before the decision is kept. A waiting work shows its decision and Remove from Batch, which hands the words back. A held work locks, since the single path skips the journal, and the buttons wait for that read. Incomplete decisions can't be added: the same confidence and reason rules apply.
 - [x] **5.5 Wire Hub submission and progress.** `HubWorkQueue` shows a chip on each decided work and `HubReviewBatchBar` shows the counts, the garden, the signatures before anyone presses, and which signature a send is on. A review leaves as its own signature lands. Refused and too-costly reviews stay with a reason and a way out, and `TxHoldFeedback` sits above the list for an unknown send. Nothing says sent until the chain proves it. No rail is listed yet.
-- [ ] **5.6 Verify and enable incrementally.** Run the full acceptance matrix and required selector checks, record authenticated-class evidence or its exact pending limitation, and compare per-rail request counts and latency. Enable only evidenced feature/account/chain combinations using existing rollout mechanisms. Disabling new batches must leave reconciliation available.
+- [ ] **5.6 Verify and enable incrementally.** Run the full acceptance matrix and required selector checks, record authenticated-class evidence or its exact pending limitation, and compare per-rail request counts and latency. Enable only evidenced feature/account/chain combinations using existing rollout mechanisms. Disabling new batches must leave reconciliation available. **4 Nov:** reviews are listed on legacy passkeys (#1433) and `contract-call` wallets (#1434), proven with groups of two and three, and after #1435 one approval reached the passkey prompt 6.0 s after Send. ADM-198 covers staged reviews. Still open: the full acceptance matrix and a wallet group larger than two.
 
 **Phase exit:** AC-13–19 pass; no false completion or duplicate resubmission, no metadata loss, and single-review/client-upload behavior remains intact.
 
@@ -187,8 +187,8 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 7.** Depends on slice 6.
 
-- [ ] **7.1 Batch creations on passkeys.** Send Seed set, Add to Group, and Finish Creating through `creationSendMode` and `bundling-sender`, where passkeys queue one Send Now per copy today. `commitment-creation-send.test.ts` locks the background mode, so change it deliberately. Measure the bundle: 10 per group is untested against the 5-item placeholder for a UserOperation. Update the `SeedFlowFooter` copy.
-- [ ] **7.2 Make Edit Reward work on passkeys.** The refusal is a gap, not a rule: the contract checks only the pool steward, admin offers passkeys, and the dialog promises a prompt before every copy comes back refused. One-by-one sends can ship first; 50 calls per group is unmeasured.
+- [x] **7.1 Batch creations on passkeys.** Send Seed set, Add to Group, and Finish Creating through `creationSendMode` and `bundling-sender`, where passkeys queue one Send Now per copy today. `commitment-creation-send.test.ts` locks the background mode, so change it deliberately. Measure the bundle: 10 per group is untested against the 5-item placeholder for a UserOperation. Update the `SeedFlowFooter` copy. Built in #1461 with its rails unlisted. An unlisted passkey now sends creations from the dialog one copy at a time, because the queued path sent nothing and still reported sent.
+- [x] **7.2 Make Edit Reward work on passkeys.** The refusal is a gap, not a rule: the contract checks only the pool steward, admin offers passkeys, and the dialog promises a prompt before every copy comes back refused. One-by-one sends can ship first; 50 calls per group is unmeasured. Built in #1461: a passkey changes rewards one copy at a time until `reward-edits` is listed.
 
 **Phase exit:** AC-25 passes, and no copy is sent twice after a reload.
 
@@ -196,8 +196,8 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 8.** Depends on slice 2.
 
-- [ ] **8.1 Batch Karma reconcile.** `reconcileProject` and each `reconcileProjectAccess` go in bounded groups, because the account count is unbounded. Confirm each account from `KarmaSyncRecorded`, which the app's ABI lacks: a successful transaction can still record a failure. This retires the last caller of `sendBatch`.
-- [ ] **8.2 Batch marketplace approvals.** `grantApprovals` and `setApprovalForAll` go together, and the pending store records both, where it records one step today. These grant transfer rights, so confirm with the approval reads.
+- [x] **8.1 Batch Karma reconcile.** `reconcileProject` and each `reconcileProjectAccess` go in bounded groups, because the account count is unbounded. Confirm each account from `KarmaSyncRecorded`, which the app's ABI lacks: a successful transaction can still record a failure. This retires the last caller of `sendBatch`. Built in #1464 with its rail unlisted. Reconcile calls ask for 50% gas headroom on every rail, and `sendBatch` left the sender interface.
+- [x] **8.2 Batch marketplace approvals.** `grantApprovals` and `setApprovalForAll` go together, and the pending store records both, where it records one step today. These grant transfer rights, so confirm with the approval reads. Built in #1464 with its rail unlisted.
 
 **Phase exit:** AC-26 passes for both actions.
 
@@ -205,7 +205,7 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 9.** Depends on slice 2. Alone, because it changes who can withdraw.
 
-- [ ] **9.1 Batch the sync.** Grant, revoke, and metadata go together in `useCampaignCookieJar.ts`. Merge its two hooks, move off the deprecated sender, and confirm with `getAllowlist` and `getMetadata`. A failed group must leave the old allowlist in place.
+- [x] **9.1 Batch the sync.** Grant, revoke, and metadata go together in `useCampaignCookieJar.ts`. Merge its two hooks, move off the deprecated sender, and confirm with `getAllowlist` and `getMetadata`. A failed group must leave the old allowlist in place. Built in #1463 with its rails unlisted.
 
 **Phase exit:** AC-26 passes, and the panel never shows a change the chain does not hold.
 
@@ -213,7 +213,7 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 10.** Depends on slice 2.
 
-- [ ] **10.1 Batch the edit.** Title, start, end, and instructions go together in `useActionEditorController.ts`. The instructions upload runs after the writes today, so move it first. Moving a window later appears to revert today when the start goes first (inferred), so order the group and prove it. Bring the controller's own recovery in line with the journal.
+- [x] **10.1 Batch the edit.** Title, start, end, and instructions go together in `useActionEditorController.ts`. The instructions upload runs after the writes today, so move it first. Moving a window later appears to revert today when the start goes first (inferred), so order the group and prove it. Bring the controller's own recovery in line with the journal. Built in #1460 with its rails unlisted; the window order fix reaches plain wallets too.
 
 **Phase exit:** AC-26 passes, including a window moved later.
 
@@ -229,7 +229,8 @@ Checkpoint 1.6 is partial: production composition, mandatory reviewed budgets, o
 
 **PR 12.** Depends on slice 7. The user reversed the recorded decision on 2026-11-01 (decision 20).
 
-- [ ] **12.1 Batch it.** `useCommitmentJobs.ts` records "two calls, two signatures" for this flow, so a proof is kept even when its send fails. Batching means the queue carries both as one job: the second job waits for the proof today, its solo simulation reverts `EvidenceRequired`, and the client's passkey send is a flush, not a tap.
+- [x] **12.1 Batch it.** `useCommitmentJobs.ts` records "two calls, two signatures" for this flow, so a proof is kept even when its send fails. Batching means the queue carries both as one job: the second job waits for the proof today, its solo simulation reverts `EvidenceRequired`, and the client's passkey send is a flush, not a tap. Built in #1466 with its rails unlisted.
+- [ ] **12.2 Prove and list slices 7–10 and 12.** Each new rail stays unlisted until one live group runs on beta with the user signing, as slices 2–6 did. That first group confirms its ceilings.
 
 **Phase exit:** AC-27 passes, and a proof still survives a failed send.
 

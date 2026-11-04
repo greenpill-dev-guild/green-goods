@@ -1,8 +1,8 @@
 // TEST-QUALITY: allow-small-test-file - the stage redirect's route item, the older-work reading and the refresh's stage are wiring only this controller owns.
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   RefreshActionProvider,
   useRefreshActionValue,
@@ -100,19 +100,22 @@ beforeEach(() => {
   confirmStage.toConfirm = { isSteward: false, count: 0 };
 });
 
+const router: { current?: ReturnType<typeof createMemoryRouter> } = {};
+
 function renderAt(path: string) {
-  const router = createMemoryRouter([{ path: "/hub/:stage", element: <Probe /> }], {
+  router.current = createMemoryRouter([{ path: "/hub/:stage", element: <Probe /> }], {
     initialEntries: [path],
   });
+  const current = router.current;
   render(
     <IntlProvider locale="en" messages={{}} onError={() => {}}>
       <RefreshActionProvider>
-        <RouterProvider router={router} />
+        <RouterProvider router={current} />
         <RefreshProbe />
       </RefreshActionProvider>
     </IntlProvider>
   );
-  return router;
+  return current;
 }
 
 const currentUrl = (router: ReturnType<typeof renderAt>) =>
@@ -173,7 +176,11 @@ describe("useHubWorkbenchController: reading older work for Oldest first", () =>
 describe("useHubWorkbenchController: the top bar's refresh", () => {
   const STAGES = ["work", "assess", "certify", "confirm"] as const;
 
-  function openTab(stage: (typeof STAGES)[number], running: (read: string) => boolean) {
+  function openTab(
+    stage: (typeof STAGES)[number],
+    running: (read: string) => boolean,
+    garden: Record<string, unknown> = {}
+  ) {
     const refresh = {
       work: vi.fn(),
       assess: vi.fn(async () => undefined),
@@ -189,6 +196,7 @@ describe("useHubWorkbenchController: the top bar's refresh", () => {
       assessmentsFetching: running("assess"),
       refreshHypercerts: refresh.certify,
       hypercertsFetching: running("certify"),
+      ...garden,
     };
     confirmStage.toConfirm = {
       isSteward: true,
@@ -216,5 +224,64 @@ describe("useHubWorkbenchController: the top bar's refresh", () => {
     openTab(stage, (read) => read === stage);
 
     expect(await screen.findByTestId("refresh")).toHaveAttribute("data-busy", "true");
+  });
+
+  it("follows the tab a steward moves to", async () => {
+    const refresh = openTab("work", () => false);
+    await screen.findByTestId("refresh");
+
+    await act(() => router.current?.navigate(`/hub/certify?gardenId=${GARDEN}`));
+    fireEvent.click(screen.getByTestId("refresh"));
+    expect(refresh.certify).toHaveBeenCalledTimes(1);
+    expect(refresh.work).not.toHaveBeenCalled();
+  });
+
+  // The garden list failing fails every tab, so each tab's refresh rereads it.
+  it("rereads a failed garden list with the tab's own list, and is busy with it", async () => {
+    const refreshGardens = vi.fn(async () => undefined);
+    const refresh = openTab("assess", () => false, {
+      error: new Error("indexer unavailable"),
+      refreshGardens,
+      gardensFetching: true,
+    });
+
+    const button = await screen.findByTestId("refresh");
+    expect(button).toHaveAttribute("data-busy", "true");
+    fireEvent.click(button);
+    expect(refresh.assess).toHaveBeenCalledTimes(1);
+    expect(refreshGardens).toHaveBeenCalledTimes(1);
+  });
+
+  describe("by width", () => {
+    const original = vi.mocked(window.matchMedia).getMockImplementation();
+    afterEach(() => {
+      if (original) vi.mocked(window.matchMedia).mockImplementation(original);
+    });
+
+    // The top bar draws the refresh below 1024px; the Hub registered it below 600px only.
+    it.each([
+      { width: 390, shown: true },
+      { width: 768, shown: true },
+      { width: 1280, shown: false },
+    ])("offers it at $width px: $shown", async ({ width, shown }) => {
+      vi.mocked(window.matchMedia).mockImplementation(
+        (query: string) =>
+          ({
+            matches: Number(/min-width:\s*(\d+)px/.exec(query)?.[1] ?? Infinity) <= width,
+            media: query,
+            onchange: null,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+          }) as unknown as MediaQueryList
+      );
+      openTab("certify", () => false);
+
+      await waitFor(() => expect(screen.getByTestId("route-item")).toBeInTheDocument());
+      await act(async () => {});
+      expect(screen.queryByTestId("refresh") !== null).toBe(shown);
+    });
   });
 });
