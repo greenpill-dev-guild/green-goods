@@ -96,9 +96,17 @@ export function createJobQueue(deps: JobQueueDependencies): JobQueueHandle {
       else {
         try {
           const follower = followerOf.get(job.id);
+          // A check that fails pairs nothing: the two go the plain way, one signature each.
           const budget =
             follower && context.sendsWith
-              ? await context.sendsWith(job, follower).catch(() => null)
+              ? await context.sendsWith(job, follower).catch((error: unknown) => {
+                  deps.logger.warn("[JobQueue] Pairing check failed; sending the pair one by one", {
+                    jobId: job.id,
+                    followerJobId: follower.id,
+                    error,
+                  });
+                  return null;
+                })
               : null;
           if (follower && budget) {
             sentWithLead.add(follower.id);

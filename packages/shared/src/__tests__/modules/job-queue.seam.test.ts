@@ -358,6 +358,27 @@ describe("createJobQueue", () => {
       expect(sender.sendContractCall).not.toHaveBeenCalled();
     });
 
+    it("goes after its proof, one signature each, when the pairing check fails, and says why", async () => {
+      const store = createInMemoryJobQueueStore([proof(), sendAfterProof()]);
+      const executors = {
+        execute: vi.fn(async (_jobId: string) => ({ status: "complete", txHash: "0x1" }) as const),
+      };
+      const { deps, queue } = setup({ store, executors });
+      const failure = new Error("capability read failed");
+      const sendsWith = vi.fn(async () => {
+        throw failure;
+      });
+
+      await expect(
+        queue.flush({ transactionSender: {} as never, userAddress: USER, sendsWith })
+      ).resolves.toEqual({ processed: 2, failed: 0, skipped: 0 });
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof", "send"]);
+      expect(deps.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("one by one"),
+        expect.objectContaining({ jobId: "proof", followerJobId: "send", error: failure })
+      );
+    });
+
     it("leaves its proof untried when the send can't go this pass, so neither goes alone", async () => {
       const clock = createFakeJobQueueClock();
       // The send failed a try a moment ago and is still backing off; its proof isn't.
