@@ -36,6 +36,19 @@ export interface RoleDirectoryEntry {
   roles: GardenRole[];
 }
 
+/**
+ * A garden list read a page at a time: whether the garden has more than the
+ * list holds, and how to read the next page.
+ */
+export interface GardenListPages {
+  hasOlder: boolean;
+  /** Widen the list by one page and read it. */
+  loadOlder: () => void;
+  isLoadingOlder: boolean;
+  /** When the list last read successfully, in milliseconds; undefined before its first read. */
+  readAt?: number;
+}
+
 /** A work no decision has settled yet. */
 export interface GardenWaitingWork {
   id: string;

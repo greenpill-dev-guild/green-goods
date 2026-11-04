@@ -321,7 +321,7 @@ export function createShouldDehydrateQuery({
     if (!Array.isArray(key) || key[0] !== namespace) return false;
 
     // Pagination ownership is ephemeral UI state, not part of the reading cache.
-    if (key[1] === "works" && key[2] === "window") return false;
+    if ((key[1] === "works" || key[1] === "hypercerts") && key[2] === "window") return false;
 
     // Reporting ceremony state (pairing codes, publication status) is private and short-lived.
     if (key[1] === "agent-reporting") return false;

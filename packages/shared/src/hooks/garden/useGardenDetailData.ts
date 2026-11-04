@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { isAddress } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
+import type { GardenListPages } from "../../types/garden-detail";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
@@ -138,6 +139,9 @@ export function useGardenDetailData(id: string | undefined) {
     error: worksError,
     refetch: refreshWorks,
     hasOlderWork,
+    loadOlderWork,
+    isLoadingOlder: isLoadingOlderWork,
+    lastSuccessfulRefresh: worksReadAt,
     hasUnknownStatuses,
     readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
@@ -153,6 +157,10 @@ export function useGardenDetailData(id: string | undefined) {
     hypercerts,
     isLoading: hypercertsLoading,
     error: hypercertsError,
+    hasOlder: hasOlderHypercerts,
+    loadOlder: loadOlderHypercerts,
+    isLoadingOlder: isLoadingOlderHypercerts,
+    listReadAt: hypercertsReadAt,
   } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
@@ -231,11 +239,25 @@ export function useGardenDetailData(id: string | undefined) {
     worksLoading,
     worksFetching,
     isWorksError,
+    isWorksPaused,
     worksError,
     refreshWorks,
+    // Each list holds the garden's newest page until a steward asks for older records.
+    workPages: {
+      hasOlder: hasOlderWork,
+      loadOlder: loadOlderWork,
+      isLoadingOlder: isLoadingOlderWork,
+      readAt: worksReadAt,
+    } satisfies GardenListPages,
     hypercerts,
     hypercertsLoading,
     hypercertsError,
+    hypercertPages: {
+      hasOlder: hasOlderHypercerts,
+      loadOlder: loadOlderHypercerts,
+      isLoadingOlder: isLoadingOlderHypercerts,
+      readAt: hypercertsReadAt,
+    } satisfies GardenListPages,
     convictionStrategyCount: convictionStrategies.length,
     scheduleBackgroundRefetch,
   };

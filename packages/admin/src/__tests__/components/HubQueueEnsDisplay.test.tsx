@@ -20,6 +20,7 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: (address: Address | null | undefined) => mockUseGreenGoodsEnsName(address),
 }));
 
+import { HubHypercertList } from "@/views/Hub/components/HubRecordLists";
 import { HubWorkQueue } from "@/views/Hub/components/HubWorkQueue";
 
 const TEST_WORK: Work = {
@@ -277,5 +278,109 @@ describe("Hub work queue layout", () => {
     renderQueue(true);
 
     expect(screen.getByRole("list")).toHaveAttribute("data-card-layout", "wide");
+  });
+});
+
+// PRD-1086: a list holds the garden's newest page, so while the garden has
+// more, the list says so and reads the next page on request.
+describe("Hub lists with older records", () => {
+  const olderPage = () => ({ onShowOlder: vi.fn(), isLoading: false });
+  const renderQueue = (
+    items: Work[],
+    older: ReturnType<typeof olderPage>,
+    { scope = "pending", search = "" }: { scope?: "pending" | "approved"; search?: string } = {}
+  ) =>
+    renderWithIntl(
+      <HubWorkQueue
+        items={items}
+        scope={scope}
+        worksLoading={false}
+        hasDataError={false}
+        normalizedSearch={search}
+        debouncedSearch={search}
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+        older={older}
+      />
+    );
+
+  beforeEach(() => {
+    mockUseEnsName.mockReturnValue({ data: null });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: null });
+  });
+
+  it("reads the garden's older work from under the list", () => {
+    const older = olderPage();
+    renderQueue([TEST_WORK], older);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Older Work" }));
+    expect(older.onShowOlder).toHaveBeenCalledTimes(1);
+  });
+
+  // "All caught up" would be false: the pending work may be older than the page.
+  it.each([
+    { scope: "pending", title: "Nothing pending in recent work", settled: "All caught up" },
+    {
+      scope: "approved",
+      title: "Nothing approved in recent work",
+      settled: "No approved work yet",
+    },
+  ] as const)("does not call an empty $scope scope settled while older work is unread", ({
+    scope,
+    title,
+    settled,
+  }) => {
+    renderQueue([], olderPage(), { scope });
+
+    expect(screen.getByText(title)).toBeInTheDocument();
+    expect(screen.getByText("Older work isn't loaded yet.")).toBeInTheDocument();
+    expect(screen.queryByText(settled)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Older Work" })).toBeInTheDocument();
+  });
+
+  it("offers older work beside Clear Search when the loaded work matches nothing", () => {
+    renderQueue([], olderPage(), { search: "compost" });
+
+    expect(screen.getByText('No submissions matching "compost"')).toBeInTheDocument();
+    expect(screen.getByText("Older work isn't loaded yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Older Work" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear Search" })).toBeInTheDocument();
+  });
+
+  it("reads the garden's older hypercerts from under the list, and from a search that misses", () => {
+    const older = olderPage();
+    const hypercert = {
+      id: "42161-1",
+      title: "Spring planting",
+      description: "",
+      workScopes: [],
+      mintedAt: 1_700_000_000,
+      attestationCount: 3,
+    };
+    const list = (items: (typeof hypercert)[], searchQuery = "") => (
+      <HubHypercertList
+        items={items}
+        isLoading={false}
+        hasDataError={false}
+        searchQuery={searchQuery}
+        onClearSearch={vi.fn()}
+        onOpenHypercert={vi.fn()}
+        older={older}
+      />
+    );
+    const view = renderWithIntl(list([hypercert]));
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Older Hypercerts" }));
+    expect(older.onShowOlder).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <IntlProvider locale="en" messages={enMessages}>
+        {list([], "autumn")}
+      </IntlProvider>
+    );
+    expect(screen.getByText("Older hypercerts aren't loaded yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Older Hypercerts" })).toBeInTheDocument();
   });
 });

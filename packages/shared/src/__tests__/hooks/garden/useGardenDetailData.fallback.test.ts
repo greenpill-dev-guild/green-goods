@@ -113,8 +113,9 @@ function defaultWorksResult() {
   };
 }
 
+const mockUseHypercerts = vi.fn((): object => ({ hypercerts: [], isLoading: false }));
 vi.mock("../../../hooks/hypercerts/useHypercerts", () => ({
-  useHypercerts: () => ({ hypercerts: [], isLoading: false }),
+  useHypercerts: () => mockUseHypercerts(),
 }));
 
 import { useGardenDetailData } from "../../../hooks/garden/useGardenDetailData";
@@ -227,6 +228,43 @@ describe("useGardenDetailData eligible garden fallback", () => {
     expect(result.current.garden).toBe(recoveredGarden);
     expect(result.current.isWorksError).toBe(true);
     expect(result.current.worksError).toBe(worksError);
+  });
+
+  // The Hub reads only what this hook hands it: a list whose next page stops
+  // here can never reach older records (PRD-1086).
+  it("hands on each list's next page", () => {
+    const loadOlderWork = vi.fn();
+    const loadOlderHypercerts = vi.fn();
+    mockUseWorks.mockReturnValue({
+      ...defaultWorksResult(),
+      hasOlderWork: true,
+      loadOlderWork,
+      isLoadingOlder: false,
+      lastSuccessfulRefresh: 1_000,
+    });
+    mockUseHypercerts.mockReturnValue({
+      hypercerts: [],
+      isLoading: false,
+      hasOlder: true,
+      loadOlder: loadOlderHypercerts,
+      isLoadingOlder: true,
+      listReadAt: 2_000,
+    });
+
+    const { result } = renderHook(() => useGardenDetailData(recoveredGarden.id));
+
+    expect(result.current.workPages).toEqual({
+      hasOlder: true,
+      loadOlder: loadOlderWork,
+      isLoadingOlder: false,
+      readAt: 1_000,
+    });
+    expect(result.current.hypercertPages).toEqual({
+      hasOlder: true,
+      loadOlder: loadOlderHypercerts,
+      isLoadingOlder: true,
+      readAt: 2_000,
+    });
   });
 
   // Rows left from the last good read cannot show that no review landed since.

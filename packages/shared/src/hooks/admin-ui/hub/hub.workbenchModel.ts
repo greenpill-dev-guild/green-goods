@@ -89,6 +89,12 @@ export interface HubActionSummary {
   domain?: Domain;
 }
 
+/** The control that reads a Hub list's next page, offered while the garden has more. */
+export interface HubOlderRecords {
+  onShowOlder: () => void;
+  isLoading: boolean;
+}
+
 export function normalizeHubSearch(searchTerm: string): string {
   return searchTerm.trim().toLowerCase();
 }
