@@ -24,7 +24,10 @@ import {
   takePartEmptyReason,
   takePartEntries,
 } from "../../modules/garden/journal";
-import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
+import type {
+  CommitmentCycleRecord,
+  CommitmentReadModel,
+} from "../../modules/commitment-pooling/types-core";
 import type { Address, Work } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
 import { useOnlineStatus } from "../app/useOnlineStatus";
@@ -32,6 +35,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useActions } from "../blockchain/useBaseLists";
 import { useCommitmentCycleNames } from "../commitment-pooling/useCommitmentCycleNames";
 import { useCommitmentMetadata } from "../commitment-pooling/useCommitmentMetadata";
+import { useCycleClock } from "../commitment-pooling/useCycleClock";
 import {
   useCommitmentCycles,
   useCommitmentPools,
@@ -87,11 +91,14 @@ export interface GardenOpenCycles {
   state: JournalSectionState<JournalCycle>;
 }
 
+const NO_CYCLES: CommitmentCycleRecord[] = [];
+
 /**
- * The pool's open season and campaigns, read the way the Pool tab reads its rail. Days left
- * count from when the section was last brought into view: the tab shown again, or, for a
- * section Home keeps mounted under the pages it opens, `shown` turning true again, so a count
- * read before a day boundary never stands after it.
+ * The pool's open season and campaigns, read the way the Pool tab reads its rail. One past its
+ * end leaves the second it ends, on the clock promises fall due on (DL-162). Days left count
+ * from when the section was last brought into view: the tab shown again, or, for a section Home
+ * keeps mounted under the pages it opens, `shown` turning true again, so a count read before a
+ * day boundary never stands after it.
  */
 export function useGardenOpenCycles(
   gardenId: string,
@@ -103,6 +110,8 @@ export function useGardenOpenCycles(
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
+  const records = cycles.data ?? NO_CYCLES;
+  const now = useCycleClock(records);
   const [nowMs, setNowMs] = useState(Date.now);
   // Read in the render that shows the section again, so the count it paints is already current.
   const [wasShown, setWasShown] = useState(shown);
@@ -113,7 +122,7 @@ export function useGardenOpenCycles(
   useDocumentEvent("visibilitychange", () => {
     if (document.visibilityState === "visible") setNowMs(Date.now());
   });
-  const open = useMemo(() => openCycles(cycles.data ?? [], nowMs), [cycles.data, nowMs]);
+  const open = useMemo(() => openCycles(records, now, nowMs), [records, now, nowMs]);
   const openRecords = useMemo(() => open.map(({ cycle }) => cycle), [open]);
   const { byCycleId } = useCommitmentCycleNames(openRecords);
 
