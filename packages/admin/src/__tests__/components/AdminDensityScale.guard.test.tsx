@@ -277,6 +277,8 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-type-card-title-size": "0.8125rem",
       "--gg-type-card-title-line": "1.125rem",
       "--gg-type-card-title-weight": "600",
+      "--gg-media-subtitle-size": "var(--gg-type-body-size)",
+      "--gg-media-subtitle-line": "var(--gg-type-body-line)",
       "--gg-card-surface": "var(--admin-surface-0)",
       "--gg-card-edge": "var(--neutral-200)",
       "--gg-card-fill": "var(--m3-surface-container-high)",

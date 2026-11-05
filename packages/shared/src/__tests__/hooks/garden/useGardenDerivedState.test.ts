@@ -274,4 +274,27 @@ describe("useGardenDerivedState", () => {
     expect(result.current.memberCount).toBe(2);
     expect(result.current.directoryEntries[0]?.roles).toEqual(["owner", "steward"]);
   });
+  it("carries the work author, photo and independent status into the activity row", () => {
+    const { result } = renderDerivedState({
+      works: [
+        {
+          id: "work-photo",
+          title: "Planted native saplings",
+          status: "approved",
+          createdAt: 1_790_000_000,
+          gardenerAddress: "0x1111111111111111111111111111111111111111",
+          media: ["ipfs://work-photo"],
+        },
+      ],
+    });
+    expect(
+      result.current.activityEvents.find((event) => event.id === "work-work-photo")
+    ).toMatchObject({
+      actorAddress: "0x1111111111111111111111111111111111111111",
+      photo: "ipfs://work-photo",
+      statusLabel: "app.admin.work.filter.approved",
+      statusTone: "success",
+      description: "app.garden.detail.activity.workSubmitted",
+    });
+  });
 });

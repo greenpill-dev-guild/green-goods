@@ -68,16 +68,17 @@ type Stage =
   | "unavailable";
 
 /** What the garden chooser has to show: the gardens, or the state that stands in for them. */
-type Catalog = "gardens" | "loading" | "error" | "empty";
+type Catalog = "gardens" | "loading" | "error" | "empty" | "already-steward";
 
 /** Real view with deterministic presentation fixtures; callbacks never sign or assign a role. */
 function RequestFixture({ stage, catalog = "gardens" }: { stage: Stage; catalog?: Catalog }) {
   const [open, setOpen] = useState(stage !== "idle");
+  const [catalogState, setCatalogState] = useState(catalog);
   const [step, setStep] = useState<"choose" | "review">(
     stage === "idle" || stage === "choose" ? "choose" : "review"
   );
   const [selectedGarden, setGarden] = useState<Garden | null>(step === "review" ? garden : null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(catalog === "already-steward" ? garden.id : "");
   const [note, setNote] = useState("");
   const [requests, setRequests] = useState<Record<string, GardenJoinRequestSelfRecord>>(() => {
     if (stage === "pending") return { [garden.id]: request };
@@ -111,13 +112,16 @@ function RequestFixture({ stage, catalog = "gardens" }: { stage: Stage; catalog?
     setNote,
     selectedGarden,
     candidates:
-      catalog === "gardens"
+      catalogState === "gardens"
         ? gardens.filter((candidate) => candidate.name.toLowerCase().includes(search.toLowerCase()))
         : [],
     invalidLink: false,
-    catalogLoading: catalog === "loading",
-    catalogError: catalog === "error",
-    reloadGardens: fn(),
+    alreadyStewardTarget: catalogState === "already-steward",
+    catalogLoading: catalogState === "loading",
+    catalogError: catalogState === "error",
+    reloadGardens: async () => {
+      setCatalogState("gardens");
+    },
     request: currentRequest,
     hasCheckedStatus: false,
     outcomeUnknown: false,
@@ -219,10 +223,32 @@ export const ChooserLoading: Story = {
   render: () => <RequestFixture stage="choose" catalog="loading" />,
 };
 export const ChooserFailed: Story = {
+  tags: ["storybook-ci"],
   render: () => <RequestFixture stage="choose" catalog="error" />,
+  play: async () => {
+    const body = within(document.body);
+    await userEvent.click(await body.findByRole("button", { name: "Retry" }));
+    await waitFor(() =>
+      expect(body.getByRole("button", { name: /Comunidad Verde/ })).toBeVisible()
+    );
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
+    await expect(body.getByRole("button", { name: "Request Steward Access" })).toHaveFocus();
+  },
 };
 export const ChooserEmpty: Story = {
   render: () => <RequestFixture stage="choose" catalog="empty" />,
+};
+export const AlreadySteward: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RequestFixture stage="choose" catalog="already-steward" />,
+  play: async () => {
+    const body = within(document.body);
+    await waitFor(() => {
+      expect(body.getByText("You already steward this garden")).toBeVisible();
+      expect(body.getByText("Choose another garden to request access.")).toBeVisible();
+    });
+  },
 };
 
 const spanishDecorators: Story["decorators"] = [

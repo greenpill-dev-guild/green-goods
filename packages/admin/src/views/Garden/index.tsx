@@ -80,20 +80,6 @@ export default function GardenView() {
               }),
               count: garden.derived.overviewAlerts.length || undefined,
             },
-            {
-              id: "impact",
-              label: formatMessage({
-                id: "cockpit.garden.impact",
-                defaultMessage: "Impact",
-              }),
-            },
-            {
-              id: "activity",
-              label: formatMessage({
-                id: "cockpit.garden.activity",
-                defaultMessage: "Activity",
-              }),
-            },
             // The pool console is the steward's surface (uiux-spec §6.2): a
             // gardener reads the pool in the client, never here.
             ...(garden.canManage
@@ -107,6 +93,20 @@ export default function GardenView() {
                   },
                 ]
               : []),
+            {
+              id: "activity",
+              label: formatMessage({
+                id: "cockpit.garden.activity",
+                defaultMessage: "Activity",
+              }),
+            },
+            {
+              id: "impact",
+              label: formatMessage({
+                id: "cockpit.garden.impact",
+                defaultMessage: "Impact",
+              }),
+            },
           ]}
         />
       </CanvasRouteHeader>

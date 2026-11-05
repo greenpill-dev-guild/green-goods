@@ -19,10 +19,15 @@ export interface TabAction {
 }
 
 export interface GardenActivityEvent {
+  actorAddress?: Address;
+  photo?: string;
+  statusLabel?: string;
+  statusTone?: "success" | "warning" | "error" | "info" | "neutral";
   id: string;
   category: Exclude<ActivityFilter, "all">;
   title: string;
   description: string;
+  /** Event time in milliseconds; 0 when unknown. */
   timestamp: number;
   href?: string;
   itemId?: string;

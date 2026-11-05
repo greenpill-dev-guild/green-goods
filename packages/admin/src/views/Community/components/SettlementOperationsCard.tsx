@@ -82,7 +82,7 @@ export function SettlementOperationsCard({
             defaultMessage: "Settlement Operations",
           })}
         </AdminCardTitle>
-        <p className="mt-1 type-meta text-text-soft">
+        <p className="mt-1 type-body text-text-soft">
           {formatMessage({
             id: "cockpit.community.settlementOps.description",
             defaultMessage:
