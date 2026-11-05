@@ -66,6 +66,7 @@ import { SiteHeader } from "../../components/Navigation/SiteHeader";
 const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
+  "public.nav.strategy": "Strategy",
   "public.nav.impact": "Impact",
   "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
@@ -143,7 +144,7 @@ describe("SiteHeader", () => {
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("nav order is Gardens / Impact / Fund / Actions", () => {
+  it("nav order is Gardens / Impact / Fund / Actions / Strategy", () => {
     renderHeader();
     const navs = screen.getAllByRole("navigation");
     const desktopNav = navs[0];
@@ -151,9 +152,9 @@ describe("SiteHeader", () => {
       (link) => link.textContent ?? ""
     );
     const navOrder = links.filter((label) =>
-      ["Gardens", "Impact", "Fund", "Actions"].includes(label)
+      ["Gardens", "Impact", "Fund", "Actions", "Strategy"].includes(label)
     );
-    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions"]);
+    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions", "Strategy"]);
   });
 
   it("renders Open App when the PWA is already installed", () => {
@@ -242,6 +243,10 @@ describe("SiteHeader", () => {
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
+    expect(within(drawer).getByRole("link", { name: "Strategy" })).toHaveAttribute(
+      "href",
+      "/strategy"
+    );
     expect(document.documentElement).toHaveClass("modal-open");
     expect(document.body.style.position).toBe("fixed");
     // Drawer mirrors the install CTA, not Connect Wallet.

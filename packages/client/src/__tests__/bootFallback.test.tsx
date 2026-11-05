@@ -437,7 +437,15 @@ describe("presentation-specific boot fallback", () => {
       );
     }
     // Other heroes wrap on their own, a garden's page among them, so they keep the old bars.
-    for (const path of ["/cookies", "/vaults", "/glossary", "/gardens/0xabc"]) {
+    for (const path of [
+      "/cookies",
+      "/vaults",
+      "/glossary",
+      "/strategy",
+      "/privacy",
+      "/contact",
+      "/gardens/0xabc",
+    ]) {
       expect(
         detectBootDataset({ href: `https://www.greengoods.app${path}` }).bootTitle
       ).toBeUndefined();

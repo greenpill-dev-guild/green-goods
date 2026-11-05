@@ -222,6 +222,9 @@ describe("presentation-mode route guards", () => {
       "/vaults",
       "/actions",
       "/cookies",
+      "/strategy",
+      "/privacy",
+      "/contact",
       "/agent/reporting/abcdefghijklmnop",
       "/agent/reporting/recover/abcdefghijklmnop",
     ]) {
