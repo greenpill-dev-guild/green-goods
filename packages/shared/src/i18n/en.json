@@ -8482,5 +8482,11 @@
   "app.home.none.title": "Find Your Garden",
   "app.home.none.description": "Join a garden to submit work and follow what happens there.",
   "app.home.chooser.description": "Pick the garden Home opens in.",
-  "app.profile.issuer.chooseShort": "Choose"
+  "app.profile.issuer.chooseShort": "Choose",
+  "app.voucher.service.books": "Books",
+  "app.voucher.service.unavailable": "Service terms unavailable",
+  "app.voucher.service.booking": "{service}: {units} for {vouchers} {pluralCount, plural, one {voucher} other {vouchers}}",
+  "app.voucher.service.name": "{kind, select, assisted {Assisted session} claude {Claude Team Standard access} hub {Hub visit} lesson {Integration lesson} other {{name}}}",
+  "app.voucher.reward.receivedAt": "Arrived {date}",
+  "app.voucher.reward.arrivalUnknown": "Arrival time unavailable"
 }

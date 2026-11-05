@@ -16,6 +16,15 @@ export interface VoucherIssuerStanding {
   exchange: IssuerPoolStatus;
 }
 
+/** A reviewed booking quantity. A fraction of its price does not promise a smaller booking. */
+export interface VoucherServiceTerms {
+  name: string;
+  unit: string;
+  serviceUnits: bigint;
+  voucherUnits: bigint;
+  serviceTermsRef: Hex;
+}
+
 /** A service voucher issuer: a collective's Safe or, from slice 2, a member's own account. */
 export interface VoucherIssuer {
   /** The account that approves each booking and holds the reserve. */
@@ -29,6 +38,8 @@ export interface VoucherIssuer {
   /** The garden whose promises list this issuer's services. */
   garden: Address;
   standing: VoucherIssuerStanding;
+  /** Absent or null until this issuer token has reviewed service terms. */
+  services?: readonly VoucherServiceTerms[] | null;
 }
 
 /**
@@ -149,6 +160,8 @@ export interface RequestRewardDelivery {
   /** What a waiting voucher reward needs topped up or raised. */
   shortOf: "reserve" | "allowance" | null;
   receipt: string | null;
+  /** Successful destination transfer time, in Unix seconds; never the source dispatch or ACK. */
+  receivedAt?: number | null;
   attempts: bigint;
   /** A source dispatch is tracking evidence, never proof of destination delivery. */
   messageId?: Hex | null;

@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { type ReactElement, useLayoutEffect } from "react";
+import { useVoucherWallet } from "../src/hooks/commitment-pooling/useVoucherWallet";
+import type { ReactElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { fn, mocked } from "storybook/test";
@@ -22,7 +22,7 @@ import esMessages from "../src/i18n/es.json";
 import ptMessages from "../src/i18n/pt.json";
 import type { ServiceAccessSnapshot } from "../src/modules/commitment-pooling/service-access-types";
 import type { VoucherWalletSnapshot } from "../src/modules/commitment-pooling/service-access-wallet-types";
-import { VOUCHER_STORY_NAMES, VOUCHER_STORY_WALLET_KEY } from "./voucherBookingFixtures";
+import { VOUCHER_STORY_NAMES } from "./voucherBookingFixtures";
 import { VOUCHER_STORY_SCOPE } from "./voucherPilotFixtures";
 
 export type VoucherStoryLang = "en" | "es" | "pt";
@@ -30,6 +30,7 @@ const MESSAGES = { en: enMessages, es: esMessages, pt: ptMessages } as const;
 
 /** The hooks the page reads here; a story's `beforeEach` gives them back to later stories. */
 export const VOUCHER_STORY_PAGE_HOOKS = [
+  useVoucherWallet,
   useServiceAccess,
   useServiceAccessMutation,
   useGardenCommitmentController,
@@ -63,10 +64,16 @@ export function VoucherStoryPage({
   lang: VoucherStoryLang;
   page: ReactElement;
 }) {
-  const client = useQueryClient();
-  useLayoutEffect(() => {
-    client.setQueryData(VOUCHER_STORY_WALLET_KEY, wallet);
-  }, [client, wallet]);
+  // A window-focus refetch must not replace the story's wallet with a live read.
+  mocked(useVoucherWallet).mockReturnValue({
+    data: wallet,
+    isLoading: false,
+    isError: false,
+    status: "success",
+    fetchStatus: "idle",
+    error: null,
+    refetch: fn(),
+  } as unknown as ReturnType<typeof useVoucherWallet>);
   mocked(useServiceAccess).mockReturnValue({
     data: snapshot,
     isLoading: false,
