@@ -84,7 +84,7 @@ interface UseAuthReturn {
 
   // Actions - Primary flow
   createAccount: (userName: string) => Promise<void>;
-  loginWithPasskey: (userName?: string) => Promise<void>;
+  loginWithPasskey: AuthActionsValue["loginWithPasskey"];
   loginWithOriginalPasskey?: AuthActionsValue["loginWithOriginalPasskey"];
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;

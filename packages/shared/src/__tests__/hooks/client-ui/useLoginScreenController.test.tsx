@@ -16,6 +16,7 @@ import enMessages from "../../../i18n/en.json";
 
 const auth = vi.hoisted(() => ({
   current: {} as Record<string, unknown>,
+  serverEnabled: true,
 }));
 
 vi.mock("../../../hooks/auth/useAuth", () => ({ useAuth: () => auth.current }));
@@ -32,7 +33,7 @@ vi.mock("../../../providers/App", () => ({
 vi.mock("../../../config/passkeyServer", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../config/passkeyServer")>()),
   classifyPasskeyCeremonyContext: () => ({ supported: true }),
-  isPasskeyServerEnabled: () => true,
+  isPasskeyServerEnabled: () => auth.serverEnabled,
 }));
 
 const routes = { login: "/login", home: "/home" };
@@ -49,6 +50,7 @@ function renderController(entry: string | { pathname: string; state?: unknown } 
 }
 
 beforeEach(() => {
+  auth.serverEnabled = true;
   auth.current = {
     isAuthenticated: false,
     isAuthenticating: false,
@@ -108,36 +110,24 @@ describe("useLoginScreenController", () => {
     expect(result.current.showPilotEnrollment).toBe(false);
   });
 
-  it.each([
-    {
-      flow: "recover",
-      setName: "setRecoveryUsername",
-      run: "recoverWithPasskey",
-      ceremony: "loginWithPasskey",
-    },
-    { flow: "create", setName: "setUsername", run: "createAccount", ceremony: "createAccount" },
-  ] as const)("refuses a two-letter display name before any $flow ceremony", async ({
-    setName,
-    run,
-    ceremony,
-  }) => {
+  it("rejects a two-letter username before sign-in or registration", async () => {
     const { result } = renderController();
-
-    act(() => result.current[setName]("  ab  "));
-    await act(async () => result.current[run]());
-
+    act(() => result.current.setUsername(" ab "));
+    await act(async () => result.current.continueWithUsername());
     expect(result.current.loginError).toBe("Display name must be at least 3 characters.");
-    expect(auth.current[ceremony]).not.toHaveBeenCalled();
+    expect(auth.current.loginWithPasskey).not.toHaveBeenCalled();
+    expect(auth.current.createAccount).not.toHaveBeenCalled();
   });
 
   it("says no account was created when the prompt closes on a new account, and only then", async () => {
     const closed = Object.assign(new Error("The operation was not allowed."), {
       name: "NotAllowedError",
     });
+    auth.serverEnabled = false;
     const { result, rerender } = renderController();
 
     act(() => result.current.setUsername("ada"));
-    await act(async () => result.current.createAccount());
+    await act(async () => result.current.continueWithUsername());
     auth.current = { ...auth.current, error: closed };
     rerender();
     expect(result.current.loginError).toBe("No account was created. Try again.");
@@ -153,9 +143,9 @@ describe("useLoginScreenController", () => {
     const show = vi.spyOn(toastService, "show").mockReturnValue("fallback");
     const { result, rerender } = renderController();
 
-    act(() => result.current.setRecoveryUsername("alice"));
-    await act(async () => result.current.recoverWithPasskey());
-    expect(auth.current.loginWithPasskey).toHaveBeenCalledWith("alice");
+    act(() => result.current.setUsername("alice"));
+    await act(async () => result.current.continueWithUsername());
+    expect(auth.current.loginWithPasskey).toHaveBeenCalledWith("alice", { createIfMissing: true });
     auth.current = { ...auth.current, isAuthenticated: true, userName: "bob" };
     rerender();
 
@@ -170,8 +160,8 @@ describe("useLoginScreenController", () => {
     const show = vi.spyOn(toastService, "show").mockReturnValue("fallback");
     const { result, rerender } = renderController();
 
-    act(() => result.current.setRecoveryUsername("@Alice "));
-    await act(async () => result.current.recoverWithPasskey());
+    act(() => result.current.setUsername("@Alice "));
+    await act(async () => result.current.continueWithUsername());
     auth.current = { ...auth.current, isAuthenticated: true, userName: "alice" };
     rerender();
 

@@ -61,6 +61,7 @@ const authSetup = setup({
       smartAccountAddress: null,
       passkeyAccountProfile: null,
       originalAccount: false,
+      createIfMissing: false,
       walletAddress: null,
       embeddedAddress: null,
       error: null,
@@ -139,6 +140,7 @@ const authSetup = setup({
     /** Store userName for registration/login */
     storeUserName: assign({
       originalAccount: ({ event }) => "originalAccount" in event && event.originalAccount === true,
+      createIfMissing: ({ event }) => "createIfMissing" in event && event.createIfMissing === true,
       userName: ({ event }) => {
         const e = event as { userName: string };
         return e.userName;
@@ -380,6 +382,7 @@ export const authMachine = authSetup.createMachine({
           userName: context.userName,
           chainId: context.chainId,
           originalAccount: context.originalAccount,
+          createIfMissing: context.createIfMissing,
         }),
         onDone: {
           target: "authenticated.passkey",
