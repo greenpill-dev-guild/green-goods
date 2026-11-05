@@ -7,6 +7,15 @@
 export const HATS_MODULE_ABI = [
   {
     type: "function",
+    name: "leaveGarden",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [],
+  },
+  { type: "error", name: "OwnerCannotLeave", inputs: [{ name: "garden", type: "address" }] },
+  { type: "error", name: "NotGardenMember", inputs: [] },
+  {
+    type: "function",
     name: "grantRole",
     stateMutability: "nonpayable",
     inputs: [

@@ -2,6 +2,8 @@
  * Contract Error Parsing Tests
  */
 
+import { encodeErrorResult } from "viem";
+import { HATS_MODULE_ABI } from "../../blockchain/abis/hats";
 import { describe, expect, it } from "vitest";
 import {
   formatErrorForToast,
@@ -12,6 +14,18 @@ import {
 } from "../contract-errors";
 
 describe("parseContractError", () => {
+  it("decodes the Hats module owner refusal and names its translated explanation", () => {
+    const data = encodeErrorResult({
+      abi: HATS_MODULE_ABI,
+      errorName: "OwnerCannotLeave",
+      args: ["0x1111111111111111111111111111111111111111"],
+    });
+    expect(parseContractError(data)).toMatchObject({
+      name: "OwnerCannotLeave",
+      messageKey: "app.garden.leave.owner",
+      recoverable: false,
+    });
+  });
   it("parses NotGardenMember error code (old selector for backward compatibility)", () => {
     const result = parseContractError("0x8cb4ae3b");
 

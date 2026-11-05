@@ -1,3 +1,4 @@
+import { reconcileGardenDepartures } from "../garden/garden-departures";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   UNKNOWN_GARDEN_LOCATION,
@@ -461,14 +462,13 @@ export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Pro
       ])
     );
 
-    // Curated out of every surface — see config/garden-visibility.ts. Filtering
-    // here rather than per-view keeps the PWA and admin consistent with the
-    // website for gardens that should not exist anywhere in Green Goods.
+    // Keep curated gardens hidden across the PWA, admin, and website.
     const visibleGardens = withoutHiddenGardens(data.Garden);
 
-    return visibleGardens.map((garden) =>
+    const gardens = visibleGardens.map((garden) =>
       gardenFromRow(garden, domainMap.get(garden.id.toLowerCase()) ?? 0)
     );
+    return reconcileGardenDepartures(gardens, chainId);
   } catch (error) {
     logger.error("[getGardens] Failed to fetch gardens", { error });
     throw error;

@@ -11,6 +11,7 @@ import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -253,7 +254,7 @@ describe("GardenGardeners", () => {
   });
 
   describe("how a member leaves the garden", () => {
-    const [ana, bo, caio, dee, reader] = ["Ana", "Bo", "Caio", "Dee", "Reader"].map(
+    const [ana, bo, , dee, reader] = ["Ana", "Bo", "Caio", "Dee", "Reader"].map(
       (username, index) => ({ ...members[index], username, isSteward: index < 4 })
     );
     const GARDEN_ID = "0x00000000000000000000000000000000000000aa";
@@ -272,34 +273,31 @@ describe("GardenGardeners", () => {
       );
       return render(
         <IntlProvider locale={locale} messages={catalog}>
-          <GardenGardeners members={roster} garden={garden} />
+          <MemoryRouter>
+            <GardenGardeners members={roster} garden={garden} />
+          </MemoryRouter>
         </IntlProvider>
       );
     };
-    const leaveLine = () => screen.queryByText(/leave this garden/i);
+    const leaveLine = () => screen.queryByRole("link", { name: /leave/i });
 
     it.each([
-      ["en", en, "To leave this garden, ask a steward like Ana or Bo to remove you."],
-      ["es", es, "Para salir de este jardín, pide a un responsable como Ana o Bo que te retire."],
-      ["pt", pt, "Para sair deste jardim, peça a um responsável como Ana ou Bo para remover você."],
-    ])("tells a gardener in %s, naming the garden's stewards", (locale, catalog, line) => {
+      ["en", en],
+      ["es", es],
+      ["pt", pt],
+    ])("points a member in %s to the self-service garden page", (locale, catalog) => {
       readAs(reader.account);
       const garden = record({ stewards: [ana.account, bo.account], gardeners: [reader.account] });
-
-      const { container } = renderSection(garden, [ana, bo, reader], { locale, catalog });
-
-      expect(container.querySelector("li p")).toHaveTextContent(line);
+      renderSection(garden, [ana, bo, reader], { locale, catalog });
+      expect(
+        screen.getByRole("link", { name: catalog["app.garden.gardeners.leave"] })
+      ).toHaveAttribute("href", `/home/${GARDEN_ID}`);
     });
 
-    it("names other stewards to a steward, three at most, and leaves the rest to the list", () => {
+    it("lets a garden's only steward find the leave action", () => {
       readAs(ana.account);
-      const stewards = [ana, bo, caio, dee].map((steward) => steward.account);
-
-      renderSection(record({ stewards, gardeners: [] }), [ana, bo, caio, dee]);
-
-      expect(leaveLine()).toHaveTextContent(
-        "To leave this garden, ask a steward like Bo, Caio, or Dee to remove you."
-      );
+      renderSection(record({ stewards: [ana.account], gardeners: [] }), [ana]);
+      expect(leaveLine()).toBeInTheDocument();
     });
 
     it.each([
@@ -310,9 +308,7 @@ describe("GardenGardeners", () => {
 
       renderSection(record({ stewards: [ana.account], [role]: [reader.account] }), [ana]);
 
-      expect(leaveLine()).toHaveTextContent(
-        "To leave this garden, ask a steward like Ana to remove you."
-      );
+      expect(leaveLine()).toHaveTextContent(en["app.garden.gardeners.leave"]);
     });
 
     it.each([
@@ -323,18 +319,6 @@ describe("GardenGardeners", () => {
         reader.account,
         { stewards: [ana.account], funders: [reader.account] },
         [ana],
-      ],
-      [
-        "the garden's only steward, with nobody to name",
-        ana.account,
-        { stewards: [ana.account] },
-        [ana],
-      ],
-      [
-        "a gardener when the record lists no steward to ask",
-        reader.account,
-        { stewards: [], gardeners: [reader.account] },
-        [reader],
       ],
     ] satisfies Array<
       [string, string | null, Partial<Garden>, GardenMember[]]
@@ -355,9 +339,7 @@ describe("GardenGardeners", () => {
       );
 
       renderSection(record({ stewards: [ana.account], gardeners: [] }), [ana]);
-      expect(leaveLine()).toHaveTextContent(
-        "To leave this garden, ask a steward like Ana to remove you."
-      );
+      expect(leaveLine()).toHaveTextContent(en["app.garden.gardeners.leave"]);
 
       act(() => {
         vi.advanceTimersByTime(15 * 60 * 1000 + 1);

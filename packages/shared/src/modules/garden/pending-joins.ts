@@ -35,7 +35,11 @@ const refusedRemovals = new Set<string>();
 function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
   if (typeof window === "undefined") return {};
   try {
-    const saved = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+    const parsed: unknown = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
+    const saved =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, { address: string; timestamp: number }>)
+        : {};
     for (const gardenId of refusedRemovals) delete saved[gardenId];
     return saved;
   } catch {
@@ -67,16 +71,21 @@ export function addPendingJoin(gardenId: string, userAddress: string, timestamp 
 // Idempotent: must not notify when nothing changed. `hasFreshPendingJoin` runs on the render path
 // and cleans up an expired record here, and an unconditional notify would re-trigger any memo
 // subscribed to the record, producing an infinite render loop.
-export function removePendingJoin(gardenId: string) {
+export function removePendingJoin(gardenId: string, account?: string) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
-  if (!(gardenId in pending)) return;
-  delete pending[gardenId];
+  const matching = Object.keys(pending).filter(
+    (id) =>
+      id.toLowerCase() === gardenId.toLowerCase() &&
+      (!account || pending[id]?.address?.toLowerCase() === account.toLowerCase())
+  );
+  if (matching.length === 0) return;
+  for (const id of matching) delete pending[id];
   try {
     savePendingJoins(pending);
   } catch (error) {
     logger.warn("Could not forget a settled pending join", { source: "removePendingJoin", error });
-    refusedRemovals.add(gardenId);
+    for (const id of matching) refusedRemovals.add(id);
   }
   notifyPendingJoinsChanged();
 }

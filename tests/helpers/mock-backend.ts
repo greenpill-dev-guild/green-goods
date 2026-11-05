@@ -99,7 +99,7 @@ const operatorAbi = parseAbi(["function isOperator(address) view returns (bool)"
 export interface MockRpcRead {
   name: string;
   to: string;
-  from: string;
+  from?: string;
   data: `0x${string}`;
   result: `0x${string}`;
 }
@@ -137,7 +137,8 @@ function buildRpcResponse(
   reads: MockRpcRead[],
   requests: Map<string, number>,
   nested = false,
-  allowlisted = registryCalls
+  allowlisted = registryCalls,
+  codes: Record<string, `0x${string}`> = {}
 ) {
   const addresses = [...roles, garden.id, garden.tokenAddress];
   const { method, params = [] } = payload;
@@ -152,6 +153,13 @@ function buildRpcResponse(
   ) {
     // The due clock sets itself to the chain's time from the latest block (useExpiryClock).
     result = latestBlock();
+  } else if (method === "eth_getCode") {
+    const address = typeof params[0] === "string" ? params[0].toLowerCase() : "";
+    check(
+      params.length === 2 && params[1] === "latest" && codes[address] !== undefined,
+      "declared RPC code read"
+    );
+    result = codes[address];
   } else if (method === "eth_call") {
     const call = params[0] as { to?: string; data?: string; from?: string } | undefined;
     const data = call?.data?.toLowerCase();
@@ -163,7 +171,7 @@ function buildRpcResponse(
       (read) =>
         read.to.toLowerCase() === target &&
         read.data.toLowerCase() === data &&
-        read.from.toLowerCase() === call.from?.toLowerCase()
+        read.from?.toLowerCase() === call.from?.toLowerCase()
     );
     if (declaredRead) {
       const key = `rpc: ${declaredRead.name}`;
@@ -181,7 +189,8 @@ function buildRpcResponse(
           reads,
           requests,
           true,
-          allowlisted
+          allowlisted,
+          codes
         ).result as `0x${string}`,
       }));
       result = encodeFunctionResult({
@@ -189,6 +198,38 @@ function buildRpcResponse(
         functionName: "aggregate3",
         result: results,
       });
+    } else if (
+      target === garden.id.toLowerCase() &&
+      ["isGardener", "isOwner", "isFunder", "isCommunity"].some((name) =>
+        data.startsWith(toFunctionSelector(`${name}(address)`))
+      )
+    ) {
+      const name = ["isGardener", "isOwner", "isFunder", "isCommunity"].find((name) =>
+        data.startsWith(toFunctionSelector(`${name}(address)`))
+      )!;
+      const {
+        args: [account],
+      } = decodeFunctionData({
+        abi: parseAbi([`function ${name}(address) view returns (bool)`]),
+        data: data as `0x${string}`,
+      });
+      check(
+        typeof account === "string" &&
+          roles.some((role) => role.toLowerCase() === account.toLowerCase()),
+        "RPC member identity"
+      );
+      const holders =
+        name === "isOwner"
+          ? garden.owners
+          : name === "isFunder"
+            ? garden.funders
+            : name === "isCommunity"
+              ? garden.communities
+              : [...garden.gardeners, ...garden.operators, ...garden.owners];
+      result = encodeAbiParameters(
+        [{ type: "bool" }],
+        [holders.some((holder) => holder.toLowerCase() === account.toLowerCase())]
+      );
     } else if (target === garden.id.toLowerCase() && data.startsWith("0x6d70f7ae")) {
       const {
         args: [address],
@@ -299,6 +340,7 @@ export async function mockSepoliaRpc(
   options: {
     garden?: typeof MOCK_CLIENT_GARDEN;
     reads?: MockRpcRead[];
+    codes?: Record<string, `0x${string}`>;
     requests?: Map<string, number>;
     /** Who may create gardens. Every mocked account by default; anyone else reads as not allowed. */
     allowlisted?: readonly string[];
@@ -306,6 +348,9 @@ export async function mockSepoliaRpc(
 ) {
   const garden = options.garden ?? MOCK_CLIENT_GARDEN;
   const reads = options.reads ?? [];
+  const codes = Object.fromEntries(
+    Object.entries(options.codes ?? {}).map(([address, code]) => [address.toLowerCase(), code])
+  );
   const requests = options.requests ?? new Map<string, number>();
   const allowlisted = options.allowlisted ? allowlistReads(options.allowlisted) : registryCalls;
   await target.route(
@@ -320,9 +365,9 @@ export async function mockSepoliaRpc(
         throw new Error("Unsupported empty RPC request");
       const response = Array.isArray(payload)
         ? payload.map((request) =>
-            buildRpcResponse(request, garden, reads, requests, false, allowlisted)
+            buildRpcResponse(request, garden, reads, requests, false, allowlisted, codes)
           )
-        : buildRpcResponse(payload, garden, reads, requests, false, allowlisted);
+        : buildRpcResponse(payload, garden, reads, requests, false, allowlisted, codes);
       return route.fulfill({
         status: 200,
         headers: GRAPHQL_HEADERS,
@@ -347,6 +392,7 @@ export interface MockClientBackendOptions {
   attestations?: MockAttestation[];
   required?: string[];
   rpcReads?: MockRpcRead[];
+  rpcCodes?: Record<string, `0x${string}`>;
 }
 
 function check(condition: unknown, message: string): asserts condition {
@@ -662,7 +708,12 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
   await page.route("**/v1/graphql", (route) => handle(route, "indexer"));
   await page.route("**/api/graphql", (route) => handle(route, "indexer"));
   await page.route("https://sepolia.easscan.org/graphql", (route) => handle(route, "eas"));
-  await mockSepoliaRpc(page, { garden, reads: options.rpcReads, requests });
+  await mockSepoliaRpc(page, {
+    garden,
+    reads: options.rpcReads,
+    codes: options.rpcCodes,
+    requests,
+  });
   return {
     requests,
     setUnavailable(key: string, value: boolean) {

@@ -1,4 +1,5 @@
 import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
+import { withoutDepartedMembers } from "../../modules/garden/garden-departures";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { withoutHiddenGardens } from "../../config/garden-visibility";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
@@ -62,7 +63,10 @@ export const useGardens = createBaseListHook<Garden>(
   (chainId) => gardensKeys.byChain(chainId),
   getGardens,
   // A cache an older build wrote can hold a garden since curated out of every surface.
-  { networkMode: "offlineFirst", select: withoutHiddenGardens }
+  {
+    networkMode: "offlineFirst",
+    select: (gardens) => withoutDepartedMembers(withoutHiddenGardens(gardens), DEFAULT_CHAIN_ID),
+  }
 );
 
 /** Loads gardener profiles for steward dashboards. */

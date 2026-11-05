@@ -1,3 +1,4 @@
+import { withoutDepartedMembers } from "../../modules/garden/garden-departures";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
@@ -57,6 +58,7 @@ export function useSuspenseGardens(chainId: number = DEFAULT_CHAIN_ID) {
   return useSuspenseQuery({
     queryKey,
     queryFn: () => getGardens(),
+    select: (gardens) => withoutDepartedMembers(gardens, chainId),
     staleTime: STALE_TIMES.baseLists,
     gcTime: GC_TIMES.baseLists,
     // Show cached data immediately if available

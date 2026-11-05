@@ -5,7 +5,7 @@ slug: /community/gardener-guide/joining-a-garden
 description: "Find the garden you work with and join it, ask to join, or get a steward to add you, so you can start submitting work."
 audience: gardener
 owner: docs
-last_verified: "2026-10-31"
+last_verified: "2026-11-04"
 feature_status: Live
 goal: "Get a signed-in gardener into the right garden by the path that garden offers."
 difficulty: "quickstart"
@@ -26,6 +26,8 @@ source_of_truth:
   - packages/client/src/views/Profile/AccountInfo.tsx
   - packages/client/src/views/Profile/GardensList.tsx
   - packages/shared/src/hooks/garden/useJoinGarden.ts
+  - packages/shared/src/hooks/garden/useLeaveGarden.ts
+  - packages/client/src/components/Features/Garden/LeaveGardenAction.tsx
   - packages/agent/src/config.ts
   - packages/shared/src/i18n/en.json
 keywords:
@@ -133,9 +135,29 @@ If you only see the public website, tap **Open This Garden in the App**, or open
 
 If the steward cannot find you, send the **Account ID** shown in the app again. It is easy to send a different address by mistake.
 
-If you joined the wrong garden, tell that garden's steward, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
+If you joined the wrong garden, follow **Leave a garden** below, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
 
 If you joined but the garden is missing when you submit work, wait a few seconds, then leave the **Garden** tab and open it again. Your membership shows at once, and the list of gardens catches up shortly after.
+
+## Leave a garden
+
+Leaving gives up every role you hold in that garden. An owner must hand over their owner role first. Work you already sent stays on record and can still be reviewed.
+
+:::note Availability
+If leaving from the app is not available yet, ask a steward to remove you.
+:::
+
+Before leaving, review any work still on your phone, open promises, and loan requests. Saved work stays on your phone but cannot upload to this garden until you become a member again. Your work cannot be linked to an open promise after leaving, and pending loan requests cannot be approved. You can still repay a loan.
+
+1. Open the garden's own page from **Explore Gardens** or a link.
+2. Open **Garden Actions**, the three-dot button at the top of the page.
+3. Choose **Leave Garden** and read the confirmation.
+4. Choose **Cancel** to stay, or **Leave Garden** and confirm when your phone or wallet asks.
+5. Wait for **You left the garden**. The garden leaves **My gardens**, and your member and steward actions disappear. Other people's lists may take a little longer to update.
+
+To return, join again or ask a steward to add you. In a garden with a member limit, each self-join uses another place even if you left before. Leaving does not promise to remove conviction voting power or return a voting stake the garden paid.
+
+If the app cannot confirm your departure, use **Check Previous Departure** in **Garden Actions** on the garden page. This checks the transaction you already sent and does not send another departure. A delayed confirmation can still arrive. If you have since rejoined, confirming that earlier transaction does not leave the garden again.
 
 Still stuck? Ask the community in [Discord](https://discord.gg/greenpill).
 

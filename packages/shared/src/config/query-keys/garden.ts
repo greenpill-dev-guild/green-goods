@@ -5,6 +5,15 @@ export const gardensKeys = {
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   setup: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "setup", gardenId, chainId] as const,
+  leaveCapability: (gardenId: string, account: string | undefined, chainId: number) =>
+    [
+      "greengoods",
+      "gardens",
+      "leaveCapability",
+      gardenId.toLowerCase(),
+      account?.toLowerCase(),
+      chainId,
+    ] as const,
   creationEstimate: (accountAddress: string | undefined, chainId: number, form: string) =>
     ["greengoods", "gardens", "creationEstimate", accountAddress, chainId, form] as const,
   karmaStatus: (gardenId: string, chainId: number) =>

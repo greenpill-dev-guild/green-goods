@@ -7,7 +7,8 @@ import { isZeroAddress } from "./address";
 
 export async function fetchHatsModuleAddress(
   gardenAddress: Address,
-  chainId?: number
+  chainId?: number,
+  options?: { throwOnError?: boolean }
 ): Promise<Address | undefined> {
   try {
     const tokenResult = await readContract(getWagmiConfig(), {
@@ -29,6 +30,7 @@ export async function fetchHatsModuleAddress(
 
     return isZeroAddress(moduleAddress as Address) ? undefined : (moduleAddress as Address);
   } catch (error) {
+    if (options?.throwOnError) throw error;
     logger.error("Failed to fetch HatsModule address", { error, gardenAddress });
     return undefined;
   }

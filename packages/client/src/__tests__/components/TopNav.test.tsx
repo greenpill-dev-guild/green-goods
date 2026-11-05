@@ -239,7 +239,7 @@ describe("components/Navigation/TopNav", () => {
   });
 
   describe("Share action (DL-020)", () => {
-    it("puts Share last in the action stack, after notifications and endowment", () => {
+    it("keeps Share after notifications, endowment, and the garden action menu", () => {
       const handleShare = vi.fn();
 
       renderWithIntl(
@@ -250,16 +250,17 @@ describe("components/Navigation/TopNav", () => {
           showEndowmentButton: true,
           onEndowmentClick: vi.fn(),
           onShareClick: handleShare,
+          gardenActions: createElement("button", { "aria-label": "Garden Actions" }, "Actions"),
         })
       );
 
       const share = screen.getByRole("button", { name: "Share Garden" });
-      const stack = share.parentElement as HTMLElement;
-      const labels = Array.from(stack.querySelectorAll(":scope > button")).map((button) =>
-        button.getAttribute("aria-label")
-      );
+      const labels = screen
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label"));
       expect(labels[labels.length - 1]).toBe("Share Garden");
       expect(labels).toContain("View notifications");
+      expect(labels).toContain("Garden Actions");
 
       fireEvent.click(share);
       expect(handleShare).toHaveBeenCalledTimes(1);

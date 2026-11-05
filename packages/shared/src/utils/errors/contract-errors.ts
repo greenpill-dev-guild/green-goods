@@ -20,9 +20,13 @@ const LOCALIZED_ERROR_FALLBACKS = {
 } as const;
 
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
-  // ============================================================================
-  // GardenAccount.sol errors
-  // ============================================================================
+  // Garden role errors (HatsModule and GardenAccount).
+  "0x60085010": {
+    name: "OwnerCannotLeave",
+    message: "Hand over your owner role before leaving this garden.",
+    messageKey: "app.garden.leave.owner",
+    recoverable: false,
+  },
   "0xd8cae624": {
     name: "NotGardenOwner",
     message: "Only the garden owner can perform this action",
@@ -98,9 +102,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     suggestedAction: "contact-support",
   },
 
-  // ============================================================================
   // GardenToken.sol errors
-  // ============================================================================
   "0x955c501b": {
     name: "UnauthorizedMinter",
     message: "You are not authorized to mint garden tokens",
@@ -160,9 +162,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
   },
 
-  // ============================================================================
   // WorkResolver.sol errors
-  // ============================================================================
   // Current selector for NotGardenMember()
   "0xfdb31dd5": {
     name: "NotGardenMember",

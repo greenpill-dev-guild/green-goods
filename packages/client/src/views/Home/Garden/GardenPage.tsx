@@ -25,6 +25,7 @@ import { isAddress } from "viem";
 import { GardenJoinRequestDialog, JoinGardenButton } from "@/components/Features";
 import { StandardTabs, TopNav } from "@/components/Navigation";
 import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
+import { LeaveGardenAction } from "@/components/Features/Garden/LeaveGardenAction";
 import { GardenSection } from "./GardenSection";
 import { buildGardenTabs } from "./gardenTabs";
 import { shareGarden } from "./shareGarden";
@@ -139,6 +140,7 @@ export function GardenPage({ garden, onBack, showHeader = true, children }: Gard
                   hasEndowmentDeposits={hasEndowmentDeposits}
                   onEndowmentClick={openEndowmentSheet}
                   onShareClick={handleShareGarden}
+                  gardenActions={<LeaveGardenAction garden={garden} />}
                 />
               </div>
             </div>
