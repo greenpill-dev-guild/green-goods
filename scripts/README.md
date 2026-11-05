@@ -432,3 +432,7 @@ Shared development helpers: `lib/dev-modes.mjs` supplies launcher, health, and s
 `lib/setup-env.mjs` creates setup baselines exclusively without overwriting an existing environment.
 The docs audit imports `docs/scripts/developer-guides.mjs` for local guide links, anchors,
 manifest commands, validation intents, and mode checks; its fixtures run in Docs CI.
+
+The Docs Vercel build entrypoint (`docs/scripts/vercel-build.mjs`) also runs the package
+`cms:build` command before Docusaurus to publish the TinaCMS editor. The package `cms:dev`
+command starts its local editing preview; see [Docs browser editing](../docs/README.md#browser-editing-with-tinacms).
