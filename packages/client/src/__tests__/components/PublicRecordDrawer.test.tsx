@@ -11,11 +11,13 @@
  */
 
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
 
 import { PublicRecordDrawer } from "../../components/Public/PublicRecordDrawer";
+import { ImagePreviewDialog } from "../../components/Display/ImagePreviewDialog";
 
 const messages = { "public.source.close": "Close" };
 
@@ -53,6 +55,59 @@ function NestedToggle() {
 }
 
 describe("PublicRecordDrawer focus", () => {
+  it("wraps focus inside the record", async () => {
+    const user = userEvent.setup();
+    renderDrawer(<button type="button">Open photo</button>);
+    await user.tab();
+    expect(document.activeElement).toHaveAccessibleName("Open photo");
+    await user.tab();
+    expect(document.activeElement).toBe(closePill());
+    await user.tab({ shift: true });
+    expect(document.activeElement).toHaveAccessibleName("Open photo");
+  });
+
+  it("closes only a nested photo on Escape and restores its opener", async () => {
+    const user = userEvent.setup();
+    function Record() {
+      const [open, setOpen] = useState(true);
+      const [viewer, setViewer] = useState(false);
+      return (
+        <IntlProvider locale="en" messages={messages}>
+          <PublicRecordDrawer
+            open={open}
+            onClose={() => setOpen(false)}
+            eyebrow="Record"
+            titleId="record-title"
+            dismissOnEscape={!viewer}
+          >
+            <h2 id="record-title">A record</h2>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.currentTarget.focus();
+                setViewer(true);
+              }}
+            >
+              Open photo
+            </button>
+            <ImagePreviewDialog
+              isOpen={viewer}
+              onClose={() => setViewer(false)}
+              images={["data:image/gif;base64,R0lGODlhAQABAAAAACw="]}
+            />
+          </PublicRecordDrawer>
+        </IntlProvider>
+      );
+    }
+    render(<Record />);
+    const photo = screen.getByRole("button", { name: "Open photo" });
+    await user.click(photo);
+    expect(screen.getByTestId("image-preview-dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByTestId("image-preview-dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "A record" })).toBeVisible();
+    expect(document.activeElement).toBe(photo);
+  });
   it("focuses its close control when it opens", () => {
     renderDrawer(null);
     expect(document.activeElement).toBe(closePill());

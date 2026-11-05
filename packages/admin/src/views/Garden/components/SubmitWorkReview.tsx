@@ -9,7 +9,7 @@
 
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import type { Action } from "@green-goods/shared/types/domain";
+import type { Action, WorkInput } from "@green-goods/shared/types/domain";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
@@ -61,6 +61,35 @@ function ReviewCard({
       {children}
     </AdminCard>
   );
+}
+
+function detailValue(input: WorkInput, raw: unknown, emptyValue: string): ReactNode {
+  if (raw === undefined || raw === null || raw === "") return emptyValue;
+  if (input.type === "repeater" && Array.isArray(raw)) {
+    if (raw.length === 0) return emptyValue;
+    return (
+      <ol className="list-decimal space-y-2 pl-4">
+        {raw.map((row, index) => (
+          <li key={index}>
+            <FactList frame="inset">
+              {(input.repeaterFields ?? []).map((field) => (
+                <FactRow
+                  key={field.key}
+                  label={field.title}
+                  value={detailValue(
+                    field,
+                    row && typeof row === "object" ? Reflect.get(row, field.key) : undefined,
+                    emptyValue
+                  )}
+                />
+              ))}
+            </FactList>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+  return Array.isArray(raw) ? raw.join(", ") : String(raw);
 }
 
 export function SubmitWorkReview({
@@ -132,8 +161,7 @@ export function SubmitWorkReview({
           <FactList frame="inset">
             {action.inputs.map((input) => {
               const raw = values[input.key];
-              const value =
-                raw === undefined || raw === null || raw === "" ? emptyValue : String(raw);
+              const value = detailValue(input, raw, emptyValue);
               return <FactRow key={input.key} label={input.title} value={value} />;
             })}
           </FactList>

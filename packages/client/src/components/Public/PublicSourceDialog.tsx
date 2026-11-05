@@ -1,6 +1,6 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
-import { useOpenerFocus } from "@green-goods/shared/hooks/utils/useFocusTrap";
+import { useFocusTrap, useOpenerFocus } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -40,6 +40,8 @@ export function PublicSourceDialog({
   // Hands focus back to whatever opened the dialog once it closes.
   useOpenerFocus(open);
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(panelRef, { enabled: open, autoFocusSelector: null });
 
   // Focus the close control when the dialog opens, and only then. An inline
   // callback ref is a new function on every render, so React would run it again
@@ -52,7 +54,7 @@ export function PublicSourceDialog({
   useEffect(() => {
     if (!open) return;
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !event.defaultPrevented) onClose();
     };
     document.addEventListener("keydown", handler);
     return () => {
@@ -71,12 +73,16 @@ export function PublicSourceDialog({
     >
       <button
         type="button"
+        tabIndex={-1}
         data-pressable="scrim"
         aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={onClose}
       />
-      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-none overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-2xl">
+      <div
+        ref={panelRef}
+        className="relative max-h-[calc(100vh-2rem)] w-full max-w-none overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-2xl"
+      >
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2

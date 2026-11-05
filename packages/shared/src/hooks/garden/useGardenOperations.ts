@@ -32,6 +32,7 @@ import {
 } from "./gardenRosterCache";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { runGardenRoleWrites } from "./gardenRoleWriteQueue";
 
 export { useAddMembersBatch } from "./useAddMembersBatch";
 export type { AddMembersOutcome } from "../../modules/garden/members-batch";
@@ -127,31 +128,39 @@ export function useGardenOperations(gardenId: string) {
         targetAddress: Address,
         options?: GardenOperationCallOptions
       ): Promise<GardenOperationResult> => {
-        const queryKey = gardensKeys.byChain(chainId);
-        const wasOnRoster = isOnCachedRoster(
-          queryClient.getQueryData<Garden[]>(queryKey) ?? [],
+        return runGardenRoleWrites(
+          queryClient,
+          chainId,
           gardenId,
-          memberType,
-          targetAddress
+          [{ address: targetAddress, role: memberType }],
+          async () => {
+            const queryKey = gardensKeys.byChain(chainId);
+            const wasOnRoster = isOnCachedRoster(
+              queryClient.getQueryData<Garden[]>(queryKey) ?? [],
+              gardenId,
+              memberType,
+              targetAddress
+            );
+
+            const result = await operation(targetAddress, options);
+
+            if (result.success) {
+              // The chain now answers differently for this person, so a cached
+              // "doesn't wear it" must not outlive the write (Add Members trusts it).
+              void resetRoleHatAnswers(queryClient, gardenId, targetAddress);
+            }
+
+            const currentData = queryClient.getQueryData<Garden[]>(queryKey);
+            if (!result.success && result.optimisticUpdate && currentData) {
+              queryClient.setQueryData(
+                queryKey,
+                rollBackFailedWrite(currentData, gardenId, result.optimisticUpdate, wasOnRoster)
+              );
+            }
+
+            return result;
+          }
         );
-
-        const result = await operation(targetAddress, options);
-
-        if (result.success) {
-          // The chain now answers differently for this person, so a cached
-          // "doesn't wear it" must not outlive the write (Add Members trusts it).
-          void resetRoleHatAnswers(queryClient, gardenId, targetAddress);
-        }
-
-        const currentData = queryClient.getQueryData<Garden[]>(queryKey);
-        if (!result.success && result.optimisticUpdate && currentData) {
-          queryClient.setQueryData(
-            queryKey,
-            rollBackFailedWrite(currentData, gardenId, result.optimisticUpdate, wasOnRoster)
-          );
-        }
-
-        return result;
       };
     },
     [chainId, gardenId, queryClient]
