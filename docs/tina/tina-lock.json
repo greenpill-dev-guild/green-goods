@@ -31,20 +31,760 @@
             "uid": false
           },
           {
-            "type": "string",
+            "type": "rich-text",
             "name": "body",
-            "label": "Page content (MDX)",
+            "label": "Page content",
             "isBody": true,
-            "description": "Edit the page text here. Preserve imports, component tags and ::: callout markers. Preview the published page before editing its layout.",
-            "ui": { "component": "textarea" },
+            "parser": { "type": "mdx" },
+            "overrides": {
+              "toolbar": [
+                "heading",
+                "link",
+                "image",
+                "quote",
+                "ul",
+                "ol",
+                "bold",
+                "italic",
+                "code",
+                "codeBlock",
+                "mermaid",
+                "table"
+              ]
+            },
+            "templates": [
+              {
+                "name": "GuideImage",
+                "label": "Image and caption",
+                "ui": { "defaultItem": { "className": "gg-figure", "loading": "lazy" } },
+                "fields": [
+                  {
+                    "type": "image",
+                    "name": "src",
+                    "label": "Image",
+                    "required": true,
+                    "namespace": ["community", "body", "GuideImage", "src"],
+                    "searchable": false,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "alt",
+                    "label": "Image description",
+                    "required": true,
+                    "namespace": ["community", "body", "GuideImage", "alt"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Caption",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "templates": [
+                      {
+                        "name": "InlineLabel",
+                        "label": "App button label",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Label",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "InlineLabel",
+                              "children"
+                            ]
+                          }
+                        ],
+                        "namespace": ["community", "body", "GuideImage", "children", "InlineLabel"]
+                      },
+                      {
+                        "name": "ContentLink",
+                        "label": "Link",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "href",
+                            "label": "Link address",
+                            "required": true,
+                            "namespace": [
+                              "community",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "href"
+                            ]
+                          },
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Link text",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "children"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "target",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "target"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "rel",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "rel"
+                            ]
+                          },
+                          {
+                            "type": "boolean",
+                            "name": "download",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "download"
+                            ]
+                          }
+                        ],
+                        "namespace": ["community", "body", "GuideImage", "children", "ContentLink"]
+                      }
+                    ],
+                    "namespace": ["community", "body", "GuideImage", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "className",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "className"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "maxWidth",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "maxWidth"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "width",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "width"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "height",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "height"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "loading",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "loading"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "fetchPriority",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "fetchPriority"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "decoding",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "GuideImage", "decoding"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "GuideImage"]
+              },
+              {
+                "name": "Callout",
+                "label": "Callout",
+                "ui": { "defaultItem": { "kind": "note" } },
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "title",
+                    "label": "Title",
+                    "namespace": ["community", "body", "Callout", "title"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Content",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "templates": [
+                      {
+                        "name": "InlineLabel",
+                        "label": "App button label",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Label",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "Callout",
+                              "children",
+                              "InlineLabel",
+                              "children"
+                            ]
+                          }
+                        ],
+                        "namespace": ["community", "body", "Callout", "children", "InlineLabel"]
+                      },
+                      {
+                        "name": "ContentLink",
+                        "label": "Link",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "href",
+                            "label": "Link address",
+                            "required": true,
+                            "namespace": [
+                              "community",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "href"
+                            ]
+                          },
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Link text",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "children"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "target",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "target"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "rel",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "rel"
+                            ]
+                          },
+                          {
+                            "type": "boolean",
+                            "name": "download",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "download"
+                            ]
+                          }
+                        ],
+                        "namespace": ["community", "body", "Callout", "children", "ContentLink"]
+                      }
+                    ],
+                    "namespace": ["community", "body", "Callout", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "kind",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "Callout", "kind"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "Callout"]
+              },
+              {
+                "name": "AnchoredHeading",
+                "label": "Heading",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "text",
+                    "label": "Heading",
+                    "isTitle": true,
+                    "required": true,
+                    "namespace": ["community", "body", "AnchoredHeading", "text"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "level",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "AnchoredHeading", "level"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "id",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "AnchoredHeading", "id"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "AnchoredHeading"]
+              },
+              {
+                "name": "NextBestAction",
+                "label": "Next step",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "title",
+                    "label": "Title",
+                    "namespace": ["community", "body", "NextBestAction", "title"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "why",
+                    "label": "Description",
+                    "namespace": ["community", "body", "NextBestAction", "why"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "actionLabel",
+                    "label": "Link text",
+                    "namespace": ["community", "body", "NextBestAction", "actionLabel"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "actionHref",
+                    "label": "Link address",
+                    "namespace": ["community", "body", "NextBestAction", "actionHref"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "object",
+                    "name": "alternatives",
+                    "label": "Related links",
+                    "list": true,
+                    "fields": [
+                      {
+                        "type": "string",
+                        "name": "label",
+                        "label": "Link text",
+                        "namespace": [
+                          "community",
+                          "body",
+                          "NextBestAction",
+                          "alternatives",
+                          "label"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "name": "href",
+                        "label": "Link address",
+                        "namespace": ["community", "body", "NextBestAction", "alternatives", "href"]
+                      }
+                    ],
+                    "namespace": ["community", "body", "NextBestAction", "alternatives"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "NextBestAction"]
+              },
+              {
+                "name": "FaqQuestion",
+                "label": "FAQ question and answer",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "question",
+                    "label": "Question",
+                    "isTitle": true,
+                    "required": true,
+                    "namespace": ["community", "body", "FaqQuestion", "question"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Answer",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "templates": [
+                      {
+                        "name": "InlineLabel",
+                        "label": "App button label",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Label",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "InlineLabel",
+                              "children"
+                            ]
+                          }
+                        ],
+                        "namespace": ["community", "body", "FaqQuestion", "children", "InlineLabel"]
+                      },
+                      {
+                        "name": "ContentLink",
+                        "label": "Link",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "href",
+                            "label": "Link address",
+                            "required": true,
+                            "namespace": [
+                              "community",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "href"
+                            ]
+                          },
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Link text",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "children"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "target",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "target"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "rel",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "rel"
+                            ]
+                          },
+                          {
+                            "type": "boolean",
+                            "name": "download",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "community",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "download"
+                            ]
+                          }
+                        ],
+                        "namespace": ["community", "body", "FaqQuestion", "children", "ContentLink"]
+                      }
+                    ],
+                    "namespace": ["community", "body", "FaqQuestion", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "id",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "FaqQuestion", "id"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "FaqQuestion"]
+              },
+              {
+                "name": "Hero",
+                "label": "Role guide links",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "placeholder",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "Hero", "placeholder"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "Hero"]
+              },
+              {
+                "name": "StewardPathNav",
+                "label": "Steward guide links",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "placeholder",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "StewardPathNav", "placeholder"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "StewardPathNav"]
+              },
+              {
+                "name": "BrandAssets",
+                "label": "Brand asset downloads",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "placeholder",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "BrandAssets", "placeholder"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "BrandAssets"]
+              },
+              {
+                "name": "StatusBadge",
+                "label": "Feature status",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "status",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "StatusBadge", "status"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "StatusBadge"]
+              },
+              {
+                "name": "TermAnchor",
+                "label": "Existing page link",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "id",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "TermAnchor", "id"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "to",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "TermAnchor", "to"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "TermAnchor"]
+              },
+              {
+                "name": "InlineLabel",
+                "label": "App button label",
+                "inline": true,
+                "fields": [
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Label",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "namespace": ["community", "body", "InlineLabel", "children"],
+                    "searchable": true
+                  }
+                ],
+                "namespace": ["community", "body", "InlineLabel"]
+              },
+              {
+                "name": "ContentLink",
+                "label": "Link",
+                "inline": true,
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "href",
+                    "label": "Link address",
+                    "required": true,
+                    "namespace": ["community", "body", "ContentLink", "href"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Link text",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "namespace": ["community", "body", "ContentLink", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "target",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "ContentLink", "target"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "rel",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "ContentLink", "rel"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "boolean",
+                    "name": "download",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["community", "body", "ContentLink", "download"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["community", "body", "ContentLink"]
+              }
+            ],
             "namespace": ["community", "body"],
-            "searchable": true,
-            "uid": false
+            "searchable": true
           },
           {
             "type": "string",
             "name": "sidebar_label",
-            "label": "sidebar label",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "sidebar_label"],
             "searchable": true,
             "uid": false
@@ -52,7 +792,7 @@
           {
             "type": "string",
             "name": "slug",
-            "label": "slug",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "slug"],
             "searchable": true,
             "uid": false
@@ -60,7 +800,7 @@
           {
             "type": "string",
             "name": "audience",
-            "label": "audience",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "audience"],
             "searchable": true,
             "uid": false
@@ -68,7 +808,7 @@
           {
             "type": "string",
             "name": "owner",
-            "label": "owner",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "owner"],
             "searchable": true,
             "uid": false
@@ -76,7 +816,7 @@
           {
             "type": "string",
             "name": "feature_status",
-            "label": "feature status",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "feature_status"],
             "searchable": true,
             "uid": false
@@ -84,7 +824,7 @@
           {
             "type": "string",
             "name": "goal",
-            "label": "goal",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "goal"],
             "searchable": true,
             "uid": false
@@ -92,7 +832,7 @@
           {
             "type": "string",
             "name": "difficulty",
-            "label": "difficulty",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "difficulty"],
             "searchable": true,
             "uid": false
@@ -100,7 +840,7 @@
           {
             "type": "string",
             "name": "estimated_time",
-            "label": "estimated time",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "estimated_time"],
             "searchable": true,
             "uid": false
@@ -108,7 +848,7 @@
           {
             "type": "string",
             "name": "prereqs",
-            "label": "prereqs",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "prereqs"],
             "searchable": true,
             "uid": false
@@ -116,7 +856,7 @@
           {
             "type": "string",
             "name": "next_steps",
-            "label": "next steps",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "next_steps"],
             "searchable": true,
             "uid": false
@@ -124,15 +864,14 @@
           {
             "type": "string",
             "name": "persona_context",
-            "label": "persona context",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "persona_context"],
             "searchable": true,
             "uid": false
           },
           {
-            "type": "datetime",
+            "type": "string",
             "name": "last_verified",
-            "label": "Last verified",
             "ui": { "component": "hidden" },
             "namespace": ["community", "last_verified"],
             "searchable": true,
@@ -141,8 +880,8 @@
           {
             "type": "string",
             "name": "keywords",
-            "label": "Search keywords",
             "list": true,
+            "ui": { "component": "hidden" },
             "namespace": ["community", "keywords"],
             "searchable": true,
             "uid": false
@@ -150,8 +889,8 @@
           {
             "type": "string",
             "name": "source_of_truth",
-            "label": "Implementation sources",
             "list": true,
+            "ui": { "component": "hidden" },
             "namespace": ["community", "source_of_truth"],
             "searchable": true,
             "uid": false
@@ -159,7 +898,7 @@
           {
             "type": "image",
             "name": "image",
-            "label": "Social image",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "image"],
             "searchable": false,
             "uid": false
@@ -167,7 +906,7 @@
           {
             "type": "number",
             "name": "sidebar_position",
-            "label": "Sidebar position",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "sidebar_position"],
             "searchable": true,
             "uid": false
@@ -175,7 +914,7 @@
           {
             "type": "boolean",
             "name": "hide_title",
-            "label": "Hide title",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "hide_title"],
             "searchable": true,
             "uid": false
@@ -183,7 +922,7 @@
           {
             "type": "boolean",
             "name": "hide_table_of_contents",
-            "label": "Hide table of contents",
+            "ui": { "component": "hidden" },
             "namespace": ["community", "hide_table_of_contents"],
             "searchable": true,
             "uid": false
@@ -219,20 +958,802 @@
             "uid": false
           },
           {
-            "type": "string",
+            "type": "rich-text",
             "name": "body",
-            "label": "Page content (MDX)",
+            "label": "Page content",
             "isBody": true,
-            "description": "Edit the page text here. Preserve imports, component tags and ::: callout markers. Preview the published page before editing its layout.",
-            "ui": { "component": "textarea" },
+            "parser": { "type": "mdx" },
+            "overrides": {
+              "toolbar": [
+                "heading",
+                "link",
+                "image",
+                "quote",
+                "ul",
+                "ol",
+                "bold",
+                "italic",
+                "code",
+                "codeBlock",
+                "mermaid",
+                "table"
+              ]
+            },
+            "templates": [
+              {
+                "name": "GuideImage",
+                "label": "Image and caption",
+                "ui": { "defaultItem": { "className": "gg-figure", "loading": "lazy" } },
+                "fields": [
+                  {
+                    "type": "image",
+                    "name": "src",
+                    "label": "Image",
+                    "required": true,
+                    "namespace": ["communityReference", "body", "GuideImage", "src"],
+                    "searchable": false,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "alt",
+                    "label": "Image description",
+                    "required": true,
+                    "namespace": ["communityReference", "body", "GuideImage", "alt"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Caption",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "templates": [
+                      {
+                        "name": "InlineLabel",
+                        "label": "App button label",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Label",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "InlineLabel",
+                              "children"
+                            ]
+                          }
+                        ],
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "GuideImage",
+                          "children",
+                          "InlineLabel"
+                        ]
+                      },
+                      {
+                        "name": "ContentLink",
+                        "label": "Link",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "href",
+                            "label": "Link address",
+                            "required": true,
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "href"
+                            ]
+                          },
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Link text",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "children"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "target",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "target"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "rel",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "rel"
+                            ]
+                          },
+                          {
+                            "type": "boolean",
+                            "name": "download",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "GuideImage",
+                              "children",
+                              "ContentLink",
+                              "download"
+                            ]
+                          }
+                        ],
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "GuideImage",
+                          "children",
+                          "ContentLink"
+                        ]
+                      }
+                    ],
+                    "namespace": ["communityReference", "body", "GuideImage", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "className",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "className"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "maxWidth",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "maxWidth"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "width",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "width"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "height",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "height"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "loading",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "loading"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "fetchPriority",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "fetchPriority"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "decoding",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "GuideImage", "decoding"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "GuideImage"]
+              },
+              {
+                "name": "Callout",
+                "label": "Callout",
+                "ui": { "defaultItem": { "kind": "note" } },
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "title",
+                    "label": "Title",
+                    "namespace": ["communityReference", "body", "Callout", "title"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Content",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "templates": [
+                      {
+                        "name": "InlineLabel",
+                        "label": "App button label",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Label",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "Callout",
+                              "children",
+                              "InlineLabel",
+                              "children"
+                            ]
+                          }
+                        ],
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "Callout",
+                          "children",
+                          "InlineLabel"
+                        ]
+                      },
+                      {
+                        "name": "ContentLink",
+                        "label": "Link",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "href",
+                            "label": "Link address",
+                            "required": true,
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "href"
+                            ]
+                          },
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Link text",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "children"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "target",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "target"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "rel",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "rel"
+                            ]
+                          },
+                          {
+                            "type": "boolean",
+                            "name": "download",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "Callout",
+                              "children",
+                              "ContentLink",
+                              "download"
+                            ]
+                          }
+                        ],
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "Callout",
+                          "children",
+                          "ContentLink"
+                        ]
+                      }
+                    ],
+                    "namespace": ["communityReference", "body", "Callout", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "kind",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "Callout", "kind"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "Callout"]
+              },
+              {
+                "name": "AnchoredHeading",
+                "label": "Heading",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "text",
+                    "label": "Heading",
+                    "isTitle": true,
+                    "required": true,
+                    "namespace": ["communityReference", "body", "AnchoredHeading", "text"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "level",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "AnchoredHeading", "level"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "id",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "AnchoredHeading", "id"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "AnchoredHeading"]
+              },
+              {
+                "name": "NextBestAction",
+                "label": "Next step",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "title",
+                    "label": "Title",
+                    "namespace": ["communityReference", "body", "NextBestAction", "title"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "why",
+                    "label": "Description",
+                    "namespace": ["communityReference", "body", "NextBestAction", "why"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "actionLabel",
+                    "label": "Link text",
+                    "namespace": ["communityReference", "body", "NextBestAction", "actionLabel"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "actionHref",
+                    "label": "Link address",
+                    "namespace": ["communityReference", "body", "NextBestAction", "actionHref"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "object",
+                    "name": "alternatives",
+                    "label": "Related links",
+                    "list": true,
+                    "fields": [
+                      {
+                        "type": "string",
+                        "name": "label",
+                        "label": "Link text",
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "NextBestAction",
+                          "alternatives",
+                          "label"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "name": "href",
+                        "label": "Link address",
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "NextBestAction",
+                          "alternatives",
+                          "href"
+                        ]
+                      }
+                    ],
+                    "namespace": ["communityReference", "body", "NextBestAction", "alternatives"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "NextBestAction"]
+              },
+              {
+                "name": "FaqQuestion",
+                "label": "FAQ question and answer",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "question",
+                    "label": "Question",
+                    "isTitle": true,
+                    "required": true,
+                    "namespace": ["communityReference", "body", "FaqQuestion", "question"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Answer",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "templates": [
+                      {
+                        "name": "InlineLabel",
+                        "label": "App button label",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Label",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "InlineLabel",
+                              "children"
+                            ]
+                          }
+                        ],
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "FaqQuestion",
+                          "children",
+                          "InlineLabel"
+                        ]
+                      },
+                      {
+                        "name": "ContentLink",
+                        "label": "Link",
+                        "inline": true,
+                        "fields": [
+                          {
+                            "type": "string",
+                            "name": "href",
+                            "label": "Link address",
+                            "required": true,
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "href"
+                            ]
+                          },
+                          {
+                            "type": "rich-text",
+                            "name": "children",
+                            "label": "Link text",
+                            "parser": { "type": "mdx" },
+                            "overrides": {
+                              "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"]
+                            },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "children"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "target",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "target"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "name": "rel",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "rel"
+                            ]
+                          },
+                          {
+                            "type": "boolean",
+                            "name": "download",
+                            "ui": { "component": "hidden" },
+                            "namespace": [
+                              "communityReference",
+                              "body",
+                              "FaqQuestion",
+                              "children",
+                              "ContentLink",
+                              "download"
+                            ]
+                          }
+                        ],
+                        "namespace": [
+                          "communityReference",
+                          "body",
+                          "FaqQuestion",
+                          "children",
+                          "ContentLink"
+                        ]
+                      }
+                    ],
+                    "namespace": ["communityReference", "body", "FaqQuestion", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "id",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "FaqQuestion", "id"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "FaqQuestion"]
+              },
+              {
+                "name": "Hero",
+                "label": "Role guide links",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "placeholder",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "Hero", "placeholder"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "Hero"]
+              },
+              {
+                "name": "StewardPathNav",
+                "label": "Steward guide links",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "placeholder",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "StewardPathNav", "placeholder"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "StewardPathNav"]
+              },
+              {
+                "name": "BrandAssets",
+                "label": "Brand asset downloads",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "placeholder",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "BrandAssets", "placeholder"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "BrandAssets"]
+              },
+              {
+                "name": "StatusBadge",
+                "label": "Feature status",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "status",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "StatusBadge", "status"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "StatusBadge"]
+              },
+              {
+                "name": "TermAnchor",
+                "label": "Existing page link",
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "id",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "TermAnchor", "id"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "to",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "TermAnchor", "to"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "TermAnchor"]
+              },
+              {
+                "name": "InlineLabel",
+                "label": "App button label",
+                "inline": true,
+                "fields": [
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Label",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "namespace": ["communityReference", "body", "InlineLabel", "children"],
+                    "searchable": true
+                  }
+                ],
+                "namespace": ["communityReference", "body", "InlineLabel"]
+              },
+              {
+                "name": "ContentLink",
+                "label": "Link",
+                "inline": true,
+                "fields": [
+                  {
+                    "type": "string",
+                    "name": "href",
+                    "label": "Link address",
+                    "required": true,
+                    "namespace": ["communityReference", "body", "ContentLink", "href"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "rich-text",
+                    "name": "children",
+                    "label": "Link text",
+                    "parser": { "type": "mdx" },
+                    "overrides": { "toolbar": ["link", "bold", "italic", "ul", "ol", "quote"] },
+                    "namespace": ["communityReference", "body", "ContentLink", "children"],
+                    "searchable": true
+                  },
+                  {
+                    "type": "string",
+                    "name": "target",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "ContentLink", "target"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "string",
+                    "name": "rel",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "ContentLink", "rel"],
+                    "searchable": true,
+                    "uid": false
+                  },
+                  {
+                    "type": "boolean",
+                    "name": "download",
+                    "ui": { "component": "hidden" },
+                    "namespace": ["communityReference", "body", "ContentLink", "download"],
+                    "searchable": true,
+                    "uid": false
+                  }
+                ],
+                "namespace": ["communityReference", "body", "ContentLink"]
+              }
+            ],
             "namespace": ["communityReference", "body"],
-            "searchable": true,
-            "uid": false
+            "searchable": true
           },
           {
             "type": "string",
             "name": "sidebar_label",
-            "label": "sidebar label",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "sidebar_label"],
             "searchable": true,
             "uid": false
@@ -240,7 +1761,7 @@
           {
             "type": "string",
             "name": "slug",
-            "label": "slug",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "slug"],
             "searchable": true,
             "uid": false
@@ -248,7 +1769,7 @@
           {
             "type": "string",
             "name": "audience",
-            "label": "audience",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "audience"],
             "searchable": true,
             "uid": false
@@ -256,7 +1777,7 @@
           {
             "type": "string",
             "name": "owner",
-            "label": "owner",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "owner"],
             "searchable": true,
             "uid": false
@@ -264,7 +1785,7 @@
           {
             "type": "string",
             "name": "feature_status",
-            "label": "feature status",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "feature_status"],
             "searchable": true,
             "uid": false
@@ -272,7 +1793,7 @@
           {
             "type": "string",
             "name": "goal",
-            "label": "goal",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "goal"],
             "searchable": true,
             "uid": false
@@ -280,7 +1801,7 @@
           {
             "type": "string",
             "name": "difficulty",
-            "label": "difficulty",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "difficulty"],
             "searchable": true,
             "uid": false
@@ -288,7 +1809,7 @@
           {
             "type": "string",
             "name": "estimated_time",
-            "label": "estimated time",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "estimated_time"],
             "searchable": true,
             "uid": false
@@ -296,7 +1817,7 @@
           {
             "type": "string",
             "name": "prereqs",
-            "label": "prereqs",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "prereqs"],
             "searchable": true,
             "uid": false
@@ -304,7 +1825,7 @@
           {
             "type": "string",
             "name": "next_steps",
-            "label": "next steps",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "next_steps"],
             "searchable": true,
             "uid": false
@@ -312,15 +1833,14 @@
           {
             "type": "string",
             "name": "persona_context",
-            "label": "persona context",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "persona_context"],
             "searchable": true,
             "uid": false
           },
           {
-            "type": "datetime",
+            "type": "string",
             "name": "last_verified",
-            "label": "Last verified",
             "ui": { "component": "hidden" },
             "namespace": ["communityReference", "last_verified"],
             "searchable": true,
@@ -329,8 +1849,8 @@
           {
             "type": "string",
             "name": "keywords",
-            "label": "Search keywords",
             "list": true,
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "keywords"],
             "searchable": true,
             "uid": false
@@ -338,8 +1858,8 @@
           {
             "type": "string",
             "name": "source_of_truth",
-            "label": "Implementation sources",
             "list": true,
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "source_of_truth"],
             "searchable": true,
             "uid": false
@@ -347,7 +1867,7 @@
           {
             "type": "image",
             "name": "image",
-            "label": "Social image",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "image"],
             "searchable": false,
             "uid": false
@@ -355,7 +1875,7 @@
           {
             "type": "number",
             "name": "sidebar_position",
-            "label": "Sidebar position",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "sidebar_position"],
             "searchable": true,
             "uid": false
@@ -363,7 +1883,7 @@
           {
             "type": "boolean",
             "name": "hide_title",
-            "label": "Hide title",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "hide_title"],
             "searchable": true,
             "uid": false
@@ -371,7 +1891,7 @@
           {
             "type": "boolean",
             "name": "hide_table_of_contents",
-            "label": "Hide table of contents",
+            "ui": { "component": "hidden" },
             "namespace": ["communityReference", "hide_table_of_contents"],
             "searchable": true,
             "uid": false
@@ -1158,7 +2678,7 @@
             "kind": "FieldDefinition",
             "name": { "kind": "Name", "value": "body" },
             "arguments": [],
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichText" } }
           },
           {
             "kind": "FieldDefinition",
@@ -1334,16 +2854,11 @@
       },
       {
         "kind": "InputObjectTypeDefinition",
-        "name": { "kind": "Name", "value": "DatetimeFilter" },
+        "name": { "kind": "Name", "value": "ImageFilter" },
         "fields": [
           {
             "kind": "InputValueDefinition",
-            "name": { "kind": "Name", "value": "after" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
-          },
-          {
-            "kind": "InputValueDefinition",
-            "name": { "kind": "Name", "value": "before" },
+            "name": { "kind": "Name", "value": "startsWith" },
             "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
           },
           {
@@ -1368,7 +2883,7 @@
       },
       {
         "kind": "InputObjectTypeDefinition",
-        "name": { "kind": "Name", "value": "ImageFilter" },
+        "name": { "kind": "Name", "value": "RichTextFilter" },
         "fields": [
           {
             "kind": "InputValueDefinition",
@@ -1384,13 +2899,607 @@
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "exists" },
             "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "Boolean" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyGuideImageChildrenInlineLabelFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "BooleanFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "eq" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "Boolean" } }
           },
           {
             "kind": "InputValueDefinition",
-            "name": { "kind": "Name", "value": "in" },
+            "name": { "kind": "Name", "value": "exists" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "Boolean" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyGuideImageChildrenContentLinkFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyGuideImageChildrenFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
             "type": {
-              "kind": "ListType",
-              "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityBodyGuideImageChildrenInlineLabelFilter"
+              }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityBodyGuideImageChildrenContentLinkFilter"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyGuideImageFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "src" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "ImageFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "alt" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyGuideImageChildrenFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "className" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "maxWidth" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "width" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "height" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "loading" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "fetchPriority" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "decoding" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyCalloutChildrenInlineLabelFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyCalloutChildrenContentLinkFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyCalloutChildrenFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyCalloutChildrenInlineLabelFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyCalloutChildrenContentLinkFilter" }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyCalloutFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "title" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyCalloutChildrenFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "kind" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyAnchoredHeadingFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "text" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "level" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "id" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyNextBestActionAlternativesFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "label" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyNextBestActionFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "title" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "why" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "actionLabel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "actionHref" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "alternatives" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyNextBestActionAlternativesFilter" }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyFaqQuestionChildrenInlineLabelFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyFaqQuestionChildrenContentLinkFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyFaqQuestionChildrenFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityBodyFaqQuestionChildrenInlineLabelFilter"
+              }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityBodyFaqQuestionChildrenContentLinkFilter"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyFaqQuestionFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "question" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyFaqQuestionChildrenFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "id" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyHeroFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "placeholder" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyStewardPathNavFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "placeholder" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyBrandAssetsFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "placeholder" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyStatusBadgeFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "status" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyTermAnchorFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "id" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "to" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyInlineLabelFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyContentLinkFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityBodyFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "GuideImage" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyGuideImageFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "Callout" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyCalloutFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "AnchoredHeading" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyAnchoredHeadingFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "NextBestAction" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyNextBestActionFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "FaqQuestion" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyFaqQuestionFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "Hero" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyHeroFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "StewardPathNav" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyStewardPathNavFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "BrandAssets" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyBrandAssetsFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "StatusBadge" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyStatusBadgeFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "TermAnchor" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyTermAnchorFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyInlineLabelFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyContentLinkFilter" }
             }
           }
         ]
@@ -1441,22 +3550,6 @@
       },
       {
         "kind": "InputObjectTypeDefinition",
-        "name": { "kind": "Name", "value": "BooleanFilter" },
-        "fields": [
-          {
-            "kind": "InputValueDefinition",
-            "name": { "kind": "Name", "value": "eq" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "Boolean" } }
-          },
-          {
-            "kind": "InputValueDefinition",
-            "name": { "kind": "Name", "value": "exists" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "Boolean" } }
-          }
-        ]
-      },
-      {
-        "kind": "InputObjectTypeDefinition",
         "name": { "kind": "Name", "value": "CommunityFilter" },
         "fields": [
           {
@@ -1472,7 +3565,10 @@
           {
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "body" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityBodyFilter" }
+            }
           },
           {
             "kind": "InputValueDefinition",
@@ -1532,7 +3628,7 @@
           {
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "last_verified" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "DatetimeFilter" } }
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
           },
           {
             "kind": "InputValueDefinition",
@@ -1655,7 +3751,7 @@
             "kind": "FieldDefinition",
             "name": { "kind": "Name", "value": "body" },
             "arguments": [],
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichText" } }
           },
           {
             "kind": "FieldDefinition",
@@ -1802,6 +3898,622 @@
       },
       {
         "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyGuideImageChildrenInlineLabelFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyGuideImageChildrenContentLinkFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyGuideImageChildrenFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyGuideImageChildrenInlineLabelFilter"
+              }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyGuideImageChildrenContentLinkFilter"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyGuideImageFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "src" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "ImageFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "alt" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyGuideImageChildrenFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "className" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "maxWidth" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "width" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "height" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "loading" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "fetchPriority" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "decoding" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyCalloutChildrenInlineLabelFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyCalloutChildrenContentLinkFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyCalloutChildrenFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyCalloutChildrenInlineLabelFilter"
+              }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyCalloutChildrenContentLinkFilter"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyCalloutFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "title" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyCalloutChildrenFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "kind" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyAnchoredHeadingFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "text" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "level" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "id" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyNextBestActionAlternativesFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "label" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyNextBestActionFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "title" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "why" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "actionLabel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "actionHref" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "alternatives" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyNextBestActionAlternativesFilter"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyFaqQuestionChildrenInlineLabelFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": {
+          "kind": "Name",
+          "value": "CommunityReferenceBodyFaqQuestionChildrenContentLinkFilter"
+        },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyFaqQuestionChildrenFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyFaqQuestionChildrenInlineLabelFilter"
+              }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": {
+                "kind": "Name",
+                "value": "CommunityReferenceBodyFaqQuestionChildrenContentLinkFilter"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyFaqQuestionFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "question" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyFaqQuestionChildrenFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "id" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyHeroFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "placeholder" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyStewardPathNavFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "placeholder" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyBrandAssetsFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "placeholder" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyStatusBadgeFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "status" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyTermAnchorFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "id" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "to" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyInlineLabelFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyContentLinkFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "href" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "children" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichTextFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "target" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "rel" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "download" },
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "BooleanFilter" } }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
+        "name": { "kind": "Name", "value": "CommunityReferenceBodyFilter" },
+        "fields": [
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "GuideImage" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyGuideImageFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "Callout" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyCalloutFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "AnchoredHeading" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyAnchoredHeadingFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "NextBestAction" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyNextBestActionFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "FaqQuestion" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyFaqQuestionFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "Hero" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyHeroFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "StewardPathNav" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyStewardPathNavFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "BrandAssets" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyBrandAssetsFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "StatusBadge" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyStatusBadgeFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "TermAnchor" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyTermAnchorFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "InlineLabel" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyInlineLabelFilter" }
+            }
+          },
+          {
+            "kind": "InputValueDefinition",
+            "name": { "kind": "Name", "value": "ContentLink" },
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyContentLinkFilter" }
+            }
+          }
+        ]
+      },
+      {
+        "kind": "InputObjectTypeDefinition",
         "name": { "kind": "Name", "value": "CommunityReferenceFilter" },
         "fields": [
           {
@@ -1817,7 +4529,10 @@
           {
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "body" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
+            "type": {
+              "kind": "NamedType",
+              "name": { "kind": "Name", "value": "CommunityReferenceBodyFilter" }
+            }
           },
           {
             "kind": "InputValueDefinition",
@@ -1877,7 +4592,7 @@
           {
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "last_verified" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "DatetimeFilter" } }
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "StringFilter" } }
           },
           {
             "kind": "InputValueDefinition",
@@ -2316,7 +5031,7 @@
           {
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "body" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichText" } }
           },
           {
             "kind": "InputValueDefinition",
@@ -2433,7 +5148,7 @@
           {
             "kind": "InputValueDefinition",
             "name": { "kind": "Name", "value": "body" },
-            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "String" } }
+            "type": { "kind": "NamedType", "name": { "kind": "Name", "value": "RichText" } }
           },
           {
             "kind": "InputValueDefinition",

@@ -1,6 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import contentElements from './plugins/content-elements.mjs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -64,6 +65,7 @@ const config: Config = {
           path: 'docs',
           routeBasePath: '/', // Docs at root URL
           sidebarPath: './sidebars.ts',
+          beforeDefaultRemarkPlugins: [contentElements],
           editUrl:
             'https://github.com/greenpill-dev-guild/green-goods/edit/main/docs/',
         },

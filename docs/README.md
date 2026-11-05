@@ -38,11 +38,18 @@ Build pages, every role guide and nested task page, plus FAQ, Brand Voice and Br
 Generated pages, including the glossary, are excluded. Existing pages can be edited; creating
 or deleting pages stays in the repository workflow so navigation and source ownership remain reviewed.
 
-Page bodies use an MDX source textarea. Preserve imports, component tags, image layouts and
-`:::` callout markers. Tina's rich-text parser supports only a subset of this site's MDX;
-source editing preserves the existing components without migrating the documentation.
-Titles, descriptions and metadata have separate form fields. The verification date is retained
-without a timezone-sensitive date picker.
+Page bodies use Tina's rich-text editor for prose, headings, lists, links, tables and images.
+Image captions, callouts, next-step links and FAQ answers have content forms under each block's
+**Edit** menu. The form exposes only the title, description and page content. Navigation, layout,
+ownership, status and verification metadata stay hidden and are retained on save.
+
+Community components are registered globally in `src/theme/MDXComponents`, so pages do not need
+imports. `GuideImage`, `Callout`, `InlineLabel` and `ContentLink` retain the site's presentation
+while exposing content. `AnchoredHeading` keeps existing fragment links; the content-elements
+remark plugin restores real headings before Docusaurus generates its table of contents. The
+same plugin supplies FAQ disclosure controls. Keep `last_verified` as a quoted date string so
+saves preserve `YYYY-MM-DD` rather than converting it to a timestamp.
+The collection save hook assigns fragment IDs to new FAQ and heading blocks; existing IDs stay unchanged.
 
 For local editing, stop the ordinary docs server first, then run from the repository root:
 
