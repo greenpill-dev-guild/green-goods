@@ -11,7 +11,7 @@ import remarkMdx from "remark-mdx";
 import contentElements from "../plugins/content-elements.mjs";
 
 // Exercise the actual parser used by the pinned Tina CLI, not a mock serializer.
-import { parseFile, stringifyFile } from "@tinacms/graphql";
+import { parseFile, stringifyFile, transformDocument, transformDocumentIntoPayload } from "@tinacms/graphql";
 import { TinaSchema } from "@tinacms/schema-tools";
 const docsRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const schema = new TinaSchema({ collections: communityCollections });
@@ -31,6 +31,22 @@ const transform = (source: string) => {
 };
 
 describe("Community editor", () => {
+  test("cloud image URLs preserve every authored image path on save", async () => {
+    const { schema: cloudSchema } = JSON.parse(readFileSync(join(docsRoot, "tina/tina-lock.json"), "utf8"));
+    const cloud = new TinaSchema(cloudSchema);
+    const origin = "https://assets.tina.io/community-editor-test";
+    const mediaRoot = `/${cloudSchema.config.media.tina.mediaRoot}`;
+    for (const file of authored) {
+      const original = parse(readFileSync(file, "utf8"));
+      const path = relative(docsRoot, file);
+      const payload = await transformDocumentIntoPayload(path, transformDocument(path, original, cloud), cloud, {
+        useRelativeMedia: false, clientId: "community-editor-test", assetsHost: "assets.tina.io",
+      }, true);
+      const body = (payload._values as Record<string, unknown>).body;
+      const saved = serializeMDX(body, communityBody, (url: string) => url.startsWith(origin) ? mediaRoot + url.slice(origin.length) : url);
+      assert.deepEqual(parseMDX(saved, communityBody, (value: string) => value), parseMDX(original.$_body, communityBody, (value: string) => value), file);
+    }
+  });
   test("covers every Community landing page, nested guide and authored sidebar reference", () => {
     for (const file of authored) assert.ok(schema.getCollectionByFullPath(relative(docsRoot, file)));
   });
