@@ -228,7 +228,9 @@ export const ChooserFailed: Story = {
   play: async () => {
     const body = within(document.body);
     await userEvent.click(await body.findByRole("button", { name: "Retry" }));
-    await expect(await body.findByRole("button", { name: /Comunidad Verde/ })).toBeVisible();
+    await waitFor(() =>
+      expect(body.getByRole("button", { name: /Comunidad Verde/ })).toBeVisible()
+    );
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body.queryByRole("dialog")).not.toBeInTheDocument());
     await expect(body.getByRole("button", { name: "Request Steward Access" })).toHaveFocus();
