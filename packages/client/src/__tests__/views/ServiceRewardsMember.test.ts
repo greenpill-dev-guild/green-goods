@@ -66,6 +66,10 @@ describe("a request rewarded with a member's voucher", () => {
     expect(result.rows[0]?.status.label).toBe(label);
     expect(result.messageLinks).toHaveLength(status === "preparing" ? 0 : 1);
     expect(result.facts.some((fact) => fact.id === "aside")).toBe(false);
+    if (status === "on-the-way") {
+      expect(result.band.sentence).toBe(result.rows[0]?.detail);
+      expect(result.band.sentence).toContain("20 minutes or longer. Do not send it again.");
+    }
     if (status === "received") expect(result.band.sentence).toContain("recorded recipients");
   });
   it.each([
