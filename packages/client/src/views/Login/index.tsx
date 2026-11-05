@@ -24,11 +24,10 @@ export function Login() {
     reconcilePilotProof,
     keepOriginalAccount,
     browserGuidanceAction,
-    createAccount,
+    continueWithUsername,
     goTo,
     intl,
     isNestedRoute,
-    isRecoveryUsernameValid,
     isUsernameValid,
     loadingMessage,
     loadingState,
@@ -36,11 +35,8 @@ export function Login() {
     loginWithPasskey,
     passkeyServerEnabled,
     personalizedLabel,
-    recoverWithPasskey,
-    recoveryUsername,
     redirectTo,
     screen,
-    setRecoveryUsername,
     setUsername,
     username,
     walletLogin,
@@ -52,8 +48,7 @@ export function Login() {
     isReady,
   } = auth;
   const goToEntry = () => goTo("entry");
-  const goToCreate = () => goTo("create");
-  const goToRecover = () => goTo("recover");
+  const goToUsername = () => goTo("username");
 
   if (isNestedRoute) return <Outlet />;
   // The pre-React PWA surface stays mounted until auth restoration resolves.
@@ -167,7 +162,7 @@ export function Login() {
   // loadingMessage thread through below).
 
   // Build tertiary action for browser guidance when in wrong browser
-  // Browser guidance takes priority over the recover link when present
+  // Browser guidance takes priority over the different-username link when present
   const backTertiaryAction = {
     label: intl.formatMessage({
       id: "app.login.button.back",
@@ -195,78 +190,24 @@ export function Login() {
     </Helmet>
   );
 
-  // ─── Create form: input (slot 1) · Create account (slot 2) · Back ───────────
-  if (screen === "create" && !hasExistingAccount) {
+  if (screen === "username") {
     return (
       <>
         {helmet}
         <Splash
-          login={createAccount}
+          login={continueWithUsername}
           isLoggingIn={isAuthenticating}
           loadingState={loadingState ?? undefined}
           message={loadingMessage}
-          buttonLabel={intl.formatMessage({
-            id: "app.login.button.createAccount",
-            defaultMessage: "Create Account",
-          })}
+          buttonLabel={intl.formatMessage(
+            passkeyServerEnabled
+              ? { id: "app.login.button.continue", defaultMessage: "Continue" }
+              : { id: "app.login.button.createAccount", defaultMessage: "Create Account" }
+          )}
           errorMessage={!isAuthenticating ? loginError : null}
           usernameInput={{
             value: username,
             onChange: (e) => setUsername(e.target.value),
-            label: intl.formatMessage({
-              id: "app.login.username.newAccountLabel",
-              defaultMessage: "Display name for new account",
-            }),
-            placeholder: intl.formatMessage({
-              id: "app.login.username.placeholder",
-              defaultMessage: "e.g. alice or alice.eth",
-            }),
-            minLength: 3,
-            onCancel: goToEntry,
-          }}
-          isLoginDisabled={!isUsernameValid}
-          infoMessage={
-            passkeyServerEnabled
-              ? intl.formatMessage({
-                  id: "app.login.username.hint",
-                  defaultMessage:
-                    "Keep this name somewhere safe. You'll use it to sign in on another device.",
-                })
-              : intl.formatMessage({
-                  // Local-only mode keeps the re-enrollment explainer instead
-                  // of the generic cross-device hint.
-                  id: "app.login.passkey.localExplainer",
-                  defaultMessage:
-                    "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
-                })
-          }
-          tertiaryAction={backTertiaryAction}
-        />
-      </>
-    );
-  }
-
-  // ─── Recover form: input (slot 1) · Sign in with passkey (slot 2) · Back ────
-  // Flat flow: it succeeds, or the error shows and the user retries or goes
-  // Back. A fresh account is created through the normal create flow instead of
-  // an in-recovery fork; the passkey server still rejects registered names.
-  if (screen === "recover" && passkeyServerEnabled) {
-    return (
-      <>
-        {helmet}
-        <Splash
-          login={recoverWithPasskey}
-          isLoggingIn={isAuthenticating}
-          loadingState={loadingState ?? undefined}
-          message={loadingMessage}
-          buttonLabel={intl.formatMessage({
-            id: "app.login.button.loginPasskey",
-            defaultMessage: "Sign in with Passkey",
-          })}
-          errorMessage={!isAuthenticating ? loginError : null}
-          usernameInput={{
-            value: recoveryUsername,
-            onChange: (e) => setRecoveryUsername(e.target.value),
             label: intl.formatMessage({
               id: "app.login.recovery.label",
               defaultMessage: "Username or ENS handle",
@@ -278,21 +219,29 @@ export function Login() {
             minLength: 3,
             onCancel: goToEntry,
           }}
-          isLoginDisabled={!isRecoveryUsernameValid}
-          infoMessage={intl.formatMessage({
-            id: "app.login.recovery.info",
-            defaultMessage:
-              "Your passkey needs to be on this device or on a phone nearby. It usually arrives with your Apple or Google account.",
-          })}
+          isLoginDisabled={!isUsernameValid}
+          infoMessage={intl.formatMessage(
+            passkeyServerEnabled
+              ? {
+                  id: "app.login.username.signInOrCreateInfo",
+                  defaultMessage:
+                    "Enter your username to sign in, or choose a new one to create an account.",
+                }
+              : {
+                  id: "app.login.passkey.localExplainer",
+                  defaultMessage:
+                    "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
+                }
+          )}
           tertiaryAction={backTertiaryAction}
         />
       </>
     );
   }
 
-  // ─── Entry: primary (slot 1) · wallet (slot 2) · Recover link ───────────────
-  // Returning users get the personalized one-tap sign-in; new users get Create
-  // account, which navigates to the create form. Detection is credential-based,
+  // ─── Entry: primary (slot 1) · wallet (slot 2) · Different username ────────
+  // Remembered passkeys keep one-tap sign-in. The username form handles both
+  // existing accounts and new names. Detection is credential-based,
   // so the stored name can be blank/stale — fall back to the generic label. The
   // pill truncates long/ENS names (Button wraps the label in a truncating
   // span); buttonTitle carries the full text.
@@ -300,7 +249,7 @@ export function Login() {
     <>
       {helmet}
       <Splash
-        login={hasExistingAccount ? loginWithPasskey : goToCreate}
+        login={hasExistingAccount ? loginWithPasskey : goToUsername}
         isLoggingIn={isAuthenticating}
         loadingState={loadingState ?? undefined}
         message={loadingMessage}
@@ -311,10 +260,14 @@ export function Login() {
                 id: "app.login.button.loginPasskey",
                 defaultMessage: "Sign in with Passkey",
               }))
-            : intl.formatMessage({
-                id: "app.login.button.createAccount",
-                defaultMessage: "Create Account",
-              })
+            : intl.formatMessage(
+                passkeyServerEnabled
+                  ? {
+                      id: "app.login.button.continuePasskey",
+                      defaultMessage: "Continue with Passkey",
+                    }
+                  : { id: "app.login.button.createAccount", defaultMessage: "Create Account" }
+              )
         }
         buttonTitle={personalizedLabel}
         errorMessage={!isAuthenticating ? loginError : null}
@@ -358,24 +311,13 @@ export function Login() {
                 }),
                 onClick: loginWithOriginalAccount,
               }
-            : passkeyServerEnabled
+            : passkeyServerEnabled && hasExistingAccount
               ? {
-                  // Returning users (a local passkey exists) can "recover" — a
-                  // broken/rotated credential. First-time-on-this-device users
-                  // haven't lost anything to recover, but the bucket includes an
-                  // existing user on a new device/browser, whose only way in is
-                  // this same username lookup — so the door stays, reframed as
-                  // signing into an existing account rather than recovery.
-                  label: hasExistingAccount
-                    ? intl.formatMessage({
-                        id: "app.login.button.recoverWithUsername",
-                        defaultMessage: "Recover with Username",
-                      })
-                    : intl.formatMessage({
-                        id: "app.login.button.haveAccount",
-                        defaultMessage: "Already have an account?",
-                      }),
-                  onClick: goToRecover,
+                  label: intl.formatMessage({
+                    id: "app.login.button.useDifferentUsername",
+                    defaultMessage: "Use Different Username",
+                  }),
+                  onClick: goToUsername,
                 }
               : undefined)
         }

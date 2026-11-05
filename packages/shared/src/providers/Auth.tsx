@@ -397,7 +397,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   );
 
   const loginWithPasskey = useCallback(
-    async (userName?: string, originalAccount = false) => {
+    async (
+      userName?: string,
+      options: { originalAccount?: boolean; createIfMissing?: boolean } = {}
+    ) => {
       if (!actor) return;
       syncSignOut();
       const generation = loginGenerationRef.current;
@@ -407,11 +410,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         await disconnectWallet();
       }
 
-      // Get stored username or use provided. An empty username routes the
-      // auth service straight to the local one-tap path — never fabricate a
-      // placeholder, because under the passkey-server flag any truthy name
-      // triggers a hosted-server lookup for that literal username. Nullish
-      // coalescing preserves an explicit "" from the caller.
+      // Preserve an explicit "" for local sign-in; omitted names use the remembered username.
       const finalUserName = userName ?? getStoredUsername() ?? "";
 
       syncSignOut();
@@ -420,7 +419,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       actor.send({
         type: "LOGIN_PASSKEY_EXISTING",
         userName: finalUserName,
-        ...(originalAccount ? { originalAccount: true } : {}),
+        originalAccount: options.originalAccount === true,
+        createIfMissing: options.createIfMissing === true,
       });
       saveAuthModeToStorage("passkey");
     },
@@ -428,7 +428,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   );
 
   const loginWithOriginalPasskey = useCallback(
-    (userName?: string) => loginWithPasskey(userName, true),
+    (userName?: string) => loginWithPasskey(userName, { originalAccount: true }),
     [loginWithPasskey]
   );
 

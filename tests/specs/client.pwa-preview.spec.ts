@@ -54,7 +54,9 @@ test("production navigation cache restores the anonymous shell offline and is re
   await cdp.send("Network.enable");
   await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
   await page.goto("/home/login?presentation=pwa");
-  await expect(page.getByTestId("login-button")).toHaveText("Create Account", { timeout: 30000 });
+  await expect(page.getByTestId("login-button")).toHaveText("Continue with Passkey", {
+    timeout: 30000,
+  });
   await expectStableLogoHandoff(page, 177);
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -65,7 +67,7 @@ test("production navigation cache restores the anonymous shell offline and is re
   await page.waitForFunction(() =>
     navigator.serviceWorker.controller?.scriptURL.endsWith("/sw.js")
   );
-  await expect(page.getByTestId("login-button")).toHaveText("Create Account");
+  await expect(page.getByTestId("login-button")).toHaveText("Continue with Passkey");
   await expectStableLogoHandoff(page, 254);
   await info.attach("phone-logo-handoff", {
     body: await page.screenshot(),
@@ -78,7 +80,7 @@ test("production navigation cache restores the anonymous shell offline and is re
   await context.route("**/*", (route) => route.abort("internetdisconnected"));
   await context.setOffline(true);
   await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.getByTestId("login-button")).toHaveText("Create Account");
+  await expect(page.getByTestId("login-button")).toHaveText("Continue with Passkey");
   await expectStableLogoHandoff(page, 177);
   await expect(page).toHaveURL(/\/home\/login\?presentation=pwa$/);
   expect(await page.evaluate(() => navigator.onLine)).toBe(false);

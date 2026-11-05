@@ -16,6 +16,7 @@ import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 import {
   LEGACY_PASSKEY_PROFILE,
   PILOT_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
   type PasskeyAccountProfileId,
 } from "../../modules/auth/account-profile";
 
@@ -922,6 +923,118 @@ describe("createAuthServices", () => {
       harness.state.serverEnabled = true;
       harness.state.directoryEnabled = true;
       harness.state.siteHost = "www.greengoods.app";
+    });
+
+    it.each([
+      { site: "www.greengoods.app", profile: "kernel-0.3.1-legacy" },
+      { site: SITE_HOST, profile: "kernel-0.3.3" },
+    ])("continues an available username with $profile on $site", async ({ site, profile }) => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = "remembered-gardener";
+      harness.state.expectedAddress = OTHER_ADDRESS;
+      harness.state.siteHost = site;
+      harness.directory.startRegistration.mockResolvedValue({
+        rp: { id: "greengoods.app" },
+        accountProfile: profile,
+      });
+      harness.directory.verifyRegistration.mockResolvedValue({
+        success: true,
+        ...DIRECTORY_CREDENTIAL,
+        userName: USER,
+        accountProfile: profile,
+      });
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: USER,
+          chainId: 42161,
+          createIfMissing: true,
+        })
+      ).resolves.toMatchObject({
+        userName: USER,
+        smartAccountAddress: ADDRESS,
+        accountProfile: profile,
+      });
+      expect(harness.directory.startRegistration).toHaveBeenCalledOnce();
+      expect(harness.calls.getWebAuthnCredential).not.toHaveBeenCalled();
+    });
+
+    it("signs in to an existing username without starting registration", async () => {
+      harness.directory.getCredentials.mockResolvedValue([DIRECTORY_CREDENTIAL]);
+
+      await invoke(harness.services.authenticatePasskey, {
+        userName: USER,
+        chainId: CHAIN_ID,
+        createIfMissing: true,
+      });
+
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledOnce();
+      expect(harness.directory.startRegistration).not.toHaveBeenCalled();
+      expect(harness.calls.createWebAuthnCredential).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      LEGACY_PASSKEY_PROFILE,
+      KERNEL_033_PASSKEY_PROFILE,
+    ])("preserves a remembered %s account when its name is absent from both servers", async (profile) => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
+      harness.state.profile = profile;
+      harness.state.expectedAddress = ADDRESS;
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: USER,
+          chainId: 42161,
+          createIfMissing: true,
+        })
+      ).resolves.toMatchObject({
+        userName: USER,
+        smartAccountAddress: ADDRESS,
+        accountProfile: profile,
+      });
+      expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledOnce();
+      expect(harness.directory.startRegistration).not.toHaveBeenCalled();
+      expect(harness.calls.createWebAuthnCredential).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "directory",
+      "server",
+    ] as const)("never creates an account when the %s name lookup fails", async (source) => {
+      harness[source].getCredentials.mockRejectedValue(new Error("service unavailable"));
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: USER,
+          chainId: CHAIN_ID,
+          createIfMissing: true,
+        })
+      ).rejects.toThrow();
+      expect(harness.directory.startRegistration).not.toHaveBeenCalled();
+      expect(harness.calls.createWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
+    it("keeps the remembered identity if a new-account prompt is canceled", async () => {
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = "remembered-gardener";
+      harness.state.expectedAddress = OTHER_ADDRESS;
+      harness.calls.createWebAuthnCredential.mockRejectedValue(
+        new Error("Passkey prompt canceled")
+      );
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: USER,
+          chainId: CHAIN_ID,
+          createIfMissing: true,
+        })
+      ).rejects.toThrow("Passkey prompt canceled");
+      expect(harness.state.credential).toBe(CREDENTIAL);
+      expect(harness.state.userName).toBe("remembered-gardener");
+      expect(harness.state.expectedAddress).toBe(OTHER_ADDRESS);
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
     });
 
     it("creates beta accounts with the shared 0.3.3 profile without requiring a legacy migration proof", async () => {

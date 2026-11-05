@@ -43,7 +43,7 @@ export interface AuthActionsValue {
   reconcilePilotAccount?: () => Promise<void>;
   cancelPilotAccountEnrollment?: () => void;
   createAccount: (userName: string) => Promise<void>;
-  loginWithPasskey: (userName?: string) => Promise<void>;
+  loginWithPasskey: (userName?: string, options?: { createIfMissing?: boolean }) => Promise<void>;
   loginWithOriginalPasskey?: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;

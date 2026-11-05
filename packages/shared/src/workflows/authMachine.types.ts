@@ -31,6 +31,7 @@ export interface AuthContext {
   smartAccountAddress: Hex | null;
   passkeyAccountProfile?: PasskeyAccountProfileId | null;
   originalAccount?: boolean;
+  createIfMissing?: boolean;
 
   // Wallet session state (when authenticated via wallet)
   walletAddress: Hex | null;
@@ -63,7 +64,12 @@ export type AuthEvent =
   // User-initiated actions
   // ─────────────────────────────────────────────────────────────────────────
   | { type: "LOGIN_PASSKEY_NEW"; userName: string }
-  | { type: "LOGIN_PASSKEY_EXISTING"; userName: string; originalAccount?: boolean }
+  | {
+      type: "LOGIN_PASSKEY_EXISTING";
+      userName: string;
+      originalAccount?: boolean;
+      createIfMissing?: boolean;
+    }
   | { type: "LOGIN_WALLET" }
   | { type: "LOGIN_EMBEDDED"; address: Hex } // Login via AppKit embedded wallet (email/social)
   | { type: "SWITCH_TO_WALLET" } // Switch from passkey to wallet (requires external wallet)
@@ -115,6 +121,7 @@ export interface PasskeyOperationInput {
   userName: string | null;
   chainId: number;
   originalAccount?: boolean;
+  createIfMissing?: boolean;
 }
 
 // ============================================================================
