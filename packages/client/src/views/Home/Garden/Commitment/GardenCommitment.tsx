@@ -24,24 +24,17 @@ import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { parseCommitmentId, savedCommitmentForRoute } from "./commitmentRoute";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
+import { SavedCommitment } from "./SavedCommitment";
 import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
 import { serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
-
-function parseCommitmentId(value: string | undefined): bigint | null {
-  if (!value) return null;
-  try {
-    return BigInt(value);
-  } catch {
-    return null;
-  }
-}
 
 /** Errors are already surfaced by the shared mutation hooks; the view keeps its current surface. */
 function keepSurfaceOnFailure(promise: Promise<unknown>): void {
@@ -96,6 +89,12 @@ export function GardenCommitment() {
       return navigate("../..", { relative: "path", replace: true });
     navigate(-1);
   };
+
+  const saved =
+    !controller.isOnline && !controller.detail
+      ? savedCommitmentForRoute(location.state, gardenAddress, commitmentId)
+      : null;
+  if (saved) return <SavedCommitment commitment={saved} onBack={back} />;
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {

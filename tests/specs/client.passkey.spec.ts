@@ -39,10 +39,10 @@ test("server rejection after credential creation stays signed out and permits re
     calls.push(method);
     let result: unknown;
     if (method === "pks_getCredentials") {
-      expect(params).toEqual([{ userName: username }]);
+      expect(params).toEqual([{ userName: username, accountProfileVersion: 1 }]);
       result = [];
     } else if (method === "pks_startRegistration") {
-      expect(params).toEqual([{ userName: username }]);
+      expect(params).toEqual([{ userName: username, accountProfileVersion: 1 }]);
       result = {
         attestation: "none",
         challenge: Buffer.alloc(32, 7).toString("base64"),
@@ -61,7 +61,7 @@ test("server rejection after credential creation stays signed out and permits re
         timeout: 10000,
       };
     } else if (method === "pks_verifyRegistration") {
-      expect(params[1]).toEqual({ userName: username });
+      expect(params[1]).toEqual({ userName: username, accountProfileVersion: 1 });
       expect(params[0].type).toBe("public-key");
       const clientData = JSON.parse(
         Buffer.from(params[0].response.clientDataJSON, "base64").toString()

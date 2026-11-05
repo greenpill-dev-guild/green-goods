@@ -5,7 +5,7 @@ slug: /community/funder-guide/withdraw-from-a-vault
 description: "Take some or all of your endowment back out of a garden, from the public Fund page."
 audience: funder
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Walk a funder through withdrawing part or all of an endowment, and explain what the amounts on screen mean."
 difficulty: "quickstart"
@@ -31,15 +31,11 @@ keywords:
   - manage endowments
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Remove an Endowment
 
 Take some or all of your endowment back out. There is no lock-in and no notice period, and the money returns to the wallet you deposited from. What you can take out at a given moment depends on what is available, which is explained below.
 
-<figure className="gg-figure gg-overview-photo gg-guide-opening">
-  <img src="/img/community/guide-withdraw.webp" alt="A personal notebook and canvas bag at an empty community meeting table." width="1672" height="941" loading="eager" />
-</figure>
+<GuideImage src="/img/community/guide-withdraw.webp" alt="A personal notebook and canvas bag at an empty community meeting table." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 ## Before you start
 
@@ -54,21 +50,22 @@ Take some or all of your endowment back out. There is no lock-in and no notice p
 3. In **Your Endowments**, tap **Connect Wallet** and connect the wallet you endowed from.
 4. Under **What you've supported**, find the garden and the token.
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/guide-withdraw-positions.webp" alt="Your Endowments lists 250 DAI endowed and 249 DAI available in Riverside Commons Garden." loading="lazy" width="480" height="565" />
-  <figcaption><strong className="gg-inline-label">Available if needed</strong> shows what you can withdraw now.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/guide-withdraw-positions.webp" alt="Your Endowments lists 250 DAI endowed and 249 DAI available in Riverside Commons Garden." loading="lazy" width="480" height="565" className="gg-figure" maxWidth="480px">
+
+<InlineLabel>Available if needed</InlineLabel> shows what you can withdraw now.
+
+</GuideImage>
 
 5. Tap **Withdraw** on that row.
 6. Enter the **Withdrawal amount**, or tap **Max** to take everything that is available now.
 7. Check that you accept the withdrawal's allowance of up to **1% loss during processing**. The amount received can be lower than the amount you request.
 8. Tap the button that reads **Withdraw** and your amount, then confirm in your wallet.
 
+<GuideImage src="/img/screenshots/guide-withdraw-review.webp" alt="The same endowment position has a 50 DAI withdrawal amount and Withdraw 50 DAI control." loading="lazy" width="480" height="775" className="gg-figure" maxWidth="480px">
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/guide-withdraw-review.webp" alt="The same endowment position has a 50 DAI withdrawal amount and Withdraw 50 DAI control." loading="lazy" width="480" height="775" />
-  <figcaption>Check the withdrawal amount against <strong className="gg-inline-label">Available now</strong>.</figcaption>
-</figure>
+Check the withdrawal amount against <InlineLabel>Available now</InlineLabel>.
+
+</GuideImage>
 
 ### What the numbers mean
 
@@ -105,9 +102,11 @@ Nothing else is needed. Whatever you leave in remains deposited and may earn sup
 
 For anything else, ask in the [Green Goods community on Discord](https://discord.gg/greenpill).
 
-:::note If you are signed in to the app
+<Callout kind="note" title="If you are signed in to the app">
+
 Stewards, and people who already hold a deposit, can also withdraw inside the Green Goods app. Open the garden, tap the endowment button at the top, and use **Withdraw** under **My deposits**. That path asks you to confirm before it sends.
-:::
+
+</Callout>
 
 ## Next step
 

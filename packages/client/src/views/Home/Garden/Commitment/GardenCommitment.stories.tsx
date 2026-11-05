@@ -1,4 +1,8 @@
-import { useServiceAccess, useServiceAccessMutation } from "@green-goods/shared/commitment-pooling";
+import {
+  useCommitmentMetadataFor,
+  useServiceAccess,
+  useServiceAccessMutation,
+} from "@green-goods/shared/commitment-pooling";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
@@ -11,7 +15,7 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { Route, Routes } from "react-router-dom";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { expect, fn, mocked, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
@@ -25,17 +29,25 @@ import {
   withAppPage,
   withClientAppRuntime,
   withProofToast,
-  withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import { GardenCommitment } from "./GardenCommitment";
 
 /** The page reads its garden and promise from the route, as the app mounts it. */
-const withPromiseRoute: Decorator = (Story) => (
-  <Routes>
-    <Route path="/home/:id/commitments/:commitmentId" element={<Story />} />
-  </Routes>
+const withPromiseRoute: Decorator = (Story, context) => (
+  <MemoryRouter initialEntries={[`/home/${JOURNEY_GARDEN}/commitments/9`]}>
+    {context.parameters.notificationState ? (
+      <Navigate
+        to={`/home/${JOURNEY_GARDEN}/commitments/9`}
+        state={context.parameters.notificationState}
+        replace
+      />
+    ) : null}
+    <Routes>
+      <Route path="/home/:id/commitments/:commitmentId" element={<Story />} />
+    </Routes>
+  </MemoryRouter>
 );
 
 const withPortuguese: Decorator = (Story) => (
@@ -96,6 +108,7 @@ const atStage = (stage: Stage, reread?: (page: Page) => Page) => () => {
     };
   }
   mocked(useGardenCommitmentController).mockReturnValue(controller);
+  mocked(useCommitmentMetadataFor).mockReturnValue(fence.metadata);
   mocked(useCommitmentActivity).mockReturnValue({
     events: history,
     isError: false,
@@ -119,6 +132,7 @@ const atStage = (stage: Stage, reread?: (page: Page) => Page) => () => {
     useServiceAccessMutation,
     usePrimaryAddress,
     useGardenCommitmentController,
+    useCommitmentMetadataFor,
     useCommitmentActivity,
     useCommitmentCycle,
     useGardens,
@@ -139,7 +153,6 @@ const meta: Meta<typeof GardenCommitment> = {
   parameters: { layout: "fullscreen" },
   decorators: [
     withPromiseRoute,
-    withRouter([`/home/${JOURNEY_GARDEN}/commitments/9`]),
     withSeededQueryClient([...JOURNEY_CYCLE_NAMES, ...PROMISE_PAGE_SEEDS]),
     withAppPage,
   ],
@@ -388,4 +401,20 @@ export const ProofFailed: Story = {
       await toasts(canvasElement).findByRole("button", { name: "Open Your Work" })
     ).toBeVisible();
   },
+};
+
+/** Opening a cached notification without ever having loaded its full promise page. */
+export const SavedNotificationOffline: Story = {
+  parameters: {
+    notificationState: {
+      commitmentGarden: JOURNEY_GARDEN,
+      commitment: promisePageFixture("working").controller.detail?.commitment,
+    },
+  },
+  beforeEach: atStage("working", (page) => ({
+    ...page,
+    isOnline: false,
+    status: "loading",
+    detail: null,
+  })),
 };

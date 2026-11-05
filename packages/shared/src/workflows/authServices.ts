@@ -3,7 +3,12 @@ import type { P256Credential } from "viem/account-abstraction";
 import { fromPromise } from "xstate";
 import type { AuthPasskeySource } from "../modules/app/analytics-events";
 import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
-import { LEGACY_PASSKEY_PROFILE, PILOT_PASSKEY_PROFILE } from "../modules/auth/account-profile";
+import {
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+  isKernel033PasskeyProfile,
+} from "../modules/auth/account-profile";
 import { guardSessionCommit } from "../modules/auth/sessionSignOut";
 import { normalizePasskeyName } from "../public-contracts/passkey-directory";
 import {
@@ -16,7 +21,7 @@ import {
   type PasskeyAdapters,
   type PasskeyServerClientAdapter,
 } from "./auth-passkey-adapters";
-import { signInWithDirectory } from "./auth-passkey-directory";
+import { registerServerPasskey, signInWithDirectory } from "./auth-passkey-directory";
 import { matchesBrowserId, verifiedCredential } from "./auth-passkey-ids";
 import type { PasskeySessionResult } from "./authMachine";
 import { createPasskeySessionServices } from "./auth-passkey-session";
@@ -28,9 +33,6 @@ interface PasskeyInput {
 }
 
 type PasskeyServerCredential = { id: string; publicKey: Hex };
-type PasskeyServerRegistrationOptions = {
-  rp?: { id?: string };
-};
 type PasskeyServerAuthenticationOptions = {
   challenge: Hex | Uint8Array | ArrayBuffer;
   rpId?: string;
@@ -76,44 +78,16 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     userName: string,
     chainId: number
   ) => {
-    const context = adapters.buildRecoveryContext(userName);
-    // New accounts go to the directory once this build is switched to it, so their passkey
-    // works on every Green Goods site. The directory itself refuses a name the hosted server
-    // already holds.
-    const client = adapters.createDirectoryClient() ?? adapters.createServerClient(chainId);
-    const existing = (await client.getCredentials({ context })) as PasskeyServerCredential[];
-    assertActive();
-    if (existing.length > 0) {
-      throw new Error(
-        "That recovery name is already registered. Try recovery or choose another name."
-      );
-    }
-    const options = (await client.startRegistration({
-      context,
-    })) as PasskeyServerRegistrationOptions;
-    const rpId = options.rp?.id || adapters.getRpId();
-    assertActive();
-    const created = await adapters.createWebAuthnCredential(options);
-    // Verification persists the credential on the server, before local session construction.
-    assertActive();
-    const verification = (await client.verifyRegistration({
-      credential: created,
-      context,
-    })) as PasskeyServerVerificationResult;
-    const credential = verifiedCredential(
-      verification,
-      created,
-      "Passkey server registration failed"
-    );
+    const registered = await registerServerPasskey(adapters, assertActive, userName, chainId);
     return buildSession(
       assertActive,
-      credential,
-      verification.userName || verification.username || context.userName,
+      registered.credential,
+      registered.userName,
       chainId,
-      rpId,
+      registered.rpId,
       false,
       [],
-      LEGACY_PASSKEY_PROFILE
+      registered.accountProfile
     );
   };
 
@@ -171,21 +145,21 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     if (sameCredential && cached) {
       alternatives.push({ ...credential, id: cached.id });
     }
-    const switchingFromPilot =
-      session.getStoredAccountProfile() === PILOT_PASSKEY_PROFILE && !sameCredential;
+    const switchingFromModernAccount =
+      isKernel033PasskeyProfile(session.getStoredAccountProfile()) && !sameCredential;
     return buildSession(
       assertActive,
       credential,
       verification.userName || verification.username || context.userName,
       chainId,
       rpId,
-      !switchingFromPilot,
+      !switchingFromModernAccount,
       alternatives.filter(
         (candidate, index, all) =>
           candidate.id !== credential.id &&
           all.findIndex((other) => other.id === candidate.id) === index
       ),
-      originalExpected || switchingFromPilot
+      originalExpected || switchingFromModernAccount
         ? LEGACY_PASSKEY_PROFILE
         : session.getStoredAccountProfile(),
       originalExpected
@@ -218,9 +192,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
           rpId,
           !switchingAccounts,
           [],
-          originalExpected || switchingAccounts
+          originalExpected
             ? LEGACY_PASSKEY_PROFILE
-            : session.getStoredAccountProfile(),
+            : signIn.accountProfile === KERNEL_033_PASSKEY_PROFILE
+              ? KERNEL_033_PASSKEY_PROFILE
+              : switchingAccounts
+                ? LEGACY_PASSKEY_PROFILE
+                : session.getStoredAccountProfile(),
           originalExpected
         );
       }
@@ -267,7 +245,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     if (!matchesBrowserId(credential, response.id))
       throw new Error("Passkey authentication verification failed");
     if (
-      session.getStoredAccountProfile() === PILOT_PASSKEY_PROFILE &&
+      isKernel033PasskeyProfile(session.getStoredAccountProfile()) &&
       !(await adapters.verifyAssertion({
         response,
         publicKey: credential.publicKey,

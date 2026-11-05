@@ -10,6 +10,7 @@ import type {
   PasskeySessionAdapter,
 } from "../../workflows/auth-passkey-adapters";
 import { publishSignOut } from "../../modules/auth/sessionSignOut";
+import type { PasskeyCredential } from "../../modules/auth/session";
 import { createAuthServices } from "../../workflows/authServices";
 import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 import {
@@ -56,13 +57,14 @@ function createHarness() {
   const state: {
     signedOut: boolean;
     authMode: "passkey" | "wallet" | "embedded" | null;
-    credential: P256Credential | null;
+    credential: PasskeyCredential | null;
     rpId: string | null;
     userName: string | null;
     expectedAddress: Hex | null;
     serverEnabled: boolean;
     directoryEnabled: boolean;
     profile: PasskeyAccountProfileId;
+    siteHost: string;
   } = {
     signedOut: false,
     authMode: null,
@@ -73,6 +75,7 @@ function createHarness() {
     serverEnabled: false,
     directoryEnabled: false,
     profile: LEGACY_PASSKEY_PROFILE,
+    siteHost: SITE_HOST,
   };
 
   const sessionSpies = {
@@ -152,6 +155,7 @@ function createHarness() {
     startRegistration: vi.fn().mockResolvedValue({
       challenge: new Uint8Array([1]),
       rp: { id: DIRECTORY_CREDENTIAL.rpId },
+      accountProfile: LEGACY_PASSKEY_PROFILE,
     }),
     verifyRegistration: vi.fn().mockResolvedValue({
       success: true,
@@ -187,7 +191,7 @@ function createHarness() {
     getWebAuthnCredential: (options) => calls.getWebAuthnCredential(options),
     verifyAssertion: (input) => calls.verifyAssertion(input),
     getRpId: () => "localhost",
-    getSiteRpId: () => SITE_HOST,
+    getSiteRpId: () => state.siteHost,
     randomChallenge: () => new Uint8Array([1, 2, 3]),
     buildSmartAccount: (credential, chainId, rpId, knownAddress, profile) =>
       profile
@@ -254,6 +258,33 @@ describe("createAuthServices", () => {
     });
     expect(harness.state.profile).toBe(LEGACY_PASSKEY_PROFILE);
     expect(harness.adapters.hasPilotAccountProof).not.toHaveBeenCalled();
+  });
+
+  it("restores a beta account and rebuilds its cross-chain clients with the recorded 0.3.3 recipe", async () => {
+    harness.state.profile = "kernel-0.3.3";
+    harness.state.credential = { ...CREDENTIAL, signingId: CREDENTIAL.id };
+    harness.state.expectedAddress = ADDRESS;
+    const result = await invoke<{
+      accountProfile: string;
+      resolveSmartAccountClient: (chainId: number) => Promise<unknown>;
+    }>(harness.services.restoreSession, { chainId: 42161 });
+    expect(result.accountProfile).toBe("kernel-0.3.3");
+    expect(harness.adapters.hasPilotAccountProof).not.toHaveBeenCalled();
+    harness.calls.buildSmartAccount.mockResolvedValueOnce({
+      client: {
+        account: { address: ADDRESS },
+        chain: { id: 100 },
+      } as unknown as SmartAccountClient,
+      address: ADDRESS,
+    });
+    await result.resolveSmartAccountClient(100);
+    expect(harness.calls.buildSmartAccount).toHaveBeenLastCalledWith(
+      harness.state.credential,
+      100,
+      "localhost",
+      undefined,
+      "kernel-0.3.3"
+    );
   });
 
   it("reopens the archived original address only after explicit verified passkey sign-in", async () => {
@@ -494,6 +525,7 @@ describe("createAuthServices", () => {
       false,
       true,
     ])("does not register a late ceremony on the server (directory=%s)", async (directoryEnabled) => {
+      harness.state.siteHost = "www.greengoods.app";
       harness.state.serverEnabled = true;
       harness.state.directoryEnabled = directoryEnabled;
       let finishCeremony!: (credential: typeof CREDENTIAL) => void;
@@ -889,6 +921,79 @@ describe("createAuthServices", () => {
     beforeEach(() => {
       harness.state.serverEnabled = true;
       harness.state.directoryEnabled = true;
+      harness.state.siteHost = "www.greengoods.app";
+    });
+
+    it("creates beta accounts with the shared 0.3.3 profile without requiring a legacy migration proof", async () => {
+      harness.state.siteHost = SITE_HOST;
+      harness.directory.startRegistration.mockResolvedValue({
+        rp: { id: "greengoods.app" },
+        accountProfile: "kernel-0.3.3",
+      });
+      harness.directory.verifyRegistration.mockResolvedValue({
+        success: true,
+        ...DIRECTORY_CREDENTIAL,
+        userName: USER,
+        accountProfile: "kernel-0.3.3",
+      });
+      const result = await invoke(harness.services.registerPasskey, {
+        userName: USER,
+        chainId: 42161,
+      });
+      expect(result).toMatchObject({
+        accountProfile: "kernel-0.3.3",
+        smartAccountAddress: ADDRESS,
+      });
+      expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ signingId: CREDENTIAL.id }),
+        42161,
+        "greengoods.app",
+        undefined,
+        "kernel-0.3.3"
+      );
+      expect(harness.adapters.hasPilotAccountProof).not.toHaveBeenCalled();
+    });
+
+    it("stops a beta signup before creating a credential when the server cannot pin its profile", async () => {
+      harness.state.siteHost = SITE_HOST;
+      await expect(
+        invoke(harness.services.registerPasskey, { userName: USER, chainId: 42161 })
+      ).rejects.toThrow("account version");
+      expect(harness.calls.createWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.directory.verifyRegistration).not.toHaveBeenCalled();
+    });
+
+    it("recovers a beta-created account on production with its recorded profile", async () => {
+      harness.directory.getCredentials.mockResolvedValue([
+        { ...DIRECTORY_CREDENTIAL, accountProfile: "kernel-0.3.3" },
+      ]);
+      const result = await invoke(harness.services.authenticatePasskey, {
+        userName: USER,
+        chainId: 42161,
+      });
+      expect(result).toMatchObject({
+        accountProfile: "kernel-0.3.3",
+        smartAccountAddress: ADDRESS,
+      });
+      expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ id: CREDENTIAL.id }),
+        42161,
+        "greengoods.app",
+        undefined,
+        "kernel-0.3.3"
+      );
+      expect(harness.adapters.hasPilotAccountProof).not.toHaveBeenCalled();
+    });
+
+    it("refuses an unknown directory profile before deriving an account", async () => {
+      harness.directory.getCredentials.mockResolvedValue([
+        { ...DIRECTORY_CREDENTIAL, accountProfile: "unknown" },
+      ]);
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: 42161 })
+      ).rejects.toThrow("account profile");
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.server.startAuthentication).not.toHaveBeenCalled();
     });
 
     it("signs a new account up under the domain every site shares", async () => {
@@ -901,7 +1006,7 @@ describe("createAuthServices", () => {
 
       expect(harness.directory.verifyRegistration).toHaveBeenCalledWith({
         credential: CREDENTIAL,
-        context: { userName: USER },
+        context: { userName: USER, accountProfileVersion: 1 },
       });
       expect(harness.server.startRegistration).not.toHaveBeenCalled();
       expect(harness.sessionSpies.setRpId).toHaveBeenCalledWith(DIRECTORY_CREDENTIAL.rpId);
@@ -1039,7 +1144,7 @@ describe("createAuthServices", () => {
       ).resolves.toMatchObject({ credential: { id: SERVER_CREDENTIAL.id } });
 
       expect(harness.directory.getCredentials).toHaveBeenCalledWith({
-        context: { userName: USER },
+        context: { userName: USER, accountProfileVersion: 1 },
       });
       expect(harness.server.verifyAuthentication).toHaveBeenCalledTimes(1);
       expect(harness.calls.verifyAssertion).not.toHaveBeenCalled();
