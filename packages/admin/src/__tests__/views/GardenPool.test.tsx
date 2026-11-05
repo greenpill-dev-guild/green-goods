@@ -763,12 +763,12 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(stats).queryByRole("button", { name: /to review/i })).not.toBeInTheDocument();
 
     const list = screen.getByTestId("pool-commitments");
-    fireEvent.click(within(stats).getByRole("button", { name: /2\s*needs recovery/i }));
+    fireEvent.click(within(stats).getByRole("button", { name: /^needs recovery\s+2$/i }));
     expect(within(list).queryByTestId("pool-commitment-1")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-2")).toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
 
-    fireEvent.click(within(stats).getByRole("button", { name: /1\s*past due/i }));
+    fireEvent.click(within(stats).getByRole("button", { name: /^past due\s+1$/i }));
     expect(within(list).queryByTestId("pool-commitment-2")).not.toBeInTheDocument();
     expect(within(list).getByTestId("pool-commitment-3")).toBeInTheDocument();
   });
