@@ -51,6 +51,13 @@ describe("selectStewardDuties", () => {
     expect(selectStewardDuties(NOTHING)).toEqual([]);
   });
 
+  it("keeps an incomplete review window discoverable even with no visible pending work", () => {
+    expect(selectStewardDuties({ ...NOTHING, reviewComplete: false })).toEqual([
+      { kind: "review", count: 0, works: [], uncounted: true },
+    ]);
+    expect(selectStewardDuties({ ...NOTHING, reviewComplete: true })).toEqual([]);
+  });
+
   it("lists work to review, then join requests, then take-up requests, then promises to confirm, each with its count", () => {
     const duties = selectStewardDuties({
       viewer: READER,

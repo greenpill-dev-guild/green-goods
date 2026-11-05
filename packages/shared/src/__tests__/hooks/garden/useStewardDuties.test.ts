@@ -329,6 +329,42 @@ describe("useStewardDuties", () => {
     expect(render(garden({ gardeners: [ME] }))).toMatchObject({ isLoading: false, isError: false });
   });
 
+  it("keeps an incomplete empty review window visible only for a manager", () => {
+    mocks.reviewReady = false;
+    expect(render(garden({ stewards: [ME] })).duties).toEqual([
+      { kind: "review", count: 0, works: [], uncounted: true },
+    ]);
+    expect(render(garden({ gardeners: [ME] })).duties).toEqual([]);
+  });
+
+  it("leaves an empty first review read to its loading or error state", () => {
+    mocks.reviewReady = false;
+    mocks.reviewLoading = true;
+    expect(render(garden({ stewards: [ME] })).duties).toEqual([]);
+    mocks.reviewLoading = false;
+    mocks.reviewError = true;
+    expect(render(garden({ stewards: [ME] }))).toMatchObject({ duties: [], isError: true });
+  });
+
+  it("does not count loaded partial work while its read refreshes", () => {
+    mocks.toReview = [createMockWork({ id: "0x01" })];
+    mocks.reviewReady = false;
+    mocks.reviewLoading = true;
+    expect(render(garden({ stewards: [ME] })).duties[0]).toMatchObject({ uncounted: true });
+  });
+
+  it("retries the pool lookup without running disabled role or claim reads", () => {
+    mocks.poolsError = true;
+    const duties = render(garden({ stewards: [ME] }));
+    expect(duties.isError).toBe(true);
+
+    duties.refetch();
+
+    expect(mocks.poolsRefetch).toHaveBeenCalledOnce();
+    expect(mocks.roleRefetch).not.toHaveBeenCalled();
+    expect(mocks.claimsRefetch).not.toHaveBeenCalled();
+  });
+
   it("reads every queue again on refetch", () => {
     mocks.wearsStewardHat = true;
 

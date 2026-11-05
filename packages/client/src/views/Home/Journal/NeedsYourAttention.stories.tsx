@@ -84,11 +84,16 @@ const TAKE_UPS: Duty[] = [
 ];
 const CONFIRM: Duty = { kind: "confirm", count: 1, commitments: [FENCE as never] };
 
-type Scene = "stewardWaiting" | "stewardNothing" | "gardener" | "readFailed";
+type Scene = "stewardWaiting" | "stewardNothing" | "gardener" | "readFailed" | "reviewIncomplete";
 
 const SCENES: Record<Scene, Omit<StewardDuties, "refetch">> = {
   stewardWaiting: {
     duties: [REVIEW, JOIN_REQUESTS, ...TAKE_UPS, CONFIRM],
+    isLoading: false,
+    isError: false,
+  },
+  reviewIncomplete: {
+    duties: [{ kind: "review", count: 0, works: [], uncounted: true }],
     isLoading: false,
     isError: false,
   },
@@ -262,4 +267,15 @@ export const JoinRequestsEveryLanguage: Story = {
       await expect(titles(none)).not.toContain(JOIN_REQUEST_TITLES[locale]);
     }
   },
+};
+
+/** A loaded window has no pending rows, but older or unresolved work may still need review. */
+export const IncompleteReview: Story = { args: { scene: "reviewIncomplete" } };
+export const IncompleteReviewSpanish: Story = {
+  args: { scene: "reviewIncomplete" },
+  parameters: { locale: "es" },
+};
+export const IncompleteReviewPortuguese: Story = {
+  args: { scene: "reviewIncomplete" },
+  parameters: { locale: "pt" },
 };

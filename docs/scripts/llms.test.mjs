@@ -6,6 +6,22 @@ import {describe, test} from "node:test";
 import {inlineCopyCommands, integrationStatusMarkdown, leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
 
 describe("markdown twins", () => {
+  test("publishes rich-text content blocks as readable Markdown with stable heading links", () => {
+    const twin = markdownTwin([
+      '<AnchoredHeading text="A garden" id="what-a-garden-is" level="2" />',
+      '<GuideImage src="/img/garden.webp" alt="Our garden" maxWidth="480px">Caption with <InlineLabel>Upload</InlineLabel>.</GuideImage>',
+      '<Callout title="Read first" kind="warning">Keep a copy.</Callout>',
+      '<ContentLink href="/faq.md" target="_blank">All answers</ContentLink>',
+      '<FaqQuestion question="More > less &amp; why?" id="new-question">Answer.</FaqQuestion>',
+      '```mdx\n<GuideImage src="example" />\n```',
+    ].join("\n\n"), "Example");
+    assert.ok(twin.includes("## A garden {#what-a-garden-is}"));
+    assert.ok(twin.includes("![Our garden](/img/garden.webp)\n\nCaption with **Upload**."));
+    assert.ok(twin.includes(":::warning Read first\n\nKeep a copy.\n\n:::"));
+    assert.ok(twin.includes("[All answers](/faq.md)"));
+    assert.ok(twin.includes("### More > less & why? {#new-question}"));
+    assert.ok(twin.includes('```mdx\n<GuideImage src="example" />\n```'));
+  });
   test("serve each page at its URL plus .md", () => {
     assert.equal(twinPath("/builders/getting-started"), "/builders/getting-started.md");
     assert.equal(twinPath("/builders/testing/"), "/builders/testing.md");
