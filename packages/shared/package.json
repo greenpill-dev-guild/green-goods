@@ -62,7 +62,6 @@
     "./__tests__/setupTests.base": "./src/__tests__/setupTests.base.ts",
     "./testing": "./src/__tests__/test-utils/index.ts",
     "./testing/query-client": "./src/__tests__/test-utils/query-client.ts",
-    "./components/ActionMenu": "./src/components/ActionMenu.tsx",
     "./components/AddressDisplay": "./src/components/AddressDisplay.tsx",
     "./components/Alert": "./src/components/Alert.tsx",
     "./components/Audio/AudioPlayer": "./src/components/Audio/AudioPlayer.tsx",

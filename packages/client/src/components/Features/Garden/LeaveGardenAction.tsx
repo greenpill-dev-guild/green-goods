@@ -1,6 +1,5 @@
-// Command: a compact garden action with an explicit departure confirmation.
-import { ActionMenu } from "@green-goods/shared/components/ActionMenu";
-import { LeaveGardenConfirmDialog } from "./LeaveGardenConfirmDialog";
+// Profile owns the trigger and retains this flow while membership removes its card.
+
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useLeaveGarden } from "@green-goods/shared/hooks/garden/useLeaveGarden";
@@ -11,8 +10,17 @@ import { parseContractError } from "@green-goods/shared/utils/errors/contract-er
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { LeaveGardenConfirmDialog } from "./LeaveGardenConfirmDialog";
 
-export function LeaveGardenAction({ garden }: { garden: Garden }) {
+interface LeaveGardenActionProps {
+  garden: Garden;
+  open: boolean;
+  onClose: () => void;
+  /** A recovered old receipt may preserve a later rejoin. */
+  onConfirmed: (departed: boolean) => void;
+}
+
+export function LeaveGardenAction({ garden, open, onClose, onConfirmed }: LeaveGardenActionProps) {
   const { formatMessage: message } = useIntl();
   const { primaryAddress } = useUser();
   const address = garden.id as Address;
@@ -30,29 +38,30 @@ export function LeaveGardenAction({ garden }: { garden: Garden }) {
     hasPendingDeparture,
     reconcileDeparture,
   } = useLeaveGarden(address);
-  const [open, setOpen] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const sending = useRef(false);
+  const opened = useRef(false);
   const [failure, setFailure] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      opened.current = false;
+      return;
+    }
+    if (opened.current) return;
+    opened.current = true;
+    setFailure(null);
+    setRecovering(hasPendingDeparture);
+    void owner.refetch();
+    void refetch();
+    if (!hasPendingDeparture) void checkAvailability();
+  }, [open, hasPendingDeparture, owner.refetch, refetch, checkAvailability]);
   useEffect(() => {
     if (open && hasPendingDeparture && !isLeaving && !recovering) {
       setRecovering(true);
       setFailure(null);
     }
   }, [open, hasPendingDeparture, isLeaving, recovering]);
-  // A role on either the indexed roster or chain lets the person find the act. The chain's
-  // fresh simulation remains authoritative if ownership changed while this sheet was open.
-  const listed = [
-    garden.owners,
-    garden.stewards,
-    garden.evaluators,
-    garden.gardeners,
-    garden.funders,
-    garden.communities,
-  ].some((roles) =>
-    roles?.some((account) => account.toLowerCase() === primaryAddress?.toLowerCase())
-  );
-  if (!primaryAddress || (!listed && isMember !== true && !hasPendingDeparture)) return null;
+  if (!primaryAddress) return null;
   const isOwner = owner.hasRole;
   const checking = owner.isLoading || owner.error || membershipFailed || isMember === null;
   const confirm = async () => {
@@ -62,13 +71,16 @@ export function LeaveGardenAction({ garden }: { garden: Garden }) {
     setFailure(null);
     try {
       const recovery = recovering;
-      await (recovery ? reconcileDeparture() : leaveGarden());
+      const result = await (recovery ? reconcileDeparture() : leaveGarden());
       toastService.success({
         title: message({
-          id: recovery ? "app.garden.leave.recoverySuccess" : "app.garden.leave.success",
+          id:
+            recovery || !result.departed
+              ? "app.garden.leave.recoverySuccess"
+              : "app.garden.leave.success",
         }),
       });
-      setOpen(false);
+      onConfirmed(result.departed);
     } catch (error) {
       if (!isCancelledTxError(error)) {
         const parsed = parseContractError(error);
@@ -87,51 +99,30 @@ export function LeaveGardenAction({ garden }: { garden: Garden }) {
     }
   };
   return (
-    <>
-      <ActionMenu
-        label={message({ id: "app.garden.leave.menu" })}
-        actions={[
-          {
-            label: message({
-              id: hasPendingDeparture ? "app.garden.leave.recover" : "app.garden.leave.action",
-            }),
-            danger: !hasPendingDeparture,
-            onSelect: () => {
-              setFailure(null);
-              setRecovering(hasPendingDeparture);
-              setOpen(true);
-              void owner.refetch();
-              refetch();
-              if (!hasPendingDeparture) void checkAvailability();
-            },
-          },
-        ]}
-      />
-      <LeaveGardenConfirmDialog
-        open={open}
-        onClose={() => {
-          if (!isLeaving) setOpen(false);
-        }}
-        gardenName={garden.name}
-        isOwner={isOwner}
-        checking={Boolean(checking)}
-        availability={availability}
-        recovery={recovering}
-        isLeaving={isLeaving}
-        failure={failure}
-        onConfirm={confirm}
-        onRetry={() => {
-          void owner.refetch();
-          refetch();
-          void checkAvailability();
-        }}
-        checkFailed={Boolean(
-          owner.error ||
-            membershipFailed ||
-            availability === "unavailable" ||
-            availability === "unknown"
-        )}
-      />
-    </>
+    <LeaveGardenConfirmDialog
+      open={open}
+      onClose={() => {
+        if (!isLeaving) onClose();
+      }}
+      gardenName={garden.name}
+      isOwner={isOwner}
+      checking={Boolean(checking)}
+      availability={availability}
+      recovery={recovering}
+      isLeaving={isLeaving}
+      failure={failure}
+      onConfirm={confirm}
+      onRetry={() => {
+        void owner.refetch();
+        refetch();
+        void checkAvailability();
+      }}
+      checkFailed={Boolean(
+        owner.error ||
+          membershipFailed ||
+          availability === "unavailable" ||
+          availability === "unknown"
+      )}
+    />
   );
 }

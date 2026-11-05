@@ -239,7 +239,7 @@ describe("components/Navigation/TopNav", () => {
   });
 
   describe("Share action (DL-020)", () => {
-    it("keeps Share after notifications, endowment, and the garden action menu", () => {
+    it("keeps Share after notifications and endowment", () => {
       const handleShare = vi.fn();
 
       renderWithIntl(
@@ -250,7 +250,6 @@ describe("components/Navigation/TopNav", () => {
           showEndowmentButton: true,
           onEndowmentClick: vi.fn(),
           onShareClick: handleShare,
-          gardenActions: createElement("button", { "aria-label": "Garden Actions" }, "Actions"),
         })
       );
 
@@ -260,7 +259,7 @@ describe("components/Navigation/TopNav", () => {
         .map((button) => button.getAttribute("aria-label"));
       expect(labels[labels.length - 1]).toBe("Share Garden");
       expect(labels).toContain("View notifications");
-      expect(labels).toContain("Garden Actions");
+      expect(labels).not.toContain("Garden Actions");
 
       fireEvent.click(share);
       expect(handleShare).toHaveBeenCalledTimes(1);

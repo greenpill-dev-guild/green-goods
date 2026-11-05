@@ -1,21 +1,21 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { IntlProvider } from "react-intl";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { createTestQueryClient } from "../test-utils/query-client";
-import { createMockGarden } from "../test-utils/mock-factories";
+import { IntlProvider } from "react-intl";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { roleKeys } from "../../config/query-keys/identity";
-import { addPendingJoin, hasFreshPendingJoin } from "../../modules/garden/pending-joins";
+import { useGardenDepartureOptions, useLeaveGarden } from "../../hooks/garden/useLeaveGarden";
 import {
   forgetGardenDeparture,
   recordGardenDeparture,
   withoutDepartedMembers,
 } from "../../modules/garden/garden-departures";
-import { useGardenLeaveStore } from "../../stores/useGardenLeaveStore";
+import { addPendingJoin, hasFreshPendingJoin } from "../../modules/garden/pending-joins";
 import type { TransactionSender } from "../../modules/transactions/types";
-import { useLeaveGarden } from "../../hooks/garden/useLeaveGarden";
+import { useGardenLeaveStore } from "../../stores/useGardenLeaveStore";
+import { createMockGarden } from "../test-utils/mock-factories";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const fakes = vi.hoisted(() => ({
   simulate: vi.fn(),
@@ -29,6 +29,7 @@ const fakes = vi.hoisted(() => ({
   membership: vi.fn(),
   rejoined: vi.fn(),
   log: vi.fn(),
+  gardens: [] as ReturnType<typeof createMockGarden>[],
 }));
 vi.mock("@wagmi/core", () => ({
   simulateContract: fakes.simulate,
@@ -51,6 +52,9 @@ vi.mock("../../modules/transactions/local-fork-safety", () => ({
 }));
 vi.mock("../../modules/garden/garden-departure-reads", () => ({
   readMembershipAfterDeparture: fakes.rejoined,
+}));
+vi.mock("../../hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({ data: fakes.gardens }),
 }));
 vi.mock("../../hooks/auth/useUser", () => ({ useUser: fakes.user }));
 vi.mock("../../modules/app/analytics-events", () => ({ createTracker: () => vi.fn() }));
@@ -202,7 +206,7 @@ describe("useLeaveGarden", () => {
     fakes.membership.mockResolvedValue(false);
     const { result, client } = setup();
     await act(async () => {
-      await expect(result.current.leaveGarden()).resolves.toBeNull();
+      await expect(result.current.leaveGarden()).resolves.toEqual({ hash: null, departed: true });
     });
     expect(client.getQueryData(gardensKeys.byChain(42161))).toMatchObject([
       { gardeners: [], stewards: [] },
@@ -333,7 +337,10 @@ describe("departure ownership and retained references", () => {
     await useGardenLeaveStore.persist.rehydrate();
     const next = setup();
     await act(async () => {
-      await expect(next.result.current.leaveGarden()).resolves.toBe("0xabc");
+      await expect(next.result.current.leaveGarden()).resolves.toEqual({
+        hash: "0xabc",
+        departed: true,
+      });
     });
     expect(fakes.wallet).toHaveBeenCalledOnce();
     expect(fakes.simulate).toHaveBeenCalledOnce();
@@ -381,7 +388,10 @@ it("reconciles a mined prior departure after membership is absent with no module
   ]);
   expect(result.current.hasPendingDeparture).toBe(true);
   await act(async () => {
-    await expect(result.current.reconcileDeparture()).resolves.toBe("0xabc");
+    await expect(result.current.reconcileDeparture()).resolves.toEqual({
+      hash: "0xabc",
+      departed: true,
+    });
   });
   expect(fakes.module).not.toHaveBeenCalled();
   expect(fakes.simulate).not.toHaveBeenCalled();
@@ -396,7 +406,10 @@ it("preserves restored membership and its new pending join when an older departu
   fakes.rejoined.mockResolvedValue(true);
   const { result, client } = setup();
   await act(async () => {
-    await result.current.reconcileDeparture();
+    await expect(result.current.reconcileDeparture()).resolves.toEqual({
+      hash: "0xabc",
+      departed: false,
+    });
   });
   expect(fakes.rejoined).toHaveBeenCalledWith(42161, address, account, 40n);
   expect(client.getQueryData(gardensKeys.byChain(42161))).toMatchObject([
@@ -420,4 +433,60 @@ it("does not let an old recovered receipt bypass a newer departure block", async
     withoutDepartedMembers([createMockGarden({ id: address, gardeners: [account] })], 42161)[0]
       .gardeners
   ).toEqual([]);
+});
+
+describe("Profile departure options", () => {
+  it("keeps every held role reachable without treating funders as Home membership", () => {
+    fakes.gardens = [
+      createMockGarden({ id: address, gardeners: [account] }),
+      createMockGarden({ id: module, gardeners: [], funders: [account], communities: [account] }),
+    ];
+    const { result } = renderHook(() => useGardenDepartureOptions());
+    expect(result.current.map(({ roles }) => roles)).toEqual([
+      ["gardener"],
+      ["funder", "community"],
+    ]);
+  });
+  it("keeps a known receipt reachable after membership disappears, scoped to account and chain", () => {
+    fakes.gardens = [
+      createMockGarden({ id: address, gardeners: [] }),
+      createMockGarden({ id: module, gardeners: [] }),
+    ];
+    useGardenLeaveStore
+      .getState()
+      .record(
+        { gardenAddress: address, userAddress: account, chainId: 42161 },
+        { hash: "0xabc", sponsored: false }
+      );
+    useGardenLeaveStore
+      .getState()
+      .record(
+        { gardenAddress: module, userAddress: account, chainId: 11155111 },
+        { hash: "0xdef", sponsored: false }
+      );
+    useGardenLeaveStore
+      .getState()
+      .record(
+        { gardenAddress: module, userAddress: module, chainId: 42161 },
+        { hash: "0xdef", sponsored: false }
+      );
+    const { result } = renderHook(() => useGardenDepartureOptions());
+    expect(result.current).toMatchObject([
+      { garden: { id: address }, roles: [], hasPendingDeparture: true },
+    ]);
+    act(() =>
+      useGardenLeaveStore
+        .getState()
+        .clear(
+          { gardenAddress: address, userAddress: account, chainId: 42161 },
+          { hash: "0xabc", sponsored: false }
+        )
+    );
+    expect(result.current).toEqual([]);
+  });
+  it("shows no other account's saved departure after sign-out", () => {
+    fakes.user.mockReturnValue({ primaryAddress: null });
+    const { result } = renderHook(() => useGardenDepartureOptions());
+    expect(result.current).toEqual([]);
+  });
 });

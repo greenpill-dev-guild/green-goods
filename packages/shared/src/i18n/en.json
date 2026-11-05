@@ -2539,7 +2539,6 @@
   "app.garden.gardeners": "Gardeners",
   "app.garden.gardeners.noGardeners": "No gardeners have joined this garden yet.",
   "app.garden.gardeners.gardenerSince": "Gardener since {date}",
-  "app.garden.gardeners.leave": "Use Garden Actions on this garden’s page to leave.",
   "app.garden.insights": "Insights",
   "app.garden.share": "Share Garden",
   "app.garden.shareFailed": "Couldn't share garden",
@@ -8576,7 +8575,6 @@
   "app.home.none.description": "Join a garden to submit work and follow what happens there.",
   "app.home.chooser.description": "Pick the garden Home opens in.",
   "app.profile.issuer.chooseShort": "Choose",
-  "app.garden.leave.menu": "Garden Actions",
   "app.garden.leave.availabilityChecking": "Checking whether this garden supports leaving from the app.",
   "app.garden.leave.unavailable": "Leaving from the app is not available for this garden yet. Ask a steward to remove you.",
   "app.garden.leave.availabilityFailed": "We could not check whether this garden supports leaving from the app. Check your connection and try again.",
@@ -8602,5 +8600,8 @@
   "app.voucher.service.booking": "{service}: {units} for {vouchers} {pluralCount, plural, one {voucher} other {vouchers}}",
   "app.voucher.service.name": "{kind, select, assisted {Assisted session} claude {Claude Team Standard access} hub {Hub visit} lesson {Integration lesson} other {{name}}}",
   "app.voucher.reward.receivedAt": "Arrived {date}",
-  "app.voucher.reward.arrivalUnknown": "Arrival time unavailable"
+  "app.voucher.reward.arrivalUnknown": "Arrival time unavailable",
+  "app.garden.leave.actionFor": "Leave {gardenName}",
+  "app.garden.leave.otherRoles": "Other Garden Roles",
+  "app.garden.leave.previousDepartures": "Previous Departures"
 }

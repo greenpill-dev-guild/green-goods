@@ -30,8 +30,6 @@ type TopNavProps = {
   onGovernanceClick?: () => void;
   /** Shares the garden; renders last in the action stack so the other buttons keep their places. */
   onShareClick?: () => void;
-  /** Additional garden actions beside Share, outside the membership action slot. */
-  gardenActions?: React.ReactNode;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 type ButtonVariant = "work";
@@ -157,7 +155,6 @@ export const TopNav: React.FC<TopNavProps> = ({
   showGovernanceButton = false,
   onGovernanceClick,
   onShareClick,
-  gardenActions,
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
@@ -222,7 +219,6 @@ export const TopNav: React.FC<TopNavProps> = ({
           />
         )}
         <div className="flex items-center gap-4">
-          {gardenActions}
           {garden && onShareClick && (
             <ShareButton
               onClick={onShareClick}

@@ -1,26 +1,21 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { useGardenDepartureOptions } from "@green-goods/shared/hooks/garden/useLeaveGarden";
 import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
+import { useExitPresence } from "@green-goods/shared/hooks/utils/useExitPresence";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiArrowRightSLine,
-  RiErrorWarningLine,
-  RiHomeLine,
-  RiLoader4Line,
-  RiMapPinLine,
-  RiPlantLine,
-} from "@remixicon/react";
-import { useId } from "react";
+import { RiErrorWarningLine, RiLoader4Line, RiPlantLine } from "@remixicon/react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/Cards";
-import { cardVariants } from "@/components/Cards/Card";
-import { Avatar } from "@/components/Display";
+import { LeaveGardenAction } from "@/components/Features/Garden/LeaveGardenAction";
+import { getPwaSheetExitMs } from "@/components/Pwa/sheetStyles";
 import { APP_ROUTES } from "@/config/pwaRouting";
+import { GardenMembershipCard } from "./GardenMembershipCard";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
@@ -29,8 +24,8 @@ interface GardensListProps {
 /**
  * The account's own gardens (`useMyGardens`), each opening its garden, with the
  * active garden marked On Home. Only Home's chip switches the active garden, and
- * joining and requesting to join live on the garden itself, so this list offers
- * none of them.
+ * joining lives on the garden itself. Departure lives here, with its sheet hosted
+ * outside the membership rows so confirmed removal cannot unmount an in-flight command.
  */
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
@@ -38,146 +33,185 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const setGardenFilters = useUIStore((state) => state.setGardenFilters);
   const { gardens: myGardens, isLoaded, isError, refetch } = useMyGardens(primaryAddress);
   const { gardenId: activeGardenId } = useActiveGarden();
-  const detailIdPrefix = useId();
+  const departureOptions = useGardenDepartureOptions();
+  const [selected, setSelected] = useState<{
+    garden: Garden;
+    wasActive: boolean;
+    account: Address;
+  } | null>(null);
+  const [open, setOpen] = useState(false);
+  const [returnHome, setReturnHome] = useState(false);
+  const present = useExitPresence(open, getPwaSheetExitMs);
+
+  useEffect(() => {
+    if (!selected) return;
+    if (!compareAddresses(selected.account, primaryAddress)) {
+      setOpen(false);
+      setSelected(null);
+      setReturnHome(false);
+      return;
+    }
+    if (open || present) return;
+    setSelected(null);
+    setReturnHome(false);
+    if (returnHome) navigate(APP_ROUTES.home, { replace: true, viewTransition: true });
+  }, [selected, open, present, returnHome, primaryAddress, navigate]);
+
+  const startDeparture = (garden: Garden) => {
+    if (!primaryAddress) return;
+    setSelected({
+      garden,
+      wasActive: compareAddresses(garden.id, activeGardenId),
+      account: primaryAddress,
+    });
+    setReturnHome(false);
+    setOpen(true);
+  };
 
   if (!primaryAddress) return null;
+  const outsideMembership = departureOptions.filter(
+    (option) => !myGardens.some(({ garden }) => compareAddresses(garden.id, option.garden.id))
+  );
+  const departureGroups = [
+    {
+      title: "app.garden.leave.otherRoles",
+      options: outsideMembership.filter(({ roles }) => roles.length > 0),
+    },
+    {
+      title: "app.garden.leave.previousDepartures",
+      options: outsideMembership.filter(({ roles }) => roles.length === 0),
+    },
+  ];
 
   return (
-    <section className="flex flex-col gap-2">
-      <h5 className="text-label-md text-text-strong-950">
-        {intl.formatMessage({
-          id: "app.profile.gardens",
-          defaultMessage: "My gardens",
-        })}
-      </h5>
-
-      {!isLoaded && !isError ? (
-        <Card>
-          <EmptyState
-            busy
-            className="w-full"
-            icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
-            title={intl.formatMessage({
-              id: "app.profile.loadingGardens",
-              defaultMessage: "Loading gardens...",
-            })}
-          />
-        </Card>
-      ) : !isLoaded ? (
-        <Card>
-          <EmptyState
-            className="w-full"
-            tone="error"
-            icon={<RiErrorWarningLine />}
-            title={intl.formatMessage({
-              id: "app.profile.gardensUnavailable",
-              defaultMessage: "Gardens are unavailable right now.",
-            })}
-            action={
-              <Button type="button" emphasis="secondary" onClick={refetch}>
-                {intl.formatMessage({
-                  id: "app.home.retry",
-                  defaultMessage: "Retry",
-                })}
-              </Button>
-            }
-          />
-        </Card>
-      ) : myGardens.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {myGardens.map(({ garden }) => {
-            // The active garden's mark shares the place's line under the name, so the name
-            // keeps the row's width and every row keeps one height.
-            const onHome = compareAddresses(garden.id, activeGardenId);
-            const detailId = `${detailIdPrefix}-${garden.id}`;
-            return (
-              <li key={garden.id}>
-                <button
-                  type="button"
-                  data-pressable="card"
-                  onClick={() => navigate(`/home/${garden.id}`)}
-                  // The name names the row; its mark and place describe it.
-                  aria-label={garden.name}
-                  aria-describedby={onHome || garden.location ? detailId : undefined}
-                  className={cn(cardVariants(), "w-full items-center gap-3 text-left")}
-                >
-                  <Avatar>
-                    <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
-                      <RiPlantLine className="w-4" />
-                    </div>
-                  </Avatar>
-                  <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
-                    <div
-                      className="line-clamp-2 min-w-0 max-w-full text-sm font-medium leading-snug [overflow-wrap:anywhere]"
-                      title={garden.name}
-                    >
-                      {garden.name}
-                    </div>
-                    {(onHome || garden.location) && (
-                      <div
-                        id={detailId}
-                        className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600"
-                      >
-                        {onHome && (
-                          <span className="mr-2 flex shrink-0 items-center gap-1 font-medium text-text-strong-950">
-                            <RiHomeLine className="w-3 h-3 shrink-0" aria-hidden="true" />
-                            {intl.formatMessage({
-                              id: "app.profile.gardensOnHome",
-                              defaultMessage: "On Home",
-                            })}
-                          </span>
-                        )}
-                        {garden.location && (
-                          <>
-                            <RiMapPinLine className="w-3 h-3 shrink-0" />
-                            <span className="min-w-0 truncate" title={garden.location}>
-                              {garden.location}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <RiArrowRightSLine
-                    className="h-5 w-5 shrink-0 text-text-soft-400"
-                    aria-hidden="true"
-                  />
-                </button>
-              </li>
-            );
+    <>
+      <section className="flex flex-col gap-2">
+        <h5 className="text-label-md text-text-strong-950">
+          {intl.formatMessage({
+            id: "app.profile.gardens",
+            defaultMessage: "My gardens",
           })}
-        </ul>
-      ) : (
-        <Card>
-          <EmptyState
-            className="w-full"
-            icon={<RiPlantLine />}
-            title={intl.formatMessage({
-              id: "app.profile.noGardensTitle",
-              defaultMessage: "No gardens yet",
-            })}
-            description={intl.formatMessage({
-              id: "app.profile.noGardensDescription",
-              defaultMessage: "Join a garden to start documenting regenerative work",
-            })}
-            action={
-              <Button
-                type="button"
-                onClick={() => {
-                  setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
-                  navigate(APP_ROUTES.explore);
-                }}
-                leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
-              >
-                {intl.formatMessage({
-                  id: "app.profile.discoverGardens",
-                  defaultMessage: "Open Gardens",
-                })}
-              </Button>
-            }
-          />
-        </Card>
-      )}
-    </section>
+        </h5>
+
+        {!isLoaded && !isError ? (
+          <Card>
+            <EmptyState
+              busy
+              className="w-full"
+              icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+              title={intl.formatMessage({
+                id: "app.profile.loadingGardens",
+                defaultMessage: "Loading gardens...",
+              })}
+            />
+          </Card>
+        ) : !isLoaded ? (
+          <Card>
+            <EmptyState
+              className="w-full"
+              tone="error"
+              icon={<RiErrorWarningLine />}
+              title={intl.formatMessage({
+                id: "app.profile.gardensUnavailable",
+                defaultMessage: "Gardens are unavailable right now.",
+              })}
+              action={
+                <Button type="button" emphasis="secondary" onClick={refetch}>
+                  {intl.formatMessage({
+                    id: "app.home.retry",
+                    defaultMessage: "Retry",
+                  })}
+                </Button>
+              }
+            />
+          </Card>
+        ) : myGardens.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {myGardens.map(({ garden, membership }) => (
+              <li key={garden.id}>
+                <GardenMembershipCard
+                  garden={garden}
+                  role={membership.roles[0] ?? (membership.pendingJoin ? "gardener" : undefined)}
+                  onHome={compareAddresses(garden.id, activeGardenId)}
+                  recovering={departureOptions.some(
+                    (option) =>
+                      compareAddresses(option.garden.id, garden.id) && option.hasPendingDeparture
+                  )}
+                  onOpen={() => navigate(`/home/${garden.id}`)}
+                  onLeave={() => startDeparture(garden)}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Card>
+            <EmptyState
+              className="w-full"
+              icon={<RiPlantLine />}
+              title={intl.formatMessage({
+                id: "app.profile.noGardensTitle",
+                defaultMessage: "No gardens yet",
+              })}
+              description={intl.formatMessage({
+                id: "app.profile.noGardensDescription",
+                defaultMessage: "Join a garden to start documenting regenerative work",
+              })}
+              action={
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
+                    navigate(APP_ROUTES.explore);
+                  }}
+                  leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
+                >
+                  {intl.formatMessage({
+                    id: "app.profile.discoverGardens",
+                    defaultMessage: "Open Gardens",
+                  })}
+                </Button>
+              }
+            />
+          </Card>
+        )}
+      </section>
+      {departureGroups.map(({ title, options }) => {
+        return options.length ? (
+          <section key={title} className="flex flex-col gap-2">
+            <h5 className="text-label-md text-text-strong-950">
+              {intl.formatMessage({
+                id: title,
+              })}
+            </h5>
+            <ul className="flex flex-col gap-2">
+              {options.map(({ garden, roles, hasPendingDeparture }) => (
+                <li key={garden.id}>
+                  <GardenMembershipCard
+                    garden={garden}
+                    role={roles[0]}
+                    onHome={false}
+                    recovering={hasPendingDeparture}
+                    onOpen={() => navigate(`/home/${garden.id}`)}
+                    onLeave={() => startDeparture(garden)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null;
+      })}
+      {selected && present && compareAddresses(selected.account, primaryAddress) ? (
+        <LeaveGardenAction
+          key={selected.garden.id}
+          garden={selected.garden}
+          open={open}
+          onClose={() => setOpen(false)}
+          onConfirmed={(departed) => {
+            setReturnHome(departed && selected.wasActive);
+            setOpen(false);
+          }}
+        />
+      ) : null}
+    </>
   );
 };

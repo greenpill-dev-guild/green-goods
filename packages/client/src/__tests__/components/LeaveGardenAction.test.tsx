@@ -1,11 +1,13 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";
 import pt from "@green-goods/shared/i18n/pt.json";
 import type { Garden } from "@green-goods/shared/types/domain";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
+import { IntlProvider } from "react-intl";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LeaveGardenAction } from "../../components/Features/Garden/LeaveGardenAction";
+import { GardenMembershipCard } from "../../views/Profile/GardenMembershipCard";
 
 const account = "0x2222222222222222222222222222222222222222";
 const fakes = vi.hoisted(() => ({
@@ -60,30 +62,43 @@ const garden: Garden = {
   assessments: [],
   works: [],
 };
+function Fixture() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <GardenMembershipCard
+        garden={garden}
+        role="gardener"
+        onHome
+        recovering={fakes.pending}
+        onOpen={() => {}}
+        onLeave={() => setOpen(true)}
+      />
+      <LeaveGardenAction
+        garden={fakes.listed ? garden : { ...garden, gardeners: [] }}
+        open={open}
+        onClose={() => setOpen(false)}
+        onConfirmed={() => setOpen(false)}
+      />
+    </>
+  );
+}
 function setup(locale = "en", messages = en) {
   return render(
     <IntlProvider locale={locale} messages={messages}>
-      <LeaveGardenAction
-        garden={
-          fakes.listed
-            ? garden
-            : {
-                ...garden,
-                gardeners: [],
-                stewards: [],
-                owners: [],
-                evaluators: [],
-                funders: [],
-                communities: [],
-              }
-        }
-      />
+      <Fixture />
     </IntlProvider>
   );
 }
 function open(messages = en) {
-  fireEvent.click(screen.getByRole("button", { name: messages["app.garden.leave.menu"] }));
-  fireEvent.click(screen.getByRole("button", { name: messages["app.garden.leave.action"] }));
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: (fakes.pending
+        ? messages["app.garden.leave.recoveryTitle"]
+        : messages["app.garden.leave.actionFor"]
+      ).replace("{gardenName}", garden.name),
+    })
+  );
 }
 beforeEach(() => {
   Object.defineProperty(window, "matchMedia", {
@@ -106,8 +121,8 @@ beforeEach(() => {
   fakes.listed = true;
   fakes.availability = "available";
   fakes.pending = false;
-  fakes.recover.mockResolvedValue("0xabc");
-  fakes.leave.mockResolvedValue("0xabc");
+  fakes.recover.mockResolvedValue({ hash: "0xabc", departed: true });
+  fakes.leave.mockResolvedValue({ hash: "0xabc", departed: true });
 });
 describe("LeaveGardenAction", () => {
   it.each([
@@ -161,11 +176,6 @@ describe("LeaveGardenAction", () => {
     expect(fakes.error).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
-  it("hides the departure action for a visitor with no role", () => {
-    fakes.listed = false;
-    setup();
-    expect(screen.queryByRole("button", { name: "Garden Actions" })).not.toBeInTheDocument();
-  });
 });
 
 describe("leave availability", () => {
@@ -199,7 +209,7 @@ describe("leave availability", () => {
     fakes.availability = "available";
     view.rerender(
       <IntlProvider locale="en" messages={en}>
-        <LeaveGardenAction garden={garden} />
+        <Fixture />
       </IntlProvider>
     );
     expect(screen.getByRole("button", { name: "Leave Garden" })).toBeEnabled();
@@ -229,13 +239,10 @@ describe("leave confirmation opener focus", () => {
     }));
     try {
       setup();
-      const trigger = screen.getByRole("button", { name: "Garden Actions" });
+      const trigger = screen.getByRole("button", { name: "Leave Test garden" });
       if (entry === "pointer") fireEvent.pointerDown(trigger);
       else trigger.focus();
       fireEvent.click(trigger);
-      const item = screen.getByRole("button", { name: "Leave Garden" });
-      item.focus();
-      fireEvent.click(item);
       await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
       expect(screen.getByRole("dialog")).toHaveAttribute("data-component", "PwaSheet");
       if (dismiss === "Escape") fireEvent.keyDown(document, { key: "Escape" });
@@ -257,8 +264,7 @@ describe("pending departure recovery", () => {
     fakes.listed = false;
     fakes.availability = capability;
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "Garden Actions" }));
-    fireEvent.click(screen.getByRole("button", { name: en["app.garden.leave.recover"] }));
+    open();
     const recover = screen.getByRole("button", { name: en["app.garden.leave.recover"] });
     expect(recover).toBeEnabled();
     expect(screen.getByText(en["app.garden.leave.recoveryInfo"])).toBeInTheDocument();
@@ -274,8 +280,7 @@ describe("pending departure recovery", () => {
     fakes.pending = true;
     fakes.owner = true;
     setup();
-    fireEvent.click(screen.getByRole("button", { name: "Garden Actions" }));
-    fireEvent.click(screen.getByRole("button", { name: en["app.garden.leave.recover"] }));
+    open();
     expect(
       screen.queryByRole("button", { name: en["app.garden.leave.action"] })
     ).not.toBeInTheDocument();
@@ -304,4 +309,14 @@ it("switches an uncertain send in the open dialog to read-only recovery before r
   );
   expect(fakes.leave).toHaveBeenCalledOnce();
   expect(fakes.recover).toHaveBeenCalledOnce();
+});
+
+it("reports recovery rather than a new departure when a stored receipt wins a race with confirm", async () => {
+  fakes.leave.mockResolvedValue({ hash: "0xabc", departed: false });
+  setup();
+  open();
+  fireEvent.click(screen.getByRole("button", { name: "Leave Garden" }));
+  await waitFor(() =>
+    expect(fakes.success).toHaveBeenCalledWith({ title: en["app.garden.leave.recoverySuccess"] })
+  );
 });

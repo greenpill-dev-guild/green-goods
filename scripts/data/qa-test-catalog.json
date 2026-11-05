@@ -2109,18 +2109,18 @@
         "A saved unsent work item for the test garden; repeat with a wallet and a passkey"
       ],
       "steps": [
-        "Open the garden page and choose Garden Actions, then Leave Garden",
+        "Open Profile → Account → My gardens and choose Leave Garden on the garden card; verify the garden page and Gardeners list have no departure action",
         "Verify an absent or old module keeps Leave disabled with unavailable guidance, and unread capability stays disabled with retry guidance",
-        "Read the role, saved-work, promise, loan-request, and rejoin warnings; cancel and verify membership is unchanged and focus returns to Garden Actions; repeat with Escape and Close, and verify the confirmation stays an app bottom sheet at all viewport widths",
+        "Read the role, saved-work, promise, loan-request, and rejoin warnings; cancel and verify membership is unchanged and focus returns to that card’s Leave Garden action; repeat with Escape and Close, and verify the confirmation stays an app bottom sheet at all viewport widths",
         "Confirm Leave Garden and approve the signing prompt; wait for success",
-        "Verify all roles disappear from this account and My gardens; reload while the indexer catches up",
+        "Verify all roles disappear from this account and My gardens; for the active garden, verify the sheet closes before Home shows the remaining-garden chooser, sole garden or Find Your Garden; choosing a remaining garden opens its Home. Leaving another garden stays in Profile. Reload while the indexer catches up",
         "Try Upload all for saved work: it remains saved and blocked without a work submission; restore membership and verify upload becomes available",
         "Repeat as a steward with multiple hats; verify another member and steward removal in the admin still work",
         "As an owner, open Leave Garden and verify the handover explanation with no confirmation action",
         "Reject a signing prompt or interrupt receipt lookup; verify no premature success, Check Previous Departure stays available after membership disappears or capability becomes unreadable, reconciles the same known reference without a new send, and never presents an old receipt as a new departure after rejoin; account or chain changes during preparation send nothing"
       ],
       "expected": "Only a confirmed departure removes every role. Cancel and rejected sends preserve membership. Owners must hand over first. Saved work is retained and cannot upload without membership; promises and pending loan requests warn rather than block. Stale indexer data does not restore membership, and a later join works within the cumulative self-join cap. No claim is made that voting power or a paid voting stake is removed.",
-      "evidence": "Labeled phone and desktop screenshots, confirmed transaction reference, all-role removal, and retained blocked work; authenticated wallet and passkey proof on staging after upgrade",
+      "evidence": "Labeled mobile Profile and next-garden screenshots, confirmed transaction reference, all-role removal, and retained blocked work; authenticated wallet and passkey proof on staging after upgrade",
       "role": "gardener",
       "tags": ["garden-leave", "tx", "recovery"],
       "requiresProduction": false,

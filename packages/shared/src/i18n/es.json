@@ -2539,7 +2539,6 @@
   "app.garden.gardeners": "Jardineros",
   "app.garden.gardeners.noGardeners": "Aún no se han unido jardineros a este jardín.",
   "app.garden.gardeners.gardenerSince": "Jardinero desde el {date}",
-  "app.garden.gardeners.leave": "Para salir, usa Acciones del jardín en la página de este jardín.",
   "app.garden.insights": "Análisis",
   "app.garden.share": "Compartir jardín",
   "app.garden.shareFailed": "No se pudo compartir el jardín",
@@ -8576,7 +8575,6 @@
   "app.home.none.description": "Únete a un jardín para enviar trabajo y seguir lo que pasa allí.",
   "app.home.chooser.description": "Elige el jardín en el que se abre Inicio.",
   "app.profile.issuer.chooseShort": "Elegir",
-  "app.garden.leave.menu": "Acciones del jardín",
   "app.garden.leave.availabilityChecking": "Comprobando si este jardín permite salir desde la aplicación.",
   "app.garden.leave.unavailable": "Este jardín aún no permite salir desde la aplicación. Pide a un responsable que te retire.",
   "app.garden.leave.availabilityFailed": "No pudimos comprobar si este jardín permite salir desde la aplicación. Comprueba tu conexión e inténtalo de nuevo.",
@@ -8602,5 +8600,8 @@
   "app.voucher.service.booking": "{service}: {units} por {vouchers} {pluralCount, plural, one {vale} other {vales}}",
   "app.voucher.service.name": "{kind, select, assisted {Sesión de asistencia} claude {Acceso a Claude Team Standard} hub {Visita al centro} lesson {Clase de integración} other {{name}}}",
   "app.voucher.reward.receivedAt": "Llegó el {date}",
-  "app.voucher.reward.arrivalUnknown": "Fecha de llegada no disponible"
+  "app.voucher.reward.arrivalUnknown": "Fecha de llegada no disponible",
+  "app.garden.leave.actionFor": "Salir de {gardenName}",
+  "app.garden.leave.otherRoles": "Otros roles en jardines",
+  "app.garden.leave.previousDepartures": "Salidas anteriores"
 }

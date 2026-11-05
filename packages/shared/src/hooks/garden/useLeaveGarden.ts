@@ -7,29 +7,57 @@ import { gardensKeys } from "../../config/query-keys/garden";
 import { gardenersKeys, roleKeys } from "../../config/query-keys/identity";
 import { createTracker } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
+import { readMembershipAfterDeparture } from "../../modules/garden/garden-departure-reads";
 import {
-  recordGardenDeparture,
   forgetGardenDeparture,
   getGardenDepartureBlock,
+  recordGardenDeparture,
   withoutDepartedMembers,
 } from "../../modules/garden/garden-departures";
+import { readGardenLeaveAvailability } from "../../modules/garden/garden-leave-availability";
 import {
   createDefaultLeaveGardenPorts,
-  leaveGarden as submitLeave,
-  reconcileLeaveGarden,
   type LeaveGardenCommand,
+  reconcileLeaveGarden,
+  leaveGarden as submitLeave,
 } from "../../modules/garden/leave-garden-command";
-import { readMembershipAfterDeparture } from "../../modules/garden/garden-departure-reads";
+import { gardenMembership } from "../../modules/garden/membership";
 import { removePendingJoin } from "../../modules/garden/pending-joins";
-import type { Garden } from "../../types/domain";
-import { readGardenLeaveAvailability } from "../../modules/garden/garden-leave-availability";
-import { useGardenLeaveStore } from "../../stores/useGardenLeaveStore";
 import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { useGardenLeaveStore } from "../../stores/useGardenLeaveStore";
+import type { Garden } from "../../types/domain";
 import { readGardenMembership } from "../../utils/blockchain/garden-role-reads";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { isNotGardenMemberError, parseContractError } from "../../utils/errors/contract-errors";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
+import { useGardens } from "../blockchain/useBaseLists";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+
+/** Profile keeps every held role and saved receipt reachable, including a departed garden. */
+export function useGardenDepartureOptions() {
+  const { primaryAddress } = useUser();
+  const { data: gardens } = useGardens(DEFAULT_CHAIN_ID);
+  const submissions = useGardenLeaveStore();
+  if (!primaryAddress) return [];
+  return (gardens ?? []).flatMap((garden) => {
+    const roles: GardenRole[] = [...gardenMembership(garden, primaryAddress).roles];
+    if (garden.funders?.some((account) => account.toLowerCase() === primaryAddress.toLowerCase()))
+      roles.push("funder");
+    if (
+      garden.communities?.some((account) => account.toLowerCase() === primaryAddress.toLowerCase())
+    )
+      roles.push("community");
+    const hasPendingDeparture = Boolean(
+      submissions.load({
+        gardenAddress: garden.id as Address,
+        userAddress: primaryAddress,
+        chainId: DEFAULT_CHAIN_ID,
+      })
+    );
+    return roles.length || hasPendingDeparture ? [{ garden, roles, hasPendingDeparture }] : [];
+  });
+}
 
 const trackLeave = createTracker<{ outcome: string; authMode: string; errorFamily?: string }>(
   "garden_leave"
@@ -84,6 +112,7 @@ export function useLeaveGarden(gardenAddress: Address) {
       const recovering =
         mode === "reconcile" ||
         Boolean(useGardenLeaveStore.getState().load({ gardenAddress, userAddress, chainId }));
+      let departed = true;
       const confirmed = async (_command?: LeaveGardenCommand, blockNumber = 0n) => {
         let rejoined = false;
         if (recovering) {
@@ -103,6 +132,7 @@ export function useLeaveGarden(gardenAddress: Address) {
             /* An unknown current role cannot negate the confirmed departure. */
           }
         }
+        departed = !rejoined;
         if (rejoined) forgetGardenDeparture(chainId, gardenAddress, userAddress);
         else {
           recordGardenDeparture(chainId, gardenAddress, userAddress, blockNumber);
@@ -133,7 +163,7 @@ export function useLeaveGarden(gardenAddress: Address) {
           outcome: recovering ? "reconciled" : "success",
           authMode: authMode ?? "unknown",
         });
-        return hash;
+        return { hash, departed };
       } catch (error) {
         // A previous uncertain send or another tab may already have left. Reconcile only after
         // the chain confirms that no role remains; never interpret an RPC failure as departure.
@@ -143,7 +173,7 @@ export function useLeaveGarden(gardenAddress: Address) {
         ) {
           await confirmed();
           trackLeave({ outcome: "already_left", authMode: authMode ?? "unknown" });
-          return null;
+          return { hash: null, departed: true };
         }
         const cancelled = isCancelledTxError(error);
         const pending = error instanceof TransactionConfirmationPendingError;

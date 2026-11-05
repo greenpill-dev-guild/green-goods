@@ -1,18 +1,14 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import en from "@green-goods/shared/i18n/en.json";
-import es from "@green-goods/shared/i18n/es.json";
-import pt from "@green-goods/shared/i18n/pt.json";
-import type { Garden } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
-import { MemoryRouter } from "react-router-dom";
 import { IntlProvider } from "react-intl";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -253,98 +249,15 @@ describe("GardenGardeners", () => {
     );
   });
 
-  describe("how a member leaves the garden", () => {
-    const [ana, bo, , dee, reader] = ["Ana", "Bo", "Caio", "Dee", "Reader"].map(
-      (username, index) => ({ ...members[index], username, isSteward: index < 4 })
-    );
-    const GARDEN_ID = "0x00000000000000000000000000000000000000aa";
-    const record = (roster: Partial<Garden>) => ({ id: GARDEN_ID, ...roster }) as Garden;
-    const readAs = (account: string | null) =>
-      vi
-        .mocked(useUser)
-        .mockImplementation(() => ({ primaryAddress: account }) as ReturnType<typeof useUser>);
-    const renderSection = (
-      garden: Garden,
-      roster: GardenMember[],
-      { locale = "en", catalog = en as Record<string, string> } = {}
-    ) => {
-      vi.mocked(useGardens).mockImplementation(
-        () => ({ data: [garden] }) as unknown as ReturnType<typeof useGardens>
-      );
-      return render(
-        <IntlProvider locale={locale} messages={catalog}>
-          <MemoryRouter>
-            <GardenGardeners members={roster} garden={garden} />
-          </MemoryRouter>
+  it("keeps departure in Profile without a Gardeners action or redirect", () => {
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={en}>
+          <GardenGardeners members={members.slice(0, 2)} />
         </IntlProvider>
-      );
-    };
-    const leaveLine = () => screen.queryByRole("link", { name: /leave/i });
-
-    it.each([
-      ["en", en],
-      ["es", es],
-      ["pt", pt],
-    ])("points a member in %s to the self-service garden page", (locale, catalog) => {
-      readAs(reader.account);
-      const garden = record({ stewards: [ana.account, bo.account], gardeners: [reader.account] });
-      renderSection(garden, [ana, bo, reader], { locale, catalog });
-      expect(
-        screen.getByRole("link", { name: catalog["app.garden.gardeners.leave"] })
-      ).toHaveAttribute("href", `/home/${GARDEN_ID}`);
-    });
-
-    it("lets a garden's only steward find the leave action", () => {
-      readAs(ana.account);
-      renderSection(record({ stewards: [ana.account], gardeners: [] }), [ana]);
-      expect(leaveLine()).toBeInTheDocument();
-    });
-
-    it.each([
-      ["evaluators"],
-      ["owners"],
-    ])("tells a member who is listed only under %s, as Home counts them", (role) => {
-      readAs(reader.account);
-
-      renderSection(record({ stewards: [ana.account], [role]: [reader.account] }), [ana]);
-
-      expect(leaveLine()).toHaveTextContent(en["app.garden.gardeners.leave"]);
-    });
-
-    it.each([
-      ["a signed-out reader", null, { stewards: [ana.account] }, [ana]],
-      ["a reader with no role here", dee.account, { stewards: [ana.account] }, [ana]],
-      [
-        "a funder, who holds no member role",
-        reader.account,
-        { stewards: [ana.account], funders: [reader.account] },
-        [ana],
-      ],
-    ] satisfies Array<
-      [string, string | null, Partial<Garden>, GardenMember[]]
-    >)("stays away from %s", (_reader, account, roster, listed) => {
-      readAs(account);
-
-      renderSection(record(roster), listed);
-
-      expect(leaveLine()).toBeNull();
-    });
-
-    it("shows from the moment a join lands, before the roster lists it, and goes when its time runs out", () => {
-      vi.useFakeTimers();
-      readAs(reader.account);
-      localStorage.setItem(
-        "greengoods:pending-joins",
-        JSON.stringify({ [GARDEN_ID]: { address: reader.account, timestamp: Date.now() } })
-      );
-
-      renderSection(record({ stewards: [ana.account], gardeners: [] }), [ana]);
-      expect(leaveLine()).toHaveTextContent(en["app.garden.gardeners.leave"]);
-
-      act(() => {
-        vi.advanceTimersByTime(15 * 60 * 1000 + 1);
-      });
-      expect(leaveLine()).toBeNull();
-    });
+      </MemoryRouter>
+    );
+    expect(screen.queryByRole("link", { name: /leave/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /leave/i })).not.toBeInTheDocument();
   });
 });

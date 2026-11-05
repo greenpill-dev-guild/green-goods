@@ -4,14 +4,11 @@ import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/Person
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
-import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import {
   RiFileCopyLine,
@@ -22,7 +19,6 @@ import {
 } from "@remixicon/react";
 import { forwardRef, memo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
 import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { AddressCopy } from "@/components/Inputs";
@@ -46,23 +42,6 @@ const DEFAULT_AVATAR = "/images/avatar.png";
 /** A name to show for a member who has published none, before their short address. */
 function contactName(member: GardenMember) {
   return member.username || member.email || member.phone || undefined;
-}
-
-/** Home's Gardeners sheet points to the self-service act on the garden's own page. */
-function GardenLeaveLine({ garden }: { garden: Garden }) {
-  const intl = useIntl();
-  const { primaryAddress } = useUser();
-  const { gardens: myGardens } = useMyGardens(primaryAddress);
-  if (!myGardens.some((mine) => compareAddresses(mine.garden.id, garden.id))) return null;
-  return (
-    <li className="mb-3 list-none" role="presentation">
-      <p className="type-body text-text-sub-600">
-        <Link className="underline" to={`/home/${garden.id}`}>
-          {intl.formatMessage({ id: "app.garden.gardeners.leave" })}
-        </Link>
-      </p>
-    </li>
-  );
 }
 
 /**
@@ -179,7 +158,6 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             <GardenJoinRequestsQueue gardenAddress={garden.id as Address} />
           </li>
         ) : null}
-        {garden ? <GardenLeaveLine garden={garden} /> : null}
         {members.length ? (
           shouldVirtualize ? (
             <List
