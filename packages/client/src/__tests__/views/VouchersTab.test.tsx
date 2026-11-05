@@ -1,3 +1,7 @@
+import { IntlProvider } from "react-intl";
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 /**
  * The wallet's Vouchers tab (PRD-1297 surface 4): what the account holds per issuer, a voucher
  * a booking holds as its own row that opens the booking at its garden, and a return on its way
@@ -84,6 +88,35 @@ function wallet(overrides: Partial<VoucherWalletSnapshot> = {}): VoucherWalletSn
 
 describe("VouchersTab", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    ["en", en, "Hub visit: 4 hours for 1 voucher"],
+    ["es", es, "Visita al centro: 4 horas por 1 vale"],
+    ["pt", pt, "Visita ao centro: 4 horas por 1 vale"],
+  ] as const)("shows the service and booking quantity in %s when a holding opens", (locale, messages, expected) => {
+    const named = {
+      ...TECH_AND_SUN,
+      services: [
+        {
+          name: "Hub visit",
+          unit: "hours",
+          serviceUnits: 4n,
+          voucherUnits: VOUCHER,
+          serviceTermsRef: `0x${"a".repeat(64)}` as const,
+        },
+      ],
+    };
+    render(
+      <IntlProvider locale={locale} messages={messages}>
+        <VouchersTab
+          wallet={wallet({ issuers: [named], holdings: [{ issuer: named, available: VOUCHER }] })}
+          onClose={() => {}}
+        />
+      </IntlProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
 
   it("shows unavailable reads without claiming the account has no vouchers", () => {
     render(
