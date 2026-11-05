@@ -1,4 +1,4 @@
-import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { AppSheet } from "../../Sheets/AppSheet";
 import { useIntl } from "react-intl";
 
 interface LeaveGardenConfirmDialogProps {
@@ -16,7 +16,7 @@ interface LeaveGardenConfirmDialogProps {
   onRetry: () => void;
 }
 
-/** The garden and every departure consequence stay visible before signing. */
+/** App-only departure stays a bottom sheet at every viewport width, with consequences before signing. */
 export function LeaveGardenConfirmDialog({
   open,
   gardenName,
@@ -33,17 +33,18 @@ export function LeaveGardenConfirmDialog({
 }: LeaveGardenConfirmDialogProps) {
   const { formatMessage: message } = useIntl();
   return (
-    <DialogShell
-      open={open}
-      onOpenChange={(next) => {
-        if (!next && !isLeaving) onClose();
+    <AppSheet
+      isOpen={open}
+      onClose={() => {
+        if (!isLeaving) onClose();
       }}
-      title={message(
-        { id: recovery ? "app.garden.leave.recoveryTitle" : "app.garden.leave.title" },
-        { gardenName }
-      )}
-      size="md"
-      sheetSize={isOwner ? "compact" : "tall"}
+      header={{
+        title: message(
+          { id: recovery ? "app.garden.leave.recoveryTitle" : "app.garden.leave.title" },
+          { gardenName }
+        ),
+      }}
+      size={isOwner ? "compact" : "tall"}
       preventClose={isLeaving}
       actions={{
         primary:
@@ -101,6 +102,6 @@ export function LeaveGardenConfirmDialog({
           {failure}
         </p>
       ) : null}
-    </DialogShell>
+    </AppSheet>
   );
 }

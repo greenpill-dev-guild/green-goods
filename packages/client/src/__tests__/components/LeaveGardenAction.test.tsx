@@ -237,6 +237,7 @@ describe("leave confirmation opener focus", () => {
       item.focus();
       fireEvent.click(item);
       await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      expect(screen.getByRole("dialog")).toHaveAttribute("data-component", "PwaSheet");
       if (dismiss === "Escape") fireEvent.keyDown(document, { key: "Escape" });
       else fireEvent.click(screen.getByRole("button", { name: dismiss }));
       await waitFor(() => expect(trigger).toHaveFocus());

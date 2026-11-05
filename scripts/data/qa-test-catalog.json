@@ -2098,7 +2098,7 @@
     {
       "id": "PWA-139",
       "tab": "PWA",
-      "platform": "Desktop Browser (PWA shell)",
+      "platform": "Mobile Browser",
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden",
@@ -2111,7 +2111,7 @@
       "steps": [
         "Open the garden page and choose Garden Actions, then Leave Garden",
         "Verify an absent or old module keeps Leave disabled with unavailable guidance, and unread capability stays disabled with retry guidance",
-        "Read the role, saved-work, promise, loan-request, and rejoin warnings; cancel and verify membership is unchanged and focus returns to Garden Actions; repeat with Escape and Close at phone and desktop widths",
+        "Read the role, saved-work, promise, loan-request, and rejoin warnings; cancel and verify membership is unchanged and focus returns to Garden Actions; repeat with Escape and Close, and verify the confirmation stays an app bottom sheet at all viewport widths",
         "Confirm Leave Garden and approve the signing prompt; wait for success",
         "Verify all roles disappear from this account and My gardens; reload while the indexer catches up",
         "Try Upload all for saved work: it remains saved and blocked without a work submission; restore membership and verify upload becomes available",
