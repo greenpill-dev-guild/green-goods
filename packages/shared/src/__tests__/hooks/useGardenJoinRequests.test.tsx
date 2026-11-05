@@ -1001,7 +1001,7 @@ describe("useAwaitingJoinRequests", () => {
   });
 
   // The service shows a request only to the account's signature, so what this device sent is
-  // kept on the device: Awaiting review survives a relaunch without a signature prompt.
+  // kept on the device: Waiting for approval survives a relaunch without a signature prompt.
   it("keeps the mark through a relaunch from the record the device kept, with no signature", async () => {
     const dialog = await sendRequest(GARDEN_A);
     dialog.unmount();

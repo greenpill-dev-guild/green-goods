@@ -117,6 +117,7 @@ export function gardenCommitmentControllerFixture(
     },
     ownRequest: null,
     pendingClaimRequests: [],
+    takeUpOpen: false,
     canAskAgain: false,
     claimNeedsContext: false,
     membership: { isMember: null, garden: null, unavailable: false, retry: () => undefined },
@@ -720,6 +721,8 @@ export function commitmentSettlementControllerFixture(
       isOnline,
       chainRead,
       isActing,
+      proposalPending: false,
+      transferBlock: () => null,
       now: NOW,
     });
   return {
@@ -771,7 +774,7 @@ export function settlementOperationsControllerFixture(
   const isSettlementOwner =
     overrides.isSettlementOwner ??
     Boolean(viewer && owner && owner.toLowerCase() === viewer.toLowerCase());
-  const isDeployer = overrides.isDeployer ?? false;
+  const isProtocolTeam = overrides.isProtocolTeam ?? false;
   return {
     chainId: DEMO_CHAIN_ID,
     viewer: viewer ?? undefined,
@@ -780,9 +783,9 @@ export function settlementOperationsControllerFixture(
     sourcePaused: false,
     owner,
     isSettlementOwner,
-    isDeployer,
+    isProtocolTeam,
     canConfigureDelivery: isSettlementOwner,
-    showControl: isSettlementOwner || isDeployer,
+    showControl: isSettlementOwner || isProtocolTeam,
     isLoading: false,
     isError: false,
     isPending: false,

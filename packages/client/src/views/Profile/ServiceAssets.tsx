@@ -9,8 +9,11 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { RiCoupon3Line } from "@remixicon/react";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
+import { Card } from "@/components/Cards";
+import { Avatar } from "@/components/Display";
 import { ServiceIssuerOnboarding } from "./ServiceIssuerOnboarding";
 import { ServiceIssuerPanel } from "./ServiceIssuerPanel";
 
@@ -37,34 +40,53 @@ export function ServiceAssets() {
   );
   const record = records.find(({ draft }) => `draft:${draft.id}` === selection);
   const selected = choices.find((choice) => choice.key === selection);
+  const unconfigured = !primaryAddress || (choices.length === 0 && records.length === 0);
   return (
-    <section className="gg-card space-y-4 p-4" data-component="ServiceAssets">
-      <h2 className="text-sm font-semibold leading-5 text-text-strong-950">{text("title")}</h2>
-      <p className="text-sm text-text-sub-600">{text("body")}</p>
-      {!primaryAddress || (choices.length === 0 && records.length === 0) ? (
-        <p className="text-sm text-text-sub-600">{text("unconfigured")}</p>
-      ) : (
-        <>
-          <label htmlFor={id} className="block space-y-1 text-sm">
-            <span>{text("asset")}</span>
-            <NativeSelect id={id} value={selection} onChange={(e) => setSelection(e.target.value)}>
-              <option value="">{text("chooseAsset")}</option>
-              {records.map(({ draft }) => (
-                <option key={draft.id} value={`draft:${draft.id}`}>
-                  {formatMessage({ id: "app.voucher.ob.asset" }, { name: draft.terms.token.name })}
-                </option>
-              ))}
-              {choices.map(({ key, asset }) => (
-                <option key={key} value={key}>
-                  {asset.name} ({asset.symbol})
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
+    <section className="flex flex-col gap-2" data-component="ServiceAssets">
+      <h5 className="text-label-md text-text-strong-950">{text("title")}</h5>
+      <Card>
+        <div className="flex w-full flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Avatar>
+              <RiCoupon3Line className="h-4 w-4 text-primary-on-surface" aria-hidden="true" />
+            </Avatar>
+            <p id={id} className="min-w-0 flex-1 basis-0 text-sm text-text-strong-950">
+              {text("body")}
+            </p>
+            {unconfigured ? null : (
+              <NativeSelect
+                aria-labelledby={id}
+                controlSize="sm"
+                density="condensed"
+                value={selection}
+                onChange={(e) => setSelection(e.target.value)}
+                // Under the sentence on a phone under 390px.
+                className="w-[120px] shrink-0 sm:w-[140px] @max-[358px]:w-full @max-[358px]:basis-full"
+              >
+                <option value="">{text("chooseShort")}</option>
+                {records.map(({ draft }) => (
+                  <option key={draft.id} value={`draft:${draft.id}`}>
+                    {formatMessage(
+                      { id: "app.voucher.ob.asset" },
+                      { name: draft.terms.token.name }
+                    )}
+                  </option>
+                ))}
+                {choices.map(({ key, asset }) => (
+                  <option key={key} value={key}>
+                    {asset.name} ({asset.symbol})
+                  </option>
+                ))}
+              </NativeSelect>
+            )}
+          </div>
+          {unconfigured ? (
+            <p className="text-xs text-text-sub-600">{text("unconfigured")}</p>
+          ) : null}
           {record ? (
             <SelectedServiceDraft key={`${primaryAddress}:${record.draft.id}`} record={record} />
           ) : null}
-          {selected ? (
+          {selected && primaryAddress ? (
             <SelectedServiceAsset
               key={`${authMode}:${passkeyAccountProfile}:${primaryAddress}:${selection}`}
               actor={{
@@ -75,8 +97,8 @@ export function ServiceAssets() {
               assets={selected.route.assets}
             />
           ) : null}
-        </>
-      )}
+        </div>
+      </Card>
     </section>
   );
 }

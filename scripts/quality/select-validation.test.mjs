@@ -1408,6 +1408,8 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
     "packages/shared/src/modules/work/submit.ts",
     "packages/shared/src/hooks/work/useWorkMutation.ts",
     "packages/shared/src/providers/Work.tsx",
+    // The metadata strip every work upload publishes through moved out of modules/work/.
+    "packages/shared/src/modules/media/image-metadata.ts",
   ]) {
     const plan = selectValidation({
       intent: "push",
@@ -1418,11 +1420,14 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
     assert.equal(plan.risk, "critical", changedPath);
     assert.equal(plan.status, "ready", changedPath);
     assert.deepEqual(plan.surfaces, ["shared", "client", "admin", "agent"], changedPath);
-    // Providers shape the authenticated session and work submission is the offline upload
-    // path, so both carry the advisory browser-proof reminder; the work hook does not.
-    const advisoryProof = ["packages/shared/src/providers/", "packages/shared/src/modules/work/"].some(
-      (prefix) => changedPath.startsWith(prefix),
-    )
+    // Providers shape the authenticated session and work submission and its metadata strip are
+    // the offline upload path, so they carry the advisory browser-proof reminder; the work hook
+    // does not.
+    const advisoryProof = [
+      "packages/shared/src/providers/",
+      "packages/shared/src/modules/work/",
+      "packages/shared/src/modules/media/",
+    ].some((prefix) => changedPath.startsWith(prefix))
       ? ["browser-proof"]
       : [];
     // useWorkMutation is fingerprinted by a certified seam, so test-quality guards the registry.
@@ -2278,6 +2283,9 @@ test("signing, sending, queue and session hooks stay critical", () => {
     "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
     "packages/shared/src/hooks/garden/useJoinGarden.ts",
     "packages/shared/src/modules/transactions/wallet-sender.ts",
+    "packages/shared/src/modules/transactions/batch-hold.ts",
+    "packages/shared/src/modules/garden/members-batch.ts",
+    "packages/shared/src/modules/garden/settings-batch.ts",
     "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
   ]) {
     const plan = selectValidation({ intent: "push", changedPaths: [changedPath] });

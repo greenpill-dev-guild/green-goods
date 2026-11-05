@@ -29,8 +29,9 @@ import { ProofState, type ProofStateKind } from "./ProofState";
 
 /**
  * Adding evidence: the one submission flow's evidence kind (DL-131), Media, Details and Review
- * with the promise pinned throughout. Once the proof is in the queue and nothing waits on this
- * screen, the flow hands over to the promise (D7, D18); the toasts carry the rest of the send.
+ * under its four step markers, Start already checked (DL-153), with the promise pinned throughout.
+ * Once the proof is in the queue and nothing waits on this screen, the flow hands over to the
+ * promise (D7, D18); the toasts carry the rest of the send.
  * Domain state and queue effects live in the shared controller; the stage sequence, the forward
  * act and the pinned card in the shared flow.
  */

@@ -13,6 +13,7 @@ import type {
   VoucherWalletScope,
 } from "../../modules/commitment-pooling/service-access-wallet-types";
 import type { Address } from "../../types/domain";
+import { useOnlineStatus } from "../app/useOnlineStatus";
 
 const EMPTY_ADDRESS = `0x${"0".repeat(40)}` as Address;
 
@@ -24,6 +25,7 @@ function rehearsalActive(): boolean {
 
 /** Holdings per issuer token, each booking's escrow and the returns on their way, for one account. */
 export function useVoucherWallet(scope: VoucherWalletScope | null) {
+  const online = useOnlineStatus();
   const rehearsal = scope !== null && scope.sourceChainId === 42161 && rehearsalActive();
   return useQuery({
     queryKey: commitmentPoolingKeys.voucherWallet(
@@ -34,6 +36,15 @@ export function useVoucherWallet(scope: VoucherWalletScope | null) {
     ),
     enabled: scope !== null,
     retry: false,
+    refetchInterval: (query) =>
+      online &&
+      query.state.data &&
+      (query.state.data.returns.length > 0 ||
+        query.state.data.bookings.some((booking) => booking.held > 0n))
+        ? 30_000
+        : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: "always",
     queryFn: async () => {
       if (!scope) throw new Error("Voucher wallet scope required");
       if (!rehearsal) return readLiveVoucherWallet(scope);

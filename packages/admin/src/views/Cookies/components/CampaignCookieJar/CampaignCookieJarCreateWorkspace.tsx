@@ -74,7 +74,7 @@ export function CampaignCookieJarCreateWorkspace({
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
-  const { isDeployer, loading: roleLoading } = useRole();
+  const { isProtocolTeam, loading: roleLoading } = useRole();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens(chainId);
   const {
     factoryAddress,
@@ -200,7 +200,7 @@ export function CampaignCookieJarCreateWorkspace({
     allowlistCount: aggregation.allowlist.length,
     invalidAddressCount: aggregation.invalidAddresses.length,
     metadataUrlsValid,
-    isDeployer,
+    isProtocolTeam,
   });
   const payoutLabel =
     parsedClaimAmount && tokenSymbol
@@ -354,7 +354,7 @@ export function CampaignCookieJarCreateWorkspace({
   const form: CampaignCookieJarCreateFormProps = {
     formatMessage,
     moduleConfigured,
-    isDeployer,
+    isProtocolTeam,
     roleLoading,
     createPending: createJar.isPending,
     gardensLoading,

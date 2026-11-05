@@ -51,6 +51,17 @@ describe("getGardenHypercerts query contract (PRD-559 regression)", () => {
     expect(variables).toMatchObject({ gardenId: "0xGardenAddress", chainId: 42161 });
     expect(source).toBe("getGardenHypercerts");
   });
+
+  // A list reads one row past its window to learn whether the garden has more.
+  // A record the read later drops would leave that row short of the window and
+  // hide every older hypercert, so the indexer leaves it out before the limit.
+  it("leaves out records with no metadata URI before the limit applies", async () => {
+    await getGardenHypercerts("0xGardenAddress", 42161, undefined, 51, reader);
+
+    const [query, variables] = queryMock.mock.calls[0] as [string, Record<string, unknown>];
+    expect(query).toMatch(/metadataUri:\s*\{\s*_neq:\s*""\s*\}/);
+    expect(variables).toMatchObject({ limit: 51 });
+  });
 });
 
 describe("getGardenHypercerts read failures", () => {

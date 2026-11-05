@@ -1,18 +1,34 @@
-import { fireEvent } from "@testing-library/react";
+import { act, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Address } from "@green-goods/shared/types/domain";
 import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { renderWithProviders, screen } from "../test-utils";
 
+const QUIET_PLAN = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
+
 const cookieJarMutationState = vi.hoisted(() => ({
+  plan: vi.fn(),
+  depositError: null as Error | null,
   depositPending: false,
   withdrawPending: false,
   depositMutate: vi.fn(),
   withdrawMutate: vi.fn(),
   depositReset: vi.fn(),
   withdrawReset: vi.fn(),
+  // What a send fails with, kept until reset clears it, as TanStack Query keeps a mutation's error.
+  depositFailure: null as Error | null,
+  withdrawFailure: null as Error | null,
   jarOverrides: {} as Record<string, unknown>,
+  extraJars: [] as Record<string, unknown>[],
+  readOverrides: {} as Record<string, unknown>,
 }));
 
 const GARDEN_ADDRESS = "0x1111111111111111111111111111111111111111" as Address;
@@ -23,23 +39,63 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x9999999999999999999999999999999999999999" }),
 }));
 
-vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", () => ({
-  useCookieJarDeposit: () => ({
-    error: null,
-    isPending: cookieJarMutationState.depositPending,
-    mutate: cookieJarMutationState.depositMutate,
-    reset: cookieJarMutationState.depositReset,
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", async () => {
+  const { useCallback, useState } = await import("react");
+  return {
+    useCookieJarDeposit: () => {
+      const [failure, setFailure] = useState<Error | null>(null);
+      return {
+        error: failure ?? cookieJarMutationState.depositError,
+        isPending: cookieJarMutationState.depositPending,
+        mutate: useCallback((...args: unknown[]) => {
+          cookieJarMutationState.depositMutate(...args);
+          setFailure(cookieJarMutationState.depositFailure);
+        }, []),
+        // Stable, as TanStack Query keeps it: the dialog's open effect depends on it.
+        reset: useCallback(() => {
+          cookieJarMutationState.depositReset();
+          setFailure(null);
+        }, []),
+      };
+    },
+  };
+});
+
+// The dialog's route hold needs a data router; CommunitySheetDescriptor.test proves it.
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
+  useDirtyClose: () => ({
+    onOpenChange: () => undefined,
+    confirmOpen: false,
+    cancelClose: () => undefined,
+    confirmClose: () => undefined,
   }),
 }));
 
-vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", () => ({
-  useCookieJarWithdraw: () => ({
-    error: null,
-    isPending: cookieJarMutationState.withdrawPending,
-    mutate: cookieJarMutationState.withdrawMutate,
-    reset: cookieJarMutationState.withdrawReset,
-  }),
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: cookieJarMutationState.plan,
 }));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", async () => {
+  const { useCallback, useState } = await import("react");
+  return {
+    useCookieJarWithdraw: () => {
+      const [failure, setFailure] = useState<Error | null>(null);
+      return {
+        error: failure,
+        isPending: cookieJarMutationState.withdrawPending,
+        mutate: useCallback((...args: unknown[]) => {
+          cookieJarMutationState.withdrawMutate(...args);
+          setFailure(cookieJarMutationState.withdrawFailure);
+        }, []),
+        // Stable, as TanStack Query keeps it: the dialog's open effect depends on it.
+        reset: useCallback(() => {
+          cookieJarMutationState.withdrawReset();
+          setFailure(null);
+        }, []),
+      };
+    },
+  };
+});
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
   useGardenCookieJars: () => ({
@@ -60,9 +116,11 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
         emergencyWithdrawalEnabled: false,
         ...cookieJarMutationState.jarOverrides,
       },
+      ...cookieJarMutationState.extraJars,
     ],
     isLoading: false,
     moduleConfigured: true,
+    ...cookieJarMutationState.readOverrides,
   }),
 }));
 
@@ -82,9 +140,15 @@ import { CookieJarWithdrawModal } from "@/views/Hub/components/CookieJarWithdraw
 describe("CookieJar payout modals", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    cookieJarMutationState.plan.mockReturnValue(QUIET_PLAN);
+    cookieJarMutationState.depositError = null;
+    cookieJarMutationState.depositFailure = null;
+    cookieJarMutationState.withdrawFailure = null;
     cookieJarMutationState.depositPending = false;
     cookieJarMutationState.withdrawPending = false;
     cookieJarMutationState.jarOverrides = {};
+    cookieJarMutationState.extraJars = [];
+    cookieJarMutationState.readOverrides = {};
   });
 
   it("warns before funding a jar whose claim limit is low, and offers the fix first", () => {
@@ -129,6 +193,152 @@ describe("CookieJar payout modals", () => {
 
     expect(screen.queryByText(/per claim/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+  });
+
+  it("plans the deposit for the chosen jar and says how many signatures it takes", () => {
+    cookieJarMutationState.plan.mockReturnValue({ ...QUIET_PLAN, signatureLine: "2 signatures" });
+    renderWithProviders(
+      <CookieJarDepositModal isOpen onClose={vi.fn()} gardenAddress={GARDEN_ADDRESS} />
+    );
+
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    expect(cookieJarMutationState.plan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        gardenAddress: GARDEN_ADDRESS,
+        target: { kind: "jar", address: JAR_ADDRESS, asset: ASSET_ADDRESS },
+      })
+    );
+  });
+
+  it.each([
+    ["Deposit", vi.fn().mockReturnValue(false)],
+    ["Deposit Anyway", vi.fn().mockReturnValue(true)],
+  ])("pauses %s while an earlier deposit is unknown", (name, lowLimit) => {
+    if (lowLimit()) {
+      cookieJarMutationState.jarOverrides = {
+        assetAddress: getCampaignCookieJarPayoutAsset(DEFAULT_CHAIN_ID, "dai")?.address,
+        decimals: 18,
+        maxWithdrawal: 10n ** 16n,
+        withdrawalInterval: 86400n,
+      };
+    }
+    cookieJarMutationState.plan.mockReturnValue({
+      ...QUIET_PLAN,
+      isHeld: true,
+      isPaused: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "This jar holds 3 DAI now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+        onFixLimit={vi.fn()}
+      />
+    );
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "1" } });
+
+    expect(screen.getByRole("button", { name })).toBeDisabled();
+    expect(screen.getByText(/This jar holds 3 DAI now/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+  });
+
+  it.each([
+    ["an unknown outcome on today's path", "TransactionConfirmationPendingError", false, true],
+    [
+      "an unknown outcome on a route that holds it",
+      "TransactionConfirmationPendingError",
+      true,
+      false,
+    ],
+    ["any other failure on a route that holds", "Error", true, true],
+  ])("for %s, the error line reads as expected", (_case, name, unconfirmedIsHeld, shown) => {
+    cookieJarMutationState.depositError = Object.assign(new Error("No luck"), { name });
+    cookieJarMutationState.plan.mockReturnValue({ ...QUIET_PLAN, unconfirmedIsHeld });
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+
+    expect(Boolean(screen.queryByRole("alert") ?? screen.queryByRole("status"))).toBe(shown);
+  });
+
+  it("clears the amount when a held deposit proves it landed", () => {
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+    const amount = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.change(amount, { target: { value: "1" } });
+    expect(amount.value).toBe("1");
+
+    act(() => cookieJarMutationState.plan.mock.lastCall?.[0].onLanded());
+
+    expect(amount.value).toBe("");
+  });
+
+  it("starts on the garden's first jar when the caller names none", () => {
+    cookieJarMutationState.extraJars = [
+      {
+        jarAddress: "0x4444444444444444444444444444444444444444",
+        assetAddress: ASSET_ADDRESS,
+        balance: 7_000_000n,
+        decimals: 6,
+        maxWithdrawal: 1_000_000n,
+        withdrawalInterval: 3600n,
+      },
+    ];
+
+    renderWithProviders(
+      <CookieJarDepositModal isOpen onClose={vi.fn()} gardenAddress={GARDEN_ADDRESS} />
+    );
+
+    // The balance tile is the first jar's 5, not the second jar's 7.
+    expect(screen.getByText("Jar Balance").parentElement).toHaveTextContent(/^Jar Balance5\b/);
+  });
+
+  // An unread currency would parse a 6-decimal deposit with the 18-decimal fallback.
+  it.each([
+    ["reading", { jars: [] }, /Checking which cookie jars/],
+    ["waiting on decimals", { hasUnreadDecimals: true }, /Checking which cookie jars/],
+    ["back without decimals", { hasDecimalsReadFailure: true }, /Couldn't read this garden's/],
+    ["offline", { jars: [], isPaused: true }, /Cookie jars need a connection/],
+    ["failing", { jars: [], error: new Error("RPC timeout") }, /Couldn't read this garden's/],
+    ["finding no jar", { jars: [], hasNoJar: true }, /No cookie jars found for this garden/],
+    ["unconfigured", { jars: [], moduleConfigured: false }, /Cookie jars aren't available/],
+  ])("offers no amount while the jar read is %s, and Cancel still closes", (_state, read, notice) => {
+    cookieJarMutationState.readOverrides = read;
+    const onClose = vi.fn();
+
+    renderWithProviders(
+      <CookieJarDepositModal isOpen onClose={onClose} gardenAddress={GARDEN_ADDRESS} />
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Fund Cookie Jar" });
+    expect(dialog).toHaveTextContent(notice);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("prevents closing the deposit modal while the deposit mutation is pending", () => {
@@ -188,5 +398,47 @@ describe("CookieJar payout modals", () => {
     });
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps a deposit's unknown outcome on screen until the amount changes", () => {
+    cookieJarMutationState.depositFailure = Object.assign(new Error("No luck"), {
+      name: "TransactionConfirmationPendingError",
+    });
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+    const amount = screen.getByRole("textbox");
+    fireEvent.change(amount, { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+
+    expect(screen.queryByRole("alert") ?? screen.queryByRole("status")).toBeInTheDocument();
+
+    fireEvent.change(amount, { target: { value: "2" } });
+    expect(screen.queryByRole("alert") ?? screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps a failed claim's message on screen until the claim changes", () => {
+    cookieJarMutationState.withdrawFailure = new Error("No luck");
+    renderWithProviders(
+      <CookieJarWithdrawModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+    const amount = screen.getByRole("textbox", { name: "How much" });
+    fireEvent.change(amount, { target: { value: "0.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+
+    fireEvent.change(amount, { target: { value: "0.4" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

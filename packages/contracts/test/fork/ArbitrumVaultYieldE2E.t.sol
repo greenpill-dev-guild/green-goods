@@ -162,7 +162,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         );
 
         // ── Step 14: Configure split destinations ──
-        address cookieJar = address(0xC001);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         address treasury = address(0x7EA5);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);
@@ -221,7 +221,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         uint256 firstShares = yieldSplitter.gardenShares(garden, vault);
         assertGt(firstShares, 0, "first harvest should produce shares");
 
-        address cookieJar = address(0xC010);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         address treasury = address(0x7EB0);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);
@@ -275,7 +275,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));
 
         // Configure other destinations
-        address cookieJar = address(0xC020);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         address treasury = address(0x7EC0);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);
@@ -418,7 +418,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         assertGt(yieldSplitter.gardenShares(garden, vault), 0, "harvest should register shares on repaired vault");
 
-        address cookieJar = address(0xC030);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, address(0x7ED0));
         yieldSplitter.splitYield(garden, yieldAsset, vault);
@@ -549,7 +549,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         yieldSplitter.setGardenHypercertPool(garden, REAL_CV_POOL);
         yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));
 
-        address cookieJar = address(0xC050);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         address treasury = address(0x7EF0);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);

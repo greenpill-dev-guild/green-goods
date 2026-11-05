@@ -210,7 +210,7 @@ ALLOWED_CONTRACT_EVENTS.GnosisVoucherEscrow = new Set([
 ALLOWED_CONTRACT_EVENTS.VoucherEntitlementModule = new Set([
   "IssuerAuthorityConfigured", "VoucherEndpointPinned", "VoucherPauseChanged", "VoucherTermsRegistered",
   "VoucherTermsApproved", "VoucherTermsConsented", "VoucherDistributionPrepared", "VoucherDistributionDispatched",
-  "VoucherResultRecorded",
+  "VoucherResultRecorded", "VoucherDispatchClosed",
 ]);
 ALLOWED_CONTRACT_EVENTS.GnosisVoucherAdapter = new Set([
   "AssetConfigured", "VoucherEndpointPinned", "VoucherPauseChanged", "CommandRecorded", "DistributionResult",

@@ -37,7 +37,10 @@ import type {
 } from "../../../modules/commitment-pooling/voucher-console";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
-import type { PoolFundingSnapshot } from "../../../modules/commitment-pooling/pool-funding";
+import type {
+  PoolFundingSnapshot,
+  PoolFundingTransferBlock,
+} from "../../../modules/commitment-pooling/pool-funding";
 import type {
   CommitmentSettlementChainState,
   SettlementChainAccount,
@@ -303,7 +306,8 @@ export interface CommitmentDialogController {
   refetch: () => Promise<unknown[]>;
 }
 
-export type SettlementActPhase = "signing" | "submitted" | "confirmed" | "failed";
+/** `proposed`: a Safe took it as a proposal, and it holds until the chain shows it ran. */
+export type SettlementActPhase = "signing" | "submitted" | "proposed" | "confirmed" | "failed";
 
 export type SettlementActKind =
   | "queue-funding"
@@ -385,7 +389,7 @@ export interface SettlementOperationsController {
   sourcePaused: boolean | null;
   owner: Address | null;
   isSettlementOwner: boolean;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
   /** Only the module owner may flip the gate; the chain enforces the same rule. */
   canConfigureDelivery: boolean;
   /** Owners and deployers see the card; everyone else does not. */
@@ -422,6 +426,8 @@ export interface ProtocolFundingRow {
   canRetry: boolean;
   canRequeue: boolean;
   canCancel: boolean;
+  /** Why this row's dispatch or resend is held, when the protocol Safe can't send it yet. */
+  sendBlock?: PoolFundingTransferBlock | null;
 }
 
 export interface ProtocolFundingOperationsController {

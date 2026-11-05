@@ -23,6 +23,24 @@ const widths = (process.env.GREEN_GOODS_BROWSER_PROOF_WIDTHS || "375,1024,1440")
   .map((width) => Number(width.trim()))
   .filter((width) => Number.isFinite(width) && width > 0);
 
+// Route proof runs against Brave's native WebMCP by default: the WebMCPTesting feature exposes
+// `document.modelContext` on Brave 155 stable and Brave 156 Beta alike.
+// GREEN_GOODS_BROWSER_PROOF_WEBMCP=injected leaves the switch out, so the page has no native
+// registry and the proof's recording shim takes its place.
+const webMcpLaunchSwitches = {
+  native: ["--enable-features=WebMCPTesting,DevToolsWebMCPSupport"],
+  injected: [],
+};
+
+function resolveWebMcpLaunch(mode = process.env.GREEN_GOODS_BROWSER_PROOF_WEBMCP || "native") {
+  if (!Object.hasOwn(webMcpLaunchSwitches, mode)) {
+    throw new Error(
+      `GREEN_GOODS_BROWSER_PROOF_WEBMCP must be "native" or "injected", not "${mode}".`,
+    );
+  }
+  return { mode, switches: webMcpLaunchSwitches[mode] };
+}
+
 const surfaces = [
   {
     name: "client",
@@ -208,7 +226,7 @@ async function auditLlmsTxt(surface) {
   }
 }
 
-async function launchBrave(braveBinary) {
+async function launchBrave(braveBinary, webMcpLaunch) {
   const userDataDir = path.join(tmpdir(), `green-goods-agentic-browser-proof-${process.pid}`);
   const child = spawn(braveBinary, [
     "--headless=new",
@@ -216,7 +234,7 @@ async function launchBrave(braveBinary) {
     "--disable-dev-shm-usage",
     "--disable-background-networking",
     "--disable-extensions",
-    "--enable-features=WebMCPTesting,DevToolsWebMCPSupport",
+    ...webMcpLaunch.switches,
     "--no-first-run",
     "--no-default-browser-check",
     "--remote-debugging-port=0",
@@ -346,17 +364,25 @@ async function verifyRoute(client, surface, route, width) {
     await client.send("Accessibility.enable", {}, sessionId);
     await client.send("Page.addScriptToEvaluateOnNewDocument", {
       source: `
-        const hasNativeModelContext = 'modelContext' in navigator;
+        // The WebMCP draft serves the registry as document.modelContext; navigator.modelContext is
+        // the alias older builds expose. Without either, the recording shim takes the document
+        // form, the one the client registers on first.
+        const nativeModelContextHost = document.modelContext
+          ? 'document'
+          : navigator.modelContext
+            ? 'navigator'
+            : null;
         window.__agenticProof = {
           consoleErrors: [],
           pageErrors: [],
           webMcp: {
-            mode: hasNativeModelContext ? 'native' : 'injected-model-context',
+            mode: nativeModelContextHost ? 'native' : 'injected-model-context',
+            host: nativeModelContextHost || 'injected',
             registeredTools: []
           }
         };
-        if (!hasNativeModelContext) {
-          Object.defineProperty(navigator, 'modelContext', {
+        if (!nativeModelContextHost) {
+          Object.defineProperty(document, 'modelContext', {
             configurable: true,
             value: {
               registerTool(tool) {
@@ -401,12 +427,18 @@ async function verifyRoute(client, surface, route, width) {
     const runtime = await evaluate(client, sessionId, `
       (async () => {
         const proof = window.__agenticProof || { consoleErrors: [], pageErrors: [] };
-        const modelContext = 'modelContext' in navigator ? navigator.modelContext : undefined;
+        const proofWebMcp = proof.webMcp || { mode: 'unknown', host: null, registeredTools: [] };
+        const modelContextHost = proofWebMcp.host || null;
+        const modelContext = modelContextHost === 'navigator'
+          ? navigator.modelContext
+          : modelContextHost
+            ? document.modelContext
+            : undefined;
+        const nativeModelContext = proofWebMcp.mode === 'native';
         const registeredPublicTools = Array.isArray(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__)
           ? window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__
           : [];
-        const proofWebMcp = proof.webMcp || { mode: 'unknown', registeredTools: [] };
-        const nativeTools = typeof modelContext?.getTools === 'function'
+        const nativeTools = nativeModelContext && typeof modelContext?.getTools === 'function'
           ? await modelContext.getTools()
               .then((tools) => tools.map((tool) => ({
                 name: tool?.name || '',
@@ -419,7 +451,11 @@ async function verifyRoute(client, surface, route, width) {
           name: form.getAttribute('toolname') || '',
           description: form.getAttribute('tooldescription') || ''
         }));
-        const hasRegisteredTools = registeredPublicTools.length > 0 || proofWebMcp.registeredTools.length > 0 || nativeTools.length > 0;
+        // The registry that received the page's tools is the authority: the browser's own list
+        // when it is native, the shim's record when it is injected.
+        const hasRegisteredTools = nativeModelContext
+          ? nativeTools.some((tool) => !tool.error)
+          : proofWebMcp.registeredTools.length > 0;
         const overflowElements = [...document.querySelectorAll('body *')]
           .map((element) => {
             const rect = element.getBoundingClientRect();
@@ -446,17 +482,19 @@ async function verifyRoute(client, surface, route, width) {
           consoleErrors: proof.consoleErrors,
           pageErrors: proof.pageErrors,
           webMcp: {
-            status: hasRegisteredTools
-              ? proofWebMcp.mode === 'injected-model-context'
-                ? 'registered_with_injected_model_context'
-                : 'detected'
+            status: nativeModelContext
+              ? hasRegisteredTools
+                ? 'registered_with_native_model_context'
+                : declarativeTools.length > 0
+                  ? 'detected'
+                  : 'no_tools_registered_with_native_model_context'
               : proofWebMcp.mode === 'injected-model-context'
-                ? 'no_tools_registered_with_injected_model_context'
-              : Boolean(modelContext) || declarativeTools.length > 0
-                ? 'detected'
+                ? hasRegisteredTools
+                  ? 'registered_with_injected_model_context'
+                  : 'no_tools_registered_with_injected_model_context'
                 : 'not_supported',
             proofMode: proofWebMcp.mode,
-            navigatorModelContext: Boolean(modelContext),
+            modelContextHost,
             registerToolType: typeof modelContext?.registerTool,
             registeredPublicTools,
             registeredTools: proofWebMcp.registeredTools,
@@ -515,6 +553,7 @@ async function verifyRoute(client, surface, route, width) {
 
 async function main() {
   ensureBuildOutputs();
+  const webMcpLaunch = resolveWebMcpLaunch();
   const braveBinary = findBraveBinary();
   if (!braveBinary) {
     throw new Error("No Brave binary found for browser proof. Install Brave or set GREEN_GOODS_BRAVE_BIN.");
@@ -523,7 +562,10 @@ async function main() {
   mkdirSync(artifactDir, { recursive: true });
 
   const servedSurfaces = [];
-  const browser = await launchBrave(braveBinary);
+  console.log(
+    `[agentic-browser-proof] WebMCP ${webMcpLaunch.mode}: ${webMcpLaunch.switches.join(" ") || "no WebMCP switches"}`,
+  );
+  const browser = await launchBrave(braveBinary, webMcpLaunch);
   const client = new CdpClient(browser.wsUrl);
   const results = [];
   const llmsTxt = {};
@@ -554,6 +596,7 @@ async function main() {
       proofBoundary:
         "Built-bundle route-entry, console, accessibility-tree summary, reduced-motion, horizontal-overflow, llms.txt, and WebMCP discovery proof. This does not prove seeded/data-rich visual correctness.",
       widths,
+      webMcpLaunch,
       surfaces: servedSurfaces.map((surface) => ({
         name: surface.name,
         origin: surface.origin,

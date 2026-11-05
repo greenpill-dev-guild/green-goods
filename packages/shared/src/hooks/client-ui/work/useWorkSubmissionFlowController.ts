@@ -34,13 +34,8 @@ import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
 import { useCommunityGardenOnramp } from "./useCommunityGardenOnramp";
-import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
+import { type MediaJourneyEvent, useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
-
-type MediaJourneyEvent =
-  | "work_media_preview_failed"
-  | "work_media_removed"
-  | "work_broken_media_removed";
 
 interface PendingLinkRecovery {
   intent: WorkLinkIntent;
@@ -160,7 +155,12 @@ export function useWorkSubmissionFlowController({
     clearActiveDraft,
     legacyRecovery,
     retryHydration,
-  } = useDraftResume({ searchParams, setSearchParams, restoreForm: form.reset });
+  } = useDraftResume({
+    searchParams,
+    setSearchParams,
+    restoreForm: form.reset,
+    work: { ...form, details, audioNotes, location: formLocation },
+  });
   const [retirementAttempt, setRetirementAttempt] = useState(0);
   const { saveOnExit } = useDraftAutoSave(
     {

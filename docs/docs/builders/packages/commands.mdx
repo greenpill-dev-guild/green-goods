@@ -24,7 +24,7 @@ generated_from:
   - scripts/dev/browser.js
   - scripts/dev/package-commands.mjs
   - scripts/dev/test.js
-source_digest: "sha256:f0908a4858faec4d23a6cc197ec207d4d3932b051f68ad8e74c98fcb4e80bc16"
+source_digest: "sha256:101eccc8e44b70962df754da2352cc8e767dc96ec007c490d812b0af009a6712"
 source_of_truth:
   - docs/package.json
   - package.json
@@ -181,20 +181,22 @@ Generated from package manifests and owning command definitions. Start with the 
 |---|---|
 | build | <CopyCommand command="bun run --cwd packages/qa build" /> |
 
-## docs (8)
+## docs (10)
 
 | Script | Invocation from repository root |
 |---|---|
 | audit | <CopyCommand command="bun run --cwd docs audit" /> |
 | build | <CopyCommand command="bun run --cwd docs build" /> |
 | check:search-index | <CopyCommand command="bun run --cwd docs check:search-index" /> |
+| cms:build | <CopyCommand command="bun run --cwd docs cms:build" /> |
+| cms:dev | <CopyCommand command="bun run --cwd docs cms:dev" /> |
 | dev | <CopyCommand command="bun run --cwd docs dev" /> |
 | docusaurus | <CopyCommand command="bun run --cwd docs docusaurus" /> |
 | predev | <CopyCommand command="bun run --cwd docs predev" /> |
 | test | <CopyCommand command="bun run --cwd docs test" /> |
 | typecheck | <CopyCommand command="bun run --cwd docs typecheck" /> |
 
-Total: 97 manifest entries across 9 manifests. The root exposes 17.
+Total: 99 manifest entries across 9 manifests. The root exposes 17.
 
 ## Selectable operations and implementation
 

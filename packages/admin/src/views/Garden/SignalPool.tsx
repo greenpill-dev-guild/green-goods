@@ -33,8 +33,8 @@ import {
  * Unified signal pool management view.
  *
  * Supports both pool types via the :poolType URL param:
- * - "hypercert" -> PoolType.Hypercert (index 0) — hypercert curation
- * - "action"    -> PoolType.Action    (index 1) — action signaling
+ * - "hypercert" -> PoolType.HypercertSignal (index 1) — hypercert curation
+ * - "action"    -> PoolType.ActionSignal    (index 0) — action signaling
  *
  * Both pool types share the same contract ABI (registerHypercert/deregisterHypercert)
  * because "hypercertId" at the contract level is a generic proposal identifier.
@@ -67,7 +67,7 @@ export default function GardenSignalPoolView({
 
   const activePoolType = poolType ?? poolTypeParam;
   const isActionPool = activePoolType === "action";
-  const targetPoolType = isActionPool ? PoolType.Action : PoolType.Hypercert;
+  const targetPoolType = isActionPool ? PoolType.ActionSignal : PoolType.HypercertSignal;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
@@ -75,7 +75,12 @@ export default function GardenSignalPoolView({
   const permissions = useGardenPermissions();
 
   // Load pools from GardensModule — typed with PoolType
-  const { pools } = useGardenPools((gardenId as Address | null) ?? undefined, {
+  const {
+    pools,
+    poolsRead,
+    poolsUnread,
+    refetch: refetchPools,
+  } = useGardenPools((gardenId as Address | null) ?? undefined, {
     enabled: Boolean(gardenId),
   });
 
@@ -110,6 +115,7 @@ export default function GardenSignalPoolView({
     void refetchItems();
     void refetchWeights();
   };
+  const retryPools = () => void refetchPools();
 
   // i18n key helpers based on pool type
   const titleKey = isActionPool ? "app.signal.actionPool.title" : "app.signal.hypercertPool.title";
@@ -250,10 +256,25 @@ export default function GardenSignalPoolView({
         />
       ) : null}
 
-      {/* Pool not deployed */}
-      {!poolAddress && (
-        <Alert variant="info">{formatMessage({ id: "app.signal.poolNotFound" })}</Alert>
-      )}
+      {/* A pool is missing only once the list is read; a failed read offers a retry instead. */}
+      {!poolAddress &&
+        (poolsUnread ? (
+          <EmptyState
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={formatMessage({ id: "app.conviction.loadError.title" })}
+            description={formatMessage({ id: "app.conviction.loadError.description" })}
+            action={
+              <Button type="button" emphasis="secondary" size="compact" onClick={retryPools}>
+                {formatMessage({ id: "app.common.retry" })}
+              </Button>
+            }
+          />
+        ) : (
+          <Alert variant="info">
+            {formatMessage({ id: poolsRead ? "app.signal.poolNotFound" : "app.signal.loading" })}
+          </Alert>
+        ))}
 
       {/* Read errors render inside the weights section below (never as a banner
           above content) so a failed load does not shift the layout. */}

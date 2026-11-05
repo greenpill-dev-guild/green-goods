@@ -8,6 +8,7 @@
 
 import {
   createFakeSmartAccountClient,
+  createMockBatchBudget,
   createMockContractCall,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
@@ -69,6 +70,42 @@ describe("PasskeySender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("asks for the bundler's call gas plus the headroom a call wants", async () => {
+      const prepareUserOperation = vi.fn(async () =>
+        fakePreparedUserOperation(client.account!.address)
+      );
+      Object.assign(client, { prepareUserOperation });
+
+      await sender.sendContractCall(
+        createMockContractCall({ chainId: undefined, gasHeadroomPercent: 50 })
+      );
+      expect(prepareUserOperation).toHaveBeenCalledOnce();
+      expect(mockSendUserOperation).toHaveBeenCalledWith(
+        expect.objectContaining({ callGasLimit: 150_000n })
+      );
+
+      // Any other call is still sized by the bundler.
+      prepareUserOperation.mockClear();
+      mockSendUserOperation.mockClear();
+      await sender.sendContractCall(TEST_CALL);
+      expect(prepareUserOperation).not.toHaveBeenCalled();
+      expect(mockSendUserOperation.mock.calls[0][0]).not.toHaveProperty("callGasLimit");
+    });
+
+    it("quotes a batch at the call gas its send will ask for", async () => {
+      Object.assign(client, {
+        prepareUserOperation: vi.fn(async () => fakePreparedUserOperation(client.account!.address)),
+      });
+      const budget = createMockBatchBudget({ sponsorship: "required" });
+
+      const plain = await sender.preflightBatch([TEST_CALL], budget);
+      const withHeadroom = await sender.preflightBatch(
+        [createMockContractCall({ chainId: undefined, gasHeadroomPercent: 50 })],
+        budget
+      );
+      expect(BigInt(withHeadroom.gas) - BigInt(plain.gas)).toBe(50_000n);
+    });
+
     it.each([
       "kernel-failure",
       "other-account",
@@ -212,25 +249,6 @@ describe("PasskeySender", () => {
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("UserOp failed");
     });
   });
-
-  describe("sendBatch", () => {
-    it("sends multiple calls sequentially and returns the last hash", async () => {
-      const hash1 = `0x${"a".repeat(64)}` as `0x${string}`;
-      const hash2 = `0x${"b".repeat(64)}` as `0x${string}`;
-      mockSendUserOperation.mockResolvedValueOnce(hash1).mockResolvedValueOnce(hash2);
-
-      const calls: ContractCall[] = [TEST_CALL, { ...TEST_CALL, args: [VALID_RECIPIENT, 2000n] }];
-      const result = await sender.sendBatch(calls);
-
-      expect(result.hash).toBe(hash2);
-      expect(result.sponsored).toBe(true);
-      expect(mockSendUserOperation).toHaveBeenCalledTimes(2);
-    });
-
-    it("throws on empty batch", async () => {
-      await expect(sender.sendBatch([])).rejects.toThrow("Cannot send empty batch");
-    });
-  });
 });
 
 describe("passkey chain routing", () => {
@@ -255,16 +273,6 @@ describe("passkey chain routing", () => {
     client.waitForUserOperationReceipt.mockRejectedValue(new Error("receipt unavailable"));
     await expect(new PasskeySender(client).sendContractCall(TEST_CALL)).rejects.toThrow(
       "receipt unavailable"
-    );
-    expect(client.sendUserOperation).toHaveBeenCalledOnce();
-  });
-
-  it("stops a sequential batch at a failed UserOperation", async () => {
-    const client = createFakeSmartAccountClient();
-    const receipt = await client.waitForUserOperationReceipt({ hash: MOCK_TX_HASH });
-    client.waitForUserOperationReceipt.mockResolvedValue({ ...receipt, success: false });
-    await expect(new PasskeySender(client).sendBatch([TEST_CALL, TEST_CALL])).rejects.toThrow(
-      "UserOperation execution reverted"
     );
     expect(client.sendUserOperation).toHaveBeenCalledOnce();
   });

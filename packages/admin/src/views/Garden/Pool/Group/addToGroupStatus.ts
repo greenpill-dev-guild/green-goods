@@ -193,11 +193,17 @@ export function addToGroupStatus(input: {
                 defaultMessage:
                   "Your wallet declined the request. The group is unchanged, and Try Again asks once more.",
               })
-            : formatMessage({
-                id: "cockpit.garden.pool.add.refusedHint",
-                defaultMessage:
-                  "The request didn't go through. The group is unchanged, and Try Again asks once more.",
-              }),
+            : state.overCeilings
+              ? formatMessage({
+                  id: "cockpit.garden.pool.add.overCeilingsHint",
+                  defaultMessage:
+                    "These can't share one signature right now, so nothing was sent. The group is unchanged, and Try Again asks for each one on its own.",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.add.refusedHint",
+                  defaultMessage:
+                    "The request didn't go through. The group is unchanged, and Try Again asks once more.",
+                }),
       };
     case "partial":
       return {

@@ -43,10 +43,11 @@ export function CommitmentSettlementDisbursements({
       : act === "retry"
         ? settlement.acts.retry(disbursementId)
         : settlement.acts.requeue(disbursementId));
+    // The panel's status line says whether it landed or is waiting on a Safe.
     toastService.success({
       title: formatMessage({
-        id: "cockpit.garden.pool.settlement.toast.confirmed",
-        defaultMessage: "Settlement step confirmed",
+        id: "cockpit.garden.pool.settlement.toast.sent",
+        defaultMessage: "Settlement step sent",
       }),
       message: `${idLabel(disbursementId)} · ${hash.slice(0, 10)}…`,
     });

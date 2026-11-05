@@ -22,6 +22,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockUseApp = vi.fn();
 const mockUseYourWorkCount = vi.fn();
 const mockUseUIStore = vi.fn();
+const mockUseActiveGarden = vi.fn();
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
@@ -33,6 +34,10 @@ vi.mock("@green-goods/shared/providers/App", () => ({
 
 vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
   useYourWorkCount: () => mockUseYourWorkCount(),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => mockUseActiveGarden(),
 }));
 
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
@@ -61,10 +66,24 @@ describe("Display mode — AppBar visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseYourWorkCount.mockReturnValue({ count: 0 });
+    mockUseActiveGarden.mockReturnValue({ gardenId: "0xgarden" });
     // Default: no sheets open
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
       selector({ openSheetCount: 0 })
     );
+  });
+
+  it.each([
+    "/home",
+    "/home/explore",
+    "/home/profile",
+  ])("standalone PWA: %s hides the bottom nav until a garden is entered (DL-155)", (route) => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+    mockUseActiveGarden.mockReturnValue({ gardenId: null });
+
+    renderAppBar(route);
+
+    expect(screen.getByTestId("authenticated-nav").className).toContain("translate-y-full");
   });
 
   it("standalone PWA: AppBar (bottom nav) visible", () => {

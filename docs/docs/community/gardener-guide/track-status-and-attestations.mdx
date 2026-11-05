@@ -5,7 +5,7 @@ slug: /community/gardener-guide/track-status-and-attestations
 description: "Follow a submission from your phone to your steward's decision: what each status means, what approval brings, and what to do when work comes back."
 audience: gardener
 owner: docs
-last_verified: 2026-10-29
+last_verified: "2026-11-04"
 feature_status: Live
 image: /img/social/track-status-and-attestations.webp
 goal: "Let a gardener read any status in Your Work, act on a rejection, and understand what approval does and does not bring."
@@ -23,6 +23,8 @@ source_of_truth:
   - packages/client/src/views/Home/Garden/Commitment/serviceRewards.ts
   - packages/client/src/views/Home/Garden/Commitment/ServicePromise.tsx
   - packages/shared/src/modules/commitment-pooling/service-access-wallet.ts
+  - packages/shared/src/modules/commitment-pooling/service-access-live.ts
+  - packages/shared/src/modules/commitment-pooling/service-access-earned-delivery.ts
   - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
   - packages/client/src/views/Home/WorkDashboard/CompletedTab.tsx
   - packages/client/src/views/Home/WorkDashboard/buildPendingRows.ts
@@ -47,22 +49,17 @@ keywords:
   - cookie jar
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Track Your Work
 
 **Your Work** shows what you have recorded for the garden selected on Home: what is still on your phone, what is with your steward, and what they decided. This page explains each status, what approval means, and how rewards differ from approval.
 
-<figure className="gg-figure gg-overview-photo gg-guide-opening">
-  <img src="/img/community/guide-track.webp" alt="Photographs of planting, fence repair, compost and waterway work beside a notebook." width="1672" height="941" loading="eager" />
-</figure>
+<GuideImage src="/img/community/guide-track.webp" alt="Photographs of planting, fence repair, compost and waterway work beside a notebook." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 ## Before you start
 
 - These navigation steps follow the current beta. Use the version your steward asked you to use; [Install and Update](/community/gardener-guide/installing-and-updating) explains choosing the beta.
 - Open the installed app, signed in to the account you submit with.
 - You do not need a signal to look. The list shows what was saved the last time you were online.
-
 
 ## Steps
 
@@ -173,8 +170,8 @@ The voucher pilot is limited to participating members and supported promises. Re
 4. The eligible confirmer acts when the promise is ready. **Kept** records that confirmation; it does not prove a reward transfer arrived.
 5. Check each reward separately. Vouchers and G$ can arrive independently. When voucher holdings are available, **Your Wallet** has a **Vouchers** tab. A missing tab, row or receipt does not prove that a transfer failed; ask your steward before retrying anything.
 
-:::note Current beta limit
-The beta can show agreed voucher terms before confirmation, but it does not yet show live reward-delivery receipts after a promise is kept. A missing reward row does not prove that a reward arrived or that a transfer failed. Ask your steward to check the agreed reward and its delivery record. Do not submit the work again.
+:::note Check delivery separately
+The beta can show agreed voucher terms and, when live delivery information is available, each reward's progress after the promise is kept. A status and a receipt are different checks: a missing reward row or receipt does not prove that a reward arrived or that a transfer failed. If the status is unavailable, delayed or unclear, ask your steward to check the agreed reward and its delivery record. Do not submit the work again.
 :::
 
 Receiving a voucher is separate from using its service. A suitable held voucher can be presented for that service when its booking path is available. Exchanging for another issuer's voucher is optional and does not book the service. Read the exact cost, availability, consent and issuer-approval steps before continuing; do not assume a listed offer means immediate access.
@@ -199,7 +196,7 @@ If the feedback is unclear, ask your steward before you resubmit.
 | It has been **In review** for a long time | Message your steward. If the action has ended, they can no longer decide on it, and you will need to submit under an action that is open |
 | The label is **Checking** and will not change | Leave it. The app is making sure it arrived, and it checks again when you are online. Do not submit it again |
 | **Approved**, but you expected a payment | Approval does not pay by itself. See [How gardeners get rewarded](#how-gardeners-get-rewarded) |
-| A kept pilot promise has no reward receipt | The beta's live delivery view is incomplete. Ask your steward to check the agreed reward; do not submit duplicate work |
+| A kept pilot promise has no reward receipt | Check its reward status, then ask your steward to verify delivery if it is missing or unclear. Do not submit duplicate work |
 | The list looks out of date | Tap the refresh button next to **Upload all**. It needs a signal |
 
 To reach the community, ask in [Discord](https://discord.gg/greenpill).

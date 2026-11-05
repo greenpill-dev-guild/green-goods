@@ -37,12 +37,12 @@ describe("components/Cards/MinimalWorkCard", () => {
     expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
   });
 
-  it("gives feedback in the age's place, never as a second pill", () => {
+  it("keeps the age when the work carries feedback, and never adds a second pill (DL-132)", () => {
     render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
 
     expect(screen.getAllByRole("status")).toHaveLength(1);
-    expect(screen.getByText("Feedback")).toBeInTheDocument();
-    expect(screen.queryByText("2 hr. ago")).not.toBeInTheDocument();
+    expect(screen.getByText("2 hr. ago")).toBeInTheDocument();
+    expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
   });
 
   it("calls onClick when the compact card is pressed", async () => {

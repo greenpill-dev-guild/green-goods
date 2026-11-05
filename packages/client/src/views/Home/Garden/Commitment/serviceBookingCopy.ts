@@ -13,6 +13,12 @@ export function bookingSentence(ctx: BookingContext): string {
     case "open":
     case "notEnough":
       return t("pp.band.openV");
+    case "requestNotSent":
+      return t("wait.requestNotSent");
+    case "requestInTransit":
+      return t("wait.requestInTransit");
+    case "activationInTransit":
+      return t("wait.activationInTransit");
     case "waitingApproval":
       if (member) return t("rd.n.approvalM.b", counted);
       return ctx.sigs ? t("rd.band.approval", { sigs: ctx.sigs }) : t("rd.n.approval.t");
@@ -163,6 +169,8 @@ function vouchersNow(ctx: BookingContext): [bigint, string] {
   const final = ctx.setup?.destination?.finalAllocation ?? null;
   const phrase = (key: string, amount: bigint) => t(key, { unit: unit(amount) });
   switch (ctx.stage) {
+    case "requestNotSent":
+    case "requestInTransit":
     case "waitingApproval":
     case "readyToDeposit":
     case "termsChanged":

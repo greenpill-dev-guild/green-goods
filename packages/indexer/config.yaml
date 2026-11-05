@@ -251,6 +251,7 @@ contracts:
       - event: VoucherTermsConsented(uint256 indexed commitmentId, uint64 indexed revision, address indexed participant)
       - event: VoucherDistributionPrepared(bytes32 indexed entitlementId, uint256 indexed commitmentId, bytes32 payloadHash)
       - event: VoucherDistributionDispatched(bytes32 indexed entitlementId, bytes32 indexed messageId)
+      - event: VoucherDispatchClosed(bytes32 indexed entitlementId, bytes32 indexed payloadHash, bytes32 evidenceHash)
       - event: VoucherResultRecorded(bytes32 indexed entitlementId, uint64 indexed resultSequence, bool success, bytes32 failureHash)
   # Gnosis destination endpoints are pinned to the 24 October pilot deployment records.
   - name: GnosisVoucherAdapter

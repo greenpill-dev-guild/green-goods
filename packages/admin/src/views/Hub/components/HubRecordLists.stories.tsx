@@ -80,7 +80,7 @@ const meta: Meta<typeof HubAssessmentList> = {
     isLoading: false,
     hasDataError: false,
     searchQuery: "",
-    createHref: "/hub/assess/create",
+    createHref: "/hub/assess?item=create-assessment",
     selectedAssessmentId: undefined,
     onClearSearch: fn(),
     onOpenAssessment: fn(),
@@ -121,7 +121,7 @@ const hypercertArgs = {
   isLoading: false,
   hasDataError: false,
   searchQuery: "",
-  createHref: "/hub/certify/create",
+  createHref: "/hub/certify?item=create-hypercert",
   onClearSearch: fn(),
   onOpenHypercert: fn(),
 };
@@ -137,4 +137,27 @@ export const NoHypercerts: Story = {
 /** Evaluators see the tab but cannot mint, so the empty state offers no act. */
 export const NoHypercertsReadOnly: Story = {
   render: () => <HubHypercertList {...hypercertArgs} items={[]} createHref={undefined} />,
+};
+
+/** A garden with more hypercerts than the newest page holds reads the rest on request. */
+export const HypercertsWithOlder: Story = {
+  render: () => (
+    <HubHypercertList
+      {...hypercertArgs}
+      items={HYPERCERTS}
+      older={{ onShowOlder: fn(), isLoading: false }}
+    />
+  ),
+};
+
+/** A search that misses the loaded hypercerts says the older ones aren't read yet. */
+export const HypercertSearchMissesLoaded: Story = {
+  render: () => (
+    <HubHypercertList
+      {...hypercertArgs}
+      items={[]}
+      searchQuery="riverbank"
+      older={{ onShowOlder: fn(), isLoading: false }}
+    />
+  ),
 };

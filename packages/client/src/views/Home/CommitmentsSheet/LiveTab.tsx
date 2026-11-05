@@ -11,13 +11,14 @@ import {
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
 import { RiFilterOffLine } from "@remixicon/react";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useLayoutEffect, useMemo, useState } from "react";
 import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useUIStore";
 import { useIntl } from "react-intl";
 
 import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
-import { gardenAddressFor, groupByGarden } from "./grouping";
+import { AppSheet } from "@/components/Sheets/AppSheet";
+import { foldIdenticalCopies, gardenAddressFor, groupByGarden, type LiveEntry } from "./grouping";
 
 const DIRECTION_FILTERS: { id: CommitmentsDirectionFilter; labelId: string }[] = [
   { id: "all", labelId: "app.commitments.filter.all" },
@@ -41,6 +42,16 @@ export interface LiveTabProps {
   cycleId: bigint | null;
   /** Head each garden's promises with its name; off once the sheet names its one garden. */
   gardenHeadings: boolean;
+  /** A promise's page is open over the sheet, so the list of copies waits for its return. */
+  covered: boolean;
+}
+
+/** The copies a folded row opens: drawn while they close, and already in place on the way back. */
+interface OpenCopies {
+  /** Their fold is found again by its copies: what folds them shifts as their words are read. */
+  ids: ReadonlySet<bigint>;
+  open: boolean;
+  entryMotion: "slide" | "instant";
 }
 
 /**
@@ -50,6 +61,10 @@ export interface LiveTabProps {
  * tab's own grammar at a wider scope. What needs an act is deliberately not a
  * chip: it leads the sort and drives the badge, so it can never be filtered
  * out of sight.
+ *
+ * Identical open copies are one row with their number on the tile (DL-150), and
+ * tapping it lists them in a half sheet, as a cycle's details open over this
+ * sheet. Each copy is its own row into its own page; Back returns to the list.
  */
 export function LiveTab({
   inbox,
@@ -62,32 +77,86 @@ export function LiveTab({
   lead,
   cycleId,
   gardenHeadings,
+  covered,
 }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
     useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live])
   );
+  const [openCopies, setOpenCopies] = useState<OpenCopies>({
+    ids: new Set(),
+    open: false,
+    entryMotion: "slide",
+  });
+  // Back from a copy's page, the list of copies opens again once the sheet under it is showing:
+  // the order they open in by hand, which is what keeps focus, Escape and the list on top.
+  const [wasCovered, setWasCovered] = useState(covered);
+  useLayoutEffect(() => setWasCovered(covered), [covered]);
 
-  const { visible, groups } = useMemo(() => {
+  const { visible, groups, titleOf } = useMemo(() => {
+    const titleOf = ({ commitment }: InboxCommitment) =>
+      commitment.metadataCID ? (byCID.get(commitment.metadataCID)?.title ?? null) : null;
     const filtered: InboxCommitment[] = inbox.live.filter(
       (row) =>
         (direction === "all" || row.commitment.direction === direction) &&
         (cycleId === null || row.commitment.cycleId === cycleId)
     );
+    // One garden named in the header holds every row; otherwise each garden heads its own.
+    const byGarden = gardenHeadings
+      ? groupByGarden(
+          filtered,
+          pools,
+          gardens,
+          formatMessage({ id: "app.commitments.group.other" })
+        )
+      : [{ key: "garden", gardenName: "", rows: filtered }];
     return {
       visible: filtered,
-      // One garden named in the header holds every row; otherwise each garden heads its own.
-      groups: gardenHeadings
-        ? groupByGarden(
-            filtered,
-            pools,
-            gardens,
-            formatMessage({ id: "app.commitments.group.other" })
-          )
-        : [{ key: "garden", gardenName: "", rows: filtered }],
+      titleOf,
+      groups: byGarden.map(({ rows, ...group }) => ({
+        ...group,
+        entries: foldIdenticalCopies(rows, byCID, inbox.failedCommitmentIds),
+      })),
     };
-  }, [inbox.live, direction, cycleId, gardenHeadings, pools, gardens, formatMessage]);
+  }, [
+    inbox.live,
+    inbox.failedCommitmentIds,
+    byCID,
+    direction,
+    cycleId,
+    gardenHeadings,
+    pools,
+    gardens,
+    formatMessage,
+  ]);
+
+  const promiseRow = (row: InboxCommitment, beforeOpen?: () => void) => {
+    const gardenAddress = gardenAddressFor(row, pools);
+    return (
+      <PromiseRow
+        key={row.commitment.id}
+        row={row}
+        title={titleOf(row)}
+        sendFailed={inbox.failedCommitmentIds.has(row.commitment.commitmentId.toString())}
+        onOpen={
+          gardenAddress
+            ? (id) => {
+                beforeOpen?.();
+                onOpenCommitment(gardenAddress, id);
+              }
+            : undefined
+        }
+      />
+    );
+  };
+  const copiesOnScreen = groups
+    .flatMap((group) => group.entries)
+    .find(
+      (entry): entry is Extract<LiveEntry, { kind: "copies" }> =>
+        entry.kind === "copies" &&
+        entry.rows.some((row) => openCopies.ids.has(row.commitment.commitmentId))
+    );
 
   return (
     <CommitmentStateLadder
@@ -181,21 +250,22 @@ export function LiveTab({
               </SheetHeading>
             ) : null}
             <div className="flex flex-col gap-(--gg-list-gap)">
-              {group.rows.map((row) => {
-                const gardenAddress = gardenAddressFor(row, pools);
+              {group.entries.map((entry) => {
+                if (entry.kind === "row") return promiseRow(entry.row);
+                const [first] = entry.rows;
                 return (
                   <PromiseRow
-                    key={row.commitment.id}
-                    row={row}
-                    title={
-                      row.commitment.metadataCID
-                        ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
-                        : null
+                    key={first.commitment.id}
+                    row={first}
+                    title={titleOf(first)}
+                    copies={entry.rows.length}
+                    onOpen={() =>
+                      setOpenCopies({
+                        ids: new Set(entry.rows.map((row) => row.commitment.commitmentId)),
+                        open: true,
+                        entryMotion: "slide",
+                      })
                     }
-                    sendFailed={inbox.failedCommitmentIds.has(
-                      row.commitment.commitmentId.toString()
-                    )}
-                    onOpen={gardenAddress ? (id) => onOpenCommitment(gardenAddress, id) : undefined}
                   />
                 );
               })}
@@ -203,6 +273,32 @@ export function LiveTab({
           </div>
         ))
       )}
+
+      {copiesOnScreen && !covered && !wasCovered ? (
+        <AppSheet
+          isOpen={openCopies.open}
+          entryMotion={openCopies.entryMotion}
+          onClose={() => setOpenCopies((current) => ({ ...current, open: false }))}
+          size="half"
+          header={{
+            title:
+              titleOf(copiesOnScreen.rows[0]) ??
+              formatMessage({ id: "app.commitments.row.untitled" }),
+            description: formatMessage(
+              { id: "app.pool.group.row.name" },
+              { count: copiesOnScreen.rows.length }
+            ),
+          }}
+        >
+          <div className="flex flex-col gap-(--gg-list-gap)">
+            {copiesOnScreen.rows.map((row) =>
+              promiseRow(row, () =>
+                setOpenCopies((current) => ({ ...current, entryMotion: "instant" }))
+              )
+            )}
+          </div>
+        </AppSheet>
+      ) : null}
     </CommitmentStateLadder>
   );
 }

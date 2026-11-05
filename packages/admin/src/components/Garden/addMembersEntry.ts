@@ -10,7 +10,14 @@ import { getRoleLabel } from "./gardenUtils";
 export interface StagedMember {
   address: Address;
   role: GardenRole;
+  /** Why the chain would refuse this row, from the last attempt to add it. */
+  refusal?: string;
 }
+
+/** Which add a row belongs to: a person can have an unsettled add under another role. */
+export const memberRowKey = ({ address, role }: StagedMember) => `${address.toLowerCase()}:${role}`;
+
+export const memberListKey = (rows: readonly StagedMember[]) => rows.map(memberRowKey).join();
 
 /** The roles each address holds today, keyed by lowercase address, in display order. */
 export function buildRolesByAddress(
@@ -84,7 +91,31 @@ export function formatRoleNames(
 }
 
 /** The role every row shares, or null when the list is empty or mixes roles. */
-export function sharedRole(roles: GardenRole[]): GardenRole | null {
+function sharedRole(roles: GardenRole[]): GardenRole | null {
   const [first] = roles;
   return first && roles.every((role) => role === first) ? first : null;
+}
+
+/**
+ * The add button's label. It names the role when every row shares it, and an empty list names the
+ * role the picker would add.
+ */
+export function addMembersSubmitLabel(
+  roles: GardenRole[],
+  pickedRole: GardenRole,
+  formatMessage: IntlShape["formatMessage"]
+): string {
+  const role = roles.length === 0 ? pickedRole : sharedRole(roles);
+  return role
+    ? formatMessage(
+        { id: "admin.addMember.addCountRole" },
+        { count: roles.length, ...getRoleLabel(role, formatMessage) }
+      )
+    : formatMessage(
+        {
+          id: "admin.addMember.addCount",
+          defaultMessage: "{count, plural, one {Add # Member} other {Add # Members}}",
+        },
+        { count: roles.length }
+      );
 }

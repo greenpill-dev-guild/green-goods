@@ -59,6 +59,8 @@ contract MockHatsModuleForJoin is IHatsModule {
         }
     }
 
+    function leaveGarden(address) external { }
+
     function setRole(address garden, address account, GardenRole role, bool enabled) external {
         roles[garden][account][uint8(role)] = enabled;
     }

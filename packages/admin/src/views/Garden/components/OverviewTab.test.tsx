@@ -11,6 +11,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OverviewTab } from "./OverviewTab";
 
+vi.mock("./GardenSetupCard", () => ({ GardenSetupPanel: () => null }));
 vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
   useActionsByUID: () => [
     { id: "42161-7", slug: "agro.harvest_yield", title: "Harvest & Yield Record", inputs: [] },
@@ -35,7 +36,13 @@ const karmaIntegration = {
   isReconciling: false,
   isPending: false,
   error: null,
-  reconcile: vi.fn(async () => "0x1" as const),
+  reconcile: vi.fn(async () => undefined),
+  signatures: 1,
+  progress: null,
+  hold: null,
+  isSettlingHold: false,
+  checkHoldAgain: vi.fn(async () => undefined),
+  moveOnFromHold: vi.fn(async () => undefined),
 } satisfies KarmaIntegrationController;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -51,6 +58,8 @@ function renderOverview({
     <IntlProvider locale="pt" messages={pt}>
       <MemoryRouter>
         <OverviewTab
+          gardenId="0x1111111111111111111111111111111111111111"
+          canManage={false}
           mode="health"
           section={undefined}
           selectedItem={undefined}

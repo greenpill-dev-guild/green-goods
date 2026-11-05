@@ -84,12 +84,10 @@ describe("Pending order and filters", () => {
       place("workshop draft", "draft", "proof", 45),
       place("herbs", "upload", "work", 30),
       place("seed library", "needs", "work", 5),
-      place("to review", "needsReview", "work", 1),
     ]);
 
     expect(sorted.map((row) => row.name)).toEqual([
       "seed library",
-      "to review",
       "compost",
       "herbs",
       "fence proof",

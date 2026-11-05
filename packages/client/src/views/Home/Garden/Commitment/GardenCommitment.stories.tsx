@@ -1,4 +1,8 @@
-import { useServiceAccess, useServiceAccessMutation } from "@green-goods/shared/commitment-pooling";
+import {
+  useCommitmentMetadataFor,
+  useServiceAccess,
+  useServiceAccessMutation,
+} from "@green-goods/shared/commitment-pooling";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
@@ -11,7 +15,7 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { Route, Routes } from "react-router-dom";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { expect, fn, mocked, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
@@ -25,17 +29,25 @@ import {
   withAppPage,
   withClientAppRuntime,
   withProofToast,
-  withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import { GardenCommitment } from "./GardenCommitment";
 
 /** The page reads its garden and promise from the route, as the app mounts it. */
-const withPromiseRoute: Decorator = (Story) => (
-  <Routes>
-    <Route path="/home/:id/commitments/:commitmentId" element={<Story />} />
-  </Routes>
+const withPromiseRoute: Decorator = (Story, context) => (
+  <MemoryRouter initialEntries={[`/home/${JOURNEY_GARDEN}/commitments/9`]}>
+    {context.parameters.notificationState ? (
+      <Navigate
+        to={`/home/${JOURNEY_GARDEN}/commitments/9`}
+        state={context.parameters.notificationState}
+        replace
+      />
+    ) : null}
+    <Routes>
+      <Route path="/home/:id/commitments/:commitmentId" element={<Story />} />
+    </Routes>
+  </MemoryRouter>
 );
 
 const withPortuguese: Decorator = (Story) => (
@@ -44,12 +56,16 @@ const withPortuguese: Decorator = (Story) => (
   </IntlProvider>
 );
 
+type Stage = Parameters<typeof promisePageFixture>[0];
+type Page = ReturnType<typeof promisePageFixture>["controller"];
+
 /**
  * The page's controller, the history and place its sections read, and the
- * neighbours' names, for one stage of the fence repair.
+ * neighbours' names, for one stage of the fence repair, or `reread` as another promise.
  */
-const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
-  const { controller, history } = promisePageFixture(stage);
+const atStage = (stage: Stage, reread?: (page: Page) => Page) => () => {
+  const { controller: fence, history } = promisePageFixture(stage);
+  const controller = reread ? reread(fence) : fence;
   mocked(useServiceAccess).mockReturnValue({
     data: undefined,
     isLoading: false,
@@ -65,7 +81,7 @@ const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
   } as unknown as ReturnType<typeof useServiceAccessMutation>);
   mocked(usePrimaryAddress).mockReturnValue(controller.viewer);
   // This case exercises required Garden Work; the proof-only stages remain legacy promises.
-  if (stage === "working" && controller.detail) {
+  if (stage === "working" && !reread && controller.detail) {
     const commitment = controller.detail.commitment;
     controller.detail = {
       ...controller.detail,
@@ -92,6 +108,7 @@ const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
     };
   }
   mocked(useGardenCommitmentController).mockReturnValue(controller);
+  mocked(useCommitmentMetadataFor).mockReturnValue(fence.metadata);
   mocked(useCommitmentActivity).mockReturnValue({
     events: history,
     isError: false,
@@ -115,6 +132,7 @@ const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
     useServiceAccessMutation,
     usePrimaryAddress,
     useGardenCommitmentController,
+    useCommitmentMetadataFor,
     useCommitmentActivity,
     useCommitmentCycle,
     useGardens,
@@ -135,7 +153,6 @@ const meta: Meta<typeof GardenCommitment> = {
   parameters: { layout: "fullscreen" },
   decorators: [
     withPromiseRoute,
-    withRouter([`/home/${JOURNEY_GARDEN}/commitments/9`]),
     withSeededQueryClient([...JOURNEY_CYCLE_NAMES, ...PROMISE_PAGE_SEEDS]),
     withAppPage,
   ],
@@ -169,6 +186,72 @@ export const InProgress: Story = {
     await expect(linkBox.left).toBeGreaterThan(proofBox.left);
     await expect(proofBox.height).toBe(48);
     await expect(Math.abs(linkBox.width - proofBox.width)).toBeLessThanOrEqual(1);
+  },
+};
+
+/** Amara's own offer as she reads it, before and after a neighbor takes it up. */
+const asOfferCreator =
+  (taken: boolean) =>
+  (page: Page): Page => {
+    const { detail, viewer } = page;
+    if (!detail) return page;
+    const state = taken ? {} : ({ onchainState: "OFFERED", derivedState: "OFFERED" } as const);
+    return {
+      ...page,
+      linkable: false,
+      takeUpOpen: !taken,
+      actKind: taken ? "addProof" : "withdraw",
+      detail: {
+        ...detail,
+        contributors: taken ? detail.contributors : [],
+        commitment: {
+          ...detail.commitment,
+          ...state,
+          direction: "OFFER",
+          commitmentType: "SUPPORT_SERVICE",
+          creator: viewer,
+          leadProvider: taken ? viewer : null,
+          counterparty: taken ? detail.commitment.creator : null,
+        },
+      },
+    };
+  };
+
+/**
+ * Taken up, her offer is hers to prove: Add Proof is the page's one act, and only here does the
+ * page say proof moves it forward (DL-151).
+ */
+export const CreatorAddsProof: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("working", asOfferCreator(true)),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+      "data-component",
+      "CommitmentActionBar"
+    );
+    await expect(canvas.getByRole("region", { name: "Progress and proof" })).toHaveTextContent(
+      "No proof added yet. Proof is what moves this forward."
+    );
+  },
+};
+
+/**
+ * Nobody has taken it up, so the chain takes no proof yet: she can withdraw it, and the page says
+ * when her proof can come (DL-151).
+ */
+export const CreatorBeforeTakeUp: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("working", asOfferCreator(false)),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Withdraw This" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Add Proof" })).toBeNull();
+    const progress = canvas.getByRole("region", { name: "Progress and proof" });
+    await expect(progress).toHaveTextContent(
+      "No proof added yet. You can add it once someone takes this up."
+    );
+    await expect(progress).not.toHaveTextContent("Proof is what moves this forward");
   },
 };
 
@@ -318,4 +401,20 @@ export const ProofFailed: Story = {
       await toasts(canvasElement).findByRole("button", { name: "Open Your Work" })
     ).toBeVisible();
   },
+};
+
+/** Opening a cached notification without ever having loaded its full promise page. */
+export const SavedNotificationOffline: Story = {
+  parameters: {
+    notificationState: {
+      commitmentGarden: JOURNEY_GARDEN,
+      commitment: promisePageFixture("working").controller.detail?.commitment,
+    },
+  },
+  beforeEach: atStage("working", (page) => ({
+    ...page,
+    isOnline: false,
+    status: "loading",
+    detail: null,
+  })),
 };

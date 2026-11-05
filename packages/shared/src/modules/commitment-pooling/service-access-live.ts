@@ -29,6 +29,7 @@ import type {
   ServiceAccessSnapshot,
 } from "./service-access-types";
 import { voucherSetupAvailableActions } from "./service-access-voucher";
+import { readEarnedRewardDelivery } from "./service-access-earned-delivery";
 import { assertServiceActor } from "./service-actor-session";
 import { AdapterABI } from "./service-issuer-abis";
 import { verifyIssuerRewardRoute } from "./service-issuer-chain";
@@ -196,6 +197,8 @@ export function createLiveServiceAccessAdapter(
         verifyIssuerRewardRoute(issuer!, chain)
       ),
     ]);
+    // Current issuer permissions govern new agreements, not the immutable delivery history.
+    if (s.coreState === "FULFILLED") return asset;
     // Authorization is mutable per asset; it cannot inherit another asset's cached route proof.
     const [sourceAuthority, authorization] = await Promise.all([
       chain.read({
@@ -257,6 +260,11 @@ export function createLiveServiceAccessAdapter(
       symbol: asset.symbol,
       decimals: asset.decimals,
     };
+    s.earnedReward = await readEarnedRewardDelivery(
+      s,
+      earnedRouteFor(route)!.adapter.address,
+      chain.read
+    );
     s.complete = true;
     if (s.mode !== "voucher") s.capabilities = routeCapabilities(key);
     try {

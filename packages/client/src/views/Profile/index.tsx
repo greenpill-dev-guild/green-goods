@@ -1,20 +1,24 @@
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatEnsNameForDisplay, chosenPasskeyUsername } from "@green-goods/shared/utils/app/text";
+import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useGardenerProfile } from "@green-goods/shared/hooks/gardener/useGardenerProfile";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
+import { RiArrowLeftLine, RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Profile as UserProfile } from "@/components/Features";
 import { ProfileAvatarEditor } from "@/components/Features/Profile/ProfileAvatarEditor";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
+import { APP_ROUTES } from "@/config/pwaRouting";
 import { ProfileAccount } from "./Account";
 import { ProfileBadges } from "./Badges";
 import { ProfileHelp } from "./Help";
@@ -26,6 +30,15 @@ const Profile: React.FC = () => {
   const { authMode, userName } = useAuthState();
   const { profile } = useGardenerProfile();
   const intl = useIntl();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { gardenId } = useActiveGarden();
+  // Back undoes the step that opened Profile, so Home and Profile never loop in the history. A
+  // Profile opened directly has no step to undo, so it becomes Home.
+  const backToHome = () => {
+    if (location.key === "default") navigate(APP_ROUTES.home, { replace: true });
+    else navigate(-1);
+  };
 
   // Allow deep-linking a tab via ?tab= (e.g. the arrival toast's "Open Help" → ?tab=help).
   const [searchParams] = useSearchParams();
@@ -97,6 +110,17 @@ const Profile: React.FC = () => {
     <section className="flex h-full flex-col">
       {/* Fixed Header */}
       <div ref={measureHeader} className="fixed left-0 top-0 z-10 w-full bg-bg-canvas">
+        {/* Before a garden is entered no app bar shows, so Profile leads back to Home (DL-155). */}
+        {gardenId === null ? (
+          <IconButton
+            emphasis="secondary"
+            size="compact"
+            className="absolute left-4 top-[calc(var(--app-top-offset)+0.5rem)] z-10"
+            onClick={backToHome}
+            aria-label={intl.formatMessage({ id: "app.common.back" })}
+            icon={<RiArrowLeftLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
+          />
+        ) : null}
         {/* The top padding clears the offline banner (16px, in the space --app-top-offset
             keeps below the status bar) with 16px to spare. */}
         <div className="px-4 pt-[calc(var(--app-top-offset)+1rem)] pb-4">

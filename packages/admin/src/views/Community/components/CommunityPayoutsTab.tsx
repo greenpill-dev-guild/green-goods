@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { selectAllocationSplits } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
@@ -24,7 +23,7 @@ import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPane
 
 export type CommunityPayoutsTabProps = Pick<
   CommunityWorkspace,
-  "allocations" | "allocationsAtLimit" | "selectedItem"
+  "allocations" | "allocationsAtLimit" | "allocationsUnread" | "selectedItem"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
@@ -33,19 +32,20 @@ export function CommunityPayoutsTab({
   garden,
   allocations,
   allocationsAtLimit,
+  allocationsUnread,
   selectedItem,
 }: CommunityPayoutsTabProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const allocationSplits = selectAllocationSplits(allocations);
-  const { isDeployer } = useRole();
+  const { isProtocolTeam } = useRole();
   const { isProtocolGarden } = useIsProtocolGarden({
     chainId: garden.chainId,
     gardenId: garden.id as Address,
   });
   // Campaign cookie jars are a protocol-level surface: deployers only, in the
   // Green Goods Community Garden (DL-046).
-  const showCampaignJars = isDeployer && isProtocolGarden;
+  const showCampaignJars = isProtocolTeam && isProtocolGarden;
   const campaignJarsRef = useRef<HTMLElement>(null);
   const campaignJarsRoute = (item: string) =>
     adminRoutes.communityPayouts({ gardenId: garden.id, item });
@@ -56,19 +56,15 @@ export function CommunityPayoutsTab({
       campaignJarsRef.current?.scrollIntoView({ block: "start" });
     }
   }, [selectedItem, showCampaignJars]);
-  // The history list stops at its limit; a full list is a lower bound.
-  const payoutCount = allocationsAtLimit
-    ? formatMessage({ id: "cockpit.community.payouts.countAtLeast" }, { count: allocations.length })
-    : allocations.length;
 
   return (
     <div className="garden-tab-shell">
-      <div className="garden-tab-layout">
+      {/* With no payout to split the rail has nothing to say, so the jars take the width. */}
+      <div className={allocationSplits ? "garden-tab-layout" : "garden-tab-shell"}>
         <div className="garden-tab-main">
           <CookieJarPayoutPanel
             gardenAddress={garden.id as Address}
             gardenName={garden.name}
-            routeAction={selectedItem === "fund-jar" ? "deposit" : null}
             routeEditLimitJar={
               selectedItem?.startsWith(JAR_LIMIT_ROUTE_ITEM_PREFIX)
                 ? selectedItem.slice(JAR_LIMIT_ROUTE_ITEM_PREFIX.length)
@@ -76,6 +72,7 @@ export function CommunityPayoutsTab({
             }
             allocationCount={allocations.length}
             allocationCountAtLeast={allocationsAtLimit}
+            allocationCountUnread={allocationsUnread}
           />
           {showCampaignJars ? (
             <section
@@ -111,27 +108,17 @@ export function CommunityPayoutsTab({
             onClose={() => navigate(campaignJarsRoute(CAMPAIGN_JARS_ROUTE_ITEM))}
           />
         </div>
-        <aside className="garden-tab-rail">
-          <div className="garden-tab-rail-sticky">
-            <AdminCard variant="elevated" className="space-y-3">
-              <AdminCardTitle>
-                {formatMessage({
-                  id: "cockpit.community.payouts.readiness",
-                  defaultMessage: "Payout readiness",
-                })}
-              </AdminCardTitle>
-              {/* A plain row inside the card, not a card of its own (D33). */}
-              <FactList frame="inset">
-                <FactRow
-                  label={formatMessage({
-                    id: "cockpit.community.payouts.historyCount",
-                    defaultMessage: "Payouts so far",
+        {allocationSplits ? (
+          <aside className="garden-tab-rail">
+            <div className="garden-tab-rail-sticky">
+              <AdminCard variant="elevated" className="space-y-3">
+                <AdminCardTitle>
+                  {formatMessage({
+                    id: "cockpit.community.payouts.readiness",
+                    defaultMessage: "Payout readiness",
                   })}
-                  value={payoutCount}
-                />
-              </FactList>
-              {allocationSplits ? (
-                <div className="space-y-1.5 border-t border-stroke-soft pt-3">
+                </AdminCardTitle>
+                <div className="space-y-1.5">
                   <p className="mb-1.5 type-meta-sm font-medium text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.community.yieldAllocationHint",
@@ -149,10 +136,10 @@ export function CommunityPayoutsTab({
                     </div>
                   ))}
                 </div>
-              ) : null}
-            </AdminCard>
-          </div>
-        </aside>
+              </AdminCard>
+            </div>
+          </aside>
+        ) : null}
       </div>
     </div>
   );

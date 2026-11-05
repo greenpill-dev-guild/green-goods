@@ -19,7 +19,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { createPublicClient, encodeFunctionData, getAddress, http, parseAbiItem } from "viem";
+import {
+  ContractFunctionExecutionError,
+  ContractFunctionRevertedError,
+  ContractFunctionZeroDataError,
+  createPublicClient,
+  encodeFunctionData,
+  getAddress,
+  http,
+  parseAbiItem,
+} from "viem";
 
 // ---------------------------------------------------------------------------
 // ABIs (minimal)
@@ -274,6 +283,7 @@ async function loadDeployment(chainId: number) {
     gardensModule?: string;
     gardenToken?: string;
     gardenAccountImpl?: string;
+    gardenAccountProxy?: string;
     rootGarden?: { address: string; tokenId: number };
   };
 }
@@ -336,6 +346,27 @@ async function loadGardenAddressesFromChain(
   const client = createPublicClient({ transport: http(rpcUrl) });
   const gardenToken = getAddress(deployment.gardenToken) as `0x${string}`;
   const gardenAccountImpl = getAddress(deployment.gardenAccountImpl) as `0x${string}`;
+  // Gardens from `firstUpgradeableTokenId` on derive from the proxy. A file with no proxy predates
+  // the split, and a token that has no such read has not started it, so all its gardens are older.
+  const gardenAccountProxy = deployment.gardenAccountProxy
+    ? (getAddress(deployment.gardenAccountProxy) as `0x${string}`)
+    : null;
+  const firstUpgradeableTokenId = gardenAccountProxy
+    ? await client
+        .readContract({
+          address: gardenToken,
+          abi: [parseAbiItem("function firstUpgradeableTokenId() view returns (uint80)")],
+          functionName: "firstUpgradeableTokenId",
+        })
+        .catch((error: unknown) => {
+          const missingRead =
+            error instanceof ContractFunctionExecutionError &&
+            (error.cause instanceof ContractFunctionRevertedError ||
+              error.cause instanceof ContractFunctionZeroDataError);
+          if (missingRead) return null;
+          throw error;
+        })
+    : null;
   const zeroAddress = getAddress(ZERO_ADDRESS) as `0x${string}`;
 
   const logs = await client.getLogs({
@@ -358,7 +389,11 @@ async function loadGardenAddressesFromChain(
         abi: TOKENBOUND_REGISTRY_ABI,
         functionName: "account",
         args: [
-          gardenAccountImpl,
+          gardenAccountProxy &&
+          firstUpgradeableTokenId !== null &&
+          BigInt(tokenId) >= firstUpgradeableTokenId
+            ? gardenAccountProxy
+            : gardenAccountImpl,
           TOKENBOUND_SALT,
           BigInt(chainId),
           gardenToken,

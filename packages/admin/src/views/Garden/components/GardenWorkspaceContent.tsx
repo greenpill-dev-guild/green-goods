@@ -50,6 +50,8 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
       {workspace.view === "health" || workspace.view === "activity" ? (
         <OverviewTab
           chainId={workspace.garden.chainId}
+          gardenId={workspace.garden.id}
+          canManage={workspace.canManage}
           mode={workspace.view}
           section={workspace.section}
           selectedItem={workspace.selectedItem}
@@ -104,9 +106,9 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         />
       ) : null}
 
-      {/* Edit Garden opens from the workspace action over the Overview behind
-          it. Deep-linking to /garden/settings opens it directly; closing
-          returns to Health. */}
+      {/* Edit Garden opens from the workspace action over whichever tab the URL
+          is on, and closing returns there (DL-140). /garden/settings redirects
+          to it over Health. */}
       <EditGardenDialog
         open={workspace.settingsOpen}
         onClose={workspace.handleSettingsClose}

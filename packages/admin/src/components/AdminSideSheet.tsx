@@ -106,6 +106,9 @@ export function AdminSideSheet({
       setInstantExit(true);
     }
   }, [open]);
+  // The AppBar opens these sheets through the sheet registry, not a Radix trigger, so Radix has
+  // nothing to hand focus back to. Remember the opener, as AdminDialog does (DL-117).
+  const openedFrom = useRef<HTMLElement | null>(null);
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
@@ -139,6 +142,10 @@ export function AdminSideSheet({
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-none -translate-x-1/2 flex-col",
             "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
             "sm:w-[var(--admin-side-sheet-width)]",
+            // Docked, the body and footer share the header's 24px inset: the
+            // panels' SheetBody and SheetFooter read these (qa-session
+            // 2026-10-30 OBS-16). The phone sheet keeps 16px throughout.
+            "sm:[--gg-sheet-body-padding:20px_24px] sm:[--gg-sheet-footer-padding:12px_24px]",
             // Solid surface + elevation 2 — dense surfaces stay solid; glass
             // remains Navigation/FAB-only. Below 640px the shared sheet
             // material paints the surface instead.
@@ -164,6 +171,18 @@ export function AdminSideSheet({
             if (preventClose) event.preventDefault();
           }}
           onKeyDown={onKeyDown}
+          onOpenAutoFocus={() => {
+            const active = document.activeElement;
+            openedFrom.current =
+              active instanceof HTMLElement && active !== document.body ? active : null;
+          }}
+          onCloseAutoFocus={(event) => {
+            const target = openedFrom.current;
+            openedFrom.current = null;
+            if (!target?.isConnected) return;
+            event.preventDefault();
+            target.focus();
+          }}
         >
           {rendersAsSheet ? (
             <>

@@ -20,10 +20,10 @@ shows the public record and a donation.
 | 3 | A promise kept | promise-5 | Taken up: 2 vouchers and $20 in G$ | Ifeoma |
 | 4 | A promise kept | work-3 | After the bootcamp, she logs the work | Ifeoma |
 | 5 | A promise kept | approval-3 | The hub's steward checks it and approves | Obinna |
-| 6 | Built for SF.Live | vouchers-1 | Kept: her vouchers and G$ arrive | Ifeoma |
-| 7 | Built for SF.Live | swap-1 | An AI tool seat takes Green Goods vouchers | Ifeoma |
-| 8 | Built for SF.Live | swap-2 | She swaps 8 of her 9 earned vouchers | Ifeoma |
-| 9 | Built for SF.Live | swap-6 | Swapped, she books the seat | Ifeoma |
+| 6 | Built for SF.Live | vouchers-1 | Kept: 2 vouchers and $20 in G$ arrive | Ifeoma |
+| 7 | Built for SF.Live | swap-1 | The seat takes 10 Green Goods vouchers | Ifeoma |
+| 8 | Built for SF.Live | swap-2 | Her promises earned 9; she swaps 8 | Ifeoma |
+| 9 | Built for SF.Live | swap-6 | Holding 10 now, she books the seat | Ifeoma |
 | 10 | Built for SF.Live | swap-7 | Green Goods accepts once four checks pass | A Green Goods steward |
 | 11 | For supporters | impact-2 | Anyone can find the bootcamp on the record | Funmi |
 | 12 | For supporters | funding-5 | Funmi backs the hub with a donation | Funmi |
@@ -33,7 +33,11 @@ come from the appendix, except two whose hotspot leads somewhere the story skips
 her wallet, and impact-2's opens the record, where the story goes on to the donation.
 
 The captions carry what a judge needs to follow the numbers: the reward is $20 in G$ (155,460 G$ on
-screen), and the 8 vouchers she swaps come from the 9 she holds, more than this one promise paid.
+screen); the 9 vouchers she holds come from more promises than this one, which paid 2; she receives
+8 and holds 10 when she books the seat, which costs 10. Three desktop screens in the story zoom into
+their dialog (`focus` in the story's entry: the region's top left corner and its size, as fractions
+of the screen; approval-3 by 1.15, impact-2 by 1.39, funding-5 by 1.79); the appendix shows the
+whole screen.
 
 ## Every step
 
@@ -68,14 +72,24 @@ not add up across them.
 
 ## The page
 
-- **Intro.** What Green Goods is and what was built for SF.Live, "12 screens, about 2 minutes",
-  Start the demo and See every step, the swap's quote on a phone, and the story's four chapters
-  (each opens the story there).
+- **Intro.** What Green Goods is and what was built for SF.Live, the three people and the hub,
+  "12 screens, about 2 minutes", what "In pilot" means (the same sentence is the chip's title
+  everywhere), Start the demo and See every step, the swap's quote on a phone, and the story's four
+  chapters (each opens the story there). On a laptop window (under 960px tall) the intro and the
+  close tighten so neither scrolls.
 - **One screen at a time on a fixed stage.** The bar (the way back, a strip with one bar per screen
   grouped by chapter, the theme switch), the device, the who-you-are row, a two-line caption
   and the controls (Back, "5 of 12", Next) each keep one place and one height, so nothing moves from
-  screen to screen. Phone and desktop screens share the stage: a phone screen stands in the middle
-  at the same height as a desktop one.
+  screen to screen. On a wide landscape window (1000px and up) the words stand in a column of fixed
+  width at the right, so the device takes the whole height under the bar: a phone screen fills it
+  and a desktop screen fills the width beside the column, both centered on one line. There the
+  caption is set in the deck's serif as the screen's headline, a chapter's intro stands under it on
+  the every-step track, and the story's first screen carries the one hint ("Tap the ring on the
+  screen, or press →"). The body is no wider than the words-under-the-device layout needed for a
+  desktop screen (and never under 92% of the window), so the column comes in from the edge where
+  there is room, and a phone screen shifts toward the words. The DASHBOARD and WEBSITE chips carry
+  their own tints, so a change of hands shows before the words do. Narrower, or in portrait, the
+  words sit under the device, and phone and desktop screens share the stage at one height.
 - **Moving on.** Next, the Right arrow, or the pulsing hotspot on the control a person would tap,
   which does what Next does. A tap elsewhere on the screen only points at the hotspot again. Back,
   the Left arrow, the browser's back and the app's own back arrows, close buttons and Cancel go
@@ -84,9 +98,10 @@ not add up across them.
   the intro, See every step on the close, and on the chapter list the first tile, or the tile of
   the chapter just left. Entering the story or a chapter puts it on Next. No view's id is the name
   of a link, since the browser moves focus to whatever element a hash names.
-- **Endings.** The story's Finish opens a close: a recap, a pointer back to the deck, See every
-  step, Start over, a link to TAS HUB's live page on greengoods.app, and the story's four chapters
-  as cards, each with one of its screens, that open the story there. Every step ends back at its
+- **Endings.** The story's Finish opens a close: a recap, See every step, Start over, the pitch deck
+  and the brief (the Drive PDFs, shared with anyone who has the link), a link to TAS HUB's page on
+  beta.greengoods.app, and the story's four chapters as cards, each with one of its screens, that
+  open the story there. Every step ends back at its
   chapter list, whose tiles name each chapter's surfaces from its screens (Vouchers and Swap end
   in the dashboard).
 - **Links.** Plain anchors, the only kind an artifact link carries: `#story-5` opens the story's
@@ -94,11 +109,15 @@ not add up across them.
   `#/work/3` links still open.
 - **Theme.** The page follows the viewer's light or dark setting, with a switch; the screens stay as
   captured, and in dark the devices keep a lighter edge so they stand off the page.
+- **Loading.** The built page inlines the screens in a block after the page's script, with a marker
+  in the head, so the intro draws complete at once and each image waits, hidden, until the file has
+  arrived; 8.8 MB takes about 4 seconds at 20 Mbps and 2 at 50.
 
 - Drive: `Shared drives/Greenpill Dev Guild/Product/Green Goods/Growth/SF Live 2026/Green Goods SF Live 2026 Demo.html`
 - Artifact: a Claude artifact shared by link for the submission. Its link stays out of this
   public repository, because the built page shows identifiable people and a member's proof.
 - UI review of every screen: [`ui-review-2026-10-27.md`](ui-review-2026-10-27.md)
+- Review of the page as a judge meets it, after the wide layout: [`artifact-review-2026-10-27.md`](artifact-review-2026-10-27.md)
 
 ## Where the screens come from
 
@@ -129,9 +148,10 @@ wallet's Vouchers tab (vouchers-2, vouchers-8), a panel shown alone, which keeps
 | [`index.html`](index.html) | The page: intro, player, close and chapter list, and the `#flows` block: the story (its chapters, lines, captions and who you are) and every step (each screen's caption, step, who you are, source, hotspot, back regions and alt text). It shows the screens from `assets/screens/` when they are present |
 | [`photos.mjs`](photos.mjs) | Saves the hub's public submission photos as `assets/photos/record-NN.jpg`, and crops the course proof to `proof-course.jpg` from `proof-raw.jpg`, a raw copy placed by hand from the private handoff (it shows a member's name and email, so no address for it appears in this repository). It replaces the set whole, backed up first: one failed download, or a body that is not an image, leaves the old set untouched and exits 1 |
 | [`capture.mjs`](capture.mjs) | Walks each chapter's sessions in the app and Storybook, captures the 50 screens, swaps in names and the hub's content, and writes each screen's source, size, hotspot and back regions into `#flows` |
-| [`build.mjs`](build.mjs) | Inlines the screens and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper), reading the page and screens under the capture's publication lock and promoting the pair together. A missing screen, a page over 15 MB or a partial capture's marker fails the build before it writes |
+| [`build.mjs`](build.mjs) | Inlines the screens (after the page's script, with a marker in the head) and the corner symbol into `output/green-goods-sf-live-demo.html` (the Drive copy) and `output/artifact.html` (the same page without its document wrapper), reading the page and screens under the capture's publication lock and promoting the pair together. A missing screen, a page over 15 MB or a partial capture's marker fails the build before it writes |
 | [`check.mjs`](check.mjs) | Checks the build and the artifact copy (it must match the build and open its deep links inside the Artifact tool's wrapper), walks the story and every step headless, and holds the player's parts to one place on every screen; screenshots each screen and a contact sheet into `output/` |
 | `assets/screens/`, `assets/photos/`, `output/` | Local files, not committed: the photos, the screens and the built page show identifiable people |
+| [`artifact-review-2026-10-27.md`](artifact-review-2026-10-27.md) | The page as a judge meets it, after the wide layout of 27 October: what changed, then nine areas to strengthen, each with evidence and a fix; eight of them applied on 28 October, as its first section records |
 
 ## Capture, build and check
 
@@ -551,5 +571,35 @@ Agent/model: Claude Code / Claude Opus 5.5 | Coverage: `index.html` and `check.m
 | investigate | 11:26 → 11:36 | A review thread on #1317: the intro's and the close's See every step and the chapter list's Intro left focus on the page, since the view switch placed focus only on the way back from the player. Reproduced headless on the merged build. A second cause turned up: the close and the chapter list had the ids `end` and `steps`, the names of the links that open them, so whenever a move went through the hash (the page's fallback when `pushState` is refused, and one of the browser's back steps) the browser moved focus to that view and, as it cannot take focus, on to the page |
 | implement | 11:30 → 11:38 | Every change of view puts focus on the new view's first control; coming back from a chapter still lands on its tile, and the page's first view takes none. The two views are now `end-view` and `steps-view`. `check.mjs`'s keyboard walk opens `#steps`, `#end` and `#intro` and presses Intro, See every step on the close and See every step on the intro, checking focus after each link and each button |
 | verify | 11:33 → 11:45 | Before: focus on the page after all three buttons, and after See every step with `pushState` refused. After: Start, See every step or the first tile in every case, with history working, refused, and walked back and forward; the way back from the player unchanged. `build.mjs` 8.81 MB; `check.mjs` exit 0 (62 screens, 35 back regions) |
+
+Human corrections: 0 observed in this segment; attention unknown.
+
+## Task record · larger screens beside the words
+
+| Phase | Start → end (UTC, 27 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| investigate | 20:10 → 20:22 | Afo's feedback: the devices too small, with the words under them and empty space at the sides. The published artifact read back and found byte-identical to a build of this branch's `index.html`; its screens extracted to `assets/screens/` so `build.mjs` and `check.mjs` run here. Measured at 1440x900 a phone screen was 301px wide and at 1280x720 220px, with 325px of each window's height under the bar going to the words |
+| implement | 20:22 → 20:33 | The player's body holds the stage and a side block; wide and landscape (1000px and up) the words stand in a fixed column at the right and the device takes the body's height in the space that remains, a phone centered, a desktop screen width-bound; the caption in Fraunces as the screen's headline, the counter above Back and Next. A first cut centered the pair, and `check.mjs` showed the controls moving 300px between phone and desktop screens; fixed by holding the column. `check.mjs` measures the body, holds the device's middle beside the words and keeps the pinned top and bottom under them |
+| verify | 20:26 → 20:35 | Phone screens 300px at 1280x720 (+36%), 383px at 1440x900 (+27%), 467px at 1920x1080; desktop screens 883px at 1280x720 (+25%), 1012px at 1440x900; the 390px layout unchanged; every caption within two lines from 1024x768 to 2560x1440; `check.mjs` exit 0 (62 screens, 35 back regions); dark mode inspected. Published as artifact version 17; the Drive copy not refreshed. Load measured for the review: 4.2 s at 20 Mbps, 2.0 s at 50 Mbps |
+
+Human corrections: 0 observed in this segment; attention unknown.
+
+## Task record · the judge's review applied
+
+| Phase | Start → end (UTC, 28 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| investigate | 00:40 → 00:52 | Afo accepted eight of the review's nine areas, and added three: the intro and the close still scrolled on a laptop (36px at 1440x789, 63px at 1280x720, 138px at 1366x650, measured headless), the column stood at the window's edge away from a phone screen, and site links should open the beta. The beta route could not be fetched from this container (greengoods.app is not reachable here). The deck and brief PDFs found in Drive, shared with anyone who has the link; the "In pilot" sentence taken from the claim ledger's C103 |
+| implement | 00:52 → 01:20 | The screens inlined after the page's script with `paint()` waiting for them; `focus` regions on three desktop story screens, drawn through a scaled pane so hotspots and back regions move with the image; the people line and the pilot note on the intro, the note as every chip's title; four captions that carry the numbers; deck, brief and beta links on the close; the chapter intro beside every-step screens and on the tiles; the one hint and bar hover; tints for the DASHBOARD and WEBSITE chips; a laptop tier under 900px and a shorter one under 700px; the body bounded so the column tucks in, a phone screen shifted toward the words |
+| verify | 01:05 → 01:30 | No view scrolls at 1440x789, 1440x760, 1280x720, 1280x680, 1366x650, 1512x860 or 1024x700; every caption within two lines from 1024x768 to 2560x1440; phone screens 300px at 1280x720 and 383px at 1440x900 as before, desktop screens 783px at 1280x720 and 986px at 1440x900 (the tuck's cost against yesterday's 883px and 1012px, never under the words-under layout's 704px and 987px); `check.mjs` on the build (result in the commit message); published to the artifact; the Drive copy not refreshed |
+
+Human corrections: 1 observed in this segment (the column's distance from a phone screen, and the laptop fit, raised after the first publish); attention unknown.
+
+## Task record · the deck's words in the demo
+
+| Phase | Start → end (UTC, 28 October 2026, approximate) | Result / evidence |
+|---|---|---|
+| investigate | 01:40 → 01:50 | The 17-slide deck read from Drive and the branch pulled to its merge. The deck does not link into the demo; its slide 10 carries two of the demo's captures. What carries over is wording: "commitment pooling" as the name of what was built, vouchers on Cosmo-Local Credit from Grassroots Economics, and the status line "deployed on public networks and in pilot with Tech and Sun; rehearsed end to end with demo accounts" |
+| implement | 01:50 → 02:00 | The intro's lede says what SF.Live built in the deck's words; the "In pilot" note is the deck's status line, on the intro and as every chip's title; the laptop tier now covers windows under 960px tall, since the longer lede scrolled 49px at exactly 1440x900 |
+| verify | 01:55 → 02:10 | No view scrolls at 1440x900, 1440x789, 1440x760, 1280x720, 1280x680, 1366x650, 1512x860 or 1024x700; `check.mjs` on the build (result in the commit message); published to the artifact. The Drive copy could not be written from this session: the Drive tool takes a file's content as one call, which an 8.8 MB page cannot pass, and no other Google credential is available here; the built page was handed over for a manual upload |
 
 Human corrections: 0 observed in this segment; attention unknown.

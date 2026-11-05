@@ -8,7 +8,7 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import { encodeFunctionData, toEventSelector, type Hex } from "viem";
+import { decodeFunctionData, encodeFunctionData, parseAbi, toEventSelector, type Hex } from "viem";
 import type { SmartAccountClientResolver } from "../../types/auth";
 import {
   assertSmartAccountClient,
@@ -17,10 +17,12 @@ import {
 } from "../auth/smartAccountClientResolver";
 import { getUserOperationHash } from "viem/account-abstraction";
 import { logger } from "../app/logger";
+import { withGasHeadroom } from "./gas-headroom";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import {
   assertTypedDataChain,
   TransactionRevertedError,
+  type AtomicBatchOptions,
   type BroadcastConfirmation,
   type BroadcastReference,
   type AccountTypedDataRequest,
@@ -31,6 +33,21 @@ import {
 } from "./types";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import type { Address } from "../../types/domain";
+import {
+  assertBatchCapabilityKnown,
+  atomicBatchTxResult,
+  BatchNotSubmittedError,
+  type BatchBudget,
+  type BatchCapability,
+  type BatchExecution,
+  type BatchReference,
+  type BatchScope,
+  type BatchSendOptions,
+} from "./batch-types";
+import { prepareBatch } from "./prepared-batch";
+import { assertBatchCalls, quoteUserOperation } from "./batch-budget";
+import { type AtomicBatchAction, isBatchEnabled } from "./batch-enablement";
+import type { PasskeyAccountProfileId } from "../auth/account-profile";
 
 const KERNEL_TRY_FAILURE = toEventSelector("TryExecuteUnsuccessful(uint256,bytes)");
 
@@ -50,12 +67,16 @@ function kernelCallFailed(
 interface PasskeySenderDeps {
   resolveSmartAccountClient?: SmartAccountClientResolver | null;
   assertWriteSafety?: () => Promise<void>;
+  /** What the enablement list is keyed by. Without it, this sender groups nothing for a caller. */
+  accountProfile?: PasskeyAccountProfileId | null;
 }
 
 export class PasskeySender implements TransactionSender {
   readonly supportsSponsorship = true;
   readonly supportsBatching = false;
   readonly authMode = "passkey" as const;
+
+  assertOwnership?: TransactionSender["assertOwnership"];
 
   private client: SmartAccountClient;
   private deps: PasskeySenderDeps;
@@ -93,6 +114,15 @@ export class PasskeySender implements TransactionSender {
     call: ContractCall,
     options: TransactionSendOptions = {}
   ): Promise<TxResult> {
+    return this.executeCalls([call], options);
+  }
+
+  private async executeCalls(
+    calls: readonly ContractCall[],
+    options: TransactionSendOptions,
+    atomic = false
+  ): Promise<TxResult> {
+    const call = calls[0];
     await this.deps.assertWriteSafety?.();
 
     const chainId = call.chainId ?? this.client.chain?.id;
@@ -107,17 +137,46 @@ export class PasskeySender implements TransactionSender {
     assertSmartAccountClient(client, chainId, this.client.account.address);
     if (call.account) assertSmartAccountClient(client, chainId, call.account);
 
-    const data = encodeFunctionData({
-      abi: call.abi,
-      functionName: call.functionName,
-      args: call.args as unknown[],
-    });
+    for (const current of calls) {
+      if (
+        (current.chainId !== undefined && current.chainId !== chainId) ||
+        (current.account && current.account.toLowerCase() !== client.account!.address.toLowerCase())
+      )
+        throw new Error("batch-scope-mismatch");
+    }
+    const encoded = calls.map((current) => ({
+      to: current.address as Hex,
+      value: current.value ?? 0n,
+      data: encodeFunctionData({
+        abi: current.abi,
+        functionName: current.functionName,
+        args: current.args,
+      }),
+    }));
 
+    if (atomic) {
+      const data = await client.account!.encodeCalls(encoded);
+      const decoded = decodeFunctionData({
+        abi: parseAbi(["function execute(bytes32 mode, bytes executionCalldata) payable"]),
+        data,
+      });
+      const expected = calls.length > 1 ? `0x0100${"00".repeat(30)}` : `0x${"00".repeat(32)}`;
+      if (decoded.args[0].toLowerCase() !== expected) throw new Error("batch-atomic-unavailable");
+    }
+    // A call that asks for headroom gets it on the bundler's call gas; the bundler sizes any other.
+    const callGasLimit = calls.some((current) => current.gasHeadroomPercent)
+      ? withGasHeadroom(
+          (await client.prepareUserOperation({ account: client.account!, calls: encoded }))
+            .callGasLimit,
+          calls
+        )
+      : undefined;
     assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
     await options.assertOwnership?.();
     const operationHash = await client.sendUserOperation({
       account: this.reportingAccount(client, options),
-      calls: [{ to: call.address, value: call.value ?? 0n, data }],
+      calls: encoded,
+      ...(callGasLimit !== undefined ? { callGasLimit } : {}),
     });
     await options.onBroadcastReference?.({ kind: "user-operation", hash: operationHash, chainId });
     const receipt = await client.waitForUserOperationReceipt({
@@ -159,7 +218,9 @@ export class PasskeySender implements TransactionSender {
     const account = client.account!;
     const clientChainId = client.chain?.id;
     const signUserOperation: typeof account.signUserOperation = async (userOperation) => {
+      if (options.batchBudget) quoteUserOperation(userOperation, options.batchBudget);
       const signature = await account.signUserOperation(userOperation);
+      if (options.batchBudget) quoteUserOperation(userOperation, options.batchBudget);
       // A WebAuthn prompt can outlive the session that opened it. Check again
       // at the last point before viem can submit the signed operation.
       assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
@@ -219,17 +280,196 @@ export class PasskeySender implements TransactionSender {
     }
   }
 
-  async sendBatch(calls: ContractCall[]): Promise<TxResult> {
-    if (calls.length === 0) {
-      throw new Error("Cannot send empty batch");
-    }
+  async preflightBatch(calls: readonly ContractCall[], budget: BatchBudget) {
+    assertBatchCalls(calls, budget);
+    const account = calls[0].account ?? this.client.account!.address;
+    const chainId = calls[0].chainId ?? this.client.chain!.id;
+    await this.assertOwnership?.(account, chainId);
+    const client = this.deps.resolveSmartAccountClient
+      ? await this.deps.resolveSmartAccountClient(chainId)
+      : this.client;
+    assertSmartAccountClient(client, chainId, account);
+    const request = await client.prepareUserOperation({
+      account: client.account!,
+      calls: calls.map((call) => ({
+        to: call.address as Hex,
+        value: call.value ?? 0n,
+        data: encodeFunctionData({
+          abi: call.abi,
+          functionName: call.functionName,
+          args: call.args,
+        }),
+      })),
+    });
+    await this.assertOwnership?.(account, chainId);
+    // Quoted at the call gas the send will ask for.
+    return quoteUserOperation(
+      { ...request, callGasLimit: withGasHeadroom(request.callGasLimit, calls) },
+      budget
+    );
+  }
 
-    // This sender advertises no atomic batching; preserve sequential call semantics.
-    let lastResult: TxResult | null = null;
-    for (const call of calls) {
-      lastResult = await this.sendContractCall(call);
+  async getBatchCapability(scope: BatchScope): Promise<BatchCapability> {
+    try {
+      await this.assertOwnership?.(scope.account, scope.chainId);
+      const client = this.deps.resolveSmartAccountClient
+        ? await this.deps.resolveSmartAccountClient(scope.chainId)
+        : this.client;
+      assertSmartAccountClient(client, scope.chainId, scope.account);
+      assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
+      const encoded = await client.account!.encodeCalls([
+        { to: scope.account as Hex, data: "0x" as Hex, value: 0n },
+        { to: scope.account as Hex, data: "0x" as Hex, value: 0n },
+      ]);
+      const decoded = decodeFunctionData({
+        abi: parseAbi(["function execute(bytes32 mode, bytes executionCalldata) payable"]),
+        data: encoded,
+      });
+      // ERC-7579: batch call type 01, default (revert-on-failure) execution type 00.
+      return {
+        ...scope,
+        atomic:
+          decoded.args[0].toLowerCase() === `0x0100${"00".repeat(30)}`
+            ? "supported"
+            : "unsupported",
+      };
+    } catch {
+      return { ...scope, atomic: "unknown" };
     }
+  }
 
-    return lastResult!;
+  /** These run before a batch can reach the bundler, so a refusal here proves it was not sent. */
+  private async assertBatchSendable(calls: readonly ContractCall[], budget: BatchBudget) {
+    try {
+      assertBatchCalls(calls, budget);
+      const account = calls[0]?.account ?? this.client.account?.address;
+      const chainId = calls[0]?.chainId ?? this.client.chain?.id;
+      if (!account || chainId === undefined || calls.length === 0)
+        throw new Error("batch-invalid-intent");
+      prepareBatch({
+        id: "passkey-check",
+        domain: "transport",
+        account,
+        chainId,
+        mode: "atomic",
+        items: calls.map((call, index) => ({ id: String(index), call })),
+      });
+      const capability = await this.getBatchCapability({ account, chainId });
+      assertBatchCapabilityKnown(capability);
+      if (capability.atomic !== "supported") throw new Error("batch-atomic-unavailable");
+      return { account, chainId };
+    } catch (error) {
+      throw new BatchNotSubmittedError(error);
+    }
+  }
+
+  async submitAtomicBatch(
+    calls: readonly ContractCall[],
+    options: BatchSendOptions = {}
+  ): Promise<BatchExecution> {
+    if (!options.batchBudget) throw new BatchNotSubmittedError(new Error("batch-budget-required"));
+    const { account, chainId } = await this.assertBatchSendable(calls, options.batchBudget);
+    let reference: BatchReference | undefined;
+    let beforeBroadcastFailed = false;
+    try {
+      const result = await this.executeCalls(
+        calls,
+        {
+          ...options,
+          assertOwnership: async () => {
+            await this.assertOwnership?.(account, chainId);
+            await options.assertOwnership?.();
+          },
+          onBeforeBroadcast: async (broadcast) => {
+            try {
+              if (broadcast) reference = { ...broadcast, account, chainId };
+              await options.onBeforeBroadcast?.(broadcast);
+            } catch (error) {
+              beforeBroadcastFailed = true;
+              throw error;
+            }
+          },
+          // Only the bundler's answer proves the send was accepted; signing does not.
+          onBroadcastReference: async (broadcast) => {
+            const accepted = { ...broadcast, account, chainId };
+            reference = accepted;
+            await options.onBatchReference?.(accepted);
+            await options.onBroadcastReference?.(broadcast);
+          },
+        },
+        true
+      );
+      return {
+        status: "confirmed",
+        reference,
+        receipts: [{ transactionHash: result.hash, status: "success" }],
+        sponsored: true,
+      };
+    } catch (error) {
+      if (!reference || beforeBroadcastFailed) throw new BatchNotSubmittedError(error);
+      return {
+        status: error instanceof TransactionRevertedError ? "reverted" : "unresolved",
+        reference,
+        receipts: [],
+        sponsored: true,
+      };
+    }
+  }
+
+  async reconcileBatch(reference: BatchReference): Promise<BatchExecution> {
+    const unresolved: BatchExecution = {
+      status: "unresolved",
+      reference,
+      receipts: [],
+      sponsored: true,
+    };
+    if (
+      reference.kind !== "user-operation" ||
+      reference.account.toLowerCase() !== this.client.account?.address.toLowerCase()
+    )
+      return unresolved;
+    await this.assertOwnership?.(reference.account, reference.chainId);
+    const outcome = await this.reconcileBroadcast(reference);
+    return outcome.status === "confirmed"
+      ? {
+          status: "confirmed",
+          reference,
+          receipts: [{ transactionHash: outcome.transactionHash, status: "success" }],
+          sponsored: true,
+        }
+      : { ...unresolved, status: outcome.status };
+  }
+
+  /** Callers probe for this, so an action nobody has listed still sends one call at a time. */
+  async canSendAtomicBatch(chainId: number, action?: AtomicBatchAction): Promise<boolean> {
+    const account = this.client.account?.address;
+    const profile = this.deps.accountProfile;
+    if (!account || !profile || !action) return false;
+    if (!isBatchEnabled({ action, rail: "passkey", profile, chainId })) return false;
+    return (await this.getBatchCapability({ account, chainId })).atomic === "supported";
+  }
+
+  /** The send a caller shares with a wallet. A passkey's also needs `batchBudget`. */
+  async sendAtomicBatch(
+    calls: ContractCall[],
+    { onAccepted, onNeverSent, ...options }: AtomicBatchOptions = {}
+  ): Promise<TxResult> {
+    let execution: BatchExecution;
+    try {
+      execution = await this.submitAtomicBatch(calls, {
+        ...options,
+        onBroadcastReference: async (reference) => {
+          await options.onBroadcastReference?.(reference);
+          await onAccepted?.();
+        },
+      });
+    } catch (error) {
+      if (error instanceof BatchNotSubmittedError) {
+        onNeverSent?.();
+        throw error.cause;
+      }
+      throw error;
+    }
+    return atomicBatchTxResult(execution);
   }
 }

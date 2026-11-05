@@ -1,0 +1,645 @@
+import "fake-indexeddb/auto";
+import { readContract } from "@wagmi/core";
+import { type Hex, toHex, zeroAddress } from "viem";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getWorkApprovalsForWork } from "../../modules/data/eas";
+import {
+  BatchNotSubmittedError,
+  type BatchExecution,
+} from "../../modules/transactions/batch-types";
+import {
+  prepareReviewBatch,
+  type ReviewDecision,
+  sendReviewBatch,
+} from "../../modules/work/review-batch";
+import { moveOnFromReviewHold, readReviewHold } from "../../modules/work/review-hold";
+import {
+  createReviewChain,
+  type ReviewAttestation,
+  type ReviewChain,
+  reviewBudget,
+  signaturesForReviews,
+} from "../../modules/work/review-chain";
+import type { Address, WorkApprovalDraft } from "../../types/domain";
+import { Confidence, VerificationMethod } from "../../types/domain";
+import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { createMockWorkApproval } from "../test-utils/mock-factories";
+import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
+
+// What `createReviewChain` reads: the chain through wagmi, and EAS's index.
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  readContract: vi.fn(),
+}));
+vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../modules/data/eas", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getWorkApprovalsForWork: vi.fn(),
+}));
+
+// The EAS SDK is stubbed in this project, so this writes what the schema does.
+vi.mock("../../utils/eas/encoders", async (importOriginal) => {
+  const { encodeAbiParameters, parseAbiParameters } = await import("viem");
+  return {
+    ...(await importOriginal<object>()),
+    encodeWorkApprovalData: (draft: WorkApprovalDraft) =>
+      encodeAbiParameters(parseAbiParameters("uint256,bytes32,bool,string,uint8,uint8,string"), [
+        BigInt(draft.actionUID),
+        draft.workUID as Hex,
+        draft.approved,
+        draft.feedback ?? "",
+        draft.confidence,
+        draft.verificationMethod,
+        draft.reviewNotesCID ?? "",
+      ]),
+  };
+});
+
+const chainId = 42161;
+const hash = `0x${"ab".repeat(32)}` as const;
+const CONFIRMED: Partial<BatchExecution> = {
+  status: "confirmed",
+  receipts: [{ transactionHash: hash, status: "success" }],
+};
+
+/** Every test gets its own account and garden: the journal outlives each one. */
+const address = (): Address => toHex(crypto.getRandomValues(new Uint8Array(20)));
+const uid = (): Hex => toHex(crypto.getRandomValues(new Uint8Array(32)));
+
+function setup(execution: Partial<BatchExecution> = CONFIRMED) {
+  const account = address();
+  const gardenAddress = address();
+  const sender = createFakeBatchingSender(account, execution);
+  const decide = (approved = true, feedback = ""): ReviewDecision => ({
+    gardenAddress,
+    draft: {
+      actionUID: 1,
+      workUID: uid(),
+      approved,
+      feedback,
+      confidence: approved ? Confidence.HIGH : Confidence.NONE,
+      verificationMethod: approved ? VerificationMethod.HUMAN : 0,
+      reviewNotesCID: approved ? "bafyreviewnotes" : "",
+    },
+  });
+  const made: ReviewAttestation[] = [];
+  const landed = (decision: ReviewDecision, overrides: Partial<ReviewAttestation> = {}) => {
+    const attestation = {
+      uid: uid(),
+      attester: account,
+      recipient: gardenAddress,
+      data: encodeWorkApprovalData(decision.draft, chainId),
+      ...overrides,
+    };
+    made.push(attestation);
+    return attestation;
+  };
+  const chain = {
+    refusal: vi.fn<ReviewChain["refusal"]>(async () => null),
+    isDecided: vi.fn<ReviewChain["isDecided"]>(async () => false),
+    attestationsIn: vi.fn<ReviewChain["attestationsIn"]>(async () => made),
+  };
+  const input = {
+    batches: sender.batches!,
+    chain,
+    gardenAddress,
+    scope: { account, chainId },
+    retryMs: 0,
+  };
+  const send = (decisions: readonly ReviewDecision[]) =>
+    sendReviewBatch({ ...input, rail: "passkey", decisions });
+  return { account, gardenAddress, sender, decide, landed, made, chain, input, send };
+}
+
+describe("prepareReviewBatch", () => {
+  it("carries approvals and rejections in one EAS call, each work its own item", () => {
+    const { account, gardenAddress, decide } = setup();
+    const decisions = [decide(true, "Lovely"), decide(false, "No photo")];
+
+    const prepared = prepareReviewBatch({
+      id: "attempt",
+      account,
+      chainId,
+      gardenAddress,
+      rail: "wallet",
+      decisions,
+    });
+
+    expect(prepared.mode).toBe("single-call");
+    expect(prepared.items.map((item) => item.id)).toEqual(
+      decisions.map(({ draft }) => draft.workUID.toLowerCase())
+    );
+    const { functionName, args } = prepared.items[0].call;
+    expect(functionName).toBe("multiAttest");
+    const [[request]] = args as [[{ data: { data: Hex }[] }]];
+    expect(request.data.map(({ data }) => data)).toEqual(
+      decisions.map(({ draft }) => encodeWorkApprovalData(draft, chainId))
+    );
+  });
+
+  it("has no ceilings on a chain nobody has measured", () => {
+    expect(reviewBudget("passkey", 42161)).not.toBeNull();
+    expect(reviewBudget("passkey", 42220)).toBeNull();
+    const { account, gardenAddress, decide } = setup();
+    expect(() =>
+      prepareReviewBatch({
+        id: "attempt",
+        account,
+        chainId: 42220,
+        gardenAddress,
+        rail: "passkey",
+        decisions: [decide()],
+      })
+    ).toThrow("batch-budget-required");
+  });
+});
+
+describe("sendReviewBatch", () => {
+  it("takes one signature per five, and names each work's attestation whatever order they land", async () => {
+    const { sender, decide, landed, send } = setup();
+    const decisions = Array.from({ length: 7 }, () => decide());
+    const attestations = decisions.map((decision) => landed(decision)).reverse();
+
+    const outcome = await send(decisions);
+
+    expect(signaturesForReviews(7)).toBe(2);
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(2);
+    expect(outcome.sent.map((item) => item.attestationUID)).toEqual(
+      [...attestations].reverse().map((attestation) => attestation.uid)
+    );
+    expect(outcome.sent.every((item) => item.transactionHash === hash)).toBe(true);
+    expect(outcome.notSent).toEqual([]);
+  });
+
+  it.each([
+    ["no attestation", () => undefined],
+    ["one from another account", (a: Address) => ({ attester: a })],
+    ["one for another garden", (a: Address) => ({ recipient: a })],
+    ["one with other data", () => ({ data: "0x1234" as Hex })],
+  ])("is not done with %s in the receipt, and holds the next send", async (_case, overrides) => {
+    const { decide, landed, send } = setup();
+    const decision = decide();
+    const change = overrides(address());
+    if (change) landed(decision, change);
+
+    const outcome = await send([decision]);
+
+    expect(outcome.sent).toEqual([]);
+    expect(outcome.unknown).toEqual([decision.draft.workUID]);
+    await expect(send([decision])).resolves.toMatchObject({
+      notSent: [decision.draft.workUID],
+      failure: expect.objectContaining({ message: "batch-items-held" }),
+    });
+  });
+
+  it("reads a send's transaction once, however many decisions it proves", async () => {
+    const { decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 5 }, () => decide());
+    for (const decision of decisions) landed(decision);
+
+    const outcome = await send(decisions);
+
+    expect(outcome.sent).toHaveLength(5);
+    expect(chain.attestationsIn).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads again when a node answers from behind the attestation's block", async () => {
+    const { decide, landed, chain, send } = setup();
+    const decision = decide();
+    const real = landed(decision);
+    chain.attestationsIn.mockResolvedValueOnce([{ ...real, data: "0x" }]);
+
+    const outcome = await send([decision]);
+
+    expect(chain.attestationsIn).toHaveBeenCalledTimes(2);
+    expect(outcome.sent.map((item) => item.attestationUID)).toEqual([real.uid]);
+    expect(outcome.unknown).toEqual([]);
+  });
+
+  it("keeps a proof it already has when a later read answers from behind", async () => {
+    const { decide, landed, chain, send } = setup();
+    const [first, second] = [decide(), decide()];
+    const [one, two] = [landed(first), landed(second)];
+    const stale = (attestation: typeof one) => ({ ...attestation, data: "0x" as const });
+    chain.attestationsIn
+      .mockResolvedValueOnce([one, stale(two)])
+      .mockResolvedValueOnce([stale(one), stale(two)])
+      .mockResolvedValue([stale(one), two]);
+
+    const outcome = await send([first, second]);
+
+    expect(outcome.unknown).toEqual([]);
+    expect(outcome.sent.map((item) => item.attestationUID)).toEqual([one.uid, two.uid]);
+  });
+
+  it("tries again when a read of the receipt fails", async () => {
+    const { decide, landed, chain, send } = setup();
+    const decision = decide();
+    landed(decision);
+    chain.attestationsIn.mockRejectedValueOnce(new Error("rpc behind"));
+
+    await expect(send([decision])).resolves.toMatchObject({
+      sent: [{ workUID: decision.draft.workUID }],
+    });
+  });
+
+  it("sends back to review a work someone has decided, and signs nothing", async () => {
+    const { sender, decide, chain, send } = setup();
+    const [decided, fresh] = [decide(), decide()];
+    chain.isDecided.mockImplementation(async (workUID) => workUID === decided.draft.workUID);
+
+    const outcome = await send([decided, fresh]);
+
+    expect(outcome.stale).toEqual([decided.draft.workUID]);
+    expect(outcome.notSent).toEqual([fresh.draft.workUID]);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("signs nothing when it can't read who has decided", async () => {
+    const { sender, decide, chain, send } = setup();
+    const decision = decide();
+    chain.isDecided.mockRejectedValue(new Error("index down"));
+
+    const outcome = await send([decision]);
+
+    expect(outcome.notSent).toEqual([decision.draft.workUID]);
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "index down" }));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("names the one decision the resolver would refuse, and signs nothing", async () => {
+    const { sender, decide, chain, send } = setup();
+    const [bad, good] = [decide(), decide()];
+    const encoded = encodeWorkApprovalData(bad.draft, chainId);
+    chain.refusal.mockImplementation(async ({ args }) =>
+      JSON.stringify(args, (_key, value) =>
+        typeof value === "bigint" ? String(value) : value
+      ).includes(encoded)
+        ? "ActionExpired"
+        : null
+    );
+
+    const outcome = await send([bad, good]);
+
+    expect(outcome.refused).toEqual([{ workUID: bad.draft.workUID, reason: "ActionExpired" }]);
+    expect(outcome.notSent).toEqual([good.draft.workUID]);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing blind when a group is refused but no decision alone is", async () => {
+    const { sender, decide, chain, send } = setup();
+    const decisions = [decide(), decide()];
+    chain.refusal.mockResolvedValueOnce("OutOfGas");
+
+    const outcome = await send(decisions);
+
+    expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "OutOfGas" }));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("names a refused decision once when a later group is refused as a whole", async () => {
+    const { sender, decide, chain, send } = setup();
+    // Five share the first signature, and the last two take a second.
+    const decisions = Array.from({ length: 7 }, () => decide());
+    const [bad, , , , , sixth, seventh] = decisions.map(({ draft }) =>
+      encodeWorkApprovalData(draft, chainId)
+    );
+    chain.refusal.mockImplementation(async ({ args }) => {
+      const call = JSON.stringify(args, (_key, value) =>
+        typeof value === "bigint" ? String(value) : value
+      );
+      if (call.includes(bad)) return "ActionExpired";
+      // The last two together run out of gas, though each alone would go.
+      return call.includes(sixth) && call.includes(seventh) ? "OutOfGas" : null;
+    });
+
+    const outcome = await send(decisions);
+
+    const workUIDs = decisions.map(({ draft }) => draft.workUID);
+    expect(outcome.refused).toEqual([{ workUID: workUIDs[0], reason: "ActionExpired" }]);
+    expect(outcome.notSent).toEqual(workUIDs.slice(1));
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "OutOfGas" }));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("checks again right before signing, since a role or an action's end can pass", async () => {
+    const { sender, decide, chain, send } = setup();
+    const decision = decide();
+    chain.refusal.mockResolvedValueOnce(null).mockResolvedValueOnce("NotGardenOperator");
+
+    const outcome = await send([decision]);
+
+    expect(outcome.notSent).toEqual([decision.draft.workUID]);
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "NotGardenOperator" }));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("reads who has decided again before each signature, and sends back what changed", async () => {
+    const { sender, decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 7 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+    const late = decisions[5].draft.workUID;
+    chain.isDecided.mockImplementation(
+      async (workUID) =>
+        workUID === late && vi.mocked(sender.sendContractCall).mock.calls.length > 0
+    );
+
+    const outcome = await send(decisions);
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(outcome.sent).toHaveLength(5);
+    expect(outcome.stale).toEqual([late]);
+    expect(outcome.notSent).toEqual([decisions[6].draft.workUID]);
+    expect(outcome.failure).toBeUndefined();
+  });
+
+  it("signs nothing more when it can't read who has decided right before a signature", async () => {
+    const { sender, decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 6 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+    chain.isDecided.mockImplementation(async () => {
+      if (vi.mocked(sender.sendContractCall).mock.calls.length > 0) throw new Error("index down");
+      return false;
+    });
+
+    const outcome = await send(decisions);
+
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    expect(outcome.sent).toHaveLength(5);
+    expect(outcome.stale).toEqual([]);
+    expect(outcome.notSent).toEqual([decisions[5].draft.workUID]);
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "index down" }));
+  });
+
+  it("refuses a decision from another garden before it reads or signs anything", async () => {
+    const { sender, decide, chain, send } = setup();
+    const foreign = { ...decide(), gardenAddress: address() };
+
+    await expect(send([decide(), foreign])).rejects.toThrow("review-garden-mismatch");
+
+    expect(chain.isDecided).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("keeps an earlier group sent when a later one is declined", async () => {
+    const { sender, decide, landed, send } = setup();
+    const decisions = Array.from({ length: 6 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+    vi.mocked(sender.sendContractCall)
+      .mockImplementationOnce(vi.mocked(sender.sendContractCall).getMockImplementation()!)
+      .mockRejectedValueOnce(new BatchNotSubmittedError(new Error("User rejected the request")));
+
+    const outcome = await send(decisions);
+
+    expect(outcome.sent).toHaveLength(5);
+    expect(outcome.notSent).toEqual([decisions[5].draft.workUID]);
+    expect(outcome.unknown).toEqual([]);
+  });
+
+  it("takes a signature per review when asked, for a list too big to send together", async () => {
+    const { sender, decide, landed, input } = setup();
+    const decisions = Array.from({ length: 3 }, () => decide());
+    decisions.forEach((decision) => landed(decision));
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      rail: "passkey",
+      decisions,
+      perSignature: 1,
+    });
+
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(3);
+    expect(outcome.sent).toHaveLength(3);
+  });
+
+  it("reports a list past its ceilings without sending anything for it", async () => {
+    const { sender, decide, send } = setup();
+    const decision = decide();
+    sender.preflightBatch = async () => ({
+      gas: "90000000",
+      maxFeePerGas: "10000000",
+      maxFee: "900000000000000",
+      sponsored: true,
+      authority: "user-operation",
+    });
+
+    const outcome = await send([decision]);
+
+    expect(outcome.notBatchable).toEqual([decision.draft.workUID]);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+});
+
+describe("reading who has decided", () => {
+  // Either side of 13 August 2026, when the Arbitrum resolver began counting decisions.
+  const MADE_BEFORE_COUNTING = BigInt(Date.parse("2026-07-28T00:00:00Z") / 1000);
+  const MADE_SINCE_COUNTING = BigInt(Date.parse("2026-11-01T00:00:00Z") / 1000);
+
+  /** The resolver's counts and module, and when each work was made. Any other read fails. */
+  function chainHolds({
+    counted = [] as string[],
+    made = MADE_SINCE_COUNTING,
+    module = address(),
+  } = {}) {
+    vi.mocked(readContract).mockImplementation((async (
+      _config: unknown,
+      { functionName, args = [] }: { functionName: string; args?: readonly unknown[] }
+    ) => {
+      if (functionName === "latestDecisionSequence")
+        return counted.includes(String(args[0])) ? 1n : 0n;
+      if (functionName === "commitmentModule") return module;
+      if (functionName === "getAttestation") return { time: made };
+      throw new Error(`unexpected read: ${functionName}`);
+    }) as unknown as typeof readContract);
+  }
+
+  beforeEach(() => {
+    vi.mocked(readContract).mockReset();
+    vi.mocked(getWorkApprovalsForWork).mockReset().mockResolvedValue([]);
+  });
+
+  it("stops a send at a decision the resolver counted, without asking EAS", async () => {
+    const { sender, decide, input } = setup();
+    const [decided, fresh] = [decide(), decide()];
+    chainHolds({ counted: [decided.draft.workUID] });
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      chain: createReviewChain(chainId),
+      rail: "passkey",
+      decisions: [decided, fresh],
+    });
+
+    expect(outcome.stale).toEqual([decided.draft.workUID]);
+    expect(outcome.notSent).toEqual([fresh.draft.workUID]);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(getWorkApprovalsForWork).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["counted by the resolver", { counted: true }, true, false],
+    ["made since counting began, with nothing counted", {}, false, false],
+    ["made before counting began", { made: MADE_BEFORE_COUNTING }, true, true],
+    ["read while the resolver counts nothing", { module: zeroAddress }, true, true],
+  ])("answers for a work %s", async (_case, holds, decided, askedEAS) => {
+    const workUID = uid();
+    const { counted, ...rest } = holds as { counted?: boolean; made?: bigint; module?: Address };
+    chainHolds({ ...rest, counted: counted ? [workUID] : [] });
+    // EAS's index holds a decision for every work here, so only asking it can find one uncounted.
+    vi.mocked(getWorkApprovalsForWork).mockResolvedValue([createMockWorkApproval({ workUID })]);
+
+    await expect(createReviewChain(chainId).isDecided(workUID)).resolves.toBe(decided);
+
+    expect(vi.mocked(getWorkApprovalsForWork).mock.calls.length > 0).toBe(askedEAS);
+  });
+
+  it("asks only EAS on a chain whose resolver count has no known start", async () => {
+    const workUID = uid();
+    vi.mocked(getWorkApprovalsForWork).mockResolvedValue([createMockWorkApproval({ workUID })]);
+
+    await expect(createReviewChain(11155111).isDecided(workUID)).resolves.toBe(true);
+
+    expect(readContract).not.toHaveBeenCalled();
+    expect(getWorkApprovalsForWork).toHaveBeenCalledWith(workUID, 11155111);
+  });
+
+  it("won't call a work undecided when the chain can't be read", async () => {
+    vi.mocked(readContract).mockRejectedValue(new Error("rpc down"));
+
+    await expect(createReviewChain(chainId).isDecided(uid())).rejects.toThrow("rpc down");
+
+    // EAS can miss a decision made minutes ago, so it doesn't stand in for the chain.
+    expect(getWorkApprovalsForWork).not.toHaveBeenCalled();
+  });
+});
+
+describe("holding reviews whose outcome is unknown", () => {
+  const onChainAfterReload = async (setupResult: ReturnType<typeof setup>) => {
+    const decision = setupResult.decide();
+    await setupResult.send([decision]);
+    return decision;
+  };
+
+  it("survives a reload, and shows what the index says for each work", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    context.chain.isDecided.mockResolvedValue(true);
+
+    const { hold, saved } = await readReviewHold(context.input);
+
+    expect(saved).toEqual([]);
+    expect(hold).toEqual({
+      operationIds: [expect.any(String)],
+      workUIDs: [decision.draft.workUID.toLowerCase()],
+      onChain: [{ workUID: decision.draft.workUID.toLowerCase(), decided: true }],
+    });
+  });
+
+  it("ends when a read proves it landed, names its attestation, and reports it once", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    const { uid: attestationUID } = context.landed(decision);
+    context.sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
+
+    await expect(readReviewHold(context.input)).resolves.toEqual({
+      hold: null,
+      saved: [
+        {
+          workUID: decision.draft.workUID.toLowerCase(),
+          // Read back from the call the journal kept, so a reload still shows what was decided.
+          approved: decision.draft.approved,
+          attestationUID,
+          transactionHash: hash,
+        },
+      ],
+      notLanded: [],
+    });
+    await expect(readReviewHold(context.input)).resolves.toEqual({
+      hold: null,
+      saved: [],
+      notLanded: [],
+    });
+  });
+
+  it("keeps the hash when another tab ended it, so the decision stays on screen", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    const { hold } = await readReviewHold(context.input);
+    context.landed(decision);
+    context.sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
+    await readReviewHold(context.input);
+
+    const { saved } = await readReviewHold(context.input, hold);
+
+    expect(saved).toEqual([
+      expect.objectContaining({
+        workUID: decision.draft.workUID.toLowerCase(),
+        transactionHash: hash,
+      }),
+    ]);
+  });
+
+  it("names the works a settled send didn't prove, so nothing keeps showing them decided", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    context.sender.reconcileBatch = vi.fn(
+      async () =>
+        ({
+          status: "reverted",
+          receipts: [{ transactionHash: hash, status: "reverted" }],
+          sponsored: true,
+        }) satisfies BatchExecution
+    );
+
+    await expect(readReviewHold(context.input)).resolves.toEqual({
+      hold: null,
+      saved: [],
+      notLanded: [decision.draft.workUID.toLowerCase()],
+    });
+  });
+
+  it("frees the work when the person moves on from what they saw", async () => {
+    const context = setup({});
+    const decision = await onChainAfterReload(context);
+    const { hold } = await readReviewHold(context.input);
+
+    await expect(moveOnFromReviewHold(context.input, hold!)).resolves.toEqual({
+      hold: null,
+      saved: [],
+      notLanded: [decision.draft.workUID.toLowerCase()],
+    });
+
+    await expect(context.send([decision])).resolves.toMatchObject({
+      unknown: [decision.draft.workUID],
+    });
+  });
+
+  it("will not move on from a work the person could not see", async () => {
+    const context = setup({});
+    await onChainAfterReload(context);
+    context.chain.isDecided.mockRejectedValueOnce(new Error("index down"));
+    const { hold: unread } = await readReviewHold(context.input);
+    expect(unread?.onChain).toEqual([]);
+    const release = vi.spyOn(context.input.batches, "release");
+
+    const { hold } = await moveOnFromReviewHold(context.input, unread!);
+
+    expect(release).not.toHaveBeenCalled();
+    expect(hold?.onChain).toHaveLength(1);
+  });
+
+  it("shows only that garden's held sends", async () => {
+    const context = setup({});
+    await onChainAfterReload(context);
+
+    await expect(readReviewHold({ ...context.input, gardenAddress: address() })).resolves.toEqual({
+      hold: null,
+      saved: [],
+      notLanded: [],
+    });
+    await expect(readReviewHold(context.input)).resolves.toMatchObject({
+      hold: { workUIDs: [expect.any(String)] },
+    });
+  });
+});

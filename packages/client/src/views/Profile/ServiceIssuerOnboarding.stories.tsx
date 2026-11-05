@@ -4,7 +4,7 @@ import { ServiceIssuerOnboarding } from "./ServiceIssuerOnboarding";
 import { issuerStoryDraftRecord } from "./serviceIssuerStoryFixtures";
 
 /**
- * A member's draft service in Profile, Account, Service Assets (PRD-1299 `SOnboard`): what they
+ * A member's draft service in Profile, Account, Your Services (PRD-1299 `SOnboard`): what they
  * would promise, what stays theirs, and the approval only they sign. Switch the toolbar's
  * Language for Spanish and Portuguese.
  */

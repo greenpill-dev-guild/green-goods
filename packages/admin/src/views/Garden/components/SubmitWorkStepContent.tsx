@@ -35,7 +35,6 @@ export function SubmitWorkStepContent({
   const { formatMessage } = useIntl();
   const {
     activeStepId,
-    availableActions,
     busy,
     chooserDomains,
     effectiveDomain,
@@ -80,12 +79,11 @@ export function SubmitWorkStepContent({
               ...chooserDomains.map((domain) => ({
                 id: String(domain),
                 label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
-                count: availableActions.filter((action) => action.domain === domain).length,
               })),
             ]}
           />
         ) : null}
-        <p className="sr-only" aria-live="polite">
+        <p className="type-meta text-text-sub" aria-live="polite">
           {formatMessage(
             {
               id: "app.admin.work.submit.actionCount",

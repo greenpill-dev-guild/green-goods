@@ -48,6 +48,12 @@ const reads = vi.hoisted(() => ({
   takeUps: [] as PoolClaimRequestRow[],
   commitmentReads: [] as ReadCall[],
   takeUpReads: [] as ReadCall[],
+  /** What the count grant's read answers; undefined while this browser holds no grant. */
+  joinRequestsWaiting: undefined as number | undefined,
+  /** Whether this browser holds a count grant for the garden. */
+  joinRequestsHasGrant: true,
+  joinRequestsFailed: false,
+  joinRequestReads: [] as Array<{ enabled?: boolean; kind?: string }>,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -97,6 +103,20 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
     };
   },
 }));
+// How many join requests wait, read with this browser's count grant; it reads nothing disabled.
+vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
+  useJoinRequestCount: (_gardenId: string, options: { enabled?: boolean; kind?: string } = {}) => {
+    reads.joinRequestReads.push(options);
+    const enabled = options.enabled !== false;
+    return {
+      waiting: enabled ? reads.joinRequestsWaiting : undefined,
+      hasGrant: reads.joinRequestsHasGrant,
+      isLoading: false,
+      isError: enabled && reads.joinRequestsFailed,
+      refetch: () => {},
+    };
+  },
+}));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
   usePoolClaimRequests: (input: Record<string, unknown>, options: { enabled?: boolean } = {}) => {
     reads.takeUpReads.push({ input, options });
@@ -110,7 +130,8 @@ const CAROL = "0x3333333333333333333333333333333333333333" as Address;
 const GARDEN = "0x6000000000000000000000000000000000000001" as Address;
 const OTHER_GARDEN = "0x6000000000000000000000000000000000000002" as Address;
 const HOUR = 3_600;
-const STEWARD_KINDS = ["workSubmitted", "takeUpRequested"];
+/** The steward events in the order a seeded garden lists them, waiting join requests newest. */
+const STEWARD_KINDS = ["joinRequested", "workSubmitted", "takeUpRequested"];
 
 let client: QueryClient;
 let now: number;
@@ -179,8 +200,12 @@ beforeEach(() => {
   client = createTestQueryClient();
   now = Math.floor(Date.now() / 1000);
   localStorage.clear();
-  useGardenNotificationsSeenStore.setState({ seenByScope: {} });
+  useGardenNotificationsSeenStore.setState({ seenByScope: {}, joinRequestsByScope: {} });
   reads.account = ALICE;
+  reads.joinRequestsWaiting = undefined;
+  reads.joinRequestsHasGrant = true;
+  reads.joinRequestsFailed = false;
+  reads.joinRequestReads = [];
   reads.worksFailed = false;
   reads.worksPartial = false;
   reads.activity = { rows: [], complete: true };
@@ -236,6 +261,7 @@ describe("useGardenNotifications", () => {
     ["an owner who is not a steward", { owners: [ALICE] }, true],
   ])("gives steward events to %s only through the acts' own predicates", async (_who, roles, steward) => {
     seedGarden(roles);
+    reads.joinRequestsWaiting = 2;
 
     const { result } = renderNotifications();
 
@@ -243,10 +269,16 @@ describe("useGardenNotifications", () => {
     expect(result.current.isLoading).toBe(true);
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(latest(reads.takeUpReads)?.options.enabled).toBe(steward);
-    const kinds = result.current.notifications.map(({ kind }) => kind);
-    expect(kinds.filter((kind) => STEWARD_KINDS.includes(kind))).toEqual(
-      steward ? STEWARD_KINDS : []
+    // Gardeners answers requests to join, its only kind, for the work page's stewards and owners.
+    expect(reads.joinRequestReads.at(-1)).toEqual({ enabled: steward, kind: "garden_membership" });
+    await waitFor(() =>
+      expect(
+        result.current.notifications
+          .map(({ kind }) => kind)
+          .filter((kind) => STEWARD_KINDS.includes(kind))
+      ).toEqual(steward ? STEWARD_KINDS : [])
     );
+    const kinds = result.current.notifications.map(({ kind }) => kind);
     expect(kinds).toEqual(expect.arrayContaining(["workApproved", "promiseTakenUp"]));
   });
 
@@ -264,6 +296,36 @@ describe("useGardenNotifications", () => {
     ]);
     expect(reads.commitmentReads.every(({ options }) => options.enabled === false)).toBe(true);
     expect(reads.takeUpReads.every(({ options }) => options.enabled === false)).toBe(true);
+  });
+
+  it("clears the listed events on this device: they leave the list, count seen and stay cleared (DL-133)", async () => {
+    seedGarden({ stewards: [ALICE], gardeners: [BOB] });
+    reads.works.push(
+      createMockWork({
+        id: "0xw4",
+        gardenerAddress: BOB,
+        gardenAddress: GARDEN,
+        status: "rejected",
+        createdAt: now - 20 * HOUR,
+        reviewedAt: now - 5 * HOUR,
+      })
+    );
+    const { result } = renderNotifications();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.newCount).toBe(4));
+    const listed = result.current.notifications.map(({ id }) => id);
+
+    act(() => result.current.clearAll());
+
+    expect(result.current.notifications).toEqual([]);
+    expect(result.current.newCount).toBe(0);
+    const record =
+      useGardenNotificationsSeenStore.getState().seenByScope[
+        `${DEFAULT_CHAIN_ID}:${ALICE}:${GARDEN}`
+      ];
+    expect(Object.keys(record?.cleared ?? {}).sort()).toEqual([...listed].sort());
+    // Seen marks still trim with the week; the cleared marks stay with the record.
+    expect(record?.seenThrough).toBeGreaterThan(0);
   });
 
   it("marks events seen on this device for one account and garden, and writes nothing else", async () => {
@@ -290,7 +352,10 @@ describe("useGardenNotifications", () => {
     const { result, rerender } = renderNotifications();
     await waitFor(() => expect(result.current.newCount).toBe(4));
 
-    act(() => result.current.markAllSeen());
+    // The sheet marks only the rows its open tab shows; the rest stay new (DL-133).
+    act(() => result.current.markSeen(result.current.notifications.slice(0, 2)));
+    expect(result.current.newCount).toBe(2);
+    act(() => result.current.markSeen(result.current.notifications));
 
     expect(result.current.newCount).toBe(0);
     expect(result.current.notifications.every(({ isNew }) => !isNew)).toBe(true);
@@ -300,6 +365,8 @@ describe("useGardenNotifications", () => {
     expect(Object.keys(useGardenNotificationsSeenStore.getState().seenByScope)).toEqual([
       `${DEFAULT_CHAIN_ID}:${ALICE}:${GARDEN}`,
     ]);
+    // A browser without a count grant reads no join requests, so it keeps no record of them.
+    expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({});
 
     rerender({ id: OTHER_GARDEN });
     await waitFor(() => expect(result.current.newCount).toBe(1));
@@ -312,6 +379,57 @@ describe("useGardenNotifications", () => {
       ])
     );
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("lists waiting join requests as one event, new with each rise and not when one is answered, and keeps no record without them", async () => {
+    seedGarden({ stewards: [ALICE] });
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now * 1000);
+    reads.joinRequestsWaiting = 2;
+    const { result, rerender } = renderNotifications();
+    const joinEvent = () =>
+      result.current.notifications.find(({ kind }) => kind === "joinRequested");
+
+    await waitFor(() => expect(joinEvent()).toMatchObject({ waiting: 2, at: now, isNew: true }));
+    act(() => result.current.markSeen(result.current.notifications));
+    expect(result.current.newCount).toBe(0);
+
+    // An answer brings nobody new: the event keeps its id, and stays seen.
+    reads.joinRequestsWaiting = 1;
+    clock.mockReturnValue((now + HOUR) * 1000);
+    rerender({ id: GARDEN });
+    await waitFor(() => expect(joinEvent()).toMatchObject({ waiting: 1, at: now, isNew: false }));
+
+    // Someone asked since: a new event, new on this device.
+    reads.joinRequestsWaiting = 3;
+    clock.mockReturnValue((now + 2 * HOUR) * 1000);
+    rerender({ id: GARDEN });
+    await waitFor(() =>
+      expect(joinEvent()).toMatchObject({ waiting: 3, at: now + 2 * HOUR, isNew: true })
+    );
+    expect(result.current.newCount).toBe(1);
+
+    // The queue emptied: no event, and the device keeps no record of it.
+    reads.joinRequestsWaiting = 0;
+    rerender({ id: GARDEN });
+    await waitFor(() => expect(joinEvent()).toBeUndefined());
+    expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({});
+
+    // Nor once its grant is gone (it lapsed, or the session ended), since nothing reads it again.
+    reads.joinRequestsWaiting = 2;
+    rerender({ id: GARDEN });
+    await waitFor(() => expect(joinEvent()).toMatchObject({ waiting: 2 }));
+    reads.joinRequestsWaiting = undefined;
+    reads.joinRequestsHasGrant = false;
+    rerender({ id: GARDEN });
+    await waitFor(() =>
+      expect(useGardenNotificationsSeenStore.getState().joinRequestsByScope).toEqual({})
+    );
+    expect(joinEvent()).toBeUndefined();
+
+    // A count read that failed may hide join requests, so the list says it may be missing events.
+    reads.joinRequestsFailed = true;
+    rerender({ id: GARDEN });
+    expect(result.current.isError).toBe(true);
   });
 
   it("says when a read failed and keeps listing what the others found", async () => {
@@ -467,7 +585,7 @@ describe("useGardenNotifications", () => {
 
       // Two minutes pass with the app open; nothing re-renders the hook.
       vi.spyOn(Date, "now").mockReturnValue((now + 120) * 1000);
-      act(() => result.current.markAllSeen());
+      act(() => result.current.markSeen(result.current.notifications));
 
       expect(result.current.newCount).toBe(0);
       expect(result.current.notifications.map(({ isNew }) => isNew)).toEqual([false]);

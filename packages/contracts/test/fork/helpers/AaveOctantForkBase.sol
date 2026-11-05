@@ -153,6 +153,15 @@ abstract contract AaveOctantForkBase is ForkTestBase {
         assertGt(yieldSplitter.gardenShares(garden, vault), 0, "harvest must register live Aave yield shares");
     }
 
+    /// @dev Creates the garden's jar for an asset through the live factory, as its mint would have.
+    function _realCookieJar(address garden, address asset) internal returns (address jar) {
+        cookieJarModule.addSupportedAsset(asset);
+        vm.prank(address(gardenToken));
+        cookieJarModule.onGardenMinted(garden);
+        jar = cookieJarModule.getGardenJar(garden, asset);
+        assertGt(jar.code.length, 0, "the live factory should deploy the jar");
+    }
+
     function _warpForHarvestWindow() internal {
         vm.warp(block.timestamp + 30 days);
         vm.roll(block.number + 216_000);

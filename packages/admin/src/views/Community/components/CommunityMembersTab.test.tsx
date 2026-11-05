@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useNavigate, useSearchParams } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../__tests__/test-utils";
+import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
@@ -13,6 +14,13 @@ import {
 
 vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({ isLoading: false }),
+  useAddMembersBatch: () => ({
+    hold: null,
+    saved: [],
+    lastReadAt: 0,
+    isSettlingHold: false,
+    available: false,
+  }),
 }));
 vi.mock("./CommunityJoinRequests", () => ({
   CommunityJoinRequests: () => null,
@@ -44,19 +52,27 @@ function MembersHarness({
   const navigate = useNavigate();
 
   return (
-    <CommunityMembersTab
-      garden={storyGarden}
-      canManage
-      closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
-      memberCount={memberCount}
-      memberSearch=""
-      roleMembers={storyRoleMembers}
-      roleSummary={roleSummary}
-      scheduleBackgroundRefetch={() => {}}
-      selectedItem={searchParams.get("item")}
-      setMemberSearch={() => {}}
-      visibleDirectory={storyDirectory}
-    />
+    <>
+      <CommunityMembersDialogs
+        garden={storyGarden}
+        canManage
+        closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
+        roleMembers={storyRoleMembers}
+        scheduleBackgroundRefetch={() => {}}
+        selectedItem={searchParams.get("item")}
+      />
+      <CommunityMembersTab
+        garden={storyGarden}
+        canManage
+        memberCount={memberCount}
+        memberSearch=""
+        noteJoinRequestsRead={() => {}}
+        keepJoinRequestCountGrant={() => {}}
+        roleSummary={roleSummary}
+        setMemberSearch={() => {}}
+        visibleDirectory={storyDirectory}
+      />
+    </>
   );
 }
 
@@ -76,6 +92,9 @@ describe("CommunityMembersTab", () => {
       .getByText("Total members")
       .closest('[data-component="FactRow"]') as HTMLElement;
     expect(within(total).getByText("2")).toBeInTheDocument();
+    // The total is the directory's own header line, not a number on the tab (DL-134).
+    const directory = screen.getByRole("heading", { name: "Member Directory" });
+    expect(directory.nextElementSibling).toHaveTextContent(/^2 members$/);
     // The rail no longer repeats role counts or the header's member actions (D9, D15).
     expect(screen.queryByRole("link", { name: /^Stewards/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Manage Members" })).not.toBeInTheDocument();

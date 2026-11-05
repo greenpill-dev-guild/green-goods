@@ -38,6 +38,11 @@ const REFUSAL = {
     defaultMessage:
       "Only the steward who created this group can add to it. Start a new group instead.",
   },
+  "no-settlement-account": {
+    id: "cockpit.garden.pool.reward.needsSettlement",
+    defaultMessage:
+      "A reward is paid through this garden's settlement account, which isn't active.",
+  },
   blocked: {
     id: "cockpit.garden.pool.reward.blocked",
     defaultMessage: "Nothing could be sent from here. Check your wallet, then try again.",

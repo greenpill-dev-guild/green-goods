@@ -130,6 +130,41 @@ function withPlans(f: ReturnType<typeof fixture>) {
   };
 }
 describe("live pilot package preparation", () => {
+  it("keeps fee-floor configuration unresolved until a positive amount is selected", () => {
+    const f = fixture();
+    const prepared = buildLivePilotPackage(withPlans(f));
+    const stage = prepared.stages.find((s) => s.id === "earned-fee-reserve");
+    expect(stage?.transactions[0]?.data).toBeNull();
+    expect(stage?.transactions[0]?.missing).toContain("live.earnedFeeReserveMinimumWei");
+    expect(prepared.activationMissing).toContain("live.earnedFeeReserveMinimumWei");
+  });
+
+  it("encodes a selected floor but still requires funding and readback", () => {
+    const f = fixture();
+    const selected = { ...f.config, earnedFeeReserveMinimumWei: "2000000000000000" };
+    const prepared = buildLivePilotPackage({ ...withPlans(f), config: selected });
+    const call = prepared.stages.find((s) => s.id === "earned-fee-reserve")!.transactions[0]!;
+    expect(call.data).toBe(
+      new Interface(["function setFeeReserveMinimum(uint256)"]).encodeFunctionData("setFeeReserveMinimum", [
+        selected.earnedFeeReserveMinimumWei,
+      ]),
+    );
+    expect(call.from).toBe(f.manifests.vouchers.governance.greenGoods.address);
+    expect(call.to).toBe(
+      withPlans(f).plans.vouchers.transactions.find(
+        (tx) => tx.contract === "VoucherEntitlementModule" && tx.kind === "proxy",
+      )!.address,
+    );
+    expect(call.missing).toEqual([]);
+    expect(prepared.activationMissing).toContain("live.earnedFeeReserveConfigurationAndFundedBalanceReadback");
+    expect(prepared.stages.find((s) => s.id === "final-activation")!.transactions).toEqual([]);
+  });
+  it.each(["0", "-1", "01", "1.5", " ", 1, (1n << 256n).toString()])("rejects invalid retained minimum %s", (floor) => {
+    const f = fixture();
+    expect(() =>
+      inspectLivePilotPackageInputs({ ...f.config, earnedFeeReserveMinimumWei: floor }, f.manifests),
+    ).toThrow("Invalid earned fee reserve minimum");
+  });
   it("preserves missing public inputs and separates live ceremonies from deployment prerequisites", () => {
     const manifests: LivePilotManifests = {
       sourceUpgrades: sourceDraft,

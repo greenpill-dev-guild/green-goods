@@ -13,7 +13,6 @@ import pt from "@green-goods/shared/i18n/pt";
 import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiTaskLine } from "@remixicon/react";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider, useIntl } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -41,6 +40,7 @@ import {
 } from "../../../../../shared/.storybook/pendingWorkFixtures";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
+import { ToReviewTab } from "./ToReviewTab";
 import { buildUploadAction, type UploadBarState } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
 
@@ -130,14 +130,19 @@ const COMPLETED_WORKS: Work[] = [
 ];
 
 interface DashboardFrameProps {
-  tab: "pending" | "completed";
+  tab: "pending" | "toReview" | "completed";
   /** Where the Pending list stands, as the frames draw it. */
   moment?: Moment;
   /** Opt-in sourced photograph and fictional work, promise proof and draft records; generic scenarios stay unchanged. */
   documentationPhoto?: boolean;
-  /** A steward's view: work waiting for their review, and their reviews still on this phone. */
+  /** Someone who may review the garden's work: what waits for them, which adds the To Review tab. */
   toReview?: Work[];
+  /** Their reviews still on this phone, which Pending lists as their own. */
   decisions?: Work[];
+  /** The review read may stop short of all there is, so the tab and its line name no count. */
+  uncounted?: boolean;
+  isLoading?: boolean;
+  hasError?: boolean;
   /** Completed rows. */
   items?: Work[];
   pendingFilter?: WorkDashboardPendingFilter;
@@ -168,8 +173,11 @@ function DashboardFrame({
   tab,
   moment = "all",
   documentationPhoto = false,
-  toReview = [],
+  toReview,
   decisions = [],
+  uncounted = false,
+  isLoading = false,
+  hasError = false,
   items = [],
   pendingFilter = "all",
   completedFilter = "all",
@@ -189,26 +197,14 @@ function DashboardFrame({
         intl.formatMessage
       )
     : undefined;
-  const tabs = [
-    {
-      id: "pending",
-      icon: <RiTaskLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.pending" }),
-      count: fixture.onPhone > 0 ? fixture.onPhone : undefined,
-    },
-    {
-      id: "completed",
-      icon: <RiCheckLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.completed" }),
-    },
-  ];
 
   return (
     <WorkDashboardShell
       isClosing={false}
       onRequestClose={fn()}
       gardenName={gardenName}
-      tabs={tabs}
+      pendingCount={fixture.onPhone}
+      toReviewCount={toReview && (uncounted ? 0 : toReview.length)}
       activeTab={tab}
       onTabChange={fn()}
     >
@@ -217,7 +213,6 @@ function DashboardFrame({
           inScope={IN_ACTIVE_GARDEN}
           submissions={fixture.submissions}
           isOnThisDevice={(work) => work.status === "offline"}
-          toReview={toReview}
           decisions={decisions}
           uploads={{
             pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
@@ -235,7 +230,6 @@ function DashboardFrame({
           }}
           viewer={JOURNEY_VIEWER}
           reads={{
-            needsReview: { isLoading: false, isError: false },
             decisions: { isLoading: false, isError: false },
             myWork: { isLoading: false, isError: false },
           }}
@@ -248,6 +242,19 @@ function DashboardFrame({
           onRefresh={fn()}
           onOpenWork={fn()}
           onOpenPath={fn()}
+        />
+      ) : tab === "toReview" ? (
+        <ToReviewTab
+          items={toReview ?? []}
+          viewer={JOURNEY_VIEWER}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          hasError={hasError}
+          uncounted={uncounted}
+          onWorkClick={fn()}
+          onRefresh={fn()}
+          isOffline={isOffline}
+          savedAt={savedAt}
         />
       ) : (
         <CompletedTab
@@ -283,8 +290,9 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * Your Work at phone width: the shared bottom sheet at the full tier with its two
- * tabs, Pending and Completed (D3). Pending is one list sorted by what needs you
+ * Your Work at phone width: the shared bottom sheet at the full tier with its tabs,
+ * Pending and Completed (D3), and To Review for whoever may review the garden's work
+ * (DL-149). Pending is the member's own work, one list sorted by what needs them
  * (D12): blocked work, work to upload, drafts, anything being checked, then work
  * in review (O2). Its header is the count, Refresh and Upload all, then the
  * filter, which offers only the states the list holds (D17, D27).
@@ -480,12 +488,81 @@ export const UploadCancelledToast: Story = {
   ],
 };
 
-/** A steward's list: work waiting for their review, and a review of theirs still on this phone. */
+const WAITING_FOR_REVIEW: Work[] = [
+  gardenWork("0xreview1", "Greenhouse Repair", { createdAt: hoursAgo(20) }),
+  gardenWork("0xreview2", "Tool Shed Inventory", { actionUID: 3, createdAt: hoursAgo(44) }),
+  gardenWork("0xreview3", "Swale Repair", { actionUID: 6, createdAt: hoursAgo(70) }),
+];
+
+/**
+ * Pending for someone who may review (DL-149): their own work and a review of theirs still on this
+ * phone, and none of the work waiting for them, which the To Review tab counts.
+ */
 export const PendingSteward: Story = {
   args: {
     uploads: READY,
-    toReview: [gardenWork("0xreview", "Compost Turn", { createdAt: hoursAgo(20) })],
+    toReview: WAITING_FOR_REVIEW,
     decisions: [gardenWork("0xdecided", "Path Edging", { status: "approved" })],
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByTestId("tab-toReview")).toHaveTextContent("3");
+    await expect(body.getByText("Your review")).toBeVisible();
+    await expect(body.queryByText("Greenhouse Repair")).toBeNull();
+  },
+};
+
+/** The review queue on its own tab, in the review rows, its count on the tab and the line. */
+export const ToReview: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("3 to review")).toBeVisible();
+    await expect(body.getByText("Greenhouse Repair")).toBeVisible();
+    await expect(body.getByTestId("tab-toReview")).toHaveTextContent("3");
+  },
+};
+
+export const ToReviewSpanish: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW },
+  parameters: { locale: "es" },
+};
+
+export const ToReviewPortuguese: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW },
+  parameters: { locale: "pt" },
+};
+
+/** Someone who may review with nothing waiting: the tab stays, with no count. */
+export const ToReviewEmpty: Story = {
+  args: { tab: "toReview", toReview: [] },
+};
+
+/** The read may stop short of all there is, so neither the tab nor its line names a number. */
+export const ToReviewUncounted: Story = {
+  args: { tab: "toReview", toReview: WAITING_FOR_REVIEW, uncounted: true },
+};
+
+/** None waiting among the rows read, with older work unread: it does not call the queue empty. */
+export const ToReviewEmptyRecentOnly: Story = {
+  args: { tab: "toReview", toReview: [], uncounted: true },
+};
+
+export const ToReviewLoading: Story = {
+  args: { tab: "toReview", toReview: [], isLoading: true },
+};
+
+export const ToReviewError: Story = {
+  args: { tab: "toReview", toReview: [], hasError: true },
+};
+
+/** The same list offline: when it was read, and no Refresh. */
+export const ToReviewOffline: Story = {
+  args: {
+    tab: "toReview",
+    toReview: WAITING_FOR_REVIEW,
+    isOffline: true,
+    savedAt: todayAt(10, 2),
   },
 };
 

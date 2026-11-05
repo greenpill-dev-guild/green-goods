@@ -2,20 +2,21 @@
  * The one submission flow (PWA Home decision 21, DL-131)
  *
  * Logging work and adding evidence to a promise are one flow with two kinds: one stage sequence
- * (Start, Media, Details, Review; evidence has no Start), one forward act, one pinned promise, and
- * the media tools on the Media stage. Each kind keeps its own module (the work submission flow
- * controller, the proof composer controller), its own pieces at each stage and its own job-queue
- * path, with every payload as it was. This controller composes a kind's module into the flow's
- * stage machinery for the shared shell: which stage shows, where Back and the forward act go, how
- * far the markers have come, and the promise pinned under every heading.
+ * (Start, Media, Details, Review), one forward act, one pinned promise, and the media tools on the
+ * Media stage. Each kind keeps its own module (the work submission flow controller, the proof
+ * composer controller), its own pieces at each stage and its own job-queue path, with every
+ * payload as it was. This controller composes a kind's module into the flow's stage machinery for
+ * the shared shell: which stage shows, where Back and the forward act go, how far the markers have
+ * come, and the promise pinned under every heading.
  *
  * Work keeps its step in the work flow store, where a draft saves it and a resumed draft restores
  * it, so the work module owns the stage. Evidence saves no step, so the flow holds it, and starts
  * over whenever the composer is opened for another promise or by another account.
  *
  * Start has no forward act: choosing a promise or an action moves on. When its answer is known
- * the step is skipped, so the work's path opens on Media while the markers stay four, and Back
- * follows the path taken: through Start's own screens, then out of the flow.
+ * the step is skipped, as it always is for evidence, whose promise is already chosen: the path
+ * opens on Media while the markers stay four with Start done (DL-153), and Back follows the path
+ * taken: through Start's own screens, then out of the flow.
  *
  * @module hooks/client-ui/submission/useSubmissionFlowController
  */
@@ -31,10 +32,13 @@ import type { useWorkSubmissionFlowController } from "../work/useWorkSubmissionF
 export type SubmissionKind = "work" | "evidence";
 export type SubmissionStage = "start" | "media" | "details" | "review";
 
-/** One stage sequence; evidence has no Start, since its promise is already chosen (decision 17). */
-const SUBMISSION_STAGES: Record<SubmissionKind, readonly SubmissionStage[]> = {
-  work: ["start", "media", "details", "review"],
-  evidence: ["media", "details", "review"],
+/** One stage sequence, so both kinds show the same four markers (DL-153). */
+const SUBMISSION_STAGES: readonly SubmissionStage[] = ["start", "media", "details", "review"];
+
+/** Where a kind opens: evidence skips Start, since its promise is already chosen (decision 17). */
+const OPENING_STAGE: Record<SubmissionKind, SubmissionStage> = {
+  work: "start",
+  evidence: "media",
 };
 
 /** The step markers' names, one per stage, as DL-058 names them. */
@@ -230,7 +234,7 @@ function evidenceKind(
   return {
     stage: null,
     goToStage: null,
-    skipsStart: false,
+    skipsStart: true,
     leave: input.leave,
     submit: controller.submit,
     forward: (stage) => {
@@ -273,8 +277,8 @@ function evidenceKind(
 
 export function useSubmissionFlowController(input: SubmissionKindInput): SubmissionFlowController {
   const module = input.kind === "work" ? workKind(input.controller) : evidenceKind(input);
-  const stages = SUBMISSION_STAGES[input.kind];
-  const first = stages[0];
+  const stages = SUBMISSION_STAGES;
+  const first = OPENING_STAGE[input.kind];
   const [ownStage, setOwnStage] = useState<SubmissionStage>(first);
   const [promiseOpen, setPromiseOpen] = useState(false);
   const { identity } = module;

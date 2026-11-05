@@ -97,9 +97,8 @@ export function HubSheetDescriptor({
   );
 
   const sheetDescriptor = useMemo(() => {
-    // Submit Work is no longer a Hub inspector sheet — it owns its own route
-    // (/hub/work/submit → submitWorkView). This descriptor only resolves the
-    // read/review inspectors: a work's detail and an assessment's record, whose
+    // The create flows are not inspector sheets: HubFlowDialogs opens them from
+    // their route items. This descriptor only resolves the read/review inspectors: a work's detail and an assessment's record, whose
     // selection keeps the "certification" name of the stage it used to open from.
     if (sheetSelection?.kind === "work") {
       return {

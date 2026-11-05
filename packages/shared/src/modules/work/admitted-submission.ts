@@ -5,10 +5,11 @@ import { logger } from "../app/logger";
 import { jobQueueDB } from "../job-queue/db";
 import { holdWorkClaims } from "../job-queue/work-claims";
 import { holdingSend } from "../job-queue/send-guards";
-import { MAX_RETRIES } from "../job-queue/queue-policy";
+import { hasRecordedSend, MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
 import { findTakeUpOf } from "../job-queue/take-up-hold";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { isHeicFile, PendingHeicConversionError } from "./work-attachments";
 import {
   type QueuedWorkSubmission,
@@ -40,6 +41,30 @@ export function queuedOutcome(
     clientWorkId: queued.clientWorkId,
     ...(reason ? { reason } : {}),
   };
+}
+
+/** A send already on record that could not be checked now: it is still awaiting confirmation. */
+export function uncheckedOutcome(
+  queued: QueuedWorkSubmission,
+  sender: TransactionSender | null
+): SubmitWorkOutcome {
+  return {
+    ...queuedOutcome(queued, sender, "connection-unconfirmed"),
+    kind: "awaiting-confirmation",
+  } as SubmitWorkOutcome;
+}
+
+/**
+ * Without the offline queue a send that cannot go out now fails, and says nothing was
+ * sent, unless a send is already on record: that one only waits for its check.
+ */
+async function refuseForConnection(
+  queued: QueuedWorkSubmission,
+  ports: SubmitWorkPorts
+): Promise<SubmitWorkOutcome> {
+  const job = await jobQueueDB.getJob(queued.jobId);
+  if (job && hasRecordedSend(job)) return uncheckedOutcome(queued, ports.sender);
+  throw new ConnectionNeededError();
 }
 
 function rejectTerminalWork(job: Job | undefined, onTerminalUnsentFailure?: () => void) {
@@ -122,12 +147,12 @@ async function admitAndSend(
       checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
     );
     // Submitting again after declining the prompt is the person asking to send it.
-    const canCheckWalletBroadcast =
-      input.retainSubmission && input.authMode === "wallet" && checkpoint?.transactionHash;
-    if (
-      (awaiting && !canCheckWalletBroadcast) ||
-      (!awaiting && !existing?.meta?.requiresExplicitSend)
-    )
+    // A retained send is checked again: a wallet's by its transaction, any other
+    // session's by the queue, which settles a recorded send rather than sending a second copy.
+    const canCheckRetainedSend =
+      input.retainSubmission &&
+      (input.authMode !== "wallet" || Boolean(checkpoint?.transactionHash));
+    if ((awaiting && !canCheckRetainedSend) || (!awaiting && !existing?.meta?.requiresExplicitSend))
       return {
         ...queuedOutcome(queued, ports.sender),
         kind: awaiting ? "awaiting-confirmation" : "queued",
@@ -135,8 +160,7 @@ async function admitAndSend(
   }
   // Admission is durable; on an unconfirmed connection the work waits in the queue.
   if (!(await ports.connectivity.confirm())) {
-    if (!input.allowOfflineQueue)
-      throw new Error("Offline queue is disabled for this submission surface");
+    if (!input.allowOfflineQueue) return refuseForConnection(queued, ports);
     return queuedOutcome(
       queued,
       ports.sender,
@@ -159,6 +183,17 @@ async function admitAndSend(
       )
         throw new Error(result.error);
       if (result.error === "already-processing") return heldElsewhere(queued, ports);
+      if (!input.allowOfflineQueue && result.error !== "awaiting-confirmation") {
+        // Without the offline queue no later pass sends it, so this Submit fails
+        // and the work waits for the next one. The explicit send lifted its hold
+        // for the queue's retries; it is held again.
+        await jobQueueDB.amendJob(queued.jobId, (job) => {
+          job.meta = { ...job.meta, requiresExplicitSend: true };
+        });
+        if (result.error === "offline" || result.error === "connection-unconfirmed")
+          return refuseForConnection(queued, ports);
+        throw new Error(result.error ?? "submission-failed");
+      }
     }
     return result.success && result.txHash
       ? ({

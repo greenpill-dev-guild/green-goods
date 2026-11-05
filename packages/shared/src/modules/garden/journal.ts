@@ -24,7 +24,7 @@
 
 import { commitmentNeedsSeat } from "../commitment-pooling/acts";
 import { groupCommitmentsForDisplay } from "../commitment-pooling/display-groups";
-import type { DueClock } from "../commitment-pooling/due-dates";
+import { cycleStanding, type DueClock } from "../commitment-pooling/due-dates";
 import {
   isOpenToTakeUp,
   type PoolListEntry,
@@ -107,11 +107,6 @@ export function recentActivityState(read: GardenWorkRead): RecentActivityState {
   return answered ? { status: "empty" } : { status: "loading" };
 }
 
-/** The newest of the garden's works with a photo, the carousel's featured update. */
-export function featuredWork(works: readonly Work[]): Work | null {
-  return gardenActivity(works).find((work) => work.media.length > 0) ?? null;
-}
-
 export interface OpenCycle {
   cycle: CommitmentCycleRecord;
   /** Whole days to the cycle's end, the last part of a day counting as one; null without one. */
@@ -120,10 +115,17 @@ export interface OpenCycle {
 
 /**
  * The pool's open cycles: its one open season first (`CyclesLib.sol` keeps one), then its
- * open campaigns in the order the Pool tab's rail reads them.
+ * open campaigns in the order the Pool tab's rail reads them. A cycle past its end on the
+ * chain's clock (`now`, Unix seconds) has ended, though no steward has closed it yet, so it is
+ * not offered (DL-162). Days left count on the device's clock (`nowMs`), which the section reads
+ * again as it is shown; it never decides whether a cycle is open.
  */
-export function openCycles(cycles: readonly CommitmentCycleRecord[], nowMs: number): OpenCycle[] {
-  const open = cycles.filter((cycle) => cycle.state === "OPEN");
+export function openCycles(
+  cycles: readonly CommitmentCycleRecord[],
+  now: bigint,
+  nowMs: number
+): OpenCycle[] {
+  const open = cycles.filter((cycle) => cycleStanding(cycle, now) === "open");
   return [
     ...open.filter((cycle) => cycle.cycleType === "SEASON"),
     ...open.filter((cycle) => cycle.cycleType !== "SEASON"),
@@ -131,8 +133,8 @@ export function openCycles(cycles: readonly CommitmentCycleRecord[], nowMs: numb
 }
 
 /**
- * Days left to an end time in unix seconds. A cycle past its end but still open has no count:
- * "0 days left" would read as ending today, and its state says it has not ended.
+ * Days left to an end time in unix seconds. Past the end on this clock there is no count: "0 days
+ * left" would read as ending today, while the chain's clock has not ended the cycle yet.
  */
 export function cycleDaysLeft(endTime: bigint | null, nowMs: number): number | null {
   if (endTime === null) return null;
@@ -325,6 +327,20 @@ export function takePartEntries(input: TakePartInput): TakePartEntry[] {
 }
 
 /**
+ * Why Take Part lists nothing, when it does (DL-132): `yours` when the pool's open promises are
+ * all the reader's own, `none` otherwise. A promise the reader asked to take up, or has a take-up
+ * queued for, is still another's: its request may be declined and its send may fail, so it never
+ * reads as "yours".
+ */
+export function takePartEmptyReason(input: TakePartInput): "none" | "yours" {
+  if (!input.poolOpen) return "none";
+  const viewer = input.viewer ?? undefined;
+  const open = input.commitments.filter((commitment) => isOpenToTakeUp(commitment, input.clock));
+  if (open.length === 0) return "none";
+  return open.every((commitment) => isCommitmentCreator({ commitment, viewer })) ? "yours" : "none";
+}
+
+/**
  * The asks Submit Work's Start step lists beside the reader's own promises (decision 18): Take
  * Part's entries, each standing for its set's first copy the reader could take up, narrowed to
  * the asks the chain hands them in one tap.
@@ -333,9 +349,4 @@ export function oneTapAsks(input: TakePartInput): CommitmentReadModel[] {
   return takePartEntries(input)
     .map((entry) => entry.copy)
     .filter((copy) => isOneTapTakeUp(copy, input.viewer, input.takeUps, input.clock));
-}
-
-/** The newest ask among Take Part's entries, for the carousel's last card. */
-export function openAsk(entries: readonly TakePartEntry[]): TakePartEntry | null {
-  return entries.find((entry) => entry.copy.direction === "REQUEST") ?? null;
 }

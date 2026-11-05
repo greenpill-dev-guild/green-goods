@@ -4,11 +4,14 @@ import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/Person
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useMyGardens } from "@green-goods/shared/hooks/garden/useMyGardens";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import {
   RiFileCopyLine,
@@ -39,9 +42,56 @@ interface GardenGardenersProps {
 /** The app's own picture for someone who has no photo, as the profile shows it. */
 const DEFAULT_AVATAR = "/images/avatar.png";
 
+/** The most stewards the leave line names; the list under it shows them all. */
+const LEAVE_LINE_STEWARDS = 3;
+
 /** A name to show for a member who has published none, before their short address. */
 function contactName(member: GardenMember) {
   return member.username || member.email || member.phone || undefined;
+}
+
+/**
+ * How a member leaves the garden today: a steward removes them in the admin. It goes when members
+ * can leave from the app themselves (PRD-1084). A member is anyone whose gardens include this one,
+ * a join still on its way included. With no other steward to name, such as a garden's only
+ * steward, it stays away rather than say to ask nobody. Each name reads as that steward's row does.
+ */
+function GardenLeaveLine({ garden, members }: { garden: Garden; members: GardenMember[] }) {
+  const intl = useIntl();
+  const { primaryAddress } = useUser();
+  const { gardens: myGardens } = useMyGardens(primaryAddress);
+  const isMember = myGardens.some((mine) => compareAddresses(mine.garden.id, garden.id));
+  const stewards = members.filter(
+    (member) => member.isSteward && !compareAddresses(member.account, primaryAddress)
+  );
+
+  if (!isMember || stewards.length === 0) return null;
+
+  const names = stewards.slice(0, LEAVE_LINE_STEWARDS).map((steward) => (
+    <AddressDisplay
+      key={steward.account}
+      address={steward.account}
+      fallbackLabel={contactName(steward)}
+      list
+    >
+      {(name) => (
+        <span className="inline-block max-w-full truncate align-bottom" title={name}>
+          {name}
+        </span>
+      )}
+    </AddressDisplay>
+  ));
+
+  return (
+    <li className="mb-3 list-none" role="presentation">
+      <p className="type-body text-text-sub-600">
+        {intl.formatMessage(
+          { id: "app.garden.gardeners.leave" },
+          { stewards: intl.formatList(names, { type: "disjunction" }) }
+        )}
+      </p>
+    </li>
+  );
 }
 
 /**
@@ -158,6 +208,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             <GardenJoinRequestsQueue gardenAddress={garden.id as Address} />
           </li>
         ) : null}
+        {garden ? <GardenLeaveLine garden={garden} members={members} /> : null}
         {members.length ? (
           shouldVirtualize ? (
             <List

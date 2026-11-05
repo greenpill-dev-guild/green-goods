@@ -3,9 +3,12 @@
  */
 
 import { default as enMessages } from "@green-goods/shared/i18n/en.json";
-import { resetCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import {
+  resetCreateGardenStore,
+  useCreateGardenStore,
+} from "@green-goods/shared/stores/useCreateGardenStore";
 import type { Address } from "@green-goods/shared/types/domain";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,6 +60,20 @@ describe("components/Garden/CreateGardenSteps/TeamStep", () => {
     });
   });
 
+  it("opens joining from the form and says what that means", () => {
+    render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <TeamStep />
+      </IntlProvider>
+    );
+
+    expect(screen.getByText("Invite only")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("switch", { name: "Open joining" }));
+
+    expect(useCreateGardenStore.getState().form.openJoining).toBe(true);
+    expect(screen.getByText("Anyone can join")).toBeInTheDocument();
+  });
+
   it("renders steward and gardener sections with advisory about overlap", () => {
     render(
       <IntlProvider locale="en" messages={enMessages}>
@@ -66,10 +83,10 @@ describe("components/Garden/CreateGardenSteps/TeamStep", () => {
 
     expect(screen.getByLabelText("Stewards")).toBeInTheDocument();
     expect(screen.getByLabelText("Gardeners")).toBeInTheDocument();
-    expect(screen.getByText("Planned team members")).toBeInTheDocument();
+    expect(screen.getByText("First team")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Note: Stewards automatically have gardener access. You don't need to add them to both lists."
+        "Stewards also have gardener access, so there's no need to add them to both lists."
       )
     ).toBeInTheDocument();
   });

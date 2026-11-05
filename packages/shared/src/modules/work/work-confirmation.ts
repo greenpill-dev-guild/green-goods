@@ -3,6 +3,7 @@ import { WorkSubmissionError } from "./wallet-submission/types";
 import { connectivityStore } from "../../stores/connectivity";
 import { parseEventLogs, type Hex, type Log } from "viem";
 import type { BroadcastReference } from "../transactions/types";
+import { forgetBatchBroadcast } from "./batch-send-reference";
 import { getTransactionReceipt, readContract } from "@wagmi/core";
 import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import { EASABI } from "../../utils/blockchain/contracts";
@@ -159,6 +160,7 @@ export function retainedWorkBroadcastReference(id: string) {
   return broadcasts.get(id);
 }
 export function forgetWorkBroadcast(id: string) {
+  forgetBatchBroadcast(id);
   broadcasts.delete(id);
   replacements.delete(id);
 }

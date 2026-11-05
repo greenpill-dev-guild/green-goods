@@ -4,12 +4,18 @@
  * @vitest-environment happy-dom
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 
 import { WalletSheetIcon } from "../../views/Home/WalletSheet/Icon";
+
+// The launcher waits for the sheet's code (DL-132); the test stands in for that fetch.
+const preload = vi.fn<() => Promise<unknown>>(() => Promise.resolve());
+vi.mock("../../views/Home/DeferredSurfaces", () => ({
+  preloadWalletSheet: () => preload(),
+}));
 
 const messages: Record<string, string> = {
   "app.wallet.title": "Your Wallet",
@@ -26,9 +32,20 @@ function renderView() {
 }
 
 describe("WalletSheetIcon", () => {
-  it("renders the wallet trigger without a notification badge", () => {
+  it("renders the wallet trigger without a badge, enabled once its sheet's code is cached (DL-132)", async () => {
     renderView();
-    expect(screen.getByRole("button", { name: "Your Wallet" })).toBeInTheDocument();
+    const trigger = screen.getByRole("button", { name: "Your Wallet" });
+    expect(trigger).toBeDisabled();
+    expect(trigger).toHaveAttribute("aria-busy", "true");
+    await waitFor(() => expect(trigger).toBeEnabled());
+    expect(trigger).not.toHaveAttribute("aria-busy", "true");
     expect(screen.queryByTestId("wallet-badge")).not.toBeInTheDocument();
+  });
+
+  it("frees the trigger when the sheet's code cannot be fetched, so a tap reaches the recovery flow", async () => {
+    preload.mockImplementationOnce(() => Promise.reject(new Error("chunk gone")));
+    renderView();
+    const trigger = screen.getByRole("button", { name: "Your Wallet" });
+    await waitFor(() => expect(trigger).toBeEnabled());
   });
 });

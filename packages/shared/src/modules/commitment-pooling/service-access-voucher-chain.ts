@@ -211,6 +211,12 @@ export async function readVoucherServiceSetups(
                 : null,
             authorizationDispatched: hash(record.lastPrepareMessageId) !== ZERO,
             decisionDispatched: hash(record.lastDecisionMessageId) !== ZERO,
+            authorizationMessageId:
+              hash(record.lastPrepareMessageId) === ZERO ? null : hash(record.lastPrepareMessageId),
+            decisionMessageId:
+              hash(record.lastDecisionMessageId) === ZERO
+                ? null
+                : hash(record.lastDecisionMessageId),
             setupResult,
             finalResult,
           },

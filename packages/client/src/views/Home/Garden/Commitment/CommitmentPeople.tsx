@@ -8,6 +8,7 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
+  RiCoupon3Line,
   RiGroupLine,
   RiHandHeartLine,
   RiQuestionAnswerLine,
@@ -26,6 +27,8 @@ export interface CommitmentPeopleProps {
   seat: CommitmentSeat | null;
   /** The count and unit, already in words, or null when the record has none. */
   units: string | null;
+  /** What a booking of the reader's own voucher offer takes, in words. */
+  takes?: string | null;
   /** The reward it carries, in words, or null when it carries none or the page doesn't say. */
   reward?: string | null;
   /** Who is reading, so the team can say "You" rather than their name. */
@@ -71,6 +74,7 @@ export function CommitmentPeople({
   commitment,
   contributors,
   units,
+  takes = null,
   reward = null,
   viewer,
   stewards,
@@ -124,6 +128,14 @@ export function CommitmentPeople({
                 : "app.commitments.direction.offer",
             })}
             value={units}
+          />
+        ) : null}
+
+        {takes ? (
+          <FactRow
+            icon={<RiCoupon3Line />}
+            label={formatMessage({ id: "app.commitment.people.takes" })}
+            value={takes}
           />
         ) : null}
 

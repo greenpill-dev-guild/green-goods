@@ -5,28 +5,34 @@ import type { Work } from "@green-goods/shared/types/domain";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import type { IntlShape } from "react-intl";
 import { formatAgo, formatRowDay, formatSavedMeta } from "@/components/Cards/Work/pendingCopy";
-import type { PendingCardProps } from "@/components/Cards/Work/PendingCard";
+import type { PendingCardKind, PendingCardProps } from "@/components/Cards/Work/PendingCard";
 import {
   blockedShortReasonMessage,
   readQueuedWorkState,
 } from "@/components/Cards/Work/queuedWorkCopy";
 import { canDiscardQueuedWork, workUploadGroup } from "@/components/Cards/Work/workUploadGroup";
 import { describeProofContents } from "@/components/Features/Commitments/proofContents";
-import type { PendingPlace } from "./pendingRows";
+import type { PendingKind, PendingPlace } from "./pendingRows";
 
-type RowCard = Pick<
+type RowCard<Kind extends PendingCardKind = PendingKind> = Pick<
   PendingCardProps,
-  "kind" | "pill" | "title" | "meta" | "marker" | "status" | "statusTone" | "locked"
->;
+  "pill" | "title" | "meta" | "marker" | "status" | "statusTone" | "locked"
+> & { kind: Kind };
 
 /** One row of Your Work › Pending, with what opening and discarding it act on. */
 export type PendingRow = PendingPlace & { id: string } & (
     | { type: "work"; work: Work; card: RowCard; discardable: boolean }
     | { type: "decision"; work: Work; card: RowCard }
-    | { type: "toReview"; work: Work; card: RowCard }
     | { type: "draft"; draft: DraftWithImages }
     | { type: "proof"; proof: PendingProof; card: RowCard }
   );
+
+/** One row of Your Work › To Review (DL-149): work this account's review waits on. */
+export interface ToReviewRow {
+  type: "toReview";
+  work: Work;
+  card: RowCard<"needsReview">;
+}
 
 export interface PendingRowContext {
   intl: IntlShape;
@@ -50,12 +56,15 @@ export interface PendingRowContext {
   linkFailed?: (work: Work) => boolean;
 }
 
+/** What naming a work's row reads, the one thing a To Review row needs. */
+type WorkRowContext = Pick<PendingRowContext, "intl" | "actionTitle" | "isLinked">;
+
 type QueuedDecision = NonNullable<ReturnType<WorkUploads["decisionFor"]>>;
 
 const message = (intl: IntlShape, id: string, values?: Record<string, string | number>) =>
   intl.formatMessage({ id }, values);
 
-function workTitle(work: Work, context: PendingRowContext): string {
+function workTitle(work: Work, context: WorkRowContext): string {
   return (
     toWorkDisplayTitle(work.title, "") ||
     context.actionTitle(work.actionUID) ||
@@ -63,7 +72,7 @@ function workTitle(work: Work, context: PendingRowContext): string {
   );
 }
 
-function linkedMarker(work: Work, context: PendingRowContext): RowCard["marker"] {
+function linkedMarker(work: Work, context: WorkRowContext): RowCard["marker"] {
   return context.isLinked(work)
     ? { kind: "linked", label: message(context.intl, "app.pending.marker.linked") }
     : undefined;
@@ -269,27 +278,20 @@ export function decisionRow(
   };
 }
 
-/** Work in a garden you steward that waits for your review. */
-export function toReviewRow(work: Work, context: PendingRowContext): PendingRow {
+/** Work in a garden you may review that waits for your review. */
+export function toReviewRow(work: Work, context: WorkRowContext): ToReviewRow {
   const { intl } = context;
-  const at = work.createdAt * 1000;
-  const card: RowCard = {
+  const card: ToReviewRow["card"] = {
     kind: "needsReview",
     pill: message(intl, "app.pending.pill.toReview"),
     title: workTitle(work, context),
-    meta: message(intl, "app.pending.meta.submittedBy", { date: formatRowDay(intl, at) }),
+    meta: message(intl, "app.pending.meta.submittedBy", {
+      date: formatRowDay(intl, work.createdAt * 1000),
+    }),
     marker: linkedMarker(work, context),
     status: message(intl, "app.pending.status.waitingForYourReview"),
   };
-  return {
-    id: `review:${work.id}`,
-    type: "toReview",
-    kind: "needsReview",
-    source: "work",
-    at,
-    work,
-    card,
-  };
+  return { type: "toReview", work, card };
 }
 
 export function draftRow(draft: DraftWithImages): PendingRow {

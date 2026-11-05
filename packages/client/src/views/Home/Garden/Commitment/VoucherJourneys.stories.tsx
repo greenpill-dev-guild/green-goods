@@ -570,6 +570,42 @@ const EARNED_CLAIM_REVIEW: JourneyStep[] = [
 ];
 
 const JOURNEYS = {
+  messageWaits: [
+    {
+      caption: "The request is sent, but has not arrived for issuer approval.",
+      booking: {
+        service: "hubDay",
+        stage: "waitingApproval",
+        tweak: (s: ServiceAccessSnapshot) => {
+          s.voucherSetups[0]!.destination!.result.phase = "none";
+          s.voucherSetups[0]!.source.authorizationMessageId = s.voucherSetups[0]!.setupId;
+          return s;
+        },
+      },
+      holds: { techAndSun: 9, greenGoods: 0 },
+      next: "Request arrives",
+    },
+    {
+      caption: "The request arrived. The issuer can approve it now.",
+      booking: { service: "hubDay", stage: "waitingApproval" },
+      holds: { techAndSun: 9, greenGoods: 0 },
+      next: "Show activation wait",
+    },
+    {
+      caption:
+        "The activation was sent once. The page waits for arrival instead of asking for another signature.",
+      booking: {
+        service: "hubDay",
+        stage: "starting",
+        tweak: (s: ServiceAccessSnapshot) => {
+          s.voucherSetups[0]!.source.decisionDispatched = true;
+          s.voucherSetups[0]!.source.decisionMessageId = s.voucherSetups[0]!.setupId;
+          return s;
+        },
+      },
+      holds: { techAndSun: 8, greenGoods: 0 },
+    },
+  ] satisfies JourneyStep[],
   hubDay: HUB_DAY,
   exchange: EXCHANGE_THEN_REDEEM,
   endsEarly: ENDS_EARLY,
@@ -693,7 +729,7 @@ function VoucherJourney({
   start: number;
   lang: Lang;
 }) {
-  const steps = JOURNEYS[journey];
+  const steps: readonly JourneyStep[] = JOURNEYS[journey];
   const [index, setIndex] = useState(Math.min(start, steps.length - 1));
   const step = steps[index]!;
   const snapshot = useMemo(() => snapshotFor(step), [step]);
@@ -866,6 +902,8 @@ export const ClaudeAccessEndsEarly: Story = { args: { journey: "endsEarly" } };
 
 /** When an act stops partway or a read can't be used: each state and the page's way on. */
 export const RecoveryStates: Story = { args: { journey: "recovery" } };
+/** Synthetic snapshots of network waits, separate from issuer and member actions. */
+export const CrossChainWaits: Story = { args: { journey: "messageWaits" } };
 
 /** Fictional reviewed reward, with the real booking page and its own consent sheet. */
 export const AgreedRewardKeepsBooking: Story = {

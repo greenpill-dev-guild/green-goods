@@ -81,6 +81,15 @@ vi.mock("@remixicon/react", () => ({
 }));
 
 // Mock client components
+vi.mock("@/components/Cards", () => ({
+  Card: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-testid": "card" }, children),
+}));
+
+vi.mock("@/components/Display", () => ({
+  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
+}));
+
 vi.mock("@/components/Inputs", async () => {
   const React = await import("react");
   const SelectContext = React.createContext<((value: string) => void) | undefined>(undefined);
@@ -106,8 +115,18 @@ vi.mock("@/components/Inputs", async () => {
         children
       );
     },
-    SelectTrigger: ({ children, className }: any) =>
-      React.createElement("div", { "data-testid": "select-trigger", className }, children),
+    // The trigger is the select's combo box (Radix renders one); its name comes from the caller.
+    SelectTrigger: ({ children, className, "aria-labelledby": labelledBy }: any) =>
+      React.createElement(
+        "div",
+        {
+          "data-testid": "select-trigger",
+          role: "combobox",
+          "aria-labelledby": labelledBy,
+          className,
+        },
+        children
+      ),
     SelectValue: ({ placeholder }: any) => React.createElement("span", null, placeholder),
   };
 });
@@ -185,6 +204,14 @@ describe("AppSettings", () => {
     expect(mockAppState.switchLanguage).toHaveBeenCalledWith("es");
   });
 
+  it("names the theme and language selects by their row titles", () => {
+    // Unnamed, a screen reader announced each as a bare combo box (axe button-name, critical).
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByRole("combobox", { name: "Theme" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Language" })).toBeInTheDocument();
+  });
+
   it("keeps every select value on one line", () => {
     // "Português" is a few pixels wider than the trigger's text box and wrapped.
     render(wrap(createElement(AppSettings)));
@@ -198,7 +225,7 @@ describe("AppSettings", () => {
     it("always offers a manual check with the same control width as the selects", () => {
       render(wrap(createElement(AppSettings)));
 
-      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
       expect(screen.getByText(TITLE)).toBeInTheDocument();
       expect(screen.getByRole("status", { name: "Update" })).toHaveTextContent(
         "Check for a newer version."
@@ -230,10 +257,10 @@ describe("AppSettings", () => {
         "Check for a newer version."
       );
       expect(screen.getByRole("button", { name: "Check" })).toBeInTheDocument();
-      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
-    it("reserves two subtitle lines in every row so the rows never change height", () => {
+    it("reserves two subtitle lines in every row so the cards never change height", () => {
       render(wrap(createElement(AppSettings)));
 
       const subtitles = [
@@ -308,7 +335,7 @@ describe("AppSettings", () => {
       const control = screen.getByRole("button", { name: label });
       expect(control).toHaveAttribute("aria-busy", "true");
       expect(control).toHaveClass(...widthClasses(screen.getAllByTestId("select-trigger")[0]));
-      expect(document.querySelectorAll('[data-component="FactRow"]')).toHaveLength(4);
+      expect(screen.getAllByTestId("card")).toHaveLength(4);
     });
 
     it("offers Restart when a background check found a waiting update", async () => {
@@ -418,14 +445,16 @@ describe("offline content row", () => {
     vi.clearAllMocks();
   });
 
-  it("keeps the title on one line and the status on exactly two truncated lines", () => {
+  it("keeps the title and status on one line each, and lets a long detail wrap rather than cut", () => {
     const { status } = renderRow({ state: "ready", savedBytes: 42_000_000 });
 
     expect(screen.getByText("Offline")).toHaveClass("truncate");
     expect(status).toHaveClass("min-h-8");
     const lines = status.querySelectorAll("span");
     expect(lines).toHaveLength(2);
-    for (const line of lines) expect(line).toHaveClass("block", "truncate");
+    expect(lines[0]).toHaveClass("block", "truncate");
+    expect(lines[1]).toHaveClass("block");
+    expect(lines[1]).not.toHaveClass("truncate");
   });
 
   it("shows megabytes and progress while downloading, with Pause instead of Retry", async () => {

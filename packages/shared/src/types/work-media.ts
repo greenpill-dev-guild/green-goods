@@ -11,6 +11,7 @@ export interface WorkUploadCheckpoint {
     media: string[];
   };
   broadcast?: import("../modules/transactions/types").BroadcastReference;
+  batchReference?: import("../modules/transactions/batch-types").BatchReference;
   /** Durable signing intent. A missing hash after interruption must not authorize another send. */
   broadcastPending?: boolean;
   /** When the intent was recorded, so an intent that never reached the chain can be resolved. */

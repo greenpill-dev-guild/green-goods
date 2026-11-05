@@ -225,11 +225,29 @@ export async function readLiveVoucherWallet(
               candidate.token.address.toLowerCase() === asset.token.toLowerCase() &&
               candidate.ownerReserve.toLowerCase() === asset.issuer.toLowerCase()
           );
+        const services = reviewedAsset?.service.offers;
         return {
           account: asset.issuer,
           kind: "collective" as const,
           name: asset.issuerName ?? asset.symbol,
           gender: null,
+          services:
+            services?.length &&
+            services.every(
+              (offer) =>
+                offer.name?.trim() &&
+                offer.unit.trim() &&
+                offer.serviceUnits > 0n &&
+                offer.voucherUnits > 0n
+            )
+              ? services.map(({ name, unit, serviceUnits, voucherUnits, serviceTermsRef }) => ({
+                  name: name ?? unit,
+                  unit,
+                  serviceUnits,
+                  voucherUnits,
+                  serviceTermsRef,
+                }))
+              : null,
           garden: asset.garden ?? scope.coreModule,
           asset: {
             chainId: 100,
@@ -364,14 +382,21 @@ function rewardDelivery(
   };
 }
 
-const BEFORE_CONFIRMATION = new Set(["OFFERED", "REQUESTED", "ACCEPTED", "READY_FOR_CONFIRMATION"]);
+const BEFORE_CONFIRMATION = new Set([
+  "OFFERED",
+  "REQUESTED",
+  "ACCEPTED",
+  "EVIDENCE_SUBMITTED",
+  "READY_FOR_CONFIRMATION",
+]);
 
 /**
  * A live request's voucher reward while its work is still to come. Only the live read names the
- * reviewed voucher (its decimals), so an unrouted read shows no row; a confirmed promise's
- * delivery has its own read (PRD-1323) and shows nothing here rather than a guess.
+ * reviewed voucher (its decimals). After confirmation the live distribution read owns delivery;
+ * a source receipt alone never establishes arrival.
  */
 function liveEarnedReward(snapshot: ServiceAccessSnapshot): RequestRewardDelivery[] | null {
+  if (snapshot.earnedReward) return [snapshot.earnedReward];
   const earned = snapshot.acceptancePolicy.earned;
   const terms = earned.terms;
   if (

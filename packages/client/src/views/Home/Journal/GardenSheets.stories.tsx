@@ -1,4 +1,5 @@
 import { useGardenAssessmentRecords } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   useActions,
   useGardeners,
@@ -283,40 +284,72 @@ export const InsightsWithoutBanner: Story = {
   },
 };
 
-/** A steward's Gardeners: the join-request queue first, with Check Requests and no count, then the people. */
+/** The signed-in account, as the record lists it. */
+const readAs = (account: Address) => () => {
+  mocked(useUser).mockReturnValue({ primaryAddress: account } as ReturnType<typeof useUser>);
+  return resetHookMocks(useUser);
+};
+const readAsSteward = readAs(JOURNEY_NEIGHBOUR);
+const readAsGardener = readAs(JOURNEY_VIEWER);
+
+/**
+ * A steward's Gardeners: the join-request queue first, with Check Requests and no count, then the
+ * people. The garden's only steward has nobody to ask, so no line says how to leave.
+ */
 export const GardenersForSteward: Story = {
   args: { scene: "gardenersSteward" },
+  beforeEach: readAsSteward,
   play: async () => {
     const sheet = await findSheet("Gardeners");
     await expect(sheet.getByRole("heading", { name: "Join Requests" })).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Check Requests" })).toBeVisible();
+    await expect(sheet.queryByText(/To leave this garden/)).toBeNull();
     await expect(sheet.getAllByRole("button", { name: /tomas|amara|dele/ })).toHaveLength(3);
   },
 };
 
 export const GardenersForStewardAt390: Story = {
   args: { scene: "gardenersSteward" },
+  beforeEach: readAsSteward,
   globals: { viewport: { value: "homePhone390" } },
 };
 
 export const GardenersForStewardSpanish: Story = {
   args: { scene: "gardenersSteward" },
+  beforeEach: readAsSteward,
   parameters: { locale: "es" },
 };
 
 export const GardenersForStewardPortuguese: Story = {
   args: { scene: "gardenersSteward" },
+  beforeEach: readAsSteward,
   parameters: { locale: "pt" },
 };
 
-/** A gardener's Gardeners: the people only, no queue. */
+/** A gardener's Gardeners: how to leave the garden, naming its steward, then the people, no queue. */
 export const GardenersForGardener: Story = {
   args: { scene: "gardenersGardener" },
+  beforeEach: readAsGardener,
   play: async () => {
     const sheet = await findSheet("Gardeners");
     await expect(sheet.queryByRole("heading", { name: "Join Requests" })).toBeNull();
+    await expect(sheet.getByText(/To leave this garden/)).toHaveTextContent(
+      "To leave this garden, ask a steward like tomas to remove you."
+    );
     await expect(sheet.getAllByRole("button", { name: /tomas|amara|dele/ })).toHaveLength(3);
   },
+};
+
+export const GardenersForGardenerSpanish: Story = {
+  args: { scene: "gardenersGardener" },
+  beforeEach: readAsGardener,
+  parameters: { locale: "es" },
+};
+
+export const GardenersForGardenerPortuguese: Story = {
+  args: { scene: "gardenersGardener" },
+  beforeEach: readAsGardener,
+  parameters: { locale: "pt" },
 };
 
 /** The garden's Work, pending first, as Recent Activity's See All and a steward's duty row open it. */

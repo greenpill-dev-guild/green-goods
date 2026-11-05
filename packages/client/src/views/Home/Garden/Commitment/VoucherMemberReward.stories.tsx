@@ -1,3 +1,4 @@
+import { STORYBOOK_NOW_SECONDS } from "../../../../../../shared/.storybook/fixtures";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo } from "react";
 import { expect, waitFor } from "storybook/test";
@@ -18,15 +19,56 @@ import {
   VoucherStoryPage,
 } from "../../../../../../shared/.storybook/voucherStoryPage";
 import { GardenCommitment } from "./GardenCommitment";
+import {
+  requestRewardDeliveries,
+  type RequestRewardDelivery,
+} from "@green-goods/shared/commitment-pooling";
 
 const NAMES = { [LESSON_STORY_ISSUER.account.toLowerCase()]: "Teo Alves" };
 
 /** The request's page at one reward state; the reader holds the Teo voucher once it arrives. */
-function MemberRewardPage({ state, lang }: { state: RewardStoryState; lang: VoucherStoryLang }) {
-  const snapshot = useMemo(() => memberRewardStorySnapshot(state), [state]);
+function MemberRewardPage({
+  state,
+  lang,
+  delivery,
+}: {
+  state: RewardStoryState;
+  lang: VoucherStoryLang;
+  delivery?: RequestRewardDelivery["status"];
+}) {
+  const snapshot = useMemo(() => {
+    const s = memberRewardStorySnapshot(state);
+    if (delivery) {
+      const reward = requestRewardDeliveries(s)![0]!;
+      delete s.pilot;
+      s.acceptancePolicy.earned.terms = {
+        issuer: LESSON_STORY_ISSUER.account,
+        issuerAuthority: LESSON_STORY_ISSUER.account,
+        asset: LESSON_STORY_ISSUER.asset,
+        totalUnits: reward.amount,
+        allocationPolicy: reward.id,
+        serviceTermsRef: LESSON_STORY_ISSUER.services![0]!.serviceTermsRef,
+        season: 1n,
+        issuerApproved: true,
+        frozen: true,
+      };
+      s.earnedReward = {
+        ...reward,
+        status: delivery,
+        receipt: null,
+        receivedAt: delivery === "received" ? STORYBOOK_NOW_SECONDS : null,
+        messageId: delivery === "preparing" ? null : reward.id,
+      };
+    }
+    return s;
+  }, [state, delivery]);
   const wallet = useMemo(
-    () => lessonStoryWallet(snapshot, state === "received" ? 1 : 0),
-    [snapshot, state]
+    () =>
+      lessonStoryWallet(
+        snapshot,
+        (delivery ? delivery === "received" : state === "received") ? 1 : 0
+      ),
+    [snapshot, state, delivery]
   );
   return (
     <VoucherStoryPage
@@ -102,3 +144,11 @@ export const Received: Story = {
   args: { state: "received" },
   play: shows("Your Teo Alves voucher is in your account."),
 };
+
+/** Synthetic distribution reads on the real promise page; no chain calls or signing. */
+export const DistributionPreparing: Story = { args: { state: "received", delivery: "preparing" } };
+export const DistributionInTransit: Story = { args: { state: "received", delivery: "on-the-way" } };
+export const DistributionReadUnavailable: Story = {
+  args: { state: "received", delivery: "unavailable" },
+};
+export const DistributionDelivered: Story = { args: { state: "received", delivery: "received" } };

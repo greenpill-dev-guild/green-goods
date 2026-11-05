@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
 
-import { renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useCommitmentViewerRoles } from "../../../hooks/commitment-pooling/useCommitmentViewerRoles";
 import type { Address } from "../../../types/domain";
@@ -104,6 +104,10 @@ describe("useCommitmentViewerRoles", () => {
     ];
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("counts a member by the chain's role read when the indexer roster is behind", () => {
     mocks.membership = { isMember: true, isLoading: false, isError: false };
     expect(roles().result.current.isMemberHere).toBe(true);
@@ -124,6 +128,22 @@ describe("useCommitmentViewerRoles", () => {
     expect(roles(HOST, HOST).result.current.claimGardens.member).toEqual([
       { address: OTHER, name: "Other Garden" },
     ]);
+  });
+
+  it("stops counting a join that never reached the roster at its limit, with no other trigger", () => {
+    vi.useFakeTimers();
+    window.localStorage.setItem(
+      PENDING_JOINS_KEY,
+      JSON.stringify({ [OTHER]: { address: VIEWER, timestamp: Date.now() } })
+    );
+    const { result } = roles(OTHER, HOST);
+    expect(result.current.isMemberHere).toBe(true);
+    expect(result.current.claimGardens.member).toEqual([{ address: OTHER, name: "Other Garden" }]);
+
+    act(() => vi.advanceTimersByTime(15 * 60_000 + 1));
+
+    expect(result.current.isMemberHere).toBe(false);
+    expect(result.current.claimGardens.member).toEqual([]);
   });
 
   it("counts every role the contract accepts, funders and community members included", () => {

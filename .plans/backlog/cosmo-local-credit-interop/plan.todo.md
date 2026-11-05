@@ -7,9 +7,21 @@
 **Stage**: `backlog`
 **Status**: `CONTROLLED LIVE PILOT PREPARATION; LOCAL MEMBER PROOF; ONBOARDING INPUTS DEFERRED`
 **Created**: 2026-08-25
-**Last Updated**: `2026-10-23 Pacific`
+**Last Updated**: `2026-10-29 Pacific`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
+
+## PRD-1317 bounded source recovery (accepted 29 October Pacific)
+
+- [x] Add a positive owner-configured retained fee floor to the earned source, with atomic send/retry rejection and paused configuration.
+- [x] Add immutable evidence-backed administrative dispatch close-out; preserve late destination delivery and authenticated acknowledgment, original entitlement and G$ independence.
+- [x] Regenerate the entitlement ABI, project closure separately from payment, and prepare explicit floor configuration/funding/readback gates.
+- [x] Run focused RED/GREEN and selected critical/conditional proof; present the local diff before publication or issue closure.
+
+Accepted issuer/cap wording follows spec.md's source-recovery amendment. PRD-1317 stays In Review;
+all broader lane/manual, live-pilot, signing, wording and device holds remain unchanged.
+
+Implementation and local proof: [PRD-1317 source recovery](handoffs/codex-prd1317-source-recovery.md).
 
 ## Member and garden issuer pilot — accepted 23 October Pacific
 

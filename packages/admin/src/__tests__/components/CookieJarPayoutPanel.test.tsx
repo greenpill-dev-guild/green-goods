@@ -79,19 +79,25 @@ vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
   CookieJarWithdrawModal: () => null,
 }));
 vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
-  CookieJarDepositModal: (props: { onFixLimit?: (jar: Address) => void }) => {
+  CookieJarDepositModal: (props: { isOpen: boolean; onFixLimit?: (jar: Address) => void }) => {
     mocks.depositModalProps = props;
-    return null;
+    return props.isOpen ? <div role="dialog" aria-label="Fund Cookie Jar" /> : null;
   },
 }));
 
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 
-function panel(props: { routeEditLimitJar?: Address } = {}) {
+type PanelProps = {
+  routeEditLimitJar?: Address;
+  allocationCount?: number;
+  allocationCountAtLeast?: boolean;
+};
+
+function panel(props: PanelProps = {}) {
   return <CookieJarPayoutPanel gardenAddress={GARDEN} gardenName="Riverbend Garden" {...props} />;
 }
 
-function renderPanel(props: { routeEditLimitJar?: Address } = {}) {
+function renderPanel(props: PanelProps = {}) {
   return renderWithProviders(panel(props));
 }
 
@@ -108,6 +114,21 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [plainJar];
     mocks.read = { ...FINISHED_READ };
     mocks.signer = { canSign: true, isResolved: true, owner: undefined };
+  });
+
+  it.each([
+    [{ allocationCount: 1 }, "1 payout"],
+    [{ allocationCount: 3 }, "3 payouts"],
+    // The history stops at its limit, so a full list is a lower bound.
+    [{ allocationCount: 20, allocationCountAtLeast: true }, "20+ payouts"],
+    // A history that could not be read states no total, never a zero.
+    [{ allocationCount: 0, allocationCountUnread: true }, "Couldn't read the payouts"],
+  ])("says the payout total in the panel's own header line (DL-134): %o", (props, line) => {
+    renderPanel(props);
+
+    expect(
+      screen.getByRole("heading", { name: "Cookie Jars" }).nextElementSibling
+    ).toHaveTextContent(new RegExp(`^${line.replace("+", "\\+")}$`));
   });
 
   it("lists each jar as a row that opens its operational page", async () => {
@@ -166,6 +187,23 @@ describe("CookieJarPayoutPanel", () => {
     expect(screen.getByText(title)).toBeInTheDocument();
   });
 
+  it.each([
+    ["fails", { error: new Error("RPC timeout") }],
+    ["goes offline", { isPaused: true }],
+  ])("keeps an open deposit mounted when a later jar read %s", async (_state, read) => {
+    const rendered = renderPanel();
+    await openJar(/Active/);
+    await userEvent.setup().click(screen.getByRole("button", { name: /Deposit/ }));
+    expect(screen.getByRole("dialog", { name: "Fund Cookie Jar" })).toBeInTheDocument();
+
+    // A refresh while the steward signs in their wallet loses every jar.
+    mocks.jars = [];
+    mocks.read = { ...FINISHED_READ, ...read };
+    rendered.rerender(panel());
+
+    expect(screen.getByRole("dialog", { name: "Fund Cookie Jar" })).toBeInTheDocument();
+  });
+
   // Until then each jar's amounts use an 18-decimal fallback: this six-decimal jar would misread.
   it("holds the cards until each jar currency's decimals are read", () => {
     mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true };
@@ -178,10 +216,18 @@ describe("CookieJarPayoutPanel", () => {
     reading.unmount();
 
     mocks.read = { ...FINISHED_READ, hasUnreadDecimals: true, isPaused: true };
-    renderPanel();
+    const paused = renderPanel();
 
     expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
     expect(screen.getByText("Cookie jars need a connection")).toBeInTheDocument();
+    paused.unmount();
+
+    // A failed read keeps the fallback for good, so its row, Claim and limit editor stay away too.
+    mocks.read = { ...FINISHED_READ, hasDecimalsReadFailure: true };
+    renderPanel();
+
+    expect(screen.queryByText("Jar Balance")).not.toBeInTheDocument();
+    expect(screen.getByText("Couldn't read this garden's cookie jars")).toBeInTheDocument();
   });
 
   it("stays loading while a jar read is pending but not yet fetching", () => {

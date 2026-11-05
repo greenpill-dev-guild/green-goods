@@ -34,17 +34,27 @@ const FIELDS = ["name", "description", "location"] as const;
  * What Edit Garden shows once Save is pressed: the footer line and one row per
  * changed field, built by the same functions the dialog uses.
  */
-function SaveProgress({ run, pendingCount }: { run: GardenSettingsSaveRun; pendingCount: number }) {
+function SaveProgress({
+  run,
+  pendingCount,
+  oneSignature,
+}: {
+  run: GardenSettingsSaveRun | null;
+  pendingCount: number;
+  oneSignature?: boolean;
+}) {
   const { formatMessage } = useIntl();
   return (
     <div className="space-y-3">
-      <TxProgressList
-        chainId={42161}
-        label={formatMessage({ id: "app.garden.settings.save.listLabel" })}
-        rows={buildGardenSettingsSaveRows(run, formatMessage)}
-      />
+      {run ? (
+        <TxProgressList
+          chainId={42161}
+          label={formatMessage({ id: "app.garden.settings.save.listLabel" })}
+          rows={buildGardenSettingsSaveRows(run, formatMessage)}
+        />
+      ) : null}
       <p className="type-meta text-text-sub" data-slot="dirty-state">
-        {gardenSettingsSaveLine(run, pendingCount, formatMessage)}
+        {gardenSettingsSaveLine(run, pendingCount, formatMessage, oneSignature)}
       </p>
     </div>
   );
@@ -65,7 +75,7 @@ const meta: Meta<typeof EditGardenDialog> = {
     docs: {
       description: {
         component:
-          "Edit Garden, named for the workspace action that opens it. The form owns the draft and the save; the dialog owns the close guard, the identity preview, and the pinned footer. Each changed field is its own transaction, so the footer says how many wallet confirmations a save takes before it starts; once it starts, the rows show each one landing, a stop names where it stopped and what was saved, and Try Again sends only the rest (frontend-design Rule 20). The save states below compose the same row builder and footer line the dialog uses, since the mutations are inert against the Storybook mock transport.",
+          "Edit Garden, named for the workspace action that opens it. The form owns the draft and the save; the dialog owns the close guard, the identity preview, and the pinned footer. The footer says how many signatures a save takes before it starts: one per field, or one for all of them where the rail can batch. Once it starts, the rows show each one landing, a stop names what happened, and Try Again sends only what is left (frontend-design Rule 20). A save whose outcome is unknown stays at the top with what the chain holds until it is settled. The save states below compose the same row builder and footer line the dialog uses, since the mutations are inert against the Storybook mock transport.",
       },
     },
   },
@@ -165,6 +175,75 @@ export const SaveDone: SaveStory = {
         description: { state: "saved", hash: HASH },
         location: { state: "saved", hash: HASH },
       },
+    },
+  },
+};
+
+const TOGETHER = (state: "queued" | "waiting" | "saved" | "failed" | "unconfirmed") => ({
+  name: { state, hash: state === "saved" ? HASH : null },
+  description: { state, hash: state === "saved" ? HASH : null },
+  location: { state, hash: state === "saved" ? HASH : null },
+});
+
+/** Before Save: the footer promises one signature for all of them. */
+export const OneSignaturePlan: SaveStory = {
+  render: (args) => <SaveProgress {...args} />,
+  args: { pendingCount: 3, oneSignature: true, run: null },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("3 changes · 1 signature")).toBeVisible();
+  },
+};
+
+/** One signature covers every field, so the rows share one number and move together. */
+export const WaitingForOneSignature: SaveStory = {
+  render: (args) => <SaveProgress {...args} />,
+  args: {
+    pendingCount: 3,
+    run: {
+      status: "running",
+      fields: FIELDS,
+      oneSignature: true,
+      progress: TOGETHER("waiting"),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText("Waiting for your signature")).toHaveLength(3);
+  },
+};
+
+export const SavedWithOneSignature: SaveStory = {
+  render: (args) => <SaveProgress {...args} />,
+  args: {
+    pendingCount: 0,
+    run: { status: "complete", fields: FIELDS, oneSignature: true, progress: TOGETHER("saved") },
+  },
+};
+
+/** A declined or reverted batch saves nothing, and the draft stays for Try Again. */
+export const OneSignatureDeclined: SaveStory = {
+  render: (args) => <SaveProgress {...args} />,
+  args: {
+    pendingCount: 3,
+    run: { status: "stopped", fields: FIELDS, oneSignature: true, progress: TOGETHER("failed") },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Nothing was saved. Your edits are still here.")).toBeVisible();
+  },
+};
+
+/** The send may have landed: the rows say so, and it is not sent again. */
+export const SaveNotConfirmed: SaveStory = {
+  render: (args) => <SaveProgress {...args} />,
+  args: {
+    pendingCount: 0,
+    run: {
+      status: "unconfirmed",
+      fields: FIELDS,
+      oneSignature: true,
+      progress: TOGETHER("unconfirmed"),
     },
   },
 };

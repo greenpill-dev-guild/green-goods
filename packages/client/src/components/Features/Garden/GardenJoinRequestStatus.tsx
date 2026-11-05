@@ -62,7 +62,7 @@ export function GardenJoinRequestStatus({
                 : request?.state === "pending"
                   ? {
                       id: "app.garden.joinRequest.pendingTitle",
-                      defaultMessage: "Request awaiting review",
+                      defaultMessage: "Request waiting for approval",
                     }
                   : request?.state === "welcomed"
                     ? {
@@ -102,8 +102,7 @@ export function GardenJoinRequestStatus({
             : request?.state === "welcomed"
               ? formatMessage({
                   id: "app.garden.joinRequest.welcomedDescription",
-                  defaultMessage:
-                    "Your membership is active. You can now claim a Green Goods username from your profile.",
+                  defaultMessage: "Your membership is active.",
                 })
               : request?.state === "declined"
                 ? request.reason

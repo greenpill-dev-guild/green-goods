@@ -48,17 +48,17 @@ export default meta;
 type Story = StoryObj;
 
 const TabsDemo = ({ tone }: { tone: string }) => {
-  const [active, setActive] = useState("review");
+  const [active, setActive] = useState("work");
   return (
     <AdminTabRail
       ariaLabel={`${tone} sections`}
       activeId={active}
       onChange={setActive}
       tabs={[
-        { id: "review", label: "Review", count: 12 },
-        { id: "assess", label: "Assess", count: 5 },
-        { id: "certify", label: "Certify", count: 3 },
-        { id: "history", label: "History" },
+        { id: "work", label: "Work", count: 12 },
+        { id: "confirm", label: "Confirm", count: 3 },
+        { id: "assess", label: "Assessments" },
+        { id: "certify", label: "Hypercerts" },
       ]}
     />
   );

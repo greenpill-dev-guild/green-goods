@@ -8,6 +8,7 @@ import {
   AdminDialog,
 } from "../../components/AdminDialog";
 import { AdminSideSheet } from "../../components/AdminSideSheet";
+import { AppBar } from "../../components/Shell/AppBar";
 import {
   act,
   fireEvent,
@@ -482,6 +483,37 @@ describe("AdminConfirmDialog", () => {
     expect(confirm).toHaveAttribute("aria-busy", "true");
     fireEvent.click(confirm);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+});
+
+describe("AdminSideSheet focus", () => {
+  // The AppBar opens the global sheets through the sheet registry, with no Radix trigger.
+  function AppBarHarness() {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <AppBar gardenChip={null} onOpenNotifications={() => setOpen(true)} />
+        <AdminSideSheet open={open} onOpenChange={setOpen} title="Notifications">
+          <p>No new notifications</p>
+        </AdminSideSheet>
+      </>
+    );
+  }
+
+  it.each([
+    ["a click that focuses it", (opener: HTMLElement) => userEvent.setup().click(opener)],
+    // Safari does not focus a button it clicks.
+    ["a click that leaves focus where it was, as Safari's does", fireEvent.click],
+  ])("hands focus back to the AppBar button after %s", async (_, click) => {
+    const user = userEvent.setup();
+    renderWithProviders(<AppBarHarness />);
+    const opener = screen.getByRole("button", { name: "Notifications" });
+
+    await click(opener);
+    await screen.findByRole("dialog", { name: "Notifications" });
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(opener).toHaveFocus());
   });
 });
 

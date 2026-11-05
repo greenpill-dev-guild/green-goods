@@ -1,13 +1,15 @@
 import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { SubmissionProgress } from "@green-goods/shared/components/Progress/SubmissionProgress";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFilterLine, RiLeafLine, RiSeedlingLine, RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, within } from "storybook/test";
+import { expect, mocked, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../shared/.storybook/decorators";
+import { activeGarden, memberGarden, TAS_HUB } from "../../../shared/.storybook/homeFixtures";
 import tokens from "@green-goods/shared/styles/design-md.generated.json";
 import { OfflineIndicator } from "../components/Communication/Offline/OfflineIndicator";
 import { FormProgress } from "../components/Communication/Progress/Progress";
@@ -53,6 +55,12 @@ const meta: Meta = {
   },
   globals: { viewport: { value: "mobile" } },
   decorators: [withInstalledPwa(), withClientAppRuntime],
+  // A member in a garden, so the bottom bar these surfaces sit over shows (DL-155).
+  beforeEach: () => {
+    mocked(useActiveGarden).mockReturnValue(
+      activeGarden("ready", [memberGarden(TAS_HUB, ["gardener"])], TAS_HUB.id)
+    );
+  },
 };
 
 export default meta;

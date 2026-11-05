@@ -80,6 +80,7 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
       {withCycleLines ? <CycleLines gardenId={gardenId} /> : null}
       <TakePartRows
         state={state}
+        emptyReason={promises.emptyReason}
         titleOf={promises.titleOf}
         onRetry={promises.refetch}
         onOpen={(entry) => navigate(takePartPath(gardenId, entry))}
@@ -95,12 +96,15 @@ export function TakePart({ gardenId, withCycleLines = false }: TakePartProps) {
  */
 export function TakePartRows({
   state,
+  emptyReason = "none",
   titleOf,
   onRetry,
   onOpen,
   serviceOf,
 }: {
   state: GardenOpenPromises["state"];
+  /** Why the list is empty, when it is: the empty row says so (DL-132). */
+  emptyReason?: GardenOpenPromises["emptyReason"];
   titleOf: GardenOpenPromises["titleOf"];
   onRetry: () => void;
   onOpen: (entry: TakePartEntry) => void;
@@ -142,12 +146,23 @@ export function TakePartRows({
         />
       );
     case "empty":
+      // A reader whose own promises are the only open ones hears that, not "nothing open".
       return (
         <JournalStateRow
           kind="empty"
           icon={<RiInboxLine />}
-          title={formatMessage({ id: "app.home.journal.takePart.emptyTitle" })}
-          detail={formatMessage({ id: "app.home.journal.takePart.emptyDetail" })}
+          title={formatMessage({
+            id:
+              emptyReason === "yours"
+                ? "app.home.journal.takePart.yoursTitle"
+                : "app.home.journal.takePart.emptyTitle",
+          })}
+          detail={formatMessage({
+            id:
+              emptyReason === "yours"
+                ? "app.home.journal.takePart.yoursDetail"
+                : "app.home.journal.takePart.emptyDetail",
+          })}
         />
       );
     case "ready":
@@ -191,11 +206,13 @@ function CycleLines({ gardenId }: { gardenId: string }) {
   });
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
-  if (state.status !== "ready") return null;
+  // The details stay mounted without the lines, so a sheet open on the last cycle stays as that
+  // cycle ends and its line goes (DL-162).
+  const lines = state.status === "ready" ? state.items : [];
 
   return (
     <>
-      {state.items.map(({ cycle, name }) => {
+      {lines.map(({ cycle, name }) => {
         const counts = formatMessage(
           { id: "app.pool.rail.counts" },
           { kept: Number(cycle.commitmentsFulfilled), made: Number(cycle.commitmentsDue) }
@@ -217,7 +234,8 @@ function CycleLines({ gardenId }: { gardenId: string }) {
               className="flex min-h-12 w-full min-w-0 items-center gap-2 text-start"
             >
               <span className="flex shrink-0">
-                <CycleIdentity cycle={cycle} />
+                {/* Listed only until it ends on the chain's clock (DL-162). */}
+                <CycleIdentity cycle={cycle} standing="open" />
               </span>
               <span className="min-w-0 truncate type-meta text-text-sub-600">
                 {formatMessage(

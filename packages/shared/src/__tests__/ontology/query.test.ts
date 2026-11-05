@@ -27,18 +27,22 @@ describe("ontology query seam", () => {
   });
 
   it("keeps protocol deployment separate from product availability", () => {
-    expect(getOntologyMaturity("Commitment Payout Plan")?.deployment).toBe("deployed");
-    expect(getOntologyMaturity("Commitment Payout Plan")?.availability).toBe(
+    expect(getOntologyMaturity("entity:commitment-series")?.deployment).toBe("deployed");
+    expect(getOntologyMaturity("entity:commitment-series")?.availability).toBe(
       "deployed-not-available"
     );
   });
 
-  it("reports released coordination without promising deferred money actions", () => {
+  it("reports released coordination and G$ rewards with their limit", () => {
     expect(getOntologyMaturity("Commitment")?.deployment).toBe("deployed");
     expect(getOntologyMaturity("Commitment")?.availability).toBe("available");
     expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain(
-      "G$ rewards and contributor payouts are not switched on yet"
+      "a promise can carry a G$ reward"
     );
+    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain(
+      "No member payout has been sent yet"
+    );
+    expect(getOntologyMaturity("Commitment Payout Plan")?.availability).toBe("available");
     expect(getOntologyMaturity("entity:commitment-series")?.availability).toBe(
       "deployed-not-available"
     );

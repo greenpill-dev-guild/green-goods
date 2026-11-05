@@ -49,7 +49,7 @@ The earlier decision-scorer assumption is withdrawn. Do not install an unrelated
 | `@earendil-works/chord` | Pi's document/context/delta machinery | Required compatible Pi dependency; internal execution state, not garden federation or ontology authority |
 | `@earendil-works/pi-ai` | Pi runtime dependency; optional future custom Gemma provider | Use compatible version set and narrow imports. First workflow calls the existing Gemma bridge from a task, without a new conversation/tool loop or cloud fallback |
 | TypeBox | Pi's argument/runtime validation dependency | Transitive; Grove's domain contracts remain authoritative in their existing schemas, with explicit mapping if tools are later exposed |
-| Grove Pi `Storage` over Dexie/IndexedDB | Browser execution persistence, IDs, scans, documents and atomic Pi batches | Build and pass upstream conformance cases; no supplied Dexie adapter is assumed |
+| Grove Pi `Storage` over Dexie/IndexedDB | Browser execution persistence, IDs, scans, documents and atomic Pi batches | Superseded on 23 October 2026: Pi Durable 1.4.0 ships `IndexedDbStorage`, which the [prototype](prototype.md) uses; a Grove-built adapter is no longer planned |
 | Grove knowledge commands + receipts | Idempotent graph mutations across Pi/knowledge commits | Build; source/profile/model preconditions, payload digest and stable operation ID |
 | Pi Node SQLite / Cloudflare adapters | Potential later full-node scheduling | Deferred; no service is required for local execution. Node defaults do not imply power-loss guarantees |
 

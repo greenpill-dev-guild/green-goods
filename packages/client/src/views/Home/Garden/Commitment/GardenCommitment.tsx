@@ -23,25 +23,18 @@ import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
-import { commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { parseCommitmentId, savedCommitmentForRoute } from "./commitmentRoute";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
+import { SavedCommitment } from "./SavedCommitment";
 import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
 import { serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
-
-function parseCommitmentId(value: string | undefined): bigint | null {
-  if (!value) return null;
-  try {
-    return BigInt(value);
-  } catch {
-    return null;
-  }
-}
 
 /** Errors are already surfaced by the shared mutation hooks; the view keeps its current surface. */
 function keepSurfaceOnFailure(promise: Promise<unknown>): void {
@@ -97,6 +90,12 @@ export function GardenCommitment() {
     navigate(-1);
   };
 
+  const saved =
+    !controller.isOnline && !controller.detail
+      ? savedCommitmentForRoute(location.state, gardenAddress, commitmentId)
+      : null;
+  if (saved) return <SavedCommitment commitment={saved} onBack={back} />;
+
   if (controller.status !== "ready") {
     if (controller.status === "error") {
       return (
@@ -136,20 +135,11 @@ export function GardenCommitment() {
   // under the status band says how to join instead. Nothing shows while
   // membership is still being read, or while an act is already on its way.
   const untaken = commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED";
-  const showJoinToAct =
-    ordinary &&
-    !act &&
-    !controller.queue.hasPendingJob &&
-    controller.membership.isMember === false &&
-    untaken;
+  const noActToOffer = ordinary && !act && !controller.queue.hasPendingJob && untaken;
+  const showJoinToAct = noActToOffer && controller.membership.isMember === false;
   // A read the answer depends on failed: say so and offer it again, rather than
   // an empty bar or a join card for someone who may already belong.
-  const showMembershipRetry =
-    ordinary &&
-    !act &&
-    !controller.queue.hasPendingJob &&
-    controller.membership.unavailable &&
-    untaken;
+  const showMembershipRetry = noActToOffer && controller.membership.unavailable;
   const band = selectStatusBand({
     commitment,
     seat: controller.seat,
@@ -310,6 +300,7 @@ export function GardenCommitment() {
           viewer={controller.viewer}
           stewards={stewards}
           serviceBand={service.band}
+          serviceTakes={service.takes}
           rewardsBelow={service.rewards}
         />
         {service.body}
@@ -372,6 +363,12 @@ export function GardenCommitment() {
           commitment={commitment}
           requirements={requirements}
           delivery={service.delivery}
+          addProof={addProofReach(
+            // The bar's own act, or the one beside required work; a service's own bar has neither.
+            service.bar ? null : selectedAct,
+            controller.seat,
+            controller.takeUpOpen
+          )}
           onPhone={
             controller.queue.proofOnItsWay
               ? {
@@ -434,6 +431,7 @@ export function GardenCommitment() {
         isPending={isPending}
         notYetFailed={notYetFailed}
         canNotYet={controller.confirmation.canNotYet}
+        canConfirm={act?.kind === "confirm"}
         onConfirm={() => keepSurfaceOnFailure(controller.acts.confirm())}
         onNotYet={(reason) => {
           setNotYetFailed(false);
@@ -485,6 +483,7 @@ export function GardenCommitment() {
       serviceKey={serviceKey}
       access={serviceAccess}
       coreState={commitment.derivedState}
+      creator={commitment.creator}
       gardenName={controller.roles.garden?.name ?? ""}
       heading={heading}
       hasCoreAct={Boolean(act)}

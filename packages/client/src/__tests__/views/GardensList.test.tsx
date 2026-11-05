@@ -159,7 +159,7 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     await user.click(screen.getByRole("button", { name: "Open Gardens" }));
-    expect(mockNavigate).toHaveBeenCalledWith("/home");
+    expect(mockNavigate).toHaveBeenCalledWith("/home/explore");
   });
 
   it("lists the gardens the membership owner returns, in its order, with no join offer", () => {

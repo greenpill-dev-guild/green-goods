@@ -42,6 +42,7 @@ const toastService = {
   dismiss: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
+  info: vi.fn(),
 };
 
 const mockUser: { authMode: string; smartAccountClient: unknown; primaryAddress: string } = {
@@ -98,6 +99,9 @@ function trackedQueryClient() {
 }
 
 const operationsModule = await import("../../../hooks/vault/useVaultOperations");
+const { isUnconfirmedTxError } = await import("../../../utils/errors/tx-error-classifier");
+const { useTxErrorMessages } = await import("../../../hooks/utils/useTxErrorMessages");
+const { TransactionConfirmationPendingError } = await import("../../../modules/transactions/types");
 const {
   useVaultDeposit,
   useOctantVaultWalletEndow,
@@ -183,6 +187,92 @@ describe("hooks/vault/useVaultOperations", () => {
     );
     expect(invalidateSpy).toHaveBeenCalled();
   }, 20_000);
+
+  describe("a deposit nobody can confirm", () => {
+    const deposit = {
+      gardenAddress: TEST_GARDEN as `0x${string}`,
+      assetAddress: TEST_ASSET as `0x${string}`,
+      vaultAddress: TEST_VAULT as `0x${string}`,
+      amount: 10n,
+    };
+    const PENDING = { hash: `0x${"a".repeat(64)}`, sponsored: false, confirmation: "pending" };
+    const allowanceCovers = () =>
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // preview
+        .mockResolvedValueOnce(10n) // allowance
+        .mockResolvedValueOnce(10n); // preview again
+
+    it.each([
+      ["comes back with no receipt", () => mockSendContractCall.mockResolvedValueOnce(PENDING)],
+      [
+        "runs out of time waiting for one",
+        () =>
+          mockSendContractCall.mockRejectedValueOnce(
+            Object.assign(new Error("Timed out"), { name: "WaitForTransactionReceiptTimeoutError" })
+          ),
+      ],
+    ])("reads neither done nor failed when it %s", async (_case, arrange) => {
+      allowanceCovers();
+      arrange();
+      const queryClient = trackedQueryClient();
+      const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+      const { result } = renderHookWithProviders(() => useVaultDeposit(), { queryClient });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+      });
+
+      expect(toastService.success).not.toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(mockErrorHandler).not.toHaveBeenCalled();
+      expect(toastService.info).toHaveBeenCalledOnce();
+      // It may have landed, so what the forms read straight from the chain is worth reading again.
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["balance"] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["readContract"] });
+    });
+
+    it("stops before the deposit when an approval has no receipt", async () => {
+      mockReadContract
+        .mockResolvedValueOnce(100n) // maxDeposit
+        .mockResolvedValueOnce(10n) // preview
+        .mockResolvedValueOnce(0n); // allowance
+      mockSendContractCall.mockResolvedValueOnce(PENDING);
+      const { result } = renderHookWithProviders(() => useVaultDeposit(), {
+        queryClient: trackedQueryClient(),
+      });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+      });
+
+      expect(mockSendContractCall).toHaveBeenCalledOnce();
+      expect(toastService.error).not.toHaveBeenCalled();
+    });
+
+    it("gives a form the wording, not a raw error", () => {
+      const { result } = renderHookWithProviders(() =>
+        useTxErrorMessages(new TransactionConfirmationPendingError())
+      );
+
+      expect(result.current.view.severity).toBe("warning");
+      expect(result.current.message).toMatch(/could still go through/);
+    });
+
+    it("leaves the message to the form when errors show inline", async () => {
+      allowanceCovers();
+      mockSendContractCall.mockResolvedValueOnce(PENDING);
+      const { result } = renderHookWithProviders(() => useVaultDeposit({ errorMode: "inline" }), {
+        queryClient: trackedQueryClient(),
+      });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(deposit)).rejects.toSatisfy(isUnconfirmedTxError);
+      });
+
+      expect(toastService.info).not.toHaveBeenCalled();
+    });
+  });
 
   it("skips approve when allowance is already sufficient", async () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):

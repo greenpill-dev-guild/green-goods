@@ -185,6 +185,8 @@ describe("what each kind of queued job brings to Upload all", () => {
       schema: EAS_CONFIG.WORK_APPROVAL.uid,
       gardenAddress: GARDEN,
       attestationData: "0x123456",
+      // Its resolver's Karma update runs inside try/catch, so Upload all sends it with headroom.
+      gasHeadroomPercent: 50,
     });
     expect(ctx.dependencies.encodeApproval).toHaveBeenCalledWith(
       expect.objectContaining({ approved: false, feedback: "Photo is of another bed" }),

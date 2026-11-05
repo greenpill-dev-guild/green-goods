@@ -13,19 +13,21 @@
 import { useMemo, useState } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
-  featuredWork,
   JOURNAL_PREVIEW_COUNT,
   type JournalSectionState,
   type OpenCycle,
-  openAsk,
   openCycles,
   poolSectionState,
   type RecentActivityState,
   recentActivityState,
   type TakePartEntry as JournalTakePartEntry,
+  takePartEmptyReason,
   takePartEntries,
 } from "../../modules/garden/journal";
-import type { CommitmentReadModel } from "../../modules/commitment-pooling/types-core";
+import type {
+  CommitmentCycleRecord,
+  CommitmentReadModel,
+} from "../../modules/commitment-pooling/types-core";
 import type { Address, Work } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
 import { useOnlineStatus } from "../app/useOnlineStatus";
@@ -33,6 +35,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useActions } from "../blockchain/useBaseLists";
 import { useCommitmentCycleNames } from "../commitment-pooling/useCommitmentCycleNames";
 import { useCommitmentMetadata } from "../commitment-pooling/useCommitmentMetadata";
+import { useCycleClock } from "../commitment-pooling/useCycleClock";
 import {
   useCommitmentCycles,
   useCommitmentPools,
@@ -52,8 +55,6 @@ export type TakePartEntry = JournalTakePartEntry;
 
 export interface GardenRecentActivity {
   state: RecentActivityState;
-  /** The newest of the garden's works with a photo, the carousel's featured update. */
-  featured: Work | null;
   /** The action a work was logged for, which names its row as on the Work tab. */
   actionTitleOf: (work: Work) => string | undefined;
   refetch: () => void;
@@ -67,7 +68,6 @@ export function useGardenRecentActivity(gardenId: string): GardenRecentActivity 
   const result = useMemo(
     () => ({
       state: recentActivityState({ works, availability, isError, isPaused, lastSuccessfulRefresh }),
-      featured: featuredWork(works),
       actionTitleOf: (work: Work) => findActionByUID(actions ?? [], work.actionUID)?.title,
     }),
     [actions, availability, isError, isPaused, lastSuccessfulRefresh, works]
@@ -91,11 +91,14 @@ export interface GardenOpenCycles {
   state: JournalSectionState<JournalCycle>;
 }
 
+const NO_CYCLES: CommitmentCycleRecord[] = [];
+
 /**
- * The pool's open season and campaigns, read the way the Pool tab reads its rail. Days left
- * count from when the section was last brought into view: the tab shown again, or, for a
- * section Home keeps mounted under the pages it opens, `shown` turning true again, so a count
- * read before a day boundary never stands after it.
+ * The pool's open season and campaigns, read the way the Pool tab reads its rail. One past its
+ * end leaves the second it ends, on the clock promises fall due on (DL-162). Days left count
+ * from when the section was last brought into view: the tab shown again, or, for a section Home
+ * keeps mounted under the pages it opens, `shown` turning true again, so a count read before a
+ * day boundary never stands after it.
  */
 export function useGardenOpenCycles(
   gardenId: string,
@@ -107,6 +110,8 @@ export function useGardenOpenCycles(
     { chainId, poolId: pool?.poolId ?? 0n },
     { enabled: pool !== null }
   );
+  const records = cycles.data ?? NO_CYCLES;
+  const now = useCycleClock(records);
   const [nowMs, setNowMs] = useState(Date.now);
   // Read in the render that shows the section again, so the count it paints is already current.
   const [wasShown, setWasShown] = useState(shown);
@@ -117,7 +122,7 @@ export function useGardenOpenCycles(
   useDocumentEvent("visibilitychange", () => {
     if (document.visibilityState === "visible") setNowMs(Date.now());
   });
-  const open = useMemo(() => openCycles(cycles.data ?? [], nowMs), [cycles.data, nowMs]);
+  const open = useMemo(() => openCycles(records, now, nowMs), [records, now, nowMs]);
   const openRecords = useMemo(() => open.map(({ cycle }) => cycle), [open]);
   const { byCycleId } = useCommitmentCycleNames(openRecords);
 
@@ -150,8 +155,8 @@ export interface GardenOpenPromises {
   state: JournalSectionState<TakePartEntry>;
   /** Every entry, from the same read, for the sheet of open promises See All opens. */
   all: JournalSectionState<TakePartEntry>;
-  /** The newest ask open to take up, from every entry, for the carousel. */
-  ask: TakePartEntry | null;
+  /** Why `state` is empty, when it is: nothing open, or only the reader's own (DL-132). */
+  emptyReason: "none" | "yours";
   /** A promise's own name, once its metadata has resolved. */
   titleOf: (metadataCID: string | null | undefined) => string | null;
   refetch: () => void;
@@ -187,18 +192,17 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   const poolOpen = pool?.state === "OPEN";
   // Ticks when a listed promise falls due, so a lapsed one leaves the list.
   const due = useDueClock({ chainId, poolId: pool?.poolId ?? null, commitments: listed });
-  const entries = useMemo(
-    () =>
-      takePartEntries({
-        commitments: listed,
-        metadataByCID: byCID,
-        viewer,
-        poolOpen,
-        takeUps,
-        clock: due.clock,
-      }),
-    [listed, byCID, viewer, poolOpen, takeUps, due.clock]
-  );
+  const { entries, emptyReason } = useMemo(() => {
+    const input = {
+      commitments: listed,
+      metadataByCID: byCID,
+      viewer,
+      poolOpen,
+      takeUps,
+      clock: due.clock,
+    };
+    return { entries: takePartEntries(input), emptyReason: takePartEmptyReason(input) };
+  }, [listed, byCID, viewer, poolOpen, takeUps, due.clock]);
 
   const read = {
     available: commitments.availability.status === "available",
@@ -224,7 +228,7 @@ export function useGardenOpenPromises(gardenId: string): GardenOpenPromises {
   return {
     state,
     all,
-    ask: state.status === "ready" ? openAsk(entries) : null,
+    emptyReason,
     titleOf: (metadataCID) => (metadataCID ? (byCID.get(metadataCID.trim())?.title ?? null) : null),
     refetch: () => {
       if (pools.isError) void pools.refetch();

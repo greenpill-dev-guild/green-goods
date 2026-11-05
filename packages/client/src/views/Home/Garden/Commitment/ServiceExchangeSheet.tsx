@@ -212,6 +212,7 @@ export function ServiceExchangeSheet({
         </FactList>
         <p className="text-sm text-text-sub-600">{t("ex.sh.note")}</p>
         <p className="text-xs text-text-sub-600">{t("c.passkey")}</p>
+        {details}
       </>
     );
     actions = { primary: { label: t("ex.sh.cta"), loading: isPending, onClick: onExchange } };

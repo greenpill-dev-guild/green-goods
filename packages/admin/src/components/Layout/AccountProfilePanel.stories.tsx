@@ -100,7 +100,7 @@ export const Steward: Story = {
     // Identity actions live here: sign-out is the pinned footer.
     await expect(footer).not.toBeNull();
     await expect(await canvas.findByRole("heading", { name: "Wallet" })).toBeVisible();
-    await expect(await canvas.findByRole("heading", { name: "Your gardens" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Your Gardens" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Disconnect/ })).toBeVisible();
     await expect(canvas.getByRole("link", { name: /View on Explorer/ })).toBeVisible();
   },

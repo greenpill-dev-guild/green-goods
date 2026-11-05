@@ -15,6 +15,7 @@ import {
 } from "./serviceBookingSteps";
 import type {
   BookingContext,
+  OwnServiceOfferView,
   ServiceAct,
   ServiceActKind,
   ServiceBandTone,
@@ -38,6 +39,23 @@ export function formatVoucherMessage(
   return intl.locale.startsWith("en") && issuer.endsWith("s")
     ? text.replaceAll(`${issuer}'s`, `${issuer}'`)
     : text;
+}
+
+/** Voucher strings and amounts, with the issuer's name and grammatical gender already in them. */
+function voucherWords(
+  intl: Pick<IntlShape, "formatMessage" | "locale">,
+  named: ServiceBookingInput["issuer"],
+  asset: { symbol: string | null; decimals: number | null } | null
+) {
+  const decimals = asset?.decimals ?? 0;
+  const issuer = named?.name ?? asset?.symbol ?? "";
+  const gender = named?.gender ?? "other";
+  const t = (id: string, values: Record<string, string | number> = {}) =>
+    formatVoucherMessage(intl, id, { issuer, gender, ...values });
+  const count = (value: bigint) => formatTokenAmount(value, decimals, decimals, intl.locale);
+  const isOne = (value: bigint) => value === 10n ** BigInt(decimals);
+  const unit = (value: bigint) => t("unit", { count: isOne(value) ? 1 : 2 });
+  return { issuer, t, count, isOne, unit };
 }
 
 /** Decision 3: the acceptance deadline defaults to seven days from agreeing. */
@@ -149,8 +167,10 @@ function serviceBookingStage(
   }
   // Accepted but not started: Start the Booking records the activation and sends it. A
   // cancellation that lost the race says so once the booking has started.
-  if (accepted) return "starting";
-  if (!d || d.result.phase === "none" || d.result.phase === "authorized")
+  if (accepted) return setup.source.decisionDispatched ? "activationInTransit" : "starting";
+  if (!setup.source.authorizationDispatched) return "requestNotSent";
+  if (!d || d.result.phase === "none") return "requestInTransit";
+  if (d.result.phase === "authorized")
     return d?.result.issuerApproved ? "readyToDeposit" : "waitingApproval";
   return setup.source.setupResult?.depositedUnits === a.voucherUnits
     ? "waitingAcceptance"
@@ -167,6 +187,8 @@ const NEEDS_YOU = new Set<ServiceBookingStage>([
 const WAITING = new Set<ServiceBookingStage>([
   "open",
   "notEnough",
+  "requestInTransit",
+  "activationInTransit",
   "waitingApproval",
   "confirmingDeposit",
   "waitingAcceptance",
@@ -176,6 +198,8 @@ const WAITING = new Set<ServiceBookingStage>([
 /** The page's acts per stage: one primary and at most one secondary. */
 const ACTS: Partial<Record<ServiceBookingStage, [ServiceActKind | null, ServiceActKind | null]>> = {
   open: ["redeem", null],
+  requestNotSent: ["redeem", "cancel"],
+  requestInTransit: [null, "cancel"],
   waitingApproval: [null, "cancel"],
   readyToDeposit: ["deposit", "cancel"],
   confirmingDeposit: [null, "cancel"],
@@ -214,6 +238,8 @@ function recoveryAct(
 const POSITION: Record<ServiceBookingStage, number> = {
   open: -1,
   notEnough: -1,
+  requestNotSent: -1,
+  requestInTransit: -1,
   waitingApproval: 0,
   readyToDeposit: 1,
   confirmingDeposit: 2,
@@ -222,6 +248,7 @@ const POSITION: Record<ServiceBookingStage, number> = {
   canceling: 3,
   canceled: 3,
   starting: 4,
+  activationInTransit: 4,
   inProgress: 5,
   acceptedFirst: 5,
   problemReported: 5,
@@ -231,6 +258,30 @@ const POSITION: Record<ServiceBookingStage, number> = {
   returnFailed: 7,
   closed: 8,
 };
+
+/**
+ * A voucher offer as the person who made it reads it; null when it has no voucher route. The chain
+ * refuses their own take-up (SelfCounterparty), so nothing on a buyer's path applies to them.
+ */
+export function ownServiceOfferView(
+  input: Pick<ServiceBookingInput, "snapshot" | "coreState" | "issuer"> & {
+    /** Nobody can start a booking right now, whatever they hold. */
+    paused: boolean;
+  },
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+): OwnServiceOfferView | null {
+  const offer = input.snapshot.offer;
+  const voucher = offer?.route === "voucher" ? offer.voucher : null;
+  if (!voucher) return null;
+  const { t, count, unit } = voucherWords(intl, input.issuer, voucher.asset);
+  return {
+    takes: t("of.v.give", { n: count(voucher.units), unit: unit(voucher.units) }),
+    band:
+      input.paused && input.coreState === "OFFERED"
+        ? { tone: "waiting", sentence: t("pp.band.ownPaused"), needsYou: false }
+        : null,
+  };
+}
 
 /** Everything the promise page draws for one voucher offer or booking. */
 export function serviceBookingView(
@@ -243,20 +294,13 @@ export function serviceBookingView(
   const setup = currentVoucherSetup(s);
   const offer = s.offer;
   const asset = setup?.asset ?? offer?.voucher?.asset ?? null;
-  const decimals = asset?.decimals ?? 0;
   const units = setup?.authorization.voucherUnits ?? offer?.voucher?.units ?? 0n;
   const serviceUnits = setup?.authorization.serviceUnits ?? offer?.serviceUnits ?? 1n;
   // A booking keeps the terms it was set up on, even after the offer changes them.
   const revision = setup?.authorization.termsRevision ?? offer?.revision ?? null;
   const profile = serviceProfile(offer?.unitLabel);
   const member = input.issuer?.kind === "individual";
-  const issuer = input.issuer?.name ?? asset?.symbol ?? "";
-  const gender = input.issuer?.gender ?? "other";
-  const t = (id: string, values: Record<string, string | number> = {}) =>
-    formatVoucherMessage(intl, id, { issuer, gender, ...values });
-  const count = (value: bigint) => formatTokenAmount(value, decimals, decimals, intl.locale);
-  const isOne = (value: bigint) => value === 10n ** BigInt(decimals);
-  const unit = (value: bigint) => t("unit", { count: isOne(value) ? 1 : 2 });
+  const { issuer, t, count, isOne, unit } = voucherWords(intl, input.issuer, asset);
   const date = (seconds: number | bigint) =>
     intl.formatDate(Number(seconds) * 1000, { month: "short", day: "numeric" });
   const d = setup?.destination ?? null;
@@ -320,14 +364,15 @@ export function serviceBookingView(
       n,
       back: count(refund),
       rel: count(release),
-      d1: deadline !== null ? date(deadline) : "",
+      // Deadline sentences supply their own stop; fact rows keep the localized abbreviation.
+      d1: deadline !== null ? date(deadline).replace(/\.$/u, "") : "",
       done: daysDone ?? 0,
       of: accessDays,
     },
   };
   // A stage that waits on others still needs the reader when an act of theirs stopped partway.
   const recovery = recoveryAct(stage, setup);
-  const needsYou = NEEDS_YOU.has(stage) || recovery !== null;
+  const needsYou = stage === "requestNotSent" || NEEDS_YOU.has(stage) || recovery !== null;
   const tone: ServiceBandTone = needsYou
     ? "attention"
     : kept
@@ -339,7 +384,7 @@ export function serviceBookingView(
     kind,
     label:
       kind === "redeem"
-        ? t("of.cta.redeem")
+        ? t(stage === "requestNotSent" ? "wait.sendRequest" : "of.cta.redeem")
         : kind === "deposit"
           ? ctx.one
             ? t("pay.m.deposit")
@@ -364,13 +409,23 @@ export function serviceBookingView(
       tone,
       sentence: bookingSentence(ctx),
       needsYou,
-      pillId: endedEarly ? "app.voucher.pp.st.endedEarly" : null,
+      pillId: endedEarly
+        ? "app.voucher.pp.st.endedEarly"
+        : stage === "requestInTransit" || stage === "activationInTransit"
+          ? "app.voucher.wait.messagePending"
+          : null,
     },
     facts: bookingFacts(ctx),
     termsVersion: revision !== null ? t("pp.version", { v: revision.toString() }) : null,
     phases,
     transfers: bookingTransfers(ctx),
     details: bookingDetails(ctx),
+    messageLinks: [
+      { id: setup?.source.authorizationMessageId, label: t("wait.trackRequest") },
+      { id: setup?.source.decisionMessageId, label: t("wait.trackDecision") },
+    ].flatMap(({ id, label }) =>
+      id ? [{ label, href: `https://ccip.chain.link/msg/${id}` }] : []
+    ),
     delivery: bookingDelivery(ctx),
     primary: primaryKind ? act(primaryKind) : null,
     secondary: secondaryKind ? act(secondaryKind) : null,

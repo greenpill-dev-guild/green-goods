@@ -18,6 +18,8 @@ const HATS_MODULE_REHEARSAL_ADDRESS_INPUTS = [
 ];
 // Arbitrum state the CookieJarModule upgrade was rehearsed against: 17 DAI jars, all capped at 0.01.
 const COOKIE_JAR_MODULE_REHEARSAL_BLOCK = "506680000";
+// Arbitrum state the YieldResolver upgrade was rehearsed against: 34 jars, no split yet.
+const YIELD_RESOLVER_REHEARSAL_BLOCK = "519945000";
 const DEFAULTS = {
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
@@ -85,6 +87,13 @@ export const SHARDS = {
     glob: "test/fork/ArbitrumCookieJarModuleUpgrade.t.sol",
     testEnv: { COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK },
   },
+  "yield-resolver-upgrade-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "Current-state Arbitrum rehearsal of the live YieldResolver UUPS upgrade and its Cookie Jar deposits",
+    glob: "test/fork/ArbitrumYieldResolverUpgrade.t.sol",
+    testEnv: { YIELD_RESOLVER_UPGRADE_FORK_BLOCK_NUMBER: YIELD_RESOLVER_REHEARSAL_BLOCK },
+  },
   "hats-module-upgrade-sepolia": {
     chain: "SEPOLIA",
     description: "Reviewed current-state Sepolia rehearsal of the live HatsModule UUPS upgrade",
@@ -118,8 +127,11 @@ export const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum Octant, Aave strategy, vault, yield splitter, CookieJar, and GreenWill readiness coverage",
     glob:
-      "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumCookieJarModuleUpgrade,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
-    testEnv: { COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK },
+      "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumCookieJarModuleUpgrade,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldResolverUpgrade,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
+    testEnv: {
+      COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK,
+      YIELD_RESOLVER_UPGRADE_FORK_BLOCK_NUMBER: YIELD_RESOLVER_REHEARSAL_BLOCK,
+    },
     extraRuns: [
       {
         profile: "e2e",

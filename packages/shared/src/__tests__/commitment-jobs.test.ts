@@ -9,6 +9,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // core queue tests stub them.
 import "fake-indexeddb/auto";
 
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
 vi.mock("../config/appkit", () => ({
   getWagmiConfig: () => ({}),
   getAppKit: () => null,
@@ -74,6 +81,7 @@ function dependencies(
     readCommitmentId: vi.fn().mockResolvedValue(0n),
     readCommitment: vi.fn(),
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(ZERO_HASH),
+    readSettlementAccountActive: vi.fn().mockResolvedValue(true),
     send: vi.fn().mockResolvedValue(`0x${"12".repeat(32)}`),
     ...overrides,
   };
@@ -119,8 +127,34 @@ function commitmentPayload(
   };
 }
 
-describe("deferred settlement creation", () => {
-  it("retains an unsent reward job without changing its payload or sending", async () => {
+describe("settlement creation", () => {
+  afterEach(() => {
+    releaseScope.settlementEnabled = true;
+  });
+
+  it("sends a reward job while settlement is on", async () => {
+    const payload = commitmentPayload({
+      consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
+    });
+    const deps = dependencies();
+    await expect(
+      executeCommitmentJob(
+        {
+          id: "reward",
+          kind: "commitment",
+          payload,
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+        },
+        deps
+      )
+    ).resolves.toMatchObject({ status: "sent" });
+    expect(deps.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains an unsent reward job without changing its payload or sending when settlement is off", async () => {
+    releaseScope.settlementEnabled = false;
     const payload = commitmentPayload({
       consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
     });
@@ -140,6 +174,49 @@ describe("deferred settlement creation", () => {
     });
     expect(job).toEqual(before);
     expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["inactive", vi.fn().mockResolvedValue(false)],
+    ["unreadable", vi.fn().mockResolvedValue(null)],
+    ["not asked", undefined],
+  ])("holds a reward job while the garden's settlement account is %s", async (_case, read) => {
+    const job: CommitmentJob<"commitment"> = {
+      id: "reward",
+      kind: "commitment",
+      payload: commitmentPayload({
+        consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
+      }),
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    };
+    const deps = dependencies({ readSettlementAccountActive: read });
+    await expect(executeCommitmentJob(job, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "settlement-unavailable",
+    });
+    expect(deps.send).not.toHaveBeenCalled();
+    if (read) expect(read).toHaveBeenCalledWith(job.payload.gardenAddress);
+  });
+
+  it("sends a promise with no reward without asking about the settlement account", async () => {
+    const read = vi.fn().mockResolvedValue(false);
+    const deps = dependencies({ readSettlementAccountActive: read });
+    await expect(
+      executeCommitmentJob(
+        {
+          id: "unpriced",
+          kind: "commitment",
+          payload: commitmentPayload(),
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+        },
+        deps
+      )
+    ).resolves.toMatchObject({ status: "sent" });
+    expect(read).not.toHaveBeenCalled();
   });
 
   it("reconciles an already-created reward job before applying release containment", async () => {

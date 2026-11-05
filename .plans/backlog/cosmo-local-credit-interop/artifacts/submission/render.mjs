@@ -1,8 +1,8 @@
-// Renders the two submission one-pagers, the Business Model Canvas and the logical architecture,
-// to PDF and PNG after checking them. Usage, from the repository root (needs a Playwright install
+// Renders the submission one-pagers, the Business Model Canvas, the logical architecture and the
+// submission page, to PDF and PNG after checking them. Usage, from the repository root (needs a Playwright install
 // on NODE_PATH; see ../README.md):
 //   node .plans/backlog/cosmo-local-credit-interop/artifacts/submission/render.mjs
-// Checks, per page: exactly one A4 landscape page, nothing past its margins or into its footer,
+// Checks, per page: exactly one A4 page, nothing past its margins or into its footer,
 // every image loaded, no em dash, and, with pdftotext installed, every word of the PDF inside the
 // page. Outputs render into a staging folder and replace the files in output/ only when every
 // check passes, so a failed render exits with status 1 and leaves the last good files in place.
@@ -12,7 +12,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const PAGES = ["business-model-canvas", "logical-architecture"];
+// The submission page links the demo, whose share link stays out of tracked files because the demo
+// shows identifiable people. It comes from the environment, and the page is skipped without it.
+const DEMO_LINK = process.env.SF_LIVE_DEMO_LINK;
+const PAGES = ["business-model-canvas", "logical-architecture", ...(DEMO_LINK ? ["submission-page"] : [])];
+if (!DEMO_LINK) console.log("submission-page: skipped; set SF_LIVE_DEMO_LINK to render it");
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, "output");
 const problems = [];
@@ -31,6 +35,7 @@ for (const name of PAGES) {
 
   const page = await browser.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 2 });
   await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "load" });
+  if (name === "submission-page") await page.evaluate((link) => { document.querySelector("[data-demo-link]").href = link; }, DEMO_LINK);
   await page.evaluate(() => document.fonts.ready);
   // fonts.ready also resolves when the Google Fonts stylesheet failed, and the page would then
   // render in Georgia and the system sans with different line breaks, so both faces must be loaded.
@@ -113,9 +118,12 @@ if (problems.length) {
 // halfway removes every promoted name and puts the backup back.
 const backup = mkdtempSync(join(out, ".previous-"));
 const names = readdirSync(staging);
+// The render replaces the whole set, so a run without the demo link leaves no earlier submission
+// page behind, with that link in it, to be shared by mistake.
+const stale = readdirSync(out).filter((name) => /\.(pdf|png)$/.test(name) && !names.includes(name));
 // The backup completes before any output is touched: a copy that fails leaves output/ as it was.
 try {
-  for (const name of names) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
+  for (const name of [...names, ...stale]) if (existsSync(join(out, name))) copyFileSync(join(out, name), join(backup, name));
 } catch (error) {
   for (const dir of [staging, backup]) rmSync(dir, { recursive: true, force: true });
   throw new Error(`${error.message}; nothing in output/ was replaced`);
@@ -125,6 +133,7 @@ try {
 const promoted = [];
 try {
   for (const name of names) { renameSync(join(staging, name), join(out, name)); promoted.push(name); console.log(join(out, name)); }
+  for (const name of stale) rmSync(join(out, name), { force: true });
 } catch (error) {
   // A restore that fails keeps the backup folder and names it, so the last good output is never lost.
   const unrestored = [];

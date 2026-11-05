@@ -37,6 +37,9 @@ export interface AdminState {
   getPersistedGardenId: (scopeKey: string | null | undefined) => string | null;
   setPersistedGardenId: (scopeKey: string, gardenId: string | null) => void;
   clearPersistedGardenId: (scopeKey: string) => void;
+  /** Gardens this account just created, known from their receipt before the indexer lists them. */
+  createdGardensByScope: Record<string, { id: string; name: string }>;
+  recordCreatedGarden: (scopeKey: string, garden: { id: string; name: string }) => void;
 
   // Transaction tracking (Record for proper reactivity)
   pendingTransactions: Record<string, TransactionInfo>;
@@ -91,6 +94,14 @@ export const useAdminStore = create<AdminState>()(
           });
         },
 
+        createdGardensByScope: {},
+        recordCreatedGarden: (scopeKey, garden) => {
+          set((state) => ({
+            createdGardensByScope: { ...state.createdGardensByScope, [scopeKey]: garden },
+            lastGardenIdsByScope: { ...state.lastGardenIdsByScope, [scopeKey]: garden.id },
+          }));
+        },
+
         // Transaction tracking
         pendingTransactions: {},
         addPendingTransaction: (txHash, type) => {
@@ -127,7 +138,10 @@ export const useAdminStore = create<AdminState>()(
       {
         name: ADMIN_GARDEN_PREFERENCES_STORAGE_KEY,
         storage: createJSONStorage(() => localStorage),
-        partialize: (state) => ({ lastGardenIdsByScope: state.lastGardenIdsByScope }),
+        partialize: (state) => ({
+          lastGardenIdsByScope: state.lastGardenIdsByScope,
+          createdGardensByScope: state.createdGardensByScope,
+        }),
       }
     )
   )

@@ -99,8 +99,8 @@ export const WorkDetail: Story = {
   decorators: hubDecorators(),
 };
 
-// Submit Work is no longer a Hub left sheet — it owns its own route
-// (/hub/work/submit → submitWorkView). Its states are covered by
+// Submit Work is not a Hub left sheet: it opens from its route item
+// (item=submit-work → HubFlowDialogs). Its states are covered by
 // SubmitWork.stories.tsx (full-screen dialog / page / inline panel).
 
 // The shell reads its garden from the URL, so a story that shows the seeded
@@ -121,7 +121,7 @@ export const AssessmentsTab: Story = {
 };
 
 export const CreateAssessmentRoute: Story = {
-  args: { initialPath: "/hub/assess/create?sort=newest" },
+  args: { initialPath: "/hub/assess?sort=newest&item=create-assessment" },
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -149,7 +149,7 @@ export const HypercertsTab: Story = {
 };
 
 export const CreateHypercertRoute: Story = {
-  args: { initialPath: "/hub/certify/create?sort=newest" },
+  args: { initialPath: "/hub/certify?sort=newest&item=create-hypercert" },
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

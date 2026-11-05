@@ -182,7 +182,7 @@ export const CanvasRoute: Story = {
         onChange={() => {}}
         tabs={[
           { id: "overview", label: "Overview", count: 2 },
-          { id: "impact", label: "Impact", count: 6 },
+          { id: "impact", label: "Impact" },
           { id: "settings", label: "Settings" },
         ]}
       />

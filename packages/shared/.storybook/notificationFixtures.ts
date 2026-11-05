@@ -146,6 +146,13 @@ export function notificationEvents(now = STORYBOOK_NOW_SECONDS): GardenNotificat
       commitment: promise({ commitmentId: 11n, acceptanceAt: now - 3 * HOUR }),
     },
     {
+      // Counted with the browser's grant, so it names nobody; dated when this device saw it.
+      kind: "joinRequested",
+      id: `joinRequests:${now - 4 * HOUR}`,
+      at: now - 4 * HOUR,
+      waiting: 3,
+    },
+    {
       kind: "workRejected",
       id: `review:0xw4:${now - 5 * HOUR}`,
       at: now - 5 * HOUR,

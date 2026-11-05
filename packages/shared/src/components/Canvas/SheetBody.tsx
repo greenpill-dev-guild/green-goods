@@ -17,14 +17,17 @@ const baseStyle: CSSProperties = {
   msOverflowStyle: "none",
 };
 
+// The host sheet may set `--gg-sheet-body-padding` so the body's inset matches
+// its header's: the cockpit's docked side sheet pads 24px from 640px.
 const paddedStyle: CSSProperties = {
-  padding: "20px 16px",
+  padding: "var(--gg-sheet-body-padding, 20px 16px)",
 };
 
 /**
  * SheetBody — scrollable middle slot for dialog / inspector panel content.
  * Handoff anatomy: hidden scrollbar, optional `20px 16px` padding (use
- * `padded={false}` for edge-to-edge lists like NotificationsContent).
+ * `padded={false}` for edge-to-edge lists like NotificationsContent), which
+ * the host sheet can retune through `--gg-sheet-body-padding`.
  */
 export function SheetBody({ children, padded = true, className, style }: SheetBodyProps) {
   return (

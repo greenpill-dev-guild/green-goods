@@ -5,7 +5,7 @@ slug: /community/gardener-guide/recovery-and-sync
 description: "See what is still waiting on your phone, send it, and fix work that will not upload, without losing it or sending it twice."
 audience: gardener
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Recover a draft or waiting submission without duplicating or losing work."
 difficulty: "standard"
@@ -47,15 +47,11 @@ keywords:
   - cannot upload
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Recover Unsent Work
 
 Find the work you already saved, read why it is waiting, and send it without losing it or recording a duplicate. Start with the item's label in **Your Work**.
 
-<figure className="gg-figure gg-overview-photo gg-guide-opening">
-  <img src="/img/community/guide-recover.webp" alt="A phone and field notebook beside muddy boots and a dry bag after a rainy field visit." width="1672" height="941" loading="eager" />
-</figure>
+<GuideImage src="/img/community/guide-recover.webp" alt="A phone and field notebook beside muddy boots and a dry bag after a rainy field visit." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 **Reopen the saved item before recording it again.** An item marked **Checking** may already have been sent, so wait for the app to resolve it before trying anything else.
 
@@ -64,7 +60,6 @@ Find the work you already saved, read why it is waiting, and send it without los
 - **Open the installed app**, signed in to the account you used when you recorded the work.
 - **Get a steady connection** before you send. Looking at what is waiting works offline.
 - **Keep the app's saved data.** Do not clear its storage or remove the app while you have unsent work. That can remove the copy you need to recover.
-
 
 ## Steps
 
@@ -82,10 +77,11 @@ Look for your item's label:
 - **Didn't upload:** a try failed. Open the saved item and tap **Upload now** when your connection is steady.
 - **In review:** it reached the garden's record. Your steward acts next.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-work-recovery-rich.png" alt="Your Work filtered to To upload, with four saved work and promise-proof items, including a photo still converting." loading="lazy" width="390" height="844" />
-  <figcaption>These saved items are waiting to upload; one photo is still converting.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/client-work-recovery-rich.png" alt="Your Work filtered to To upload, with four saved work and promise-proof items, including a photo still converting." loading="lazy" width="390" height="844" className="gg-figure gg-guide-product">
+
+These saved items are waiting to upload; one photo is still converting.
+
+</GuideImage>
 
 These labels describe the work record. Photos and details may already be public before you send it. Read [what becomes public](/faq#is-what-i-upload-private).
 
@@ -103,11 +99,13 @@ To send just one item, tap it, then tap **Upload now**.
 
 Tap an item marked **Can't upload** or **Didn't upload**. The top of its page says what happened, and the bar at the bottom offers your choices.
 
-:::warning Before you discard
+<Callout kind="warning" title="Before you discard">
+
 **Discard** permanently removes this saved item's photos and notes from the app on this phone. Make sure you still have the original photos, and copy any notes you need before choosing it. The app cannot restore a discarded item.
 
 Removing the local item does not delete media already prepared in public storage. Those files can remain public even if you never sent the work record. See [what becomes public](/faq#is-what-i-upload-private).
-:::
+
+</Callout>
 
 - **Action ended** or **Action removed:** ask your steward whether the action can be made available again. Keep the saved item while you check. If it can reopen, tap **Try Again**. If it cannot, ask which action to use before discarding and recording a replacement.
 - **Not a member:** [join the garden](/community/gardener-guide/joining-a-garden), then tap **Try Again**.
@@ -119,10 +117,11 @@ After **Try Again**, wait for preparation to finish, then send the saved item wi
 
 If you choose **Discard**, a confirmation asks **Discard this work?** Tap **Keep** to leave the saved item in place, or **Discard** only when you are ready to remove it. The app does not offer discard while a record may already be on its way, or while it is actively preparing online.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-work-discard.png" alt="Your Work dimmed behind a Discard this work? confirmation, warning that photos and notes will be removed from this device, with Discard and Keep buttons." loading="lazy" width="390" height="844" />
-  <figcaption>Choose <strong className="gg-inline-label">Keep</strong> if you still need this saved copy.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/client-work-discard.png" alt="Your Work dimmed behind a Discard this work? confirmation, warning that photos and notes will be removed from this device, with Discard and Keep buttons." loading="lazy" width="390" height="844" className="gg-figure gg-guide-product">
+
+Choose <InlineLabel>Keep</InlineLabel> if you still need this saved copy.
+
+</GuideImage>
 
 ## How you know it worked
 

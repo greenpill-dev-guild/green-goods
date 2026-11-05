@@ -65,11 +65,16 @@ export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowPro
     <AdminCard
       variant="outlined"
       density="compact"
+      // The View act centres on the label's first line, however many lines the
+      // label takes: the compact button's 40px block (28px plus the cockpit's 6px
+      // reserve each side) stays at the top, and the label's first 20px line
+      // starts 10px down to share its centre, with the icon centred on that line
+      // too (qa-session 2026-10-30 OBS-07).
       className="flex items-start justify-between gap-3"
     >
       <div className="flex min-w-0 items-start gap-2">
-        <RiAlertLine className={`mt-0.5 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
-        <p className="type-body text-text-sub">{label}</p>
+        <RiAlertLine className={`mt-3 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
+        <p className="pt-2.5 type-body text-text-sub">{label}</p>
       </div>
       <Button
         type="button"

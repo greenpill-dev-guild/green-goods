@@ -19,7 +19,7 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
-import { HubSheetDescriptor, HubStageContent } from "./components";
+import { HubFlowDialogs, HubSheetDescriptor, HubStageContent } from "./components";
 
 export default function HubView() {
   const { formatMessage } = useIntl();
@@ -63,6 +63,7 @@ export default function HubView() {
         onNavigateToBase={hub.navigateToHubBase}
         onBeforeClose={hub.handleCloseSheet}
       />
+      <HubFlowDialogs item={hub.routeItem} />
       {!hub.selectedGarden && !hub.routeWorkId && !hub.isSubmitRoute ? (
         <CanvasWorkspaceSelectionState
           workspaceLabel={formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })}
@@ -187,7 +188,8 @@ export default function HubView() {
                   workScope={hub.workScope}
                   assessments={hub.assessmentList}
                   hypercerts={hub.hypercertList}
-                  worksLoading={hub.worksLoading}
+                  // Oldest first lists nothing until the whole history is read.
+                  worksLoading={hub.worksLoading || hub.readsWorkHistory}
                   fetchingAssessments={hub.fetchingAssessments}
                   hypercertsLoading={hub.hypercertsLoading}
                   hasDataError={hub.hasDataError}
@@ -213,6 +215,9 @@ export default function HubView() {
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}
                   onOpenHypercert={hub.handleOpenHypercert}
+                  reviewBatch={hub.reviewBatch}
+                  olderWork={hub.olderWork}
+                  olderHypercerts={hub.olderHypercerts}
                 />
               </div>
             </section>

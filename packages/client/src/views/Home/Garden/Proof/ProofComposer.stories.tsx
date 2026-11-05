@@ -93,9 +93,10 @@ const toReview = async (canvas: Canvas) => {
 };
 
 /**
- * Adding proof, in Submit Work's page (D6, D16): Media, Details and Review with
- * the promise pinned under the heading, and Submit Work's bar. Amara leads the
- * fence repair and Dele helps; fictional data from the design frames.
+ * Adding proof, in Submit Work's page (D6, D16): Media, Details and Review under
+ * the four step markers with Start already checked (DL-153), the promise pinned
+ * under the heading, and Submit Work's bar. Amara leads the fence repair and Dele
+ * helps; fictional data from the design frames.
  */
 const meta: Meta<typeof ProofComposer> = {
   title: "Client/Commitments/ProofComposer",
@@ -159,6 +160,11 @@ export const Media: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("heading", { name: "Show What Was Done" })).toBeVisible();
     await expect(canvas.getByRole("status")).toHaveTextContent("Nothing added yet");
+    // The four markers, with Start already checked and the path opening on Media (DL-153).
+    const steps = within(canvas.getByRole("list", { name: "Steps" })).getAllByRole("listitem");
+    await expect(steps).toHaveLength(4);
+    await expect(steps[0]).toHaveTextContent("Start");
+    await expect(steps[1]).toHaveAttribute("aria-current", "step");
     // The heading leads and the promise follows it (O9).
     const heading = canvas.getByRole("heading", { name: "Show What Was Done" });
     const pinned = canvas.getByTestId("pinned-promise");

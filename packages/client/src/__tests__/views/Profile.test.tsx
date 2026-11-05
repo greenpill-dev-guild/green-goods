@@ -9,7 +9,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import messages from "@green-goods/shared/i18n/en.json";
 
@@ -46,6 +46,11 @@ vi.mock("@green-goods/shared/hooks/gardener/useGardenerProfile", () => ({
   }),
 }));
 
+const activeGarden = vi.hoisted(() => ({ gardenId: "0xgarden" as string | null }));
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => activeGarden,
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({
     user: { id: "0x1234567890abcdef1234567890abcdef12345678" },
@@ -54,6 +59,7 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
 
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
+  RiArrowLeftLine: (props: any) => createElement("span", { ...props }),
   RiAwardLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-award" }),
   RiHeadphoneLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-help" }),
   RiSettings2Fill: (props: any) =>
@@ -132,6 +138,7 @@ describe("Profile View", () => {
     vi.clearAllMocks();
     mockGreenGoodsName = null;
     mockRegistration = undefined;
+    activeGarden.gardenId = "0xgarden";
   });
 
   afterEach(() => {
@@ -210,6 +217,43 @@ describe("Profile View", () => {
     expect(screen.getByTestId("account-tab-content")).toBeInTheDocument();
     expect(screen.queryByTestId("badges-tab-content")).not.toBeInTheDocument();
     expect(screen.queryByTestId("help-tab-content")).not.toBeInTheDocument();
+  });
+
+  it("leads back to Home only while no garden is entered, when no app bar shows (DL-155)", () => {
+    const view = render(wrap(createElement(Profile)));
+    expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+
+    activeGarden.gardenId = null;
+    view.rerender(wrap(createElement(Profile)));
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["opened from Home, undoes that step", ["/home", "/home/profile"]],
+    ["opened directly, becomes Home", ["/home/profile"]],
+  ])("Back on a Profile %s, so no history loop forms", async (_how, entries) => {
+    activeGarden.gardenId = null;
+    let at = "";
+    const Where = () => {
+      at = useLocation().pathname;
+      return null;
+    };
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: entries, initialIndex: entries.length - 1 },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(Where),
+          createElement(Profile)
+        )
+      )
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(at).toBe("/home");
   });
 
   it("renders tab bar with Account, Badges, and Help tabs", () => {

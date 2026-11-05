@@ -12,10 +12,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommunityPayoutsTab } from "./CommunityPayoutsTab";
 import { storyAllocations, storyGarden } from "./communityStoryFixtures";
 
-const access = vi.hoisted(() => ({ isDeployer: false, isProtocolGarden: false }));
+const access = vi.hoisted(() => ({ isProtocolTeam: false, isProtocolGarden: false }));
 
 vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
-  useRole: () => ({ isDeployer: access.isDeployer, loading: false }),
+  useRole: () => ({ isProtocolTeam: access.isProtocolTeam, loading: false }),
 }));
 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
@@ -63,6 +63,7 @@ function renderPayouts({
           garden={storyGarden}
           allocations={allocations}
           allocationsAtLimit={allocationsAtLimit}
+          allocationsUnread={false}
           selectedItem={selectedItem}
         />
         <LocationProbe />
@@ -73,31 +74,40 @@ function renderPayouts({
 
 describe("CommunityPayoutsTab", () => {
   beforeEach(() => {
-    access.isDeployer = false;
+    access.isProtocolTeam = false;
     access.isProtocolGarden = false;
   });
 
-  it("counts payouts so far as at least the list when the list filled its limit", () => {
-    renderPayouts({ allocationCount: 20, allocationsAtLimit: true });
+  // The jars panel's header line says the total (DL-134), so the rail does not say it again.
+  it.each([
+    { allocationCount: 3, allocationsAtLimit: false, atLeast: "false" },
+    // The history stops at its limit, so a full list is a lower bound.
+    { allocationCount: 20, allocationsAtLimit: true, atLeast: "true" },
+  ])("leaves the payout total to the jars panel: $allocationCount", ({ atLeast, ...counts }) => {
+    renderPayouts(counts);
 
-    expect(screen.getByText("Payouts so far").closest("dt")?.nextElementSibling).toHaveTextContent(
-      "20+"
-    );
-    expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-at-least", "true");
+    const panel = screen.getByTestId("payout-panel");
+    expect(panel).toHaveAttribute("data-count", String(counts.allocationCount));
+    expect(panel).toHaveAttribute("data-at-least", atLeast);
+    expect(screen.queryByText("Payouts so far")).not.toBeInTheDocument();
   });
 
-  it("counts payouts so far exactly below the limit", () => {
-    renderPayouts({ allocationCount: 3 });
+  it("shows Payout readiness only while it has a split to report", () => {
+    renderPayouts({ allocationCount: 1 });
+    expect(screen.getByRole("heading", { name: "Payout readiness" })).toBeInTheDocument();
+    expect(screen.getByText("How yield is distributed")).toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Payouts so far").closest("dt")?.nextElementSibling).toHaveTextContent(
-      /^3$/
-    );
-    expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-at-least", "false");
+  it("gives the jars the width when there is no split to report", () => {
+    renderPayouts({ allocationCount: 0 });
+    expect(screen.queryByRole("heading", { name: "Payout readiness" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+    expect(screen.getByTestId("payout-panel")).toBeInTheDocument();
   });
 
   it("holds the campaign cookie jars for a deployer in the protocol garden (DL-046)", async () => {
     const user = userEvent.setup();
-    access.isDeployer = true;
+    access.isProtocolTeam = true;
     access.isProtocolGarden = true;
     renderPayouts();
 
@@ -107,8 +117,8 @@ describe("CommunityPayoutsTab", () => {
   });
 
   it.each([
-    { isDeployer: true, isProtocolGarden: false },
-    { isDeployer: false, isProtocolGarden: true },
+    { isProtocolTeam: true, isProtocolGarden: false },
+    { isProtocolTeam: false, isProtocolGarden: true },
   ])("shows no campaign cookie jars elsewhere (%o)", (who) => {
     Object.assign(access, who);
     renderPayouts({ selectedItem: "create-campaign-jar" });
@@ -118,7 +128,7 @@ describe("CommunityPayoutsTab", () => {
   });
 
   it("opens Create Cookie Jar from its route item", () => {
-    access.isDeployer = true;
+    access.isProtocolTeam = true;
     access.isProtocolGarden = true;
     renderPayouts({ selectedItem: "create-campaign-jar" });
 

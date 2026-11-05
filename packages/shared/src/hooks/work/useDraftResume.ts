@@ -6,13 +6,14 @@ import {
   discardUnrecoveredLegacy,
 } from "../../modules/work/legacy-draft-recovery";
 import type { MissingDraftAttachment, WorkDraftRecord } from "../../types/job-queue";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { get } from "idb-keyval";
 import { useDrafts } from "./useDrafts";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { draftDB } from "../../modules/job-queue/draft-db";
+import { type WorkContent, workHoldsContent } from "../../modules/job-queue/draft-state";
 import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
 import {
   fromDraftWorkLink,
@@ -34,6 +35,8 @@ interface UseDraftResumeOptions {
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void;
   restoreForm?: (values: WorkFormData) => void;
+  /** What the form and its attachments hold, which outlives a visit as the store does (DL-148). */
+  work?: WorkContent;
 }
 const LEGACY_KEY = LEGACY_MEDIA_KEY;
 
@@ -52,6 +55,7 @@ export function useDraftResume({
   searchParams,
   setSearchParams,
   restoreForm,
+  work,
 }: UseDraftResumeOptions) {
   const { resumeDraft, clearActiveDraft } = useDrafts();
   const { primaryAddress: userAddress } = useUser();
@@ -69,10 +73,30 @@ export function useDraftResume({
   const [entryResolved, setEntryResolved] = useState(false);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
   const explicitId = searchParams.get("draftId");
-  const latest = useRef({ resumeDraft, restoreForm, searchParams, setSearchParams });
-  latest.current = { resumeDraft, restoreForm, searchParams, setSearchParams };
+  const latest = useRef({ resumeDraft, restoreForm, work, searchParams, setSearchParams });
+  latest.current = { resumeDraft, restoreForm, work, searchParams, setSearchParams };
   // Whether the page's promise came back from the resumed draft rather than the page's own link.
   const restoredLink = useRef(false);
+
+  // A visit that left no draft leaves nothing else (DL-148): the garden, action and step it chose
+  // on the way go, so this visit starts over instead of carrying on with them, in whichever garden
+  // is active now. Before paint, so the earlier step never shows for a frame.
+  useLayoutEffect(() => {
+    if (!userAddress) return;
+    const state = useWorkFlowStore.getState();
+    if (
+      state.draftScope !== `${userAddress.toLowerCase()}:${chainId}` ||
+      !state.draftHydrated ||
+      state.draftChoicePending ||
+      state.activeDraftId ||
+      explicitId ||
+      parseWorkLinkIntent(latest.current.searchParams) ||
+      (latest.current.work && workHoldsContent(latest.current.work))
+    )
+      return;
+    state.reset();
+    latest.current.restoreForm?.({ feedback: "" });
+  }, [userAddress, chainId, explicitId]);
 
   useEffect(() => {
     setEntryResolved(false);

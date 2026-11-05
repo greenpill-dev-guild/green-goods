@@ -64,7 +64,7 @@ contract YieldToFractionsTest is Test {
         wethVault = new MockOctantVaultForYield(address(weth));
 
         // Deploy mocks
-        cookieJar = new MockCookieJar();
+        cookieJar = new MockCookieJar(address(dai));
         marketplace = new MockHypercertMarketplace();
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
@@ -153,12 +153,15 @@ contract YieldToFractionsTest is Test {
         // Split DAI
         splitter.splitYield(garden, address(dai), address(daiVault));
 
-        // Split WETH
+        // Split WETH into its own jar: a jar holds one currency
+        MockCookieJar wethJar = new MockCookieJar(address(weth));
+        vm.prank(owner);
+        splitter.setCookieJar(garden, address(wethJar));
         splitter.splitYield(garden, address(weth), address(wethVault));
 
         // Both should have been split
         assertTrue(dai.balanceOf(address(cookieJar)) > 0, "Cookie Jar should have DAI");
-        assertTrue(weth.balanceOf(address(cookieJar)) > 0, "Cookie Jar should have WETH");
+        assertTrue(weth.balanceOf(address(wethJar)) > 0, "WETH jar should have WETH");
         assertEq(jbTerminal.getPayCallCount(), 2, "JB should receive 2 payments (DAI + WETH)");
     }
 

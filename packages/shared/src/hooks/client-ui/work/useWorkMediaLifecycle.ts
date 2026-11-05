@@ -7,7 +7,7 @@ import {
 import type { AuthMode } from "../../../modules/auth/session";
 
 type MediaSurface = "media" | "review";
-type MediaJourneyEvent =
+export type MediaJourneyEvent =
   | "work_media_preview_failed"
   | "work_media_removed"
   | "work_broken_media_removed";

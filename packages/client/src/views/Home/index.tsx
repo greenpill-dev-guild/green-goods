@@ -1,9 +1,8 @@
 import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { getDefaultChain } from "@green-goods/shared/config/blockchain";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -36,7 +35,6 @@ import {
   markArrivalPassed,
 } from "./arrivalToast";
 import { CommitmentsSheetIcon } from "./CommitmentsSheet/Icon";
-import { chooserScope, hasOfferedChooser, markChooserOffered } from "./chooserOffer";
 import { DeferredLauncher } from "./DeferredLauncher";
 import {
   CommitmentsSheet,
@@ -47,7 +45,8 @@ import {
 } from "./DeferredSurfaces";
 import type { GardenVisitState } from "./Garden";
 import { HomeHeader } from "./HomeHeader";
-import { HomeChoosePrompt, HomeError, HomeFindGarden, HomeLoading } from "./HomeStates";
+import { HomeProfileButton } from "./HomeProfileButton";
+import { HomeError, HomeLoading, HomeNoActiveGarden } from "./HomeStates";
 import { awaitingGardens, switcherRows } from "./homeGardens";
 import { followHomePlace, type HomePlace, restoreHomePlace } from "./homePlace";
 import { HomeJournal } from "./Journal";
@@ -56,14 +55,14 @@ import { NotificationsIcon } from "./Notifications/Icon";
 import { WalletSheetIcon } from "./WalletSheet/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
 
-type SwitcherMode = "switch" | "choose";
-
 /**
  * Home in the member's active garden (DL-123 to DL-125). The header carries the garden chip and
  * the launchers; the body follows `useActiveGarden`: a remembered garden goes straight in while
- * the account's gardens load, a failed read keeps the state block, no garden finds one,
- * several with none remembered offer the chooser once, and a chosen garden opens its journal.
- * Only a pick in the switcher changes the active garden: Explore, a row or a link visits.
+ * the account's gardens load, a failed read keeps the state block, no active garden opens the
+ * page that finds or picks one with no launchers or app bar (DL-155), and a chosen garden opens
+ * its journal. A pick there or in
+ * the switcher changes the active garden, and so does joining an open garden (DL-147): Explore, a
+ * request's row or a link visits.
  */
 const Home: React.FC = () => {
   const routerNavigate = useNavigate();
@@ -80,22 +79,15 @@ const Home: React.FC = () => {
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
 
-  // The gardens the app lists: where a request waits, and the Community Garden's door.
+  // The gardens the app lists: where a request waits.
   const { data: listed = [] } = useGardens();
   const listedIds = useMemo(() => listed.map(({ id }) => id), [listed]);
   const awaitingIds = useAwaitingJoinRequests(listedIds);
-  const { rows, awaiting, communityGarden, activeMembership } = useMemo(() => {
+  const { rows, activeMembership } = useMemo(() => {
     const myGardenIds = new Set(myGardens.gardens.map(({ garden: g }) => g.id.toLowerCase()));
-    const awaitingList = awaitingGardens(listed, awaitingIds, myGardenIds);
-    const rootGarden = getDefaultChain().rootGarden?.address;
-    const community = listed.find(
-      (g) =>
-        compareAddresses(g.id, rootGarden) && g.openJoining && !myGardenIds.has(g.id.toLowerCase())
-    );
+    const awaiting = awaitingGardens(listed, awaitingIds, myGardenIds);
     return {
-      rows: switcherRows(myGardens.gardens, awaitingList, gardenId),
-      awaiting: awaitingList,
-      communityGarden: community ?? null,
+      rows: switcherRows(myGardens.gardens, awaiting, gardenId),
       activeMembership:
         myGardens.gardens.find(({ garden: g }) => compareAddresses(g.id, gardenId))?.membership ??
         null,
@@ -138,13 +130,9 @@ const Home: React.FC = () => {
     walletWasOpen.current = isWalletSheetOpen;
   }, [isWalletSheetOpen]);
 
-  // The switcher keeps its mode while it slides out, so its title never flips mid-exit.
-  const [switcher, setSwitcher] = useState<{ open: boolean; mode: SwitcherMode }>({
-    open: false,
-    mode: "switch",
-  });
-  const openSwitcher = useCallback(() => setSwitcher({ open: true, mode: "switch" }), []);
-  const closeSwitcher = useCallback(() => setSwitcher((s) => ({ ...s, open: false })), []);
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+  const openSwitcher = useCallback(() => setIsSwitcherOpen(true), []);
+  const closeSwitcher = useCallback(() => setIsSwitcherOpen(false), []);
   // The bell's sheet (DL-130) is Home's drawer like the others: it closes with them. It belongs to
   // the account and garden it was opened for, and is open only while both still hold.
   const notificationsScope = gardenId
@@ -167,7 +155,7 @@ const Home: React.FC = () => {
 
   // Each sheet stays mounted until its exit has played; unmounting it on close
   // removed it before the slide-out could run.
-  const isSwitcherPresent = useExitPresence(switcher.open, getPwaSheetExitMs);
+  const isSwitcherPresent = useExitPresence(isSwitcherOpen, getPwaSheetExitMs);
   const isWalletSheetPresent = useExitPresence(isWalletSheetOpen, getPwaSheetExitMs);
   const isCommitmentsSheetPresent = useExitPresence(isCommitmentsSheetOpen, getPwaSheetExitMs);
 
@@ -181,21 +169,6 @@ const Home: React.FC = () => {
     clearGardenSwitcherRequest();
     openSwitcher();
   }, [clearGardenSwitcherRequest, gardenSwitcherRequested, isHomeRoute, openSwitcher]);
-
-  // Several gardens and none remembered: the switcher opens once as the chooser. Dismissing
-  // it leaves the prompt; only a pick writes. Nothing was pressed to open it, and a sheet hands
-  // focus back to whatever held it as it opened, so the prompt's action takes focus first and
-  // dismissing lands where the chooser opens again.
-  const offerScope = chooserScope(DEFAULT_CHAIN_ID, primaryAddress);
-  const chooserActionRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (status !== "choose" || !isHomeRoute || !offerScope || hasOfferedChooser(offerScope)) {
-      return;
-    }
-    markChooserOffered(offerScope);
-    chooserActionRef.current?.focus({ preventScroll: true });
-    setSwitcher({ open: true, mode: "choose" });
-  }, [isHomeRoute, offerScope, status]);
 
   // Home keeps its place under the pages it opens: the journal stays mounted out of sight, and
   // coming back puts the scroller and focus where they were.
@@ -211,6 +184,15 @@ const Home: React.FC = () => {
     if (!content || !scroller) return;
     return followHomePlace(content, scroller, place.current);
   }, [scroller]);
+  // Another garden opens at its top, with no row of the last one to hand focus back to. A join on
+  // a page under Home moves the garden while the scroller is still that page's.
+  const placeGardenKey = gardenId?.toLowerCase();
+  useLayoutEffect(() => {
+    if (!placeGardenKey) return;
+    place.current.scrollTop = 0;
+    place.current.opener = null;
+    if (!place.current.away) scrollAppToTop();
+  }, [placeGardenKey]);
   // A layout effect, so leaving stops the following before the shell's reset, and the restore
   // is scheduled before the first paint of Home shown again. `away` clears only once the place
   // is back: StrictMode's second run must restore as well.
@@ -269,6 +251,24 @@ const Home: React.FC = () => {
     [closeSwitcher, selectGarden]
   );
 
+  // A row of the first-login page goes with the pick, and the chip only arrives with the garden,
+  // so focus waits for the chip that now names it (DL-155).
+  const chipTakesFocus = useRef(false);
+  const pickOnPage = useCallback(
+    (id: string) => {
+      chipTakesFocus.current = true;
+      selectGarden(id);
+    },
+    [selectGarden]
+  );
+  useLayoutEffect(() => {
+    if (status !== "ready" || !chipTakesFocus.current) return;
+    chipTakesFocus.current = false;
+    contentRef.current
+      ?.querySelector<HTMLElement>("[data-component='GardenChip']")
+      ?.focus({ preventScroll: true });
+  }, [status]);
+
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
     (action: ArrivalActionKind) => {
@@ -299,10 +299,8 @@ const Home: React.FC = () => {
     latestArrival.current = arrival;
   }, [arrival]);
 
-  // Show the arrival toast once per browser session, scoped to the signed-in address, and only
-  // while the session is still on the Home it opened on: AppShell marks the arrival passed as
-  // soon as the session is on any other screen. useArrivalState stays pending until it knows,
-  // and an arrival with nothing waiting passes quietly, so work queued later raises no toast.
+  // Once per tab and account, only on the Home the session opened on. An unresolved queue
+  // waits; a failed garden read can still announce uploads without inventing a destination.
   useEffect(() => {
     if (!isAuthenticated || hasShownArrivalRef.current) return;
     if (!isHomeRoute) return;
@@ -318,20 +316,23 @@ const Home: React.FC = () => {
     hasShownArrivalRef.current = true;
     if (arrival.kind === "none") return;
 
-    // Small delay to let the page render first.
     scheduleArrival(() => {
       const shown = latestArrival.current;
       if (shown.kind !== "queue") return;
       const spec = arrivalToastSpec(shown.orientation);
+      const action = spec.action;
       toastService.info({
         title: intl.formatMessage({ id: spec.titleId }),
         message: intl.formatMessage({ id: spec.messageId }, spec.values),
         duration: 6000,
-        action: {
-          label: intl.formatMessage({ id: spec.actionLabelId }),
-          onClick: () => runArrivalAction(spec.action),
-          dismissOnClick: true,
-        },
+        action:
+          action && spec.actionLabelId
+            ? {
+                label: intl.formatMessage({ id: spec.actionLabelId }),
+                onClick: () => runArrivalAction(action),
+                dismissOnClick: true,
+              }
+            : undefined,
         suppressLogging: true,
       });
     }, 700);
@@ -345,11 +346,19 @@ const Home: React.FC = () => {
     scheduleArrival,
   ]);
 
-  // The header's lead: Home's title with no garden, else the chip, which opens the switcher.
+  // The header's lead: the chip once a garden is entered, which opens the switcher. Before that
+  // there is no chip to cut a name off (DL-155): a member choosing reads the page's title, and
+  // a member of no garden reads the state block, so Home's title stays for assistive tech.
   let lead: ReactNode;
-  if (status === "none" || status === "error") {
+  if (status === "choose") {
     lead = (
       <h1 className="truncate type-title-md text-text-strong">
+        {intl.formatMessage({ id: "app.home.chooser.title" })}
+      </h1>
+    );
+  } else if (status === "error" || gardenId === null) {
+    lead = (
+      <h1 className={gardenId === null ? "sr-only" : "truncate type-title-md text-text-strong"}>
         {intl.formatMessage({ id: "app.home" })}
       </h1>
     );
@@ -387,20 +396,13 @@ const Home: React.FC = () => {
       body = <HomeError onRetry={myGardens.refetch} />;
       break;
     case "none":
-      body = (
-        <HomeFindGarden
-          awaiting={awaiting}
-          communityGarden={communityGarden}
-          onExplore={openExplore}
-          onVisit={visitGarden}
-        />
-      );
-      break;
     case "choose":
       body = (
-        <HomeChoosePrompt
-          actionRef={chooserActionRef}
-          onChoose={() => setSwitcher({ open: true, mode: "choose" })}
+        <HomeNoActiveGarden
+          rows={rows}
+          onExplore={openExplore}
+          onPick={pickOnPage}
+          onVisit={visitGarden}
         />
       );
       break;
@@ -420,19 +422,24 @@ const Home: React.FC = () => {
       <div ref={attachContent} hidden={!isHomeRoute}>
         <HomeHeader
           lead={lead}
+          // The launchers wait for a garden, as the app bar does; while the account's gardens
+          // load with none remembered, nothing shows that could turn out wrong (DL-155).
           launchers={
-            <>
-              <WalletSheetIcon onClick={openWalletSheet} />
-              <DeferredLauncher
-                placeholder={<CommitmentsSheetIcon onClick={openCommitmentsSheet} actCount={0} />}
-              >
-                <CommitmentsSheetLauncher onClick={openCommitmentsSheet} />
-              </DeferredLauncher>
-              <WorkDashboardIcon />
-              {/* The bell reads the active garden's events once the garden is known: a
-                  remembered one while the list loads, or the chosen one. Without a garden it
-                  keeps its place with nothing to list (DL-130). */}
-              {gardenId ? (
+            gardenId === null ? (
+              status === "loading" ? null : (
+                <HomeProfileButton onClick={() => navigate(APP_ROUTES.profile)} />
+              )
+            ) : (
+              <>
+                <WalletSheetIcon onClick={openWalletSheet} />
+                <DeferredLauncher
+                  placeholder={<CommitmentsSheetIcon onClick={openCommitmentsSheet} actCount={0} />}
+                >
+                  <CommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+                </DeferredLauncher>
+                <WorkDashboardIcon />
+                {/* The bell reads the active garden's events: a remembered one while the list
+                  loads, or the chosen one (DL-130). */}
                 <DeferredLauncher
                   placeholder={<NotificationsIcon onClick={openNotifications} />}
                   requested={isNotificationsOpen}
@@ -448,10 +455,8 @@ const Home: React.FC = () => {
                     onClose={closeNotifications}
                   />
                 </DeferredLauncher>
-              ) : (
-                <NotificationsIcon disabled />
-              )}
-            </>
+              </>
+            )
           }
         />
         {/* The journal's sections close their sheets as Home stops showing or Your Work opens. */}
@@ -463,9 +468,8 @@ const Home: React.FC = () => {
       {isSwitcherPresent ? (
         <Suspense fallback={null}>
           <GardenSwitcherSheet
-            isOpen={switcher.open}
+            isOpen={isSwitcherOpen}
             onClose={closeSwitcher}
-            mode={switcher.mode}
             rows={rows}
             onPick={pickGarden}
             onVisit={visitGarden}

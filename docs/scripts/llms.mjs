@@ -192,7 +192,32 @@ export function integrationStatusMarkdown(integrations) {
 
 // The generator encodes these five characters inside a CopyCommand attribute (scripts/docs/renderers.mjs).
 const decodeAttribute = (text) =>
-  text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#124;", "|").replaceAll("&amp;", "&");
+  text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#x27;", "'").replaceAll("&#39;", "'").replaceAll("&#124;", "|").replaceAll("&amp;", "&");
+
+const contentAttributes = (source) => Object.fromEntries([...source.matchAll(/(\w+)=(?:"([^"]*)"|'([^']*)')/g)].map(([, key, double, single]) => [key, decodeAttribute(double ?? single)]));
+const jsxAttributes = String.raw`(?:[^>"']|"[^"]*"|'[^']*')*?`;
+
+function contentElementsMarkdown(text) {
+  return text
+    .replace(new RegExp(`<AnchoredHeading\\b(${jsxAttributes})\\s*/>`, "g"), (_tag, attrs) => {
+      const {level, id, text: heading} = contentAttributes(attrs);
+      return `${"#".repeat(Number(level))} ${heading} {#${id}}`;
+    })
+    .replace(new RegExp(`<GuideImage\\b(${jsxAttributes})(?:\\s*/>|>([\\s\\S]*?)</GuideImage>)`, "g"), (_tag, attrs, caption) => {
+      const {src, alt} = contentAttributes(attrs);
+      return `![${alt}](${src})${caption?.trim() ? `\n\n${caption.trim()}` : ""}`;
+    })
+    .replace(new RegExp(`<Callout\\b(${jsxAttributes})>([\\s\\S]*?)</Callout>`, "g"), (_tag, attrs, body) => {
+      const {kind, title} = contentAttributes(attrs);
+      return `:::${kind} ${title ?? ""}\n\n${body.trim()}\n\n:::`;
+    })
+    .replace(/<InlineLabel>([\s\S]*?)<\/InlineLabel>/g, "**$1**")
+    .replace(new RegExp(`<ContentLink\\b(${jsxAttributes})>([\\s\\S]*?)</ContentLink>`, "g"), (_tag, attrs, label) => `[${label}](${contentAttributes(attrs).href})`)
+    .replace(new RegExp(`<FaqQuestion\\b(${jsxAttributes})>`, "g"), (_tag, attrs) => {
+      const {id, question} = contentAttributes(attrs);
+      return `### ${question} {#${id}}`;
+    });
+}
 
 /** Each CopyCommand tag as the code span it renders, so a twin or an audit sees the command itself. */
 export function inlineCopyCommands(text) {
@@ -286,10 +311,9 @@ export function markdownTwin(
     if (revenueExplorer) result = result.replace(REVENUE_EXPLORER_TAG, () => revenueExplorerMarkdown(revenueExplorer));
     return result;
   };
-  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, "")))
+  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(contentElementsMarkdown(text.replace(IMPORT_STATEMENT, ""))))
       .replace(/<TermAnchor id="([^"]+)" to="([^"]+)" \/>/g, '<a id="$1"></a>[Reference]($2)')
       .replace(/<TermAnchor id="([^"]+)" \/>/g, '<a id="$1"></a>')
-      .replace(/<FaqQuestion id="([^"]+)" question="([^"]+)">/g, (_, id, question) => `### ${question.replaceAll("&quot;", '"')} {#${id}}`)
       .replace(/<\/?FaqQuestions>|<\/FaqQuestion>/g, ""))
     .replace(/\n{3,}/g, "\n\n")
     .trim();

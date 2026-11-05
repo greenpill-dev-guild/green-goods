@@ -15,8 +15,8 @@
  *      lookup for a send whose answer was lost (stranded-intent.ts).
  *
  * A kind that sends some other contract call, such as a commitment act, cannot
- * ride in EAS.multiAttest. One signature for it needs TransactionSender.sendBatch
- * to carry several calls atomically, and no sender does that yet.
+ * ride in EAS.multiAttest. One signature for it needs an atomic batch
+ * (TransactionSender.sendAtomicBatch), and the queue sends none yet.
  *
  * @module modules/work/upload-kinds
  */
@@ -26,6 +26,7 @@ import { type EASConfig, getEASConfig } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import type { WorkUploadCheckpoint } from "../../types/work-media";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
 import type { QueuedAttestation } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { jobQueueDB } from "../job-queue/db";
@@ -197,6 +198,7 @@ const approval: UploadKind<ApprovalJobPayload> = {
       schema: easConfig.WORK_APPROVAL.uid as Hex,
       gardenAddress: job.payload.gardenAddress as Hex,
       attestationData: encodeApproval(buildQueuedApprovalDraft(job.payload), chainId),
+      gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
     };
   },
 };

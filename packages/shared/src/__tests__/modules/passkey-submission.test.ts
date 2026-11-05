@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import {
   submitApprovalWithPasskey,
-  submitBatchApprovalsWithPasskey,
   submitWorkWithPasskey,
   type PasskeySubmissionDeps,
 } from "../../modules/work/passkey-submission";
@@ -171,94 +170,6 @@ describe("passkey approval submission", () => {
     const client = createFakeSmartAccountClient();
 
     await expect(submitApprovalWithPasskey(approvalParams(client))).resolves.toBe(MOCK_TX_HASH);
-    expect(client.sendTransaction).toHaveBeenCalledOnce();
-  });
-});
-
-describe("passkey batch approval submission", () => {
-  function batch(client: FakeSmartAccountClient | null = createFakeSmartAccountClient()) {
-    return {
-      client,
-      approvals: [
-        { draft: createMockWorkApprovalDraft({ workUID: WORK_UID }), gardenAddress: GARDEN },
-        {
-          draft: createMockWorkApprovalDraft({ workUID: `0x${"44".repeat(32)}` }),
-          gardenAddress: GARDEN,
-        },
-      ],
-      chainId: 11155111,
-    };
-  }
-
-  it("encodes every approval and sends one batch transaction", async () => {
-    const client = createFakeSmartAccountClient();
-    const deps = dependencies();
-
-    await expect(submitBatchApprovalsWithPasskey(batch(client), deps)).resolves.toBe(MOCK_TX_HASH);
-
-    expect(deps.encodeApproval).toHaveBeenCalledTimes(2);
-    expect(deps.assertSmartAccountsAllowed).toHaveBeenCalledOnce();
-    expect(client.sendTransaction).toHaveBeenCalledOnce();
-  });
-
-  it("rejects an empty batch before requiring a client", async () => {
-    await expect(
-      submitBatchApprovalsWithPasskey(
-        { client: null, approvals: [], chainId: 11155111 },
-        dependencies()
-      )
-    ).rejects.toThrow("No approvals provided. At least one approval is required.");
-  });
-
-  it("honors an already-aborted signal", async () => {
-    const controller = new AbortController();
-    controller.abort();
-
-    await expect(
-      submitBatchApprovalsWithPasskey({ ...batch(), signal: controller.signal }, dependencies())
-    ).rejects.toMatchObject({ name: "AbortError" });
-  });
-
-  it("honors cancellation triggered while encoding", async () => {
-    const controller = new AbortController();
-    const deps = dependencies({
-      encodeApproval: vi.fn(() => {
-        controller.abort();
-        return ENCODED;
-      }),
-    });
-    const client = createFakeSmartAccountClient();
-
-    await expect(
-      submitBatchApprovalsWithPasskey({ ...batch(client), signal: controller.signal }, deps)
-    ).rejects.toMatchObject({ name: "AbortError" });
-
-    expect(client.sendTransaction).not.toHaveBeenCalled();
-  });
-
-  it("honors cancellation triggered while checking the smart account", async () => {
-    const controller = new AbortController();
-    const account = createFakeSmartAccountClient().account;
-    const client = {
-      ...createFakeSmartAccountClient(),
-      get account() {
-        controller.abort();
-        return account;
-      },
-    } as FakeSmartAccountClient;
-
-    await expect(
-      submitBatchApprovalsWithPasskey(
-        { ...batch(client), signal: controller.signal },
-        dependencies()
-      )
-    ).rejects.toMatchObject({ name: "AbortError" });
-  });
-
-  it("uses the production batch adapters when dependencies are omitted", async () => {
-    const client = createFakeSmartAccountClient();
-
-    await expect(submitBatchApprovalsWithPasskey(batch(client))).resolves.toBe(MOCK_TX_HASH);
     expect(client.sendTransaction).toHaveBeenCalledOnce();
   });
 });

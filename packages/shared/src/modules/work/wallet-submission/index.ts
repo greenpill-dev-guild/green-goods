@@ -1,5 +1,4 @@
 export type {
-  BatchApprovalOptions,
   OnProgressCallback,
   SubmissionPhase,
   WalletSubmissionOptions,
@@ -8,4 +7,3 @@ export type {
 export { WorkSubmissionError } from "./types";
 export { submitWorkDirectly } from "./submit-work";
 export { submitApprovalDirectly } from "./submit-approval";
-export { submitBatchApprovalsDirectly } from "./submit-batch-approval";

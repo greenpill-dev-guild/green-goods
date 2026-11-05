@@ -10,7 +10,9 @@ import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCoo
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -27,14 +29,11 @@ import {
   getVaultAssetSymbol,
   normalizeDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import {
-  classifyTxError,
-  isMeaningfulTxErrorMessage,
-} from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
+import { InlineErrorBlock, LoadingBody, UnavailableBody } from "./PublicFundingStates";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { PublicReadUnavailable } from "./PublicReadUnavailable";
 
@@ -270,7 +269,29 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     if (activeMutationErrorRef.current) resetActiveMutationRef.current();
   }, [usdInput, wethInput, denomination, selectedAddress]);
 
-  const txErrorView = useMemo(() => classifyTxError(activeMutation.error), [activeMutation.error]);
+  const txError = useTxErrorMessages(activeMutation.error);
+  const depositPlan = useDepositPlan({
+    target:
+      selected && primaryAddress
+        ? isDonate
+          ? { kind: "jar", address: selected.destinationAddress, asset: selected.assetAddress }
+          : {
+              kind: "vault",
+              address: selected.destinationAddress,
+              asset: selected.assetAddress,
+              receiver: primaryAddress,
+            }
+        : null,
+    amount: tokenAmountWei,
+    decimals: selected?.decimals ?? 18,
+    symbol: selected?.symbol ?? "",
+    gardenAddress: garden.id as Address,
+    enabled: open,
+    onLanded: () => {
+      setUsdInput("");
+      setWethInput("");
+    },
+  });
 
   const handleSubmit = useCallback(() => {
     if (!primaryAddress) {
@@ -434,58 +455,21 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             isSubmitting={status === "submitting"}
             isConnecting={isAuthenticating}
             txError={
-              activeMutation.error
+              activeMutation.error &&
+              !(depositPlan.unconfirmedIsHeld && txError.view.kind === "unconfirmed")
                 ? {
-                    severity: txErrorView.severity,
-                    message: isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-                      ? (txErrorView.rawMessage ?? undefined)
-                      : formatMessage({
-                          id: txErrorView.messageKey,
-                          defaultMessage: "Something went wrong. Please try again.",
-                        }),
-                    title: formatMessage({
-                      id: txErrorView.titleKey,
-                      defaultMessage:
-                        txErrorView.severity === "warning"
-                          ? "Transaction canceled"
-                          : "Transaction failed",
-                    }),
+                    severity: txError.view.severity,
+                    title: txError.title,
+                    message: txError.message,
                   }
                 : null
             }
+            depositPlan={depositPlan}
             onSubmit={handleSubmit}
           />
         )}
       </div>
     </div>
-  );
-}
-
-export function LoadingBody() {
-  return (
-    <div className="flex flex-col gap-4 py-6" aria-hidden="true">
-      <div className="h-3 w-1/3 animate-pulse bg-stroke-soft-200/60" />
-      <div className="h-12 w-full animate-pulse bg-editorial-warm" />
-      <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-      <div className="mt-2 h-12 w-full animate-pulse bg-stroke-soft-200/60" />
-    </div>
-  );
-}
-
-export function UnavailableBody({ isDonate }: { isDonate: boolean }) {
-  const { formatMessage } = useIntl();
-  return (
-    <p className="py-6 text-sm leading-[1.6] text-text-sub-600">
-      {isDonate
-        ? formatMessage({
-            id: "public.fund.card.unavailable.donate",
-            defaultMessage: "This garden has no donation fund configured yet.",
-          })
-        : formatMessage({
-            id: "public.fund.card.unavailable.endow",
-            defaultMessage: "This garden has no endowment fund configured yet.",
-          })}
-    </p>
   );
 }
 
@@ -565,6 +549,7 @@ interface IdleBodyProps {
   /** Wallet login in flight — the submit shows a consistent connect-loading state. */
   isConnecting: boolean;
   txError: { severity: string; title: string; message: string } | null;
+  depositPlan: ReturnType<typeof useDepositPlan>;
   onSubmit: () => void;
 }
 
@@ -588,6 +573,7 @@ function IdleBody(props: IdleBodyProps) {
     isSubmitting,
     isConnecting,
     txError,
+    depositPlan,
     onSubmit,
   } = props;
   const { formatMessage } = useIntl();
@@ -661,6 +647,7 @@ function IdleBody(props: IdleBodyProps) {
 
   const submitDisabled =
     isSubmitting ||
+    depositPlan.isPaused ||
     (!primaryAddress && isConnecting) ||
     Boolean(primaryAddress && (tokenAmountWei <= 0n || conversionUnavailable));
 
@@ -738,6 +725,14 @@ function IdleBody(props: IdleBodyProps) {
       ) : null}
 
       {txError ? <InlineErrorBlock title={txError.title} message={txError.message} /> : null}
+      {depositPlan.holdFeedback ? (
+        <TxHoldFeedback {...depositPlan.holdFeedback} isBusy={isSubmitting} />
+      ) : null}
+      {depositPlan.signatureLine ? (
+        <p className="text-center text-[11px] text-text-soft-400" aria-live="polite">
+          {depositPlan.signatureLine}
+        </p>
+      ) : null}
 
       <EditorialPrimaryButton onClick={onSubmit} disabled={submitDisabled} className="w-full">
         {submitLabel}
@@ -992,17 +987,5 @@ export function TokenPicker({ options, selectedAddress, onSelect, disabled }: To
         })}
       </div>
     </fieldset>
-  );
-}
-
-export function InlineErrorBlock({ title, message }: { title: string; message: string }) {
-  return (
-    <div
-      role="alert"
-      className="border border-editorial-deep/15 bg-editorial-warm px-4 py-3 text-sm text-text-strong-950"
-    >
-      <p className="font-medium">{title}</p>
-      <p className="mt-1 text-text-sub-600">{message}</p>
-    </div>
   );
 }

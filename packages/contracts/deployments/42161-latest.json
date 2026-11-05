@@ -11,6 +11,8 @@
   },
   "ensReceiver": "0x0000000000000000000000000000000000000000",
   "gardenAccountImpl": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+  "gardenAccountProxy": "0xEA18280e5e97894b382D81970077950b234459c1",
+  "gardenAccountProxyImpl": "0xF054F26dF17110910FD861f92E566610b965341c",
   "gardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
   "gardenerAccountLogic": "0x0000000000000000000000000000000000000000",
   "gardenerRegistry": "0x0000000000000000000000000000000000000000",
@@ -28,6 +30,8 @@
   },
   "guardian": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
   "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
+  "stewardSafeBootstrap": "0x2A891Ed2f4AEaB476E8B8DB687AcD24d4b90CDa0",
+  "stewardSafeFactoryGnosis": "0x2E00Bd83388aDA1e188FC6465F646B9C5e291acF",
   "hypercertsModule": "0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0",
   "hypercertExchange": "0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83",
   "hypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07",
@@ -189,6 +193,18 @@
     "settlementModule": {
       "transactionHash": "0xe950f05b9b1a6906f86be3da8123f29ebcd5c0ed39a0e98ec9c4a2c9dbb47397",
       "blockNumber": 493971677
+    },
+    "gardenAccountProxyImpl": {
+      "transactionHash": "0x7ef8b7d30af060f9fb41c7c26b3f68e4b48e681339fcc9a1bac2cf4b51ce9c6d",
+      "blockNumber": 520502865
+    },
+    "gardenAccountProxy": {
+      "transactionHash": "0xdd552b6e346a386ed6ef9fe094eeb3b2e33b427fa7621af163bed781640fede1",
+      "blockNumber": 520502878
+    },
+    "stewardSafeBootstrap": {
+      "transactionHash": "0x73fff266a7925ea1234297765f532cbce6de68718ac4ad0ba5ac191139f27ad9",
+      "blockNumber": 520502899
     }
   },
   "creditRegistry": "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",

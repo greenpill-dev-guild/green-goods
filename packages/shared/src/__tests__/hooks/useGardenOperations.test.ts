@@ -27,7 +27,8 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mockUseTransactionSender(),
 }));
 
-vi.mock("@tanstack/react-query", () => ({
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => mockUseQueryClient(),
 }));
 

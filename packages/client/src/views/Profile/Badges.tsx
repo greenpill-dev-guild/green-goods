@@ -18,28 +18,16 @@ import { useMyOnlineWorks } from "@green-goods/shared/hooks/work/useMyWorks";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import type { SheetAction } from "@green-goods/shared/components/Dialog/SheetActions";
-import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAwardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { BadgeTile } from "./BadgeTile";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
 
 type ProfileBadgeStatus = "earned" | "claimable";
 type ProfileBadgeDisplay = GreenWillBadgeView & { profileStatus: ProfileBadgeStatus };
-
-function badgeIcon(slug: string) {
-  switch (slug) {
-    case "genesis":
-      return <RiSeedlingLine className="h-5 w-5 text-primary-on-surface" />;
-    case "first-work":
-      return <RiHammerLine className="h-5 w-5 text-primary-on-surface" />;
-    case "first-support":
-      return <RiCoinsLine className="h-5 w-5 text-primary-on-surface" />;
-    default:
-      return <RiAwardLine className="h-5 w-5 text-primary-on-surface" />;
-  }
-}
 
 function badgeTitle(intl: ReturnType<typeof useIntl>, slug: string) {
   switch (slug) {
@@ -374,32 +362,14 @@ export const ProfileBadges: React.FC = () => {
           const statusLabel = badgeStatusLabel(intl, badge.profileStatus);
 
           return (
-            <button
+            <BadgeTile
               key={`${badge.profileStatus}-${badge.badgeId}`}
-              type="button"
-              data-pressable="card"
-              onClick={() => setOpenedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/30"
-              aria-label={intl.formatMessage(
-                {
-                  id: "app.profile.badges.viewDetails",
-                  defaultMessage: "View {badge} badge",
-                },
-                { badge: title }
-              )}
-            >
-              <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-primary/10">
-                {badgeIcon(badge.slug)}
-              </span>
-              <span className="mt-3 min-w-0">
-                <span className="line-clamp-2 text-sm font-medium leading-snug text-text-strong-950">
-                  {title}
-                </span>
-                <span className="mt-2 inline-flex rounded-full bg-bg-weak-50 px-2 py-1 text-[11px] font-medium text-text-sub-600">
-                  {statusLabel}
-                </span>
-              </span>
-            </button>
+              slug={badge.slug}
+              title={title}
+              earned={badge.profileStatus === "earned"}
+              statusLabel={statusLabel}
+              onOpen={() => setOpenedBadge(badge)}
+            />
           );
         })}
       </div>

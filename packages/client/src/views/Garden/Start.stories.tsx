@@ -82,6 +82,11 @@ export const NothingOwed: Story = {
       const line = Number.parseFloat(getComputedStyle(title).lineHeight);
       await expect(box(title).height).toBeCloseTo(line * 2, 0);
     }
+    // The chips hold one row that slides sideways, and only sideways (DL-157).
+    const chips = canvas.getByRole("group", { name: "Domains" });
+    await expect(getComputedStyle(chips).touchAction).toBe("pan-x");
+    await expect(getComputedStyle(chips).overflowY).toBe("hidden");
+    await expect(new Set([...chips.children].map((chip) => box(chip).top)).size).toBe(1);
     // A chip filters and chooses nothing; a tile chooses and moves on.
     await userEvent.click(canvas.getByRole("button", { name: "Waste" }));
     await expect(args.setSelectedDomain).toHaveBeenLastCalledWith(Domain.WASTE);

@@ -29,10 +29,13 @@ import {
   RANGE_OPTIONS,
   SECTION_CARD_MIN_HEIGHT,
 } from "./gardenDetail.constants";
+import { GardenSetupPanel } from "./GardenSetupCard";
 import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
 
 export interface OverviewTabProps {
   chainId?: number;
+  gardenId: string;
+  canManage: boolean;
   mode: "health" | "activity";
   section: string | undefined;
   selectedItem: string | undefined;
@@ -67,6 +70,8 @@ export interface OverviewTabProps {
 
 export function OverviewTab({
   chainId,
+  gardenId,
+  canManage,
   mode,
   section,
   selectedItem,
@@ -165,7 +170,10 @@ export function OverviewTab({
           ) : null}
 
           {isHealthMode && (section === undefined || section === "health") && (
-            <AdminCard density="none" className={SECTION_CARD_MIN_HEIGHT}>
+            <AdminCard
+              density="none"
+              className={`${SECTION_CARD_MIN_HEIGHT} garden-tab-main-own-height`}
+            >
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
                   <AdminCardTitle>
@@ -396,6 +404,7 @@ export function OverviewTab({
           <div className="garden-tab-rail-sticky">
             {alertsLead ? null : alertsCard}
 
+            {isHealthMode ? <GardenSetupPanel gardenId={gardenId} canManage={canManage} /> : null}
             {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
 
             <AdminCard density="none">

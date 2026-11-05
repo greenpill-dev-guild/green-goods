@@ -5,7 +5,7 @@ slug: /community/steward-guide/creating-a-garden
 description: "Set up a new garden in the steward dashboard: its name, place, areas of work, and first team. Creating a garden needs deployer access."
 audience: steward
 owner: docs
-last_verified: 2026-10-12
+last_verified: "2026-10-12"
 feature_status: Live
 goal: "Walk someone with deployer access through creating a garden, and tell everyone else how to get one."
 difficulty: "standard"
@@ -35,15 +35,11 @@ keywords:
   - garden setup
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Create a Garden
 
 A garden is the home for one community's work: its people, its records, and its funds. This page is for the person who sets a new one up.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-create-garden-details.png" alt="The Create Garden form in the steward dashboard, with the Garden details section showing fields for the name, location, ENS subdomain, description, and optional banner image" loading="eager" width="1104" height="440" />
-</figure>
+<GuideImage src="/img/screenshots/admin-create-garden-details.png" alt="The Create Garden form in the steward dashboard, with the Garden details section showing fields for the name, location, ENS subdomain, description, and optional banner image" loading="eager" width="1104" height="440" className="gg-figure" />
 
 **Not everyone can create a garden.** It needs deployer access, which the Green Goods team gives out. If you want a garden for your community and do not have that access, ask in the [Green Goods community on Discord](https://discord.gg/greenpill). If your garden already exists, skip to [Manage Members](/community/steward-guide/managing-members).
 
@@ -70,7 +66,7 @@ If you do not have a garden yet, the **No garden access yet** screen has its own
 
 The form is one page with three numbered sections.
 
-### 2. Fill in Garden details
+### 2. Fill in garden details
 
 1. Enter the **Garden name**.
 2. Enter the **Location**.
@@ -79,7 +75,6 @@ The form is one page with three numbered sections.
 5. Add a **Banner image** if you have one.
 6. Under **Action domains**, choose the areas of work.
 
-
 ### 3. Add your first team
 
 1. Under **Stewards**, paste an address or name and tap **Add**. Repeat for each steward.
@@ -87,24 +82,24 @@ The form is one page with three numbered sections.
 
 Stewards can already do everything a gardener can, so you do not need to add them to both lists. You can leave both lists empty.
 
+<GuideImage src="/img/screenshots/guide-garden-team.webp" alt="Planned team members contains one steward and two gardeners and explains that grants must be verified after creation." loading="lazy" width="688" height="478" className="gg-figure" maxWidth="672px">
 
-<figure className="gg-figure" style={{maxWidth: '672px'}}>
-  <img src="/img/screenshots/guide-garden-team.webp" alt="Planned team members contains one steward and two gardeners and explains that grants must be verified after creation." loading="lazy" width="688" height="478" />
-  <figcaption>Verify these planned members’ roles in Garden Members after creation.</figcaption>
-</figure>
+Verify these planned members’ roles in Garden Members after creation.
+
+</GuideImage>
 
 ### 4. Review and create
 
-1. Read **Review & deploy**. It shows everything you entered.
+1. Read **Review and Create**. It shows everything you entered and what creating the garden costs.
 2. Fix anything that looks wrong. A new garden starts as **Invite only**. You can open it up afterwards.
-3. Tap **Deploy Garden** and confirm.
+3. Tap **Create Garden** and approve the request.
 4. Keep the page open until it finishes.
 
+<GuideImage src="/img/screenshots/guide-garden-review.webp" alt="Riverside Commons Garden review shows Invite only and its planned gardeners and steward." loading="lazy" width="784" height="459" className="gg-figure" maxWidth="672px">
 
-<figure className="gg-figure" style={{maxWidth: '672px'}}>
-  <img src="/img/screenshots/guide-garden-review.webp" alt="Riverside Commons Garden review shows Invite only and its planned gardeners and steward." loading="lazy" width="784" height="459" />
-  <figcaption>Check Invite only and the planned team before deploying.</figcaption>
-</figure>
+Check Invite only and the planned team before creating the garden.
+
+</GuideImage>
 
 ## How you know it worked
 
@@ -129,16 +124,18 @@ You act next. The garden exists, and it is empty and closed.
 | **Unauthorized** when you open the form | Your account does not have deployer access. Ask the Green Goods team |
 | A field is marked as required | Fill it in. The garden name, location, ENS subdomain, description, and at least one domain are all needed |
 | **This name is already taken** | Change the ENS subdomain to something else |
-| **You're offline** | Reconnect, then tap **Deploy Garden** again. What you typed is still there |
-| **Cannot deploy yet** | The form does not think it is complete. Check every field in section 01, then try again. If every field is filled and it still appears, tell the Green Goods team |
-| **Transaction canceled** | You closed the confirmation. Nothing was created. Tap **Retry Deployment** when you are ready |
-| **Awaiting wallet execution** | Your wallet accepted the request and it has not finished. Open your wallet and approve or finish it there, then tap **Check confirmation**. Do not deploy a second time while this one is waiting |
-| **Transaction failed** | Read the message under it, then tap **Retry Deployment**. With your own wallet, the usual cause is not enough ETH for the fee |
+| **You're offline** | Reconnect, then tap **Create Garden** again. What you typed is still there |
+| **Not ready to create yet** | The form does not think it is complete. Check every field in section 01, then try again. If every field is filled and it still appears, tell the Green Goods team |
+| **Transaction canceled** | You closed the confirmation. Nothing was created. Tap **Try Again** when you are ready |
+| **Waiting for your wallet** | Your wallet accepted the request and it has not finished. Open your wallet and approve or finish it there, then tap **Check confirmation**. Do not create the garden a second time while this one is waiting |
+| **Transaction failed** | Read the message under it, then tap **Try Again**. With your own wallet, the usual cause is not enough ETH for the fee |
 | A person you added is not listed afterwards | Give the list a moment to catch up. If they are still missing, add them from [Manage Members](/community/steward-guide/managing-members) |
 
-:::note Using your own wallet
-Creating a garden is one transaction on the Arbitrum network. It can include a small fee for registering the garden's web name, so the account you create it from needs some ETH there.
-:::
+<Callout kind="note" title="Using your own wallet">
+
+Creating a garden is one transaction on the Arbitrum network, so the account you create it from needs some ETH there. The Green Goods name fund pays for the garden's web name when it can. When it can't and your account has the ETH, the transaction includes that small fee too. Otherwise the garden is still created, and its web name follows once the fund can pay.
+
+</Callout>
 
 ## Next step
 

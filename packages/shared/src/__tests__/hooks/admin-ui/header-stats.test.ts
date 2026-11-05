@@ -242,6 +242,11 @@ describe("buildActionsHeaderStats", () => {
     expect(items.map((item) => item.value)).toEqual(["12", "3"]);
   });
 
+  it("says one domain's total alone when coverage is left out (DL-134)", () => {
+    const items = buildActionsHeaderStats({ totalCount: 5, formatMessage: makeFormatMessage() });
+    expect(items.map((item) => [item.id, item.value])).toEqual([["total", "5"]]);
+  });
+
   it("passes the count parameter through for pluralization", () => {
     const formatMessage = makeFormatMessage();
     buildActionsHeaderStats({ totalCount: 1, domainsCovered: 4, formatMessage });

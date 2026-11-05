@@ -54,7 +54,10 @@ describe("passkey cross-chain account construction", () => {
     expect(factoryCalls).toHaveLength(0);
   });
 
-  it("uses the explicit patched pilot recipe on all three chains without reinterpreting the legacy ID", async () => {
+  it.each([
+    "kernel-0.3.3",
+    "kernel-0.3.3-pilot",
+  ] as const)("uses the patched %s recipe on all three chains without reinterpreting the legacy ID", async (profile) => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     const pilotCredential = { ...credential, id: "deadbeef", signingId: "3q2-7w" };
     const factoryArgs = [];
@@ -64,7 +67,7 @@ describe("passkey cross-chain account construction", () => {
         chainId,
         "greengoods.app",
         undefined,
-        "kernel-0.3.3-pilot"
+        profile
       );
       factoryArgs.push(await result.client.account!.getFactoryArgs());
       expect(result.client.chain?.id).toBe(chainId);

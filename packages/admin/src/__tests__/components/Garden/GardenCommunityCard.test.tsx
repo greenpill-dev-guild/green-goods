@@ -20,8 +20,8 @@ const baseProps = {
   community: { weightScheme: 0 },
   communityLoading: false,
   pools: [
-    { poolType: PoolType.Hypercert, poolAddress: HYPERCERT_POOL as `0x${string}` },
-    { poolType: PoolType.Action, poolAddress: ACTION_POOL as `0x${string}` },
+    { poolType: PoolType.HypercertSignal, poolAddress: HYPERCERT_POOL as `0x${string}` },
+    { poolType: PoolType.ActionSignal, poolAddress: ACTION_POOL as `0x${string}` },
   ],
   gardenId: GARDEN_ID,
   canManage: true,

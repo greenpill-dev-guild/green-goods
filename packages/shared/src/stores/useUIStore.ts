@@ -11,19 +11,20 @@ import type { TimeFilter } from "../utils/time";
 // renaming it would drop that flag on every device.
 const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
 
-/** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab (D3). */
-export type WorkDashboardTab = "pending" | "completed";
+/**
+ * Tabs of the client Work Dashboard modal, so callers can open it to a specific one (D3). To Review
+ * is for whoever may review the garden's work (DL-149).
+ */
+export type WorkDashboardTab = "pending" | "toReview" | "completed";
 
 /**
  * Filters of the Work Dashboard's Pending tab, one per state of its one list
  * (D17): what needs you, what waits to upload, what you're still editing, what
- * is being checked, and what waits for a review. Stewards also get the work
- * waiting for their decision. Lets callers deep-link a preset.
+ * is being checked, and what waits for a review. Lets callers deep-link a preset.
  */
 export type WorkDashboardPendingFilter =
   | "all"
   | "needs"
-  | "needsReview"
   | "upload"
   | "editing"
   | "checking"

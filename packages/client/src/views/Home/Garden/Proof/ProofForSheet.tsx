@@ -75,7 +75,13 @@ export function ProofForSheet({
           viewer={viewer}
           stewards={stewards}
         />
-        <CommitmentProgress chainId={chainId} commitment={commitment} requirements={requirements}>
+        <CommitmentProgress
+          chainId={chainId}
+          commitment={commitment}
+          requirements={requirements}
+          // The sheet opens from the proof being added.
+          addProof="now"
+        >
           <CommitmentEvidence
             attributions={detail.evidenceAttributions}
             recordedCount={commitment.evidenceCount}

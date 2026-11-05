@@ -45,7 +45,7 @@ export const StateCatalog: Story = {
           onChange={() => {}}
           tabs={[
             { id: "overview", label: "Overview" },
-            { id: "impact", label: "Impact", count: 6 },
+            { id: "impact", label: "Impact" },
             { id: "settings", label: "Settings" },
           ]}
         />

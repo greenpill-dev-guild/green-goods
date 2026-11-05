@@ -11,6 +11,7 @@ export const TokenABI = [
   ]),
 ];
 export const AdapterABI = parseAbi([
+  "function getExecutionResult(bytes32 entitlementId) view returns((bytes32 payloadHash,uint64 sequence,bool success,uint64 acknowledgmentSequence,bytes32 failureHash,bytes32 acknowledgmentMessageId,bytes32 acknowledgmentFailureHash))",
   "function owner() view returns(address)",
   "function paused() view returns(bool)",
   "function guardian() view returns(address)",

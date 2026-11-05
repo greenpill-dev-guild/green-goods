@@ -160,10 +160,11 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
   );
 }
 
-// Sentence-case label role per the admin dialog interior grammar (admin.mdx):
-// section labels ride the type roles, never ad-hoc uppercase tracking.
+// A section label is the sheet body's one heading: 14px semibold in the strong
+// ink, as the Profile and Settings sections draw theirs (qa-session 2026-10-30
+// OBS-19), in sentence case and never ad-hoc uppercase tracking.
 function SectionHeading({ title }: { title: string }) {
-  return <h3 className="type-meta-sm font-medium text-text-soft">{title}</h3>;
+  return <h3 className="type-body font-semibold text-text-strong">{title}</h3>;
 }
 
 function SkeletonRow() {

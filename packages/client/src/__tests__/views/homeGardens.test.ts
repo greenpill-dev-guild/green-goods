@@ -35,7 +35,7 @@ describe("exploreGardens", () => {
     expect(listed.map(({ garden }) => garden.id)).toEqual([b.id, d.id, a.id, c.id]);
   });
 
-  it("tags each card once: Member, then Awaiting review, then Open", () => {
+  it("tags each card once: Member, then Waiting for approval, then Open", () => {
     const member = garden("01", { openJoining: true });
     const requested = garden("02", { openJoining: true });
     const open = garden("03", { openJoining: true });

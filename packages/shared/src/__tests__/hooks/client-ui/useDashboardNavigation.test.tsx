@@ -16,7 +16,7 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
 const work: DashboardSnapshot = {
   kind: "work",
   tab: "completed",
-  pendingFilter: "needsReview",
+  pendingFilter: "upload",
   completedFilter: "reviewedByYou",
   timeFilter: "week",
   scrollTop: 288,
@@ -183,7 +183,7 @@ describe("dashboard returns through the PWA data router", () => {
         expect(useUIStore.getState()).toMatchObject({
           isWorkDashboardOpen: true,
           workDashboardInitialTab: "completed",
-          workDashboardInitialPendingFilter: "needsReview",
+          workDashboardInitialPendingFilter: "upload",
           workDashboardReturnState: snapshot,
         });
       } else {

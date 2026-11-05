@@ -263,6 +263,10 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
             address(journeyEarned),
             abi.encodeCall(VoucherEntitlementModule.setIssuerAuthority, (journeyIssuerA, address(journeyA), journeyIssuerA))
         );
+        _safeExec(
+            journeyCommunity, address(journeyEarned), abi.encodeCall(VoucherEntitlementModule.setFeeReserveMinimum, (1))
+        );
+        vm.deal(address(journeyEarned), 1);
         _safeExec(journeyCommunity, address(journeyEarned), abi.encodeCall(VoucherEndpoint.unpause, ()));
         _safeExec(journeyCommunity, address(journeySource), abi.encodeCall(VoucherEndpoint.unpause, ()));
         _safeExec(journeyCommunity, address(journeyCore), abi.encodeCall(Core.setPaused, (true)));

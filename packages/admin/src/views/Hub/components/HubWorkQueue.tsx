@@ -3,17 +3,24 @@ import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStat
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
 import { WorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { HubWorkScope } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
-import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type {
+  HubActionSummary,
+  HubOlderRecords,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import type { ReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckboxCircleLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
+import { HubReviewBatchBar } from "./HubReviewBatchBar";
+import { HubShowOlder, HubShowOlderButton } from "./HubShowOlder";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 import { HubWorkCard } from "./HubWorkCard";
 import { hubWorkTitle } from "./hubWorkTitle";
@@ -51,6 +58,16 @@ const EMPTY_SCOPE_COPY: Record<
   },
 };
 
+// While older work is not loaded, a scope that finds nothing in the newest page
+// cannot say the garden has none, so it names where it looked instead.
+const EMPTY_RECENT_SCOPE_TITLE: Record<HubWorkScope, { id: string; defaultMessage: string }> = {
+  pending: { id: "cockpit.work.noRecentPending", defaultMessage: "Nothing pending in recent work" },
+  approved: {
+    id: "cockpit.work.noRecentApproved",
+    defaultMessage: "Nothing approved in recent work",
+  },
+};
+
 interface HubWorkQueueProps {
   items: Work[];
   /** Which of the Work tab's scopes `items` holds: it decides the empty state. */
@@ -64,6 +81,34 @@ interface HubWorkQueueProps {
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
+  /** The steward's unsent decisions for this garden: chips on the list, a bar beneath it. */
+  reviewBatch?: ReviewBatch;
+  /** The garden's next page of older work, while it has more than the list holds. */
+  older?: HubOlderRecords;
+}
+
+/** What a decision waiting on this work says in place of its status. Always a word and a color. */
+interface ReviewChip {
+  label: string;
+  tone: "success" | "warning" | "error";
+}
+
+function reviewChipFor(
+  reviewBatch: ReviewBatch | undefined,
+  workId: string,
+  formatMessage: IntlShape["formatMessage"]
+): ReviewChip | undefined {
+  if (reviewBatch?.isHeld(workId)) {
+    return { label: formatMessage({ id: "app.work.batch.chip.checking" }), tone: "warning" };
+  }
+  const staged = reviewBatch?.reviewFor(workId);
+  if (!staged) return undefined;
+  if (staged.refusal) {
+    return { label: formatMessage({ id: "app.work.batch.chip.blocked" }), tone: "error" };
+  }
+  return staged.draft.approved
+    ? { label: formatMessage({ id: "app.work.batch.chip.approve" }), tone: "success" }
+    : { label: formatMessage({ id: "app.work.batch.chip.reject" }), tone: "error" };
 }
 
 interface HubWorkQueueItemProps {
@@ -75,6 +120,7 @@ interface HubWorkQueueItemProps {
   eagerImages?: boolean;
   /** The phone's work row in place of the photo-grid card. */
   asRow: boolean;
+  reviewChip?: ReviewChip;
   onOpenWorkDetail: (workId: string) => void;
 }
 
@@ -86,6 +132,7 @@ function HubWorkQueueItem({
   selected,
   eagerImages,
   asRow,
+  reviewChip,
   onOpenWorkDetail,
 }: HubWorkQueueItemProps) {
   const { formatMessage } = useIntl();
@@ -111,11 +158,12 @@ function HubWorkQueueItem({
         // As on the card: a waiting work is a neutral Pending, since its age is
         // metadata and never an alarm (DL-044); an approved one says Approved.
         statusLabel={
-          approved
+          reviewChip?.label ??
+          (approved
             ? formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" })
-            : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" })
+            : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }))
         }
-        statusTone={approved ? "success" : "neutral"}
+        statusTone={reviewChip?.tone ?? (approved ? "success" : "neutral")}
         selected={selected}
         onClick={() => onOpenWorkDetail(work.id)}
       />
@@ -133,7 +181,9 @@ function HubWorkQueueItem({
       gardenerDisplayName={gardenerDisplayName}
       // The card reads its own state: a waiting card is a neutral Pending with
       // its age, since age is metadata and never an alarm (DL-044); an
-      // approved card says Approved.
+      // approved card says Approved. A decision waiting on it says so instead.
+      statusLabel={reviewChip?.label}
+      statusTone={reviewChip?.tone}
       layout={layout}
       selected={selected}
       eagerImages={eagerImages}
@@ -142,7 +192,20 @@ function HubWorkQueueItem({
   );
 }
 
-export function HubWorkQueue({
+export function HubWorkQueue(props: HubWorkQueueProps) {
+  const { reviewBatch } = props;
+  return (
+    <>
+      {reviewBatch?.holdFeedback ? <TxHoldFeedback {...reviewBatch.holdFeedback} /> : null}
+      <HubWorkQueueList {...props} />
+      {reviewBatch ? (
+        <HubReviewBatchBar batch={reviewBatch} gardenName={props.selectedGardenName} />
+      ) : null}
+    </>
+  );
+}
+
+function HubWorkQueueList({
   items,
   scope,
   worksLoading,
@@ -154,9 +217,19 @@ export function HubWorkQueue({
   selectedWorkId,
   onOpenWorkDetail,
   onClearSearch,
+  reviewBatch,
+  older,
 }: HubWorkQueueProps) {
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
+  const olderLabel = formatMessage({
+    id: "cockpit.hub.work.showOlder",
+    defaultMessage: "Show Older Work",
+  });
+  const olderNotLoaded = formatMessage({
+    id: "cockpit.hub.work.olderNotLoaded",
+    defaultMessage: "Older work isn't loaded yet.",
+  });
   // From the cockpit's desktop breakpoint each card lies wide, its mosaic on
   // the left, and the grid holds two to a row at 1280px (F12).
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -176,6 +249,11 @@ export function HubWorkQueue({
             id: "cockpit.hub.error.description",
             defaultMessage: "Refresh the workspace and try again.",
           })}
+          // Any failed work read replaces the list, so a page of older work
+          // that failed to load is asked for again from here.
+          action={
+            older?.onShowOlder ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined
+          }
         />
       </EmptyStateShell>
     );
@@ -209,13 +287,17 @@ export function HubWorkQueue({
             },
             { query: debouncedSearch }
           )}
+          description={older ? olderNotLoaded : undefined}
           action={
-            <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
-              {formatMessage({
-                id: "cockpit.hub.clearSearch",
-                defaultMessage: "Clear Search",
-              })}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              {older ? <HubShowOlderButton older={older} label={olderLabel} /> : null}
+              <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
+                {formatMessage({
+                  id: "cockpit.hub.clearSearch",
+                  defaultMessage: "Clear Search",
+                })}
+              </Button>
+            </div>
           }
         />
       </EmptyStateShell>
@@ -227,37 +309,46 @@ export function HubWorkQueue({
       <EmptyStateShell>
         <EmptyState
           icon={<RiCheckboxCircleLine className="h-6 w-6" />}
-          title={formatMessage(EMPTY_SCOPE_COPY[scope].title)}
-          description={formatMessage(EMPTY_SCOPE_COPY[scope].description)}
+          title={formatMessage(
+            older ? EMPTY_RECENT_SCOPE_TITLE[scope] : EMPTY_SCOPE_COPY[scope].title
+          )}
+          description={older ? olderNotLoaded : formatMessage(EMPTY_SCOPE_COPY[scope].description)}
+          action={
+            older?.onShowOlder ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined
+          }
         />
       </EmptyStateShell>
     );
   }
 
   return (
-    <ul
-      className={isPhone ? PHONE_LIST_CLASS : "hub-workbench-grid"}
-      data-card-layout={cardLayout}
-      // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
-      role="list"
-    >
-      {items.map((work, index) => {
-        const actionSummary = actionsMap.get(work.actionUID);
-        return (
-          <li key={work.id} className="min-w-0">
-            <HubWorkQueueItem
-              work={work}
-              actionSummary={actionSummary}
-              selectedGardenName={selectedGardenName}
-              layout={cardLayout}
-              selected={selectedWorkId === work.id}
-              eagerImages={index < 6}
-              asRow={isPhone}
-              onOpenWorkDetail={onOpenWorkDetail}
-            />
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      <ul
+        className={isPhone ? PHONE_LIST_CLASS : "hub-workbench-grid"}
+        data-card-layout={cardLayout}
+        // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
+        role="list"
+      >
+        {items.map((work, index) => {
+          const actionSummary = actionsMap.get(work.actionUID);
+          return (
+            <li key={work.id} className="min-w-0">
+              <HubWorkQueueItem
+                work={work}
+                actionSummary={actionSummary}
+                selectedGardenName={selectedGardenName}
+                layout={cardLayout}
+                selected={selectedWorkId === work.id}
+                eagerImages={index < 6}
+                asRow={isPhone}
+                reviewChip={reviewChipFor(reviewBatch, work.id, formatMessage)}
+                onOpenWorkDetail={onOpenWorkDetail}
+              />
+            </li>
+          );
+        })}
+      </ul>
+      {older ? <HubShowOlder older={older} label={olderLabel} notLoaded={olderNotLoaded} /> : null}
+    </>
   );
 }

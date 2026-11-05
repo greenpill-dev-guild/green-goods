@@ -13,4 +13,8 @@ contract ArbitrumHatsModuleUpgradeForkTest is HatsModuleUpgradeForkHarness {
     function testForkArbitrum_hatsModuleUpgradePreservesLiveState() public {
         _rehearseHatsModuleUpgrade();
     }
+
+    function testForkArbitrum_hatsModuleUpgradeLetsMembersLeaveLiveGardens() public {
+        _rehearseLeavingLiveGardens();
+    }
 }

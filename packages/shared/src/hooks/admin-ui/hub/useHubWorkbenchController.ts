@@ -1,8 +1,11 @@
-import { useRefreshAction } from "../../../components/Canvas/RefreshActionContext";
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
-import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import {
+  type AdminHubRouteContext,
+  adminRoutes,
+  parseHubFlowItem,
+} from "../../../utils/navigation/admin-routes";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
@@ -11,6 +14,7 @@ import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
 import { useSheetOrchestrator } from "../../navigation/useSheetOrchestrator";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { useDebouncedValue } from "../../utils/useDebouncedValue";
+import { useReviewBatch } from "../../work/useReviewBatch";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -36,7 +40,9 @@ import {
   resolveHubRouteState,
 } from "./hub.workbenchModel";
 import { useHubConfirmStage } from "./useHubConfirmStage";
+import { useHubOlderRecords } from "./useHubOlderRecords";
 import { useHubStageQueues } from "./useHubStageQueues";
+import { useHubStageRefresh } from "./useHubStageRefresh";
 
 /** One choice in the Hub's sort control. */
 interface SortOption {
@@ -58,6 +64,8 @@ export function useHubWorkbenchController() {
     commitmentId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
+  // A create flow open over the stage, named in the URL (DL-140).
+  const routeItem = parseHubFlowItem(searchParams.get("item"));
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const gardenStateKey = selectedGarden?.id ?? "";
@@ -116,14 +124,23 @@ export function useHubWorkbenchController() {
     worksLoading,
     worksFetching,
     worksError,
+    isWorksPaused,
     refreshWorks,
+    workPages,
     assessments,
     fetchingAssessments,
+    assessmentsFetching,
     assessmentsError,
+    refreshAssessments,
     error,
     hypercerts,
     hypercertsLoading,
+    hypercertsFetching,
     hypercertsError,
+    refreshHypercerts,
+    hypercertPages,
+    refreshGardens,
+    gardensFetching,
     allocations,
     allocationsLoading,
     gardenVaults,
@@ -156,8 +173,17 @@ export function useHubWorkbenchController() {
   useEffect(() => {
     if (!selectedGarden) return;
     if (requestedStage === stage) return;
-    navigate(adminRoutes.hubMode(stage, hubContext), { replace: true });
-  }, [hubContext, navigate, requestedStage, selectedGarden, stage]);
+    navigate(adminRoutes.hubMode(stage, { ...hubContext, item: routeItem }), { replace: true });
+  }, [hubContext, navigate, requestedStage, routeItem, selectedGarden, stage]);
+
+  const older = useHubOlderRecords({
+    garden: selectedGardenId,
+    stage,
+    sortDirection,
+    workPages,
+    hypercertPages,
+    workReadable: !worksError && !isWorksPaused,
+  });
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
@@ -188,6 +214,8 @@ export function useHubWorkbenchController() {
 
   const { data: actions = [] } = useActions();
   const actionsMap = useMemo(() => buildActionTitleMap(actions), [actions]);
+  // Up here, not on the Work tab, so a send in flight outlives a change of tab.
+  const reviewBatch = useReviewBatch(selectedGarden?.id ?? "", { works });
 
   useEffect(() => {
     if (!worksLoading && !fetchingAssessments && !hypercertsLoading) {
@@ -309,10 +337,6 @@ export function useHubWorkbenchController() {
     [updateSearch]
   );
 
-  const handleRefresh = useCallback(() => {
-    void Promise.resolve(refreshWorks()).finally(() => setLastRefreshAt(Date.now()));
-  }, [refreshWorks]);
-
   const viewActions = useMemo(
     () =>
       selectedGardenId
@@ -327,17 +351,20 @@ export function useHubWorkbenchController() {
     blocked: hasOpenHubInspector,
   });
 
-  // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
-  // keeps refresh implicit — the action set in the page header is the only
-  // chrome the steward needs.
-  const mobileRefreshAction = useMemo(
-    () =>
-      selectedGardenId && !isDesktop
-        ? { onRefresh: handleRefresh, isFetching: worksFetching }
-        : null,
-    [handleRefresh, isDesktop, selectedGardenId, worksFetching]
-  );
-  useRefreshAction(mobileRefreshAction);
+  // The AppBar shows this refresh on phones and tablets; desktop keeps none.
+  const markRefreshed = useCallback(() => setLastRefreshAt(Date.now()), []);
+  const handleRefresh = useHubStageRefresh({
+    stage,
+    enabled: Boolean(selectedGardenId),
+    reads: {
+      work: { refresh: refreshWorks, isFetching: worksFetching },
+      assess: { refresh: refreshAssessments, isFetching: assessmentsFetching },
+      certify: { refresh: refreshHypercerts, isFetching: hypercertsFetching },
+      confirm: { refresh: toConfirm.refetch, isFetching: toConfirm.isFetching ?? false },
+    },
+    failedShared: error ? { refresh: refreshGardens, isFetching: gardensFetching } : undefined,
+    onRefreshed: markRefreshed,
+  });
 
   const resultCount = getHubResultCount(stage, {
     works: scopedWorks.length,
@@ -404,6 +431,7 @@ export function useHubWorkbenchController() {
   );
 
   return {
+    ...older,
     actionsMap,
     activeWorkDetailId,
     allocationsLoading,
@@ -437,10 +465,12 @@ export function useHubWorkbenchController() {
     waitingOverWeekCount: derived.reviewQueue.waitingOverWeekCount,
     refreshAgoText,
     resultCount,
+    reviewBatch,
     routeSheetContentId,
     routeSheetCloseTo,
     routeCertificationId,
     routeCommitmentId,
+    routeItem,
     routeWorkId,
     scopedWorks,
     searchPlaceholder,

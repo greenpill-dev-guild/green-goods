@@ -14,7 +14,10 @@ import {
 import { unavailableServiceAccess } from "../modules/commitment-pooling/data-service-access";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import { REHEARSAL_VOUCHER_ISSUERS } from "../modules/commitment-pooling/demo/demo-service-wallet";
-import type { ServiceAccessKey } from "../modules/commitment-pooling/service-access-types";
+import type {
+  ServiceAccessKey,
+  ServiceAccessSnapshot,
+} from "../modules/commitment-pooling/service-access-types";
 import type {
   VoucherIssuer,
   VoucherWalletScope,
@@ -108,6 +111,51 @@ describe("service access hooks", () => {
     });
     await waitFor(() => expect(result.current.read.data?.consent?.state).toBe("pending"));
     expect(mocks.read).not.toHaveBeenCalled();
+  });
+
+  it("does not let an older refresh overwrite the confirmed result of a member action", async () => {
+    const scope = { ...key, buyer: "0x0000000000000000000000000000000000000005" as Address };
+    const { serviceRehearsalAdapter } = await import(
+      "../modules/commitment-pooling/demo/demo-service-access"
+    );
+    const { result } = renderHookWithProviders(() => ({
+      read: useServiceAccess(scope),
+      mutation: useServiceAccessMutation(scope),
+    }));
+    await waitFor(() => expect(result.current.read.data?.mode).toBe("personal-gd"));
+    const stale = structuredClone(result.current.read.data!);
+    let release!: (value: ServiceAccessSnapshot) => void;
+    const read = vi.spyOn(serviceRehearsalAdapter, "read").mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        })
+    );
+    let earlierRead!: ReturnType<typeof result.current.read.refetch>;
+    try {
+      act(() => {
+        earlierRead = result.current.read.refetch();
+      });
+      await waitFor(() => expect(read).toHaveBeenCalled());
+      await act(async () => {
+        await result.current.mutation.mutateAsync({
+          action: "requestClaim",
+          expectedRevision: stale.offer!.revision,
+          expectedTermsHash: stale.offer!.termsHash,
+          requestNonce: stale.nextRequestNonce,
+          buyerGarden: stale.eligibleBuyerGardens[0]!.address,
+          voucherHolder: `0x${"0".repeat(40)}`,
+        });
+      });
+      await waitFor(() => expect(result.current.read.data?.consent?.state).toBe("pending"));
+      await act(async () => {
+        release(stale);
+        await earlierRead;
+      });
+      await waitFor(() => expect(result.current.read.data?.consent?.state).toBe("pending"));
+    } finally {
+      read.mockRestore();
+    }
   });
 
   it("refreshes the same member's service holdings after an independent request reward", async () => {
@@ -292,5 +340,166 @@ describe("service access hooks", () => {
     rerender({ buyer: other });
     await waitFor(() => expect(result.current.data?.mode).toBe("unavailable"));
     expect(result.current.data!.availableActions).toEqual([]);
+  });
+
+  it("observes a remote arrival on an open page, then stops its pending refresh on completion and unmount", async () => {
+    mocks.rehearsal = false;
+    const waiting = createServiceRehearsalSnapshot({ ...key, commitmentId: 1024n });
+    waiting.voucherSetups[0]!.destination!.result.phase = "none";
+    mocks.read.mockResolvedValue(waiting);
+    vi.useFakeTimers();
+    const { result, unmount } = renderHookWithProviders(() => useServiceAccess(waiting.key));
+    const arrived = structuredClone(waiting);
+    arrived.voucherSetups[0]!.destination!.result.phase = "active";
+    arrived.voucherSetups[0]!.destination!.result.decision =
+      arrived.voucherSetups[0]!.source.decision;
+    for (const ack of Object.values(arrived.voucherSetups[0]!.acknowledgments)) {
+      ack.pending = false;
+      ack.sourceObservedSequence = ack.destinationSequence ?? ack.sourceObservedSequence;
+    }
+    mocks.read.mockResolvedValue(arrived);
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(result.current.data?.voucherSetups[0]?.destination?.result.phase).toBe("none");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_001);
+      });
+      expect(result.current.data?.voucherSetups[0]?.destination?.result.phase).toBe("active");
+      const calls = mocks.read.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(mocks.read).toHaveBeenCalledTimes(calls);
+      unmount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(mocks.read).toHaveBeenCalledTimes(calls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("pauses pending refresh while offline and resumes after reconnect", async () => {
+    mocks.rehearsal = false;
+    const waiting = createServiceRehearsalSnapshot({ ...key, commitmentId: 1024n });
+    waiting.voucherSetups[0]!.destination!.result.phase = "none";
+    mocks.read.mockResolvedValue(waiting);
+    const { result, rerender, unmount } = renderHookWithProviders(() =>
+      useServiceAccess(waiting.key)
+    );
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    mocks.online = false;
+    rerender();
+    const calls = mocks.read.mock.calls.length;
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(mocks.read).toHaveBeenCalledTimes(calls);
+      mocks.online = true;
+      rerender();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_001);
+      });
+      expect(mocks.read.mock.calls.length).toBeGreaterThan(calls);
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps checking a completed cancellation until its source confirmation arrives", async () => {
+    mocks.rehearsal = false;
+    const waiting = createServiceRehearsalSnapshot({ ...key, commitmentId: 1024n });
+    const setup = waiting.voucherSetups[0]!;
+    setup.destination!.result.phase = "aborted";
+    for (const ack of Object.values(setup.acknowledgments)) {
+      ack.pending = false;
+      ack.sourceObservedSequence = ack.destinationSequence ?? ack.sourceObservedSequence;
+    }
+    setup.acknowledgments.setup.pending = true;
+    setup.acknowledgments.setup.destinationSequence = 10n;
+    setup.acknowledgments.setup.sourceObservedSequence = 9n;
+    mocks.read.mockResolvedValue(waiting);
+    vi.useFakeTimers();
+    const { result, unmount } = renderHookWithProviders(() => useServiceAccess(waiting.key));
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(result.current.data?.voucherSetups[0]?.acknowledgments.setup.pending).toBe(true);
+      const arrived = structuredClone(waiting);
+      arrived.voucherSetups[0]!.acknowledgments.setup.pending = false;
+      arrived.voucherSetups[0]!.acknowledgments.setup.sourceObservedSequence = 10n;
+      mocks.read.mockResolvedValue(arrived);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_001);
+      });
+      expect(
+        result.current.data?.voucherSetups[0]?.acknowledgments.setup.sourceObservedSequence
+      ).toBe(10n);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("refreshes actual wallet holdings when a live reward arrives without a local transaction", async () => {
+    mocks.rehearsal = false;
+    const waiting = createServiceRehearsalSnapshot({ ...key, commitmentId: 1025n });
+    delete waiting.pilot;
+    waiting.coreState = "FULFILLED";
+    waiting.acceptancePolicy.earned.status = "bound";
+    const issuer = REHEARSAL_VOUCHER_ISSUERS.techAndSun;
+    waiting.earnedReward = {
+      id: `0x${"a".repeat(64)}`,
+      kind: "voucher",
+      asset: issuer.asset,
+      amount: 1_000_000n,
+      funder: issuer.account,
+      status: "on-the-way",
+      shortOf: null,
+      receipt: null,
+      attempts: 0n,
+    };
+    mocks.read.mockResolvedValue(waiting);
+    let credited = false;
+    mocks.wallet = async () => ({
+      account: key.buyer,
+      evidence: "onchain",
+      complete: true,
+      reason: null,
+      issuers: [issuer],
+      holdings: [{ issuer, available: credited ? 1_000_000n : 0n }],
+      bookings: [],
+      returns: [],
+    });
+    vi.useFakeTimers();
+    const { result, unmount } = renderHookWithProviders(() => ({
+      read: useServiceAccess(waiting.key),
+      wallet: useVoucherWallet(walletScope),
+    }));
+    try {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(result.current.wallet.data?.holdings[0]?.available).toBe(0n);
+      credited = true;
+      const arrived = structuredClone(waiting);
+      arrived.earnedReward!.status = "received";
+      mocks.read.mockResolvedValue(arrived);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_010);
+      });
+      expect(result.current.read.data?.earnedReward?.status).toBe("received");
+      expect(result.current.wallet.data?.holdings[0]?.available).toBe(1_000_000n);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
   });
 });

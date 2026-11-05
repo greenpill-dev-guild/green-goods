@@ -699,16 +699,19 @@ describe("useGardenCommitmentController", () => {
     expect(result.current.actKind).toBeNull();
     // Asking again is a take-up too, so it waits for the due date and stops at it.
     expect(result.current.canAskAgain).toBe(false);
+    expect(result.current.takeUpOpen).toBe(false);
 
     mocks.cycles = [cycleFixture({ endTime: now + 3_600n })];
     rerender();
     expect(result.current.actKind).toBe("takeUp");
     expect(result.current.canAskAgain).toBe(true);
+    expect(result.current.takeUpOpen).toBe(true);
 
     mocks.cycles = [cycleFixture({ endTime: now - 60n })];
     rerender();
     expect(result.current.actKind).toBeNull();
     expect(result.current.canAskAgain).toBe(false);
+    expect(result.current.takeUpOpen).toBe(false);
   });
 
   it("offers Ask Again only while the reader may still take the commitment up", () => {

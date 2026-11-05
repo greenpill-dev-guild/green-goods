@@ -40,6 +40,7 @@ export interface LivePilotPackageConfig {
   schemaVersion: 1;
   releaseId: string;
   manifests: typeof MANIFEST_REFS;
+  earnedFeeReserveMinimumWei: string | null;
 }
 export interface LivePilotManifests {
   sourceUpgrades: unknown;
@@ -129,13 +130,20 @@ function exactObject(value: unknown, allowed: string[], label: string): Record<s
   return value as Record<string, unknown>;
 }
 export function inspectLivePilotPackageConfig(value: unknown): LivePilotPackageConfig {
-  const config = exactObject(value, ["schemaVersion", "releaseId", "manifests"], "package");
+  const config = exactObject(
+    value,
+    ["schemaVersion", "releaseId", "manifests", "earnedFeeReserveMinimumWei"],
+    "package",
+  );
   if (
     config.schemaVersion !== 1 ||
     typeof config.releaseId !== "string" ||
     !/^[a-z0-9][a-z0-9-]{0,79}$/.test(config.releaseId)
   )
     throw new Error("Invalid live pilot package identity");
+  const floor = config.earnedFeeReserveMinimumWei;
+  if (floor !== null && (typeof floor !== "string" || !/^[1-9][0-9]*$/.test(floor) || BigInt(floor) >= 1n << 256n))
+    throw new Error("Invalid earned fee reserve minimum");
   const refs = exactObject(config.manifests, Object.keys(MANIFEST_REFS), "manifests");
   for (const key of Object.keys(MANIFEST_REFS) as Component[])
     if (refs[key] !== MANIFEST_REFS[key]) throw new Error(`Package must use owned manifest ${key}`);
@@ -195,6 +203,8 @@ export function inspectLivePilotPackageInputs(
     ...reports.vouchers.activationMissing.map((key) => `vouchers.${key}`),
     ...reports.clc.activationMissing.map((key) => `clc.${key}`),
     ...LIVE_GATES,
+    ...(parsed.earnedFeeReserveMinimumWei === null ? ["live.earnedFeeReserveMinimumWei"] : []),
+    "live.earnedFeeReserveConfigurationAndFundedBalanceReadback",
   ];
   return { config: parsed, deploymentMissing, activationMissing };
 }
@@ -379,6 +389,27 @@ export function buildLivePilotPackage(input: LivePilotBuildInputs): LivePilotPac
       [LIVE_GATES[0]],
     ),
     stage("source-issuer-authorities", issuerCalls, [LIVE_GATES[1]]),
+    stage(
+      "earned-fee-reserve",
+      [
+        ownerCall(
+          42161,
+          GG_SAFE,
+          proxy("VoucherEntitlementModule"),
+          "setFeeReserveMinimum",
+          report.config.earnedFeeReserveMinimumWei === null
+            ? null
+            : new Interface(["function setFeeReserveMinimum(uint256)"]).encodeFunctionData("setFeeReserveMinimum", [
+                report.config.earnedFeeReserveMinimumWei,
+              ]),
+          report.config.earnedFeeReserveMinimumWei === null ? ["live.earnedFeeReserveMinimumWei"] : [],
+        ),
+      ],
+      ["live.earnedFeeReserveConfigurationAndFundedBalanceReadback"],
+      [
+        "While paused, select and configure a positive retained minimum on the reviewed earned-source implementation. Fund the endpoint for the minimum plus dispatch fees; read back implementation, configured minimum and native balance before separately authorized activation.",
+      ],
+    ),
     stage(
       "clc-configuration",
       p.clc.configurationTransactions.map((tx) =>

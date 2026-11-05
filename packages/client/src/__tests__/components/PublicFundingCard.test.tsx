@@ -4,7 +4,7 @@
  * @vitest-environment happy-dom
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type Dispatch, type SetStateAction } from "react";
 import { IntlProvider } from "react-intl";
@@ -26,6 +26,8 @@ const {
   mockVaultReset,
   mockLoginWithWallet,
   mockJarRead,
+  mockDepositPlan,
+  vaultRejection,
   authState,
 } = vi.hoisted(() => ({
   mockCookieJarMutate: vi.fn(),
@@ -34,6 +36,8 @@ const {
   mockVaultReset: vi.fn(),
   mockLoginWithWallet: vi.fn(),
   mockJarRead: vi.fn(),
+  mockDepositPlan: vi.fn(),
+  vaultRejection: { message: "Wallet rejected the endowment" },
   authState: {
     primaryAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as string | null,
   },
@@ -59,6 +63,7 @@ function rejectMutation(
 vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
   classifyTxError: (error: Error | null) => ({
     severity: "error",
+    kind: error?.message === "unconfirmed" ? "unconfirmed" : "failed",
     rawMessage: error?.message ?? "",
     messageKey: "public.fund.card.error.generic",
     titleKey: "public.fund.card.error.title",
@@ -165,17 +170,12 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
 vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", async () => {
   const React = await vi.importActual<typeof import("react")>("react");
   return {
+    useDepositPlan: mockDepositPlan,
     useVaultDeposit: () => {
       const [error, setError] = React.useState<Error | null>(null);
       return {
         mutate: (params: unknown, options?: MockMutationOptions) =>
-          rejectMutation(
-            "Wallet rejected the endowment",
-            setError,
-            mockVaultMutate,
-            params,
-            options
-          ),
+          rejectMutation(vaultRejection.message, setError, mockVaultMutate, params, options),
         reset: () => {
           mockVaultReset();
           setError(null);
@@ -204,6 +204,15 @@ const garden = {
   evaluators: [],
 };
 
+const QUIET_PLAN = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
+
 function createCard(intent: "donate" | "endow") {
   return createElement(
     IntlProvider,
@@ -225,6 +234,8 @@ describe("PublicFundingCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.primaryAddress = TEST_OWNER;
+    vaultRejection.message = "Wallet rejected the endowment";
+    mockDepositPlan.mockReturnValue(QUIET_PLAN);
     mockJarRead.mockReturnValue({
       isLoading: false,
       jars: [
@@ -313,6 +324,105 @@ describe("PublicFundingCard", () => {
       expect(resetMutation).toHaveBeenCalledTimes(1);
       expect(screen.queryByRole("alert")).toBeNull();
     });
+  });
+
+  it("plans an endowment for the chosen vault and says how many signatures it takes", async () => {
+    mockDepositPlan.mockReturnValue({ ...QUIET_PLAN, signatureLine: "2 signatures" });
+    const user = userEvent.setup();
+    renderCard("endow");
+
+    await user.type(await screen.findByLabelText("Amount"), "5");
+
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+    expect(mockDepositPlan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        amount: 5n * 10n ** 18n,
+        enabled: true,
+        target: { kind: "vault", address: TEST_VAULT, asset: TEST_DAI, receiver: TEST_OWNER },
+      })
+    );
+  });
+
+  it("plans a donation for the chosen jar, and pauses it while an earlier one is unknown", async () => {
+    mockDepositPlan.mockReturnValue({
+      ...QUIET_PLAN,
+      isHeld: true,
+      isPaused: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "This jar holds 3 DAI now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+    const user = userEvent.setup();
+    renderCard("donate");
+
+    await user.type(await screen.findByLabelText("Amount"), "5");
+
+    expect(screen.getByRole("button", { name: "Donate $5.00 in DAI" })).toBeDisabled();
+    expect(screen.getByText(/This jar holds 3 DAI now/)).toBeInTheDocument();
+    expect(mockDepositPlan).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        amount: 5n * 10n ** 18n,
+        target: { kind: "jar", address: TEST_COOKIE_JAR, asset: TEST_DAI },
+      })
+    );
+  });
+
+  it("pauses an endowment while an earlier deposit is unknown", async () => {
+    mockDepositPlan.mockReturnValue({
+      ...QUIET_PLAN,
+      isHeld: true,
+      isPaused: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        detail: "You have 3 WETH in this vault now.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    });
+    const user = userEvent.setup();
+    renderCard("endow");
+
+    await user.type(await screen.findByLabelText("Amount"), "5");
+
+    expect(screen.getByRole("button", { name: "Endow $5.00 in DAI" })).toBeDisabled();
+    expect(screen.getByText(/You have 3 WETH in this vault now/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    const user = userEvent.setup();
+    renderCard("endow");
+    const amount = await screen.findByLabelText("Amount");
+    await user.type(amount, "5");
+    expect(amount).toHaveValue("5");
+
+    act(() => mockDepositPlan.mock.lastCall?.[0].onLanded());
+
+    await waitFor(() => expect(amount).toHaveValue(""));
+    expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
+  });
+
+  it("leaves an unknown outcome to the hold notice on a route that holds it", async () => {
+    vaultRejection.message = "unconfirmed";
+    mockDepositPlan.mockReturnValue({ ...QUIET_PLAN, unconfirmedIsHeld: true });
+    const user = userEvent.setup();
+    renderCard("endow");
+
+    await user.type(await screen.findByLabelText("Amount"), "5");
+    await user.click(screen.getByRole("button", { name: "Endow $5.00 in DAI" }));
+
+    expect(mockVaultMutate).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("lets a WETH endow supporter toggle the amount between USD and WETH, preserving each entry (PRD-519)", async () => {

@@ -57,7 +57,12 @@ function TopBarIconButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => {
+        // Safari does not focus a clicked button, and the surface it opens hands focus back to
+        // whatever had it on opening: take focus first, so that is this button.
+        event.currentTarget.focus();
+        onClick();
+      }}
       aria-label={tooltip}
       className={cn(ICON_BTN, className)}
       data-component="AppBar"

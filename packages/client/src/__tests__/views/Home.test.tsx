@@ -1,8 +1,8 @@
 /**
- * Home in the member's active garden (DL-123 to DL-125): the header's chip, the five states of
- * `useActiveGarden`, the one-time chooser and the switcher. The active garden is the edge: its
- * store and resolver have their own tests, so here a pick calls `selectGarden` and nothing else
- * does.
+ * Home in the member's active garden (DL-123 to DL-125, DL-155): the header's chip, the five
+ * states of `useActiveGarden`, the first-login page and the switcher. The active garden is the
+ * edge: its store and resolver have their own tests, so here a pick calls `selectGarden` and
+ * nothing else does, and a join stands in for its write by changing what the hook returns.
  */
 
 import type { ArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
@@ -43,7 +43,6 @@ const state = vi.hoisted(() => ({
   listed: [] as unknown[],
   awaiting: new Set<string>(),
   arrival: { kind: "none" } as ArrivalState,
-  rootGarden: "",
   /** Every render of the bell's launcher: which account and garden it read, and whether open. */
   launcherRenders: [] as Array<{ account: string; gardenId: string; open: boolean }>,
 }));
@@ -57,19 +56,10 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
 vi.mock("@green-goods/shared/hooks/garden/useGardenJoinRequests", () => ({
   useAwaitingJoinRequests: () => state.awaiting,
 }));
+const joinGarden = vi.hoisted(() => vi.fn());
 vi.mock("@green-goods/shared/hooks/garden/useJoinGarden", () => ({
-  useJoinGarden: () => ({ joinGarden: vi.fn(), isJoining: false }),
+  useJoinGarden: () => ({ joinGarden, isJoining: false }),
 }));
-vi.mock("@green-goods/shared/config/blockchain", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared/config/blockchain")>();
-  return {
-    ...actual,
-    getDefaultChain: () => ({
-      ...actual.getDefaultChain(),
-      rootGarden: { address: state.rootGarden, tokenId: 1 },
-    }),
-  };
-});
 vi.mock("@green-goods/shared/hooks/app/useArrivalState", () => ({
   useArrivalState: () => state.arrival,
 }));
@@ -161,6 +151,11 @@ vi.mock("../../views/Home/Journal", async () => {
 });
 
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton";
+// Home and the button load these with their first opening. A slow first import is not what these
+// tests prove, and a sheet that opened by itself would show at once.
+import "@/components/Features/Garden/JoinGardenConfirmDialog";
+import "../../views/Home/GardenSwitcher";
 import Home from "../../views/Home";
 import { hasArrivalPassed, markArrivalPassed } from "../../views/Home/arrivalToast";
 
@@ -203,11 +198,13 @@ function LocationProbe() {
 /** A page under Home; its Back opens Home again, as a work page's `returnTo` does. */
 function VisitedGarden() {
   const navigate = useNavigate();
+  const id = useParams().id ?? "";
   return createElement(
     "div",
     null,
-    createElement("p", null, `Visiting ${useParams().id}`),
-    createElement("button", { type: "button", onClick: () => navigate("/home") }, "Back")
+    createElement("p", null, `Visiting ${id}`),
+    createElement("button", { type: "button", onClick: () => navigate("/home") }, "Back"),
+    createElement(JoinGardenButton, { gardenId: id, gardenName: "This Garden" })
   );
 }
 
@@ -239,6 +236,37 @@ function renderHome(entry = "/home") {
   return { ...view, rerender: (tree = homeTree(entry)) => view.rerender(tree) };
 }
 
+/** Home in the app's scroller, whose offset each test moves as a browser would. */
+async function inAppScroller(
+  run: (scroller: HTMLElement, redraw: () => void) => Promise<void> | void
+) {
+  const offsets = new WeakMap<Element, number>();
+  const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+  Object.defineProperty(Element.prototype, "scrollTop", {
+    configurable: true,
+    get() {
+      return offsets.get(this) ?? 0;
+    },
+    set(value: number) {
+      offsets.set(this, value);
+    },
+  });
+  const scroller = document.body.appendChild(document.createElement("div"));
+  scroller.id = "app-scroll";
+  // The test DOM's scrollTo does not move the stubbed offset.
+  scroller.scrollTo = ((options: ScrollToOptions) => {
+    scroller.scrollTop = options.top ?? 0;
+  }) as HTMLElement["scrollTo"];
+  try {
+    const view = render(homeTree(), { container: scroller });
+    await run(scroller, () => view.rerender(homeTree()));
+  } finally {
+    scroller.remove();
+    if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+    else Reflect.deleteProperty(Element.prototype, "scrollTop");
+  }
+}
+
 /** Lets a closing sheet finish its exit. */
 const finishSheetMotion = () => act(() => vi.runAllTimers());
 /** Lets the launchers Home defers to an idle moment load. */
@@ -253,7 +281,6 @@ beforeEach(() => {
   state.listed = [TAS, AIYELOJA, VIDA, COMMUNITY];
   state.awaiting = new Set();
   state.arrival = { kind: "none" };
-  state.rootGarden = COMMUNITY.id;
   useUIStore.getState().resetForAccountChange();
   setActive("ready", [[TAS, ["steward"]]], TAS.id);
 });
@@ -278,14 +305,36 @@ describe("Home's header", () => {
     expect(screen.queryByRole("button", { name: "Filters" })).not.toBeInTheDocument();
   });
 
-  it("names Home in the chip's place when the member has no garden, and the bell has nothing to list", () => {
+  it("keeps only Profile before a garden is entered, and the page its title for assistive tech", () => {
     setActive("none");
     renderHome();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Home" })).toHaveClass("sr-only");
     expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
-    // The other launchers keep their places: the bell stays, with no garden's events to show.
-    expect(screen.getByRole("button", { name: "Notifications" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Wallet" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Profile" }));
+    expect(location).toBe("/home/profile");
+  });
+
+  it("shows no control that could turn out wrong while the gardens load with none remembered", () => {
+    setActive("loading");
+    renderHome();
+
+    expect(screen.queryByRole("button", { name: "Profile" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Notifications" })).not.toBeInTheDocument();
+  });
+
+  it("titles the page Choose a Garden, with no chip to cut it off", () => {
+    setActive("choose", [
+      [TAS, ["steward"]],
+      [AIYELOJA, ["gardener"]],
+    ]);
+    renderHome();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Choose a Garden" })).toBeVisible();
+    expect(document.querySelector("[data-component='GardenChip']")).toBeNull();
   });
 
   it("mounts the bell's read with a remembered garden while the account's gardens still load", async () => {
@@ -310,7 +359,7 @@ describe("Home's states", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Loading garden...");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByText("Find Your Garden")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Explore Gardens/ })).not.toBeInTheDocument();
   });
 
   // A remembered garden does not hide a failed read behind "Loading garden..." (QA finding 2).
@@ -329,77 +378,121 @@ describe("Home's states", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledOnce();
   });
+});
 
-  it("finds a garden: Explore, the requests awaiting review and the Community Garden's open door", () => {
+describe("the first-login page", () => {
+  const SEVERAL: Array<[Garden, Role[]]> = [
+    [TAS, ["steward"]],
+    [AIYELOJA, ["gardener"]],
+  ];
+  const yourGardens = () => screen.getByRole("region", { name: "Your Gardens" });
+
+  it("gives a member of none the Find Your Garden block: the Community Garden's door stays gone", () => {
     setActive("none");
+    renderHome();
+
+    expect(screen.getByText("Find Your Garden")).toBeVisible();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+    expect(screen.queryByText(COMMUNITY.name)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Garden" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
+    expect(location).toBe("/home/explore");
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("lists a member's gardens with their role, Explore last, and opens no sheet by itself", async () => {
+    setActive("choose", SEVERAL);
+    renderHome();
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const explore = screen.getByRole("button", { name: /Explore Gardens/ });
+    expect(explore.compareDocumentPosition(yourGardens())).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+    expect(
+      within(yourGardens())
+        .getAllByRole("button")
+        .map((row) => row.textContent)
+    ).toEqual(["TAS HUBSteward", "Aiyeloja Family GardenGardener"]);
+    expect(selectGarden).not.toHaveBeenCalled();
+  });
+
+  it("makes a picked garden active, and the chip that then names it takes focus", () => {
+    setActive("choose", SEVERAL);
+    const { rerender } = renderHome();
+
+    fireEvent.click(within(yourGardens()).getByRole("button", { name: /Aiyeloja Family Garden/ }));
+    expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
+    expect(location).toBe("/home");
+
+    setActive("ready", SEVERAL, AIYELOJA.id);
+    rerender();
+    expect(document.querySelector("[data-component='GardenChip']")).toHaveFocus();
+  });
+
+  it.each([
+    ["a member of none", "none" as const, []],
+    ["a member of several", "choose" as const, SEVERAL],
+  ])("marks %s's requests as waiting for approval, and a request's row visits", (_who, status, mine) => {
+    setActive(status, mine);
     state.awaiting = new Set([VIDA.id.toLowerCase()]);
     renderHome();
 
-    expect(screen.getByRole("heading", { name: "Find Your Garden" })).toBeInTheDocument();
     const requests = screen.getByRole("region", { name: "Your Requests" });
-    expect(within(requests).getByRole("button", { name: /Vida Verde/ })).toHaveTextContent(
-      "Awaiting review"
-    );
-    const door = screen.getByRole("region", { name: "Join the Community Garden" });
-    expect(door).toHaveTextContent("Green Goods Community Garden");
-    expect(within(door).getByRole("button", { name: "Join Garden" })).toBeInTheDocument();
+    expect(requests).toHaveTextContent("Waiting for approval");
+    fireEvent.click(within(requests).getByRole("button", { name: /Vida Verde/ }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Explore Gardens" }));
-    expect(location).toBe("/home/explore");
-  });
-
-  it("keeps the requests and the door out when there are none to show", () => {
-    setActive("none");
-    state.rootGarden = "";
-    renderHome();
-
-    expect(screen.queryByRole("region", { name: "Your Requests" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("region", { name: "Join the Community Garden" })
-    ).not.toBeInTheDocument();
+    expect(location).toBe(`/home/${VIDA.id}`);
+    expect(locationState).toEqual({ returnTo: "/home" });
+    expect(selectGarden).not.toHaveBeenCalled();
   });
 });
 
-describe("the one-time chooser", () => {
-  beforeEach(() => {
-    setActive("choose", [
+describe("a garden change", () => {
+  it("opens the new garden at its top on Home too", async () => {
+    const mine: Array<[Garden, Role[]]> = [
       [TAS, ["steward"]],
       [AIYELOJA, ["gardener"]],
-    ]);
+    ];
+    setActive("ready", mine, TAS.id);
+
+    await inAppScroller((scroller, redraw) => {
+      scroller.scrollTop = 567;
+      fireEvent.scroll(scroller);
+
+      setActive("ready", mine, AIYELOJA.id);
+      redraw();
+
+      expect(scroller.scrollTop).toBe(0);
+    });
   });
+});
 
-  it("opens once as Choose a Garden, and dismissing it leaves a quiet prompt without a write", async () => {
-    const view = renderHome();
+describe("joining an open garden from its page", () => {
+  it("opens Home in the joined garden at its top, whatever garden was active before", async () => {
+    const mine: Array<[Garden, Role[]]> = [[TAS, ["steward"]]];
+    setActive("ready", mine, TAS.id);
+    joinGarden.mockImplementation(async () => {
+      // What `useJoinGarden` writes; its own tests prove the write.
+      setActive("ready", [...mine, [VIDA, []]], VIDA.id);
+      return "0xhash";
+    });
 
-    // The switcher's code loads with its first opening.
-    const chooser = await screen.findByRole("dialog", { name: "Choose a Garden" });
-    fireEvent.click(within(chooser).getByTestId("app-sheet-close"));
-    finishSheetMotion();
+    await inAppScroller(async (scroller) => {
+      scroller.scrollTop = 567;
+      fireEvent.scroll(scroller);
+      fireEvent.click(screen.getByRole("button", { name: "Open Its Page" }));
+      fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Join" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Choose a Garden" })).toBeInTheDocument();
-    // Nothing was pressed to open it, so focus lands where the member can open it again, not on
-    // the page (QA finding 11).
-    expect(screen.getByRole("button", { name: "See Your Gardens" })).toHaveFocus();
-    expect(selectGarden).not.toHaveBeenCalled();
-
-    // Coming back to Home this session does not ask again.
-    view.unmount();
-    renderHome();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("writes only the garden the member picks", async () => {
-    renderHome();
-
-    fireEvent.click(
-      within(await screen.findByRole("dialog", { name: "Choose a Garden" })).getByRole("button", {
-        name: /Aiyeloja Family Garden/,
-      })
-    );
-
-    expect(selectGarden).toHaveBeenCalledExactlyOnceWith(AIYELOJA.id);
-    expect(location).toBe("/home");
+      await waitFor(() => expect(location).toBe("/home"));
+      expect(screen.getByTestId("home-journal")).toHaveTextContent(VIDA.name);
+      // The shell resets the scroller as Home shows again; the old garden's place must not return.
+      scroller.scrollTop = 0;
+      fireEvent.scroll(scroller);
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      expect(scroller.scrollTop).toBe(0);
+    });
   });
 });
 
@@ -430,7 +523,7 @@ describe("the switcher", () => {
     expect(rows.map((row) => row.textContent)).toEqual([
       "TAS HUBTAS HUB placeOwner",
       "Aiyeloja Family GardenAiyeloja Family Garden placeGardener",
-      "Vida VerdeVida Verde placeAwaiting review",
+      "Vida VerdeVida Verde placeWaiting for approval",
       "Explore GardensFind a garden to join",
     ]);
     expect(rows[0]).toHaveAttribute("aria-current", "true");
@@ -454,7 +547,7 @@ describe("the switcher", () => {
     expect(location).toBe("/home");
   });
 
-  it("visits a garden awaiting review without switching to it", async () => {
+  it("visits a garden waiting for approval without switching to it", async () => {
     renderHome();
     fireEvent.click(within(await openSwitcher()).getByRole("button", { name: /Vida Verde/ }));
 
@@ -506,21 +599,7 @@ describe("Home under its child routes", () => {
 
   // QA finding 3: Back from a page Home opened came back at the top with focus on the page.
   it("comes back from a page it opened where it was, with focus on the row that opened it", async () => {
-    const offsets = new WeakMap<Element, number>();
-    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
-    Object.defineProperty(Element.prototype, "scrollTop", {
-      configurable: true,
-      get() {
-        return offsets.get(this) ?? 0;
-      },
-      set(value: number) {
-        offsets.set(this, value);
-      },
-    });
-    const scroller = document.body.appendChild(document.createElement("div"));
-    scroller.id = "app-scroll";
-    try {
-      render(homeTree(), { container: scroller });
+    await inAppScroller(async (scroller) => {
       scroller.scrollTop = 567;
       fireEvent.scroll(scroller);
 
@@ -539,11 +618,7 @@ describe("Home under its child routes", () => {
       fireEvent.scroll(scroller);
       await waitFor(() => expect(scroller.scrollTop).toBe(567));
       expect(screen.getByRole("button", { name: "Open Its Page" })).toHaveFocus();
-    } finally {
-      scroller.remove();
-      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
-      else Reflect.deleteProperty(Element.prototype, "scrollTop");
-    }
+    });
   });
 
   // A failed upload's toast floats over any sheet, and its Review opens Your Work over Home: the
@@ -753,6 +828,22 @@ describe("arrival toast", () => {
     expect(toastService.info).not.toHaveBeenCalled();
   });
 
+  it("announces unplaced uploads once without sending the member to an unverified garden", () => {
+    state.arrival = { kind: "queue", orientation: null };
+    const home = renderHome();
+    passArrivalDelay();
+
+    expect(shownToast()).toMatchObject({
+      title: "Work is waiting to sync",
+      message: "Some of your work hasn't uploaded yet.",
+    });
+    expect(shownToast()?.action).toBeUndefined();
+    expect(hasArrivalPassed(ACCOUNT)).toBe(true);
+    home.rerender();
+    passArrivalDelay();
+    expect(toastService.info).toHaveBeenCalledOnce();
+  });
+
   it("stays quiet on Home once the session has arrived on another screen", () => {
     markArrivalPassed(ACCOUNT);
 
@@ -765,7 +856,7 @@ describe("arrival toast", () => {
   it("drops a pending arrival toast when Home opens a child screen before it shows", () => {
     setActive("none");
     renderHome();
-    fireEvent.click(screen.getByRole("button", { name: "Explore Gardens" }));
+    fireEvent.click(screen.getByRole("button", { name: /Explore Gardens/ }));
     passArrivalDelay();
 
     expect(toastService.info).not.toHaveBeenCalled();

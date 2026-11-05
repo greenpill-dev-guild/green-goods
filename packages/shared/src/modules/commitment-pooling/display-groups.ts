@@ -133,6 +133,23 @@ function countDisplayGroup(children: readonly GroupableCommitment[]): DisplayGro
   return counts;
 }
 
+/** Whether this build can read a record's words, which copies are compared by. */
+function hasReadableWords(metadata: CommitmentMetadataV1): boolean {
+  return (
+    metadata.version === 1 &&
+    typeof metadata.title === "string" &&
+    (metadata.note === undefined || typeof metadata.note === "string") &&
+    (metadata.links === undefined ||
+      (Array.isArray(metadata.links) &&
+        metadata.links.every(
+          (link) =>
+            link &&
+            typeof link.url === "string" &&
+            (link.label === undefined || typeof link.label === "string")
+        )))
+  );
+}
+
 /** The display group a record's metadata names, or null when it names none this build can read. */
 function displayGroupIdOf(
   record: Pick<GroupableCommitment, "metadataCID">,
@@ -142,17 +159,7 @@ function displayGroupIdOf(
   const metadata = metadataByCID.get(record.metadataCID.trim());
   if (
     !metadata ||
-    metadata.version !== 1 ||
-    typeof metadata.title !== "string" ||
-    (metadata.note !== undefined && typeof metadata.note !== "string") ||
-    (metadata.links !== undefined &&
-      (!Array.isArray(metadata.links) ||
-        !metadata.links.every(
-          (link) =>
-            link &&
-            typeof link.url === "string" &&
-            (link.label === undefined || typeof link.label === "string")
-        ))) ||
+    !hasReadableWords(metadata) ||
     metadata.displayGroup?.version !== 1 ||
     typeof metadata.displayGroup.id !== "string"
   )
@@ -224,7 +231,10 @@ export function hasKnownDisplayTerms(
  * The reward amount is not among them (Edit Reward), and neither is anything
  * that changes as a copy is taken up or kept.
  */
-function materialTermsKey(record: GroupableCommitment, metadata: CommitmentMetadataV1): string {
+function materialTermsKey(
+  record: GroupableCommitment,
+  metadata: Pick<CommitmentMetadataV1, "title" | "note" | "links">
+): string {
   const confirmers = [...(record.confirmers ?? [])].map((a) => a.toLowerCase()).sort();
   return JSON.stringify(
     [
@@ -263,6 +273,26 @@ function materialTermsKey(record: GroupableCommitment, metadata: CommitmentMetad
       record.declaredValueBasis,
     ].map(text)
   );
+}
+
+/**
+ * What an open record shares with its identical copies, or null when it has its own row.
+ *
+ * Copies made apart have no group id between them, so a list goes by this instead (DL-150):
+ * the same state and the same words and material terms, judged as copies made together are.
+ * Once one is taken up it is nobody's copy. Words not read yet are still one document under
+ * one CID, so those copies fold under it; words this build can't read stay an ordinary row.
+ */
+export function identicalOpenCopyKey(
+  record: GroupableCommitment,
+  metadataByCID: ReadonlyMap<string, CommitmentMetadataV1>
+): string | null {
+  if (displayBucketOf(record.onchainState) !== "available") return null;
+  if (!hasKnownDisplayTerms(record) || !isResolvableMetadataCID(record.metadataCID)) return null;
+  const cid = record.metadataCID.trim();
+  const metadata = metadataByCID.get(cid);
+  if (metadata && !hasReadableWords(metadata)) return null;
+  return `${record.onchainState}|${materialTermsKey(record, metadata ?? { title: cid })}`;
 }
 
 /**

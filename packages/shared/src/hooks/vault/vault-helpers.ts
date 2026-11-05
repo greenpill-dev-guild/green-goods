@@ -10,17 +10,6 @@ export function getOctantModuleAddress(chainId: number): Address {
   return moduleAddress as Address;
 }
 
-export function isRecoverableAllowanceReadError(error: unknown): boolean {
-  const message =
-    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return (
-    message.includes("revert") ||
-    message.includes("execution reverted") ||
-    message.includes("contractfunctionexecutionerror") ||
-    message.includes("call_exception")
-  );
-}
-
 export type VaultDepositStage = "approval" | "deposit";
 export type VaultDepositFailureReason =
   | "vaultShutdown"

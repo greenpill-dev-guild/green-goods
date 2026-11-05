@@ -1,5 +1,8 @@
 import type { GardenJoinRequestKind } from "../../public-contracts/join-requests";
 
+const countsKey = (chainId: number, garden: string, account: string) =>
+  ["garden-join-requests", "count", chainId, garden.toLowerCase(), account.toLowerCase()] as const;
+
 export const gardenJoinRequestKeys = {
   all: ["greengoods", "garden-join-requests"] as const,
   availability: () => ["greengoods", "garden-join-requests", "availability"] as const,
@@ -7,6 +10,11 @@ export const gardenJoinRequestKeys = {
   // removed by the existing Auth logout path (namespace !== "greengoods").
   target: (chainId: number, account: string, kind: GardenJoinRequestKind, authMode = "none") =>
     ["garden-join-requests", "target", chainId, account.toLowerCase(), authMode, kind] as const,
+  /** Every waiting count of one garden read for one account, whichever queue it counts. */
+  counts: countsKey,
+  /** The garden's total, or one queue's (`kind`). */
+  count: (chainId: number, garden: string, account: string, kind?: GardenJoinRequestKind) =>
+    [...countsKey(chainId, garden, account), kind ?? "every"] as const,
   self: (
     chainId: number,
     garden: string,

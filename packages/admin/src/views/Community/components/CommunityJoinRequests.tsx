@@ -12,6 +12,7 @@ import {
 } from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
+  type GardenJoinRequestCountGrant,
   type GardenJoinRequestKind,
   type GardenJoinRequestQueueItem,
 } from "@green-goods/shared/public-contracts/join-requests";
@@ -19,27 +20,55 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
-export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Address }) {
+type JoinRequestsReadHandler = (kind: GardenJoinRequestKind, waiting: number) => void;
+type CountGrantHandler = (grant: GardenJoinRequestCountGrant) => void;
+
+export function CommunityJoinRequests({
+  gardenAddress,
+  onRead,
+  onCountGrant,
+}: {
+  gardenAddress: Address;
+  /** Told how many wait in a queue after each read, for the Members tab's badge (DL-134). */
+  onRead: JoinRequestsReadHandler;
+  /** Handed the grant a signed read returns, so the badge can read the count on arrival. */
+  onCountGrant: CountGrantHandler;
+}) {
+  // Keyed by garden: one garden's check never stands for another garden's queue.
   return (
-    <>
-      <CommunityJoinRequestQueue gardenAddress={gardenAddress} kind="garden_membership" />
-      <CommunityJoinRequestQueue gardenAddress={gardenAddress} kind="steward_access" />
-    </>
+    <Fragment key={gardenAddress}>
+      <CommunityJoinRequestQueue
+        gardenAddress={gardenAddress}
+        kind="garden_membership"
+        onRead={onRead}
+        onCountGrant={onCountGrant}
+      />
+      <CommunityJoinRequestQueue
+        gardenAddress={gardenAddress}
+        kind="steward_access"
+        onRead={onRead}
+        onCountGrant={onCountGrant}
+      />
+    </Fragment>
   );
 }
 
 function CommunityJoinRequestQueue({
   gardenAddress,
   kind,
+  onRead,
+  onCountGrant,
 }: {
   gardenAddress: Address;
   kind: GardenJoinRequestKind;
+  onRead: JoinRequestsReadHandler;
+  onCountGrant: CountGrantHandler;
 }) {
   const { formatDate, formatMessage } = useIntl();
   const stewardRequest = kind === "steward_access";
@@ -54,11 +83,21 @@ function CommunityJoinRequestQueue({
   const [notice, setNotice] = useState<string>();
   const [localError, setLocalError] = useState<string>();
   const error = join.queueState.error ?? join.mutationState.error;
+  const waiting = queue.length;
+
+  // Only a finished read can say how many wait. With another page left to load,
+  // this is how many the steward has seen so far.
+  useEffect(() => {
+    if (loaded) onRead(kind, waiting);
+  }, [kind, loaded, onRead, waiting]);
 
   async function load(cursor?: string) {
     await join
       .loadQueue({ cursor, append: Boolean(cursor) })
-      .then(() => setLoaded(true))
+      .then((response) => {
+        setLoaded(true);
+        if (response.countGrant) onCountGrant(response.countGrant);
+      })
       .catch(() => undefined);
   }
 
@@ -148,6 +187,11 @@ function CommunityJoinRequestQueue({
                   : "cockpit.community.joinRequests.description",
               })}
             </p>
+            {stewardRequest ? null : (
+              <p className="mt-1 type-meta text-text-sub">
+                {formatMessage({ id: "cockpit.community.joinRequests.countNotice" })}
+              </p>
+            )}
           </div>
           <Button
             type="button"

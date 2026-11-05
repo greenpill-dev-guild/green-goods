@@ -77,7 +77,12 @@ try {
 const symbolPath = join(here, "..", "deck", "assets", "brand", "green-goods-symbol.svg");
 const symbol = `data:image/svg+xml;base64,${readFileSync(symbolPath).toString("base64")}`;
 html = html.replaceAll('src="../deck/assets/brand/green-goods-symbol.svg"', `src="${symbol}"`);
-html = html.replace(block[0], `<script type="application/json" id="images">${JSON.stringify(images)}</script>\n${block[0]}`);
+// The screens go after the page's script, so the page draws before they have arrived; the marker in
+// the head tells the script to wait for them rather than fall back to assets/screens/.
+if (!html.includes("<title>Green Goods Clickable Demo</title>")) throw new Error("index.html has no title to mark");
+html = html.replace("<title>Green Goods Clickable Demo</title>", '<title>Green Goods Clickable Demo</title>\n<meta name="gg-screens" content="inline" />');
+if (!/<\/body>/i.test(html)) throw new Error("index.html has no </body> to put the screens before");
+html = html.replace(/<\/body>/i, `<script type="application/json" id="images">${JSON.stringify(images)}</script>\n</body>`);
 
 const standalone = join(out, "green-goods-sf-live-demo.html");
 const size = Buffer.byteLength(html);

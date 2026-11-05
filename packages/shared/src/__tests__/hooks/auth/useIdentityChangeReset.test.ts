@@ -20,6 +20,7 @@ import {
   DEV_MOCK_AUTH_STORAGE_KEY,
 } from "../../../providers/DevAuthProvider";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
+import { useJoinRequestCountGrantStore } from "../../../stores/useJoinRequestCountGrantStore";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 import { useUIStore } from "../../../stores/useUIStore";
 
@@ -45,6 +46,10 @@ function leaveTraces() {
   addRecentRecipient(CAROL, "for the seed swap");
   // A work approval whose receipt the last account was still waiting on.
   localStorage.setItem(PENDING_WORK_APPROVAL_STORAGE_KEY, JSON.stringify({ version: 1 }));
+  useJoinRequestCountGrantStore.getState().keepGrant(`42161:${ALICE.toLowerCase()}`, GARDEN, {
+    token: "grant",
+    expiresAt: 4_000_000_000,
+  });
 }
 
 function render(address: Hex | null, ready = true) {
@@ -72,6 +77,7 @@ describe("useIdentityChangeReset", () => {
     useUIStore.getState().closeCommitmentsSheet();
     useGardenStateStore.getState().clearAll();
     useSheetOrchestratorStore.getState().clearAll();
+    useJoinRequestCountGrantStore.getState().clearAll();
   });
 
   it("clears what one account left when another signs in, a sign-out between or not", () => {
@@ -91,6 +97,7 @@ describe("useIdentityChangeReset", () => {
     expect(useGardenStateStore.getState().gardenStates).toEqual({});
     expect(useSheetOrchestratorStore.getState().viewStates).toEqual({});
     expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
+    expect(useJoinRequestCountGrantStore.getState().grantsByScope).toEqual({});
     // Reads keyed by the previous account go; shared reads stay warm.
     expect(queryClient.getQueryData(aliceRoleKey)).toBeUndefined();
     expect(queryClient.getQueryData(gardensKey)).toEqual([]);

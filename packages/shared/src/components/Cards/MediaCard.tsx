@@ -239,14 +239,18 @@ export function MediaCardSkeleton({
     >
       <div className={slots.frame()} />
       <div className={slots.body()}>
-        <span className="flex h-5 w-full items-center">
-          <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
-        </span>
-        {titleLines === 2 ? (
+        {/* One heading's lines, with no gap between them, so the frame stands as tall as the
+            clamped title whose place it holds (DL-133). */}
+        <span className="flex w-full flex-col">
           <span className="flex h-5 w-full items-center">
-            <span className="h-3.5 w-1/2 rounded bg-bg-soft-200" />
+            <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />
           </span>
-        ) : null}
+          {titleLines === 2 ? (
+            <span className="flex h-5 w-full items-center">
+              <span className="h-3.5 w-1/2 rounded bg-bg-soft-200" />
+            </span>
+          ) : null}
+        </span>
         <span className="flex h-4 w-full items-center">
           <span className="h-2.5 w-1/2 rounded bg-bg-soft-200" />
         </span>

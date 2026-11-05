@@ -6,9 +6,7 @@
  * by skipping the receipt wait.
  *
  * A wallet that reports EIP-5792 atomic support can also take several calls
- * as one approval and one transaction (`sendAtomicBatch`). Wallets that only
- * batch one call after another are not offered it: a later call estimated
- * before an earlier one has run would be priced against the wrong state.
+ * as one approval and one transaction; `wallet-atomic-batch.ts` owns that path.
  *
  * Future enhancement: try EIP-5792 sendCalls with paymasterService first,
  * falling back to direct writeContractAsync when the wallet doesn't support it.
@@ -19,17 +17,39 @@
 import {
   signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
+  estimateGas as defaultEstimateGas,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
+  getCallsStatus as defaultGetCallsStatus,
+  getPublicClient as defaultGetPublicClient,
   sendCalls as defaultSendCalls,
   waitForCallsStatus as defaultWaitForCallsStatus,
   waitForTransactionReceipt as defaultWaitForReceipt,
   type Config,
 } from "@wagmi/core";
-import type { Abi, Hex } from "viem";
+import type { Hex } from "viem";
+import {
+  atomicBatchTxResult,
+  BatchNotSubmittedError,
+  type BatchBudget,
+  type BatchQuote,
+  type BatchCapability,
+  type BatchExecution,
+  type BatchReference,
+  type BatchScope,
+} from "./batch-types";
+import {
+  readWalletBatchCapability,
+  reconcileWalletBatch,
+  sendWalletAtomicBatch,
+  type WalletBatchDeps,
+  type WalletBatchPort,
+} from "./wallet-atomic-batch";
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
+import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
+import { quoteWalletBatch } from "./wallet-batch-preflight";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -51,27 +71,10 @@ import {
   type TxResult,
 } from "./types";
 
-/** How long a wallet may take to say what it can do before we assume it can't batch. */
-const CAPABILITY_TIMEOUT_MS = 4_000;
-/** How long an accepted batch may take to reach a receipt before its outcome is unknown. */
-const BATCH_STATUS_TIMEOUT_MS = 180_000;
-
-async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("wallet-capabilities-timeout")), ms);
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
-}
-
 /** Injectable dependency for testability */
-export interface WalletSenderDeps {
+export interface WalletSenderDeps extends WalletBatchDeps {
+  estimateGas?: EstimateTransactionGas;
+  preflightBatch?: (calls: readonly ContractCall[], budget: BatchBudget) => Promise<BatchQuote>;
   reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   waitForTransactionReceipt: (
@@ -82,45 +85,14 @@ export interface WalletSenderDeps {
       onReplaced?: (replacement: { reason: "cancelled" | "replaced" | "repriced" }) => void;
     }
   ) => Promise<{ status: string; transactionHash?: Hex }>;
-  getAccount?: () => { address?: Address };
-  assertWriteSafety?: () => Promise<void>;
-  ensureWalletChain?: (
-    chainId: number,
-    reason?: WalletNetworkSwitchReason,
-    beforeSwitch?: () => void | Promise<void>
-  ) => Promise<void>;
-  getCapabilities?: (
-    config: Config,
-    params: { chainId: number }
-  ) => Promise<{ atomic?: { status?: string } } | undefined>;
-  sendCalls?: (
-    config: Config,
-    params: {
-      account?: Address;
-      chainId: number;
-      forceAtomic: true;
-      calls: readonly {
-        to: Address;
-        abi: Abi;
-        functionName: string;
-        args: readonly unknown[];
-        value?: bigint;
-      }[];
-    }
-  ) => Promise<{ id: string }>;
-  waitForCallsStatus?: (
-    config: Config,
-    params: { id: string; timeout: number; throwOnFailure: false }
-  ) => Promise<{
-    status?: string;
-    receipts?: readonly { status?: string; transactionHash: Hex }[];
-  }>;
 }
 
 export class WalletSender implements TransactionSender {
   readonly supportsSponsorship = false;
   readonly supportsBatching = false;
   readonly authMode = "wallet" as const;
+
+  assertOwnership?: TransactionSender["assertOwnership"];
 
   private config: Config;
   private writeContractAsync: (params: {
@@ -131,6 +103,7 @@ export class WalletSender implements TransactionSender {
     args: readonly unknown[];
     chainId?: number;
     value?: bigint;
+    gas?: bigint;
   }) => Promise<`0x${string}`>;
   private deps: WalletSenderDeps;
 
@@ -144,6 +117,7 @@ export class WalletSender implements TransactionSender {
       args: readonly unknown[];
       chainId?: number;
       value?: bigint;
+      gas?: bigint;
     }) => Promise<`0x${string}`>,
     _erc7677ProxyUrl?: string,
     deps?: WalletSenderDeps
@@ -162,6 +136,12 @@ export class WalletSender implements TransactionSender {
           config,
           params
         ),
+      getCallsStatus: (config, params) => defaultGetCallsStatus(config, params),
+      preflightBatch: (calls, budget) => {
+        const reader = defaultGetPublicClient(wagmiConfig, { chainId: calls[0].chainId });
+        if (!reader) throw new Error("batch-preflight-unavailable");
+        return quoteWalletBatch(reader, calls, budget);
+      },
       sendCalls: (config, params) =>
         (defaultSendCalls as unknown as NonNullable<WalletSenderDeps["sendCalls"]>)(config, params),
       waitForCallsStatus: (config, params) =>
@@ -176,6 +156,7 @@ export class WalletSender implements TransactionSender {
         typeof defaultSignTypedData
       >[1]);
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
+    this.deps.estimateGas ??= (request) => defaultEstimateGas(this.config, request);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
       ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
@@ -257,6 +238,18 @@ export class WalletSender implements TransactionSender {
     // can return identifiers that don't match `0x${string}` at runtime).
     const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
     await this.readyWallet(call, chainId, options, "write");
+    let quote: BatchQuote | undefined;
+    if (options.batchBudget) {
+      quote = await this.preflightBatch([{ ...call, chainId }], options.batchBudget);
+      await this.assertSigner(call, options);
+    }
+    // A call that asks for headroom gets its limit here, and in a batch that is the gas its budget
+    // was checked at. The wallet sizes any other.
+    const gas =
+      quote && call.gasHeadroomPercent
+        ? BigInt(quote.gas)
+        : await walletGasLimit(call, call.account!, chainId, this.deps.estimateGas!);
+    if (gas !== undefined) await this.assertSigner(call, options);
     // The wallet approves and broadcasts in one step, so the intent is recorded
     // before asking. A rejected prompt is recognised and clears it.
     await options.onBeforeBroadcast?.();
@@ -274,6 +267,7 @@ export class WalletSender implements TransactionSender {
           args: call.args,
           chainId,
           ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
+          ...(gas !== undefined ? { gas } : {}),
         }),
       () => this.readyWallet(call, chainId, options, "retry")
     );
@@ -331,97 +325,70 @@ export class WalletSender implements TransactionSender {
     return { hash: confirmedHash, sponsored: false };
   }
 
-  // sendBatch (one call after another) is intentionally not implemented for
-  // wallet mode. The atomic path below is the only batch a wallet is offered.
+  // The atomic path below is the only batch a wallet is offered.
 
-  async canSendAtomicBatch(chainId: number): Promise<boolean> {
-    const getCapabilities = this.deps.getCapabilities;
-    if (!getCapabilities) return false;
-    try {
-      const capabilities = await withinMs(
-        getCapabilities(this.config, { chainId }),
-        CAPABILITY_TIMEOUT_MS
-      );
-      // "ready" means the wallet would first ask to upgrade the account to a
-      // smart account. A pool setup is not the place to start that, so only an
-      // account that already runs batches counts.
-      return capabilities?.atomic?.status === "supported";
-    } catch {
-      // Most wallets without EIP-5792 answer "method not supported". That is the
-      // ordinary case, not a fault: the caller sends one call at a time.
-      return false;
-    }
+  private batchPort(): WalletBatchPort {
+    return {
+      config: this.config,
+      deps: this.deps,
+      assertOwnership: (address, chainId) => this.assertOwnership?.(address, chainId),
+      preflightBatch: (calls, budget) => this.preflightBatch(calls, budget),
+      reconcileBroadcast: this.reconcileBroadcast,
+    };
   }
 
+  preflightBatch(calls: readonly ContractCall[], budget: BatchBudget): Promise<BatchQuote> {
+    if (!this.deps.preflightBatch) throw new Error("batch-preflight-unavailable");
+    return this.deps.preflightBatch(calls, budget);
+  }
+
+  getBatchCapability(scope: BatchScope): Promise<BatchCapability> {
+    return readWalletBatchCapability(this.batchPort(), scope);
+  }
+
+  async canSendAtomicBatch(chainId: number): Promise<boolean> {
+    const account = this.deps.getAccount?.().address;
+    // "ready" means the wallet would first ask to upgrade the account to a
+    // smart account. A pool setup is not the place to start that, so only an
+    // account that already runs batches counts.
+    return (
+      !!account && (await this.getBatchCapability({ account, chainId })).atomic === "supported"
+    );
+  }
+
+  async submitAtomicBatch(
+    calls: readonly ContractCall[],
+    options: AtomicBatchOptions = {}
+  ): Promise<BatchExecution> {
+    if (!options.batchBudget) throw new BatchNotSubmittedError(new Error("batch-budget-required"));
+    return sendWalletAtomicBatch(this.batchPort(), calls, options);
+  }
+
+  reconcileBatch(reference: BatchReference): Promise<BatchExecution> {
+    return reconcileWalletBatch(this.batchPort(), reference);
+  }
+
+  /** Preserve the confirmed-hash API for existing callers without selecting an arbitrary receipt. */
   async sendAtomicBatch(
     calls: ContractCall[],
     options: AtomicBatchOptions = {}
   ): Promise<TxResult> {
-    if (calls.length === 0) throw new Error("Cannot send empty batch");
-    const sendCalls = this.deps.sendCalls;
-    const waitForCallsStatus = this.deps.waitForCallsStatus;
-    if (!sendCalls || !waitForCallsStatus) {
-      throw new Error("This wallet cannot send an atomic batch");
-    }
-    const chainId = calls[0]!.chainId ?? DEFAULT_CHAIN_ID;
-    if (calls.some((call) => (call.chainId ?? DEFAULT_CHAIN_ID) !== chainId)) {
-      throw new Error("An atomic batch runs on one chain");
-    }
-    // A batch is for one address, as a single send is: the one its calls name,
-    // or else the one connected when it starts. With nobody connected it is
-    // refused here.
-    const account = calls.find((call) => call.account)?.account ?? this.deps.getAccount?.().address;
-    if (!account) throw new ConnectorNotConnectedError();
-    const assertSigner = () => {
-      const connected = this.deps.getAccount?.().address;
-      for (const expected of [account, ...calls.map((call) => call.account)]) {
-        if (expected) assertWalletAccount(expected, connected);
+    let execution: BatchExecution;
+    try {
+      execution = await sendWalletAtomicBatch(this.batchPort(), calls, options);
+    } catch (error) {
+      if (error instanceof BatchNotSubmittedError) {
+        options.onNeverSent?.();
+        throw error.cause;
       }
-    };
-    await this.deps.ensureWalletChain?.(chainId, "write", assertSigner);
-    await this.deps.assertWriteSafety?.();
-    assertSigner();
-
-    const { id } = await sendCalls(this.config, {
-      account,
-      chainId,
-      forceAtomic: true,
-      calls: calls.map((call) => ({
-        to: call.address,
-        abi: call.abi,
-        functionName: call.functionName,
-        args: call.args,
-        ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
-      })),
-    });
-    await options.onAccepted?.();
-
-    // A timeout throws here, and the outcome is then unknown: the caller must
-    // read the chain before sending anything again.
-    const result = await waitForCallsStatus(this.config, {
-      id,
-      timeout: BATCH_STATUS_TIMEOUT_MS,
-      throwOnFailure: false,
-    });
-    const receipts = result.receipts ?? [];
-    const hash = receipts.at(-1)?.transactionHash;
-    if (result.status === "failure" || receipts.some((receipt) => receipt.status === "reverted")) {
-      if (hash) {
-        throw new TransactionRevertedError(
-          hash,
-          "The batch reverted on chain. Nothing in it was recorded."
-        );
-      }
-      throw new Error("The wallet could not send the batch. Nothing in it was recorded.");
+      throw error;
     }
-    if (result.status !== "success" || !hash) {
-      throw new Error("The batch outcome is unknown. Read the chain before sending again.");
-    }
+    const result = atomicBatchTxResult(execution);
     logger.debug("Wallet atomic batch confirmed", {
       source: "WalletSender",
       calls: calls.map((call) => call.functionName),
-      hash,
+      hash: result.hash,
     });
-    return { hash, sponsored: false };
+    return result;
   }
 }

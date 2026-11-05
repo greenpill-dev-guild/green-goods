@@ -32,6 +32,8 @@ const meta = {
   },
   args: {
     gardenAddress: "0x1111111111111111111111111111111111111111",
+    onRead: fn(),
+    onCountGrant: fn(),
   },
 } satisfies Meta<typeof CommunityJoinRequests>;
 

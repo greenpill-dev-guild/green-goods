@@ -190,6 +190,24 @@
   },
   {
     "type": "function",
+    "name": "closeDispatch",
+    "inputs": [
+      {
+        "name": "entitlement",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "evidenceHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "commitmentPooling",
     "inputs": [],
     "outputs": [
@@ -264,6 +282,25 @@
   },
   {
     "type": "function",
+    "name": "dispatchCloseoutEvidence",
+    "inputs": [
+      {
+        "name": "entitlement",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "evidenceHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "distributionOfCommitment",
     "inputs": [
       {
@@ -277,6 +314,19 @@
         "name": "entitlement",
         "type": "bytes32",
         "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "feeReserveMinimum",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -780,6 +830,19 @@
   },
   {
     "type": "function",
+    "name": "setFeeReserveMinimum",
+    "inputs": [
+      {
+        "name": "minimum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setIssuerAuthority",
     "inputs": [
       {
@@ -970,6 +1033,19 @@
   },
   {
     "type": "event",
+    "name": "FeeReserveMinimumChanged",
+    "inputs": [
+      {
+        "name": "minimum",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Initialized",
     "inputs": [
       {
@@ -1034,6 +1110,31 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherDispatchClosed",
+    "inputs": [
+      {
+        "name": "entitlementId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "payloadHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "evidenceHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -1281,6 +1382,11 @@
   },
   {
     "type": "error",
+    "name": "ConflictingDispatchCloseout",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ConflictingTransportMessage",
     "inputs": []
   },
@@ -1306,6 +1412,27 @@
   },
   {
     "type": "error",
+    "name": "FeeReserveFloorNotConfigured",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FeeReserveFloorViolated",
+    "inputs": [
+      {
+        "name": "minimum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "remaining",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "ImmutableEndpointMismatch",
     "inputs": []
   },
@@ -1327,7 +1454,17 @@
   },
   {
     "type": "error",
+    "name": "InvalidDispatchCloseout",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidEndpoint",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidFeeReserveMinimum",
     "inputs": []
   },
   {
@@ -1424,6 +1561,11 @@
   {
     "type": "error",
     "name": "VoucherConsentMissing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VoucherDispatchIsClosed",
     "inputs": []
   },
   {

@@ -21,6 +21,11 @@ export interface AdminTab {
   id: string;
   label: ReactNode;
   icon?: ComponentType<{ className?: string }>;
+  /**
+   * What waits on the steward here: pending work, open alerts, join requests.
+   * A total belongs in the panel's own header line, and a flag shows nothing
+   * (DL-134).
+   */
   count?: number;
   disabled?: boolean;
 }
@@ -68,7 +73,8 @@ function railOverflow(rail: HTMLElement): RailOverflow {
  *   18). Inactive: sub ink; hover darkens the text only (never a hue or bg
  *   shift).
  * - Count badge: the shared `CountBadge` (F10), 16px with 11px/600 numerals on
- *   the workspace tone's accent, the same on every tab.
+ *   the workspace tone's accent, only where something waits on the steward
+ *   (DL-134).
  * - Overflow: a row that cannot hold its cells scrolls; the edge that clips
  *   tabs fades and tabs snap as it scrolls, so it reads as scrollable (D18).
  *   A selected tab lands clear of the fades.
@@ -255,7 +261,7 @@ export function AdminTabRail({
                   className="pointer-events-none select-none"
                 />
                 <span className="sr-only">
-                  {formatMessage({ id: "cockpit.tabRail.itemCount" }, { count: tab.count })}
+                  {formatMessage({ id: "cockpit.tabRail.waitingCount" }, { count: tab.count })}
                 </span>
               </>
             ) : null}

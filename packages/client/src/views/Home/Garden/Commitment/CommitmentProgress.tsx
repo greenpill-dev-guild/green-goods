@@ -22,9 +22,20 @@ export interface CommitmentProgressProps {
    * that says who reports it. It takes the proof-only line's place.
    */
   delivery?: { label: string; done: number; of: number } | { none: string } | null;
+  /**
+   * When the reader can add proof. Only a reader who can now is told proof moves this forward;
+   * the chain takes none before take-up, so an offer's creator hears when they can (DL-151).
+   */
+  addProof?: "now" | "afterTakeUp" | "no";
   /** The proof itself, shown under the progress in the same section. */
   children?: ReactNode;
 }
+
+const EMPTY_PROOF_LINE = {
+  now: "app.commitment.progress.proofOnly",
+  afterTakeUp: "app.commitment.progress.proofAfterTakeUp",
+  no: "app.commitment.progress.proofCount",
+} as const;
 
 /**
  * Progress and proof: what has actually been done toward this promise, and the
@@ -43,6 +54,7 @@ export function CommitmentProgress({
   requirements,
   onPhone = null,
   delivery = null,
+  addProof = "no",
   children,
 }: CommitmentProgressProps) {
   const { formatMessage } = useIntl();
@@ -85,7 +97,9 @@ export function CommitmentProgress({
   if (requirements.length === 0) {
     // A service commitment names no garden actions, so proof is what moves it —
     // but a settled record has stopped moving, so its copy just counts.
-    const settled = isTerminalCommitmentState(commitment.derivedState);
+    const emptyLineId = isTerminalCommitmentState(commitment.derivedState)
+      ? "app.commitment.progress.proofOnlySettled"
+      : EMPTY_PROOF_LINE[addProof];
     return (
       <section
         className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
@@ -128,14 +142,7 @@ export function CommitmentProgress({
         {/* Once proof is on the promise, the proof itself says so. */}
         {delivery || hasProof || onPhone ? null : (
           <p className="mt-2 text-sm text-text-sub-600">
-            {formatMessage(
-              {
-                id: settled
-                  ? "app.commitment.progress.proofOnlySettled"
-                  : "app.commitment.progress.proofOnly",
-              },
-              { count: 0 }
-            )}
+            {formatMessage({ id: emptyLineId }, { count: 0 })}
           </p>
         )}
         {children}

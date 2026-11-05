@@ -71,6 +71,22 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   but ignores activation (`SheetActions`' loading action), so a second press never sends
   twice. Proof: [AdminDialog.test.tsx](../../../packages/admin/src/__tests__/components/AdminDialog.test.tsx)
   and the dialog stories' play functions. (WAI-ARIA dialog pattern; NN/g user control.)
+- **A route-header action that opens a dialog opens it over the current tab (DL-140).** The press
+  adds the dialog's route item to the tab the steward is on and never changes the tab underneath.
+  Closing drops the item and leaves the tab alone, so the steward is back where they pressed; a
+  reload with the item in the URL reopens the dialog on that same tab, and a second press opens it
+  again. The dialog mounts at the workspace, not in one tab, and it says what it is waiting for or
+  why it cannot go on, because no tab behind it will. A choice inside the dialog may still lead
+  elsewhere: Fix Limit First goes to the jar's limit editor under Payouts, and Done after a send
+  lands on the result (DL-080, § 3), replacing the dialog's history entry. Every shipped case
+  follows this: Fund Cookie Jar, Add Member, Edit Garden, and the Hub's Submit Work, Create
+  Assessment and Create Hypercert, whose old paths now redirect to their items. Proof:
+  `buildCommunityViewActions`, `buildGardenViewActions` and `buildHubViewActions` hand each press
+  the active tab; [useRouteItemClose](../../../packages/shared/src/hooks/navigation/useCanvasSearchParams.ts)
+  owns the close; [CommunitySheetDescriptor.test.tsx](../../../packages/admin/src/views/Community/components/CommunitySheetDescriptor.test.tsx),
+  [CommunityMembersDialogs.test.tsx](../../../packages/admin/src/views/Community/components/CommunityMembersDialogs.test.tsx)
+  and [EditGardenDialog.test.tsx](../../../packages/admin/src/views/Garden/components/EditGardenDialog.test.tsx)
+  walk every tab. (NN/g user control; Jakob's Law: a dialog sits over the page it was opened from.)
 - **Action labels are specific**: "Pause pool", "Cancel season", "Approve work", never "OK",
   "Confirm", "Submit". Confirmations name consequences before the act (ecosystem cascade rule).
 - **Dirty flows confirm before discarding** (`useDirtyClose` + `DiscardChangesDialog`);

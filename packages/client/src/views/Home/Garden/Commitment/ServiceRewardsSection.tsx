@@ -45,6 +45,24 @@ export function ServiceRewardsSection({ view }: { view: ServiceRewardsView }) {
               edge={row.status.tone}
               details={[row.detail]}
             />
+            {row.services.length > 0 ? (
+              <div className="mt-2 space-y-1 px-3 text-sm text-text-sub-600">
+                <ul className="space-y-1">
+                  {row.services.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {row.arrival ? (
+                  <p>
+                    {row.arrival.dateTime ? (
+                      <time dateTime={row.arrival.dateTime}>{row.arrival.label}</time>
+                    ) : (
+                      row.arrival.label
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -66,6 +84,18 @@ export function ServiceRewardsSection({ view }: { view: ServiceRewardsView }) {
           <ul className="space-y-1.5 break-all pb-1">
             {view.details.map((line) => (
               <li key={line}>{line}</li>
+            ))}
+            {view.messageLinks.map((link) => (
+              <li key={link.href}>
+                <a
+                  className="underline underline-offset-2"
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {link.label}
+                </a>
+              </li>
             ))}
           </ul>
         </details>

@@ -57,7 +57,7 @@ export const AccountInfo: React.FC = () => {
   };
 
   return (
-    <>
+    <section className="flex flex-col gap-2">
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({
           id: "app.profile.account",
@@ -174,6 +174,6 @@ export const AccountInfo: React.FC = () => {
           defaultMessage: "Logout",
         })}
       </Button>
-    </>
+    </section>
   );
 };

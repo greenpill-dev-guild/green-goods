@@ -9,6 +9,24 @@
 
 import type { Abi, Hex, TypedDataDefinition } from "viem";
 import type { Address } from "../../types/domain";
+import type {
+  BatchBudget,
+  BatchQuote,
+  BatchCapability,
+  BatchExecution,
+  BatchOperations,
+  BatchReference,
+  BatchScope,
+  BatchSendOptions,
+} from "./batch-types";
+
+/** What a caller names when it asks a sender whether it may group its own writes. */
+export type AtomicBatchAction =
+  | "pool-setup"
+  | "commitment-creations"
+  | "reward-edits"
+  | "marketplace-approvals"
+  | "proof-and-send";
 
 /** A single contract call to execute */
 export interface ContractCall {
@@ -25,6 +43,13 @@ export interface ContractCall {
   /** Authoritative execution chain; omitted calls use the primary application account. */
   chainId?: number;
   value?: bigint;
+  /**
+   * Gas to send over the estimate, in whole percent, for a call whose contract runs best-effort
+   * work inside try/catch. An estimate stops at the first limit where the call succeeds, and the
+   * call succeeds when that work runs out of gas and is caught, so a bare estimate can drop it.
+   * A sender that sets the limit applies it; a wallet's own batch request (EIP-5792) cannot.
+   */
+  gasHeadroomPercent?: number;
 }
 
 export type BroadcastReference =
@@ -46,6 +71,8 @@ export interface TxResult {
 }
 
 export interface TransactionSendOptions {
+  /** Reviewed budgets are mandatory on the explicit batch boundary, optional for legacy single sends. */
+  batchBudget?: BatchBudget;
   assertOwnership?: () => void | Promise<void>;
   /**
    * Called once, immediately before the call can reach the network. A passkey
@@ -56,11 +83,15 @@ export interface TransactionSendOptions {
   onBeforeBroadcast?: (reference?: BroadcastReference) => Promise<void>;
   onBroadcastReference?: (reference: BroadcastReference) => Promise<void>;
   onBroadcast?: (hash: Hex) => Promise<void>;
+  /** Opaque batch identity, checkpointed before any receipt wait. */
+  onBatchReference?: (reference: BatchReference) => Promise<void>;
 }
 
-export interface AtomicBatchOptions {
+export interface AtomicBatchOptions extends BatchSendOptions {
   /** Called once the wallet has accepted the batch. Its receipt is still pending. */
   onAccepted?: () => Promise<void>;
+  /** The batch is proven never to have gone out, whatever the error it rejects with says. */
+  onNeverSent?: () => void;
 }
 
 /**
@@ -89,6 +120,15 @@ export function assertTypedDataChain(request: AccountTypedDataRequest): void {
 }
 
 export interface TransactionSender {
+  batches?: BatchOperations;
+  preflightBatch?(calls: readonly ContractCall[], budget: BatchBudget): Promise<BatchQuote>;
+  /** Explicit opt-in batching; legacy eligibility and single-call contracts stay separate. */
+  getBatchCapability?(scope: BatchScope): Promise<BatchCapability>;
+  submitAtomicBatch?(
+    calls: readonly ContractCall[],
+    options?: BatchSendOptions
+  ): Promise<BatchExecution>;
+  reconcileBatch?(reference: BatchReference): Promise<BatchExecution>;
   /** Sign an order with the same account and chain as its subsequent transaction. */
   signTypedData?(request: AccountTypedDataRequest, options?: TransactionSendOptions): Promise<Hex>;
   assertOwnership?: (address: Address, chainId: number) => void | Promise<void>;
@@ -96,22 +136,27 @@ export interface TransactionSender {
   /** Send a single contract call */
   sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;
 
-  /** Send multiple calls in a batch (optional — check supportsBatching first) */
-  sendBatch?(calls: ContractCall[]): Promise<TxResult>;
-
   /**
-   * Whether the connected wallet can run several calls as one transaction on
-   * this chain (EIP-5792 atomic execution). Asking never prompts the person.
+   * Whether this account can run several calls as one transaction on this chain
+   * for `action`. Asking never prompts the person. A wallet answers for itself
+   * (EIP-5792 atomic execution); a passkey also needs the action on the
+   * enablement list, so no caller's flow changes until its rail is listed.
    */
-  canSendAtomicBatch?(chainId: number): Promise<boolean>;
+  canSendAtomicBatch?(chainId: number, action?: AtomicBatchAction): Promise<boolean>;
 
   /**
    * Several calls, one approval, one transaction: all of them land or none do.
-   * Only call it after `canSendAtomicBatch` said yes for the chain. Unlike
-   * `sendBatch`, which may send one call after another, a later call here can
-   * rely on an earlier one having run.
+   * Only call it after `canSendAtomicBatch` said yes for the chain. A later
+   * call here can rely on an earlier one having run.
    */
   sendAtomicBatch?(calls: ContractCall[], options?: AtomicBatchOptions): Promise<TxResult>;
+
+  /**
+   * Set on the sender a bundling sender hands one participant: every participant
+   * whose call goes out in the same atomic request, in the order the calls go. A
+   * call there lands with every earlier one or not at all, so it may rely on them.
+   */
+  readonly bundledWith?: readonly string[];
 
   /** Whether this sender supports gas sponsorship (paymaster) */
   readonly supportsSponsorship: boolean;

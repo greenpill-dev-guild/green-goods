@@ -9,6 +9,7 @@ import {
   roundWorkLocation,
 } from "../../modules/work/work-attachments";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { decodeAbiParameters, type Hex, parseAbiParameters } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
@@ -471,4 +472,18 @@ export function encodeWorkApprovalData(data: WorkApprovalDraft, chainId: number 
   ]) as `0x${string}`;
 
   return encodedData;
+}
+
+/** The decision a work approval's data carries, read by the schema's own field names. */
+export function decodeWorkApprovalData(
+  data: Hex,
+  chainId: number | string
+): Pick<WorkApprovalDraft, "approved" | "feedback"> {
+  const fields = parseAbiParameters(getEASConfig(chainId).WORK_APPROVAL.schema);
+  const values = decodeAbiParameters(fields, data);
+  const valueOf = (name: string) => values[fields.findIndex((field) => field.name === name)];
+  return {
+    approved: valueOf("approved") as boolean,
+    feedback: (valueOf("feedback") as string) || undefined,
+  };
 }

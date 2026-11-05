@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { logger } from "../../modules/app/logger";
 import {
@@ -39,6 +39,8 @@ export interface UseHypercertsResult {
   hypercerts: HypercertRecord[];
   hypercert: HypercertRecord | null;
   isLoading: boolean;
+  /** Whether a read is in flight, the first or a refresh. */
+  isFetching: boolean;
   error: Error | null;
   hasError: boolean;
   /**
@@ -51,6 +53,14 @@ export interface UseHypercertsResult {
   syncStatus: HypercertSyncStatus;
   /** Triggers a refetch and returns a promise that resolves when complete */
   refetch: () => Promise<HypercertRecord[] | HypercertRecord | null>;
+  /** Whether the garden has minted more hypercerts than the list holds. */
+  hasOlder: boolean;
+  /** Widen the list by one page of older hypercerts and read it. */
+  loadOlder: () => void;
+  /** Whether a read of a widened list is in flight. */
+  isLoadingOlder: boolean;
+  /** When the garden list last read successfully, in milliseconds; undefined before its first read. */
+  listReadAt?: number;
 }
 
 export interface UseHypercertsParams {
@@ -64,6 +74,8 @@ export interface UseHypercertsParams {
   optimisticData?: OptimisticHypercertData;
 }
 
+/** How many of a garden's newest hypercerts its list reads at a time. */
+const HYPERCERT_LIST_PAGE_SIZE = 50;
 /** Max polling attempts for newly minted hypercerts */
 const MAX_POLL_ATTEMPTS = 10;
 /** Polling interval in milliseconds */
@@ -138,6 +150,35 @@ function optimisticToRecord(data: OptimisticHypercertData, gardenId?: string): H
   };
 }
 
+/**
+ * The records a garden list shows: its window, without the one row read past
+ * it to tell whether there are more, narrowed to a status when one is asked.
+ */
+function shownRecords(
+  records: HypercertRecord[] | undefined,
+  take: number,
+  status?: HypercertStatus
+): HypercertRecord[] {
+  const listed = (records ?? []).slice(0, take);
+  return status ? listed.filter((record) => record.status === status) : listed;
+}
+
+/**
+ * Adds what a metadata read learned. A read that learned nothing about a field
+ * (the SDK and the document both failed) leaves what an earlier read knew.
+ */
+function withLearnedMetadata(
+  current: Record<string, Partial<HypercertRecord>>,
+  learned: Record<string, Partial<HypercertRecord>>
+): Record<string, Partial<HypercertRecord>> {
+  const next = { ...current };
+  for (const [id, metadata] of Object.entries(learned)) {
+    const known = Object.entries(metadata).filter(([, value]) => value !== undefined);
+    next[id] = { ...next[id], ...Object.fromEntries(known) };
+  }
+  return next;
+}
+
 function mergeRecordWithMetadata(
   record: HypercertRecord,
   metadata?: Partial<HypercertRecord>
@@ -156,6 +197,7 @@ function mergeRecordWithMetadata(
 export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsResult {
   const { gardenId, status, hypercertId, optimisticData } = params;
   const chainId = useCurrentChain();
+  const queryClient = useQueryClient();
 
   // Polling state for newly minted hypercerts
   const [pollAttempts, setPollAttempts] = useState(0);
@@ -177,17 +219,45 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
     setMetadataById({});
   }, [chainId]);
 
+  const listKey = useMemo(
+    () => hypercertsKeys.list(gardenId, chainId, status),
+    [gardenId, chainId, status]
+  );
+  // Every observer of a garden's list shares one window, as the work list does,
+  // so a second screen never reads it narrower than the steward widened it.
+  const windowKey = useMemo(() => hypercertsKeys.window(gardenId, chainId), [gardenId, chainId]);
+  const listWindow = useQuery<number>({
+    queryKey: windowKey,
+    queryFn: () => queryClient.getQueryData<number>(windowKey) ?? HYPERCERT_LIST_PAGE_SIZE,
+    initialData: HYPERCERT_LIST_PAGE_SIZE,
+    enabled: false,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const take = listWindow.data;
+
   const listQuery = useQuery({
-    queryKey: hypercertsKeys.list(gardenId, chainId, status),
+    queryKey: listKey,
     queryFn: () => {
       if (!gardenId) {
         throw new ValidationError("gardenId is required for listing hypercerts");
       }
-      return getGardenHypercerts(gardenId, chainId, status);
+      const requested = queryClient.getQueryData<number>(windowKey) ?? HYPERCERT_LIST_PAGE_SIZE;
+      // The row past the window says whether the garden has more: the indexer
+      // leaves out records a list never shows before its limit, and the row is
+      // read across every status, so a status narrows only what is shown.
+      return getGardenHypercerts(gardenId, chainId, undefined, requested + 1);
     },
     enabled: Boolean(gardenId) && !hypercertId,
     staleTime: STALE_TIME_MEDIUM,
   });
+  const hasOlder = (listQuery.data?.length ?? 0) > take;
+  const loadOlder = useCallback(() => {
+    queryClient.setQueryData<number>(
+      windowKey,
+      (current) => Math.max(current ?? HYPERCERT_LIST_PAGE_SIZE, take) + HYPERCERT_LIST_PAGE_SIZE
+    );
+    void queryClient.refetchQueries({ queryKey: listKey, exact: true });
+  }, [listKey, queryClient, take, windowKey]);
 
   const listMetadataQuery = useQuery({
     queryKey: [
@@ -195,19 +265,23 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
       "metadata",
       "list",
       chainId,
-      (listQuery.data ?? [])
+      shownRecords(listQuery.data, take, status)
         .map((record) => record.id)
         .sort()
         .join(","),
     ] as const,
-    queryFn: async () => hydrateHypercertRecords(listQuery.data ?? [], chainId),
-    enabled: Boolean(listQuery.data?.length) && !hypercertId,
+    queryFn: async () =>
+      hydrateHypercertRecords(shownRecords(listQuery.data, take, status), chainId),
+    // A widened window shows nothing new until its read lands, so the list is
+    // hydrated once per landed read, not again for the rows it is replacing.
+    enabled: Boolean(listQuery.data?.length) && !hypercertId && !listQuery.isFetching,
     staleTime: STALE_TIME_MEDIUM,
   });
 
   useEffect(() => {
     if (!listMetadataQuery.data) return;
-    setMetadataById((current) => ({ ...current, ...listMetadataQuery.data }));
+    const learned = listMetadataQuery.data;
+    setMetadataById((current) => withLearnedMetadata(current, learned));
   }, [listMetadataQuery.data]);
 
   // Should poll: have optimistic data, haven't found real data yet, haven't exceeded attempts
@@ -244,13 +318,8 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
 
   useEffect(() => {
     if (!detailMetadataQuery.data || !hypercertId) return;
-    setMetadataById((current) => ({
-      ...current,
-      [hypercertId]: {
-        ...(current[hypercertId] ?? {}),
-        ...detailMetadataQuery.data,
-      },
-    }));
+    const learned = { [hypercertId]: detailMetadataQuery.data };
+    setMetadataById((current) => withLearnedMetadata(current, learned));
   }, [detailMetadataQuery.data, hypercertId]);
 
   // Track polling attempts and update sync status
@@ -280,10 +349,10 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
 
   const mergedList = useMemo(
     () =>
-      (listQuery.data ?? []).map((record) =>
+      shownRecords(listQuery.data, take, status).map((record) =>
         mergeRecordWithMetadata(record, metadataById[record.id])
       ),
-    [listQuery.data, metadataById]
+    [listQuery.data, take, status, metadataById]
   );
 
   const mergedDetail = useMemo(() => {
@@ -315,16 +384,21 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
       return result.data ?? null;
     }
     const result = await listQuery.refetch();
-    return result.data ?? [];
-  }, [hypercertId, detailQuery, listQuery]);
+    return shownRecords(result.data, take, status);
+  }, [hypercertId, detailQuery, listQuery, take, status]);
 
   return {
     hypercerts: mergedList,
     hypercert,
     isLoading: isLoading && !optimisticData, // Don't show loading if we have optimistic data
+    isFetching: listQuery.isFetching || detailQuery.isFetching,
     error,
     hasError: Boolean(error),
     syncStatus,
     refetch,
+    hasOlder,
+    loadOlder,
+    isLoadingOlder: listQuery.isFetching && take > HYPERCERT_LIST_PAGE_SIZE,
+    listReadAt: listQuery.dataUpdatedAt || undefined,
   };
 }

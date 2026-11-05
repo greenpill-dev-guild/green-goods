@@ -17,19 +17,16 @@ import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSelect } from "@/components/AdminTextField";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
-import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
 import { communityRoleIcons } from "./communityRoleIcons";
 
 export type CommunityMembersTabProps = Pick<
   CommunityWorkspace,
   | "canManage"
-  | "closeMembersModal"
+  | "keepJoinRequestCountGrant"
   | "memberCount"
   | "memberSearch"
-  | "roleMembers"
+  | "noteJoinRequestsRead"
   | "roleSummary"
-  | "scheduleBackgroundRefetch"
-  | "selectedItem"
   | "setMemberSearch"
   | "visibleDirectory"
 > & {
@@ -39,13 +36,11 @@ export type CommunityMembersTabProps = Pick<
 export function CommunityMembersTab({
   garden,
   canManage,
-  closeMembersModal,
+  keepJoinRequestCountGrant,
   memberCount,
   memberSearch,
-  roleMembers,
+  noteJoinRequestsRead,
   roleSummary,
-  scheduleBackgroundRefetch,
-  selectedItem,
   setMemberSearch,
   visibleDirectory,
 }: CommunityMembersTabProps) {
@@ -81,7 +76,7 @@ export function CommunityMembersTab({
                 {formatMessage({ id: "cockpit.community.members.directory" })}
               </AdminCardTitle>
               <p className="mt-1 type-meta text-text-sub">
-                {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
+                {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
               </p>
             </div>
 
@@ -200,7 +195,11 @@ export function CommunityMembersTab({
 
         <aside className="garden-tab-rail flex flex-col gap-section">
           {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={gardenAddress} />
+            <CommunityJoinRequests
+              gardenAddress={gardenAddress}
+              onRead={noteJoinRequestsRead}
+              onCountGrant={keepJoinRequestCountGrant}
+            />
           ) : null}
           <AdminCard variant="elevated" className="space-y-3">
             <AdminCardTitle>
@@ -227,14 +226,6 @@ export function CommunityMembersTab({
           </AdminCard>
         </aside>
       </div>
-      <CommunityMembersDialogs
-        garden={garden}
-        canManage={canManage}
-        closeMembersModal={closeMembersModal}
-        roleMembers={roleMembers}
-        scheduleBackgroundRefetch={scheduleBackgroundRefetch}
-        selectedItem={selectedItem}
-      />
     </div>
   );
 }

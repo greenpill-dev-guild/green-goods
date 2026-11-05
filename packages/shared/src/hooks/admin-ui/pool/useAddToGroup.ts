@@ -4,9 +4,10 @@
  * The steward chooses only how many. At the first Add the new copies are fixed
  * once, like a seeding set: their ids, and payloads built from one copy of the
  * group read from the chain (`modules/commitment-pooling/group-additions`). They
- * are sent through `creation-send` exactly as a set is, so a wallet that can
- * bundle is asked once per ten, and a Try Again sends only the ones that didn't
- * send, as they were built.
+ * are sent through `creation-send` exactly as a set is, so a wallet or passkey
+ * that can bundle is asked once per ten, and a Try Again sends only the ones
+ * that didn't send, as they were built. A bundle past a passkey's ceilings is
+ * asked once per copy from then on, and `mode` says so before the next press.
  *
  * @module hooks/admin-ui/pool/useAddToGroup
  */
@@ -39,7 +40,12 @@ import {
 } from "../../../modules/commitment-pooling/seed-sets";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import type { Address } from "../../../types/domain";
-import { CommitmentPoolingModuleABI, createClients } from "../../../utils/blockchain/contracts";
+import { SettlementModuleABI } from "../../../utils/blockchain/contract-abis/settlement-module";
+import {
+  CommitmentPoolingModuleABI,
+  createClients,
+  getNetworkContracts,
+} from "../../../utils/blockchain/contracts";
 import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { resolveCommitmentPoolingModule } from "../../commitment-pooling/useCommitmentPoolMutations";
 import { useAsyncEffect } from "../../utils/useAsyncEffect";
@@ -68,6 +74,8 @@ export type AddToGroupOutcome =
   | "not-creator"
   /** More offers than the steward has room for under the pool's at-once limit. */
   | "full"
+  /** The group carries a G$ reward and the garden's settlement account isn't active. */
+  | "no-settlement-account"
   /** Nothing could be read or sent from here. */
   | "blocked";
 
@@ -106,17 +114,19 @@ export function useAddToGroup(input: {
   const { chainId, owner, group, offerRoom = null } = input;
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<CreationSendMode | null>(null);
+  const [probed, setProbed] = useState<CreationSendMode | null>(null);
+  const [pastCeilings, setPastCeilings] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [set, setSet] = useState<AdditionSet | null>(null);
   const [passIds, setPassIds] = useState<readonly string[] | null>(null);
   // Progress arrives copy by copy while React batches renders.
   const setRef = useRef<AdditionSet | null>(null);
+  const mode = probed === "bundle" && pastCeilings ? "one-by-one" : probed;
 
   useAsyncEffect(
     async ({ isMounted }) => {
       const next = await creationSendMode(sender, chainId);
-      if (isMounted()) setMode(next);
+      if (isMounted()) setProbed(next);
     },
     [sender, chainId]
   );
@@ -128,6 +138,7 @@ export function useAddToGroup(input: {
   const reset = useCallback(() => {
     replaceSet(null);
     setPassIds(null);
+    setPastCeilings(false);
   }, [replaceSet]);
 
   /** The copies of a new addition, fixed once: ids, the group's deadline and terms. */
@@ -153,11 +164,17 @@ export function useAddToGroup(input: {
       group.templateCommitmentId
     );
     if (!canAddToGroup(template, owner)) return "not-creator";
-    if (
-      !SETTLEMENT_ENABLED &&
-      template.terms.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
-    )
-      return "blocked";
+    if (template.terms.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT) {
+      if (!SETTLEMENT_ENABLED) return "blocked";
+      // The seed form reads the index; adding to a rewarded group reads the chain, right before.
+      const account = (await publicClient.readContract({
+        address: getNetworkContracts(chainId).settlementModule,
+        abi: SettlementModuleABI,
+        functionName: "settlementAccountOf",
+        args: [group.gardenAddress],
+      })) as { active?: boolean };
+      if (account.active !== true) return "no-settlement-account";
+    }
     const copies = identity.copyIds.map((clientCommitmentId) => ({
       clientCommitmentId,
       setId: group.displayGroupId,
@@ -235,7 +252,7 @@ export function useAddToGroup(input: {
       setPassIds([...sentThisPass]);
       setIsSending(true);
       try {
-        await sendCreationCopies({
+        const ended = await sendCreationCopies({
           copies: toSend,
           queue: jobQueue,
           sender,
@@ -243,7 +260,9 @@ export function useAddToGroup(input: {
           chainId,
           onCopy: report,
           clearable: () => seedSetClearableAfter(progress, sentThisPass),
+          oneByOne: pastCeilings,
         });
+        if (ended.some((copy) => copy.miss === "over-ceilings")) setPastCeilings(true);
       } finally {
         setIsSending(false);
         await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });

@@ -11,7 +11,7 @@ import {
 } from "../../action/useFilteredActions";
 import { useUrlFilters } from "../../app/useUrlFilters";
 import { useActions } from "../../blockchain/useBaseLists";
-import { useRole, type UserRole } from "../../gardener/useRole";
+import { useRole } from "../../gardener/useRole";
 import { useSheetOrchestrator } from "../../navigation/useSheetOrchestrator";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { RiAddLine } from "@remixicon/react";
@@ -27,18 +27,13 @@ import {
 import { isActionsRouteSheetContentId } from "../navigation/sheetRegistry";
 import { resolveActionsRouteState } from "./actions.workspaceModel";
 
-export function canManageActionsForRole(role: UserRole): boolean {
-  return role === "deployer";
-}
-
 export function useActionsController() {
   const intl = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
   const { activeSheet, activeContentId, openSheet, closeSheet } = useSheetOrchestrator();
-  const { role } = useRole();
+  const { isProtocolTeam: canManageActions } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
-  const canManageActions = canManageActionsForRole(role);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const listSearch = useMemo(
     () => getActionsListSearch(new URLSearchParams(location.search)),
@@ -91,9 +86,9 @@ export function useActionsController() {
     return counts;
   }, [actions]);
 
-  // Per-domain counts for the primary tab rail (mirrors lifecycleCounts). Keyed
-  // by the numeric Domain enum plus an "all" total. Counts the full registry so
-  // each tab shows how many actions live in that domain regardless of search.
+  // Per-domain totals for the header line (mirrors lifecycleCounts). Keyed by the
+  // numeric Domain enum plus an "all" total. Counts the full registry so the line
+  // says how many actions live in the open domain regardless of search.
   const domainCounts = useMemo(() => {
     const counts: Record<string, number> = {
       all: actions.length,

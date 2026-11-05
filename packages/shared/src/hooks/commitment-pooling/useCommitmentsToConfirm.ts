@@ -453,17 +453,24 @@ export function useCommitmentsToConfirm({
       poolsQuery.isLoading ||
       protocolPool.isLoading ||
       queries.some((q) => q.isLoading),
+    isFetching:
+      own.isFetching ||
+      confirmed.isFetching ||
+      poolsQuery.isFetching ||
+      protocolPool.isFetching ||
+      queries.some((query) => query.isFetching),
     isError:
       own.isError ||
       confirmed.isError ||
       poolsQuery.isError ||
       queries.some((query) => query.isError),
+    // A refresh rereads only what the queue reads now: a read its gate keeps
+    // off (pooling unavailable on the chain, no stewarded garden) stays off.
     refetch: () =>
-      Promise.all([
-        own.refetch(),
-        confirmed.refetch(),
-        poolsQuery.refetch(),
-        ...queries.map((query) => query.refetch()),
-      ]),
+      Promise.all(
+        [own, confirmed, poolsQuery, ...queries]
+          .filter((query) => query.isEnabled)
+          .map((query) => query.refetch())
+      ),
   };
 }

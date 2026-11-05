@@ -55,6 +55,8 @@ export interface CommitmentIdentityProps {
     needsYou: boolean;
     pillId?: string | null;
   } | null;
+  /** What a booking of the reader's own voucher offer takes, among the facts they set. */
+  serviceTakes?: string | null;
   /**
    * The request's rewards draw in their own section, each on its row with the vouchers first, so
    * the facts here don't repeat the G$ ahead of them.
@@ -82,6 +84,7 @@ export function CommitmentIdentity({
   viewer,
   stewards,
   serviceBand = null,
+  serviceTakes = null,
   rewardsBelow = false,
 }: CommitmentIdentityProps) {
   const intl = useIntl();
@@ -183,6 +186,7 @@ export function CommitmentIdentity({
           contributors={contributors}
           seat={seat}
           units={units}
+          takes={serviceTakes}
           reward={reward}
           viewer={viewer}
           stewards={stewards}

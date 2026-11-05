@@ -2,7 +2,6 @@ import type { Enum } from "envio";
 
 type Capital = Enum<"Capital">;
 type Domain = Enum<"Domain">;
-type PoolType = Enum<"PoolType">;
 type WeightScheme = Enum<"WeightScheme">;
 
 // ============================================================================
@@ -43,14 +42,6 @@ export const WEIGHT_SCHEME_MAP: Record<number, WeightScheme> = {
   0: "LINEAR",
   1: "EXPONENTIAL",
   2: "POWER",
-} as const;
-
-/**
- * Maps numeric pool type values from the GardensModule contract to PoolType enum values.
- */
-export const POOL_TYPE_MAP: Record<number, PoolType> = {
-  0: "HYPERCERT",
-  1: "ACTION",
 } as const;
 
 /**

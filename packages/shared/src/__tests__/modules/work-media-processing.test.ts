@@ -38,6 +38,7 @@ import {
   photoVariants,
   unreadableCameraPng,
 } from "../test-utils/photo-fixtures";
+import { videoFile, videoVariants } from "../test-utils/video-fixtures";
 
 const PHOTO_NAMES: Record<PhotoType, string> = {
   "image/jpeg": "beds.jpg",
@@ -57,7 +58,7 @@ describe("normalizeWorkMediaFiles", () => {
     const photos = (Object.keys(PHOTO_NAMES) as PhotoType[]).map((type) =>
       photoFile(cleanPhoto(type), PHOTO_NAMES[type], type)
     );
-    const video = new File(["video"], "clip.mp4", { type: "video/mp4" });
+    const video = videoFile(videoVariants()[0].published, "clip.mp4", "video/mp4");
 
     const result = await normalizeWorkMediaFiles([...photos, video]);
 
@@ -117,6 +118,24 @@ describe("normalizeWorkMediaFiles", () => {
     expect(leakedCameraDetails(await bytesOf(first.file))).toEqual([]);
     const [second] = (await normalizeWorkMediaFiles([first.file])).accepted;
     expect(second.file).toBe(second.originalFile);
+  });
+
+  it("queues a video without its location, device or capture time, moving nothing", async () => {
+    const { recorded, published } = videoVariants()[0];
+
+    const result = await normalizeWorkMediaFiles([videoFile(recorded, "clip.mp4", "video/mp4")]);
+
+    expect(result.rejected).toEqual([]);
+    expect(await bytesOf(result.accepted[0].file)).toEqual(published);
+  });
+
+  it("refuses a video whose container it cannot read in full, since it cannot tell what it carries", async () => {
+    const result = await normalizeWorkMediaFiles([
+      new File(["mp4"], "clip.mp4", { type: "video/mp4" }),
+    ]);
+
+    expect(result.accepted).toEqual([]);
+    expect(result.rejected).toEqual([expect.objectContaining({ reason: "unsupported" })]);
   });
 
   it("queues a photo below the compression threshold without its metadata", async () => {

@@ -7,7 +7,7 @@
  * what it asks for. The row, grid and tiles layouts are measured in a real browser by the stories.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActionPicker, type ActionPickerProps } from "../../../components/Cards/ActionPicker";
@@ -176,5 +176,25 @@ describe("ActionPicker", () => {
     renderPicker({ loading: true });
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(document.querySelectorAll('[data-skeleton="media-card"]')).toHaveLength(4);
+  });
+
+  it("keeps repeated actions distinct when the caller supplies requirement option values", () => {
+    const { onChange } = renderPicker({
+      actions: [ACTIONS[0], ACTIONS[0]],
+      getOptionValue: (_action, index) => `requirement-${index}`,
+      value: "requirement-1",
+    });
+    const [first, second] = screen.getAllByRole("option");
+    expect(first).toHaveAttribute("aria-selected", "false");
+    expect(second).toHaveAttribute("aria-selected", "true");
+    expect(second.tabIndex).toBe(0);
+    fireEvent.click(second);
+    expect(onChange).toHaveBeenCalledWith("requirement-1");
+
+    act(() => second.focus());
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowLeft" });
+    expect(first).toHaveFocus();
+    fireEvent.click(first);
+    expect(onChange).toHaveBeenLastCalledWith("requirement-0");
   });
 });

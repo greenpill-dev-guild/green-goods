@@ -168,6 +168,9 @@ export type PoolFundingTransferLimit =
   | "roles_allowance"
   | "balance";
 
+/** Why a transfer can't go yet: a limit it is over, or limits nobody could read. */
+export type PoolFundingTransferBlock = PoolFundingTransferLimit | "limits_unread";
+
 export interface PoolFundingReadinessInput {
   accountConfigured: boolean;
   accountActive: boolean;
@@ -243,5 +246,10 @@ export {
   calculateKnownTransferFeeBuffer,
   calculateUnknownSplitFeeBuffer,
 } from "./pool-funding-calculations";
-export { selectExceededTransferLimit } from "./pool-funding-readiness";
+export {
+  selectExceededTransferLimit,
+  selectQueuedTransferBlock,
+  selectTransferBlock,
+  selectTransferLimitsRead,
+} from "./pool-funding-readiness";
 export { selectPoolFundingSnapshot } from "./pool-funding-selector";

@@ -232,7 +232,7 @@ export const Pending: Story = {
   beforeEach: withJoinRequests({ hasCheckedStatus: true, request: selfRequest() }),
   play: async () => {
     const sheet = await openSheet();
-    await expect(sheet.getByText("Request awaiting review")).toBeVisible();
+    await expect(sheet.getByText("Request waiting for approval")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
     await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
     await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));
@@ -279,6 +279,7 @@ export const Welcomed: Story = {
   play: async () => {
     const sheet = await openSheet();
     await expect(sheet.getByText("Welcome to the garden")).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Claim a Username" })).toBeVisible();
+    await expect(sheet.getByText("Your membership is active.")).toBeVisible();
+    await expect(sheet.queryByRole("button", { name: /username/i })).toBeNull();
   },
 };

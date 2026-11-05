@@ -1,8 +1,14 @@
+import { logger } from "@green-goods/shared/modules/app/logger";
+
 type WebMcpInputSchema = {
   type: "object";
   properties?: Record<string, unknown>;
   required?: string[];
   additionalProperties?: boolean;
+};
+
+type WebMcpToolExecuteOptions = {
+  signal: AbortSignal;
 };
 
 type WebMcpToolDefinition = {
@@ -13,16 +19,29 @@ type WebMcpToolDefinition = {
     readOnlyHint?: boolean;
     untrustedContentHint?: boolean;
   };
-  execute: (input: Record<string, unknown>) => unknown;
+  // The browser calls `execute(input, { signal })`. Both public tools finish synchronously, so
+  // their implementations may leave the abort signal unused.
+  execute: (input: Record<string, unknown>, options: WebMcpToolExecuteOptions) => unknown;
 };
 
 type WebMcpRuntimeLocation = Pick<Location, "assign" | "pathname">;
 
+type WebMcpRegisterToolOptions = {
+  signal?: AbortSignal;
+};
+
 type WebMcpModelContext = {
-  registerTool?: (tool: WebMcpToolDefinition) => unknown;
+  registerTool?: (
+    tool: WebMcpToolDefinition,
+    options?: WebMcpRegisterToolOptions
+  ) => Promise<void> | void;
 };
 
 declare global {
+  interface Document {
+    modelContext?: WebMcpModelContext;
+  }
+
   interface Navigator {
     modelContext?: WebMcpModelContext;
   }
@@ -113,6 +132,16 @@ function navigatePublicRoute(
   };
 }
 
+/**
+ * The WebMCP draft moved the tool registry from `navigator.modelContext` to
+ * `document.modelContext` in July 2026, and Chromium 150+ (Brave Beta 156 included) exposes only
+ * the document form. Older builds still carry the navigator alias, so the document form wins and
+ * the alias is the fallback.
+ */
+function resolveWebMcpModelContext() {
+  return document.modelContext ?? navigator.modelContext;
+}
+
 export function createPublicWebMcpTools({
   pageDocument = document,
   pageLocation = window.location,
@@ -161,20 +190,34 @@ export function createPublicWebMcpTools({
   ] satisfies WebMcpToolDefinition[];
 }
 
+let pendingRegistration: Promise<void> | undefined;
+
 export function registerPublicWebMcpTools() {
-  const registerTool = navigator.modelContext?.registerTool;
+  const modelContext = resolveWebMcpModelContext();
+  const registerTool = modelContext?.registerTool;
   if (typeof registerTool !== "function" || window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__) {
     return;
   }
+  if (pendingRegistration) return pendingRegistration;
 
   const tools = createPublicWebMcpTools();
-
-  for (const tool of tools) {
-    registerTool.call(navigator.modelContext, tool);
-  }
-
-  window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__ = true;
-  window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__ = tools.map((tool) => tool.name);
+  const controller = new AbortController();
+  pendingRegistration = (async () => {
+    try {
+      await Promise.all(
+        tools.map((tool) => registerTool.call(modelContext, tool, { signal: controller.signal }))
+      );
+      window.__GREEN_GOODS_WEBMCP_TOOLS_REGISTERED__ = true;
+      window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__ = tools.map((tool) => tool.name);
+    } catch (error) {
+      // Remove any successful registrations from this attempt before allowing a retry.
+      controller.abort();
+      logger.warn("Public WebMCP tool registration failed", { source: "webmcp", error });
+    }
+  })().finally(() => {
+    pendingRegistration = undefined;
+  });
+  return pendingRegistration;
 }
 
 export const greenGoodsPublicWebMcpRoutes = publicRoutes;

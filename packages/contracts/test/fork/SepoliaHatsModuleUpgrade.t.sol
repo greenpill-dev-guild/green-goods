@@ -13,4 +13,8 @@ contract SepoliaHatsModuleUpgradeForkTest is HatsModuleUpgradeForkHarness {
     function testForkSepolia_hatsModuleUpgradePreservesLiveState() public {
         _rehearseHatsModuleUpgrade();
     }
+
+    function testForkSepolia_hatsModuleUpgradeLetsMembersLeaveLiveGardens() public {
+        _rehearseLeavingLiveGardens();
+    }
 }

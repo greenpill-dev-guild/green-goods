@@ -173,12 +173,12 @@ export const MobileBottomSheet: Story = {
 };
 
 export const WithPinnedFooter: Story = {
-  tags: ["visual-harness"],
+  tags: ["visual-harness", "storybook-ci"],
   parameters: {
     docs: {
       description: {
         story:
-          "Panels compose SheetBody (scrolling middle) with an optional SheetFooter pinned outside the scroll region — shell padding and panel padding never stack.",
+          "Panels compose SheetBody (scrolling middle) with an optional SheetFooter pinned outside the scroll region — shell padding and panel padding never stack. Docked (≥640px) the sheet sets both slots' inset to the header's 24px through `--gg-sheet-body-padding` and `--gg-sheet-footer-padding`; the phone sheet keeps 16px.",
       },
     },
   },
@@ -197,6 +197,22 @@ export const WithPinnedFooter: Story = {
       </>
     </OpenSideSheet>
   ),
+  play: async () => {
+    const body = within(document.body);
+    const sheet = await body.findByRole("dialog");
+    await expect(within(sheet).getByRole("heading", { name: "Notifications" })).toBeVisible();
+
+    const surface = getOpenSurface();
+    await waitForSheetSettled(surface);
+    const panelBody = surface.querySelector<HTMLElement>('[data-component="SheetBody"]');
+    const footer = surface.querySelector<HTMLElement>('[data-component="SheetFooter"]');
+    if (!panelBody || !footer) throw new Error("SheetBody or SheetFooter not found");
+    // Docked, the body and the footer share the header's 24px inset; below the
+    // sm breakpoint the phone sheet keeps the handoff's 16px throughout.
+    const docked = document.documentElement.clientWidth >= SM_BREAKPOINT_PX;
+    await expect(getComputedStyle(panelBody).padding).toBe(docked ? "20px 24px" : "20px 16px");
+    await expect(getComputedStyle(footer).padding).toBe(docked ? "12px 24px" : "12px 16px");
+  },
 };
 
 // storybook-quality-allow state-harness: owns open state to exercise the real open/close cycle.

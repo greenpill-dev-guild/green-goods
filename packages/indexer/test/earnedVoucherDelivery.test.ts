@@ -127,6 +127,66 @@ describe("earned voucher delivery and steward Safe observations", () => {
     );
   });
 
+  it("keeps administrative close-out separate from late authenticated payment", async () => {
+    const db = createTestIndexer();
+    const closed = event(
+      "VoucherDispatchClosed",
+      {
+        entitlementId: ENTITLEMENT,
+        payloadHash: hash(3),
+        evidenceHash: hash(88),
+      },
+      14
+    );
+    await projectEarnedVoucherDistribution(closed, db);
+    await projectEarnedVoucherDistribution(closed, db);
+    const key = cosmoId(42161, SOURCE, ENTITLEMENT);
+    const before = await db.EarnedVoucherDistribution.get(key);
+    assert.equal(before?.delivered, undefined);
+    assert.ok(before && "dispatchCloseoutEvidence" in before);
+    assert.equal(before.dispatchCloseoutEvidence, hash(88));
+    await projectEarnedVoucherDistribution(
+      event(
+        "VoucherResultRecorded",
+        {
+          entitlementId: ENTITLEMENT,
+          resultSequence: 2n,
+          success: true,
+          failureHash: hash(0),
+        },
+        15
+      ),
+      db
+    );
+    // Out-of-order preparation cannot erase the closure or payment observation.
+    await projectEarnedVoucherDistribution(
+      event(
+        "VoucherDistributionPrepared",
+        {
+          entitlementId: ENTITLEMENT,
+          commitmentId: 7n,
+          payloadHash: hash(3),
+        },
+        10
+      ),
+      db
+    );
+    const after = await db.EarnedVoucherDistribution.get(key);
+    assert.equal(after?.delivered, true);
+    assert.ok(after && "dispatchCloseoutEvidence" in after);
+    assert.equal(after.dispatchCloseoutEvidence, hash(88));
+    await assert.rejects(
+      projectEarnedVoucherDistribution(
+        {
+          ...closed,
+          params: { ...closed.params, evidenceHash: hash(89) },
+        },
+        db
+      ),
+      /Conflicting earned voucher close-out dispatchCloseoutEvidence/
+    );
+  });
+
   it("keeps adapter attempts and acknowledgments separate from source delivery", async () => {
     const db = createTestIndexer();
     const recorded = event(
@@ -239,6 +299,38 @@ describe("earned voucher delivery and steward Safe observations", () => {
     const state = await db.StewardSafeReceiverState.get(cosmoId(100, SOURCE));
     assert.equal(state?.bootstrapFinalized, true);
     assert.equal(state?.finalizedBlockNumber, 34n);
+  });
+
+  it("routes close-out and late payment observations from the configured source", async () => {
+    const db = createTestIndexer();
+    const source = indexedAddress("VoucherEntitlementModule", 42161);
+    await processEvents(db, [
+      {
+        ...event(
+          "VoucherDispatchClosed",
+          { entitlementId: ENTITLEMENT, payloadHash: hash(3), evidenceHash: hash(88) },
+          518_000_010
+        ),
+        contract: "VoucherEntitlementModule",
+        event: "VoucherDispatchClosed",
+        srcAddress: source,
+        transaction: { hash: hash(910) },
+      },
+      {
+        ...event(
+          "VoucherResultRecorded",
+          { entitlementId: ENTITLEMENT, resultSequence: 1n, success: true, failureHash: hash(0) },
+          518_000_011
+        ),
+        contract: "VoucherEntitlementModule",
+        event: "VoucherResultRecorded",
+        srcAddress: source,
+        transaction: { hash: hash(911) },
+      },
+    ]);
+    const row = await db.EarnedVoucherDistribution.get(cosmoId(42161, source, ENTITLEMENT));
+    assert.equal(row?.dispatchCloseoutEvidence, hash(88));
+    assert.equal(row?.delivered, true);
   });
 
   it("routes the live pilot through configured Gnosis addresses and the core's setup pin", async () => {

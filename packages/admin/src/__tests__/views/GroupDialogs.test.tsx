@@ -217,6 +217,26 @@ describe("Edit Reward", () => {
     expect(within(dialog()).getByRole("button", { name: "Change 4 Rewards" })).toBeDisabled();
     expect(screen.getByTestId("reward-prompt-count")).toHaveTextContent(/settlement account/i);
   });
+
+  it("takes the reward off every copy nobody has taken, even with the account inactive", async () => {
+    const { onChanged } = renderDialog({ settlementActive: false });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Remove Reward" }));
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledWith(4));
+    expect(mocks.changes).toEqual([{ ids: [3n, 4n, 5n, 6n], amount: 0n }]);
+  });
+
+  it("removes the reward again on Try Again, with no amount or account to read", async () => {
+    mocks.unchanged.add(4n);
+    renderDialog({ settlementActive: false });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Remove Reward" }));
+
+    const retry = await within(dialog()).findByRole("button", { name: "Try Again (1)" });
+    expect(within(dialog()).queryByRole("button", { name: "Remove Reward" })).toBeNull();
+    fireEvent.click(retry);
+    await waitFor(() => expect(mocks.changes).toHaveLength(2));
+    expect(mocks.changes[1]).toEqual({ ids: [4n], amount: 0n });
+  });
 });
 
 describe("Edit Reward's summary", () => {
@@ -241,6 +261,14 @@ describe("Edit Reward's summary", () => {
     ["changed", [copy(3n, "changed")], "changed", []],
   ] as const)("reads a %s change, with what Try Again would send", (_, copies, phase, retry) => {
     expect(view([...copies])).toMatchObject({ phase, retry });
+  });
+
+  it("says a group past its ceilings changed nothing, and that Try Again asks for each", () => {
+    expect(view([copy(3n, "not-changed", "over-ceilings")])).toMatchObject({
+      phase: "refused",
+      retry: [3n],
+      description: expect.stringContaining("Try Again asks for each one on its own"),
+    });
   });
 });
 
@@ -350,6 +378,17 @@ describe("Add to This Group", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("add-prompt-count")).toHaveTextContent(/deadline has passed/i)
+    );
+    expect(onAdded).not.toHaveBeenCalled();
+  });
+
+  it("says why more of a reward can't be promised while the settlement account is inactive", async () => {
+    mocks.outcome = "no-settlement-account";
+    const { onAdded } = renderAdd();
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Add Promise" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("add-prompt-count")).toHaveTextContent(/settlement account/i)
     );
     expect(onAdded).not.toHaveBeenCalled();
   });

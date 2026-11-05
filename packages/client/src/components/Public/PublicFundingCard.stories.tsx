@@ -1,14 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import {
-  AmountInput,
-  DenominationToggle,
-  InlineErrorBlock,
-  LoadingBody,
-  SuccessBody,
-  TokenPicker,
-  UnavailableBody,
-} from "./PublicFundingCard";
+import { AmountInput, DenominationToggle, SuccessBody, TokenPicker } from "./PublicFundingCard";
+import { InlineErrorBlock, LoadingBody, UnavailableBody } from "./PublicFundingStates";
 
 const messages: Record<string, string> = {
   "public.fund.dialog.donate.title": "Donate",

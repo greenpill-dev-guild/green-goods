@@ -140,7 +140,9 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
         args: settlementArgs(input),
         chainId,
       });
-      return result.hash;
+      // A Safe-style wallet can answer with a proposal (`confirmation: "pending"`):
+      // nothing has run yet, and the caller must not read it as a confirmed step.
+      return result;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
@@ -160,7 +162,7 @@ export function useSettlementOperationsCapabilities(input: {
   account?: Address;
   protocolGarden?: Address | null;
   executorGarden?: Address | null;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
 }) {
   const settlementModule = getNetworkContracts(input.chainId).settlementModule;
   const availability = selectCommitmentPoolingAvailability(
@@ -206,7 +208,7 @@ export function useSettlementOperationsCapabilities(input: {
       isExecutorSteward: role(executorRoles.roles),
       isDispatcher:
         typeof dispatcher.data === "string" && dispatcher.data.toLowerCase() === normalized,
-      isDeployer: input.isDeployer,
+      isProtocolTeam: input.isProtocolTeam,
     }),
     isLoading:
       owner.isLoading || dispatcher.isLoading || protocolRoles.isLoading || executorRoles.isLoading,

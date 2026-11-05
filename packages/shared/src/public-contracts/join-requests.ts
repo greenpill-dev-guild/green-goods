@@ -3,7 +3,9 @@ import type { Address, PublicApiError } from "./core";
 export {
   buildGardenJoinProofMessage,
   decodeGardenJoinAuthorization,
+  decodeGardenJoinCountAuthorization,
   encodeGardenJoinAuthorization,
+  encodeGardenJoinCountAuthorization,
 } from "./join-request-auth";
 export { validateGardenJoinProofEnvelope } from "./join-request-proof";
 
@@ -110,11 +112,30 @@ export type GardenJoinRequestSelfResponse = {
   request: GardenJoinRequestSelfRecord | null;
 };
 
+/**
+ * A read of how many requests wait in one garden, issued with a signed queue read so a badge never
+ * has to ask for a signature. It reads nothing else, and the service checks the account's role on
+ * every use.
+ */
+export type GardenJoinRequestCountGrant = {
+  token: string;
+  /** Seconds since the epoch. */
+  expiresAt: number;
+};
+
 export type GardenJoinRequestQueueResponse = {
   ok: true;
   items: GardenJoinRequestQueueItem[];
   nextCursor?: string;
   rateLimitedRecently: boolean;
+  /** Older services omit this field. */
+  countGrant?: GardenJoinRequestCountGrant;
+};
+
+export type GardenJoinRequestCountResponse = {
+  ok: true;
+  /** Pending requests of every kind in the garden. */
+  waiting: number;
 };
 
 export type GardenJoinRequestAvailabilityResponse = {

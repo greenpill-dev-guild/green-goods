@@ -7,9 +7,12 @@ import {
   formatTokenAmount,
 } from "../../../utils/blockchain/vaults";
 import {
+  ADD_MEMBER_ROUTE_ITEM,
   type AdminCommunityRouteContext,
   adminRoutes,
+  FUND_JAR_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**
@@ -132,10 +135,12 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 /**
  * Community view-level actions. The set is stable across Community tabs so
  * desktop button positions and the mobile FAB speed dial do not shift while
- * stewards move between Members, Coordination, Endowment, and Payouts.
+ * stewards move between Members, Coordination, Endowment, and Payouts. Add
+ * Member and Fund Cookie Jar read the active tab, to open their dialogs over it
+ * (DL-140).
  */
 export function buildCommunityViewActions(
-  _mode: CommunityWorkspaceMode,
+  mode: CommunityWorkspaceMode,
   canManage: boolean,
   isOwner: boolean,
   hasSelectedGarden: boolean,
@@ -153,7 +158,10 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.addMember",
       icon: RiUserAddLine,
       onClick: () =>
-        navigate(adminRoutes.communityMembers({ gardenId: gardenAddress, item: "add-member" })),
+        pushRouteItem(
+          navigate,
+          adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: ADD_MEMBER_ROUTE_ITEM })
+        ),
       variant: "primary",
       visible: hasSelectedGarden && canManage,
       primary: true,
@@ -173,7 +181,10 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
       onClick: () =>
-        navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
+        pushRouteItem(
+          navigate,
+          adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: FUND_JAR_ROUTE_ITEM })
+        ),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
       // Stays in place, disabled and saying why, rather than doing nothing (D10).

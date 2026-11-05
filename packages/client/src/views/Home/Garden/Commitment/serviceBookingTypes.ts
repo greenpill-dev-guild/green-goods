@@ -19,11 +19,14 @@ export type ServiceProfile = "hubDay" | "access" | "minutes" | "generic";
 export type ServiceBookingStage =
   | "open"
   | "notEnough"
+  | "requestNotSent"
+  | "requestInTransit"
   | "waitingApproval"
   | "readyToDeposit"
   | "confirmingDeposit"
   | "waitingAcceptance"
   | "starting"
+  | "activationInTransit"
   | "inProgress"
   | "readyToClose"
   | "returnProposed"
@@ -127,6 +130,7 @@ export interface ServiceBookingView {
   transfers: ServiceTransfer[];
   /** Chains, Safes and record numbers, only under Transaction details (D2). */
   details: string[];
+  messageLinks: { label: string; href: string }[];
   /** Delivery for Progress and proof: a count once reported, else what comes next. */
   delivery: { label: string; done: number; of: number } | { none: string } | null;
   primary: ServiceAct | null;
@@ -169,6 +173,14 @@ export interface ServiceBookingView {
     /** A member's own service: the member approves, then the garden's stewards accept. */
     member: boolean;
   };
+}
+
+/** What a voucher offer's creator reads about it, beside the promise's own sentences and act. */
+export interface OwnServiceOfferView {
+  /** What a booking takes, in words ("1 Tech and Sun voucher"), for What was promised. */
+  takes: string;
+  /** Said only while the promise's own sentence would be false: nobody can book right now. */
+  band: { tone: ServiceBandTone; sentence: string; needsYou: boolean } | null;
 }
 
 export interface ServiceBookingInput {

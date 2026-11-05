@@ -68,6 +68,8 @@ contract VoucherEntitlementModule is VoucherEndpoint {
     mapping(bytes32 entitlement => Distribution distribution) private _distributions;
     mapping(bytes32 entitlement => bytes payload) private _commands;
     mapping(bytes32 messageId => bytes32 dataHash) public acknowledgmentMessages;
+    uint256 public feeReserveMinimum;
+    mapping(bytes32 entitlement => bytes32 evidenceHash) public dispatchCloseoutEvidence;
 
     error NotVoucherSteward();
     error NotCommitmentPooling();
@@ -86,7 +88,15 @@ contract VoucherEntitlementModule is VoucherEndpoint {
     error VoucherAlreadyDelivered();
     error ConflictingVoucherResult();
     error ConflictingTransportMessage();
+    error InvalidFeeReserveMinimum();
+    error FeeReserveFloorNotConfigured();
+    error FeeReserveFloorViolated(uint256 minimum, uint256 remaining);
+    error VoucherDispatchIsClosed();
+    error InvalidDispatchCloseout();
+    error ConflictingDispatchCloseout();
 
+    event FeeReserveMinimumChanged(uint256 minimum);
+    event VoucherDispatchClosed(bytes32 indexed entitlementId, bytes32 indexed payloadHash, bytes32 evidenceHash);
     event IssuerAuthorityConfigured(address indexed issuer, address indexed token, address indexed authority);
     event VoucherTermsRegistered(uint256 indexed commitmentId, uint64 indexed revision, bytes32 termsHash);
     event VoucherTermsApproved(uint256 indexed commitmentId, uint64 indexed revision, address indexed issuerAuthority);
@@ -125,6 +135,29 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         if (!paused || issuer == address(0) || token == address(0)) revert InvalidVoucherTerms();
         issuerAuthority[issuer][token] = authority;
         emit IssuerAuthorityConfigured(issuer, token, authority);
+    }
+
+    /// @notice Retain this native balance after each send; upgrades leave sends disabled until configured.
+    function setFeeReserveMinimum(uint256 minimum) external onlyOwner nonReentrant {
+        if (!paused || minimum == 0) revert InvalidFeeReserveMinimum();
+        feeReserveMinimum = minimum;
+        emit FeeReserveMinimumChanged(minimum);
+    }
+
+    /// @notice Stop source dispatch only. In-flight destination execution and late receipts remain valid.
+    /// @dev Closure never proves nonpayment, forgives the reward or authorizes replacement value.
+    function closeDispatch(bytes32 entitlement, bytes32 evidenceHash) external onlyOwner nonReentrant {
+        Distribution storage distribution = _knownDistribution(entitlement);
+        if (evidenceHash == bytes32(0)) revert InvalidDispatchCloseout();
+        bytes32 prior = dispatchCloseoutEvidence[entitlement];
+        if (prior != bytes32(0)) {
+            if (prior != evidenceHash) revert ConflictingDispatchCloseout();
+            return;
+        }
+        if (distribution.state == DeliveryState.Delivered) revert VoucherAlreadyDelivered();
+        if (distribution.lastMessageId == bytes32(0)) revert InvalidDispatchCloseout();
+        dispatchCloseoutEvidence[entitlement] = evidenceHash;
+        emit VoucherDispatchClosed(entitlement, distribution.payloadHash, evidenceHash);
     }
 
     function voucherAcceptanceProtocolVersion() external pure returns (uint16) {
@@ -260,8 +293,13 @@ contract VoucherEntitlementModule is VoucherEndpoint {
             commitmentPooling, hatsModule, commitmentPooling.getCommitment(distribution.commitmentId).poolId
         );
         if (distribution.state == DeliveryState.Delivered) revert VoucherAlreadyDelivered();
+        if (dispatchCloseoutEvidence[entitlement] != bytes32(0)) revert VoucherDispatchIsClosed();
+        uint256 minimum = feeReserveMinimum;
+        if (minimum == 0) revert FeeReserveFloorNotConfigured();
         distribution.state = DeliveryState.Pending;
         messageId = _send(_commands[entitlement], COMMAND_GAS_LIMIT);
+        // A failed postcondition reverts the router send, fee and source effects atomically.
+        if (address(this).balance < minimum) revert FeeReserveFloorViolated(minimum, address(this).balance);
         distribution.lastMessageId = messageId;
         emit VoucherDistributionDispatched(entitlement, messageId);
     }
@@ -343,6 +381,6 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         if (distribution.state == DeliveryState.None) revert UnknownVoucherEntitlement();
     }
 
-    // Nine slots above plus the reserved gap; dependencies and peer configuration have no setters.
-    uint256[41] private __gap;
+    // Eleven slots above plus the reserved gap; dependencies and peer configuration have no setters.
+    uint256[39] private __gap;
 }

@@ -23,8 +23,9 @@ export interface ActiveGarden {
   /** The account's gardens, for the switcher. */
   myGardens: MyGardens;
   /**
-   * Make one of the account's gardens the active one, as the chip's switcher does. A garden
-   * that is not the account's is ignored: visiting a garden never switches it.
+   * Make one of the account's gardens the active one, as the chip's switcher and Home's
+   * first-login page do. A garden that is not the account's is ignored: visiting a garden never
+   * switches it. Joining an open garden writes its own choice (`useJoinGarden`, DL-147).
    */
   selectGarden: (gardenId: string) => void;
   /**

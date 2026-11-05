@@ -15,7 +15,7 @@ import {
 } from "./serviceIssuerStoryFixtures";
 
 /**
- * A member's own service in Profile, Account, Service Assets (PRD-1299 `SMyService`): the
+ * A member's own service in Profile, Account, Your Services (PRD-1299 `SMyService`): the
  * status band, what they can still deliver, where their vouchers are, bookings as person rows
  * and the member's named acts. Switch the toolbar's Language for Spanish and Portuguese.
  */

@@ -10,7 +10,8 @@ const baseStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "8px",
-  padding: "12px 16px",
+  // The host sheet may set `--gg-sheet-footer-padding` to match its body's inset.
+  padding: "var(--gg-sheet-footer-padding, 12px 16px)",
   borderTop: "1px solid var(--hairline)",
   background: "var(--surface-raised)",
   flexShrink: 0,
@@ -19,7 +20,8 @@ const baseStyle: CSSProperties = {
 /**
  * SheetFooter — bottom slot for dialog / inspector panels (Save / Cancel /
  * Sign out actions). Handoff anatomy: `12px 16px` padding, hairline top
- * border, `gap: 8px`.
+ * border, `gap: 8px`; the host sheet can retune the padding through
+ * `--gg-sheet-footer-padding`.
  */
 export function SheetFooter({ children, className, style }: SheetFooterProps) {
   return (

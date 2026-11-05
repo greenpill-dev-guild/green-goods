@@ -524,7 +524,7 @@ describe("useWorkDetailController", () => {
   it("ignores a stale dashboard marker without this session's history entry", () => {
     useUIStore.getState().rememberWorkDashboard({
       tab: "pending",
-      pendingFilter: "needsReview",
+      pendingFilter: "upload",
       completedFilter: "reviewedByYou",
       timeFilter: "month",
       scrollTop: 144,

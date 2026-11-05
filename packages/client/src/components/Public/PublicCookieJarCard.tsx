@@ -1,11 +1,6 @@
 import type { Address } from "@green-goods/shared/types/domain";
-import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import {
-  classifyTxError,
-  isMeaningfulTxErrorMessage,
-} from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
@@ -16,7 +11,12 @@ import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageW
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import {
+  TxHoldFeedback,
+  TxInlineFeedback,
+} from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useDepositPlan } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
 import {
   useCampaignCookieJar,
@@ -24,7 +24,7 @@ import {
   useCampaignCookieJarWithdraw,
 } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
@@ -36,6 +36,7 @@ import {
   EditorialSkeleton,
   EditorialStatSkeleton,
 } from "@/components/Public/atoms";
+import { ClaimEligibilityNote } from "@/components/Public/ClaimEligibilityNote";
 import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 const STRICT_PURPOSE_MIN_LENGTH = 27;
@@ -461,8 +462,21 @@ function CampaignCookieJarInlineActions({
     claimExceedsBalance ||
     Boolean(claimInputError) ||
     claimMutation.isPending;
+  const plan = useDepositPlan({
+    target: primaryAddress
+      ? { kind: "jar", address: jar.jarAddress, asset: jar.assetAddress }
+      : null,
+    amount: parsedDeposit,
+    decimals,
+    symbol,
+    onLanded: () => setDepositAmount(""),
+  });
   const depositDisabled =
-    !primaryAddress || parsedDeposit <= 0n || Boolean(depositError) || depositMutation.isPending;
+    !primaryAddress ||
+    parsedDeposit <= 0n ||
+    Boolean(depositError) ||
+    depositMutation.isPending ||
+    plan.isPaused;
 
   const { data: walletBalance } = useBalance({
     chainId,
@@ -485,18 +499,9 @@ function CampaignCookieJarInlineActions({
   }, [claimAmount, claimMutationError, resetClaimMutation]);
 
   const activeError = claimMutationError ?? depositMutationError;
-  const txErrorView = useMemo(() => classifyTxError(activeError), [activeError]);
-  const txErrorTitle = formatMessage({
-    id: txErrorView.titleKey,
-    defaultMessage:
-      txErrorView.severity === "warning" ? "Transaction canceled" : "Transaction failed",
-  });
-  const txErrorMessage = isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-    ? txErrorView.rawMessage
-    : formatMessage({
-        id: txErrorView.messageKey,
-        defaultMessage: "Something went wrong. Please try again.",
-      });
+  const txError = useTxErrorMessages(activeError);
+  const unknownDepositIsHeld =
+    !claimMutationError && plan.unconfirmedIsHeld && txError.view.kind === "unconfirmed";
 
   const nextClaimLabel = jar.nextClaimAt ? formatClaimWindow(jar.nextClaimAt, locale) : null;
 
@@ -677,6 +682,15 @@ function CampaignCookieJarInlineActions({
           </p>
         ) : null}
 
+        {plan.holdFeedback ? (
+          <TxHoldFeedback {...plan.holdFeedback} isBusy={depositMutation.isPending} />
+        ) : null}
+        {plan.signatureLine ? (
+          <p className="text-xs text-text-soft-400" aria-live="polite">
+            {plan.signatureLine}
+          </p>
+        ) : null}
+
         <Button
           onClick={handleDeposit}
           emphasis="secondary"
@@ -692,65 +706,12 @@ function CampaignCookieJarInlineActions({
       </div>
 
       <TxInlineFeedback
-        visible={Boolean(activeError)}
-        severity={txErrorView.severity}
-        title={txErrorTitle}
-        message={txErrorMessage}
+        visible={Boolean(activeError) && !unknownDepositIsHeld}
+        severity={txError.view.severity}
+        title={txError.title}
+        message={txError.message}
         reserveClassName="min-h-0"
       />
     </div>
-  );
-}
-
-function ClaimEligibilityNote({
-  jar,
-  nextClaimLabel,
-}: {
-  jar: NonNullable<ReturnType<typeof useCampaignCookieJar>["jar"]>;
-  nextClaimLabel: string | null;
-}) {
-  const { formatMessage } = useIntl();
-
-  const restriction = !jar.isEligible
-    ? formatMessage({
-        id: "public.cookies.notEligible",
-        defaultMessage:
-          "This jar is for garden stewards on the campaign allowlist. Your wallet is not on the list yet.",
-      })
-    : jar.balance === 0n
-      ? formatMessage({
-          id: "public.cookies.needsFunding",
-          defaultMessage: "This jar needs funds before claims can go out.",
-        })
-      : jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n
-        ? formatMessage({
-            id: "public.cookies.alreadyClaimed",
-            defaultMessage: "This wallet has already claimed from this jar.",
-          })
-        : nextClaimLabel
-          ? formatMessage(
-              {
-                id: "public.cookies.nextClaim",
-                defaultMessage: "Next claim window opens at {time}.",
-              },
-              { time: nextClaimLabel }
-            )
-          : null;
-  if (jar.isPaused || !restriction) {
-    return (
-      <Alert variant={jar.isPaused ? "warning" : "success"} className="p-3">
-        {formatMessage({
-          id: jar.isPaused ? "public.cookies.paused" : "public.cookies.ready",
-          defaultMessage: jar.isPaused
-            ? "Claims are paused for this jar."
-            : "You are on the list. Claim when you are ready.",
-        })}
-      </Alert>
-    );
-  }
-  return (
-    <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-      {restriction}
-    </p>
   );
 }

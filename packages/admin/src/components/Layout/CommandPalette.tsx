@@ -109,9 +109,12 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
+        {/* The row keeps 8px above and below the input, so its 2px focus ring
+            sits inside the panel's clipped, rounded top edge instead of being cut
+            along it (qa-session 2026-10-30 OBS-17). */}
         <div
           data-component="CommandPaletteSearch"
-          className="flex items-center gap-3 border-b border-stroke-soft px-4"
+          className="flex items-center gap-3 border-b border-stroke-soft px-4 py-2"
         >
           <RiSearchLine className="h-5 w-5 shrink-0 text-text-soft" aria-hidden="true" />
           <input
@@ -157,7 +160,8 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           ) : (
             groups.map((group) => (
               <div key={group.category} role="group" aria-label={group.label}>
-                <div className="px-2 py-1.5 type-meta-sm text-text-soft">{group.label}</div>
+                {/* The sub ink: the soft ink on this fill is 3.95:1, short of AA at 11px. */}
+                <div className="px-2 py-1.5 type-meta-sm text-text-sub">{group.label}</div>
                 {group.items.map((result) => {
                   const index = flatIndex++;
                   const isActive = index === activeIndex;

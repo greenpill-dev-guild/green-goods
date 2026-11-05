@@ -8,11 +8,16 @@ import {
 import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
 import {
+  type AdminHubFlowItem,
   type AdminHubRouteContext,
   type AdminHubWorkScope,
   adminRoutes,
+  CREATE_ASSESSMENT_ROUTE_ITEM,
+  CREATE_HYPERCERT_ROUTE_ITEM,
+  SUBMIT_WORK_ROUTE_ITEM,
 } from "../../../utils/navigation/admin-routes";
 import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
+import { pushRouteItem } from "../../navigation/useCanvasSearchParams";
 import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 
 // ============================================================================
@@ -205,22 +210,26 @@ export function resolveOpenSectionRoute(
 // The Hub is a review surface, so all three render outlined and none
 // out-shouts the queue (DL-043). Submit Work stays the declared primary on
 // every stage (Create Assessment for evaluator-only viewers): it still sorts
-// rightmost and fills the FAB.
+// rightmost and fills the FAB. Each one adds its flow's route item to the active
+// stage, so the flow opens over that stage with its sort and scope intact (DL-140).
 
 export function buildHubViewActions(
-  _stage: HubPipelineStage,
+  stage: HubPipelineStage,
   canManage: boolean,
   canReview: boolean,
   navigate: (path: string) => void,
   hubContext: AdminHubRouteContext
 ): ViewAction[] {
+  const openFlow = (item: AdminHubFlowItem) => () =>
+    pushRouteItem(navigate, adminRoutes.hubMode(stage, { ...hubContext, item }));
+
   return [
     {
       id: "submit-work",
       label: "Submit work",
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
-      onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
+      onClick: openFlow(SUBMIT_WORK_ROUTE_ITEM),
       variant: "secondary",
       visible: canManage,
       primary: true,
@@ -230,7 +239,7 @@ export function buildHubViewActions(
       label: "Create assessment",
       labelId: "cockpit.hub.action.createAssessment",
       icon: RiCheckLine,
-      onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
+      onClick: openFlow(CREATE_ASSESSMENT_ROUTE_ITEM),
       variant: "secondary",
       visible: canReview,
       primary: !canManage,
@@ -240,7 +249,7 @@ export function buildHubViewActions(
       label: "Create hypercert",
       labelId: "cockpit.hub.action.createHypercert",
       icon: RiMedalLine,
-      onClick: () => navigate(adminRoutes.hubCertifyCreate(hubContext)),
+      onClick: openFlow(CREATE_HYPERCERT_ROUTE_ITEM),
       variant: "secondary",
       visible: canManage,
       primary: false,

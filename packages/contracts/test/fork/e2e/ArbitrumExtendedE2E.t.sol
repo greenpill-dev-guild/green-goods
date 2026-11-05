@@ -124,7 +124,7 @@ contract ArbitrumExtendedE2EForkTest is AaveOctantForkBase {
 
         // Complete the yield pipeline with splitYield
         yieldSplitter.setMinYieldThreshold(0); // Allow small amounts for test
-        address cookieJar = address(0xC001);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         yieldSplitter.setCookieJar(garden, cookieJar);
         address treasury = address(0x7EA5);
         yieldSplitter.setGardenTreasury(garden, treasury);
@@ -555,8 +555,8 @@ contract ArbitrumExtendedE2EForkTest is AaveOctantForkBase {
         assertGt(resolverShares, 0, "harvest should register yield shares with resolver");
 
         // 7. Configure destinations for the garden
-        //    Cookie Jar: use a dedicated address.
-        address cookieJar = address(0xC001);
+        //    Cookie Jar: the garden's real jar for the asset.
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         yieldSplitter.setCookieJar(garden, cookieJar);
 
         //    Treasury: receives the no-terminal JB route (2.7%) since no Juicebox terminal is configured
@@ -624,7 +624,7 @@ contract ArbitrumExtendedE2EForkTest is AaveOctantForkBase {
         _harvestRegistersShares(garden, vault);
 
         // Configure cookie jar and treasury but NOT the pool
-        address cookieJar = address(0xC001);
+        address cookieJar = _realCookieJar(garden, yieldAsset);
         yieldSplitter.setCookieJar(garden, cookieJar);
         address treasury = address(0x7EA5);
         yieldSplitter.setGardenTreasury(garden, treasury);

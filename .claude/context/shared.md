@@ -251,7 +251,9 @@ Use `isGreenWillDeployed(chainId?)` from `@green-goods/shared` to detect when a 
 
 ### Optimistic-UI Memos over localStorage
 
-When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change, a join lapsing at its 15-minute limit included. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+
+Give that deps line the `eslint-disable-next-line react-hooks/exhaustive-deps` comment `useMyGardens` carries: the comment is what makes the counter work in a built app. The memo never reads the counter, so the React Compiler would leave it out of the memo's key, and `void version` inside the memo changes nothing because the compiler removes it as dead code. The disable line makes the compiler skip the hook and honor the deps as written. Tests and stories run uncompiled, so they pass either way.
 
 ## Anti-Patterns
 

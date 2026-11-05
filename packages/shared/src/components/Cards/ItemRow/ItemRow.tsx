@@ -67,12 +67,19 @@ export type ItemRowLead =
     }
   | {
       kind: "avatar";
-      /** The person's photo; without one, or when it fails, the circle shows a person glyph. */
+      /**
+       * The person's photo, or the surface's own picture for someone without one; without
+       * either the circle shows a person glyph. While a photo is still being looked up this is
+       * what the person would show without one, so the circle is never blank.
+       */
       src?: string | null;
+      /**
+       * The surface's own picture for someone without a photo. It stays behind a photo until the
+       * photo has loaded and takes its place if it fails; without it the glyph does both.
+       */
+      fallbackSrc?: string;
       /** An avatar repeats the person's name, so it is decorative unless this names it. */
       alt?: string;
-      /** The photo is still being looked up: the circle stays empty, so no glyph flashes. */
-      loading?: boolean;
     };
 
 export interface ItemRowProps
@@ -80,6 +87,11 @@ export interface ItemRowProps
   lead: ItemRowLead;
   /** One line; it ends in an ellipsis when it must and shows in full on hover. */
   title: string;
+  /**
+   * Lets a long title take two lines, for a row with no detail line, so the row keeps its one
+   * height: a garden's name on Home's first-login page (DL-155).
+   */
+  titleLines?: 1 | 2;
   /**
    * The row's one pill. A state that replaces the status (an error, a retry,
    * "Confirming…", "Not sent") goes here too, never in a second pill.
@@ -124,20 +136,32 @@ function Mark({ children }: { children: React.ReactNode }) {
 
 function Lead({ lead }: { lead: ItemRowLead }) {
   if (lead.kind === "avatar") {
+    // What someone without a photo shows: the surface's own picture, else the glyph. It also
+    // stays behind a photo until the photo has loaded, and takes its place if it fails, so the
+    // circle is never blank while a photo is on its way.
+    const withoutPhoto = lead.fallbackSrc ? (
+      <img src={lead.fallbackSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    ) : (
+      <span className="absolute inset-0 flex items-center justify-center">
+        <RiUserLine aria-hidden="true" className="h-6 w-6" />
+      </span>
+    );
+    const isPhoto = lead.src !== lead.fallbackSrc;
     return (
       <span className="gg-item-row-lead">
         {/* A decorative avatar stays out of the row's name, a photo that failed included. */}
         <span className="gg-item-row-avatar" aria-hidden={lead.alt ? undefined : true}>
-          {lead.loading ? null : lead.src ? (
+          {lead.src ? (
             <ImageWithFallback
               src={lead.src}
               alt={lead.alt ?? ""}
               fallbackIcon={RiUserLine}
+              backgroundFallback={isPhoto ? withoutPhoto : undefined}
               className="absolute inset-0 h-full w-full object-cover"
               fallbackClassName="absolute inset-0 h-full w-full"
             />
           ) : (
-            <RiUserLine aria-hidden="true" />
+            withoutPhoto
           )}
         </span>
       </span>
@@ -213,15 +237,20 @@ function DetailLine({ details }: { details: NonNullable<ItemRowProps["details"]>
 function RowContent({
   lead,
   title,
+  titleLines = 1,
   status,
   details,
   amount,
-}: Pick<ItemRowProps, "lead" | "title" | "status" | "details" | "amount">) {
+}: Pick<ItemRowProps, "lead" | "title" | "titleLines" | "status" | "details" | "amount">) {
   return (
     <>
       <Lead lead={lead} />
       <span className="gg-item-row-body">
-        <span className="gg-item-row-title type-card-title" title={title}>
+        <span
+          className="gg-item-row-title type-card-title"
+          data-lines={titleLines === 2 ? "2" : undefined}
+          title={title}
+        >
           {title}
         </span>
         {status ? (
@@ -253,6 +282,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
   {
     lead,
     title,
+    titleLines,
     status,
     details,
     edge,
@@ -278,6 +308,7 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
     <RowContent
       lead={lead}
       title={title}
+      titleLines={titleLines}
       status={status}
       details={details}
       amount={action ? undefined : amount}

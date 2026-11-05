@@ -1,9 +1,13 @@
-import type {
-  CommitmentDerivedState,
-  ServiceAccessAction,
-  ServiceAccessSnapshot,
+import {
+  type CommitmentDerivedState,
+  type ServiceAccessAction,
+  type ServiceAccessSnapshot,
+  serviceAccessAvailableActions,
+  selectServiceAccessAction,
 } from "@green-goods/shared/commitment-pooling";
 import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
@@ -29,6 +33,7 @@ import {
 } from "../../views/Home/Garden/Commitment/serviceActs";
 import {
   bookingVoucherIssuer,
+  ownServiceOfferView,
   serviceBookingView,
 } from "../../views/Home/Garden/Commitment/serviceBooking";
 import { exchangeStateFromPilot } from "../../views/Home/Garden/Commitment/serviceExchange";
@@ -68,7 +73,136 @@ function view(
   return result;
 }
 
+describe("a voucher offer as the person who made it reads it", () => {
+  const own = (
+    change: Partial<Parameters<typeof ownServiceOfferView>[0]> = {},
+    snapshot = bookingStorySnapshot("hubDay", "open")
+  ) =>
+    ownServiceOfferView(
+      { snapshot, coreState: "OFFERED", issuer: ISSUER.hubDay, paused: false, ...change },
+      intl
+    );
+
+  it("says what a booking takes, in the count's own words", () => {
+    expect(own()?.takes).toBe("1 Tech and Sun voucher");
+    const two = bookingStorySnapshot("hubDay", "open");
+    two.offer!.voucher!.units = vouchers(2);
+    expect(own({}, two)?.takes).toBe("2 Tech and Sun vouchers");
+  });
+
+  it("speaks only while nobody can book an open offer, leaving every other sentence to the promise", () => {
+    expect(own()?.band).toBeNull();
+    expect(own({ paused: true })?.band?.sentence).toContain("New bookings are paused");
+    expect(own({ paused: true, coreState: "ACTIVE" })?.band).toBeNull();
+  });
+
+  it("has nothing to say about an offer with no voucher route", () => {
+    const personal = bookingStorySnapshot("hubDay", "open");
+    personal.offer!.route = "personal-gd";
+    expect(own({}, personal)).toBeNull();
+  });
+});
+
 describe("voucher booking on the promise page", () => {
+  it.each(
+    (["en", "es", "pt"] as const).flatMap((locale) =>
+      (["readyToDeposit", "waitingAcceptance"] as const).flatMap((stage) =>
+        (["collective-one", "collective-many", "individual"] as const).map((variant) => ({
+          locale,
+          stage,
+          variant,
+        }))
+      )
+    )
+  )("keeps one sentence stop around the $locale $stage deadline ($variant)", ({
+    locale,
+    stage,
+    variant,
+  }) => {
+    const translated = createIntl({ locale, messages: { en, es, pt }[locale] });
+    const snapshot = bookingStorySnapshot("hubDay", stage);
+    const deadline = snapshot.voucherSetups[0]!.authorization.acceptanceDeadline;
+    snapshot.voucherSetups[0]!.authorization.voucherUnits = vouchers(
+      variant === "collective-many" ? 3 : 1
+    );
+    if (snapshot.voucherSetups[0]!.source.setupResult) {
+      snapshot.voucherSetups[0]!.source.setupResult.depositedUnits =
+        snapshot.voucherSetups[0]!.authorization.voucherUnits;
+    }
+    const result = serviceBookingView(
+      {
+        snapshot,
+        coreState: bookingStoryCoreState("hubDay", stage),
+        issuer: { ...ISSUER.hubDay, kind: variant === "individual" ? "individual" : "collective" },
+        approval: APPROVAL.hubDay,
+        held: vouchers(10),
+      },
+      translated
+    )!;
+    const date = translated.formatDate(Number(deadline) * 1000, { month: "short", day: "numeric" });
+    expect(result.stage).toBe(stage);
+    expect(result.band.sentence).toContain(`${date.replace(/\.$/u, "")}.`);
+    expect(result.band.sentence).not.toContain("..");
+    expect(result.facts.find((fact) => fact.id === "deadline")?.value).toBe(date);
+  });
+
+  it.each([false, true])("separates an unsent request from its network wait (sent=%s)", (sent) => {
+    const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
+    const setup = snapshot.voucherSetups[0]!;
+    setup.destination!.result.phase = "none";
+    setup.source.authorizationDispatched = sent;
+    setup.source.authorizationMessageId = sent ? setup.setupId : null;
+    const result = serviceBookingView(
+      {
+        snapshot,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(result.stage).toBe(sent ? "requestInTransit" : "requestNotSent");
+    expect(result.band.sentence).not.toContain("their Safe needs");
+    expect(result.primary?.kind ?? null).toBe(sent ? null : "redeem");
+    expect(result.messageLinks).toHaveLength(sent ? 1 : 0);
+    expect(result.details[0]).toBe("No vouchers have been deposited for this booking.");
+    expect(result.facts[0]?.value).toContain("still in your account");
+    if (!sent) {
+      snapshot.availableActions = serviceAccessAvailableActions(snapshot);
+      setup.availableActions = ["dispatchVoucherSetupCommand"];
+      expect(agreeStep(snapshot)).toMatchObject({
+        action: "dispatchVoucherSetupCommand",
+        kind: "authorization",
+        setupId: setup.setupId,
+      });
+      expect(selectServiceAccessAction(snapshot, agreeStep(snapshot)!).allowed).toBe(true);
+    }
+  });
+  it("waits for a dispatched activation without offering it for signing again", () => {
+    const snapshot = bookingStorySnapshot("hubDay", "starting");
+    snapshot.voucherSetups[0]!.source.decisionDispatched = true;
+    const result = serviceBookingView(
+      {
+        snapshot,
+        coreState: "ACCEPTED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(8),
+      },
+      intl
+    )!;
+    expect(result.stage).toBe("activationInTransit");
+    expect(result.primary).toBeNull();
+    expect(result.band.sentence).toContain("has been sent");
+  });
+  it.each([
+    ["waitingApproval", "No vouchers have been deposited"],
+    ["confirmingDeposit", "Vouchers are held in escrow"],
+    ["closed", "No vouchers remain held"],
+  ] as const)("reports confirmed custody at %s", (stage, expected) => {
+    expect(view("hubDay", stage).details[0]).toContain(expected);
+  });
   it.each([
     ["hubDay", "open", "Open for booking.", "Review and Redeem", null],
     ["hubDay", "waitingApproval", "their Safe needs 1 signature", null, "Cancel Booking"],

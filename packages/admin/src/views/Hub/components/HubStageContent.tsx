@@ -4,10 +4,12 @@ import type {
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import {
   type HubActionSummary,
+  type HubOlderRecords,
   selectHubStageContent,
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import type { ReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { HubConfirmQueue } from "./HubConfirmQueue";
 import {
   HubAssessmentList,
@@ -48,6 +50,10 @@ interface HubStageContentProps {
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
   onOpenHypercert: (hypercertId: string) => void;
+  reviewBatch?: ReviewBatch;
+  /** Each list's next page of older records, while the garden has more than it holds. */
+  olderWork?: HubOlderRecords;
+  olderHypercerts?: HubOlderRecords;
 }
 
 export function HubStageContent({
@@ -78,6 +84,9 @@ export function HubStageContent({
   onClearSearch,
   onOpenCertification,
   onOpenHypercert,
+  reviewBatch,
+  olderWork,
+  olderHypercerts,
 }: HubStageContentProps) {
   const content = selectHubStageContent(stage);
 
@@ -95,6 +104,8 @@ export function HubStageContent({
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
         onClearSearch={onClearSearch}
+        reviewBatch={reviewBatch}
+        older={olderWork}
       />
     );
   }
@@ -137,6 +148,7 @@ export function HubStageContent({
       onClearSearch={onClearSearch}
       createHref={createHypercertHref}
       onOpenHypercert={onOpenHypercert}
+      older={olderHypercerts}
     />
   );
 }

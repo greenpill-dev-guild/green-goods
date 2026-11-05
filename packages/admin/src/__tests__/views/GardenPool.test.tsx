@@ -363,7 +363,7 @@ function gardenController(canManage: boolean) {
     hypercertsLoading: false,
     hypercerts: [],
     view: "health",
-    derived: { overviewAlerts: [], impactBadge: { count: undefined } },
+    derived: { overviewAlerts: [] as unknown[] },
     handleTabChange: vi.fn(),
     desktopActions: [],
     canManage,
@@ -1008,6 +1008,18 @@ describe("Garden workspace Promises tab visibility", () => {
     mocks.gardenController = gardenController(false);
     renderWithProviders(<GardenView />);
     expect(screen.queryByRole("tab", { name: "Promises" })).not.toBeInTheDocument();
+  });
+
+  it("counts Health's open alerts and draws no badge for Impact's flag (DL-134)", () => {
+    mocks.gardenController = {
+      ...gardenController(true),
+      derived: { overviewAlerts: [{ key: "impact-stale" }, { key: "treasury-warning" }] },
+    };
+    renderWithProviders(<GardenView />);
+
+    expect(screen.getByRole("tab", { name: "Health 2 waiting" })).toBeInTheDocument();
+    // A count would join the tab's accessible name, so this exact name proves none.
+    expect(screen.getByRole("tab", { name: "Impact" })).toBeInTheDocument();
   });
 
   it("keeps management controls from a reader who reaches the route directly while retaining funding facts", () => {

@@ -109,6 +109,7 @@ export interface WorkJobPayload {
 export type SendCheckpoint = Pick<
   WorkUploadCheckpoint,
   | "broadcast"
+  | "batchReference"
   | "broadcastPending"
   | "broadcastPendingAt"
   | "intentBlock"

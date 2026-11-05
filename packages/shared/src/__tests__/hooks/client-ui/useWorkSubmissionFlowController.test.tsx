@@ -52,6 +52,8 @@ const mocks = vi.hoisted(() => ({
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
   askAgain: vi.fn(),
+  resumeWork: null as unknown,
+  formFeedback: "",
   activeDraftId: null as string | null,
   activeTab: "Intro" as "Intro" | "Media" | "Details" | "Review",
   gardens: [] as Array<{ id: string; name: string; domainMask?: number }>,
@@ -188,15 +190,18 @@ vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
 }));
 
 vi.mock("../../../hooks/work/useDraftResume", () => ({
-  useDraftResume: () => ({
-    showDraftSheet: false,
-    isResumingFromUrl: mocks.isResumingFromUrl,
-    setShowDraftSheet: vi.fn(),
-    handleContinueDraft: vi.fn(),
-    handleStartFresh: vi.fn(),
-    askAgainNextVisit: mocks.askAgain,
-    clearActiveDraft: vi.fn(),
-  }),
+  useDraftResume: ({ work }: { work: unknown }) => {
+    mocks.resumeWork = work;
+    return {
+      showDraftSheet: false,
+      isResumingFromUrl: mocks.isResumingFromUrl,
+      setShowDraftSheet: vi.fn(),
+      handleContinueDraft: vi.fn(),
+      handleStartFresh: vi.fn(),
+      askAgainNextVisit: mocks.askAgain,
+      clearActiveDraft: vi.fn(),
+    };
+  },
 }));
 
 vi.mock("../../../hooks/garden/useJoinGarden", () => ({
@@ -255,7 +260,7 @@ vi.mock("../../../providers/Work", () => ({
     control: {},
     setValue: mocks.setValue,
     uploadWork: mocks.uploadWork,
-    feedback: "",
+    feedback: mocks.formFeedback,
     timeSpentMinutes: undefined,
     values: {},
     reset: vi.fn(),
@@ -442,6 +447,7 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.autoSaveEnabled = true;
     mocks.isResumingFromUrl = false;
     mocks.linkCleared = false;
+    mocks.formFeedback = "";
     mocks.activeDraftId = null;
     mocks.activeTab = "Intro";
     mocks.gardens = [];
@@ -455,6 +461,17 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
+  });
+
+  it("hands the draft's entry what the form still holds, which outlives a visit", () => {
+    mocks.formFeedback = "Turned the east beds";
+    enterFlow();
+    expect(mocks.resumeWork).toMatchObject({
+      feedback: "Turned the east beds",
+      images: [],
+      audioNotes: [],
+      details: {},
+    });
   });
 
   it("waits for draft reconciliation before applying or saving an incoming promise", () => {

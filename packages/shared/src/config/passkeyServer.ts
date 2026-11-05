@@ -9,6 +9,7 @@
  */
 
 import { createPasskeyServerClient as createPermissionlessPasskeyServerClient } from "permissionless/clients/passkeyServer";
+import { startRegistration, verifyRegistration } from "permissionless/actions/passkeyServer";
 import { http } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { logger } from "../modules/app/logger";
@@ -118,9 +119,31 @@ export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskey
     env.VITE_API_BASE_URL?.trim() ||
     (env.DEV ? "http://127.0.0.1:3005" : "https://agent.greengoods.app");
   const url = `${baseUrl.replace(/\/$/, "")}${PUBLIC_AGENT_ROUTES.passkeyDirectory}`;
-  return createPermissionlessPasskeyServerClient({
+  const client = createPermissionlessPasskeyServerClient({
     transport: http(url, { timeout: DIRECTORY_TIMEOUT_MS, retryCount: 1 }),
   });
+  return client.extend(() => ({
+    startRegistration: (args: Parameters<typeof client.startRegistration>[0]) =>
+      withDirectoryProfile(client, (source) => startRegistration(source, args)),
+    verifyRegistration: (args: Parameters<typeof client.verifyRegistration>[0]) =>
+      withDirectoryProfile(client, (source) => verifyRegistration(source, args)),
+  }));
+}
+
+/** Keep the directory's recipe alongside the SDK's validated/decoded result, which drops extra fields. */
+async function withDirectoryProfile<T extends object>(
+  client: ReturnType<typeof createPermissionlessPasskeyServerClient>,
+  action: (source: typeof client) => Promise<T>
+): Promise<T & { accountProfile: unknown }> {
+  let accountProfile: unknown;
+  const request = (async (args, options) => {
+    const response = await client.request(args, options);
+    if (response && typeof response === "object" && "accountProfile" in response) {
+      accountProfile = response.accountProfile;
+    }
+    return response;
+  }) as typeof client.request;
+  return { ...(await action({ ...client, request })), accountProfile };
 }
 
 export type PasskeyCeremonyBlockReason =

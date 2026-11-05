@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TestBrowser } from "./support/browser";
 import { AIYELOJA, TAS } from "./support/fixtures";
-import { adaAccount, latestLink, reportUntilSummary } from "./support/flows";
+import {
+  adaAccount,
+  latestLink,
+  openSigningPage,
+  reportOutcome,
+  reportUntilSummary,
+  reserve,
+} from "./support/flows";
 import { ADA, Harness, summaryToken } from "./support/harness";
 
 let harness: Harness;
@@ -58,6 +65,37 @@ describe("Community Garden invitation", () => {
     expect((await harness.say(ADA, "ok, I joined")).join("\n")).toContain(
       "Open this page to review and sign the exact publication"
     );
+  });
+
+  it("frees a chat an earlier release left on a published report's join question", async () => {
+    await publishToCommunityGarden(() => {});
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    await harness.press(ADA, "I've joined");
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: adaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    // Publication used to leave the join question open, so every story was taken for its answer.
+    harness.core.db
+      .query(
+        "UPDATE conversation_prompts SET state = 'open', resolved_at = NULL WHERE kind = 'join_community'"
+      )
+      .run();
+
+    const replies = (await harness.say(ADA, "Today I watered the baobab seedlings")).join("\n");
+    // A new report, offered its garden's activities as any story's would be.
+    expect(replies).toContain("Which activity in TAS best matches your work?");
+    expect(
+      harness.core.db.query("SELECT lifecycle FROM work_drafts ORDER BY created_at").all()
+    ).toEqual([{ lifecycle: "published" }, { lifecycle: "open" }]);
   });
 
   it("sends the account to a steward while the Community Garden would refuse its join", async () => {

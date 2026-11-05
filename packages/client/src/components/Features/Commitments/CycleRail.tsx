@@ -3,7 +3,10 @@ import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentCycleRecord,
+  type CycleStanding,
+  cycleStanding,
   useCommitmentCycleNames,
+  useCycleClock,
 } from "@green-goods/shared/commitment-pooling";
 import { RiCheckboxCircleFill, RiFlagLine, RiInformationLine, RiSunLine } from "@remixicon/react";
 import { type IntlShape, useIntl } from "react-intl";
@@ -57,12 +60,20 @@ export function cycleDates(
   return intl.formatMessage({ id: "app.pool.rail.dates" }, { start: startLabel, end: endLabel });
 }
 
-/** The season or campaign identity: its glyph on a round tile, its kind in its colour, its state. */
-export function CycleIdentity({ cycle }: { cycle: CommitmentCycleRecord }) {
+/**
+ * The season or campaign identity: its glyph on a round tile, its kind in its colour, and how it
+ * stands, read on the chain's clock by whoever draws it (`useCycleClock`, DL-162).
+ */
+export function CycleIdentity({
+  cycle,
+  standing,
+}: {
+  cycle: CommitmentCycleRecord;
+  standing: CycleStanding;
+}) {
   const { formatMessage } = useIntl();
   const isCampaign = cycle.cycleType === "CAMPAIGN";
   const tone = CYCLE_KIND_TONE[isCampaign ? "campaign" : "season"];
-  const state = (cycle.state ?? "UNKNOWN").toLowerCase();
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span
@@ -80,11 +91,11 @@ export function CycleIdentity({ cycle }: { cycle: CommitmentCycleRecord }) {
       </span>
       <StatusBadge
         size="xs"
-        variant={state === "open" ? "success" : "neutral"}
+        variant={standing === "open" ? "success" : "neutral"}
         showIcon={false}
         className="shrink-0 whitespace-nowrap"
       >
-        {formatMessage({ id: `app.pool.cycleState.${state}` })}
+        {formatMessage({ id: `app.pool.cycleState.${standing}` })}
       </StatusBadge>
     </span>
   );
@@ -106,6 +117,7 @@ export function CycleRail({ cycles, selectedCycleId, onSelect, onShowDetails }: 
   const intl = useIntl();
   const { formatMessage } = intl;
   const { byCycleId } = useCommitmentCycleNames(cycles);
+  const now = useCycleClock(cycles);
 
   if (cycles.length === 0) return null;
 
@@ -146,7 +158,7 @@ export function CycleRail({ cycles, selectedCycleId, onSelect, onShowDetails }: 
               : "border-stroke-soft-200 bg-bg-white-0"
           )}
         >
-          <CycleIdentity cycle={cycle} />
+          <CycleIdentity cycle={cycle} standing={cycleStanding(cycle, now)} />
           <span className="mt-2 flex min-w-0 items-center gap-1.5">
             {selected ? (
               <RiCheckboxCircleFill

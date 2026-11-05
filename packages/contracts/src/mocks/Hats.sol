@@ -16,6 +16,7 @@ contract MockHats is IHats {
     error HatNotActive();
     error AlreadyWearingHat();
     error NotEligible();
+    error NotHatsEligibility();
     error MaxSupplyReached();
     error HatNotMutable();
     error MaxLevelReached();
@@ -353,7 +354,14 @@ contract MockHats is IHats {
 
     /// @inheritdoc IHats
     function setHatWearerStatus(uint256 _hatId, address _wearer, bool _eligible, bool _standing) external returns (bool) {
-        eligibility[_hatId][_wearer] = _eligible;
+        Hat storage hat = hats[_hatId];
+        // Hats made with setHatActive name no module, so tests can drive them from any caller.
+        if (hat.eligibility != address(0) && msg.sender != hat.eligibility) revert NotHatsEligibility();
+        // Like Hats Protocol, an ineligible wearer or one in bad standing loses the hat outright.
+        if (wearers[_hatId][_wearer] && (!_eligible || !_standing)) {
+            wearers[_hatId][_wearer] = false;
+            hat.supply--;
+        }
         standing[_hatId][_wearer] = _standing;
         return true;
     }

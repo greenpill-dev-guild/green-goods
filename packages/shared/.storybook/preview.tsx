@@ -47,6 +47,7 @@ sb.mock(import("../src/hooks/client-ui/work/useWorkSubmissionFlowController.ts")
 });
 sb.mock(import("../src/hooks/client-ui/work/useWorkDetailController.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useQueuedWorkActions.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useReviewBatch.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useWorkUploads.ts"), { spy: true });
 sb.mock(import("../src/hooks/client-ui/wallet/useSendFlowController.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { spy: true });
@@ -55,6 +56,7 @@ sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMetadata.ts"), { sp
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useVoucherWallet.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useServiceOfferLines.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
@@ -64,9 +66,7 @@ sb.mock(import("../src/hooks/conviction/useMemberVotingPower.ts"), { spy: true }
 sb.mock(import("../src/hooks/cookie-jar/useAccessibleCookieJars.ts"), { spy: true });
 sb.mock(import("../src/hooks/cookie-jar/useCookieJarWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/cookie-jar/useGardenCookieJars.ts"), { spy: true });
-sb.mock(import("../src/hooks/ens/useENSClaim.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useENSRegistrationStatus.ts"), { spy: true });
-sb.mock(import("../src/hooks/ens/useENSReleaseName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useGreenGoodsEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useProtocolMemberStatus.ts"), { spy: true });
 sb.mock(import("../src/hooks/ens/useSlugAvailability.ts"), { spy: true });

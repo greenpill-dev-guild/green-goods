@@ -1,6 +1,5 @@
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { getDefaultChain } from "@green-goods/shared/config/blockchain";
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -44,7 +43,6 @@ import {
 } from "../../../../shared/.storybook/homeFixtures";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { notificationEvents } from "../../../../shared/.storybook/notificationFixtures";
-import { chooserScope, markChooserOffered } from "./chooserOffer";
 import Home from "./index";
 
 const ROOT_GARDEN =
@@ -52,23 +50,14 @@ const ROOT_GARDEN =
 const COMMUNITY = communityGarden(ROOT_GARDEN);
 const LISTED: Garden[] = [TAS_HUB, AIYELOJA, VIDA_VERDE, ILHAS, COMMUNITY];
 const SEVERAL = [memberGarden(TAS_HUB, ["steward"]), memberGarden(AIYELOJA, ["gardener"])];
-const CHOOSER_OFFER_PREFIX = "greengoods:garden-chooser-offered:";
 
 /**
  * The hooks Home reads, set for one story: the account's active garden and gardens, the
  * gardens the app lists, the requests awaiting review, and the reads the garden's page makes
  * inside the journal. Returns the cleanup that gives later stories the real hooks back.
  */
-function homeState(
-  active: ReturnType<typeof activeGarden>,
-  { awaiting = [] as Garden[], chooserOffered = false } = {}
-) {
+function homeState(active: ReturnType<typeof activeGarden>, { awaiting = [] as Garden[] } = {}) {
   return () => {
-    for (const key of Object.keys(sessionStorage)) {
-      if (key.startsWith(CHOOSER_OFFER_PREFIX)) sessionStorage.removeItem(key);
-    }
-    const scope = chooserScope(DEFAULT_CHAIN_ID, STORY_ACCOUNT);
-    if (chooserOffered && scope) markChooserOffered(scope);
     mocked(useActiveGarden).mockReturnValue(active);
     mocked(usePrimaryAddress).mockReturnValue(STORY_ACCOUNT);
     mocked(useUser).mockReturnValue({ primaryAddress: STORY_ACCOUNT } as ReturnType<
@@ -121,7 +110,8 @@ function homeState(
       isLoading: false,
       isError: false,
       isIncomplete: false,
-      markAllSeen: fn(),
+      markSeen: fn(),
+      clearAll: fn(),
     });
     return resetHookMocks(
       useActiveGarden,
@@ -148,8 +138,8 @@ function homeState(
  * Home in the member's active garden (DL-123, DL-124, DL-130): the shared garden chip in the
  * title's place, then Wallet, Promises, Your Work and the bell, in a header that stays at the
  * top. The body follows the active garden's five states: a remembered garden goes straight in
- * while the account's gardens load, a failed read says nothing was lost, no garden finds one,
- * several with none remembered offer the chooser once, and a chosen garden opens its journal.
+ * while the account's gardens load, a failed read says nothing was lost, no active garden opens
+ * one page that finds or picks one (DL-155), and a chosen garden opens its journal.
  */
 const meta: Meta<typeof Home> = {
   title: "Client/PWA/Home",
@@ -185,7 +175,7 @@ export const Ready: Story = {
     await userEvent.click(chip);
     const switcher = within(await screen.findByRole("dialog", { name: "Your Gardens" }));
     await expect(switcher.getByRole("button", { name: /Vida Verde/ })).toHaveTextContent(
-      "Awaiting review"
+      "Waiting for approval"
     );
   },
 };
@@ -215,38 +205,44 @@ export const ReadFailed: Story = {
   },
 };
 
-/** No garden yet: Explore, the requests awaiting review and the Community Garden's open door. */
+/**
+ * No garden yet (DL-155): the Find Your Garden block, then the member's requests waiting for
+ * approval, whose rows visit, with only Profile in the header. The Community Garden is one of the
+ * gardens Explore lists.
+ */
 export const NoGardenYet: Story = {
+  tags: ["storybook-ci"],
   beforeEach: homeState(activeGarden("none"), { awaiting: [VIDA_VERDE] }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { level: 1, name: "Home" })).toBeVisible();
-    await expect(canvas.getByRole("heading", { name: "Find Your Garden" })).toBeVisible();
+    await expect(await canvas.findByText("Find Your Garden")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Profile" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Notifications" })).toBeNull();
+    await expect(canvas.getByRole("button", { name: /Explore Gardens/ })).toBeVisible();
     await expect(canvas.getByRole("region", { name: "Your Requests" })).toHaveTextContent(
-      "Vida Verde"
+      "Waiting for approval"
     );
-    await expect(
-      canvas.getByRole("region", { name: "Join the Community Garden" })
-    ).toHaveTextContent("Green Goods Community Garden");
+    await expect(canvas.queryByText("Green Goods Community Garden")).toBeNull();
   },
 };
 
-/** Several gardens and none remembered: the switcher opens once as Choose a Garden. */
-export const ChooseOnFirstRun: Story = {
-  beforeEach: homeState(activeGarden("choose", SEVERAL)),
-  play: async () => {
-    const chooser = within(await screen.findByRole("dialog", { name: "Choose a Garden" }));
-    await expect(chooser.getByRole("button", { name: /Aiyeloja Family Garden/ })).toBeVisible();
-  },
-};
+const NONE_REMEMBERED = activeGarden("choose", SEVERAL);
 
-/** The chooser was dismissed: a quiet prompt stays, and only a pick writes. */
-export const ChoosePrompt: Story = {
-  beforeEach: homeState(activeGarden("choose", SEVERAL), { chooserOffered: true }),
+/**
+ * Several gardens and none remembered (DL-155): the page's title in the chip's place, the member's
+ * gardens, their requests, and Explore Gardens last. A row makes its garden active and opens Home
+ * in it, and no sheet opens by itself.
+ */
+export const SeveralGardensNoneRemembered: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: homeState(NONE_REMEMBERED, { awaiting: [VIDA_VERDE] }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "See Your Gardens" })).toBeVisible();
+    const gardens = within(await canvas.findByRole("region", { name: "Your Gardens" }));
     await expect(screen.queryByRole("dialog")).toBeNull();
+    await expect(canvas.getByRole("heading", { level: 1, name: "Choose a Garden" })).toBeVisible();
+    await userEvent.click(gardens.getByRole("button", { name: /Aiyeloja Family Garden/ }));
+    await expect(NONE_REMEMBERED.selectGarden).toHaveBeenCalledWith(AIYELOJA.id);
   },
 };
 
@@ -337,6 +333,44 @@ export const ArrivalSeeYourGardens: Story = {
 export const ArrivalUploadsInAnotherGardenSpanish: Story = arrivalStory("es");
 
 export const ArrivalUploadsInAnotherGardenPortuguese: Story = arrivalStory("pt");
+
+const unplacedArrivalStory = (locale: keyof typeof MESSAGES): Story => ({
+  ...arrivalStory(locale),
+  beforeEach: () => {
+    const reset = homeState(activeGarden("error", [], TAS_HUB.id))();
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith("greengoods:arrival-shown:")) sessionStorage.removeItem(key);
+    }
+    mocked(useArrivalState).mockReturnValue({ kind: "queue", orientation: null });
+    return reset;
+  },
+  play: async () => {
+    await expect(
+      await screen.findByText(
+        MESSAGES[locale]["app.home.arrival.queue.message"],
+        {},
+        { timeout: 3000 }
+      )
+    ).toBeVisible();
+    await expect(
+      screen.queryByRole("button", { name: MESSAGES[locale]["app.home.arrival.queue.action"] })
+    ).toBeNull();
+  },
+});
+
+/** A failed garden read announces uploads without a potentially misleading Review action. */
+export const ArrivalGardenReadFailed: Story = {
+  ...unplacedArrivalStory("en"),
+  tags: ["storybook-ci"],
+};
+export const ArrivalGardenReadFailedSpanish: Story = {
+  ...unplacedArrivalStory("es"),
+  tags: ["storybook-ci"],
+};
+export const ArrivalGardenReadFailedPortuguese: Story = {
+  ...unplacedArrivalStory("pt"),
+  tags: ["storybook-ci"],
+};
 
 /** A queued upload failed in Vida Verde while the chip shows TAS HUB: the queue's toast names it. */
 const failedStory = (locale: keyof typeof MESSAGES): Story => ({

@@ -1,23 +1,19 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import type { Garden } from "@green-goods/shared/types/domain";
 import {
   RiCompass3Line,
   RiErrorWarningLine,
   RiLoader4Line,
-  RiPlantLine,
   RiSeedlingLine,
 } from "@remixicon/react";
-import type { Ref } from "react";
 import { useIntl } from "react-intl";
-import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton";
 import { HomeSection } from "./HomeSection";
+import { STANDING_LABEL_IDS, type SwitcherRow } from "./homeGardens";
 
 /**
- * Home's states before its journal (DL-123): loading, a failed read, no garden yet, and the
- * prompt a dismissed chooser leaves. Each keeps the header above it; none of them writes the
- * active garden.
+ * Home's states before its journal (DL-123, DL-155): loading, a failed read, and no active garden.
+ * Each keeps the header above it.
  */
 
 /** The account's gardens are loading; a remembered garden opens as soon as they arrive. */
@@ -50,96 +46,80 @@ export function HomeError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/**
- * Several gardens and none chosen: the quiet prompt a dismissed chooser leaves. `actionRef` lets
- * Home give its action focus before the chooser opens by itself, so dismissing lands there.
- */
-export function HomeChoosePrompt({
-  onChoose,
-  actionRef,
-}: {
-  onChoose: () => void;
-  actionRef?: Ref<HTMLButtonElement>;
-}) {
-  const { formatMessage } = useIntl();
-  return (
-    <EmptyState
-      icon={<RiPlantLine />}
-      title={formatMessage({ id: "app.home.chooser.title" })}
-      description={formatMessage({ id: "app.home.chooser.description" })}
-      action={
-        <Button ref={actionRef} type="button" emphasis="secondary" onClick={onChoose}>
-          {formatMessage({ id: "app.home.chooser.action" })}
-        </Button>
-      }
-    />
-  );
-}
-
-interface HomeFindGardenProps {
-  /** Gardens the member asked to join, waiting for a steward. */
-  awaiting: readonly Garden[];
-  /** The Community Garden while anyone can join it, or null. */
-  communityGarden: Garden | null;
+interface HomeNoActiveGardenProps {
+  /** The member's gardens, then the gardens they asked to join (`switcherRows`). */
+  rows: readonly SwitcherRow[];
   onExplore: () => void;
-  /** Opens a garden's page: a visit, which switches nothing. */
+  /** One of the member's gardens: it becomes the active garden, and Home opens in it. */
+  onPick: (gardenId: string) => void;
+  /** A garden the member asked to join: a visit, which switches nothing. */
   onVisit: (gardenId: string) => void;
 }
 
 /**
- * No garden yet: a Home that finds one. Explore, the member's requests awaiting review, and the
- * Community Garden's open door, joined from its row.
+ * No active garden, as at first login (DL-155). A member of no garden finds one: the state block
+ * with Explore Gardens, then any gardens they asked to join, whose rows visit and switch nothing.
+ * A member of several picks one: their gardens, whose rows make that garden active and open Home,
+ * then their requests, with Explore Gardens last.
  */
-export function HomeFindGarden({
-  awaiting,
-  communityGarden,
-  onExplore,
-  onVisit,
-}: HomeFindGardenProps) {
+export function HomeNoActiveGarden({ rows, onExplore, onPick, onVisit }: HomeNoActiveGardenProps) {
   const { formatMessage } = useIntl();
+  const gardenRow = ({ garden, standing }: SwitcherRow) => {
+    const awaiting = standing === "awaiting";
+    return (
+      <ItemRow
+        key={garden.id}
+        lead={{ kind: "photo", src: garden.bannerImage, fallbackIcon: RiSeedlingLine }}
+        title={garden.name}
+        titleLines={2}
+        status={{
+          label: formatMessage({ id: STANDING_LABEL_IDS[standing] }),
+          tone: awaiting ? "warning" : "neutral",
+        }}
+        onOpen={() => (awaiting ? onVisit(garden.id) : onPick(garden.id))}
+      />
+    );
+  };
+  const member = rows.filter(({ standing }) => standing !== "awaiting");
+  const requests = rows.filter(({ standing }) => standing === "awaiting");
+  const yourRequests =
+    requests.length > 0 ? (
+      <HomeSection title={formatMessage({ id: "app.home.requests.title" })}>
+        {requests.map(gardenRow)}
+      </HomeSection>
+    ) : null;
+  if (member.length === 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <EmptyState
+          icon={<RiCompass3Line />}
+          title={formatMessage({ id: "app.home.none.title" })}
+          description={formatMessage({ id: "app.home.none.description" })}
+          action={
+            <Button type="button" onClick={onExplore}>
+              {formatMessage({ id: "app.home.explore.title" })}
+            </Button>
+          }
+        />
+        {yourRequests}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-6">
-      <EmptyState
-        icon={<RiCompass3Line />}
-        title={formatMessage({ id: "app.home.none.title" })}
-        description={formatMessage({ id: "app.home.none.description" })}
-        action={
-          <Button type="button" onClick={onExplore}>
-            {formatMessage({ id: "app.home.explore.title" })}
-          </Button>
-        }
+      <p className="type-body text-text-sub-600">
+        {formatMessage({ id: "app.home.chooser.description" })}
+      </p>
+      <HomeSection title={formatMessage({ id: "app.home.switcher.title" })}>
+        {member.map(gardenRow)}
+      </HomeSection>
+      {yourRequests}
+      <ItemRow
+        lead={{ kind: "icon", icon: <RiCompass3Line /> }}
+        title={formatMessage({ id: "app.home.explore.title" })}
+        details={[formatMessage({ id: "app.home.explore.row" })]}
+        onOpen={onExplore}
       />
-      {awaiting.length > 0 ? (
-        <HomeSection title={formatMessage({ id: "app.home.requests.title" })}>
-          {awaiting.map((garden) => (
-            <ItemRow
-              key={garden.id}
-              lead={{ kind: "photo", src: garden.bannerImage, fallbackIcon: RiSeedlingLine }}
-              title={garden.name}
-              status={{ label: formatMessage({ id: "app.home.awaitingReview" }), tone: "warning" }}
-              details={[garden.location]}
-              onOpen={() => onVisit(garden.id)}
-            />
-          ))}
-        </HomeSection>
-      ) : null}
-      {communityGarden ? (
-        <HomeSection
-          title={formatMessage({ id: "app.garden.communityOnramp.title" })}
-          description={formatMessage({ id: "app.garden.communityOnramp.description" })}
-        >
-          <ItemRow
-            lead={{ kind: "photo", src: communityGarden.bannerImage, fallbackIcon: RiSeedlingLine }}
-            title={communityGarden.name}
-            status={{ label: formatMessage({ id: "app.home.explore.tag.open" }), tone: "success" }}
-            details={[communityGarden.location]}
-            onOpen={() => onVisit(communityGarden.id)}
-            action={
-              <JoinGardenButton gardenId={communityGarden.id} gardenName={communityGarden.name} />
-            }
-          />
-        </HomeSection>
-      ) : null}
     </div>
   );
 }

@@ -19,6 +19,13 @@ export type SmartAccountClientResolver = (chainId: number) => Promise<SmartAccou
 export type AuthMode = "wallet" | "passkey" | "embedded" | null;
 
 /**
+ * Why the last wallet sign-in ended without the wallet answering:
+ * - 'timeout': a phone wallet was chosen and its app never came to the front
+ * - 'connect_error': the wallet chooser reported a failed connection
+ */
+export type WalletConnectFailure = "timeout" | "connect_error";
+
+/**
  * Base authentication context properties
  * All auth providers should include these core fields
  */

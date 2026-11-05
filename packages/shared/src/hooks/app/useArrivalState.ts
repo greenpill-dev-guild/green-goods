@@ -16,13 +16,13 @@ import { useLiveQuery } from "../utils/useLiveQuery";
  * phone, work, reviews or proof that are queued or failed, and where they are listed. Home's chip
  * and Continue show the member's garden and drafts, so the toast says nothing else (PWA Home step
  * 12). `pending` means it can't say yet: the queue has not answered, or an upload outside the
- * active garden can't be placed until the member's gardens are known. `none` means nothing waits,
- * so the arrival passes without a toast.
+ * active garden can't be placed until the member's gardens are known. A failed garden read
+ * resolves to a queue notice without a destination. `none` means nothing waits.
  */
 export type ArrivalState =
   | { kind: "pending" }
   | { kind: "none" }
-  | { kind: "queue"; orientation: UploadOrientation };
+  | { kind: "queue"; orientation: UploadOrientation | null };
 
 const PENDING: ArrivalState = { kind: "pending" };
 const NOTHING_WAITS: ArrivalState = { kind: "none" };
@@ -35,7 +35,7 @@ export function useArrivalState(): ArrivalState {
     jobQueueDB.observeJobs({ userAddress: account ?? "", synced: false })
   );
 
-  const { gardens, isLoaded } = myGardens;
+  const { gardens, isLoaded, isError } = myGardens;
   return useMemo<ArrivalState>(() => {
     if (!account || !queued.isSuccess) return PENDING;
     const uploads = (queued.data ?? [])
@@ -47,6 +47,6 @@ export function useArrivalState(): ArrivalState {
       isLoaded ? gardens.map(({ garden }) => garden) : null,
       uploads.map(uploadGarden)
     );
-    return orientation ? { kind: "queue", orientation } : PENDING;
-  }, [account, queued.isSuccess, queued.data, chainId, inScope, isLoaded, gardens]);
+    return orientation || isError ? { kind: "queue", orientation } : PENDING;
+  }, [account, queued.isSuccess, queued.data, chainId, inScope, isLoaded, isError, gardens]);
 }

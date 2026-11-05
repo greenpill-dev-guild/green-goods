@@ -173,15 +173,21 @@ describe("ProtocolFundingOperationsCard", () => {
       screen.getByText("Period allowance remaining").closest('[data-component="FactRow"]')
     ).toHaveTextContent("15,000,000 G$");
 
-    // A cap that could not be read does not block: the review opens as it did before.
+    // A cap that could not be read holds the review too: Celo refuses only after the CCIP fee.
     rerender(card(storyProtocolSafeFunding({ cap: null })));
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(/balance and limits haven't been read/)).toBeInTheDocument();
+    expect(review).toBeDisabled();
+
+    // Within every limit that was read, the review opens.
+    rerender(card(storyProtocolSafeFunding()));
+    fireEvent.change(amount, { target: { value: "6000000" } });
+    expect(screen.queryByText(/balance and limits haven't been read/)).not.toBeInTheDocument();
     fireEvent.click(review);
     const dialog = await screen.findByRole("alertdialog");
-    expect(within(dialog).getByText(/Queue 7,200,000 G\$.*Aiyeloja/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Queue 6,000,000 G\$.*Aiyeloja/)).toBeInTheDocument();
 
     // A refresh that leaves the Safe short while the review is open shuts its confirm too.
-    rerender(card(storyProtocolSafeFunding({ cap: null, balance: 5_000_000n * G })));
+    rerender(card(storyProtocolSafeFunding({ balance: 5_000_000n * G })));
     expect(within(dialog).getByRole("alert")).toHaveTextContent(
       "More than the protocol Safe holds."
     );
@@ -189,6 +195,88 @@ describe("ProtocolFundingOperationsCard", () => {
     expect(confirm).toBeDisabled();
     fireEvent.click(confirm);
     expect(queueFunding).not.toHaveBeenCalled();
+  });
+
+  it("won't open the review until the receiving garden can take the transfer", () => {
+    const snapshot = storyPoolFunding().snapshot!;
+    const card = (targetFunding: PoolFundingControllerView) => (
+      <ProtocolFundingOperationsCard
+        operations={controller({ sourceFunding: storyProtocolSafeFunding(), targetFunding })}
+        gardens={gardens}
+        targetGarden={AIYELOJA}
+        onTargetGardenChange={vi.fn()}
+      />
+    );
+    const { rerender } = renderWithProviders(
+      card(
+        storyPoolFunding({
+          snapshot: { ...snapshot, fundingUnavailableReasons: ["inactive_account"] },
+        })
+      )
+    );
+    const review = screen.getByRole("button", { name: "Review Seed or Top-Up…" });
+    expect(review).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The receiving garden has no active settlement account."
+    );
+
+    // Not read yet, or a failed read: no message to give, and still no review.
+    rerender(card(storyPoolFunding({ snapshot: null })));
+    expect(review).toBeDisabled();
+    rerender(card(storyPoolFunding({ isError: true })));
+    expect(review).toBeDisabled();
+
+    rerender(card(storyPoolFunding()));
+    expect(review).toBeEnabled();
+  });
+
+  it("shuts the review while a Safe proposal is out, and says why a transfer is held", () => {
+    renderWithProviders(
+      <ProtocolFundingOperationsCard
+        operations={controller({
+          sourceFunding: storyProtocolSafeFunding(),
+          lastAct: { kind: "queue-funding", phase: "proposed", hash: TX_HASH },
+          rows: [
+            {
+              id: "42161-9",
+              disbursementId: 9n,
+              recipient: RECIPIENT,
+              amount: 2n * G,
+              state: "queued",
+              executionKey: null,
+              canDispatch: false,
+              canRetry: false,
+              canRequeue: false,
+              canCancel: true,
+              sendBlock: "balance",
+            },
+            {
+              id: "42161-10",
+              disbursementId: 10n,
+              recipient: RECIPIENT,
+              amount: 2n * G,
+              state: "queued",
+              executionKey: null,
+              canDispatch: false,
+              canRetry: false,
+              canRequeue: false,
+              canCancel: true,
+              sendBlock: "limits_unread",
+            },
+          ],
+        })}
+        gardens={gardens}
+        targetGarden={AIYELOJA}
+        onTargetGardenChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("protocol-funding-status")).toHaveTextContent(/Sent to your Safe/);
+    expect(screen.getByRole("button", { name: "Review Seed or Top-Up…" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Dispatch…" })).not.toBeInTheDocument();
+    const held = screen.getAllByTestId("protocol-funding-send-block");
+    expect(held[0]).toHaveTextContent("More than the protocol Safe holds.");
+    expect(held[1]).toHaveTextContent("Can't be sent until the protocol Safe's limits are read.");
   });
 
   it("keeps deployer-only funding read-only", () => {

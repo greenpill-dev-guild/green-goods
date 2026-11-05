@@ -1,4 +1,3 @@
-import type { SmartAccountClient } from "permissionless";
 import { connectivityStore } from "../../stores/connectivity";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
 import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
@@ -38,27 +37,6 @@ export interface SubmitApprovalOutcome {
   hash: `0x${string}`;
   confirmed?: boolean;
   kind: "direct" | "queued" | "processed";
-}
-
-export interface BatchApprovalItem {
-  draft: WorkApprovalDraft;
-  work: Work;
-}
-
-export interface SubmitBatchApprovalsCommand {
-  authMode: "wallet" | "passkey" | "embedded" | null;
-  items: BatchApprovalItem[];
-  chainId: number;
-}
-
-export interface SubmitBatchApprovalsPorts {
-  direct(items: BatchApprovalItem[], chainId: number): Promise<`0x${string}`>;
-  sponsored(items: BatchApprovalItem[], chainId: number): Promise<`0x${string}`>;
-}
-
-export interface SubmitBatchApprovalsOutcome {
-  hash: `0x${string}`;
-  count: number;
 }
 
 function validateApproval(command: SubmitApprovalCommand): void {
@@ -113,19 +91,6 @@ export async function submitApproval(
   return { hash: queued.txHash, kind: "queued" };
 }
 
-export async function submitBatchApprovals(
-  command: SubmitBatchApprovalsCommand,
-  ports: SubmitBatchApprovalsPorts
-): Promise<SubmitBatchApprovalsOutcome> {
-  if (command.items.length === 0) throw new Error("No items to approve");
-
-  const hash =
-    command.authMode === "wallet"
-      ? await ports.direct(command.items, command.chainId)
-      : await ports.sponsored(command.items, command.chainId);
-  return { hash, count: command.items.length };
-}
-
 export function createDefaultSubmitApprovalPorts(
   sender: TransactionSender | null,
   dependencies: {
@@ -153,37 +118,5 @@ export function createDefaultSubmitApprovalPorts(
       },
     },
     sender,
-  };
-}
-
-export function createDefaultSubmitBatchApprovalsPorts(
-  smartAccountClient: SmartAccountClient | null
-): SubmitBatchApprovalsPorts {
-  return {
-    direct: async (items, chainId) => {
-      const { submitBatchApprovalsDirectly } = await import("./wallet-submission");
-      return submitBatchApprovalsDirectly(
-        items.map(({ draft, work }) => ({
-          draft,
-          gardenAddress: work.gardenAddress,
-          gardenerAddress: work.gardenerAddress,
-        })),
-        chainId
-      );
-    },
-    sponsored: async (items, chainId) => {
-      if (!smartAccountClient) {
-        throw new Error("Smart account not available. Please re-authenticate.");
-      }
-      const { submitBatchApprovalsWithPasskey } = await import("./passkey-submission");
-      return submitBatchApprovalsWithPasskey({
-        client: smartAccountClient,
-        approvals: items.map(({ draft, work }) => ({
-          draft,
-          gardenAddress: work.gardenAddress,
-        })),
-        chainId,
-      });
-    },
   };
 }

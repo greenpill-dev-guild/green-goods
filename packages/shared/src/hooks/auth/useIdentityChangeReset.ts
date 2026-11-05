@@ -13,6 +13,8 @@
  *   (`useSheetOrchestratorStore.clearAll`);
  * - the recent send recipients (`clearRecentRecipients`) and a work approval
  *   whose receipt it was still waiting on (`clearPendingWorkApproval`);
+ * - this browser's grants to read join-request counts
+ *   (`useJoinRequestCountGrantStore.clearAll`), which also end at sign-out;
  * - every cached read whose query key names the previous account;
  * - the screens themselves: the hook returns a session generation, and
  *   `AuthGate` keys the app under it, so no screen keeps the last account's
@@ -25,16 +27,11 @@
  * by chain and address), the garden events this device has shown
  * (`useGardenNotificationsSeenStore`, keyed by chain, address and garden),
  * the join requests this device sent that still wait for a steward
- * (`useAwaitingJoinRequestsStore`, keyed by chain and address),
- * drafts and queued work, and a
- * username change in flight (`useUsernameChangeStore`). That change is keyed by
- * its owner on the default chain, where names live: its release is already on
- * the chain, the next account never reads it, and only the same account coming
- * back can claim the name it chose and hear once that it is ready. The
- * commitment drafts and queued jobs are keyed by their owner; the admin's
- * create-garden and create-assessment drafts and a hypercert mint in flight
- * live in this tab's session storage and keep their own rules, since clearing
- * drafts is outside this reset.
+ * (`useAwaitingJoinRequestsStore`, keyed by chain and address), and drafts
+ * and queued work. The commitment drafts and queued jobs are keyed by their
+ * owner; the admin's create-garden and create-assessment drafts and a
+ * hypercert mint in flight live in this tab's session storage and keep their
+ * own rules, since clearing drafts is outside this reset.
  *
  * Only a ready session decides: a restore that may yet fail names an account
  * before it has signed in. The first account on a device adopts what is there.
@@ -54,6 +51,7 @@ import { clearRecentRecipients } from "../blockchain/useRecentRecipients";
 import { clearPendingWorkApproval } from "../work/useWorkApprovalLifecycle";
 import { getLastAccount, setLastAccount } from "../../modules/auth/session";
 import { useGardenStateStore } from "../../stores/useGardenStateStore";
+import { useJoinRequestCountGrantStore } from "../../stores/useJoinRequestCountGrantStore";
 import { useSheetOrchestratorStore } from "../../stores/useSheetOrchestratorStore";
 import { useUIStore } from "../../stores/useUIStore";
 
@@ -101,6 +99,7 @@ function forgetAccount(account: string): void {
     () => useUIStore.getState().resetForAccountChange(),
     () => useGardenStateStore.getState().clearAll(),
     () => useSheetOrchestratorStore.getState().clearAll(),
+    () => useJoinRequestCountGrantStore.getState().clearAll(),
     clearRecentRecipients,
     clearPendingWorkApproval,
     () =>

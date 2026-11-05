@@ -1,12 +1,22 @@
 /** @vitest-environment happy-dom */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import { within } from "@testing-library/react";
+import { act, within } from "@testing-library/react";
 import { renderWithProviders as render, screen } from "../test-utils";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
 
+const QUIET_PLAN = {
+  signatures: null as number | null,
+  signatureLine: null as string | null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null as null | Record<string, unknown>,
+};
 const mocks = vi.hoisted(() => ({
+  plan: {} as Record<string, unknown>,
+  planInput: {} as { onLanded?: () => void },
   online: true,
   pending: false,
   maxWithdraw: 100000n,
@@ -71,6 +81,26 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
     return { preview: { maxWithdraw: mocks.maxWithdraw } };
   },
 }));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useDepositPlan: (input: { onLanded?: () => void }) => {
+    mocks.planInput = input;
+    return mocks.plan;
+  },
+  useVaultDeposit: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: () => ({ vaults: [vault], isLoading: false, isError: false }),
+}));
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
+  useVaultDeposits: () => ({ deposits: [], isLoading: false, isError: false }),
+}));
+vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({ jars: [], isLoading: false, error: null }),
+}));
+vi.mock("wagmi", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useBalance: () => ({ data: { value: 5_000_000n, decimals: 6, symbol: "USDC" } }),
+}));
 vi.mock("@green-goods/shared/hooks/vault/useVaultWithdraw", () => ({
   useVaultWithdraw: () => ({ mutate: mocks.withdraw, isPending: mocks.pending }),
 }));
@@ -83,12 +113,14 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
   getVaultAssetSymbol: () => "USDC",
 }));
 
+import { EndowmentSheet } from "../../components/Sheets/EndowmentSheet";
 import { MyDepositRow } from "../../components/Sheets/EndowmentSheet/MyDepositRow";
 import { TreasuryTabContent } from "../../components/Sheets/EndowmentSheet/TreasuryTabContent";
 import { CookieJarRow } from "../../components/Features/Garden/CookieJarRow";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.plan = QUIET_PLAN;
   mocks.online = true;
   mocks.pending = false;
   mocks.maxWithdraw = 100000n;
@@ -102,6 +134,51 @@ async function openDeposit(user: ReturnType<typeof userEvent.setup>) {
   await user.click(row);
   expect(row).toHaveAttribute("aria-expanded", "true");
 }
+
+describe("Depositing from the endowment sheet", () => {
+  const sheet = () => (
+    <EndowmentSheet isOpen onClose={vi.fn()} gardenAddress={garden} gardenName="Garden" />
+  );
+
+  it("says how many signatures a deposit takes and pauses it while an earlier one is unknown", async () => {
+    mocks.plan = { ...QUIET_PLAN, signatureLine: "2 signatures" };
+    const { rerender } = render(sheet());
+    await userEvent.setup().type(screen.getByRole("textbox", { name: "Amount to deposit" }), "1");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeEnabled();
+    expect(screen.getByText("2 signatures")).toBeInTheDocument();
+
+    mocks.plan = {
+      ...QUIET_PLAN,
+      isHeld: true,
+      isPaused: true,
+      holdFeedback: {
+        title: "We couldn’t confirm your last deposit.",
+        message: "Deposits here are paused.",
+        hasUnreadValues: false,
+        isSettling: false,
+        onCheckAgain: vi.fn(),
+        onMoveOn: vi.fn(),
+      },
+    };
+    rerender(sheet());
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("clears the amount when a held deposit proves it landed", async () => {
+    mocks.plan = QUIET_PLAN;
+    render(sheet());
+    const amount = screen.getByRole("textbox", { name: "Amount to deposit" });
+    await userEvent.setup().type(amount, "1");
+    expect(amount).toHaveValue("1");
+
+    act(() => mocks.planInput.onLanded?.());
+
+    expect(amount).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+  });
+});
 
 describe("Treasury amount controls", () => {
   it("lists a deposit as a row with what can be withdrawn, and no act until it opens", () => {

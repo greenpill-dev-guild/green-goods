@@ -21,7 +21,7 @@ const meta: Meta<typeof AdminTabRail> = {
           "- Cell: an equal share of the row, never narrower than its icon, label and count on one line, so a label never clips; a row that cannot hold its cells scrolls (D18)",
           "- Label: 12px with 4px gaps and 6px sides on a phone, 14px with 8px gaps and 12px sides from 640px, weight 500 in both states",
           "- Active: a 10% tint of the workspace accent fills the cell, and the label and a 2px underline take the accent itself (the tone's active-tab use); inactive sub ink, hover darkens text only",
-          "- Count badge: the shared `CountBadge`, 16px with 11px/600 numerals on the workspace tone's accent, the same on every tab",
+          "- Count badge: the shared `CountBadge`, 16px with 11px/600 numerals on the workspace tone's accent, only where something waits on the steward (DL-134); a total goes in the panel's own header line and a flag shows nothing",
           "- Hovers never shift hue or background — text darken only",
           "",
           "**Accessibility**:",
@@ -85,7 +85,7 @@ function labelFits(tab: HTMLElement, label: string): boolean {
 
 function StagesDemo({
   ariaLabel = "Sections",
-  initial = "review",
+  initial = "work",
 }: {
   ariaLabel?: string;
   initial?: string;
@@ -97,10 +97,10 @@ function StagesDemo({
       activeId={active}
       onChange={setActive}
       tabs={[
-        { id: "review", label: "Review", icon: RiTimeLine, count: 12 },
-        { id: "assess", label: "Assess", icon: RiCheckboxCircleLine, count: 5 },
-        { id: "certify", label: "Certify", icon: RiLeafLine, count: 3 },
-        { id: "history", label: "History", icon: RiListCheck2 },
+        { id: "work", label: "Work", icon: RiTimeLine, count: 12 },
+        { id: "confirm", label: "Confirm", icon: RiCheckboxCircleLine, count: 3 },
+        { id: "assess", label: "Assessments", icon: RiListCheck2 },
+        { id: "certify", label: "Hypercerts", icon: RiLeafLine },
       ]}
     />
   );
@@ -166,40 +166,40 @@ export const WithIconsAndCounts: Story = {
     const tablist = await canvas.findByRole("tablist", { name: /sections/i });
     await expect(tablist).toBeVisible();
 
-    const reviewTab = await canvas.findByRole("tab", { name: /Review/ });
-    const assessTab = await canvas.findByRole("tab", { name: /Assess/ });
-    const certifyTab = await canvas.findByRole("tab", { name: /Certify/ });
-    const historyTab = await canvas.findByRole("tab", { name: /History/ });
+    const workTab = await canvas.findByRole("tab", { name: /Work/ });
+    const confirmTab = await canvas.findByRole("tab", { name: /Confirm/ });
+    const assessTab = await canvas.findByRole("tab", { name: /Assessments/ });
+    const certifyTab = await canvas.findByRole("tab", { name: /Hypercerts/ });
 
-    // Initial: review is active and tabbable; others are not in the tab order.
-    await expect(reviewTab).toHaveAttribute("aria-selected", "true");
-    await expect(reviewTab).toHaveAttribute("tabindex", "0");
-    await expect(assessTab).toHaveAttribute("tabindex", "-1");
+    // Initial: work is active and tabbable; others are not in the tab order.
+    await expect(workTab).toHaveAttribute("aria-selected", "true");
+    await expect(workTab).toHaveAttribute("tabindex", "0");
+    await expect(confirmTab).toHaveAttribute("tabindex", "-1");
 
-    // ArrowRight from review → assess.
-    reviewTab.focus();
+    // ArrowRight from work → confirm.
+    workTab.focus();
     await userEvent.keyboard("{ArrowRight}");
-    await expect(assessTab).toHaveAttribute("aria-selected", "true");
-    await expect(assessTab).toHaveAttribute("tabindex", "0");
+    await expect(confirmTab).toHaveAttribute("aria-selected", "true");
+    await expect(confirmTab).toHaveAttribute("tabindex", "0");
 
-    // End jumps to History.
+    // End jumps to Hypercerts.
     await userEvent.keyboard("{End}");
-    await expect(historyTab).toHaveAttribute("aria-selected", "true");
+    await expect(certifyTab).toHaveAttribute("aria-selected", "true");
 
-    // Home jumps back to Review. The handler moves focus via rAF, so
+    // Home jumps back to Work. The handler moves focus via rAF, so
     // explicitly refocus the just-selected tab before the next keypress
     // to avoid races in headless test runners.
     await userEvent.keyboard("{Home}");
-    await expect(reviewTab).toHaveAttribute("aria-selected", "true");
-    reviewTab.focus();
+    await expect(workTab).toHaveAttribute("aria-selected", "true");
+    workTab.focus();
 
-    // ArrowLeft from Review wraps to History.
+    // ArrowLeft from Work wraps to Hypercerts.
     await userEvent.keyboard("{ArrowLeft}");
-    await expect(historyTab).toHaveAttribute("aria-selected", "true");
+    await expect(certifyTab).toHaveAttribute("aria-selected", "true");
 
     // Click still works alongside the keyboard handler.
-    await userEvent.click(certifyTab);
-    await expect(certifyTab).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(assessTab);
+    await expect(assessTab).toHaveAttribute("aria-selected", "true");
   },
 };
 
@@ -214,10 +214,10 @@ export const NarrowActionsLifecycle: Story = {
             activeId={active}
             onChange={setActive}
             tabs={[
-              { id: "all", label: "All", count: 22 },
-              { id: "active", label: "Active", count: 8 },
-              { id: "upcoming", label: "Upcoming", count: 10 },
-              { id: "completed", label: "Completed", count: 4 },
+              { id: "all", label: "All" },
+              { id: "active", label: "Active" },
+              { id: "upcoming", label: "Upcoming" },
+              { id: "completed", label: "Completed" },
             ]}
           />
         </div>
@@ -290,10 +290,10 @@ export const EqualCellsOnDesktop: Story = {
             activeId={active}
             onChange={setActive}
             tabs={[
-              { id: "members", label: "Membros", count: 12 },
+              { id: "members", label: "Membros", count: 3 },
               { id: "coordination", label: "Coordenação" },
-              { id: "endowment", label: "Provisão", count: 1 },
-              { id: "payouts", label: "Pagamentos", count: 3 },
+              { id: "endowment", label: "Provisão" },
+              { id: "payouts", label: "Pagamentos" },
             ]}
           />
         </div>
@@ -360,7 +360,7 @@ export const FullWidthOnAPhone: Story = {
             onChange={setActive}
             tabs={[
               { id: "health", label: "Saúde", count: 2 },
-              { id: "impact", label: "Impacto", count: 1 },
+              { id: "impact", label: "Impacto" },
               { id: "activity", label: "Atividade" },
               { id: "pool", label: "Promessas" },
             ]}
@@ -404,7 +404,7 @@ export const StateCatalog: Story = {
             { id: "overview", label: "Overview", count: 2 },
             { id: "impact", label: "Impact", icon: RiLeafLine },
             { id: "treasury", label: "Treasury", disabled: true },
-            { id: "history", label: "History", count: 128 },
+            { id: "history", label: "History" },
           ]}
         />
       );
@@ -446,10 +446,10 @@ export const CountStates: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await expect(canvas.getByRole("tab", { name: "Single 1 item" })).toBeVisible();
-    await expect(canvas.getByRole("tab", { name: "Many 99 items" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Single 1 waiting" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Many 99 waiting" })).toBeVisible();
     // Visible badge reads "99+"; the accessible name keeps the real number.
-    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 items" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 waiting" })).toBeVisible();
     // A zero count renders no badge at all.
     await expect(canvas.getByRole("tab", { name: "None" })).toBeVisible();
   },

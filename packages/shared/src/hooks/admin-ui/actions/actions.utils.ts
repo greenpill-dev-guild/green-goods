@@ -39,8 +39,10 @@ const ACTION_LIST_QUERY_KEYS = ["sort", "domain", "search", "lifecycle"] as cons
 export type LifecycleStage = "all" | "active" | "upcoming" | "completed";
 
 export interface ActionsHeaderStatsInput {
+  /** The open tab's total: the whole registry on All, one domain's on its tab. */
   totalCount: number;
-  domainsCovered: number;
+  /** How many domains the registry covers; left out on one domain's tab. */
+  domainsCovered?: number;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, string | number | boolean | Date | null | undefined>
@@ -49,28 +51,29 @@ export interface ActionsHeaderStatsInput {
 
 /**
  * Inline MetaStrip items for the Actions header so all four workspace headers
- * share the title · subtitle · stats anatomy. Deliberately registry-level and
- * additive — the domain tab rail already carries the per-domain counts, so the
- * header summarizes coverage instead (Frontend Rule 17). Stat shape (2 items):
- * total actions · domains covered.
+ * share the title · subtitle · stats anatomy. The totals live on this line
+ * because the domain tabs show none (DL-134). Stat shape: total actions · domains
+ * covered on All, total actions alone on one domain's tab.
  */
 export function buildActionsHeaderStats({
   totalCount,
   domainsCovered,
   formatMessage,
 }: ActionsHeaderStatsInput): MetaStripItem[] {
+  const total: MetaStripItem = {
+    id: "total",
+    value: String(totalCount),
+    label: formatMessage(
+      {
+        id: "cockpit.actions.stats.total",
+        defaultMessage: "{count, plural, one {action} other {actions}}",
+      },
+      { count: totalCount }
+    ),
+  };
+  if (domainsCovered === undefined) return [total];
   return [
-    {
-      id: "total",
-      value: String(totalCount),
-      label: formatMessage(
-        {
-          id: "cockpit.actions.stats.total",
-          defaultMessage: "{count, plural, one {action} other {actions}}",
-        },
-        { count: totalCount }
-      ),
-    },
+    total,
     {
       id: "domains",
       value: String(domainsCovered),

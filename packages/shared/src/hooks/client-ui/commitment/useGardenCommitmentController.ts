@@ -136,6 +136,13 @@ export function useGardenCommitmentController(input: {
     (request) => request.state === "PENDING"
   );
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
+  // Untaken and not past due on the chain's clock; never open before the due date is known.
+  const takeUpOpen = Boolean(
+    commitment &&
+      (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
+      due.known &&
+      !isPastDue(commitment, due.clock)
+  );
   // Who may take this up. On a garden pool the chain gates a personal claim on
   // a role in the route garden. On the protocol pool the claim goes through a
   // garden of the reader's own, the host included for a personal claim, so any
@@ -347,17 +354,14 @@ export function useGardenCommitmentController(input: {
     },
     ownRequest,
     pendingClaimRequests,
-    canAskAgain: Boolean(
-      commitment &&
-        (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
-        !pending &&
-        !queueState.isUnavailable &&
-        // Every take-up entry point honours the members-only rule, asking again included.
-        canClaimHere === true &&
-        // Asking again is a take-up: never past due, and not before the due date is known.
-        due.known &&
-        !isPastDue(commitment, due.clock)
-    ),
+    takeUpOpen,
+    canAskAgain:
+      // Asking again is a take-up: never past due, and not before the due date is known.
+      takeUpOpen &&
+      !pending &&
+      !queueState.isUnavailable &&
+      // Every take-up entry point honours the members-only rule, asking again included.
+      canClaimHere === true,
     claimNeedsContext: isProtocolPool,
     membership,
     queue: {

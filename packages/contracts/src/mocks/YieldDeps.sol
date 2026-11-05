@@ -5,14 +5,36 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IHypercertMarketplace } from "../interfaces/IHypercertMarketplace.sol";
 
 /// @title MockCookieJar
-/// @notice Mock cookie jar for testing — simply holds ERC-20 deposits
+/// @notice Single-currency jar with the deployed jar's ledger: only deposit() books tokens and
+///         withdraw() pays only what is booked, so a plain transfer to it can never leave.
+/// @dev In production, Cookie Jar has Hats-gated withdrawal
 contract MockCookieJar {
-    mapping(address asset => uint256 balance) public deposits;
+    error DepositRefused();
+    error InsufficientBalance();
 
-    /// @notice Receive ERC-20 tokens (no-op, just tracks)
-    /// @dev In production, Cookie Jar has Hats-gated withdrawal
-    function getDeposits(address asset) external view returns (uint256) {
-        return deposits[asset];
+    address public immutable CURRENCY;
+    uint256 public currencyHeldByJar;
+    bool public refusesDeposits;
+
+    constructor(address currency) {
+        CURRENCY = currency;
+    }
+
+    /// @notice Makes deposit() revert, as the deployed jar does when paused or below its minimum
+    function setRefusesDeposits(bool refuses) external {
+        refusesDeposits = refuses;
+    }
+
+    function deposit(uint256 amount) external payable {
+        if (refusesDeposits) revert DepositRefused();
+        ERC20(CURRENCY).transferFrom(msg.sender, address(this), amount);
+        currencyHeldByJar += amount;
+    }
+
+    function withdraw(uint256 amount, string calldata) external {
+        if (currencyHeldByJar < amount) revert InsufficientBalance();
+        currencyHeldByJar -= amount;
+        ERC20(CURRENCY).transfer(msg.sender, amount);
     }
 }
 

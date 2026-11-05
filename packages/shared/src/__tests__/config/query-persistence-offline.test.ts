@@ -20,7 +20,8 @@ import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
 import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
-import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
+import { actionsKeys, batchKeys, gardensKeys } from "../../config/query-keys/garden";
+import { hypercertsKeys } from "../../config/query-keys/hypercert";
 import { worksKeys } from "../../config/query-keys/work";
 
 const shouldDehydrateQuery = createShouldDehydrateQuery({ excludedGroups: ["queue"] });
@@ -57,12 +58,17 @@ describe("durable offline reads", () => {
     source.clear();
   });
 
-  it("omits never-loaded queries, other namespaces, queue projections, ceremony state and the due clock's calibration", () => {
+  it("omits never-loaded queries, other namespaces, queue projections, ceremony state, held saves, the due clock's calibration and list windows", () => {
     const source = new QueryClient();
     source.getQueryCache().build(source, { queryKey: gardensKeys.byChain(11155111) });
     source.setQueryData(["wallet", "secret"], "session");
     source.setQueryData(["greengoods", "queue"], [{ id: "job" }]);
+    // How far a steward paged a list belongs to that session's screen.
+    source.setQueryData(worksKeys.window("garden", 11155111), 100);
+    source.setQueryData(hypercertsKeys.window("garden", 11155111), 100);
     source.setQueryData(agentReportingKeys.challenge("challenge-1"), "proof_verified");
+    // The batch journal owns a save's outcome; a restored copy could show a hold that has ended.
+    source.setQueryData(batchKeys.hold("domain", "account", 42161), { hold: null });
     // Restored after the device clock moved, an offset would move the chain's clock with it.
     source.setQueryData(commitmentPoolingKeys.chainClock(42161), -3_600_000);
     expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);

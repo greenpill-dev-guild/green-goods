@@ -292,6 +292,21 @@ describe("WorkStart", () => {
     expect(onJoin).toHaveBeenCalledTimes(1);
   });
 
+  it("chooses the pressed requirement when a promise repeats an action in its tiles", () => {
+    const owed = promise([1, 1, 2, 3], false);
+    owed.choices = [1, 1, 2, 3].map((uid, index) => choice(uid, index));
+    const start = startStep({ screen: { kind: "promise", promise: owed }, promises: [owed] });
+    renderStart({ start, selectedActionUID: 1 });
+
+    const picks = within(
+      screen.getByRole("listbox", { name: "Actions for This Promise" })
+    ).getAllByRole("option");
+    // An action alone cannot identify which repeated requirement was previously chosen.
+    expect(picks.every((pick) => pick.getAttribute("aria-selected") === "false")).toBe(true);
+    fireEvent.click(picks[1]);
+    expect(start.choosePromiseAction).toHaveBeenCalledWith(owed.choices[1]);
+  });
+
   it("says when the page's promise link no longer holds, with a way to let it go", () => {
     const onLetGo = vi.fn();
     renderStart({ link: { status: "invalid", onRetry: vi.fn(), onLetGo } });

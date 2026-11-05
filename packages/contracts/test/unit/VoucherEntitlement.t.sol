@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
@@ -15,6 +16,15 @@ contract VoucherSourceRouterMock {
     bytes public lastData;
     uint256 public nonce;
     uint256 public fee = 1;
+    bool public failSend;
+
+    function setFee(uint256 value) external {
+        fee = value;
+    }
+
+    function setFailSend(bool value) external {
+        failSend = value;
+    }
 
     function getFee(uint64, Client.EVM2AnyMessage memory) external view returns (uint256) {
         return fee;
@@ -22,6 +32,7 @@ contract VoucherSourceRouterMock {
 
     function ccipSend(uint64, Client.EVM2AnyMessage memory message) external payable returns (bytes32) {
         assert(msg.value == fee && message.tokenAmounts.length == 0 && message.feeToken == address(0));
+        require(!failSend, "router send failed");
         lastData = message.data;
         return keccak256(abi.encode(++nonce, message.data));
     }
@@ -29,6 +40,7 @@ contract VoucherSourceRouterMock {
 
 /// @dev Owner, guardian, issuer and router are fictional local stand-ins, never live signer proof.
 contract VoucherEntitlementTest is CommitmentPoolingFixture {
+    using stdStorage for StdStorage;
     VoucherEntitlementModule private vouchers;
     VoucherSourceRouterMock private router;
     address private constant ISSUER = address(0x1550);
@@ -63,6 +75,8 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         VoucherAcceptance(address(module)).pinEarnedVoucherModule(address(vouchers));
         module.setPaused(false);
         vouchers.setIssuerAuthority(ISSUER, TOKEN, AUTHORITY);
+        vouchers.setFeeReserveMinimum(1);
+        vm.deal(address(vouchers), 1);
         vouchers.unpause();
         vm.deal(STEWARD, 10 ether);
     }
@@ -618,9 +632,26 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         assertEq(vouchers.LOCAL_CHAIN_ID(), localChain);
     }
 
+    function testVoucherEntitlement_unconfiguredFeeFloorBlocksDispatch() public {
+        bytes32 entitlement = _preparedSolo(keccak256("voucher-unconfigured-floor"));
+        // Simulate the zero-valued appended slot of an existing proxy before migration configuration.
+        stdstore.target(address(vouchers)).sig("feeReserveMinimum()").checked_write(uint256(0));
+        vm.expectRevert(VoucherEntitlementModule.FeeReserveFloorNotConfigured.selector);
+        _dispatch(entitlement);
+    }
+
+    function testVoucherEntitlement_administrativeCloseoutStopsSourceRetry() public {
+        bytes32 entitlement = _preparedSolo(keccak256("voucher-closeout"));
+        _dispatch(entitlement);
+        vouchers.closeDispatch(entitlement, keccak256("reviewed-evidence"));
+        vm.expectRevert(VoucherEntitlementModule.VoucherDispatchIsClosed.selector);
+        _dispatch(entitlement);
+    }
+
     function testVoucherEntitlement_pauseAndFeeExhaustionAreRecoverableWithoutPayloadChange() public {
         bytes32 entitlement = _preparedSolo(keccak256("voucher-source-pause"));
         bytes memory command = vouchers.getCommand(entitlement);
+        vm.deal(address(vouchers), 0);
         vm.expectRevert(abi.encodeWithSelector(VoucherEndpoint.InsufficientTransportFee.selector, 1, 0));
         vm.prank(STEWARD);
         vouchers.dispatch(entitlement);
@@ -632,8 +663,154 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         vm.prank(STEWARD);
         vouchers.dispatch(entitlement);
         vouchers.unpause();
+        vm.deal(address(vouchers), 1);
         _dispatch(entitlement);
         assertEq(vouchers.getCommand(entitlement), command);
+    }
+
+    function testVoucherEntitlement_feeFloorConfigurationRequiresPausedOwnerAndPositiveMinimum() public {
+        vm.expectRevert(VoucherEntitlementModule.InvalidFeeReserveMinimum.selector);
+        vouchers.setFeeReserveMinimum(10);
+        vouchers.pause();
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(GUARDIAN);
+        vouchers.setFeeReserveMinimum(10);
+        vm.expectRevert(VoucherEntitlementModule.InvalidFeeReserveMinimum.selector);
+        vouchers.setFeeReserveMinimum(0);
+        vouchers.setFeeReserveMinimum(10);
+        assertEq(vouchers.feeReserveMinimum(), 10);
+    }
+
+    function testVoucherEntitlement_initialAndRetryRetainFloorAtBothBoundaries() public {
+        bytes32 entitlement = _preparedSolo(keccak256("voucher-floor-boundaries"));
+        vouchers.pause();
+        vouchers.setFeeReserveMinimum(10);
+        vouchers.unpause();
+        bytes memory command = vouchers.getCommand(entitlement);
+        for (uint256 attempt; attempt < 2; attempt++) {
+            VoucherEntitlementModule.Distribution memory before = vouchers.getDistribution(entitlement);
+            vm.deal(address(vouchers), 10);
+            uint256 routerBalance = address(router).balance;
+            vm.expectRevert(abi.encodeWithSelector(VoucherEntitlementModule.FeeReserveFloorViolated.selector, 10, 9));
+            vm.prank(STEWARD);
+            vouchers.dispatch(entitlement);
+            assertEq(address(vouchers).balance, 10);
+            assertEq(address(router).balance, routerBalance);
+            assertEq(router.nonce(), attempt);
+            assertEq(abi.encode(vouchers.getDistribution(entitlement)), abi.encode(before));
+            assertEq(vouchers.getCommand(entitlement), command);
+            // Exact floor on initial send; above floor on retry.
+            vm.deal(address(vouchers), 11 + attempt);
+            vm.prank(STEWARD);
+            vouchers.dispatch(entitlement);
+            assertEq(address(vouchers).balance, 10 + attempt);
+            assertEq(router.nonce(), attempt + 1);
+            assertEq(router.lastData(), command);
+        }
+    }
+
+    function testVoucherEntitlement_feeIncreaseRequiresTopupAndRetryRetainsExactFloor() public {
+        bytes32 entitlement = _preparedSolo(keccak256("voucher-changing-fee"));
+        vouchers.pause();
+        vouchers.setFeeReserveMinimum(10);
+        vouchers.unpause();
+        vm.deal(address(vouchers), 12);
+        vm.prank(STEWARD);
+        vouchers.dispatch(entitlement);
+        assertEq(address(vouchers).balance, 11); // initial send above the floor
+        bytes memory command = vouchers.getCommand(entitlement);
+        bytes32 messageId = vouchers.getDistribution(entitlement).lastMessageId;
+        router.setFee(3);
+        vm.expectRevert(abi.encodeWithSelector(VoucherEntitlementModule.FeeReserveFloorViolated.selector, 10, 8));
+        vm.prank(STEWARD);
+        vouchers.dispatch(entitlement);
+        assertEq(vouchers.getDistribution(entitlement).lastMessageId, messageId);
+        assertEq(router.nonce(), 1);
+        vm.prank(STEWARD);
+        vouchers.dispatch{ value: 2 }(entitlement);
+        assertEq(address(vouchers).balance, 10); // retry exactly at the floor
+        assertEq(router.nonce(), 2);
+        assertEq(router.lastData(), command);
+        assertEq(vouchers.getCommand(entitlement), command);
+    }
+
+    function testVoucherEntitlement_routerFailurePreservesPendingCommandAndHistory() public {
+        bytes32 entitlement = _preparedSolo(keccak256("voucher-router-failure"));
+        _dispatch(entitlement);
+        VoucherEntitlementModule.Distribution memory before = vouchers.getDistribution(entitlement);
+        uint256 stewardBalance = STEWARD.balance;
+        uint256 routerBalance = address(router).balance;
+        router.setFailSend(true);
+        vm.expectRevert("router send failed");
+        _dispatch(entitlement);
+        assertEq(STEWARD.balance, stewardBalance);
+        assertEq(address(router).balance, routerBalance);
+        assertEq(address(vouchers).balance, 1);
+        assertEq(abi.encode(vouchers.getDistribution(entitlement)), abi.encode(before));
+        assertEq(router.nonce(), 1);
+        router.setFailSend(false);
+        _dispatch(entitlement);
+        assertEq(router.lastData(), vouchers.getCommand(entitlement));
+        assertEq(router.nonce(), 2);
+    }
+
+    function testVoucherEntitlement_closeoutRejectsWrongActorUnknownPreparedDeliveredAndEmptyEvidence() public {
+        bytes32 entitlement = _preparedSolo(keccak256("voucher-closeout-rejections"));
+        bytes32 evidence = keccak256("reviewed-evidence");
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(STEWARD);
+        vouchers.closeDispatch(entitlement, evidence);
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(GUARDIAN);
+        vouchers.closeDispatch(entitlement, evidence);
+        vm.expectRevert(VoucherEntitlementModule.UnknownVoucherEntitlement.selector);
+        vouchers.closeDispatch(keccak256("unknown"), evidence);
+        vm.expectRevert(VoucherEntitlementModule.InvalidDispatchCloseout.selector);
+        vouchers.closeDispatch(entitlement, evidence);
+        _dispatch(entitlement);
+        vm.expectRevert(VoucherEntitlementModule.InvalidDispatchCloseout.selector);
+        vouchers.closeDispatch(entitlement, bytes32(0));
+        _deliver(keccak256("paid-before-close"), _ack(entitlement, 1, true));
+        vm.expectRevert(VoucherEntitlementModule.VoucherAlreadyDelivered.selector);
+        vouchers.closeDispatch(entitlement, evidence);
+        assertEq(vouchers.dispatchCloseoutEvidence(entitlement), bytes32(0));
+    }
+
+    function testVoucherEntitlement_closedPendingAndFailedRewardsStillReconcileWhilePaused() public {
+        _assertClosedRewardReconciles(false);
+        _assertClosedRewardReconciles(true);
+    }
+
+    function _assertClosedRewardReconciles(bool failed) private {
+        bytes32 entitlement = _preparedSolo(keccak256(abi.encode("voucher-closed-late-success", failed)));
+        _dispatch(entitlement);
+        if (failed) _deliver(keccak256("failed-before-close"), _ack(entitlement, 1, false));
+        bytes memory command = vouchers.getCommand(entitlement);
+        VoucherEntitlementModule.Distribution memory before = vouchers.getDistribution(entitlement);
+        bytes32 evidence = keccak256("reviewed-unresolved-dispatch");
+        vouchers.pause();
+        vouchers.closeDispatch(entitlement, evidence);
+        vouchers.closeDispatch(entitlement, evidence);
+        assertEq(abi.encode(vouchers.getDistribution(entitlement)), abi.encode(before));
+        vm.expectRevert(VoucherEntitlementModule.ConflictingDispatchCloseout.selector);
+        vouchers.closeDispatch(entitlement, keccak256("changed-evidence"));
+        _deliver(keccak256(abi.encode("late-failure", failed)), _ack(entitlement, 2, false));
+        _deliver(keccak256(abi.encode("late-success", failed)), _ack(entitlement, 3, true));
+        _deliver(keccak256(abi.encode("duplicate-success", failed)), _ack(entitlement, 3, true));
+        vouchers.closeDispatch(entitlement, evidence); // identical administrative request remains idempotent
+        assertEq(vouchers.dispatchCloseoutEvidence(entitlement), evidence);
+        assertEq(
+            uint8(vouchers.getDistribution(entitlement).state), uint8(VoucherEntitlementModule.DeliveryState.Delivered)
+        );
+        assertEq(vouchers.getCommand(entitlement), command);
+        assertEq(vouchers.distributionOfCommitment(before.commitmentId), entitlement);
+        assertEq(
+            uint8(module.getCommitment(before.commitmentId).state),
+            uint8(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+        );
+        vouchers.unpause();
+        vm.expectRevert(VoucherEntitlementModule.DistributionAlreadyPrepared.selector);
+        _prepare(before.commitmentId, _soloEntries());
     }
 
     function _terms(uint256 total) private view returns (VoucherEntitlementModule.TermsInput memory) {

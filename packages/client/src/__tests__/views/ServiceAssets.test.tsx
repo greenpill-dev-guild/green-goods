@@ -55,7 +55,7 @@ describe("Profile service asset composition", () => {
     renderWithProviders(<ServiceAssets />);
     expect(screen.getByText(/No verified service assets are available yet/)).toBeInTheDocument();
     expect(state.operations).not.toHaveBeenCalled();
-    expect(screen.queryByLabelText("Service Asset")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("offers only the signed-in member's own drafts, approved by their own signature", async () => {
@@ -73,7 +73,7 @@ describe("Profile service asset composition", () => {
     state.approval.approve.mutateAsync.mockResolvedValue(undefined);
     renderWithProviders(<ServiceAssets />);
     expect(state.drafts).toHaveBeenCalledWith(ISSUER_STORY_ADDRESS);
-    const select = screen.getByLabelText("Service Asset");
+    const select = screen.getByLabelText("Vouchers you hold and services you offer.");
     expect(within(select).getAllByRole("option")).toHaveLength(2);
     await userEvent.selectOptions(select, "draft:7");
     await userEvent.click(screen.getByRole("button", { name: "Review and Approve" }));
@@ -97,7 +97,10 @@ describe("Profile service asset composition", () => {
     state.operations.mockClear();
     const view = renderWithProviders(<ServiceAssets />);
     expect(state.operations).not.toHaveBeenCalled();
-    await userEvent.selectOptions(screen.getByLabelText("Service Asset"), "0:0");
+    await userEvent.selectOptions(
+      screen.getByLabelText("Vouchers you hold and services you offer."),
+      "0:0"
+    );
     expect(state.operations).toHaveBeenLastCalledWith({
       address: ISSUER_STORY_ADDRESS,
       routeId: "fictional-story",

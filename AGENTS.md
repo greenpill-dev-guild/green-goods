@@ -153,7 +153,7 @@ separate non-authenticated profile: use it for WebMCP debugging and clean-room p
 checks, label its output as such, and never for authenticated-class proof. It calls the upstream
 `chrome-devtools-mcp` package because that is the protocol package name, but the executable must
 be Brave; it rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Native WebMCP
-discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 covers only
+discovery requires a Brave build that exposes `document.modelContext`. WebMCP v1 covers only
 public-safe client/browser routes via `packages/client/src/webmcp.ts`; do not expose secrets,
 private data, hidden admin actions, onchain writes, destructive operations, or background-only
 actions as WebMCP tools.

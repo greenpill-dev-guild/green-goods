@@ -15,6 +15,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/gardener-guide/installing-and-updating', label: 'Install and Update'},
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
+        {type: 'doc', id: 'community/gardener-guide/report-in-chat', label: 'Report in Chat'},
         {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Your Work'},
         {type: 'doc', id: 'community/gardener-guide/commitments', label: 'Make a Promise'},
         {type: 'doc', id: 'community/gardener-guide/keep-a-promise', label: 'Keep a Promise'},

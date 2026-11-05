@@ -80,6 +80,8 @@ contract MockHatsModuleForCookieJar is IHatsModule {
     function revokeRole(address, address, GardenRole) external { }
     function grantRoles(address, address[] calldata, GardenRole[] calldata) external { }
     function revokeRoles(address, address[] calldata, GardenRole[] calldata) external { }
+
+    function leaveGarden(address) external { }
     function setConvictionStrategies(address, address[] calldata) external { }
 
     function getConvictionStrategies(address) external pure returns (address[] memory) {

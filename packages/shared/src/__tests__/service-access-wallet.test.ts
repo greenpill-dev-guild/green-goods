@@ -45,6 +45,68 @@ const observe = (
 ) => ({ action: "observePilotRole" as const, observation });
 
 describe("receipt-backed live voucher wallet", () => {
+  it("carries the reviewed service names, quantities and terms into voucher holdings", async () => {
+    const f = liveVoucherFixture();
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result.holdings[0]?.issuer.services).toEqual([
+      expect.objectContaining({
+        name: "Assisted session",
+        unit: "minutes",
+        serviceUnits: 45n,
+        voucherUnits: 2_000_000n,
+      }),
+      expect.objectContaining({
+        name: "Claude Team Standard access",
+        unit: "seat days",
+        serviceUnits: 30n,
+        voucherUnits: 10_000_000n,
+      }),
+    ]);
+    expect(result.holdings[1]?.issuer.services).toBeNull();
+  });
+  it.each([
+    "missing-name",
+    "zero-quantity",
+  ] as const)("keeps holdings when reviewed service terms are incomplete: %s", async (failure) => {
+    const f = liveVoucherFixture();
+    const configured = structuredClone(SERVICE_ISSUER_ROUTES[0]!);
+    const offer = configured.assets[0]!.service.offers![0]!;
+    if (failure === "missing-name") delete offer.name;
+    else offer.voucherUnits = 0n;
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      issuerRoutes: [configured],
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result.issuers[0]?.services).toBeNull();
+    expect(result.holdings[0]?.available).toBe(17n);
+  });
+  it("does not borrow service terms from a different issuer route", async () => {
+    const f = liveVoucherFixture();
+    const configured = SERVICE_ISSUER_ROUTES[0]!;
+    const issuerRoutes = [
+      {
+        ...configured,
+        service: {
+          ...configured.service,
+          core: { ...configured.service.core, address: f.wallet.account },
+        },
+      },
+    ];
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route],
+      issuerRoutes,
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result.issuers.every((issuer) => issuer.services === null)).toBe(true);
+    expect(result.holdings.map((row) => row.available)).toEqual([17n, 3n]);
+  });
   it("reads actual token holdings and an empty booking projection without claiming completeness", async () => {
     const f = liveVoucherFixture();
     const result = await readLiveVoucherWallet(f.wallet, {

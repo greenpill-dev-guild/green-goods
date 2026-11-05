@@ -5,7 +5,7 @@
  * The banner is the garden's own picture, or its name's gradient when it has none; then the
  * garden's name on one line and one detail line: how many members, then where (the place
  * shortens first). Stewards, the description and how to join live on the garden's page. Explore
- * opens a garden from it with one tag on the photo (Member, Awaiting review or Open, DL-125),
+ * opens a garden from it with one tag on the photo (Member, Waiting for approval or Open, DL-125),
  * and Submit Work chooses one with `GardenPicker`, the same listbox as the action picker.
  *
  * @module components/Cards/GardenCard

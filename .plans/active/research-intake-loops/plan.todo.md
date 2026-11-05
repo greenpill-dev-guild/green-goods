@@ -2,9 +2,9 @@
 
 **Feature Slug**: `research-intake-loops`
 **Stage**: `active`
-**Status**: `ACTIVE — steps 1 to 3 merged in #1118, step 8 in #1121 and #1122; steps 5 and 8 recorded on 2026-10-18 from the first v5 and v5.1 runs; step 4's radar issue and pinned note still open; steps 6 and 7 follow`
+**Status**: `ACTIVE — v5 and v5.1 shipped; two cron runs reviewed; cycle decisions and agenda v6 in draft PR #1485; GROW-92 created; pinned note and controlled live proofs remain open`
 **Created**: `2026-10-18`
-**Last Updated**: `2026-10-18`
+**Last Updated**: `2026-11-05`
 
 ## Decision Log
 
@@ -32,14 +32,14 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| R1 to R8 intake loop | none (routine spec) | Step 2 | ✅ in the PR |
-| R9 agenda v5 shape, R13 candidate sections | none (agenda) | Step 1 | ✅ in the PR |
-| R10, R11 pending-edits document and footer | none (routine spec) | Step 2 | ✅ in the PR |
-| R12 `research-agenda` skill | none (skill) | Step 3 | ✅ in the PR |
-| R14 to R16 growth and product pull | none (routine spec, README) | Step 2 | ✅ in the PR |
-| R17 to R21 caps, guardrails, failures, phase order, run budget | none (routine spec) | Step 2 | ✅ in the PR |
-| v5.1 intake thread (R1, R4 to R6, R8, R17, R18, R20 amended) | none (routine spec, hub, eval) | Step 8 | ✅ in the v5.1 PR |
-| Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | ⚠️ permissions proven by the 2026-10-18 run; radar issue and pinned note not found that day; the duplicate-trigger check is reported done by Afo but not verifiable from this account until a cron Saturday shows one digest |
+| R1 to R8 intake loop | none (routine spec) | Step 2 | Shipped in #1118; live failure and reclassification proofs remain open |
+| R9 agenda v5 shape, R13 candidate sections | none (agenda) | Step 1 | Shipped; delegated cycle review produced v6 in draft #1485 |
+| R10, R11 pending-edits document and footer | none (routine spec) | Step 2 | Shipped; carry-forward ageing supported by both later memos; positive accepted-count footer still unexercised |
+| R12 `research-agenda` skill | none (skill) | Step 3 | Shipped; scratch application and retry proof recorded 2026-11-05 |
+| R14 to R16 growth and product pull | none (routine spec, README) | Step 2 | Shipped; GROW-92 setup complete, routine comment branch still open |
+| R17 to R21 caps, guardrails, failures, phase order, run budget | none (routine spec) | Step 2 | Shipped; success-path receipts do not prove retry or fallback |
+| v5.1 intake thread (R1, R4 to R6, R8, R17, R18, R20 amended) | none (routine spec, hub, eval) | Step 8 | Shipped in #1121 and #1122; two narrow clarifications in this working copy |
+| Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | Successful thread permissions observed; GROW-92 created and assigned to Afo; pin and retired-trigger UI confirmation remain open |
 
 ## Sequencing
 
@@ -77,6 +77,18 @@
    Merged in #1121 and #1122 on 2026-10-18; the first v5.1 run (a manual fire the same evening) is
    recorded in [reports/2026-10-18-first-v5-1-run.md](reports/2026-10-18-first-v5-1-run.md).
 
+9. **Follow-through reviewed 2026-11-05.** The
+   [current evidence report](reports/2026-11-05-follow-through.md) reviews the 24 and 31 October
+   cron memos and intake receipts, records the two bounded specification fixes and the AC-8
+   scratch proof, and supplies the controlled-run procedure and communication drafts.
+   The 29 October ritual was completed late through Afo's delegated 4 November review:
+   8 proposals accepted unchanged, 19 corrected from newer evidence, 15 rejected and 2 deferred;
+   external integrations promoted, Grove retained in track 7, supporter funding retained in
+   track 4, and water-cycle measurement and Capsula/Brazil deferred. Four entries remain deferred
+   in total. The pending document has no ticked edits awaiting application; agenda v6 awaits
+   merge in draft #1485. GROW-92 now supplies the exact-title Growth surface and Afo owns
+   follow-through. The pin, actual routine radar comment and controlled live checks remain open.
+
 Steps 1 to 3 can land in one PR or three; the routine only needs `develop` to carry all three
 before step 5.
 
@@ -95,6 +107,18 @@ before step 5.
 
 1. Who shares in `#research` today, and who reads the Saturday digest? Sizes the thread caps.
 2. Should the green-goods-os hub be committed to `develop` so the routine can read it?
+
+## Execution truth and next proof
+
+- Keep PRD-1293's canonical acceptance body intact: the hub uses
+  `linear.stateSyncMode: preserve_existing` and `linear.laneSyncMode: parent_only`.
+  The current manifest emits a read-only `preserve` action for PRD-1293; no lane issue is needed.
+- Record actual results for AC-2, AC-4, AC-9's comment branch, AC-10 and AC-12 after the
+  authorized live actions. A successful cron receipt cannot substitute for a controlled failure.
+- Check the positive accepted-count footer on a future run with accepted edits still waiting.
+  The current zero-ticked document does not exercise that branch.
+- Keep the hub active until those observations and the remaining migration one-offs are
+  resolved. No closeout or archive is supported by the present evidence.
 
 ## Out of scope
 

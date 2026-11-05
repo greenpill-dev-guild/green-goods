@@ -4,7 +4,7 @@ import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
@@ -70,15 +70,43 @@ function mutation<T>(isPending = false) {
   return { mutate: fn(), mutateAsync: fn(), isPending, reset: fn() } as unknown as T;
 }
 
+const QUIET_PLAN: ReturnType<typeof useDepositPlan> = {
+  signatures: null,
+  signatureLine: null,
+  isHeld: false,
+  isPaused: false,
+  unconfirmedIsHeld: false,
+  holdFeedback: null,
+};
+const HELD_PLAN: ReturnType<typeof useDepositPlan> = {
+  signatures: 2,
+  signatureLine: "2 signatures",
+  isHeld: true,
+  isPaused: true,
+  unconfirmedIsHeld: false,
+  holdFeedback: {
+    title: "We couldn’t confirm your last deposit.",
+    message:
+      "It could still land, so deposits here are paused until you check again or move on. If it lands after you move on, you’ll have deposited twice.",
+    detail: "You tried to deposit 5 DAI. You have 41 DAI in this vault now.",
+    hasUnreadValues: false,
+    isSettling: false,
+    onCheckAgain: fn(),
+    onMoveOn: fn(),
+  },
+};
+
 function withEndowment({
   online = true,
   depositing = false,
   deposits = [] as VaultDeposit[],
+  plan = QUIET_PLAN,
 } = {}) {
   return () => {
     mocked(useUser).mockReturnValue({ primaryAddress: ACCOUNT } as ReturnType<typeof useUser>);
     mocked(useOnlineStatus).mockReturnValue(online);
     mocked(useVaultDeposit).mockReturnValue(mutation(depositing));
+    mocked(useDepositPlan).mockReturnValue(plan);
     mocked(useVaultWithdraw).mockReturnValue(mutation());
     mocked(useCookieJarWithdraw).mockReturnValue(mutation());
     mocked(useGardenVaults).mockReturnValue({
@@ -112,6 +140,7 @@ function withEndowment({
       useUser,
       useOnlineStatus,
       useVaultDeposit,
+      useDepositPlan,
       useVaultWithdraw,
       useCookieJarWithdraw,
       useGardenVaults,
@@ -169,6 +198,21 @@ export const Depositing: Story = {
       "aria-busy",
       "true"
     );
+  },
+};
+
+/** An earlier deposit nobody can confirm pauses the next one until it lands or the person moves on. */
+export const HeldDeposit: Story = {
+  beforeEach: withEndowment({ plan: HELD_PLAN }),
+  play: async () => {
+    const endowment = await sheet();
+    await waitFor(() =>
+      expect(endowment.getByText(/We couldn’t confirm your last deposit/)).toBeVisible()
+    );
+    await expect(endowment.getByText(/You have 41 DAI in this vault now/)).toBeVisible();
+    await expect(endowment.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    await expect(endowment.getByRole("button", { name: "Move On" })).toBeEnabled();
+    await expect(endowment.getByText("2 signatures")).toBeVisible();
   },
 };
 

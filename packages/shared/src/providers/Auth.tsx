@@ -15,10 +15,12 @@ import { useCrossTabSignOut } from "../hooks/auth/useCrossTabSignOut";
 import { getActorSignOutRevision } from "../modules/auth/sessionSignOut";
 import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
+import { useWalletConnectLifecycle } from "../hooks/auth/useWalletConnectLifecycle";
 import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
 import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
+import { useJoinRequestCountGrantStore } from "../stores/useJoinRequestCountGrantStore";
 import {
   type AuthMode,
   clearSessionForSignOut,
@@ -134,9 +136,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const walletRestoreAttemptedRef = useRef(false);
   const manualWalletLoginPendingRef = useRef(false);
   const loginGenerationRef = useRef(0);
-  // Reflects the Reown AppKit wallet modal open state; the ref tracks the
-  // open->closed edge so we can recover from a dismissed or expired modal.
-  const prevWalletModalOpenRef = useRef(false);
+  // Reflects the Reown AppKit wallet modal open state.
   const walletModalOpen = useWalletModalOpen();
   const clearRestoreAttempt = useWalletRestoreLifecycle(actor as AuthActor, snapshot, wagmiConfig);
   const {
@@ -313,23 +313,16 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     }
   }, [actor, snapshot, isConnected, isConnecting]);
 
-  // WALLET MODAL CLOSE DETECTION
+  // WALLET MODAL LIFECYCLE
   // The wagmi-flag safety net above can miss a dismissal when isConnecting does
-  // not reset promptly (WalletConnect QR, mobile app-switch). Subscribing to
-  // AppKit's modal state (via useWalletModalOpen) catches the open->closed edge
-  // directly: if the modal closes while the machine is still waiting in
-  // wallet_connecting, the user cancelled — return to unauthenticated at once.
-  useEffect(() => {
-    if (!actor) return;
-    const wasOpen = prevWalletModalOpenRef.current;
-    prevWalletModalOpenRef.current = walletModalOpen;
-    // Use the LIVE snapshot (not the React one) so a successful connect — which
-    // already moved the machine to authenticated.wallet — is never clobbered.
-    if (wasOpen && !walletModalOpen && actor.getSnapshot().matches("wallet_connecting")) {
-      logger.debug("[AuthProvider] Wallet modal closed while connecting, sending MODAL_CLOSED");
-      actor.send({ type: "MODAL_CLOSED" });
-    }
-  }, [actor, walletModalOpen]);
+  // not reset promptly (WalletConnect QR, mobile app-switch), so the modal's own
+  // open->closed edge sends MODAL_CLOSED while the machine waits in
+  // wallet_connecting. The same edges time each wallet sign-in: a chosen phone
+  // wallet that never opens ends with a record and a passkey offer.
+  const walletConnectFailure = useWalletConnectLifecycle(actor as AuthActor, snapshot, {
+    isConnected,
+    walletModalOpen,
+  });
 
   const endSession = useCallback(() => {
     if (!actor) return;
@@ -344,6 +337,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     releaseWallet(session);
     if (manualWalletLoginPendingRef.current || isConnecting) void getAppKit()?.close();
     clearRestoreAttempt();
+    // The one join-request credential a browser keeps ends with the session.
+    useJoinRequestCountGrantStore.getState().clearAll();
 
     // A late connector event must not revive the ended session.
     walletRestoreAttemptedRef.current = true;
@@ -656,6 +651,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const stateValue: AuthStateValue = useMemo(
     () => ({
       walletReleaseStalled,
+      walletConnectFailure,
       authMode: computedValues.authMode,
       isReady: computedValues.isReady,
       isAuthenticated: computedValues.isAuthenticated,
@@ -674,7 +670,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       externalWalletConnected: computedValues.externalWalletConnected,
       externalWalletAddress: computedValues.externalWalletAddress,
     }),
-    [computedValues, walletReleaseStalled]
+    [computedValues, walletReleaseStalled, walletConnectFailure]
   );
 
   // Actions value — stable references, only changes when actor/disconnectWallet change

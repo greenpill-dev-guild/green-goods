@@ -24,6 +24,22 @@ export const REHEARSAL_VOUCHER_ISSUERS: Readonly<
     name: "Green Goods",
     gender: "masculine",
     asset: PILOT_ASSETS.a,
+    services: [
+      {
+        name: "Assisted session",
+        unit: "minutes",
+        serviceUnits: 45n,
+        voucherUnits: 2_000_000n,
+        serviceTermsRef: `0x${"a".repeat(64)}`,
+      },
+      {
+        name: "Claude Team Standard access",
+        unit: "seat days",
+        serviceUnits: 30n,
+        voucherUnits: 10_000_000n,
+        serviceTermsRef: `0x${"b".repeat(64)}`,
+      },
+    ],
     garden: DEMO_GARDEN,
     standing: { bookings: "open", exchange: "listed" },
   },
@@ -33,6 +49,15 @@ export const REHEARSAL_VOUCHER_ISSUERS: Readonly<
     name: "Tech and Sun",
     gender: "feminine",
     asset: PILOT_ASSETS.b,
+    services: [
+      {
+        name: "Hub visit",
+        unit: "hours",
+        serviceUnits: 4n,
+        voucherUnits: 1_000_000n,
+        serviceTermsRef: `0x${"c".repeat(64)}`,
+      },
+    ],
     garden: DEMO_GARDEN,
     standing: { bookings: "open", exchange: "listed" },
   },

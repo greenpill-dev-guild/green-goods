@@ -6,6 +6,7 @@ import {
   encodeFunctionData,
   encodeFunctionResult,
   parseAbi,
+  toFunctionSelector,
 } from "viem";
 import deployment from "../../packages/contracts/deployments/11155111-latest.json" with {
   type: "json",
@@ -72,15 +73,22 @@ const roles = [
   MOCK_RPC_OWNER_ADDRESS,
   "0x04D60647836bcA09c37B379550038BdaaFD82503",
 ];
-const registryCalls = new Set(
-  roles.map((address) =>
-    encodeFunctionData({
-      abi: parseAbi(["function isInAllowlist(address) view returns (bool)"]),
-      functionName: "isInAllowlist",
-      args: [address as `0x${string}`],
-    }).toLowerCase()
-  )
-);
+const allowlistAbi = parseAbi(["function isInAllowlist(address) view returns (bool)"]);
+const allowlistSelector = toFunctionSelector(allowlistAbi[0]);
+
+/** The registry's allowlist reads that answer true: one per allowlisted address. */
+function allowlistReads(addresses: readonly string[]) {
+  return new Set(
+    addresses.map((address) =>
+      encodeFunctionData({
+        abi: allowlistAbi,
+        functionName: "isInAllowlist",
+        args: [address as `0x${string}`],
+      }).toLowerCase()
+    )
+  );
+}
+const registryCalls = allowlistReads(roles);
 
 const multicallAbi = parseAbi([
   "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
@@ -128,7 +136,8 @@ function buildRpcResponse(
   garden: typeof MOCK_CLIENT_GARDEN,
   reads: MockRpcRead[],
   requests: Map<string, number>,
-  nested = false
+  nested = false,
+  allowlisted = registryCalls
 ) {
   const addresses = [...roles, garden.id, garden.tokenAddress];
   const { method, params = [] } = payload;
@@ -171,7 +180,8 @@ function buildRpcResponse(
           garden,
           reads,
           requests,
-          true
+          true,
+          allowlisted
         ).result as `0x${string}`,
       }));
       result = encodeFunctionResult({
@@ -246,8 +256,11 @@ function buildRpcResponse(
       data === "0x8da5cb5b"
     ) {
       result = encodeAddressResult(MOCK_RPC_OWNER_ADDRESS);
-    } else if (target === deployment.deploymentRegistry.toLowerCase() && registryCalls.has(data)) {
-      result = encodeAbiParameters([{ type: "bool" }], [true]);
+    } else if (
+      target === deployment.deploymentRegistry.toLowerCase() &&
+      data.startsWith(allowlistSelector)
+    ) {
+      result = encodeAbiParameters([{ type: "bool" }], [allowlisted.has(data)]);
     } else if (
       target === deployment.greenGoodsENS.toLowerCase() &&
       ["0x7150ef88", "0x6130787d"].includes(data)
@@ -287,11 +300,14 @@ export async function mockSepoliaRpc(
     garden?: typeof MOCK_CLIENT_GARDEN;
     reads?: MockRpcRead[];
     requests?: Map<string, number>;
+    /** Who may create gardens. Every mocked account by default; anyone else reads as not allowed. */
+    allowlisted?: readonly string[];
   } = {}
 ) {
   const garden = options.garden ?? MOCK_CLIENT_GARDEN;
   const reads = options.reads ?? [];
   const requests = options.requests ?? new Map<string, number>();
+  const allowlisted = options.allowlisted ? allowlistReads(options.allowlisted) : registryCalls;
   await target.route(
     (url) =>
       url.hostname === "eth-sepolia.g.alchemy.com" ||
@@ -303,8 +319,10 @@ export async function mockSepoliaRpc(
       if (!payload || (Array.isArray(payload) && payload.length === 0))
         throw new Error("Unsupported empty RPC request");
       const response = Array.isArray(payload)
-        ? payload.map((request) => buildRpcResponse(request, garden, reads, requests))
-        : buildRpcResponse(payload, garden, reads, requests);
+        ? payload.map((request) =>
+            buildRpcResponse(request, garden, reads, requests, false, allowlisted)
+          )
+        : buildRpcResponse(payload, garden, reads, requests, false, allowlisted);
       return route.fulfill({
         status: 200,
         headers: GRAPHQL_HEADERS,

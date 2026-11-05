@@ -2,8 +2,9 @@ import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { PwaSheet, type SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { type FC, type ReactNode, useId } from "react";
+import { type FC, type ReactNode, useId, useState } from "react";
 import { useIntl } from "react-intl";
+import { TAB_ICON, TAB_RAIL } from "@/components/Navigation/Tabs/tabRailStyles";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 export interface AppSheetTab {
@@ -86,15 +87,45 @@ export const AppSheet: FC<AppSheetProps> = ({
   const tabPanelId = `${idPrefix}-panel`;
   const tabId = (id: string) => `${idPrefix}-tab-${id}`;
   const hasTabs = tabs.length > 0;
+  // Manual activation: moving focus does not open a tab or mark its notifications seen.
+  const [focusedTab, setFocusedTab] = useState<string | null>(null);
+  const entryTab = tabs.some((tab) => tab.id === focusedTab)
+    ? focusedTab
+    : (activeTab ?? tabs[0]?.id);
 
   const rail = hasTabs ? (
-    <div className={pwaSheetStyles.tabs} role="tablist">
-      {tabs.map((tab) => (
+    <div
+      className={cn(pwaSheetStyles.tabs, TAB_RAIL)}
+      role="tablist"
+      aria-label={header.title}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setFocusedTab(null);
+      }}
+    >
+      {tabs.map((tab, index) => (
         <button
+          type="button"
           key={tab.id}
           id={tabId(tab.id)}
           onClick={() => onTabChange?.(tab.id)}
           role="tab"
+          tabIndex={entryTab === tab.id ? 0 : -1}
+          onFocus={() => setFocusedTab(tab.id)}
+          onKeyDown={(event) => {
+            const next =
+              event.key === "ArrowRight"
+                ? (index + 1) % tabs.length
+                : event.key === "ArrowLeft"
+                  ? (index + tabs.length - 1) % tabs.length
+                  : event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? tabs.length - 1
+                      : null;
+            if (next === null) return;
+            event.preventDefault();
+            document.getElementById(tabId(tabs[next].id))?.focus();
+          }}
           aria-selected={activeTab === tab.id}
           aria-controls={tabPanelId}
           className={cn(
@@ -104,12 +135,7 @@ export const AppSheet: FC<AppSheetProps> = ({
           data-testid={`tab-${tab.id}`}
         >
           {tab.icon && (
-            <span
-              className={cn(
-                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
-                activeTab === tab.id && pwaSheetStyles.tabActiveIcon
-              )}
-            >
+            <span className={cn(TAB_ICON, activeTab === tab.id && pwaSheetStyles.tabActiveIcon)}>
               {tab.icon}
             </span>
           )}
@@ -149,6 +175,7 @@ export const AppSheet: FC<AppSheetProps> = ({
               id: tabPanelId,
               role: "tabpanel",
               "aria-labelledby": activeTab ? tabId(activeTab) : undefined,
+              tabIndex: 0,
             }
           : bodyLabel
             ? { tabIndex: 0, role: "region", "aria-label": bodyLabel }

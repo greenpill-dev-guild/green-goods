@@ -36,6 +36,8 @@ export interface AdminReasonDialogProps {
   tone?: AdminDialogProps["tone"];
   /** What the act writes to, named under the title (see AdminDialogProps.target). */
   target?: ReactNode;
+  /** A rare second way to finish with the same reason, rendered as a text button. */
+  alternative?: { label: string; onConfirm: (reason: string) => void | Promise<void> };
   /** Extra facts rendered above the field (for example what is frozen or who confirms). */
   children?: ReactNode;
 }
@@ -76,6 +78,7 @@ export function AdminReasonDialog({
   blockedReason,
   tone,
   target,
+  alternative,
   children,
 }: AdminReasonDialogProps) {
   const { formatMessage } = useIntl();
@@ -96,11 +99,11 @@ export function AdminReasonDialog({
     setReason(isOpen ? initialReason : "");
   }
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (confirm: (reason: string) => void | Promise<void>) => {
     if (!canConfirm) return;
     setSubmitting(true);
     try {
-      await onConfirm(trimmed);
+      await confirm(trimmed);
     } catch (error) {
       logger.error("[AdminReasonDialog] confirm failed", {
         title,
@@ -135,7 +138,7 @@ export function AdminReasonDialog({
         <SheetActions
           primary={{
             label: confirmLabel,
-            onClick: () => void handleConfirm(),
+            onClick: () => void handleConfirm(onConfirm),
             loading: busy,
             // A busy confirm stays focusable; only a missing reason disables it.
             disabled: !busy && !canConfirm,
@@ -147,6 +150,14 @@ export function AdminReasonDialog({
             onClick: onClose,
             disabled: busy,
           }}
+          tertiary={
+            alternative && {
+              label: alternative.label,
+              onClick: () => void handleConfirm(alternative.onConfirm),
+              // It needs the same reason, and waits for the same one.
+              disabled: !canConfirm,
+            }
+          }
         />
       }
     >

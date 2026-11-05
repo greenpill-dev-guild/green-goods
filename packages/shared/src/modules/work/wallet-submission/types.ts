@@ -32,11 +32,6 @@ export interface ApprovalSubmissionOptions extends WalletSubmissionOptions {
   onLifecycle?: (event: ApprovalWalletLifecycleEvent) => void;
 }
 
-export interface BatchApprovalOptions {
-  onProgress?: OnProgressCallback;
-  txTimeout?: number;
-}
-
 /**
  * Submission phase where the error occurred.
  * Used by error handlers to determine category and user message.

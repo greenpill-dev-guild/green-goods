@@ -2,6 +2,7 @@ import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { GoodDollarFeeQuote } from "../wallet/good-dollar-fees";
 import type { ServiceAccessPilot, ServiceAccessPilotAction } from "./service-access-pilot-types";
+import type { RequestRewardDelivery } from "./service-access-wallet-types";
 import type {
   ServiceVoucherSetup,
   VoucherAcceptancePolicy,
@@ -115,6 +116,8 @@ export interface PersonalServicePurchase {
 export interface ServiceAccessSnapshot {
   /** Present only in explicitly labeled DEV pilot observations. */
   pilot?: ServiceAccessPilot;
+  /** Live distribution of the request's total voucher reward, separate from wallet holdings. */
+  earnedReward?: RequestRewardDelivery;
   key: ServiceAccessKey;
   mode: ServicePaymentRoute | "unavailable";
   knownService: boolean;

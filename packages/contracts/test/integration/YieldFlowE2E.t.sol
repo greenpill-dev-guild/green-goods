@@ -108,7 +108,7 @@ contract YieldFlowIntegrationTest is Test {
 
         // Deploy YieldResolver
         hatsModule = new MockHatsModule();
-        cookieJar = new MockCookieJar();
+        cookieJar = new MockCookieJar(address(weth));
         jbTerminal = new MockJBMultiTerminalForYield();
         marketplace = new MockHypercertMarketplace();
 

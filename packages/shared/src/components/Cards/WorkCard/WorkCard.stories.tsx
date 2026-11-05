@@ -67,12 +67,11 @@ export const WithGardener: Story = {
   },
 };
 
-/** A list words feedback as the second detail, in place of the age. */
+/** A rejected row keeps its age; the feedback lives on the work's page (DL-132). */
 export const Rejected: Story = {
   args: {
     work: { ...mockWork, status: "rejected", feedback: "Please add the planting site." },
     contextLabel: "Your work was reviewed",
-    supportingText: "Feedback",
   },
 };
 
@@ -195,7 +194,7 @@ function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
             },
             showGardener: true,
           },
-          // Your Work, Completed: whose work it was, then the age, or feedback in its place.
+          // Your Work, Completed: whose work it was, then the age (DL-132).
           {
             work: { ...mockWork, title: TITLES[locale][1], status: "approved" },
             contextLabel: text("app.workDashboard.badge.yourWorkReviewed"),
@@ -208,7 +207,6 @@ function LocalizedRows({ surface }: { surface: "app" | "cockpit" }) {
               createdAt: hoursAgo(26),
             },
             contextLabel: text("app.workDashboard.badge.reviewedByYou"),
-            supportingText: text("app.workCard.feedback"),
           },
         ]
       : [

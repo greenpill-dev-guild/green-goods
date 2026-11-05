@@ -94,6 +94,14 @@ vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
 vi.mock("../../../hooks/blockchain/useContractTxSender", () => ({
   useContractTxSender: () => mockSendContractTx,
 }));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => ({
+    sendContractCall: async (call: unknown) => ({
+      hash: await mockSendContractTx(call),
+      sponsored: false,
+    }),
+  }),
+}));
 
 vi.mock("../../../components/toast", () => ({
   toastService: { loading: vi.fn(() => "toast"), success: vi.fn(), dismiss: vi.fn() },

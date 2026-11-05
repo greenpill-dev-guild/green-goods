@@ -37,6 +37,7 @@ CONTRACTS=(
   "WorkApprovalResolver:src/resolvers/WorkApproval.sol"
   "AssessmentResolver:src/resolvers/Assessment.sol"
   "TestimonyResolver:src/resolvers/Testimony.sol"
+  "YieldResolver:src/resolvers/Yield.sol"
   "Deployment:src/registries/Deployment.sol"
 )
 

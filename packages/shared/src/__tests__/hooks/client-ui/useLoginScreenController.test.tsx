@@ -71,11 +71,43 @@ it("explains stalled-wallet reload recovery while keeping passkey entry availabl
   expect(auth.current.loginWithPasskey).toHaveBeenCalledOnce();
 });
 
+it.each([
+  {
+    failure: "timeout",
+    message: "Your wallet app didn't open. Try again, or sign in with a passkey.",
+  },
+  {
+    failure: "connect_error",
+    message: "We couldn't connect your wallet. Try again, or sign in with a passkey.",
+  },
+])("offers passkey sign-in when a wallet sign-in ends in $failure", ({ failure, message }) => {
+  // The machine can still hold the passkey error from before the wallet attempt.
+  auth.current.error = new Error("No passkey found for that username.");
+  auth.current.walletConnectFailure = failure;
+  const { result } = renderController();
+  expect(result.current.loginError).toBe(message);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("useLoginScreenController", () => {
+  it.each([
+    "kernel-0.3.3",
+    "kernel-0.3.3-pilot",
+  ])("keeps %s accounts out of the legacy pilot enrollment flow", (profile) => {
+    auth.current = {
+      ...auth.current,
+      isAuthenticated: true,
+      authMode: "passkey",
+      passkeyAccountProfile: profile,
+      preparePilotAccount: vi.fn(),
+    };
+    const { result } = renderController("/login?pilot=1");
+    expect(result.current.showPilotEnrollment).toBe(false);
+  });
+
   it.each([
     {
       flow: "recover",

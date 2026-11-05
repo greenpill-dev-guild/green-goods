@@ -20,6 +20,7 @@ import {
   communitySectionForMode,
   resolveCommunityMode,
 } from "./community.utils";
+import { useJoinRequestsWaiting } from "./useJoinRequestsWaiting";
 
 export function useCommunityWorkspaceController() {
   const { formatMessage } = useIntl();
@@ -40,6 +41,8 @@ export function useCommunityWorkspaceController() {
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [memberSearch, setMemberSearchState] = useState("");
+  const { joinRequestsWaiting, noteJoinRequestsRead, keepJoinRequestCountGrant } =
+    useJoinRequestsWaiting(gardenStateKey);
 
   const isVaultDepositRoute =
     location.pathname.startsWith("/community/endowment/vault/deposit") ||
@@ -102,6 +105,9 @@ export function useCommunityWorkspaceController() {
     community,
     communityLoading,
     pools,
+    poolsRead,
+    poolsUnread,
+    rereadPools,
     createPools,
     isCreatingPools,
     gardenVaults,
@@ -111,6 +117,7 @@ export function useCommunityWorkspaceController() {
     allocations,
     allocationsAtLimit,
     allocationsLoading,
+    allocationsUnread,
     hasNoPayoutJar,
     roleMembers,
     works,
@@ -234,6 +241,7 @@ export function useCommunityWorkspaceController() {
     allocations,
     allocationsAtLimit,
     allocationsLoading,
+    allocationsUnread,
     canManage,
     clearSection,
     closeMembersModal,
@@ -256,14 +264,20 @@ export function useCommunityWorkspaceController() {
     isOwner,
     isSignalPoolRoute,
     isStrategiesRoute,
+    joinRequestsWaiting,
+    keepJoinRequestCountGrant,
     vaultAction,
     memberCount: derived.memberCount,
     memberSearch,
     mode,
+    noteJoinRequestsRead,
     openMembersModal,
     openSection,
     pools,
+    poolsRead,
+    poolsUnread,
     poolType,
+    rereadPools,
     roleMembers,
     roleSummary: derived.roleSummary,
     scheduleBackgroundRefetch,
