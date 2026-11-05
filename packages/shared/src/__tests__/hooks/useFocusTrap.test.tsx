@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - No owning hook test exists; this browser-order regression tests the trap independently of its overlay consumers.
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useRef } from "react";
 import { describe, expect, it } from "vitest";

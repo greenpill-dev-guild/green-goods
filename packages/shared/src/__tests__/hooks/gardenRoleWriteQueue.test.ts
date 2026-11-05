@@ -1,4 +1,5 @@
-import { QueryClient } from "@tanstack/react-query";
+// TEST-QUALITY: allow-small-test-file - Multi-key reservation across caches is a separate coordination seam from the mocked operation-hook tests.
+import { createTestQueryClient } from "../test-utils/query-client";
 import { describe, expect, it, vi } from "vitest";
 import { runGardenRoleWrites } from "../../hooks/garden/gardenRoleWriteQueue";
 import type { GardenMemberRow } from "../../modules/garden/members-batch";
@@ -12,7 +13,7 @@ const other: GardenMemberRow = { ...row, address: "0x333333333333333333333333333
 
 describe("garden role writes sharing a cache", () => {
   it("holds overlapping batches through settlement and releases after a rejection", async () => {
-    const client = new QueryClient();
+    const client = createTestQueryClient();
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {
       release = resolve;
@@ -33,7 +34,7 @@ describe("garden role writes sharing a cache", () => {
   });
 
   it("lets independent people, roles, chains and query caches proceed", async () => {
-    const client = new QueryClient();
+    const client = createTestQueryClient();
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {
       release = resolve;
@@ -44,7 +45,7 @@ describe("garden role writes sharing a cache", () => {
       runGardenRoleWrites(client, 42161, garden, [other], independent),
       runGardenRoleWrites(client, 42161, garden, [{ ...row, role: "steward" }], independent),
       runGardenRoleWrites(client, 100, garden, [row], independent),
-      runGardenRoleWrites(new QueryClient(), 42161, garden, [row], independent),
+      runGardenRoleWrites(createTestQueryClient(), 42161, garden, [row], independent),
     ]);
     expect(independent).toHaveBeenCalledTimes(4);
     release();

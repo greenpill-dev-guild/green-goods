@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - This dialog has no owning test file; its keyboard contract is independent of the record drawer.
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
