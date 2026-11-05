@@ -43,6 +43,71 @@ describe("config/passkeyServer", () => {
   });
 
   describe("passkey directory client", () => {
+    it("preserves the directory profile while the installed SDK decodes registration options", async () => {
+      vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              result: {
+                accountProfile: "kernel-0.3.3",
+                challenge: "AQID",
+                attestation: "none",
+                rp: { id: "greengoods.app", name: "Green Goods" },
+                user: { id: "AQID", name: "ana", displayName: "ana" },
+                authenticatorSelection: {
+                  authenticatorAttachment: "platform",
+                  requireResidentKey: false,
+                  residentKey: "preferred",
+                  userVerification: "required",
+                },
+              },
+            }),
+            { headers: { "content-type": "application/json" } }
+          )
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: 2,
+              result: {
+                success: true,
+                id: "AQID",
+                publicKey: "0x04",
+                userName: "ana",
+                accountProfile: "kernel-0.3.3",
+              },
+            }),
+            { headers: { "content-type": "application/json" } }
+          )
+        );
+      const client = createPasskeyDirectoryClient(DIRECTORY_ENV)!;
+      const context = { userName: "ana", accountProfileVersion: 1 };
+      const options = await client.startRegistration({ context });
+      expect(options).toMatchObject({
+        accountProfile: "kernel-0.3.3",
+        challenge: new Uint8Array([1, 2, 3]),
+      });
+      const buffer = new Uint8Array([1, 2, 3]).buffer;
+      const credential = {
+        id: "AQID",
+        publicKey: "0x04",
+        raw: {
+          rawId: buffer,
+          type: "public-key",
+          authenticatorAttachment: "platform",
+          response: { clientDataJSON: buffer, attestationObject: buffer },
+          getClientExtensionResults: () => ({}),
+        },
+      } as unknown as P256Credential;
+      expect(await client.verifyRegistration({ credential, context })).toMatchObject({
+        success: true,
+        accountProfile: "kernel-0.3.3",
+      });
+    });
+
     it("keeps local-only development separate from the production directory", () => {
       expect(createPasskeyDirectoryClient({})).toBeNull();
       expect(createPasskeyDirectoryClient(DIRECTORY_ENV)).not.toBeNull();

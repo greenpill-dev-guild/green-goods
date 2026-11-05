@@ -414,6 +414,19 @@ describe("live service access", () => {
   });
 
   it.each([
+    "kernel-0.3.3",
+    "kernel-0.3.3-pilot",
+  ])("accepts %s passkey sessions for the same guarded service actions", async (profile) => {
+    const f = fixture();
+    f.session.authMode = "passkey";
+    f.session.profile = profile;
+    f.dependencies.sender = () => ({ ...f.sender, authMode: "passkey" });
+    const result = await f.adapter().execute(key, f.action);
+    expect(result.kind).toBe("onchain");
+    expect(f.sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it.each([
     "legacy-profile",
     "wrong-wallet",
     "offline",

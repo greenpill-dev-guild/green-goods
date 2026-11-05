@@ -29,7 +29,14 @@ function createDirectoryApp(
   const store = new MemoryPasskeyDirectoryStore();
   const app = createServer({
     isAIReady: () => true,
-    allowedOrigins: new Set([BETA, WWW, ADMIN, LOCALHOST, LOOPBACK_ADDRESS]),
+    allowedOrigins: new Set([
+      BETA,
+      "https://beta.admin.greengoods.app",
+      WWW,
+      ADMIN,
+      LOCALHOST,
+      LOOPBACK_ADDRESS,
+    ]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
     passkeyDirectory: createPasskeyDirectory({
       store,
@@ -73,26 +80,79 @@ async function call(
 async function signUp(
   app: ReturnType<typeof createServer>,
   userName: string,
-  options: { origin?: string; passkey?: Partial<SoftwarePasskeyOptions> } = {}
+  options: {
+    origin?: string;
+    passkey?: Partial<SoftwarePasskeyOptions>;
+    accountProfileVersion?: number;
+  } = {}
 ) {
   const origin = options.origin ?? BETA;
-  const start = await call(app, "pks_startRegistration", [{ userName }], origin);
+  const context = {
+    userName,
+    ...(options.accountProfileVersion === undefined
+      ? {}
+      : { accountProfileVersion: options.accountProfileVersion }),
+  };
+  const start = await call(app, "pks_startRegistration", [context], origin);
   const passkey = createSoftwarePasskeyRegistration({
     rpId: DOMAIN,
     origin,
     challenge: start.result?.challenge,
     ...options.passkey,
   });
-  const verify = await call(
-    app,
-    "pks_verifyRegistration",
-    [passkey.credential, { userName }],
-    origin
-  );
+  const verify = await call(app, "pks_verifyRegistration", [passkey.credential, context], origin);
   return { start, passkey, verify };
 }
 
 describe("passkey directory", () => {
+  it.each([
+    [BETA, "kernel-0.3.3"],
+    ["https://beta.admin.greengoods.app", "kernel-0.3.3"],
+    [WWW, "kernel-0.3.1-legacy"],
+    [ADMIN, "kernel-0.3.1-legacy"],
+  ])("pins new account profiles at registration on %s", async (origin, accountProfile) => {
+    const { app, store } = createDirectoryApp();
+    const { start, verify } = await signUp(app, "ana", { origin, accountProfileVersion: 1 });
+    expect(start.result.accountProfile).toBe(accountProfile);
+    expect(verify.result.accountProfile).toBe(accountProfile);
+    expect(await store.findByName("ana")).toMatchObject({ accountProfile });
+    for (const otherOrigin of [BETA, WWW]) {
+      const found = await call(
+        app,
+        "pks_getCredentials",
+        [{ userName: "ana", accountProfileVersion: 1 }],
+        otherOrigin
+      );
+      expect(found.result[0].accountProfile).toBe(accountProfile);
+    }
+    if (accountProfile === "kernel-0.3.3") {
+      const oldClient = await call(app, "pks_getCredentials", [{ userName: "ana" }], WWW);
+      expect(oldClient.error?.message).toBe("Update Green Goods to sign in to this account.");
+    }
+  });
+
+  it("keeps older beta clients on their original recipe and binds the profile to the challenge", async () => {
+    const { app, store } = createDirectoryApp();
+    await signUp(app, "older-client");
+    expect(await store.findByName("older-client")).toMatchObject({
+      accountProfile: "kernel-0.3.1-legacy",
+    });
+    const start = await call(app, "pks_startRegistration", [
+      { userName: "ana", accountProfileVersion: 1 },
+    ]);
+    const passkey = createSoftwarePasskeyRegistration({
+      rpId: DOMAIN,
+      origin: BETA,
+      challenge: start.result.challenge,
+    });
+    const downgraded = await call(app, "pks_verifyRegistration", [
+      passkey.credential,
+      { userName: "ana" },
+    ]);
+    expect(downgraded.error).toBeDefined();
+    expect(await store.findByName("ana")).toBeUndefined();
+  });
+
   it("issues one domain to every site, so a passkey made on one is found from another", async () => {
     const { app } = createDirectoryApp();
 
@@ -105,6 +165,7 @@ describe("passkey directory", () => {
       userVerification: "required",
     });
     expect(verify.result).toEqual({
+      accountProfile: "kernel-0.3.1-legacy",
       success: true,
       id: passkey.credentialId,
       publicKey: passkey.publicKey,
@@ -118,6 +179,7 @@ describe("passkey directory", () => {
           signingId: passkey.credentialId,
           publicKey: passkey.publicKey,
           rpId: DOMAIN,
+          accountProfile: "kernel-0.3.1-legacy",
         },
       ]);
     }
@@ -137,6 +199,7 @@ describe("passkey directory", () => {
         signingId: first.passkey.credentialId,
         publicKey: first.passkey.publicKey,
         rpId: DOMAIN,
+        accountProfile: "kernel-0.3.1-legacy",
       },
     ]);
     expect((await call(app, "pks_startRegistration", [{ userName: "ab" }])).error?.code).toBe(

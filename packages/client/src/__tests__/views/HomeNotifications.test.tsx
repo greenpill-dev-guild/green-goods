@@ -274,6 +274,13 @@ const openSheet = () => {
   return screen.getByRole("dialog", { name: "Notifications" });
 };
 const rowsOf = (sheet: HTMLElement) => within(sheet).getAllByRole("listitem");
+/** The record a promise event carries into its offline destination. */
+const commitmentOfEvent = (index: number) => {
+  const event = EVENTS[index];
+  if (!("commitment" in event)) throw new Error("Fixture is not a promise event");
+  return event.commitment;
+};
+
 /** The record a work event carries, which its row hands on to the work page. */
 const workOfEvent = (index: number) => {
   const event = EVENTS[index];
@@ -427,14 +434,14 @@ describe("the sheet", () => {
 
     fireEvent.click(within(rows[2]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/11`, {
-      state: { from: "home" },
+      state: { from: "home", commitmentGarden: GARDEN, commitment: commitmentOfEvent(2) },
       viewTransition: true,
     });
 
     // A take-up request is decided on its promise's page.
     fireEvent.click(within(rows[0]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/21`, {
-      state: { from: "home" },
+      state: { from: "home", commitmentGarden: GARDEN, commitment: commitmentOfEvent(0) },
       viewTransition: true,
     });
     fireEvent.click(within(rows[4]).getByRole("button"));

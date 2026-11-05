@@ -213,6 +213,22 @@ describe("Home Needs Your Attention", () => {
     expect(metadataReads.at(-1)?.map((commitment) => commitment.commitmentId)).toEqual([9n, 10n]);
   });
 
+  it("opens an incomplete review window without inventing a count or an oldest submission", () => {
+    renderSection(
+      duties({
+        duties: [{ kind: "review", count: 0, works: [], uncounted: true }],
+      })
+    );
+    expect(rows()).toHaveLength(1);
+    expect(titleOf(rows()[0])).toBe("Submissions to review");
+    expect(rows()[0]).toHaveTextContent(
+      "The full review queue could not be checked. Open Work to see more."
+    );
+    expect(rows()[0]).not.toHaveTextContent(/0 submissions|ago|NaN/);
+    fireEvent.click(within(rows()[0]).getByRole("button"));
+    expect(openGardenSheet).toHaveBeenCalledWith("work");
+  });
+
   it("says a queue could not be read rather than going quiet, and reads again on Try Again", () => {
     const refetch = vi.fn();
     renderSection(duties({ isError: true, refetch }));

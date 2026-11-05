@@ -509,10 +509,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               },
               // The entry loads its error reporting before any route. A route that reaches only
               // part of it, as the reporting pages reach the categories, must not split it into
-              // one more file the page preloads.
+              // one more file the page preloads. Keep its recovery state and worker protocol
+              // together too: the preload-error handler reaches both before any route loads.
               {
                 name: "error-reporting",
-                test: /\/packages\/shared\/src\/modules\/app\/error-(?:breadcrumbs|categories|events)\.ts$/,
+                test: /\/packages\/shared\/src\/modules\/app\/(?:error-(?:breadcrumbs|categories|events)|cache-recovery|service-worker-protocol)\.ts$/,
                 priority: 45,
                 includeDependenciesRecursively: false,
               },

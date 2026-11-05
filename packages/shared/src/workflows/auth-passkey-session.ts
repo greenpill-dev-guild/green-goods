@@ -4,6 +4,7 @@ import { logger } from "../modules/app/logger";
 import {
   LEGACY_PASSKEY_PROFILE,
   PILOT_PASSKEY_PROFILE,
+  isKernel033PasskeyProfile,
   type PasskeyAccountProfileId,
 } from "../modules/auth/account-profile";
 import type { PasskeyCredential } from "../modules/auth/session";
@@ -92,7 +93,7 @@ export function createPasskeySessionServices(adapters: PasskeyAdapters) {
           primaryChainId: chainId,
           expectedAddress: address,
           buildSmartAccount: (credential, targetChainId) =>
-            profile === PILOT_PASSKEY_PROFILE
+            isKernel033PasskeyProfile(profile)
               ? adapters.buildSmartAccount(credential, targetChainId, rpId, undefined, profile)
               : adapters.buildSmartAccount(credential, targetChainId, rpId, address),
         }),
@@ -169,7 +170,7 @@ export function createPasskeySessionServices(adapters: PasskeyAdapters) {
             primaryChainId: input.chainId,
             expectedAddress: address,
             buildSmartAccount: (credential, targetChainId) =>
-              profile === PILOT_PASSKEY_PROFILE
+              isKernel033PasskeyProfile(profile)
                 ? adapters.buildSmartAccount(credential, targetChainId, rpId, undefined, profile)
                 : adapters.buildSmartAccount(credential, targetChainId, rpId, address),
           }),

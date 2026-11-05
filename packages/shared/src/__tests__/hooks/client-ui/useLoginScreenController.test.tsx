@@ -94,6 +94,21 @@ afterEach(() => {
 
 describe("useLoginScreenController", () => {
   it.each([
+    "kernel-0.3.3",
+    "kernel-0.3.3-pilot",
+  ])("keeps %s accounts out of the legacy pilot enrollment flow", (profile) => {
+    auth.current = {
+      ...auth.current,
+      isAuthenticated: true,
+      authMode: "passkey",
+      passkeyAccountProfile: profile,
+      preparePilotAccount: vi.fn(),
+    };
+    const { result } = renderController("/login?pilot=1");
+    expect(result.current.showPilotEnrollment).toBe(false);
+  });
+
+  it.each([
     {
       flow: "recover",
       setName: "setRecoveryUsername",

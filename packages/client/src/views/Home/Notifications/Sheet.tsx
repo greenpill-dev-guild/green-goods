@@ -134,7 +134,13 @@ export function NotificationsSheet({
         // A take-up request is decided on its promise's page.
         navigate(
           `/home/${gardenId}/commitments/${notification.commitment.commitmentId.toString()}`,
-          { state: { from: "home" } }
+          {
+            state: {
+              from: "home",
+              commitmentGarden: gardenId,
+              commitment: notification.commitment,
+            },
+          }
         );
         return;
       case "joinRequested":
