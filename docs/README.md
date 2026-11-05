@@ -31,6 +31,47 @@ bun run --cwd docs check:search-index
 The static build is written to `docs/build`. `bun run --cwd docs build` also fails unless the generated
 search index contains every live documentation source route.
 
+## Browser editing with TinaCMS
+
+TinaCMS edits all authored Community pages, including the Welcome, How It Works and Why We
+Build pages, every role guide and nested task page, plus FAQ, Brand Voice and Brand Kit.
+Generated pages, including the glossary, are excluded. Existing pages can be edited; creating
+or deleting pages stays in the repository workflow so navigation and source ownership remain reviewed.
+
+Page bodies use an MDX source textarea. Preserve imports, component tags, image layouts and
+`:::` callout markers. Tina's rich-text parser supports only a subset of this site's MDX;
+source editing preserves the existing components without migrating the documentation.
+Titles, descriptions and metadata have separate form fields. The verification date is retained
+without a timezone-sensitive date picker.
+
+For local editing, stop the ordinary docs server first, then run from the repository root:
+
+```bash
+bun run --cwd docs cms:dev
+```
+
+Open `http://localhost:3003/admin/index.html`. Local mode saves directly to this checkout.
+The Tina API uses port 4001; its local data layer uses port 9000. Check port ownership before
+starting another server. The public documentation continues to use Docusaurus's file content.
+
+Production editing uses `https://docs.greengoods.app/admin/index.html` after deployment.
+TinaCloud's project must use **Path to Tina = docs**, allow the local and production URL origins,
+and grant each editor access as a project collaborator. The client ID is public configuration.
+Configure the read-only `TINA_TOKEN` in the `green-goods-docs` Vercel project's production and
+preview environment settings; never commit it. For local cloud builds, supply it through the
+process environment. Do not create package-level environment files.
+
+`TINA_BRANCH` explicitly selects the content branch when set; otherwise the Vercel deployment's
+Git branch is used, with `develop` as the local fallback. Saves commit to that branch. Publishing
+follows its existing Git/Vercel deployment workflow. The free plan does not include Tina's built-in
+editorial approval workflow. An editor's save is not a substitute for repository review.
+
+The Vercel entrypoint runs the existing docs checks, then `cms:build`, then the Docusaurus build.
+Cloud schema checks stay enabled. Commit `tina/tina-lock.json` after schema changes so TinaCloud
+can index the branch; generated clients and editor bundles remain ignored. Verify editor changes
+with `bun run --cwd docs test tina/collections.test.ts`, `bun run --cwd docs typecheck`, and the
+selected docs build/audit checks. Official setup: <https://tina.io/docs/guides/docusaurus>.
+
 ## Content map
 
 ```text
