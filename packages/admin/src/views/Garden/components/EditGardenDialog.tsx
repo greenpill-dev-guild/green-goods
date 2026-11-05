@@ -243,12 +243,7 @@ export function EditGardenDialog({
         ) : null}
         {/* The form stays mounted under a save's progress: it owns the draft
             that Keep Editing returns to and Try Again sends. */}
-        <div
-          className={cn(
-            "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]",
-            run && "hidden"
-          )}
-        >
+        <div className={cn("min-w-0", run && "hidden")}>
           <GardenSettingsEditor
             ref={settingsEditorRef}
             gardenAddress={garden.id as Address}
@@ -265,85 +260,87 @@ export function EditGardenDialog({
             isOwner={isOwner}
             onBannerPreviewChange={setBannerPreview}
             onDirtyStateChange={setSettingsForm}
-          />
-
-          <div className="space-y-4">
-            {/* Identity preview — the single place the banner renders (saved,
+            renderAside={(bannerUpload) => (
+              <div className="space-y-3">
+                {/* Identity preview — the single place the banner renders (saved,
                 staged draft, or staged removal, reported by the form), plus the
                 garden name and location. Remove / Undo sit on the image so a
                 pending removal is always visible. */}
-            <AdminCard variant="filled" density="none" className="overflow-hidden">
-              <div className="relative">
-                {bannerRemovalStaged ? (
-                  <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
-                    <RiImageLine className="h-5 w-5" />
-                    <span className="type-meta">
-                      {formatMessage({
-                        id: "app.garden.settings.bannerWillBeRemoved",
-                        defaultMessage: "Will be removed on save",
-                      })}
-                    </span>
-                    <Button
-                      type="button"
-                      emphasis="tertiary"
-                      size="compact"
-                      leadingIcon={<RiArrowGoBackLine className="h-4 w-4" aria-hidden="true" />}
-                      onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
-                    >
-                      {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
-                    </Button>
+                <AdminCard variant="filled" density="none" className="overflow-hidden">
+                  <div className="relative">
+                    {bannerRemovalStaged ? (
+                      <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
+                        <RiImageLine className="h-5 w-5" />
+                        <span className="type-meta">
+                          {formatMessage({
+                            id: "app.garden.settings.bannerWillBeRemoved",
+                            defaultMessage: "Will be removed on save",
+                          })}
+                        </span>
+                        <Button
+                          type="button"
+                          emphasis="tertiary"
+                          size="compact"
+                          leadingIcon={<RiArrowGoBackLine className="h-4 w-4" aria-hidden="true" />}
+                          onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
+                        >
+                          {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
+                        </Button>
+                      </div>
+                    ) : bannerSrc ? (
+                      <>
+                        <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
+                        {bannerCanRemove ? (
+                          <Button
+                            type="button"
+                            emphasis="tertiary"
+                            size="compact"
+                            leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+                            onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
+                            className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
+                          >
+                            {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                          </Button>
+                        ) : null}
+                        {bannerIsDraft ? (
+                          <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 type-meta-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
+                            {formatMessage({
+                              id: "app.garden.settings.bannerDraft",
+                              defaultMessage: "Preview · uploads on save",
+                            })}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
+                        <RiImageLine className="h-6 w-6" />
+                      </div>
+                    )}
                   </div>
-                ) : bannerSrc ? (
-                  <>
-                    <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
-                    {bannerCanRemove ? (
-                      <Button
-                        type="button"
-                        emphasis="tertiary"
-                        size="compact"
-                        leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
-                        onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
-                        className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
-                      >
-                        {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                      </Button>
+                  <div className="space-y-1 p-3 type-body text-text-sub">
+                    <h3 className="type-label-sm truncate text-text-strong" title={garden.name}>
+                      {garden.name}
+                    </h3>
+                    {garden.location ? (
+                      <p className="truncate" title={garden.location}>
+                        {garden.location}
+                      </p>
                     ) : null}
-                    {bannerIsDraft ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 type-meta-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
-                        {formatMessage({
-                          id: "app.garden.settings.bannerDraft",
-                          defaultMessage: "Preview · uploads on save",
-                        })}
-                      </span>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
-                    <RiImageLine className="h-6 w-6" />
                   </div>
-                )}
-              </div>
-              <div className="space-y-1 p-3 type-body text-text-sub">
-                <h3 className="type-label-sm truncate text-text-strong" title={garden.name}>
-                  {garden.name}
-                </h3>
-                {garden.location ? (
-                  <p className="truncate" title={garden.location}>
-                    {garden.location}
-                  </p>
-                ) : null}
-              </div>
-            </AdminCard>
+                  <div className="px-3 pb-3">{bannerUpload}</div>
+                </AdminCard>
 
-            {/* On-chain identifiers fill the column beside the form instead of
+                {/* On-chain identifiers fill the column beside the form instead of
                 dangling below the grid. */}
-            <GardenMetadata
-              gardenId={garden.id as Address}
-              tokenAddress={garden.tokenAddress as Address}
-              tokenId={BigInt(garden.tokenID)}
-              chainId={garden.chainId}
-            />
-          </div>
+                <GardenMetadata
+                  gardenId={garden.id as Address}
+                  tokenAddress={garden.tokenAddress as Address}
+                  tokenId={BigInt(garden.tokenID)}
+                  chainId={garden.chainId}
+                />
+              </div>
+            )}
+          />
         </div>
       </AdminDialog>
       <DiscardChangesDialog

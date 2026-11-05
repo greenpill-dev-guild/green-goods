@@ -162,7 +162,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                   defaultMessage: "Cookie Jars",
                 })}
               </AdminCardTitle>
-              <p className="mt-1 type-meta text-text-sub">
+              <p className="mt-1 type-body text-text-sub">
                 {allocationCountUnread
                   ? formatMessage({ id: "cockpit.community.payouts.totalUnread" })
                   : formatMessage(

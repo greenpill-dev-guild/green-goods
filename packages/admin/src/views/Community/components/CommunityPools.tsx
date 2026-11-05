@@ -108,7 +108,7 @@ function GardenPoolCard({
           <AdminCardTitle className="truncate" title={garden.name}>
             {garden.name}
           </AdminCardTitle>
-          <p className="mt-1 type-meta text-text-soft">
+          <p className="mt-1 type-body text-text-soft">
             {formatMessage({
               id: "cockpit.community.pools.currentGardenHint",
               defaultMessage:
@@ -279,7 +279,7 @@ function ProtocolOperations({
           defaultMessage: "Protocol Confirmations",
         })}
       </AdminCardTitle>
-      <p className="type-meta text-text-soft">
+      <p className="type-body text-text-soft">
         {formatMessage({
           id: "cockpit.community.pools.confirmationsHint",
           defaultMessage:

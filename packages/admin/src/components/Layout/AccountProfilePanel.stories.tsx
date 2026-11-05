@@ -102,9 +102,16 @@ export const Steward: Story = {
     await expect(await canvas.findByRole("heading", { name: "Wallet" })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "Your Gardens" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Disconnect/ })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Steward access" })).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: "Request Access to Another Garden" })
+    ).toBeVisible();
     await expect(canvas.getByRole("link", { name: /View on Explorer/ })).toBeVisible();
   },
 };
+
+/** Real account panel for locale captures without the English-only play assertions. */
+export const Localized: Story = {};
 
 export const Deployer: Story = {
   tags: ["visual-harness"],

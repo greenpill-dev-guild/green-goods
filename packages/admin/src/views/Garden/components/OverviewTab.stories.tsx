@@ -5,9 +5,10 @@ import type {
 } from "@green-goods/shared/types/garden-detail";
 import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
-import { hoursAgo } from "../../../../../shared/.storybook/fixtures";
-import { withRouter } from "../../../../../shared/.storybook/decorators";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { FIXTURE_IMAGE_AGROFORESTRY, hoursAgo } from "../../../../../shared/.storybook/fixtures";
+import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
+import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { OverviewTab } from "./OverviewTab";
 
 const MOCK_ACTIVITY: GardenActivityEvent[] = [
@@ -15,8 +16,13 @@ const MOCK_ACTIVITY: GardenActivityEvent[] = [
     id: "w-1",
     category: "work",
     title: "Planted 50 native saplings",
-    description: "Approved · Rio Rainforest Lab",
-    timestamp: hoursAgo(3),
+    description: "Submitted work",
+    actorAddress: STORYBOOK_PRIMARY_ADMIN_GARDEN.owners[0],
+    photo: FIXTURE_IMAGE_AGROFORESTRY,
+    statusLabel: "Approved",
+    statusTone: "success",
+    href: "/hub/work/w-1",
+    timestamp: hoursAgo(3) * 1000,
     itemId: "w-1",
   },
   {
@@ -24,14 +30,14 @@ const MOCK_ACTIVITY: GardenActivityEvent[] = [
     category: "impact",
     title: "Q1 restoration impact certified",
     description: "Assessment bundled and certified on-chain.",
-    timestamp: hoursAgo(30),
+    timestamp: hoursAgo(30) * 1000,
   },
   {
     id: "c-1",
     category: "community",
     title: "Signal strategy refresh",
     description: "Updated weight scheme to Power.",
-    timestamp: hoursAgo(96),
+    timestamp: hoursAgo(96) * 1000,
   },
 ];
 
@@ -66,7 +72,7 @@ const meta: Meta<typeof OverviewTab> = {
   title: "Admin/Workflows/Garden/OverviewTab",
   component: OverviewTab,
   tags: ["autodocs"],
-  decorators: [withRouter(["/garden"])],
+  decorators: [withAdminIdentity, withRouter(["/garden"])],
   parameters: {
     layout: "padded",
     docs: {
@@ -77,6 +83,8 @@ const meta: Meta<typeof OverviewTab> = {
     },
   },
   args: {
+    gardenId: STORYBOOK_PRIMARY_ADMIN_GARDEN.id,
+    canManage: true,
     mode: "health",
     section: undefined,
     selectedItem: undefined,
@@ -174,5 +182,32 @@ export const EvaluatorActivity: Story = {
       { ...MOCK_ACTIVITY[0], href: "/hub/work/w-1" },
       { ...MOCK_ACTIVITY[2], href: undefined },
     ],
+  },
+};
+
+export const ActivityPagination: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    mode: "activity",
+    filteredActivityEvents: Array.from({ length: 23 }, (_, index) => ({
+      ...MOCK_ACTIVITY[0],
+      id: `work-${index}`,
+      title: `Planted native saplings ${index + 1}`,
+      description: "Submitted work",
+      statusLabel: "Pending",
+      statusTone: "neutral",
+      href: `/hub/work/work-${index}`,
+      timestamp: hoursAgo(index * 24) * 1000,
+    })),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll(".gg-item-row")).toHaveLength(20);
+    await expect(
+      within(canvasElement).getByRole("heading", {
+        name: new Intl.DateTimeFormat("en", { dateStyle: "full" }).format(hoursAgo(24) * 1000),
+      })
+    ).toBeVisible();
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Show More" }));
+    await expect(canvasElement.querySelectorAll(".gg-item-row")).toHaveLength(23);
   },
 };
