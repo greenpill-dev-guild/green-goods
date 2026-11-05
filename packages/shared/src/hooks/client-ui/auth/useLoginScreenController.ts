@@ -23,7 +23,7 @@ import { useInstallGuidance } from "../../app/useInstallGuidance";
 import { useAuth } from "../../auth/useAuth";
 import { getBrowserGuidanceLabel, getFriendlyLoginErrorMessage } from "./login-screen-messages";
 
-export type LoginScreen = "entry" | "create" | "recover";
+export type LoginScreen = "entry" | "username";
 
 export function useLoginScreenController(routes: { login: string; home: string }) {
   const intl = useIntl();
@@ -43,7 +43,6 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const [loadingMessage, setLoadingMessage] = useState<string>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
-  const [recoveryUsername, setRecoveryUsername] = useState("");
   const [screen, setScreen] = useState<LoginScreen>("entry");
   const pilotInvitation = new URLSearchParams(location.search).get("pilot") === "1";
   let originalAccountAddress: string | null = null;
@@ -253,9 +252,9 @@ export function useLoginScreenController(routes: { login: string; home: string }
       handleAuthError(error, "login");
     }
   };
-  const recoverWithPasskey = async () => {
+  const continueWithUsername = async () => {
     if (blockUnsupportedPasskeyCeremony()) return;
-    const name = recoveryUsername.trim();
+    const name = username.trim();
     if (name.length < 3) {
       setLoginError(
         intl.formatMessage({
@@ -265,17 +264,19 @@ export function useLoginScreenController(routes: { login: string; home: string }
       );
       return;
     }
-    recoveryAttemptNameRef.current = name;
+    recoveryAttemptNameRef.current = passkeyServerEnabled ? name : null;
     begin(
       intl.formatMessage({
-        id: "app.login.loading.recovering",
-        defaultMessage: "Looking up your passkey...",
-      })
+        id: "app.login.loading.continuing",
+        defaultMessage: "Continuing...",
+      }),
+      { creating: !passkeyServerEnabled }
     );
     try {
-      await auth.loginWithPasskey?.(name);
+      if (passkeyServerEnabled) await auth.loginWithPasskey(name, { createIfMissing: true });
+      else await auth.createAccount(name);
     } catch (error) {
-      handleAuthError(error, "recover");
+      handleAuthError(error, passkeyServerEnabled ? "login" : "create");
     }
   };
   const loginWithOriginalAccount = async () => {
@@ -291,32 +292,6 @@ export function useLoginScreenController(routes: { login: string; home: string }
       await auth.loginWithOriginalPasskey?.();
     } catch (error) {
       handleAuthError(error, "login");
-    }
-  };
-  const createAccount = async () => {
-    if (blockUnsupportedPasskeyCeremony()) return;
-    const name = username.trim();
-    if (name.length < 3) {
-      setLoginError(
-        intl.formatMessage({
-          id: "app.login.error.usernameTooShort",
-          defaultMessage: "Display name must be at least 3 characters.",
-        })
-      );
-      return;
-    }
-    recoveryAttemptNameRef.current = null;
-    begin(
-      intl.formatMessage({
-        id: "app.login.loading.creatingWallet",
-        defaultMessage: "Setting up your account...",
-      }),
-      { creating: true }
-    );
-    try {
-      await auth.createAccount?.(name);
-    } catch (error) {
-      handleAuthError(error, "create");
     }
   };
   const walletLogin = () => {
@@ -381,11 +356,10 @@ export function useLoginScreenController(routes: { login: string; home: string }
     browserGuidanceAction: unsupportedPasskeyContext
       ? { label: getBrowserGuidanceLabel(guidance, platform, intl), onClick: switchBrowser }
       : undefined,
-    createAccount,
+    continueWithUsername,
     goTo,
     intl,
     isNestedRoute: location.pathname !== routes.login,
-    isRecoveryUsernameValid: recoveryUsername.trim().length >= 3,
     isUsernameValid: username.trim().length >= 3,
     loadingMessage,
     loadingState,
@@ -404,13 +378,10 @@ export function useLoginScreenController(routes: { login: string; home: string }
           { name: storedName }
         )
       : undefined,
-    recoverWithPasskey,
-    recoveryUsername,
     redirectTo: fromLogout
       ? routes.home
       : new URLSearchParams(location.search).get("redirectTo") || routes.home,
     screen,
-    setRecoveryUsername,
     setUsername,
     username,
     walletLogin,

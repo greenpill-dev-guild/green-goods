@@ -267,6 +267,9 @@ export function createGardenOperation(
     setIsLoading(true);
 
     try {
+      // A role write may have waited behind another screen's prompt. It still belongs to
+      // the account that requested it, including while the sender prepares its transaction.
+      await sender.assertOwnership?.(address, chainId);
       const hatsModuleAddress = await fetchHatsModuleAddress(gardenId, chainId);
       if (!hatsModuleAddress) {
         setIsLoading(false);
@@ -363,13 +366,17 @@ export function createGardenOperation(
       // Step 3: Execute the actual transaction
       const transaction = await executeWithToast(
         () =>
-          sender.sendContractCall({
-            address: targetContract,
-            abi: targetAbi,
-            functionName: targetFunctionName,
-            args: targetArgs,
-            chainId,
-          }),
+          sender.sendContractCall(
+            {
+              address: targetContract,
+              account: address,
+              abi: targetAbi,
+              functionName: targetFunctionName,
+              args: targetArgs,
+              chainId,
+            },
+            { assertOwnership: () => sender.assertOwnership?.(address, chainId) }
+          ),
         {
           loadingMessage: config.messages.loading,
           successMessage: config.messages.success,
