@@ -1,4 +1,11 @@
-import { useServiceAccess, writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
+import {
+  type CommitmentReadModel,
+  useCommitmentMetadataFor,
+  useServiceAccess,
+  writeWorkLinkIntent,
+} from "@green-goods/shared/commitment-pooling";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
@@ -9,7 +16,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { describeProofContents } from "@/components/Features/Commitments";
+import { describeProofContents, presentState } from "@/components/Features/Commitments";
 import { QueuedActNotice } from "@/components/Features/Commitments/QueuedActRow";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
@@ -46,6 +53,38 @@ function parseCommitmentId(value: string | undefined): bigint | null {
 /** Errors are already surfaced by the shared mutation hooks; the view keeps its current surface. */
 function keepSurfaceOnFailure(promise: Promise<unknown>): void {
   void promise.catch(() => undefined);
+}
+
+/** The notification has a summary, not the full detail or authority to offer an act. */
+function SavedCommitment({
+  commitment,
+  onBack,
+}: {
+  commitment: CommitmentReadModel;
+  onBack: () => void;
+}) {
+  const intl = useIntl();
+  const metadata = useCommitmentMetadataFor(commitment);
+  const units = commitment.unitLabel
+    ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
+    : null;
+  const state = presentState(commitment.derivedState);
+  return (
+    <CommitmentDetailShell
+      onBack={onBack}
+      title={metadata?.title ?? units ?? intl.formatMessage({ id: "app.commitments.row.untitled" })}
+    >
+      <Alert variant="warning">{intl.formatMessage({ id: "app.commitment.offline.saved" })}</Alert>
+      <StatusBadge variant={state.tone} showIcon={false}>
+        {intl.formatMessage({ id: state.labelId })}
+      </StatusBadge>
+      {metadata?.note ? (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-sub-600">
+          {metadata.note}
+        </p>
+      ) : null}
+    </CommitmentDetailShell>
+  );
 }
 
 /** One commitment rendered from the shared reader, selector, queue, and mutation contract. */
@@ -96,6 +135,18 @@ export function GardenCommitment() {
       return navigate("../..", { relative: "path", replace: true });
     navigate(-1);
   };
+
+  const saved = location.state?.commitment as CommitmentReadModel | undefined;
+  if (
+    !controller.isOnline &&
+    !controller.detail &&
+    saved?.chainId === DEFAULT_CHAIN_ID &&
+    saved.commitmentId === commitmentId &&
+    typeof location.state?.commitmentGarden === "string" &&
+    location.state.commitmentGarden.toLowerCase() === gardenAddress?.toLowerCase()
+  ) {
+    return <SavedCommitment commitment={saved} onBack={back} />;
+  }
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {

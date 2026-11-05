@@ -49,6 +49,50 @@ describe("AppSheet", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("moves focus with arrows, Home and End, and selects a tab only on activation", () => {
+    const onTabChange = vi.fn();
+    renderWithProviders(
+      <AppSheet
+        size="full"
+        isOpen
+        onClose={vi.fn()}
+        header={{ title: "Notifications" }}
+        tabs={[
+          { id: "all", label: "All" },
+          { id: "work", label: "Work" },
+          { id: "promises", label: "Promises" },
+        ]}
+        activeTab="all"
+        onTabChange={onTabChange}
+      >
+        <button type="button">Content</button>
+      </AppSheet>
+    );
+    const all = screen.getByRole("tab", { name: "All" });
+    const work = screen.getByRole("tab", { name: "Work" });
+    const promises = screen.getByRole("tab", { name: "Promises" });
+    expect([all.tabIndex, work.tabIndex, promises.tabIndex]).toEqual([0, -1, -1]);
+    all.focus();
+    fireEvent.keyDown(all, { key: "ArrowRight" });
+    expect(work).toHaveFocus();
+    expect(work.tabIndex).toBe(0);
+    expect(all).toHaveAttribute("aria-selected", "true");
+    expect(onTabChange).not.toHaveBeenCalled();
+    fireEvent.keyDown(work, { key: "End" });
+    expect(promises).toHaveFocus();
+    fireEvent.keyDown(promises, { key: "ArrowRight" });
+    expect(all).toHaveFocus();
+    fireEvent.keyDown(all, { key: "ArrowLeft" });
+    expect(promises).toHaveFocus();
+    fireEvent.keyDown(promises, { key: "Home" });
+    expect(all).toHaveFocus();
+    fireEvent.click(work);
+    expect(onTabChange).toHaveBeenCalledWith("work");
+    screen.getByRole("button", { name: "Content" }).focus();
+    expect(all.tabIndex).toBe(0);
+    expect(work.tabIndex).toBe(-1);
+  });
+
   it.each(["close button", "overlay", "Escape"])("closes from the %s", (path) => {
     const onClose = vi.fn();
     renderWithProviders(
