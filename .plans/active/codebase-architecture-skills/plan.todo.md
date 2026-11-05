@@ -2,13 +2,26 @@
 
 **Feature Slug**: `codebase-architecture-skills`
 **Stage**: `active`
-**Status**: `ACTIVE — five task observations recorded; Desktop hook observation and QA comparison pending`
+**Status**: `CLOSED — architecture and skills work shipped; remaining proof limits accepted`
 **Created**: `2026-08-24`
-**Last Updated**: `2026-10-25`
+**Last Updated**: `2026-11-04`
 **Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
 
-## Status reconciliation (2026-10-25)
+## Status reconciliation (2026-11-04)
+
+Afo accepted closure of PRD-835 after reviewing the shipped work and its remaining evidence
+requirements. The November 1 normal Claude Desktop Code session's registered SessionStart hook
+observation is sufficient for the hook-loading requirement. Edit hooks were not exercised and
+remain unverified. The independent before/after QA proposal comparison is an accepted proof
+limit, not a passing comparison or remaining execution requirement. Its frozen inputs and failed
+attempts remain historical evidence. The semantic-routing receipt limit is unchanged.
+
+The parent is Done in Product's current Cycle 13, as verified on November 4. Linear state
+synchronization preserves the accepted issue state. Historical lane receipts and the uncertified
+`state_api` lane are unchanged; the hub's terminal resolution is `closed`, not `completed`.
+
+## Historical status reconciliation (2026-10-25)
 
 PR [#1273](https://github.com/greenpill-dev-guild/green-goods/pull/1273) merged into `develop` as
 `f912e3fac41b2d1c52c49bf04a0b01dd27f04b2b`. The five ordinary-task categories now have observations:
@@ -42,6 +55,8 @@ The coverage-ratchet checkpoint closed by decision D3 on September 28. PRD-835 r
 | 9 | Apply Matt Pocock's concepts, not his output mechanics. | Green Goods retains its own workflow, safety, and tracking contracts. |
 | 10 | Keep the hub active through the 2026-09-22 coverage checkpoint. | A future ratchet is tracked, not silently marked complete. |
 | 11 | Close the 2026-09-22 two-point ratchet without raising any global floor (Afo, 2026-09-28, D3 in `test-budget-and-ci-speed`). | The eleven measured critical-path floors replace it; global floors and parity arrays stay unchanged. |
+| 12 | Accept the November 1 Claude Desktop Code SessionStart observation as sufficient for hook loading (Afo, 2026-11-04). | A real Desktop session ran the registered startup hook; edit-hook execution remains unverified. |
+| 13 | Retain the independent before/after QA comparison as a proof limit and close PRD-835 (Afo, 2026-11-04). | Shipped work is accepted without claiming an unrun comparison passed or reopening the model-service blocker. |
 
 ## Requirements Coverage
 
@@ -136,7 +151,7 @@ The coverage-ratchet checkpoint closed by decision D3 on September 28. PRD-835 r
   - Admin: `52.75 / 48.37 / 47.38 / 54.39` against floors `51 / 47 / 44 / 53`.
   - Client: `64.87 / 57.69 / 63.62 / 66.56` against floors `63 / 56 / 62 / 64`.
 - The implementation is certified for its current scope. The `2026-09-22` coverage-ratchet checkpoint closed by D3 on September 28.
-  The Plan Hub and PRD-835 now stay active for the agent workflow reliability follow-up.
+  The follow-up kept the hub active until the November 4 acceptance above; its proof limits remain explicit.
 ## Agent workflow reliability follow-up — 2026-09-26
 
 Authorized by the user's implementation request; original architecture decisions and certification
@@ -149,7 +164,7 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
 - [x] Wire focused regression selection, verify receipt freshness, and run required checks;
   the pre-existing Git-environment test failure is recorded in the handoff.
 - [x] Observe Codex session-context and pre/post-edit hook loading in a normal Codex app session; see the October 4 observation in `eval.md` for the event boundary.
-- [ ] Observe hook loading in a normal Claude Desktop Code session (pending).
+- [x] Accept the November 1 normal Claude Desktop Code SessionStart observation as sufficient for hook loading (Afo, November 4). Edit hooks remain unverified.
 - [x] Record all five ordinary-task scenarios: documentation, bug fix, domain change, UI correction, and bounded runtime refactor. Recovery sources and proof limits are in `eval.md` and the pilot reconciliation handoff.
 
 ## Skill workflow follow-up — 2026-10-24
@@ -160,6 +175,24 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
 - [x] Consolidate the four duplicate personal discovery entries locally, preserving backups and metadata.
 - [x] Move QA call, intake, and filing branches behind conditional references.
 - [x] Recover normally authorized domain and UI observations from Steward Access Requests and the bounded runtime-refactor observation from merged PR #1289; preserve the original receipts and limits.
-- [ ] Complete the independent before/after QA proposal comparison when the model service is reachable. October 25 retry failed before a proposal with `Method not allowed in limited mode`; frozen inputs and scoring criteria are prepared.
+- [x] Record the independent before/after QA proposal comparison as an accepted proof limit (Afo, November 4). It was not completed: the October 25 retry failed before a proposal with `Method not allowed in limited mode`; frozen inputs and scoring criteria remain available.
 
 Proof and publication state: [workflow handoff](handoffs/skill-workflow-simplification.md).
+
+## Closeout (2026-11-04)
+
+The architecture implementation shipped as `446c75c2d7b8b2b4f8c31605828c8578f150d7a7`;
+skills simplification shipped in [PR #1273](https://github.com/greenpill-dev-guild/green-goods/pull/1273),
+and [PR #1310](https://github.com/greenpill-dev-guild/green-goods/pull/1310) reconciled pilot evidence.
+Afo accepted the startup-hook observation and the QA comparison proof limit in this closure
+decision. Resolution: `closed`, retaining historical certification and uncertified lane state.
+
+- Desktop edit-hook execution: retained as unverified; dropped as a closure requirement.
+- Independent QA proposal comparison: retained as an accepted proof limit; no retry or successor
+  work is required by this hub, and no comparative improvement is claimed.
+- Historical semantic-routing receipt: remains unavailable; no semantic PASS is claimed.
+- Agent HandlerServices, Telegram adapter separation, and blockchain-client injection: remain
+  deferred and unselected; no implementation or new Linear records are authorized.
+
+The local closeout record preserves the hub for the separate committed publication/archive
+procedure; this reconciliation does not delete its evidence or change branches.

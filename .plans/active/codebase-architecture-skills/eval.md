@@ -1,5 +1,18 @@
 # Codebase Architecture Skills and Seam Governance Evaluation Plan
 
+## Accepted closure — 2026-11-04
+
+Afo accepted the November 1 normal Claude Desktop Code SessionStart hook observation as
+sufficient for hook loading. The [Linear review note](https://linear.app/green-goods/issue/PRD-835)
+records that the registered startup hook ran; edit hooks were not exercised. This decision does
+not certify those unobserved events.
+
+The independent before/after QA proposal comparison is an accepted proof limit. It remains
+incomplete: no paired result or causal improvement is claimed. The October 24 credit-blocked
+attempt and October 25 network-blocked attempt retain their original evidence and limits.
+The historical semantic-routing receipt remains unverified. These limits no longer keep
+PRD-835 open, by Afo's explicit decision; the original receipts below remain historical.
+
 ## Release Gates
 
 1. Responsibility: architecture discovery, change review, drift audit, seam certification, and
@@ -98,7 +111,7 @@ verification, and human corrections. Record skill use only when observable; an a
 followed a skill or a file being available is not behavioral proof. Record elapsed time or token
 usage only if already available, without adding instrumentation.
 
-Live registration observations remain separate: Claude Desktop **Code** session — pending;
+At the October 25 checkpoint, live registration observations remained separate: Claude Desktop **Code** session — pending;
 Codex session-context and pre/post-edit events — observed in the October 4 session below.
 Synthetic events prove scripts and checked-in wiring, not that another application session
 loaded the configuration. Terminal Claude CLI is not Desktop evidence.
@@ -134,7 +147,7 @@ No skill invocation or causal improvement is inferred from a skill file being pr
 historical task records support the behavior described, not a cross-agent ranking or latency gain.
 This recovery does not certify the October 24 QA extraction change through those earlier tasks.
 
-Remaining execution: observe actual Claude Desktop Code hooks and complete the independent QA
+Remaining execution at that checkpoint: observe actual Claude Desktop Code hooks and complete the independent QA
 comparison. The October 25 comparison used frozen before/after instruction trees and identical
 synthetic inputs; the first model call failed with HTTP 403 `Method not allowed in limited mode`
 after transport setup. Neither variant produced a proposal, so no comparison pass, token count,

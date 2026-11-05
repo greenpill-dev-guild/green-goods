@@ -7,6 +7,15 @@ friction, let a human select the opportunity, design a deeper interface, prove i
 composition boundaries, and retain only bounded current evidence. It strengthens existing skills
 instead of adding competing trigger surfaces.
 
+## Accepted closure — 2026-11-04
+
+Afo accepted the shipped architecture and skills work, the November 1 Claude Desktop Code
+SessionStart observation as sufficient hook-loading evidence, and the incomplete independent
+QA comparison as a proof limit. Edit-hook execution and the historical semantic-routing result
+remain unverified. The [closeout decision](plan.todo.md#closeout-2026-11-04) supersedes the dated
+pending-work statements below without changing their historical evidence or authorizing deferred
+Agent candidates.
+
 ## Users
 
 - Primary: maintainers and coding agents changing Green Goods architecture.
