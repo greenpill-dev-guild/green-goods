@@ -30,6 +30,7 @@ export function LeaveGardenAction({ garden, open, onClose, onConfirmed }: LeaveG
     refetch,
   } = useGardenMembership(address, primaryAddress as Address);
   const owner = useHasRole(address, primaryAddress as Address, "owner");
+  const { refetch: refetchOwner } = owner;
   const {
     leaveGarden,
     isLeaving,
@@ -51,10 +52,10 @@ export function LeaveGardenAction({ garden, open, onClose, onConfirmed }: LeaveG
     opened.current = true;
     setFailure(null);
     setRecovering(hasPendingDeparture);
-    void owner.refetch();
+    void refetchOwner();
     void refetch();
     if (!hasPendingDeparture) void checkAvailability();
-  }, [open, hasPendingDeparture, owner.refetch, refetch, checkAvailability]);
+  }, [open, hasPendingDeparture, refetchOwner, refetch, checkAvailability]);
   useEffect(() => {
     if (open && hasPendingDeparture && !isLeaving && !recovering) {
       setRecovering(true);
