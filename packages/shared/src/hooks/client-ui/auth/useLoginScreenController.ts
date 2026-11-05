@@ -9,7 +9,7 @@ import {
 } from "../../../config/passkeyServer";
 import { trackAuthError } from "../../../modules/app/error-categories";
 import { getStoredOriginalAccountAddress, getStoredUsername } from "../../../modules/auth/session";
-import { PILOT_PASSKEY_PROFILE } from "../../../modules/auth/account-profile";
+import { isKernel033PasskeyProfile } from "../../../modules/auth/account-profile";
 import {
   PilotAccountProofError,
   type PilotAccountPreview,
@@ -71,7 +71,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
     pilotInvitation &&
     auth.isAuthenticated &&
     auth.authMode === "passkey" &&
-    auth.passkeyAccountProfile !== PILOT_PASSKEY_PROFILE &&
+    !isKernel033PasskeyProfile(auth.passkeyAccountProfile) &&
     Boolean(auth.preparePilotAccount);
 
   const runPilotAction = async (operation: () => Promise<void>) => {

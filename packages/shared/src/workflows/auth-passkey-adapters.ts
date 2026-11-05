@@ -56,9 +56,9 @@ import {
 } from "../modules/auth/session";
 import {
   getPasskeyAccountRecipe,
+  isKernel033PasskeyProfile,
   getPilotCredentialId,
   LEGACY_PASSKEY_PROFILE,
-  PILOT_PASSKEY_PROFILE,
   type PasskeyAccountProfileId,
 } from "../modules/auth/account-profile";
 import { discoverPilotAccountProof } from "../modules/auth/pilot-account-proof";
@@ -165,13 +165,12 @@ async function buildSmartAccount(
   profile: PasskeyAccountProfileId = LEGACY_PASSKEY_PROFILE
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
   const recipe = getPasskeyAccountRecipe(profile, chainId);
-  if (profile === PILOT_PASSKEY_PROFILE && knownAddress) {
+  if (isKernel033PasskeyProfile(profile) && knownAddress) {
     throw new Error("Pilot accounts must be derived without an address override");
   }
-  const ownerCredential =
-    profile === PILOT_PASSKEY_PROFILE
-      ? { ...credential, id: getPilotCredentialId(credential) }
-      : credential;
+  const ownerCredential = isKernel033PasskeyProfile(profile)
+    ? { ...credential, id: getPilotCredentialId(credential) }
+    : credential;
   const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
