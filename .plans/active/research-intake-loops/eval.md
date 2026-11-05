@@ -1,6 +1,26 @@
 # Research intake, drift and growth loops Evaluation Plan
 
-**Status**: `IN EVIDENCE 2026-10-18 — first v5 run recorded in [reports/2026-10-18-first-v5-run.md](reports/2026-10-18-first-v5-run.md) and the first v5.1 run in [reports/2026-10-18-first-v5-1-run.md](reports/2026-10-18-first-v5-1-run.md); open: AC-2 (a controlled failed ledger message; a same-date rerun after a completed v5.1 run), AC-4, AC-5's thread line, AC-7's carry-forward increment, the AC-8 dry run, the AC-10 controlled run; AC-12 unexercised`
+**Status**: `IN EVIDENCE 2026-11-05 — two cron runs reviewed and AC-8 scratch proof complete; AC-2, AC-4, AC-7's positive accepted count, AC-9's radar comment, AC-10 and AC-12 remain open`
+
+## Latest evidence · 2026-11-05
+
+The [follow-through report](reports/2026-11-05-follow-through.md) supersedes the pending dates in
+the historical acceptance table below. The 18 October reports remain unchanged.
+
+| Check | Current result | Evidence and limit |
+|---|---|---|
+| AC-1 | Pass, supported again | The 24 October receipt records 4 reactions and one four-line ledger; 31 October records 2 reactions and one two-line ledger, each with one question-only sharer mention. Connector reads, not a new rendered Discord check. |
+| AC-2 | Open | Neither later receipt is a completed-v5.1 same-date rerun or a failed-ledger recovery. |
+| AC-3 | Existing pass retained | The later memos report 4/12 and 2/12 fetches with no queued shares; they do not add another overflow test. |
+| AC-4 | Open | Both receipts report unchanged human-read cursors; the memos explicitly say no human answer and no reclassification. |
+| AC-5 | Pass, including thread pointer | Both cron memos contain the Shares counts and the line pointing to the thread; their receipts confirm the corresponding digest and thread writes. |
+| AC-6 | Existing v5 pass retained | Agenda v6 is a separate reviewed change in draft #1485; it is not yet the routine's live `develop` input. |
+| AC-7 | Creation and ageing pass; positive accepted count open | The 24 and 31 October memos each record a one-run carry-forward increment. Neither run had ticked edits, so neither tests a positive accepted-count footer. Current Linear readback has zero ticked and four deferred entries. |
+| AC-8 | Scratch proof pass | Two ticked exact-anchor edits applied on a copy of v6; one unticked proposal survived; one edition and changelog bump; two local document lines moved to Applied; retry after withholding the first document patch left the agenda byte-identical. Live connector failure was not injected. |
+| AC-9 | Setup complete; comment branch open | GROW-92 now exists under the exact title and is assigned to Afo. Earlier receipts correctly recorded absence; no new routine radar comment was observed. The existing bars-met evidence is retained. |
+| AC-10 | Open | Both later receipts explicitly say no fallback and both thread permissions held. |
+| AC-11 | Existing pass retained | Later memo start-to-written intervals are about 18 and 24 minutes; their run-log end time, turns and rate-limit events were not read in this review. |
+| AC-12 | Open | Both later memos and receipts list no failed or inherited write; success-only evidence cannot prove retry. |
 
 ## Release Gates
 

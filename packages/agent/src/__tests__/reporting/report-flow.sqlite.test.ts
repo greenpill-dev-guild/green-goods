@@ -27,6 +27,27 @@ async function consented(): Promise<string[]> {
 }
 
 describe("story-first reporting", () => {
+  it.each([
+    ["en", "I agree", "Support:", "unpublished data", "can't be removed"],
+    ["es", "Acepto", "Soporte:", "datos no publicados", "no se pueden"],
+    ["pt", "Concordo", "Suporte:", "dados não publicados", "não podem"],
+  ])("keeps real %s HELP and deletion replies connected to support", async (locale, agree, support, unpublished, permanent) => {
+    const person = { ...ADA, locale };
+    const notice = await harness.say(person, "Today I planted seedlings");
+    expect(notice.join("\n")).toContain("contact@greengoods.app");
+    await harness.press(person, agree);
+
+    const help = (await harness.say(person, "HELP")).join("\n");
+    expect(help).toContain(`${support} contact@greengoods.app`);
+    expect(help).toContain(unpublished);
+    expect(help).toContain("STOP");
+
+    const deleted = (await harness.say(person, "DELETE")).join("\n");
+    expect(deleted).toContain(`${support} contact@greengoods.app`);
+    expect(deleted).toContain("IPFS");
+    expect(deleted).toContain(permanent);
+  });
+
   it("quarantines a first message until consent, then resumes it as the story", async () => {
     const notice = await harness.say(ADA, "Today I planted twelve baobab seedlings by the fence");
     expect(notice[0]).toContain("Do you agree?");
@@ -274,13 +295,13 @@ describe("a reply that is not one of the choices", () => {
       intent: "report_content" | "help" | "status",
       gardenKey: string | null = null
     ) => ({ intent, gardenKey, actionUID: null, facts: [], models: ["fixture-model"] });
-    // The notice says a model may read the messages, names no provider and sends help to the site.
+    // The notice says a model may read the messages and sends help to the shared support mailbox.
     const notice = (await harness.say(ADA, STORY))[0];
     expect(notice).toContain(
       "the messages and files you send here and may use AI to understand them."
     );
-    expect(notice).toContain("HELP for support (greengoods.app)");
-    expect(notice).not.toMatch(/OpenAI|TypeSafe|operated by|@/);
+    expect(notice).toContain("HELP for support (contact@greengoods.app)");
+    expect(notice).not.toMatch(/OpenAI|TypeSafe|operated by/);
     await harness.press(ADA, "I agree");
 
     harness.interpreter.responses = [read("help")];

@@ -49,6 +49,11 @@ describe("public locale payloads", () => {
       if (key.startsWith("public.")) expect(messages[key]).toBe(value);
     }
     for (const key of [
+      "public.strategy.title",
+      "public.strategy.delivery.dependency",
+      "public.privacy.publication.body",
+      "public.privacy.analytics.body",
+      "public.contact.people.body",
       "app.common.close",
       "app.login.button.createAccount",
       "app.toast.install.success.title",
