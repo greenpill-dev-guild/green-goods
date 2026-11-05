@@ -1,3 +1,5 @@
+import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
+import { readVoucherRewardArrival } from "./data-voucher-reward-arrival";
 import EntitlementABI from "@green-goods/contracts/abis/VoucherEntitlementModule.json";
 import { type Abi, erc20Abi } from "viem";
 import type { Address } from "../../types/domain";
@@ -19,7 +21,8 @@ import type { RequestRewardDelivery } from "./service-access-wallet-types";
 export async function readEarnedRewardDelivery(
   snapshot: ServiceAccessSnapshot,
   adapter: Address,
-  read: ServiceChainRead
+  read: ServiceChainRead,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<RequestRewardDelivery | undefined> {
   const earned = snapshot.acceptancePolicy.earned;
   const terms = earned.terms;
@@ -34,6 +37,7 @@ export async function readEarnedRewardDelivery(
     status: "preparing",
     shortOf: null,
     receipt: null,
+    receivedAt: null,
     attempts: 0n,
     messageId: null,
   };
@@ -84,6 +88,10 @@ export async function readEarnedRewardDelivery(
     if (state === "delivered") {
       if (sequence === 0n || serviceHash(distribution.failureHash) !== SERVICE_ZERO_HASH)
         throw new Error("Invalid delivered reward result");
+      reward.receivedAt = await readVoucherRewardArrival(
+        { chainId: terms.asset.chainId, adapter, entitlement: id, payloadHash: payload, sequence },
+        reader
+      );
       return reward;
     }
     const result = serviceTuple(
@@ -111,6 +119,16 @@ export async function readEarnedRewardDelivery(
     reward.attempts = destinationSequence;
     if (serviceFlag(result.success)) {
       reward.status = "received";
+      reward.receivedAt = await readVoucherRewardArrival(
+        {
+          chainId: terms.asset.chainId,
+          adapter,
+          entitlement: id,
+          payloadHash: payload,
+          sequence: destinationSequence,
+        },
+        reader
+      );
       return reward;
     }
     reward.status = "delayed";

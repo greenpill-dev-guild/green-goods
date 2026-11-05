@@ -29,6 +29,17 @@ function flatten(routes: RouteObject[]): RouteObject[] {
 }
 
 describe("presentation route trees", () => {
+  it.each([
+    ["/strategy", CLIENT_ROUTE_IDS.publicStrategy],
+    ["/privacy", CLIENT_ROUTE_IDS.publicPrivacy],
+    ["/contact", CLIENT_ROUTE_IDS.publicContact],
+  ])("opens %s in the public shell without an auth gate", (path, id) => {
+    const ids = matchRoutes(publicAppRoutes, path)?.map(({ route }) => route.id);
+    expect(ids).toContain(CLIENT_ROUTE_IDS.publicShell);
+    expect(ids?.at(-1)).toBe(id);
+    expect(ids).not.toContain(CLIENT_ROUTE_IDS.sessionGate);
+    expect(findRoute(publicAppRoutes, id)?.lazy).toBeTypeOf("function");
+  });
   it("redirects the installed root entry to Home while preserving its presentation query", async () => {
     const matches = matchRoutes(pwaAppRoutes, "/?presentation=pwa");
     const route = matches?.at(-1)?.route;

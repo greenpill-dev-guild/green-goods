@@ -15,6 +15,10 @@ import {
   normalizePasskeyName,
   PASSKEY_NAME_MAX_LENGTH,
   PASSKEY_NAME_MIN_LENGTH,
+  LEGACY_PASSKEY_PROFILE,
+  PASSKEY_ACCOUNT_PROFILE_VERSION,
+  getDefaultPasskeyRegistrationProfile,
+  type PasskeyDirectoryAccountProfile,
   type PasskeyDirectoryCredential,
 } from "@green-goods/shared/public-contracts";
 import {
@@ -75,6 +79,7 @@ export type PasskeyDirectoryErrorCode =
   | "origin_not_allowed"
   | "registration_expired"
   | "verification_failed"
+  | "account_profile_required"
   | "unavailable";
 
 const ERROR_MESSAGES: Record<PasskeyDirectoryErrorCode, string> = {
@@ -83,6 +88,7 @@ const ERROR_MESSAGES: Record<PasskeyDirectoryErrorCode, string> = {
   origin_not_allowed: "Passkeys are not available from this origin.",
   registration_expired: "Passkey verification expired. Start again.",
   verification_failed: "Passkey verification failed.",
+  account_profile_required: "Update Green Goods to sign in to this account.",
   unavailable: "Passkey sign-up is unavailable right now.",
 };
 
@@ -95,6 +101,7 @@ export class PasskeyDirectoryError extends Error {
 }
 
 export type VerifiedPasskeyRegistration = {
+  accountProfile: PasskeyDirectoryAccountProfile;
   success: true;
   id: string;
   publicKey: `0x${string}`;
@@ -105,13 +112,20 @@ export type PasskeyDirectory = {
   startRegistration(input: {
     userName: unknown;
     origin: string;
-  }): Promise<PublicKeyCredentialCreationOptionsJSON>;
+    accountProfileVersion?: unknown;
+  }): Promise<
+    PublicKeyCredentialCreationOptionsJSON & { accountProfile: PasskeyDirectoryAccountProfile }
+  >;
   verifyRegistration(input: {
     response: unknown;
     userName: unknown;
     origin: string;
+    accountProfileVersion?: unknown;
   }): Promise<VerifiedPasskeyRegistration>;
-  getCredentials(input: { userName: unknown }): Promise<PasskeyDirectoryCredential[]>;
+  getCredentials(input: {
+    userName: unknown;
+    accountProfileVersion?: unknown;
+  }): Promise<PasskeyDirectoryCredential[]>;
 };
 
 export type PasskeyDirectoryDeps = {
@@ -181,6 +195,10 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
     async startRegistration(input) {
       const userName = requireName(input.userName);
       const rpId = requireDomain(input.origin);
+      const accountProfile =
+        input.accountProfileVersion === PASSKEY_ACCOUNT_PROFILE_VERSION
+          ? getDefaultPasskeyRegistrationProfile(new URL(input.origin).hostname)
+          : LEGACY_PASSKEY_PROFILE;
       await assertNameFree(userName);
 
       const options = await generateRegistrationOptions({
@@ -206,11 +224,12 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
           userName,
           rpId,
           origin: input.origin,
+          accountProfile,
           expiresAt: startedAt + REGISTRATION_TTL_MS,
         },
         startedAt
       );
-      return options;
+      return { ...options, accountProfile };
     },
 
     async verifyRegistration(input) {
@@ -223,6 +242,12 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       const pending = await deps.store.takeChallenge(challenge, now(), "registration");
       if (!pending || pending.userName !== userName || pending.origin !== input.origin) {
         throw new PasskeyDirectoryError("registration_expired");
+      }
+      if (
+        pending.accountProfile !== LEGACY_PASSKEY_PROFILE &&
+        input.accountProfileVersion !== PASSKEY_ACCOUNT_PROFILE_VERSION
+      ) {
+        throw new PasskeyDirectoryError("account_profile_required");
       }
 
       let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>;
@@ -254,6 +279,7 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
         rpId: pending.rpId,
         origin: pending.origin,
         source: "registered",
+        accountProfile: pending.accountProfile,
         createdAt: new Date(now()).toISOString(),
       });
       if (!result.ok) {
@@ -263,7 +289,13 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       }
       // The site and domain only: a name is a person's, and stays out of the log.
       log.info({ rpId: pending.rpId, origin: pending.origin }, "Passkey registered");
-      return { success: true, id: credential.id, publicKey, userName };
+      return {
+        success: true,
+        id: credential.id,
+        publicKey,
+        userName,
+        accountProfile: pending.accountProfile,
+      };
     },
 
     async getCredentials(input) {
@@ -271,12 +303,19 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       if (!userName) return [];
       const stored = await deps.store.findByName(userName);
       if (!stored) return [];
+      if (
+        stored.accountProfile !== LEGACY_PASSKEY_PROFILE &&
+        input.accountProfileVersion !== PASSKEY_ACCOUNT_PROFILE_VERSION
+      ) {
+        throw new PasskeyDirectoryError("account_profile_required");
+      }
       return [
         {
           id: stored.credentialId,
           signingId: stored.credentialKey,
           publicKey: stored.publicKey,
           rpId: stored.rpId,
+          accountProfile: stored.accountProfile,
         },
       ];
     },

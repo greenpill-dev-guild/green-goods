@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { path: "/impact", labelId: "public.nav.impact", defaultLabel: "Impact" },
   { path: "/fund", labelId: "public.nav.fund", defaultLabel: "Fund" },
   { path: "/actions", labelId: "public.nav.actions", defaultLabel: "Actions" },
+  { path: "/strategy", labelId: "public.nav.strategy", defaultLabel: "Strategy" },
 ] as const;
 
 /**
@@ -26,8 +27,8 @@ const NAV_ITEMS = [
  * Visual contract: transparent over the page top on every public route
  * (no background, no border, no blur). It fades out as the visitor scrolls
  * past the hero rather than turning into a solid sticky bar — the editorial
- * surfaces below own their own chrome, and footer nav covers wayfinding once
- * the hero leaves the viewport. The mobile drawer pins the header to its
+ * surfaces below own their own chrome. Keyboard focus returns the reader to
+ * the top. The mobile drawer pins the header to its
  * fully-visible state regardless of scroll.
  *
  * Wallet connect is intentionally NOT a header CTA — it appears only at the
@@ -157,7 +158,7 @@ export const SiteHeader = () => {
                         to={path}
                         viewTransition
                         className={cn(
-                          "rounded-lg px-3 py-2 text-xl font-medium transition-colors",
+                          "rounded-lg px-2 py-2 text-base font-medium transition-colors lg:px-3 lg:text-xl",
                           isActive
                             ? "text-static-white"
                             : "text-static-white/90 hover:text-static-white"

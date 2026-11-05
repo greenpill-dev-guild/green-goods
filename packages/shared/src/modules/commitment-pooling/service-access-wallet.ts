@@ -225,11 +225,29 @@ export async function readLiveVoucherWallet(
               candidate.token.address.toLowerCase() === asset.token.toLowerCase() &&
               candidate.ownerReserve.toLowerCase() === asset.issuer.toLowerCase()
           );
+        const services = reviewedAsset?.service.offers;
         return {
           account: asset.issuer,
           kind: "collective" as const,
           name: asset.issuerName ?? asset.symbol,
           gender: null,
+          services:
+            services?.length &&
+            services.every(
+              (offer) =>
+                offer.name?.trim() &&
+                offer.unit.trim() &&
+                offer.serviceUnits > 0n &&
+                offer.voucherUnits > 0n
+            )
+              ? services.map(({ name, unit, serviceUnits, voucherUnits, serviceTermsRef }) => ({
+                  name: name ?? unit,
+                  unit,
+                  serviceUnits,
+                  voucherUnits,
+                  serviceTermsRef,
+                }))
+              : null,
           garden: asset.garden ?? scope.coreModule,
           asset: {
             chainId: 100,

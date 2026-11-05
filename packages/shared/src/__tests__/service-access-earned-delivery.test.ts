@@ -4,7 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import { createServiceRehearsalSnapshot } from "../modules/commitment-pooling/demo/demo-service-access-fixtures";
 import { readEarnedRewardDelivery } from "../modules/commitment-pooling/service-access-earned-delivery";
 import type { ServiceChainRead } from "../modules/commitment-pooling/service-access-chain";
+import type { GraphQLReader } from "../modules/data/graphql-client";
 import { AdapterABI } from "../modules/commitment-pooling/service-issuer-abis";
+
+vi.mock("../modules/data/graphql-client", () => ({
+  greenGoodsIndexer: {
+    query: vi.fn().mockResolvedValue({
+      data: { VoucherDistributionCommand: [], VoucherDistributionAttempt: [] },
+    }),
+  },
+}));
 
 const key = {
   sourceChainId: 42161,
@@ -148,5 +157,123 @@ describe("live earned voucher delivery", () => {
     const read = chain();
     expect(await readEarnedRewardDelivery(s, adapter, read)).toBeUndefined();
     expect(read).not.toHaveBeenCalled();
+  });
+});
+
+function arrivalReader(
+  patch: Record<string, unknown> = {},
+  commandPatch: Record<string, unknown> = {}
+): GraphQLReader {
+  const commandId = `100-${adapter}-${ID}`;
+  return {
+    query: vi.fn().mockResolvedValue({
+      data: {
+        VoucherDistributionCommand: [
+          {
+            id: commandId,
+            chainId: 100,
+            moduleAddress: adapter,
+            entitlementId: ID,
+            payloadHash: PAYLOAD,
+            recordedSeen: true,
+            delivered: true,
+            latestSequence: "2",
+            ...commandPatch,
+          },
+        ],
+        VoucherDistributionAttempt: [
+          {
+            id: `${commandId}-2`,
+            chainId: 100,
+            moduleAddress: adapter,
+            entitlementId: ID,
+            commandEntityId: commandId,
+            sequence: "2",
+            success: true,
+            timestamp: 1792862400,
+            ...patch,
+          },
+        ],
+      },
+    }),
+  };
+}
+
+describe("voucher reward arrival time", () => {
+  it("reads the successful destination attempt's time before the source acknowledgment arrives", async () => {
+    const reader = arrivalReader();
+    expect(
+      await readEarnedRewardDelivery(
+        snapshot(),
+        adapter,
+        chain({ destination: "delivered" }),
+        reader
+      )
+    ).toMatchObject({ status: "received", receivedAt: 1792862400 });
+    expect(reader.query).toHaveBeenCalledWith(
+      expect.stringContaining("VoucherDistributionAttempt"),
+      expect.objectContaining({ chain: 100, adapter, entitlement: ID, sequence: "2" }),
+      "readVoucherRewardArrival"
+    );
+  });
+  it("uses the destination event time after the source has acknowledged that attempt", async () => {
+    const reader = arrivalReader(
+      { sequence: "1", id: `100-${adapter}-${ID}-1` },
+      { latestSequence: "1" }
+    );
+    expect(
+      await readEarnedRewardDelivery(
+        snapshot(),
+        adapter,
+        chain({ state: 4, destination: "unavailable" }),
+        reader
+      )
+    ).toMatchObject({ status: "received", receivedAt: 1792862400 });
+  });
+  it("keeps source-confirmed delivery when the indexer has no arrival observation", async () => {
+    const reader: GraphQLReader = {
+      query: vi.fn().mockResolvedValue({ error: new Error("Indexer unavailable") }),
+    };
+    expect(
+      await readEarnedRewardDelivery(snapshot(), adapter, chain({ state: 4 }), reader)
+    ).toMatchObject({ status: "received", receivedAt: null });
+  });
+  it.each([
+    { timestamp: 0 },
+    { timestamp: -1 },
+    { timestamp: "1792862400" },
+    { chainId: 42161 },
+    { moduleAddress: key.coreModule },
+    { entitlementId: MESSAGE },
+    { commandEntityId: "foreign" },
+    { sequence: "1" },
+    { success: false },
+    { id: "foreign" },
+  ])("does not attach an invalid or unrelated arrival: %j", async (patch) => {
+    expect(
+      await readEarnedRewardDelivery(
+        snapshot(),
+        adapter,
+        chain({ destination: "delivered" }),
+        arrivalReader(patch)
+      )
+    ).toMatchObject({ status: "received", receivedAt: null });
+  });
+  it("rejects a command for a different authorized payload", async () => {
+    expect(
+      await readEarnedRewardDelivery(
+        snapshot(),
+        adapter,
+        chain({ destination: "delivered" }),
+        arrivalReader({}, { payloadHash: MESSAGE })
+      )
+    ).toMatchObject({ status: "received", receivedAt: null });
+  });
+  it("never reads an arrival time for an undelivered reward", async () => {
+    const reader = arrivalReader();
+    expect(
+      await readEarnedRewardDelivery(snapshot(), adapter, chain({ destination: "none" }), reader)
+    ).toMatchObject({ status: "on-the-way", receivedAt: null });
+    expect(reader.query).not.toHaveBeenCalled();
   });
 });

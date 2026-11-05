@@ -2,6 +2,7 @@
  * Help Handler - Show available commands
  */
 
+import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/config/app";
 import { agentMessage } from "../i18n";
 import type { HandlerResult, InboundMessage, User } from "../types";
 
@@ -17,7 +18,7 @@ export async function handleHelp(
     helpText += agentMessage(message.locale, "help.steward");
   }
 
-  helpText += agentMessage(message.locale, "help.footer");
+  helpText += agentMessage(message.locale, "help.footer", { support: REPORTING_SUPPORT_CONTACT });
 
   return {
     response: {

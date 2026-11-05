@@ -2,7 +2,7 @@
 
 **Slug**: `research-intake-loops`
 **Stage**: `active`
-**Status**: `ACTIVE — brief and spec accepted 2026-10-18; steps 1 to 3 in a PR to develop, step 4 is Afo's`
+**Status**: `ACTIVE — v5 and v5.1 shipped; two cron runs reviewed; agenda v6 in draft PR #1485; controlled live proofs and the pinned note remain open`
 **Priority**: `p2`
 **Created**: `2026-10-18`
 **Owner**: Afo (Research panel: afo, coi, matt)
@@ -62,6 +62,21 @@ pending and final copies.
   and Read Message History on `#research`; create the Growth radar issue; confirm in the routines
   UI that the guild-level Dev Guild Research Synthesis routine is disabled and avoid manual Friday
   fires; pin the "share with one line of why" note.
+
+## Current follow-through · 2026-11-05
+
+The [latest acceptance review](reports/2026-11-05-follow-through.md) records the 24 and 31 October
+cron receipts, the scratch-copy agenda application proof, and the two narrow v5.1 specification
+fixes. Afo delegated the pending agenda decisions on 4 November: external integrations lead the
+next research cycle, Grove stays in track 7, and supporter funding stays in track 4. Agenda v6 is
+in [draft PR #1485](https://github.com/greenpill-dev-guild/green-goods/pull/1485); the live routine
+reads `develop`, so that edition is not live until merged.
+
+The Growth setup issue now exists as
+[GROW-92](https://linear.app/green-goods/issue/GROW-92/research-growth-radar), assigned to Afo.
+Its creation does not prove a routine radar comment. The pinned note, completed-run rerun,
+failed-ledger recovery, human-answer reclassification, permission fallback and failed-write retry
+still need their own observed evidence. The hub stays active.
 
 ## Decisions so far
 

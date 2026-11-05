@@ -10,13 +10,14 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-18",
-    "updated_at": "2026-10-19T06:02:21.181Z"
+    "updated_at": "2026-11-05T05:19:55Z"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md"
+    "eval": "eval.md",
+    "follow_through": "reports/2026-11-05-follow-through.md"
   },
   "linear": {
     "parentIssue": "PRD-1293",
@@ -24,7 +25,9 @@
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
-    "lanes": {}
+    "lanes": {},
+    "stateSyncMode": "preserve_existing",
+    "laneSyncMode": "parent_only"
   },
   "taxonomy": {
     "initiative": "engineering-quality",
@@ -38,7 +41,8 @@
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
-    "linear.project stays null: release projects rotate, so the active one is looked up at write time, never persisted (Codex on #1138)."
+    "linear.project stays null: release projects rotate, so the active one is looked up at write time, never persisted (Codex on #1138).",
+    "Acceptance remains partial: AC-2 completed-run same-date idempotence and failed-ledger retry, AC-4 reclassification, AC-7 positive accepted-count footer, AC-9 routine radar comment, AC-10 permission fallback and AC-12 failed-write retry need live evidence. The pinned note and retired-trigger UI confirmation remain open."
   ],
   "lanes": {
     "ui": {
@@ -169,6 +173,38 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-11-05T04:49:40.999Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-11-05T04:56:55Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "acceptance_reviewed",
+      "branch": null,
+      "note": "Reviewed 24/31 October Drive memos and receipts; recorded AC-5 thread pointer and AC-7 carry-forward ageing, without inferring reclassification or failure recovery. AC-8 scratch-copy apply/retry passed on two ticked and one unticked proposals. Two v5.1 spec clarifications implemented. Agenda v6 and delegated cycle decisions are in draft PR #1485; GROW-92 exact-title setup verified, Afo assigned; no routine radar comment observed. Canonical PRD-1293 read and preserved; parent-only preservation manifest verified. See reports/2026-11-05-follow-through.md."
+    },
+    {
+      "timestamp": "2026-11-05T04:58:04Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "validation_partial",
+      "branch": null,
+      "note": "Focused validation: check-guidance-links passed (97 files, existing advisory DL warnings); check-immutable-plan-reports passed; plan-hub validate passed (31 hubs); scoped QA format passed and docs-authority tests passed 81/81 with audit advisory warnings. Generated documentation check failed on mcp-guide.mdx and glossary.generated.mdx; dependent docs-build not run. Regeneration is outside this lane and handed to coordinating session. No passing full QA or build claim."
+    },
+    {
+      "timestamp": "2026-11-05T05:19:55Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "validation_passed",
+      "branch": "feature/public-strategy-privacy-and-research-follow-through",
+      "note": "Integrated follow-through QA passed all 17 selected automated checks after generated-doc regeneration: Shared locale coverage 17, Client focused 157, Admin 1644, Agent focused unit 10 and SQLite 251, owner/test typechecks, Client/Agent/Docs builds, documentation authority, staged modules, ontology and story quality. Separate curated-garden focused proof passed 10 tests. Rendered proof: Storybook in Brave, EN/ES/PT desktop and mobile, plus mock-auth localhost navigation. Live research acceptance remains open; current routines UI shows no scheduled tasks in the observed account and does not establish retirement. No routine fire, pin, human reply or permission change performed."
     }
   ]
 }

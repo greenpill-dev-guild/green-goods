@@ -50,6 +50,8 @@ remark plugin restores real headings before Docusaurus generates its table of co
 same plugin supplies FAQ disclosure controls. Keep `last_verified` as a quoted date string so
 saves preserve `YYYY-MM-DD` rather than converting it to a timestamp.
 The collection save hook assigns fragment IDs to new FAQ and heading blocks; existing IDs stay unchanged.
+The media root covers all of `static/img`, including Community photos, screenshots and Builder
+images, so saving a page preserves every existing image path.
 
 For local editing, stop the ordinary docs server first, then run from the repository root:
 
@@ -72,6 +74,11 @@ process environment. Do not create package-level environment files.
 Git branch is used, with `develop` as the local fallback. Saves commit to that branch. Publishing
 follows its existing Git/Vercel deployment workflow. The free plan does not include Tina's built-in
 editorial approval workflow. An editor's save is not a substitute for repository review.
+
+The production editor uses `TINA_BRANCH=feature/community-content` in Vercel. Editor saves go to
+that review branch; publish them through a pull request to `develop`. Keep the content branch
+available after merging. If GitHub deletes it, recreate it from the merged `develop` commit
+before editing again.
 
 The Vercel entrypoint runs the existing docs checks, then `cms:build`, then the Docusaurus build.
 Cloud schema checks stay enabled. Commit `tina/tina-lock.json` after schema changes so TinaCloud
