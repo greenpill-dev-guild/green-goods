@@ -227,9 +227,31 @@ describe("createGardenOperation", () => {
       expect(sender.sendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
           chainId: CHAIN_ID,
+          account: USER_ADDRESS,
           functionName: "grantRole",
-        })
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
       );
+    });
+
+    it("refuses a queued role write after its account changes", async () => {
+      const sender = createMockSender();
+      sender.assertOwnership = vi.fn().mockRejectedValue(new Error("submission-ownership-changed"));
+      const optimistic = vi.fn();
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        sender,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading,
+        optimistic
+      );
+      expect((await operation(TARGET_ADDRESS)).success).toBe(false);
+      expect(sender.assertOwnership).toHaveBeenCalledWith(USER_ADDRESS, CHAIN_ID);
+      expect(optimistic).not.toHaveBeenCalled();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
     });
 
     it("manages loading state", async () => {

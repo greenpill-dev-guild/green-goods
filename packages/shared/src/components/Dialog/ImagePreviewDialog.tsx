@@ -173,9 +173,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
-        case "Escape":
-          onClose();
-          break;
         case "ArrowLeft":
           navigatePrev();
           break;
@@ -321,6 +318,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
           data-testid="image-preview-dialog"
         />
         <Dialog.Content
+          onEscapeKeyDown={(event) => event.stopPropagation()}
           data-component="ImagePreviewDialog"
           data-slot="content"
           data-variant={variant}
