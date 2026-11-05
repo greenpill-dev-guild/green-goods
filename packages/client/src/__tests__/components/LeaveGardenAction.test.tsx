@@ -94,7 +94,7 @@ function open(messages = en) {
   fireEvent.click(
     screen.getByRole("button", {
       name: (fakes.pending
-        ? messages["app.garden.leave.recoveryTitle"]
+        ? messages["app.garden.leave.recoverFor"]
         : messages["app.garden.leave.actionFor"]
       ).replace("{gardenName}", garden.name),
     })
@@ -239,7 +239,7 @@ describe("leave confirmation opener focus", () => {
     }));
     try {
       setup();
-      const trigger = screen.getByRole("button", { name: "Leave Test garden" });
+      const trigger = screen.getByRole("button", { name: "Leave Garden: Test garden" });
       if (entry === "pointer") fireEvent.pointerDown(trigger);
       else trigger.focus();
       fireEvent.click(trigger);

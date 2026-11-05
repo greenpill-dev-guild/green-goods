@@ -90,7 +90,7 @@ export function GardenMembershipCard({
           size="compact"
           className="ml-auto min-h-11"
           aria-label={intl.formatMessage(
-            { id: recovering ? "app.garden.leave.recoveryTitle" : "app.garden.leave.actionFor" },
+            { id: recovering ? "app.garden.leave.recoverFor" : "app.garden.leave.actionFor" },
             { gardenName: garden.name }
           )}
           onClick={(event) => {

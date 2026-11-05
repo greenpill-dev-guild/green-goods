@@ -287,7 +287,7 @@ describe("GardensList", () => {
       })
     );
     const view = render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-    await user.click(screen.getByRole("button", { name: "Leave My Garden" }));
+    await user.click(screen.getByRole("button", { name: "Leave Garden: My Garden" }));
     await user.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Leave Garden" })
     );
@@ -315,7 +315,7 @@ describe("GardensList", () => {
     mockActiveGarden.gardenId = departed ? "0xanother" : "0xgarden1";
     departure.leave.mockResolvedValue({ hash: "0xabc", departed });
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-    await user.click(screen.getByRole("button", { name: "Leave My Garden" }));
+    await user.click(screen.getByRole("button", { name: "Leave Garden: My Garden" }));
     await user.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Leave Garden" })
     );
@@ -330,15 +330,17 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
     expect(screen.getByRole("heading", { name: "Previous Departures" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Check your previous departure from Previous Garden/ })
+      screen.getByRole("button", { name: /Check Previous Departure: Previous Garden/ })
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Leave Previous Garden" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Leave Garden: Previous Garden" })
+    ).not.toBeInTheDocument();
   });
   it("closes a departure on account change and does not reopen it when that account returns", async () => {
     const user = userEvent.setup();
     mockMyGardens.gardens = [asMine({ id: "0xgarden1", name: "My Garden" })];
     const view = render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-    await user.click(screen.getByRole("button", { name: "Leave My Garden" }));
+    await user.click(screen.getByRole("button", { name: "Leave Garden: My Garden" }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     view.rerender(wrap(createElement(GardensList, { primaryAddress: undefined })));
     view.rerender(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));

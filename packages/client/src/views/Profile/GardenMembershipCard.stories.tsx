@@ -32,7 +32,9 @@ type Story = StoryObj<typeof meta>;
 export const ActiveGarden: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: `Leave ${args.garden.name}` }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: `Leave Garden: ${args.garden.name}` })
+    );
     await expect(args.onLeave).toHaveBeenCalledOnce();
     await expect(args.onOpen).not.toHaveBeenCalled();
   },

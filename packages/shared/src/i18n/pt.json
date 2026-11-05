@@ -8601,7 +8601,8 @@
   "app.voucher.service.name": "{kind, select, assisted {Sessão de assistência} claude {Acesso ao Claude Team Standard} hub {Visita ao centro} lesson {Aula de integração} other {{name}}}",
   "app.voucher.reward.receivedAt": "Chegou em {date}",
   "app.voucher.reward.arrivalUnknown": "Data de chegada indisponível",
-  "app.garden.leave.actionFor": "Sair de {gardenName}",
+  "app.garden.leave.actionFor": "Sair do jardim: {gardenName}",
   "app.garden.leave.otherRoles": "Outros papéis em jardins",
-  "app.garden.leave.previousDepartures": "Saídas anteriores"
+  "app.garden.leave.previousDepartures": "Saídas anteriores",
+  "app.garden.leave.recoverFor": "Verificar saída anterior: {gardenName}"
 }
