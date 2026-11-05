@@ -8,6 +8,6 @@ export default defineConfig({
   branch: process.env.TINA_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || "develop",
   client: { skip: true },
   build: { publicFolder: "static", outputFolder: "admin" },
-  media: { tina: { publicFolder: "static", mediaRoot: "img/community" } },
+  media: { tina: { publicFolder: "static", mediaRoot: "img" } },
   schema: { collections: communityCollections },
 });
