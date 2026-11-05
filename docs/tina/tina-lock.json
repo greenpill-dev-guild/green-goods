@@ -1902,7 +1902,7 @@
     ],
     "config": {
       "client": {},
-      "media": { "tina": { "publicFolder": "static", "mediaRoot": "img/community" } }
+      "media": { "tina": { "publicFolder": "static", "mediaRoot": "img" } }
     }
   },
   "lookup": {
