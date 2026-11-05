@@ -6,6 +6,8 @@ import {
   selectServiceAccessAction,
 } from "@green-goods/shared/commitment-pooling";
 import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import {
@@ -102,6 +104,48 @@ describe("a voucher offer as the person who made it reads it", () => {
 });
 
 describe("voucher booking on the promise page", () => {
+  it.each(
+    (["en", "es", "pt"] as const).flatMap((locale) =>
+      (["readyToDeposit", "waitingAcceptance"] as const).flatMap((stage) =>
+        (["collective-one", "collective-many", "individual"] as const).map((variant) => ({
+          locale,
+          stage,
+          variant,
+        }))
+      )
+    )
+  )("keeps one sentence stop around the $locale $stage deadline ($variant)", ({
+    locale,
+    stage,
+    variant,
+  }) => {
+    const translated = createIntl({ locale, messages: { en, es, pt }[locale] });
+    const snapshot = bookingStorySnapshot("hubDay", stage);
+    const deadline = snapshot.voucherSetups[0]!.authorization.acceptanceDeadline;
+    snapshot.voucherSetups[0]!.authorization.voucherUnits = vouchers(
+      variant === "collective-many" ? 3 : 1
+    );
+    if (snapshot.voucherSetups[0]!.source.setupResult) {
+      snapshot.voucherSetups[0]!.source.setupResult.depositedUnits =
+        snapshot.voucherSetups[0]!.authorization.voucherUnits;
+    }
+    const result = serviceBookingView(
+      {
+        snapshot,
+        coreState: bookingStoryCoreState("hubDay", stage),
+        issuer: { ...ISSUER.hubDay, kind: variant === "individual" ? "individual" : "collective" },
+        approval: APPROVAL.hubDay,
+        held: vouchers(10),
+      },
+      translated
+    )!;
+    const date = translated.formatDate(Number(deadline) * 1000, { month: "short", day: "numeric" });
+    expect(result.stage).toBe(stage);
+    expect(result.band.sentence).toContain(`${date.replace(/\.$/u, "")}.`);
+    expect(result.band.sentence).not.toContain("..");
+    expect(result.facts.find((fact) => fact.id === "deadline")?.value).toBe(date);
+  });
+
   it.each([false, true])("separates an unsent request from its network wait (sent=%s)", (sent) => {
     const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
     const setup = snapshot.voucherSetups[0]!;

@@ -147,6 +147,9 @@ export function serviceRewardsView(
     if (!due) return OPEN.includes(input.coreState) ? t("rw.band.open") : t("rw.n.prog.b");
     if (voucher?.status === "unavailable") return t("wait.rewardUnavailableDetail");
     if (voucher?.status === "preparing") return t("wait.rewardPreparingDetail");
+    // The row's single detail line may truncate. Keep live transit guidance in the wrapping band.
+    if (voucher?.status === "on-the-way" && input.snapshot.earnedReward)
+      return t("wait.rewardInTransit");
     if (all && input.snapshot.earnedReward) return t("wait.rewardDelivered");
     if (all)
       return gd
