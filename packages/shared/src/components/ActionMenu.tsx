@@ -18,6 +18,7 @@ export function ActionMenu({ label, actions }: ActionMenuProps) {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <IconButton
+          data-piece-control
           ref={trigger}
           onPointerDown={(event) => event.currentTarget.focus({ preventScroll: true })}
           aria-label={label}
