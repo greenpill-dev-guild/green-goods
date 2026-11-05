@@ -8,7 +8,7 @@ const SECTIONS = [
   {
     key: "service",
     title: "Who runs Green Goods",
-    body: "Green Goods runs this service. For human support and privacy requests, email contact@greengoods.app.",
+    body: "Green Goods runs this service. Afolabi and Matt monitor contact@greengoods.app for human support and privacy requests.",
   },
   {
     key: "collection",

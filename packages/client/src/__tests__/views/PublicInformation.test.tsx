@@ -152,6 +152,8 @@ describe("public information pages", () => {
       screen.getByRole("heading", { level: 1, name: messages["public.contact.title"] })
     ).toBeInTheDocument();
     expect(screen.getByText(messages["public.contact.people.body"])).toBeInTheDocument();
+    expect(screen.getByText(messages["public.contact.people.body"])).toHaveTextContent(/Afolabi/);
+    expect(screen.getByText(messages["public.contact.people.body"])).toHaveTextContent(/Matt/);
     expect(screen.getByRole("link", { name: "contact@greengoods.app" })).toHaveAttribute(
       "href",
       "mailto:contact@greengoods.app"

@@ -40,7 +40,7 @@ export default function Contact() {
             {formatMessage({
               id: "public.contact.people.body",
               defaultMessage:
-                "Green Goods operates this service. Email contact@greengoods.app for human support with the app, messaging reports, partnerships and privacy. Tell us what you need; never send passwords, private keys or recovery phrases.",
+                "Green Goods operates this service. Afolabi and Matt monitor this mailbox. Email contact@greengoods.app for human support with the app, messaging reports, partnerships and privacy. Tell us what you need; never send passwords, private keys or recovery phrases.",
             })}
           </EditorialLede>
           <div className="mt-6">
