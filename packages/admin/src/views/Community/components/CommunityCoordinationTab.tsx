@@ -73,7 +73,7 @@ export function CommunityCoordinationTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.coordination.proposals" })}
               </AdminCardTitle>
-              <p className="mt-1 type-meta text-text-sub">
+              <p className="mt-1 type-body text-text-sub">
                 {formatMessage({ id: "cockpit.community.coordination.proposalsDescription" })}
               </p>
             </div>
@@ -133,7 +133,7 @@ export function CommunityCoordinationTab({
                   <p className="mt-1 type-title-sm font-semibold text-text-strong">
                     {formatMessage({ id: `app.community.weightScheme.${weightSchemeLabel}` })}
                   </p>
-                  <p className="mt-1 type-meta text-text-sub">
+                  <p className="mt-1 type-body text-text-sub">
                     {formatMessage(
                       { id: "cockpit.community.coordination.weightSummary" },
                       {

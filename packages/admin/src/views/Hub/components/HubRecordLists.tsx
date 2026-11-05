@@ -180,13 +180,15 @@ export function HubAssessmentList({
           })}
           action={
             createHref ? (
-              <CreateRecordLink
-                href={createHref}
-                label={formatMessage({
-                  id: "cockpit.hub.action.createAssessment",
-                  defaultMessage: "Create Assessment",
-                })}
-              />
+              <span className="lg:hidden">
+                <CreateRecordLink
+                  href={createHref}
+                  label={formatMessage({
+                    id: "cockpit.hub.action.createAssessment",
+                    defaultMessage: "Create Assessment",
+                  })}
+                />
+              </span>
             ) : undefined
           }
         />
@@ -265,13 +267,15 @@ export function HubHypercertList({
           })}
           action={
             createHref ? (
-              <CreateRecordLink
-                href={createHref}
-                label={formatMessage({
-                  id: "cockpit.hub.action.createHypercert",
-                  defaultMessage: "Create Hypercert",
-                })}
-              />
+              <span className="lg:hidden">
+                <CreateRecordLink
+                  href={createHref}
+                  label={formatMessage({
+                    id: "cockpit.hub.action.createHypercert",
+                    defaultMessage: "Create Hypercert",
+                  })}
+                />
+              </span>
             ) : undefined
           }
         />

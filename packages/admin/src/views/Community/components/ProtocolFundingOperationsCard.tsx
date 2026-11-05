@@ -123,7 +123,7 @@ export function ProtocolFundingOperationsCard({
               defaultMessage: "Fund a Garden",
             })}
           </AdminCardTitle>
-          <p className="mt-1 max-w-2xl type-meta text-text-soft">
+          <p className="mt-1 max-w-2xl type-body text-text-soft">
             {formatMessage({
               id: "cockpit.community.protocolFunding.description",
               defaultMessage:

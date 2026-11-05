@@ -159,7 +159,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             </StatusBadge>
           </span>
         </div>
-        <p className="mt-1 type-meta text-text-soft">
+        <p className="mt-1 type-body text-text-soft">
           {formatMessage({
             id: "cockpit.garden.karma.description",
             defaultMessage:

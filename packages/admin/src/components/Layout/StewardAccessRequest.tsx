@@ -122,7 +122,11 @@ export function StewardAccessRequest({
         }}
       >
         {formatMessage({
-          id: request ? "cockpit.stewardAccess.viewRequest" : "cockpit.stewardAccess.request",
+          id: request
+            ? "cockpit.stewardAccess.viewRequest"
+            : showStatus
+              ? "cockpit.stewardAccess.request"
+              : "cockpit.account.stewardAccess.request",
         })}
       </Button>
       <AdminDialog
@@ -249,14 +253,18 @@ export function StewardAccessRequest({
                     className="min-h-0 flex-1"
                     icon={<RiSeedlingLine />}
                     title={formatMessage({
-                      id: c.invalidLink
-                        ? "cockpit.stewardAccess.invalidLink.title"
-                        : "cockpit.stewardAccess.noGardens.title",
+                      id: c.alreadyStewardTarget
+                        ? "cockpit.stewardAccess.alreadySteward.title"
+                        : c.invalidLink
+                          ? "cockpit.stewardAccess.invalidLink.title"
+                          : "cockpit.stewardAccess.noGardens.title",
                     })}
                     description={formatMessage({
-                      id: c.invalidLink
-                        ? "cockpit.stewardAccess.invalidLink.description"
-                        : "cockpit.stewardAccess.noGardens.description",
+                      id: c.alreadyStewardTarget
+                        ? "cockpit.stewardAccess.alreadySteward.description"
+                        : c.invalidLink
+                          ? "cockpit.stewardAccess.invalidLink.description"
+                          : "cockpit.stewardAccess.noGardens.description",
                     })}
                   />
                 </div>

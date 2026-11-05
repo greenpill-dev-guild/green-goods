@@ -200,6 +200,8 @@
   --gg-type-title-md-line: 1.5rem;
   --gg-type-title-sm-size: 0.875rem;
   --gg-type-title-sm-line: 1.25rem;
+  --gg-media-subtitle-size: var(--gg-type-body-size);
+  --gg-media-subtitle-line: var(--gg-type-body-line);
   --gg-type-body-size: 0.875rem;
   --gg-type-body-line: 1.25rem;
   --gg-type-body-tracking: -0.006em;

@@ -186,6 +186,21 @@ export function CookieJarPayoutCard({
             )}
           </div>
 
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({ id: "cockpit.community.payouts.claimHistory" })}
+              value={formatMessage({ id: "cockpit.community.payouts.claimHistoryUnavailable" })}
+            />
+            <FactRow
+              label={formatMessage({ id: "cockpit.community.payouts.fundingSource" })}
+              value={formatMessage({ id: "cockpit.community.payouts.fundingSourceUnavailable" })}
+            />
+            <FactRow
+              label={formatMessage({ id: "cockpit.community.payouts.lastJarYield" })}
+              value={formatMessage({ id: "cockpit.community.payouts.lastJarYieldUnavailable" })}
+            />
+          </FactList>
+
           {restricted ? (
             <p
               id={restrictionId}

@@ -1,5 +1,6 @@
 import { Domain, type Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, fn, userEvent } from "storybook/test";
 import FENCE_AFTER from "../../../../../shared/.storybook/fixture-art/documentation-fence-after.jpg?url";
 import FENCE_BEFORE from "../../../../../shared/.storybook/fixture-art/documentation-fence-before.jpg?url";
 import SEEDLINGS from "../../../../../shared/.storybook/fixture-art/documentation-seedlings.jpg?url";
@@ -33,13 +34,13 @@ const meta: Meta<typeof HubWorkCard> = {
     docs: {
       description: {
         component:
-          "The Hub's work card, the shared media card with the work's photo mosaic. Stacked below the desktop breakpoint; from 1024px the queue lays it wide, the mosaic in a 144px column with the text beside it (F12). Stories focus on the mosaic, domain badge presence, title truncation, and identity fallback states.",
+          "The Hub's work card, the shared media card with the work's photo mosaic. Stacked below the desktop breakpoint; from 1024px the queue lays it wide, the mosaic in a 192px column with the text beside it (F12). Stories focus on the mosaic, domain badge presence, title truncation, and identity fallback states.",
       },
     },
   },
   decorators: [
-    (Story) => (
-      <div style={{ width: 320 }}>
+    (Story, context) => (
+      <div style={{ width: context.parameters.fixtureWidth ?? 320, maxWidth: "100%" }}>
         <Story />
       </div>
     ),
@@ -216,5 +217,44 @@ export const AddressOnly: Story = {
   args: {
     ...Default.args,
     gardenerDisplayName: "0x1a2b...9f8e",
+  },
+};
+
+const openQueueWork = fn();
+
+/** DL-135: real cards on the production grid, including a sparse final row. */
+export const Queue: Story = {
+  tags: ["storybook-ci"],
+  parameters: { layout: "padded", fixtureWidth: "100%" },
+  render: () => (
+    <ul className="hub-workbench-grid" data-card-layout="wide">
+      {[0, 1, 2].map((index) => (
+        <li key={index}>
+          <HubWorkCard
+            work={{ ...BASE_WORK, id: `work-${index}` }}
+            layout="wide"
+            actionDomain={Domain.AGRO}
+            actionTitle="Planting event"
+            gardenName="Milpa Alta"
+            gardenerDisplayName="maria.eth"
+            onClick={openQueueWork}
+            eagerImages
+          />
+        </li>
+      ))}
+    </ul>
+  ),
+  play: async ({ canvasElement }) => {
+    const cards = [...canvasElement.querySelectorAll<HTMLElement>(".hub-work-card")];
+    const positions = cards.map((card) => card.getBoundingClientRect());
+    await expect(positions[0].top).toBe(positions[1].top);
+    await expect(positions[2].top).toBeGreaterThan(positions[0].top);
+    await expect(getComputedStyle(cards[0].querySelector("h3")!).fontSize).toBe("14px");
+    await expect(cards[0].firstElementChild!.getBoundingClientRect().width).toBe(192);
+    await expect(positions[0].height).toBeGreaterThanOrEqual(160);
+    await userEvent.tab();
+    await expect(cards[0]).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect(openQueueWork).toHaveBeenCalled();
   },
 };

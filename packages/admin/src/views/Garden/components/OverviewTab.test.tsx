@@ -5,12 +5,15 @@
 import type { GardenActivityEvent } from "@green-goods/shared/types/garden-detail";
 import type { KarmaIntegrationController } from "@green-goods/shared/hooks/garden/useKarmaIntegration";
 import pt from "@green-goods/shared/i18n/pt.json";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OverviewTab } from "./OverviewTab";
 
+vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({
+  useAddressDisplayName: () => ({ display: "", preferredName: null }),
+}));
 vi.mock("./GardenSetupCard", () => ({ GardenSetupPanel: () => null }));
 vi.mock("@green-goods/shared/hooks/action/useAction", () => ({
   useActionsByUID: () => [
@@ -47,20 +50,27 @@ const karmaIntegration = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+function RouteProbe() {
+  return <output aria-label="Route">{useLocation().pathname}</output>;
+}
+
 function renderOverview({
   activity = [],
   medianReviewLatencyMs = null,
+  mode = "health",
 }: {
   activity?: GardenActivityEvent[];
   medianReviewLatencyMs?: number | null;
+  mode?: "health" | "activity";
 }) {
   return render(
     <IntlProvider locale="pt" messages={pt}>
       <MemoryRouter>
+        <RouteProbe />
         <OverviewTab
           gardenId="0x1111111111111111111111111111111111111111"
           canManage={false}
-          mode="health"
+          mode={mode}
           section={undefined}
           selectedItem={undefined}
           selectedRange="30d"
@@ -169,5 +179,31 @@ describe("OverviewTab", () => {
     renderOverview({ medianReviewLatencyMs });
 
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+  it("shows twenty ItemRows under day labels before Show More reveals the rest", () => {
+    const activity = Array.from({ length: 23 }, (_, index) => ({
+      id: `event-${index}`,
+      category: "work" as const,
+      title: `Work ${index}`,
+      description: "Submitted work",
+      statusLabel: "Pending",
+      href: `/hub/work/event-${index}`,
+      timestamp: 1_790_000_000_000 - index * DAY_MS,
+    }));
+    const { container } = renderOverview({ activity, mode: "activity" });
+    expect(container.querySelectorAll(".gg-item-row")).toHaveLength(20);
+    expect(screen.queryByText("Work 20")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: new Intl.DateTimeFormat("pt", { dateStyle: "full" }).format(activity[0].timestamp),
+      })
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: pt["app.common.showMore"] }));
+    expect(container.querySelectorAll(".gg-item-row")).toHaveLength(23);
+    expect(
+      screen.queryByRole("button", { name: pt["app.common.showMore"] })
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Work 22/ }));
+    expect(screen.getByLabelText("Route")).toHaveTextContent("/hub/work/event-22");
   });
 });
