@@ -22,6 +22,7 @@ import {
 import { useId, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { voucherServiceDescriptions } from "@/components/Features/Commitments/voucherServices";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import {
   formatVouchers,
@@ -237,6 +238,16 @@ function VoucherHoldingRow({
             <FactRow
               label={intl.formatMessage({ id: "app.voucher.wl.f.issuer" })}
               value={issuer.name}
+            />
+            <FactRow
+              label={intl.formatMessage({ id: "app.voucher.service.books" })}
+              value={
+                <ul className="space-y-1">
+                  {voucherServiceDescriptions(issuer, issuer.asset.decimals, intl).map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              }
             />
           </FactList>
           <Button type="button" emphasis="primary" size="sm" onClick={onBook}>

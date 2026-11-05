@@ -8484,5 +8484,11 @@
   "app.home.none.title": "Encuentra tu jardín",
   "app.home.none.description": "Únete a un jardín para enviar trabajo y seguir lo que pasa allí.",
   "app.home.chooser.description": "Elige el jardín en el que se abre Inicio.",
-  "app.profile.issuer.chooseShort": "Elegir"
+  "app.profile.issuer.chooseShort": "Elegir",
+  "app.voucher.service.books": "Qué puedes reservar",
+  "app.voucher.service.unavailable": "Condiciones del servicio no disponibles",
+  "app.voucher.service.booking": "{service}: {units} por {vouchers} {pluralCount, plural, one {vale} other {vales}}",
+  "app.voucher.service.name": "{kind, select, assisted {Sesión de asistencia} claude {Acceso a Claude Team Standard} hub {Visita al centro} lesson {Clase de integración} other {{name}}}",
+  "app.voucher.reward.receivedAt": "Llegó el {date}",
+  "app.voucher.reward.arrivalUnknown": "Fecha de llegada no disponible"
 }

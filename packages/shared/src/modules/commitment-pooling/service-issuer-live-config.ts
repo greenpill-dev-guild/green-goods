@@ -9,6 +9,7 @@ const voucher = 1_000_000n;
 // Exact statement hashes and quantities from the approved offer publishing runbook.
 const offers = [
   {
+    name: "Assisted session",
     unit: "minutes",
     serviceUnits: 45n,
     voucherUnits: 2n * voucher,
@@ -18,6 +19,7 @@ const offers = [
     capacity: 20n * voucher,
   },
   {
+    name: "Claude Team Standard access",
     unit: "seat days",
     serviceUnits: 30n,
     voucherUnits: 10n * voucher,

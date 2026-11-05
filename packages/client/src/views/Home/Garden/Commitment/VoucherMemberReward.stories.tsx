@@ -1,3 +1,4 @@
+import { STORYBOOK_NOW_SECONDS } from "../../../../../../shared/.storybook/fixtures";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo } from "react";
 import { expect, waitFor } from "storybook/test";
@@ -40,10 +41,22 @@ function MemberRewardPage({
     if (delivery) {
       const reward = requestRewardDeliveries(s)![0]!;
       delete s.pilot;
+      s.acceptancePolicy.earned.terms = {
+        issuer: LESSON_STORY_ISSUER.account,
+        issuerAuthority: LESSON_STORY_ISSUER.account,
+        asset: LESSON_STORY_ISSUER.asset,
+        totalUnits: reward.amount,
+        allocationPolicy: reward.id,
+        serviceTermsRef: LESSON_STORY_ISSUER.services![0]!.serviceTermsRef,
+        season: 1n,
+        issuerApproved: true,
+        frozen: true,
+      };
       s.earnedReward = {
         ...reward,
         status: delivery,
         receipt: null,
+        receivedAt: delivery === "received" ? STORYBOOK_NOW_SECONDS : null,
         messageId: delivery === "preparing" ? null : reward.id,
       };
     }
