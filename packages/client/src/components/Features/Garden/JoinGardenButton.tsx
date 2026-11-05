@@ -72,7 +72,9 @@ export function JoinGardenButton({ gardenId, gardenName }: JoinGardenButtonProps
       <Button
         type="button"
         size="compact"
-        onClick={() => {
+        onClick={(event) => {
+          // Safari does not focus buttons on a pointer press; remember this opener before loading.
+          event.currentTarget.focus({ preventScroll: true });
           setConfirmRequested(true);
           setConfirmOpen(true);
         }}

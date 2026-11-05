@@ -1,5 +1,6 @@
 import messages from "@green-goods/shared/i18n/en.json";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,13 +24,13 @@ import { JoinGardenButton } from "@/components/Features/Garden/JoinGardenButton"
 // The button loads this with its first press; a slow first import is not what these tests prove.
 import "@/components/Features/Garden/JoinGardenConfirmDialog";
 
-/** Render at phone width, where the confirmation is a bottom sheet. */
-function stubPhoneViewport() {
+/** Mirror the breakpoint that switches the confirmation between sheet and dialog. */
+function stubViewport(width = 390) {
   Object.defineProperty(window, "matchMedia", {
     writable: true,
     configurable: true,
     value: vi.fn((query: string) => ({
-      matches: query.includes("max-width: 639px"),
+      matches: query.includes("max-width: 639px") && width < 640,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -67,7 +68,7 @@ describe("JoinGardenButton", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    stubPhoneViewport();
+    stubViewport();
   });
 
   afterEach(() => {
@@ -76,6 +77,31 @@ describe("JoinGardenButton", () => {
       configurable: true,
       value: originalMatchMedia,
     });
+  });
+
+  it.each([
+    [375, "Escape"],
+    [375, "Close"],
+    [375, "Cancel"],
+    [1280, "Escape"],
+    [1280, "Close"],
+    [1280, "Cancel"],
+  ] as const)("restores a pointer opener at %ipx after %s without joining", async (width, dismiss) => {
+    stubViewport(width);
+    renderOnGardenPage();
+    const user = userEvent.setup();
+    const opener = screen.getByRole("button", { name: "Join Garden" });
+    screen.getByRole("button", { name: "/home/0xgarden" }).focus();
+    // Safari leaves focus where it was on pointer activation. fireEvent does not focus the button.
+    fireEvent.click(opener);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    if (dismiss === "Escape") await user.keyboard("{Escape}");
+    else await user.click(screen.getByRole("button", { name: dismiss }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    });
+    expect(mockJoinGarden).not.toHaveBeenCalled();
   });
 
   it("asks for confirmation before joining, then joins and opens Home in place of the visit", async () => {
