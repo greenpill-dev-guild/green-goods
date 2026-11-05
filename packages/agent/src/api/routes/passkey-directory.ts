@@ -36,6 +36,7 @@ const ERROR_CODES: Record<PasskeyDirectoryErrorCode, number> = {
   origin_not_allowed: REFUSED,
   registration_expired: REFUSED,
   verification_failed: REFUSED,
+  account_profile_required: REFUSED,
   // Worth another try: the hosted name list may answer next time.
   unavailable: INTERNAL_ERROR,
 };
@@ -60,7 +61,11 @@ const METHODS: Record<string, RpcMethod> = {
     rateLimit: "passkey_registration",
     name: (params) => userNameOf(params[0]),
     run: (directory, params, origin) =>
-      directory.startRegistration({ userName: userNameOf(params[0]), origin }),
+      directory.startRegistration({
+        userName: userNameOf(params[0]),
+        accountProfileVersion: profileVersionOf(params[0]),
+        origin,
+      }),
   },
   pks_verifyRegistration: {
     rateLimit: "passkey_registration",
@@ -70,12 +75,17 @@ const METHODS: Record<string, RpcMethod> = {
         response: params[0],
         userName: userNameOf(params[1]),
         origin,
+        accountProfileVersion: profileVersionOf(params[1]),
       }),
   },
   pks_getCredentials: {
     rateLimit: "passkey_lookup",
     name: (params) => userNameOf(params[0]),
-    run: (directory, params) => directory.getCredentials({ userName: userNameOf(params[0]) }),
+    run: (directory, params) =>
+      directory.getCredentials({
+        userName: userNameOf(params[0]),
+        accountProfileVersion: profileVersionOf(params[0]),
+      }),
   },
 };
 
@@ -146,6 +156,10 @@ function readRpcCall(value: unknown): RpcCall | undefined {
 
 function userNameOf(context: unknown): unknown {
   return isRecord(context) ? context.userName : undefined;
+}
+
+function profileVersionOf(context: unknown): unknown {
+  return isRecord(context) ? context.accountProfileVersion : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

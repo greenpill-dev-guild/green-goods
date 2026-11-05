@@ -59,7 +59,7 @@ describe("agent storage with real bun:sqlite", () => {
         "users",
       ])
     );
-    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 9 });
+    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 10 });
     expect(sqlite.query("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
 
     expect(() =>
@@ -123,7 +123,7 @@ describe("agent storage with real bun:sqlite", () => {
       expect(sqlite.query("SELECT COUNT(*) AS count FROM garden_join_requests").get()).toEqual({
         count: 2,
       });
-      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 9 });
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 10 });
     } finally {
       sqlite.close();
     }
@@ -190,6 +190,7 @@ describe("agent storage with real bun:sqlite", () => {
           rpId: "greengoods.app",
           origin: "https://www.greengoods.app",
           source: "registered",
+          accountProfile: "kernel-0.3.1-legacy",
           createdAt: "2026-10-15T12:00:00.000Z",
         },
       ]);
@@ -201,6 +202,7 @@ describe("agent storage with real bun:sqlite", () => {
           origin: "https://beta.greengoods.app",
           expiresAt: 4_102_444_800_000,
           purpose: "registration",
+          accountProfile: "kernel-0.3.1-legacy",
         },
       ]);
 
@@ -228,12 +230,13 @@ describe("agent storage with real bun:sqlite", () => {
         );
       expect(uniqueKeys).toContainEqual(["credentialId", "publicKey"]);
       expect(uniqueKeys).not.toContainEqual(["credentialId"]);
-      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 9 });
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 10 });
 
       // After the upgrade one account still holds one name, and the other spelling of the same
       // passkey is its own account.
       const store = passkeyDirectoryQueries(sqlite);
       const later = {
+        accountProfile: "kernel-0.3.1-legacy" as const,
         credentialKey: browserId,
         publicKey: key,
         rpId: "greengoods.app",

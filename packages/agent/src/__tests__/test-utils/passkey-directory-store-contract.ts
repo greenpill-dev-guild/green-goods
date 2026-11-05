@@ -12,6 +12,7 @@ const OTHER_KEY = `0x04${"3c".repeat(32)}${"4d".repeat(32)}` as const;
 function passkeyFor(overrides: Partial<StoredPasskey> = {}): StoredPasskey {
   const credentialId = `credential-${randomUUID()}`;
   return {
+    accountProfile: "kernel-0.3.1-legacy",
     userName: `ana-${randomUUID()}`,
     credentialId,
     credentialKey: credentialId,
@@ -64,6 +65,16 @@ export function passkeyDirectoryStoreContract(
       }
     });
 
+    it("preserves a beta account's recipe without inferring it from the site", async () => {
+      const store = createStore();
+      const modern = passkeyFor({ accountProfile: "kernel-0.3.3" });
+      const legacy = passkeyFor();
+      expect(await store.insert(modern)).toEqual({ ok: true });
+      expect(await store.insert(legacy)).toEqual({ ok: true });
+      expect((await store.findByName(modern.userName))?.accountProfile).toBe("kernel-0.3.3");
+      expect((await store.findByName(legacy.userName))?.accountProfile).toBe("kernel-0.3.1-legacy");
+    });
+
     it("stores every key in one spelling, and refuses one that is not a P-256 point", async () => {
       const store = createStore();
       const passkey = passkeyFor({ publicKey: `0x${KEY.slice(4).toUpperCase()}` as const });
@@ -113,6 +124,7 @@ export function passkeyDirectoryStoreContract(
     it("hands a pending registration out once and drops it when it expires", async () => {
       const store = createStore();
       const pending = {
+        accountProfile: "kernel-0.3.3" as const,
         challenge: `challenge-${randomUUID()}`,
         purpose: "registration" as const,
         userName: "ana",
@@ -142,6 +154,7 @@ export function passkeyDirectoryStoreContract(
     it("spends a challenge taken for the wrong purpose, and keeps an adoption's name and site", async () => {
       const store = createStore();
       const adoption = {
+        accountProfile: "kernel-0.3.1-legacy" as const,
         challenge: `challenge-${randomUUID()}`,
         purpose: "adoption" as const,
         userName: "ana",

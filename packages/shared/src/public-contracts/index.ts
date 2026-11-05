@@ -63,6 +63,12 @@ export {
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
   type PasskeyDirectoryCredential,
+  LEGACY_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+  PASSKEY_ACCOUNT_PROFILE_VERSION,
+  getDefaultPasskeyRegistrationProfile,
+  parsePasskeyDirectoryAccountProfile,
+  type PasskeyDirectoryAccountProfile,
 } from "./passkey-directory";
 
 export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passkey-assertion";
