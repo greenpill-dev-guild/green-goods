@@ -46,9 +46,11 @@ every section is rewritten by the routines except each thread's `Notes.` block.
 2. `## Threads` — one `### {thread title}` per open thread, at most twelve in full: question
    threads in agenda track order first, then relationship threads by most recent movement.
 3. `## Held` — every open thread beyond the twelve, one line each: title · last movement · each
-   open ask in brief (the ask · who owes it · opened date), so no active ask leaves the
-   document; Monday reads this section as it reads `## Threads`.
-4. `## Dormant` — one line per dormant thread: title · last movement · why.
+   open ask in brief (the ask · who owes it · opened date), with the thread's `Notes.` block
+   beneath when not empty, so no active ask and no note leaves the document; Monday reads this
+   section as it reads `## Threads`.
+4. `## Dormant` — one line per dormant thread: title · last movement · why, with its `Notes.`
+   block beneath when not empty, so the thread comes back whole when it reopens.
 5. `## Closed this quarter` — one line per closed thread: title · closing fact · date; pruned
    eight weeks after closing.
 6. `## Links filed` — one line per human link posted in `#research` in the last two weeks: date ·
