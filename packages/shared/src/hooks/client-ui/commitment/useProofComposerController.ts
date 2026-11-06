@@ -25,7 +25,8 @@ import {
   isVideoFile,
   prepareMediaForUpload,
 } from "../../../modules/work/media-processing";
-import type { Address } from "../../../types/domain";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
+import type { Address, WorkUploadConsent } from "../../../types/domain";
 import type { CommitmentProofDraft } from "../../../stores/useCommitmentProofDraftStore";
 import { imageCompressor } from "../../../utils/work/image-compression";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
@@ -45,6 +46,7 @@ import { useProtocolPool } from "../../commitment-pooling/useProtocolPool";
 import { useGardenRecord } from "../../garden/useGardenRecord";
 import { useAudioRecording } from "../../utils/useAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
+import { useUploadPolicy } from "../../work/useUploadPolicy";
 import type {
   ProofComposerController,
   ProofComposerStatus,
@@ -77,6 +79,10 @@ export function useProofComposerController(
   const isOnline = useOnlineStatus();
   const draftRepository = input.draftRepository ?? proofDraftRepository;
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
+  const { request: requestUploadPolicy, prompt: uploadPolicy } = useUploadPolicy(
+    viewer,
+    intl.locale
+  );
   const routeGarden = (input.routeGarden as Address | null | undefined) ?? null;
   const query = useCommitment(
     { chainId: input.chainId, commitmentId: input.commitmentId ?? 0n },
@@ -314,12 +320,22 @@ export function useProofComposerController(
     submitting.current = true;
     const scope = composerScope.current;
     const ownsForm = () => composerScope.current === scope && !scope.cancelled;
+    let uploadConsent: WorkUploadConsent;
+    try {
+      uploadConsent = await requestUploadPolicy();
+    } catch (error) {
+      if (ownsForm()) submitting.current = false;
+      if (!(error instanceof UploadPolicyCancelledError)) throw error;
+      return false;
+    }
+    if (!ownsForm()) return false;
     const record = detail.commitment;
     const gardenAddress = (record.providerGarden ?? routeGarden) as Address;
     const payload: EvidenceJobPayload = {
       clientEvidenceId,
       commitmentId: record.commitmentId,
       creditedContributors: credited,
+      uploadConsent,
       gardenAddress,
       ...(note.trim() ? { note: note.trim() } : {}),
       ...(links.length > 0 ? { links } : {}),
@@ -372,6 +388,7 @@ export function useProofComposerController(
     routeGarden,
     queued,
     readiness,
+    requestUploadPolicy,
     seat,
     sendToo,
     viewer,
@@ -440,6 +457,7 @@ export function useProofComposerController(
     removeMedia,
     removeAudio,
     submit,
+    uploadPolicy,
     refetch: query.refetch,
   };
 }

@@ -14,6 +14,7 @@ import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
 import { buildCommitmentEvidenceDocument, evidenceMediaKind } from "../commitment-pooling/evidence";
 import type { EvidenceJobPayload } from "../commitment-pooling/jobs";
+import { assertWorkUploadConsent, UploadPolicyRequiredError } from "../work/upload-policy";
 import {
   identifyWorkFile,
   publishableWorkFile,
@@ -50,6 +51,12 @@ interface EvidenceUploads {
 export async function publishPendingEvidence(jobId: string, job: Job): Promise<PublishOutcome> {
   if (job.kind !== "evidence") return { published: true };
   const payload = job.payload as EvidenceJobPayload;
+  try {
+    assertWorkUploadConsent(payload.uploadConsent, job.userAddress);
+  } catch (error) {
+    if (!(error instanceof UploadPolicyRequiredError)) throw error;
+    return { published: false, reason: error.message, terminal: true };
+  }
   if (payload.cid) return { published: true };
 
   // A photo picked before the decoder could load becomes a JPEG before anything

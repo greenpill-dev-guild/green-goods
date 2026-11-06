@@ -1,5 +1,5 @@
 import type { Hex } from "viem";
-import type { Address } from "../../types/domain";
+import type { Address, WorkUploadConsent } from "../../types/domain";
 import type { CommitmentMetadataV1 } from "./metadata";
 
 export const COMMITMENT_JOB_KINDS = [
@@ -110,7 +110,7 @@ export interface ClaimJobPayload extends MembershipGatedJobPayload {
  * Proof, as composed in the field. The document and its media ride the job
  * until the phone is online; the executor uploads them, pins the document and
  * writes `cid` back before `attachEvidence` is called. A record queued before
- * this shape carried `cid` alone and still sends as it was queued.
+ * this shape may carry only `cid`. Unsent proof requires current upload consent.
  */
 export interface EvidenceJobPayload extends MembershipGatedJobPayload {
   /** Stable per composition, so a retry behind the same button is one job. */
@@ -119,6 +119,8 @@ export interface EvidenceJobPayload extends MembershipGatedJobPayload {
   /** Absent until the executor publishes the document; required at send. */
   cid?: string;
   creditedContributors: readonly Address[];
+  /** Older queued proofs receive this on retry, before they can publish. */
+  uploadConsent?: WorkUploadConsent;
   note?: string;
   links?: readonly string[];
   /** Persisted by the queue store the way work media is; read back at send. */

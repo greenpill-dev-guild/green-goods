@@ -11,7 +11,7 @@ import type { SheetActionsProps } from "./SheetActions";
 
 type ConsentPromptProps = {
   prompt: UploadPolicyPrompt | null | undefined;
-  kind?: "work" | "profile-photo" | "admin-file";
+  kind?: "work" | "profile-photo" | "admin-file" | "evidence";
 };
 
 type ConsentPresentation = {
@@ -40,7 +40,9 @@ export function WorkUploadConsentContent({
           ? "profile.avatar.uploadConsent.body"
           : kind === "admin-file"
             ? "app.work.uploadConsent.admin"
-            : "app.work.uploadConsent.body",
+            : kind === "evidence"
+              ? "app.work.uploadConsent.evidence"
+              : "app.work.uploadConsent.body",
     }),
     actions: {
       primary: {

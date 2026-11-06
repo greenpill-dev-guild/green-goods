@@ -1017,7 +1017,9 @@ describe("commitment acts record their sends", () => {
       sponsored: false,
       confirmation: "pending",
     });
-    const pendingSafe = job(kind, payload, { id: `${kind}-safe-first-send` });
+    const firstPayload =
+      kind === "evidence" ? { ...payload, uploadConsent: uploadConsent(USER) } : payload;
+    const pendingSafe = job(kind, firstPayload, { id: `${kind}-safe-first-send` });
     const safeDeps = {
       demoActive: () => false,
       reads: reads(),

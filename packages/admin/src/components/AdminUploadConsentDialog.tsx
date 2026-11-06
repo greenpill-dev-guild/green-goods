@@ -15,6 +15,7 @@ export function AdminUploadConsentDialog({ prompt, kind }: ConsentProps) {
         <AdminDialog
           open
           size="md"
+          tone="home"
           title={title}
           description={description}
           preventClose={prompt.saving}
