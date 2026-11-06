@@ -179,8 +179,8 @@ function Lead({ lead }: { lead: ItemRowLead }) {
           >
             {lead.icon}
           </span>
-          {lead.mark ? <Mark>{lead.mark}</Mark> : null}
         </span>
+        {lead.mark ? <Mark>{lead.mark}</Mark> : null}
       </span>
     );
   }
