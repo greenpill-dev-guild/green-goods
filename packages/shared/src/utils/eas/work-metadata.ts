@@ -1,6 +1,7 @@
-import type { ApproximateWorkLocation, Domain } from "../../types/domain";
+import type { ApproximateWorkLocation, Domain, WorkUploadConsent } from "../../types/domain";
 
 export interface WorkMetadataPayloadInput {
+  uploadConsent?: WorkUploadConsent;
   title: string;
   feedback: string;
   actionUID: number;
@@ -34,6 +35,7 @@ export function buildWorkMetadataPayload(input: WorkMetadataPayloadInput): {
     Object.entries(input.details ?? {}).filter(([key]) => key !== "_location")
   );
   const optional = {
+    ...(input.uploadConsent ? { uploadConsent: input.uploadConsent } : {}),
     ...(input.location ? { location: input.location } : {}),
   };
   const isV2 =

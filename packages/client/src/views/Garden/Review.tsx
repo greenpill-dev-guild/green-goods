@@ -269,6 +269,9 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           ))}
         </div>
       )}
+      <p className="padded text-sm text-text-sub">
+        {intl.formatMessage({ id: "app.work.uploadConsent.reminder" })}
+      </p>
     </div>
   );
 };

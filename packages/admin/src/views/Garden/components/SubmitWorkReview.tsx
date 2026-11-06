@@ -224,6 +224,11 @@ export function SubmitWorkReview({
           </p>
         )}
       </ReviewCard>
+      {editable ? (
+        <p className="type-meta text-text-sub">
+          {formatMessage({ id: "app.work.uploadConsent.reminder" })}
+        </p>
+      ) : null}
     </div>
   );
 }

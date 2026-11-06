@@ -126,6 +126,7 @@ const REFUSED = {
 } satisfies MessageDescriptor;
 
 export function blockedReasonMessage(reason: string | undefined): MessageDescriptor {
+  if (reason === "upload-policy-required") return { id: "app.work.uploadConsent.required" };
   return (reason && BLOCKED_REASONS.get(reason)) || REFUSED;
 }
 

@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   getMinRequiredWorkImages,
@@ -236,31 +237,34 @@ export function SubmitWorkFlow({
   );
 
   return (
-    <ActionFlowShell
-      layout={layout}
-      title={title}
-      context={garden.name}
-      steps={stepConfigs}
-      currentStep={currentStep}
-      complete={sent}
-      // Once the work is sent no step reopens: the way on is Done.
-      onStepClick={sent ? undefined : handleStepJump}
-      footer={footer}
-    >
-      <form id={formId} onSubmit={handleFormSubmit}>
-        <div
-          ref={phaseRef}
-          tabIndex={-1}
-          key={activeStepId}
-          className="action-flow-fade space-y-4 outline-none"
-        >
-          <SubmitWorkStepContent
-            controller={controller}
-            photoRequirementText={photoRequirementText}
-            reviewStatus={status}
-          />
-        </div>
-      </form>
-    </ActionFlowShell>
+    <>
+      <WorkUploadConsentDialog prompt={mutation.uploadPolicy} />
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        steps={stepConfigs}
+        currentStep={currentStep}
+        complete={sent}
+        // Once the work is sent no step reopens: the way on is Done.
+        onStepClick={sent ? undefined : handleStepJump}
+        footer={footer}
+      >
+        <form id={formId} onSubmit={handleFormSubmit}>
+          <div
+            ref={phaseRef}
+            tabIndex={-1}
+            key={activeStepId}
+            className="action-flow-fade space-y-4 outline-none"
+          >
+            <SubmitWorkStepContent
+              controller={controller}
+              photoRequirementText={photoRequirementText}
+              reviewStatus={status}
+            />
+          </div>
+        </form>
+      </ActionFlowShell>
+    </>
   );
 }

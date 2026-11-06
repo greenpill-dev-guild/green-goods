@@ -72,6 +72,13 @@ describe("owner publication", () => {
     ).toEqual([]);
     // Evidence and metadata go to public storage only after confirmation and consent.
     expect(harness.uploader.uploads.map((upload) => upload.name)).toEqual(["metadata.json"]);
+    const metadata = JSON.parse(new TextDecoder().decode(harness.uploader.uploads[0].bytes));
+    expect(metadata.uploadConsent).toMatchObject({
+      policyVersion: "2026-11-05",
+      uploaderAddress: adaAccount.address.toLowerCase(),
+      permissionsConfirmed: true,
+      locale: "en",
+    });
 
     const attempt = await reserve(browser, view, envelope);
     expect(attempt.status).toBe(200);
@@ -84,6 +91,8 @@ describe("owner publication", () => {
       kind: "broadcast",
       transactionHash: hash,
     });
+    // A policy update must not prevent reconciliation of a transaction already sent.
+    harness.core.db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
     expect(outcome.body).toEqual({
       ok: true,
       operationState: "reconciling",

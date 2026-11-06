@@ -107,8 +107,12 @@ for (const scenario of workExplorationCases(process.env.GG_BROWSER_SEED)) {
       for (const action of scenario.actions) {
         log.push(action);
         await test.step(action, async () => {
-          if (action === "open")
+          if (action === "open") {
             await page.goto(`${pathname}?presentation=pwa`, { waitUntil: "domcontentloaded" });
+            const terms = page.getByRole("dialog", { name: "Before You Share" });
+            await terms.getByRole("button", { name: "Skip for Now" }).click({ timeout: 60000 });
+            await expect(terms).toBeHidden();
+          }
           if (action === "recover") {
             await expect(page.getByText("Couldn't load this work", { exact: true })).toBeVisible({
               timeout: 60000,

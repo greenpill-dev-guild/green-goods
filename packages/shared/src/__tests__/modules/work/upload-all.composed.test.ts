@@ -63,6 +63,7 @@ import { queuedUploadStatus } from "../../../modules/work/upload-state";
 import type { Address } from "../../../types/domain";
 import type { ApprovalJobPayload, WorkJobPayload } from "../../../types/job-queue";
 import { createMockTransactionSender } from "../../test-utils/transaction-fakes";
+import { uploadConsent } from "../../test-utils/upload-policy";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -75,6 +76,7 @@ const queueWork = (feedback: string) =>
     "work",
     {
       title: "Weeding",
+      uploadConsent: uploadConsent(USER),
       actionUID: 1,
       gardenAddress: GARDEN,
       feedback,
@@ -188,6 +190,7 @@ const submission = (authMode: "passkey" | "wallet"): SubmitWorkCommand => ({
   userAddress: USER,
   chainId: CHAIN,
   draft: {
+    uploadConsent: uploadConsent(USER),
     actionUID: 1,
     title: "Weeding",
     feedback: "north beds",

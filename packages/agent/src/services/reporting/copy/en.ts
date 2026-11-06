@@ -30,7 +30,7 @@ export const EN_REPORTING_COPY = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nBy agreeing, you accept the sharing rules, version {version}: https://www.greengoods.app/terms. Share only your own material or material you have permission to publish, with permission from every identifiable adult shown. Do not send identifiable children, sensitive personal information, abuse, hate, threats, sexual or unlawful content, fraud or spam. Confirmed reports become public on Arbitrum and IPFS; independent copies may remain permanently.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
   "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
@@ -169,7 +169,7 @@ export const EN_REPORTING_COPY = {
   "review.summaryCodeInstruction":
     "Reply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
   "report.summary":
-    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\n{instruction}",
+    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\nBy confirming, you agree to make this exact report public and confirm you have permission to share its content and every identifiable adult shown. It contains no identifiable children or sensitive personal information.\n\n{instruction}",
   "report.summaryAccount": "\nIt will be published by your account {account}.",
   "report.confirm": "Confirm",
   "report.edit": "Edit",
@@ -237,7 +237,7 @@ export const EN_REPORTING_COPY = {
   "link.accountTaken":
     "That account is already linked to another chat. If it's yours, send RECOVER from the chat you want to use. Support: {support}",
   "publish.consent":
-    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. {instruction}",
+    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. By publishing, you agree to make this exact report public and confirm you have permission to share its content and every identifiable adult shown. It contains no identifiable children or sensitive personal information. {instruction}",
   "publish.publish": "Publish",
   "publish.signLink": "Open this page to review and sign the exact publication with your {kind}.",
   "publish.signLabel": "Review and publish",

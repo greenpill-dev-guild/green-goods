@@ -38,6 +38,7 @@ import { SimulationRejected } from "./simulation-rejected";
 import { isUploadJob, queuedUploadStatus, type UploadPreparation } from "./upload-state";
 import { UnpublishablePhotoError } from "./work-attachments";
 import { forgetWorkBroadcast } from "./work-confirmation";
+import { UploadPolicyRequiredError } from "./upload-policy";
 
 /**
  * Items per call. Placeholders until scripts/simulate-upload-all.ts is run against
@@ -227,6 +228,14 @@ export async function uploadQueuedWork(
           });
           items.push({ job, claim, attestation });
         } catch (error) {
+          if (error instanceof UploadPolicyRequiredError) {
+            await flagItem(claim, id, {
+              status: "blocked",
+              reason: "upload-policy-required",
+              checkedAt: checkedAt(),
+            }).catch(() => undefined);
+            continue;
+          }
           // A photo that cannot be published would be refused again by preparation:
           // the item waits on it, named, instead of going back to preparing.
           if (error instanceof UnpublishablePhotoError) {

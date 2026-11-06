@@ -27,6 +27,7 @@ import type {
 } from "@green-goods/shared/hooks/client-ui/commitment/controller.types";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
+import { fireEvent } from "@testing-library/react";
 import { MemoryRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -913,6 +914,50 @@ describe("GardenCommitment", () => {
     await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
     await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
     expect(mockActs.claim).toHaveBeenCalledWith({ kind: "personal", garden: GARDEN });
+  });
+
+  it.each([
+    true,
+    false,
+  ])("reviews personal take-up before queuing (sendsFromTap=%s)", async (sendsFromTap) => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            derivedState: "OFFERED",
+            onchainState: "OFFERED",
+            creator: OTHER,
+            leadProvider: null,
+            counterparty: null,
+          },
+        }),
+        seat: "bystander",
+        actKind: "takeUp",
+        claimNeedsContext: false,
+        queue: { ...controller().queue, sendsFromTap },
+      })
+    );
+    render();
+    const opener = screen.getByRole("button", { name: "Take This Up" });
+    // A Safari pointer click does not focus the button for a state-driven dialog.
+    fireEvent.click(opener);
+    const review = await screen.findByRole("dialog", { name: "Review This Promise" });
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    await userEvent.click(within(review).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Review This Promise" })).not.toBeInTheDocument();
+    await waitFor(() => expect(opener).toHaveFocus());
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
+    await userEvent.click(
+      within(await screen.findByRole("dialog", { name: "Review This Promise" })).getByRole(
+        "button",
+        { name: "Confirm" }
+      )
+    );
+    await waitFor(() => expect(mockActs.claimPersonal).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Review This Promise" })).not.toBeInTheDocument()
+    );
   });
 
   it("renders pending steward decisions and delegates accept and decline", async () => {

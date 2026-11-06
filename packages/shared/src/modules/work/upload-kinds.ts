@@ -39,6 +39,7 @@ import {
   resolveQueuedWorkTitle,
 } from "./queued-work-draft";
 import type { UploadPreparation } from "./upload-state";
+import { assertWorkUploadConsent } from "./upload-policy";
 
 // The simulation and the encoders load on first use: the offline shell must not carry them.
 type Simulation = typeof import("./simulate");
@@ -109,6 +110,7 @@ async function encodeQueuedWork(
   );
   const encodeWork = dependencies.encodeWork ?? (await loadEncoders()).encodeWorkData;
   return encodeWork(draft, chainId, {
+    uploaderAddress: job.userAddress as `0x${string}`,
     clientWorkId: payload.clientWorkId,
     checkpoint: payload.uploadCheckpoint,
     onCheckpoint: async (progress) => {
@@ -128,6 +130,7 @@ async function encodeQueuedWork(
 
 const work: UploadKind<WorkJobPayload> = {
   async prepare(job, context) {
+    assertWorkUploadConsent(job.payload.uploadConsent, job.userAddress as Address);
     const { chainId, claim, save, dependencies = {} } = context;
     const conversion = await (dependencies.convertMedia ?? convertQueuedHeicMedia)(job);
     if (conversion.status !== "ready")
@@ -163,6 +166,7 @@ const work: UploadKind<WorkJobPayload> = {
 
   async attestation(job, context) {
     const { payload } = job;
+    assertWorkUploadConsent(payload.uploadConsent, job.userAddress as Address);
     // The title preparation resolved. Its saved uploads are read back, not uploaded again.
     const title = resolveWorkSubmissionTitle({
       draftTitle: payload.title,

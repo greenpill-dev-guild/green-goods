@@ -115,6 +115,7 @@ export function queuedUploadStatus(
   const preparation = uploadPreparationOf(job);
   // A send attempt's own wait outranks an older preparation answer.
   const waiting = job.meta?.waitingReason;
+  if (waiting === "upload-policy-required") return { state: "blocked", reason: waiting };
   if (waiting === "photo-conversion-pending") return { state: "photo-pending" };
   if (waiting === "photo-needs-attention") return { state: "photo-needs-attention" };
   if (waiting === "video-needs-attention") return { state: "photo-needs-attention", video: true };

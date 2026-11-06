@@ -1,3 +1,5 @@
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
+import { UploadPolicyCancelledError } from "@green-goods/shared/modules/work/upload-policy";
 import { Button } from "@green-goods/shared/components/Button";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
@@ -83,7 +85,8 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.save(selectedFile);
       setSelectedFile(null);
-    } catch {
+    } catch (caught) {
+      if (caught instanceof UploadPolicyCancelledError) return;
       setSelectedFile(null);
       setError(getProfileAvatarFailureMessage("save", formatMessage));
     }
@@ -103,7 +106,8 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     setError(null);
     try {
       await editor.continueAfterReconnect();
-    } catch {
+    } catch (caught) {
+      if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("continue", formatMessage));
     }
   };
@@ -120,6 +124,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
 
   return (
     <>
+      <WorkUploadConsentDialog kind="profile-photo" prompt={editor.uploadPolicy} />
       <button
         type="button"
         onClick={() => setOpen(true)}

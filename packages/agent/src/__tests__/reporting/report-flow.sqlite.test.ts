@@ -27,6 +27,32 @@ async function consented(): Promise<string[]> {
 }
 
 describe("story-first reporting", () => {
+  it("asks an existing participant to accept a changed policy before processing more content", async () => {
+    await consented();
+    const db = harness.core.db;
+    db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
+    const before = (db.query("SELECT count(*) AS n FROM source_entries").get() as { n: number }).n;
+    const notice = await harness.say(ADA, "Today I weeded the east bed");
+    expect(notice.join("\n")).toContain("version 2026-11-05");
+    expect(notice.join("\n")).toContain("https://www.greengoods.app/terms");
+    expect(db.query("SELECT count(*) AS n FROM source_entries").get()).toEqual({ n: before });
+    await harness.press(ADA, "I agree");
+    expect(
+      db
+        .query(
+          "SELECT notice_version FROM consent_records WHERE purpose = 'processing' ORDER BY rowid DESC LIMIT 1"
+        )
+        .get()
+    ).toEqual({ notice_version: "2026-11-05" });
+  });
+  it("uploads nothing when a confirmed report has only an older policy receipt", async () => {
+    harness.close();
+    harness = new Harness({ settings: { noticeVersion: "previous-policy" } });
+    const { confirmLinkAndPublish } = await import("./support/flows");
+    await confirmLinkAndPublish(harness);
+    await harness.drain();
+    expect(harness.uploader.uploads).toEqual([]);
+  });
   it.each([
     ["en", "I agree", "Support:", "unpublished data", "can't be removed"],
     ["es", "Acepto", "Soporte:", "datos no publicados", "no se pueden"],

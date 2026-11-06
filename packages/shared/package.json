@@ -38,6 +38,8 @@
     "./mocks/browser": "./src/__mocks__/browser/index.ts",
     "./modules": "./src/modules/index.ts",
     "./modules/work/bot-submission": "./src/modules/work/bot-submission.ts",
+    "./modules/work/upload-policy": "./src/modules/work/upload-policy.ts",
+    "./components/Dialog/WorkUploadConsentDialog": "./src/components/Dialog/WorkUploadConsentDialog.tsx",
     "./service-worker": "./src/modules/app/service-worker-registration.ts",
     "./sentry": "./src/modules/app/sentry.ts",
     "./sentry-redaction": "./src/modules/app/sentry-redaction.ts",

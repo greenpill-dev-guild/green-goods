@@ -9,6 +9,7 @@ import type {
 } from "../../modules/commitment-pooling/job-types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
+import { uploadConsent } from "./upload-policy";
 
 export const QUEUED_JOB_USER: Address = "0x1111111111111111111111111111111111111111";
 export const QUEUED_JOB_GARDEN: Address = "0x2222222222222222222222222222222222222222";
@@ -39,6 +40,7 @@ export function queuedWorkJob(overrides: QueuedJobOverrides<WorkJobPayload> = {}
   return queuedJob<WorkJobPayload>(
     "work",
     {
+      uploadConsent: uploadConsent(overrides.userAddress as Address | undefined),
       actionUID: 1,
       gardenAddress: QUEUED_JOB_GARDEN,
       feedback: "Weeded",

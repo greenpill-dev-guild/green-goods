@@ -1,3 +1,4 @@
+import { WorkUploadPolicyOnSignIn } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { AppProvider } from "@green-goods/shared/providers/App";
 import { useEffect } from "react";
 import App from "@/App.tsx";
@@ -11,6 +12,7 @@ export default function AdminWorkspace({ onReady }: { onReady?: () => void }) {
       posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}
       allowPosthogKeyFallback={false}
     >
+      <WorkUploadPolicyOnSignIn />
       <App />
     </AppProvider>
   );

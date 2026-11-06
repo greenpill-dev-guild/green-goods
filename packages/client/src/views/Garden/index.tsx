@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import {
   type SubmissionStage,
   useSubmissionFlowController,
@@ -203,6 +204,7 @@ const Work: React.FC = () => {
 
   return (
     <>
+      <WorkUploadConsentDialog prompt={controller.uploadPolicy} />
       {linkIntent ? (
         <WorkForSheet
           open={flow.promise.open}

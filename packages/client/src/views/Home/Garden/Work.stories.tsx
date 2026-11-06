@@ -79,6 +79,7 @@ const onReview = (feedbackMode: "approve" | null) => () => {
     workMetadata,
   } as unknown as ReturnType<typeof useWorkDetailController>);
   mocked(useQueuedWorkActions).mockReturnValue({
+    uploadPolicy: null,
     tryAgain: fn(async () => undefined),
     discard: fn(async () => false),
     isTryingAgain: false,

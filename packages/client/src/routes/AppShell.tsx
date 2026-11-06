@@ -1,3 +1,4 @@
+import { WorkUploadPolicyOnSignIn } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
@@ -73,6 +74,7 @@ export default function AppShell() {
         <OfflineContentPreparation />
       </Suspense>
       <PwaBadgeCoordinator />
+      <WorkUploadPolicyOnSignIn />
       <WorkProvider>
         {/* Content scrolls inside #app-scroll, never the document. Android Chrome
             stretches everything on an overscrolled document, the fixed AppBar

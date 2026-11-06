@@ -77,6 +77,27 @@ export default function Contact() {
               </EditorialLinkArrow>
             </div>
           </div>
+          {(["deletion", "report"] as const).map((kind) => (
+            <div
+              key={kind}
+              id={kind === "deletion" ? "account-deletion" : "report-a-concern"}
+              className="mt-10 scroll-mt-24 border-t border-stroke-soft-200 pt-7"
+            >
+              <EditorialHeading size="sub">
+                {formatMessage({ id: `public.contact.${kind}.title` })}
+              </EditorialHeading>
+              <EditorialLede className="mt-4">
+                {formatMessage({ id: `public.contact.${kind}.body` })}
+              </EditorialLede>
+              <div className="mt-6">
+                <EditorialLinkArrow
+                  to={`mailto:contact@greengoods.app?subject=${encodeURIComponent(kind === "deletion" ? "Delete my Green Goods account" : "Report a Green Goods concern")}`}
+                >
+                  {formatMessage({ id: `public.contact.${kind}.action` })}
+                </EditorialLinkArrow>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
       <PublicFooter variant="soil" />

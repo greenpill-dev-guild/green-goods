@@ -28,6 +28,7 @@ const FOOTER_LINKS: readonly FooterLink[] = [
   },
   { href: "https://docs.greengoods.app", labelId: "public.footer.docs", defaultLabel: "Docs" },
   { href: "/privacy", labelId: "public.footer.privacy", defaultLabel: "Privacy" },
+  { href: "/terms", labelId: "public.footer.terms", defaultLabel: "Terms of Use" },
   { href: "/contact", labelId: "public.footer.contact", defaultLabel: "Contact" },
 ] as const;
 
