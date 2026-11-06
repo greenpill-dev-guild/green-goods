@@ -8,11 +8,12 @@ import es from "@green-goods/shared/i18n/es.json";
 import pt from "@green-goods/shared/i18n/pt.json";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders } from "@/__tests__/test-utils";
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
@@ -114,7 +115,7 @@ describe("GardenGardeners", () => {
       toJSON: () => ({}),
     });
 
-    render(
+    renderWithProviders(
       <TestIntl>
         <GardenGardeners ref={ref} members={members} />
       </TestIntl>
@@ -139,7 +140,7 @@ describe("GardenGardeners", () => {
   it("reports a failed member-detail copy without claiming success", async () => {
     vi.mocked(copyToClipboard).mockResolvedValue(false);
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <TestIntl>
         <GardenGardeners members={[{ ...members[0], email: "member@example.com" }]} />
       </TestIntl>
@@ -155,7 +156,7 @@ describe("GardenGardeners", () => {
   });
 
   it("shows each member's highest role and since when a gardener has been one, and no date it lacks", () => {
-    render(
+    renderWithProviders(
       <TestIntl>
         <GardenGardeners
           members={[
@@ -190,7 +191,7 @@ describe("GardenGardeners", () => {
     } as ReturnType<typeof useResolvedProfileAvatar>);
     const member = { ...members[0], username: undefined, avatar: "blob:unpublished-preview" };
 
-    const { container, rerender } = render(
+    const { container, rerender } = renderWithProviders(
       <TestIntl>
         <GardenGardeners members={[member]} />
       </TestIntl>
@@ -241,7 +242,7 @@ describe("GardenGardeners", () => {
       isLoading: true,
     } as ReturnType<typeof useResolvedProfileAvatar>);
 
-    const { container } = render(
+    const { container } = renderWithProviders(
       <TestIntl>
         <GardenGardeners members={[members[0]]} />
       </TestIntl>
@@ -270,7 +271,7 @@ describe("GardenGardeners", () => {
       vi.mocked(useGardens).mockImplementation(
         () => ({ data: [garden] }) as unknown as ReturnType<typeof useGardens>
       );
-      return render(
+      return renderWithProviders(
         <IntlProvider locale={locale} messages={catalog}>
           <GardenGardeners members={roster} garden={garden} />
         </IntlProvider>
