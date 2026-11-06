@@ -176,12 +176,28 @@ export const EmptyActivity: Story = {
 };
 
 export const EvaluatorActivity: Story = {
+  tags: ["storybook-ci"],
   args: {
     mode: "activity",
     filteredActivityEvents: [
       { ...MOCK_ACTIVITY[0], href: "/hub/work/w-1" },
       { ...MOCK_ACTIVITY[2], href: undefined },
     ],
+  },
+  play: async ({ args, canvasElement }) => {
+    if (args.activityFilter !== "all") return;
+    const canvas = within(canvasElement);
+    const title = await canvas.findByText("Signal strategy refresh", { exact: true });
+    const row = title.closest(".gg-item-row")!;
+    const badge = row.querySelector(".gg-item-row-mark")!;
+    const body = row.querySelector(".gg-item-row-body")!;
+    await document.fonts.ready;
+    await expect(badge).toBeVisible();
+    const bounds = badge.getBoundingClientRect();
+    await expect(bounds.left).toBeGreaterThanOrEqual(row.getBoundingClientRect().left);
+    await expect(bounds.right).toBeLessThanOrEqual(body.getBoundingClientRect().left);
+    const center = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + 4);
+    await expect(badge.contains(center)).toBe(true);
   },
 };
 
