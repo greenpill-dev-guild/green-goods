@@ -1,30 +1,41 @@
 import { getPublicClient } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
-import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
+import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
+import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
+import { GARDEN_ROLE_HAT_FUNCTIONS, type GardenRole } from "../../utils/blockchain/garden-roles";
 
-/** A lagging RPC cannot undo a confirmed departure. Every role reads the same sufficiently new block. */
-export async function readMembershipAfterDeparture(
+/** Read the exact hats at a block that includes the departure. Permission views inherit roles. */
+export async function readRolesAfterDeparture(
   chainId: number,
   garden: Address,
   account: Address,
   departedAt: bigint
-): Promise<boolean> {
+): Promise<{ block: bigint; roles: GardenRole[] } | undefined> {
   const client = getPublicClient(getWagmiConfig(), { chainId });
-  if (!client) return false;
-  const head = await client.getBlockNumber({ cacheTime: 0 });
-  if (head < departedAt) return false;
-  const roles = await Promise.allSettled(
-    Object.values(GARDEN_ROLE_FUNCTIONS).map((functionName) =>
+  if (!client) return;
+  const block = await client.getBlockNumber({ cacheTime: 0 });
+  if (block < departedAt) return;
+  const module = await fetchHatsModuleAddress(garden, chainId);
+  if (!module) return;
+  const roles = Object.keys(GARDEN_ROLE_HAT_FUNCTIONS) as GardenRole[];
+  const results = await Promise.allSettled(
+    roles.map((role) =>
       client.readContract({
-        address: garden,
-        abi: GardenAccountABI,
-        functionName,
-        args: [account],
-        blockNumber: head,
+        address: module,
+        abi: HATS_MODULE_ABI,
+        functionName: GARDEN_ROLE_HAT_FUNCTIONS[role],
+        args: [garden, account],
+        blockNumber: block,
       })
     )
   );
-  return roles.some((role) => role.status === "fulfilled" && role.value === true);
+  if (results.every((result) => result.status === "rejected")) return;
+  return {
+    block,
+    roles: roles.filter((_, index) => {
+      const result = results[index];
+      return result.status === "fulfilled" && result.value === true;
+    }),
+  };
 }

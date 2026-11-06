@@ -2,7 +2,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockGarden } from "../test-utils/mock-factories";
 import {
-  forgetGardenDeparture,
   recordGardenDeparture,
   reconcileGardenDepartures,
   withoutDepartedMembers,
@@ -18,8 +17,6 @@ const garden = createMockGarden({
   communities: [account],
 });
 beforeEach(() => {
-  forgetGardenDeparture(42161, garden.id, account);
-  forgetGardenDeparture(11155111, garden.id, account);
   localStorage.clear();
   vi.restoreAllMocks();
 });
@@ -41,7 +38,8 @@ describe("confirmed garden departures", () => {
   it("keeps the fence through an empty pre-join roster followed by stale joined data", async () => {
     recordGardenDeparture(42161, garden.id, account, 40n);
     expect(
-      (await reconcileGardenDepartures([garden], 42161, async () => false))[0].stewards
+      (await reconcileGardenDepartures([garden], 42161, async () => ({ block: 45n, roles: [] })))[0]
+        .stewards
     ).toEqual([]);
     expect(withoutDepartedMembers([garden], 42161)[0].gardeners).toEqual([other]);
     const settled = {
@@ -52,10 +50,10 @@ describe("confirmed garden departures", () => {
       funders: [],
       communities: [],
     };
-    const chain = vi.fn().mockResolvedValue(false);
+    const chain = vi.fn().mockResolvedValue({ block: 45n, roles: [] });
     await reconcileGardenDepartures([settled], 42161, chain);
     expect((await reconcileGardenDepartures([garden], 42161, chain))[0].gardeners).toEqual([other]);
-    expect(chain).toHaveBeenCalledTimes(2);
+    expect(chain).toHaveBeenCalledTimes(1);
     expect(withoutDepartedMembers([garden], 42161)[0].gardeners).toEqual([other]);
   });
   it("does not alter another chain or another garden", () => {
@@ -64,9 +62,9 @@ describe("confirmed garden departures", () => {
     const elsewhere = { ...garden, id: other };
     expect(withoutDepartedMembers([elsewhere], 42161)[0]).toBe(elsewhere);
   });
-  it("a later join releases the departure fence", () => {
+  it("honors a departure removed from storage by another tab", () => {
     recordGardenDeparture(42161, garden.id, account);
-    forgetGardenDeparture(42161, garden.id, account);
+    localStorage.removeItem("greengoods:garden-departures");
     expect(withoutDepartedMembers([garden], 42161)[0]).toBe(garden);
   });
   it("a restored raw roster is still filtered after storage is read", () => {
@@ -82,13 +80,21 @@ describe("confirmed garden departures", () => {
     });
     recordGardenDeparture(42161, garden.id, account);
     expect(withoutDepartedMembers([garden], 42161)[0].gardeners).toEqual([other]);
+    vi.restoreAllMocks();
+    recordGardenDeparture(42161, garden.id, account, 1n);
   });
-  it("accepts a steward regrant even if the indexer never returned the intervening absence", async () => {
+  it("restores only the verified hat when the indexer still lists all the old roles", async () => {
     recordGardenDeparture(42161, garden.id, account, 40n);
-    const read = vi.fn().mockResolvedValue(true);
-    expect((await reconcileGardenDepartures([garden], 42161, read))[0].gardeners).toContain(
-      account
-    );
+    const read = vi.fn().mockResolvedValue({ block: 45n, roles: ["gardener"] });
+    const [result] = await reconcileGardenDepartures([garden], 42161, read);
+    expect(result).toMatchObject({
+      gardeners: [account, other],
+      stewards: [],
+      evaluators: [],
+      funders: [],
+      communities: [],
+    });
+    expect(withoutDepartedMembers([garden], 42161)[0]).toEqual(result);
     expect(read).toHaveBeenCalledWith(garden.id, account, 40n);
   });
   it("retains the fence when a regrant read is unavailable", async () => {
@@ -105,13 +111,13 @@ describe("confirmed garden departures", () => {
 
 it("does not erase a newer departure while an older regrant read is in flight", async () => {
   recordGardenDeparture(42161, garden.id, account, 40n);
-  let resolve!: (value: boolean) => void;
-  const read = new Promise<boolean>((done) => {
+  let resolve!: (value: { block: bigint; roles: ["gardener"] }) => void;
+  const read = new Promise<{ block: bigint; roles: ["gardener"] }>((done) => {
     resolve = done;
   });
   const pending = reconcileGardenDepartures([garden], 42161, () => read);
   recordGardenDeparture(42161, garden.id, account, 50n);
-  resolve(true);
+  resolve({ block: 60n, roles: ["gardener"] });
   await pending;
   expect(withoutDepartedMembers([garden], 42161)[0].gardeners).toEqual([other]);
 });
@@ -122,7 +128,9 @@ it.each([
 ])("does not lower a block-50 fence for a delayed block-%s receipt", async (older) => {
   recordGardenDeparture(42161, garden.id, account, 50n);
   recordGardenDeparture(42161, garden.id, account, older);
-  const read = vi.fn(async (_garden, _account, minimum) => minimum <= 45n);
+  const read = vi.fn(async (_garden, _account, minimum) =>
+    minimum <= 45n ? { block: 45n, roles: ["gardener"] as ["gardener"] } : undefined
+  );
   expect((await reconcileGardenDepartures([garden], 42161, read))[0].gardeners).toEqual([other]);
   expect(read).toHaveBeenCalledWith(garden.id, account, 50n);
 });

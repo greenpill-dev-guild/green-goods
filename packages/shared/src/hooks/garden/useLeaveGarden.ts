@@ -7,11 +7,11 @@ import { gardensKeys } from "../../config/query-keys/garden";
 import { gardenersKeys, roleKeys } from "../../config/query-keys/identity";
 import { createTracker } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
-import { readMembershipAfterDeparture } from "../../modules/garden/garden-departure-reads";
+import { readRolesAfterDeparture } from "../../modules/garden/garden-departure-reads";
 import {
-  forgetGardenDeparture,
   getGardenDepartureBlock,
   recordGardenDeparture,
+  recordGardenRegrant,
   withoutDepartedMembers,
 } from "../../modules/garden/garden-departures";
 import { readGardenLeaveAvailability } from "../../modules/garden/garden-leave-availability";
@@ -22,9 +22,9 @@ import {
   leaveGarden as submitLeave,
 } from "../../modules/garden/leave-garden-command";
 import { gardenMembership } from "../../modules/garden/membership";
-import { removePendingJoin } from "../../modules/garden/pending-joins";
+import { pendingJoinGardenIds, removePendingJoin } from "../../modules/garden/pending-joins";
 import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
-import { useGardenLeaveStore } from "../../stores/useGardenLeaveStore";
+import { gardenLeaveScope, useGardenLeaveStore } from "../../stores/useGardenLeaveStore";
 import type { Garden } from "../../types/domain";
 import { readGardenMembership } from "../../utils/blockchain/garden-role-reads";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
@@ -38,7 +38,7 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 export function useGardenDepartureOptions() {
   const { primaryAddress } = useUser();
   const { data: gardens } = useGardens(DEFAULT_CHAIN_ID);
-  const submissions = useGardenLeaveStore();
+  const submissions = useGardenLeaveStore((state) => state.pending);
   if (!primaryAddress) return [];
   return (gardens ?? []).flatMap((garden) => {
     const roles: GardenRole[] = [...gardenMembership(garden, primaryAddress).roles];
@@ -49,11 +49,13 @@ export function useGardenDepartureOptions() {
     )
       roles.push("community");
     const hasPendingDeparture = Boolean(
-      submissions.load({
-        gardenAddress: garden.id as Address,
-        userAddress: primaryAddress,
-        chainId: DEFAULT_CHAIN_ID,
-      })
+      submissions[
+        gardenLeaveScope({
+          gardenAddress: garden.id as Address,
+          userAddress: primaryAddress,
+          chainId: DEFAULT_CHAIN_ID,
+        })
+      ]
     );
     return roles.length || hasPendingDeparture ? [{ garden, roles, hasPendingDeparture }] : [];
   });
@@ -112,35 +114,31 @@ export function useLeaveGarden(gardenAddress: Address) {
       const recovering =
         mode === "reconcile" ||
         Boolean(useGardenLeaveStore.getState().load({ gardenAddress, userAddress, chainId }));
+      const hasPendingJoin = () =>
+        pendingJoinGardenIds(userAddress).has(gardenAddress.toLowerCase());
       let departed = true;
       const confirmed = async (_command?: LeaveGardenCommand, blockNumber = 0n) => {
-        let rejoined = false;
+        let regrant: Awaited<ReturnType<typeof readRolesAfterDeparture>>;
         if (recovering) {
+          const fence = getGardenDepartureBlock(chainId, gardenAddress, userAddress) ?? 0n;
+          const minimum = fence > blockNumber ? fence : blockNumber;
           try {
-            const fence = getGardenDepartureBlock(chainId, gardenAddress, userAddress) ?? 0n;
-            const minimum = fence > blockNumber ? fence : blockNumber;
-            rejoined = await readMembershipAfterDeparture(
-              chainId,
-              gardenAddress,
-              userAddress,
-              minimum
-            );
-            // A later confirmed departure cannot be erased by this older recovery read.
+            regrant = await readRolesAfterDeparture(chainId, gardenAddress, userAddress, minimum);
+            // An older receipt cannot undo a departure recorded while its role read was running.
             if ((getGardenDepartureBlock(chainId, gardenAddress, userAddress) ?? 0n) > minimum)
-              rejoined = false;
+              regrant = undefined;
           } catch {
             /* An unknown current role cannot negate the confirmed departure. */
           }
         }
-        departed = !rejoined;
-        if (rejoined) forgetGardenDeparture(chainId, gardenAddress, userAddress);
-        else {
-          recordGardenDeparture(chainId, gardenAddress, userAddress, blockNumber);
-          removePendingJoin(gardenAddress, userAddress);
-          queryClient.setQueryData<Garden[]>(gardensKeys.byChain(chainId), (gardens) =>
-            gardens ? withoutDepartedMembers(gardens, chainId) : gardens
-          );
-        }
+        departed = !regrant?.roles.length;
+        recordGardenDeparture(chainId, gardenAddress, userAddress, blockNumber);
+        if (regrant) recordGardenRegrant(chainId, gardenAddress, userAddress, regrant);
+        // A join seen during receipt recovery could have been submitted after the saved leave.
+        if (!recovering) removePendingJoin(gardenAddress, userAddress);
+        queryClient.setQueryData<Garden[]>(gardensKeys.byChain(chainId), (gardens) =>
+          gardens ? withoutDepartedMembers(gardens, chainId) : gardens
+        );
         // Cancel pre-departure role reads before making their cached answers stale.
         void queryClient
           .cancelQueries({ queryKey: roleKeys.all })
@@ -168,8 +166,11 @@ export function useLeaveGarden(gardenAddress: Address) {
         // A previous uncertain send or another tab may already have left. Reconcile only after
         // the chain confirms that no role remains; never interpret an RPC failure as departure.
         if (
+          !recovering &&
           isNotGardenMemberError(error) &&
-          (await readGardenMembership(gardenAddress, userAddress, chainId)) === false
+          !hasPendingJoin() &&
+          (await readGardenMembership(gardenAddress, userAddress, chainId)) === false &&
+          !hasPendingJoin()
         ) {
           await confirmed();
           trackLeave({ outcome: "already_left", authMode: authMode ?? "unknown" });

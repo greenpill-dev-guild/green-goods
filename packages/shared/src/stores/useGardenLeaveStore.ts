@@ -6,7 +6,7 @@ import type {
 } from "../modules/garden/leave-garden-command";
 import { getTransactionScopeKey, type TxResult } from "../modules/transactions/types";
 
-function scope(command: LeaveGardenCommand) {
+export function gardenLeaveScope(command: LeaveGardenCommand) {
   return `${getTransactionScopeKey(command.userAddress, command.chainId)}:${command.gardenAddress.toLowerCase()}`;
 }
 interface GardenLeaveState extends LeaveGardenPending {
@@ -19,13 +19,13 @@ export const useGardenLeaveStore = create<GardenLeaveState>()(
   persist(
     (set, get) => ({
       pending: {},
-      load: (command) => get().pending[scope(command)],
+      load: (command) => get().pending[gardenLeaveScope(command)],
       record: (command, result) =>
-        set((state) => ({ pending: { ...state.pending, [scope(command)]: result } })),
+        set((state) => ({ pending: { ...state.pending, [gardenLeaveScope(command)]: result } })),
       clear: (command, result) =>
         set((state) => {
-          if (state.pending[scope(command)]?.hash !== result.hash) return state;
-          const { [scope(command)]: _removed, ...pending } = state.pending;
+          if (state.pending[gardenLeaveScope(command)]?.hash !== result.hash) return state;
+          const { [gardenLeaveScope(command)]: _removed, ...pending } = state.pending;
           return { pending };
         }),
     }),

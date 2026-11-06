@@ -1,4 +1,3 @@
-import { forgetGardenDeparture } from "../../modules/garden/garden-departures";
 /**
  * Join Garden Hook
  *
@@ -264,8 +263,6 @@ export function useJoinGarden() {
           })
         );
 
-        forgetGardenDeparture(chainId, gardenAddress, targetAddress);
-
         // Optimistic update: add user to garden's gardeners list, marked as the join's own entry so
         // the pending join stays until a read of the roster lists them (`useMyGardens`).
         queryClient.setQueryData(
@@ -314,7 +311,6 @@ export function useJoinGarden() {
         if (isAlreadyGardenerError(error)) {
           isJoiningRef.current = false;
           trackGardenJoinAlreadyMember({ gardenAddress });
-          forgetGardenDeparture(chainId, gardenAddress, targetAddress);
           addPendingJoin(gardenAddress, targetAddress);
           activateJoinedGarden(gardenAddress, targetAddress);
           setState((prev) => ({

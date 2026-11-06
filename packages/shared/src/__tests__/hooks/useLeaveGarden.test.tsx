@@ -7,7 +7,6 @@ import { gardensKeys } from "../../config/query-keys/garden";
 import { roleKeys } from "../../config/query-keys/identity";
 import { useGardenDepartureOptions, useLeaveGarden } from "../../hooks/garden/useLeaveGarden";
 import {
-  forgetGardenDeparture,
   recordGardenDeparture,
   withoutDepartedMembers,
 } from "../../modules/garden/garden-departures";
@@ -51,7 +50,7 @@ vi.mock("../../modules/transactions/local-fork-safety", () => ({
   assertLocalArbitrumForkWallet: vi.fn(),
 }));
 vi.mock("../../modules/garden/garden-departure-reads", () => ({
-  readMembershipAfterDeparture: fakes.rejoined,
+  readRolesAfterDeparture: fakes.rejoined,
 }));
 vi.mock("../../hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: fakes.gardens }),
@@ -103,7 +102,6 @@ function setup() {
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  forgetGardenDeparture(42161, address, account);
   localStorage.clear();
   useGardenLeaveStore.setState({ pending: {} });
   fakes.sender.mockReturnValue(sender());
@@ -114,7 +112,7 @@ beforeEach(() => {
     smartAccountAddress: null,
     smartAccountClient: null,
   });
-  fakes.rejoined.mockResolvedValue(false);
+  fakes.rejoined.mockResolvedValue({ block: 50n, roles: [] });
   fakes.module.mockResolvedValue(module);
   fakes.simulate.mockResolvedValue({});
   fakes.wallet.mockResolvedValue("0xabc");
@@ -210,6 +208,26 @@ describe("useLeaveGarden", () => {
     });
     expect(client.getQueryData(gardensKeys.byChain(42161))).toMatchObject([
       { gardeners: [], stewards: [] },
+    ]);
+    expect(fakes.wallet).not.toHaveBeenCalled();
+  });
+  it.each([
+    false,
+    true,
+  ])("keeps a pending join when a leave simulation refuses membership (join during read: %s)", async (duringRead) => {
+    fakes.simulate.mockRejectedValue(new Error("NotGardenMember"));
+    if (!duringRead) addPendingJoin(address.toUpperCase(), account);
+    fakes.membership.mockImplementation(async () => {
+      if (duringRead) addPendingJoin(address, account);
+      return false;
+    });
+    const { result, client } = setup();
+    await act(async () => {
+      await expect(result.current.leaveGarden()).rejects.toThrow("NotGardenMember");
+    });
+    expect(hasFreshPendingJoin(duringRead ? address : address.toUpperCase(), account)).toBe(true);
+    expect(client.getQueryData(gardensKeys.byChain(42161))).toMatchObject([
+      { gardeners: [account] },
     ]);
     expect(fakes.wallet).not.toHaveBeenCalled();
   });
@@ -403,7 +421,7 @@ it("preserves restored membership and its new pending join when an older departu
   const command = { gardenAddress: address, userAddress: account, chainId: 42161 };
   useGardenLeaveStore.getState().record(command, { hash: "0xabc", sponsored: false });
   addPendingJoin(address, account);
-  fakes.rejoined.mockResolvedValue(true);
+  fakes.rejoined.mockResolvedValue({ block: 50n, roles: ["gardener"] });
   const { result, client } = setup();
   await act(async () => {
     await expect(result.current.reconcileDeparture()).resolves.toEqual({
@@ -413,7 +431,7 @@ it("preserves restored membership and its new pending join when an older departu
   });
   expect(fakes.rejoined).toHaveBeenCalledWith(42161, address, account, 40n);
   expect(client.getQueryData(gardensKeys.byChain(42161))).toMatchObject([
-    { gardeners: [account], stewards: [account] },
+    { gardeners: [account], stewards: [] },
   ]);
   expect(hasFreshPendingJoin(address, account)).toBe(true);
   expect(fakes.wallet).not.toHaveBeenCalled();
@@ -423,7 +441,9 @@ it("does not let an old recovered receipt bypass a newer departure block", async
   const command = { gardenAddress: address, userAddress: account, chainId: 42161 };
   useGardenLeaveStore.getState().record(command, { hash: "0xabc", sponsored: false });
   recordGardenDeparture(42161, address, account, 50n);
-  fakes.rejoined.mockImplementation(async (_chain, _garden, _account, minimum) => minimum <= 45n);
+  fakes.rejoined.mockImplementation(async (_chain, _garden, _account, minimum) =>
+    minimum <= 45n ? { block: 45n, roles: ["gardener"] } : undefined
+  );
   const { result } = setup();
   await act(async () => {
     await result.current.reconcileDeparture();

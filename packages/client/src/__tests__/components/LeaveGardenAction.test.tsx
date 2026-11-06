@@ -276,6 +276,22 @@ describe("pending departure recovery", () => {
     expect(fakes.leave).not.toHaveBeenCalled();
     expect(fakes.checkAvailability).not.toHaveBeenCalled();
   });
+  it("offers a fresh leave without closing the sheet after a saved receipt reverts", async () => {
+    fakes.pending = true;
+    fakes.recover.mockImplementationOnce(async () => {
+      fakes.pending = false;
+      throw new Error("transaction reverted");
+    });
+    setup();
+    open();
+    fireEvent.click(screen.getByRole("button", { name: en["app.garden.leave.recover"] }));
+    const leave = await screen.findByRole("button", { name: en["app.garden.leave.action"] });
+    expect(screen.getByText(en["app.garden.leave.recoveryFailed"])).toBeInTheDocument();
+    expect(fakes.checkAvailability).toHaveBeenCalledOnce();
+    fireEvent.click(leave);
+    await waitFor(() => expect(fakes.leave).toHaveBeenCalledOnce());
+    expect(fakes.recover).toHaveBeenCalledOnce();
+  });
   it("does not present an old receipt as a new departure after the account has rejoined as owner", async () => {
     fakes.pending = true;
     fakes.owner = true;

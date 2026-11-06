@@ -39,7 +39,7 @@ export function LeaveGardenAction({ garden, open, onClose, onConfirmed }: LeaveG
     hasPendingDeparture,
     reconcileDeparture,
   } = useLeaveGarden(address);
-  const [recovering, setRecovering] = useState(false);
+  const recovering = hasPendingDeparture;
   const sending = useRef(false);
   const opened = useRef(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -51,17 +51,12 @@ export function LeaveGardenAction({ garden, open, onClose, onConfirmed }: LeaveG
     if (opened.current) return;
     opened.current = true;
     setFailure(null);
-    setRecovering(hasPendingDeparture);
     void refetchOwner();
     void refetch();
-    if (!hasPendingDeparture) void checkAvailability();
-  }, [open, hasPendingDeparture, refetchOwner, refetch, checkAvailability]);
+  }, [open, refetchOwner, refetch]);
   useEffect(() => {
-    if (open && hasPendingDeparture && !isLeaving && !recovering) {
-      setRecovering(true);
-      setFailure(null);
-    }
-  }, [open, hasPendingDeparture, isLeaving, recovering]);
+    if (open && !recovering) void checkAvailability();
+  }, [open, recovering, checkAvailability]);
   if (!primaryAddress) return null;
   const isOwner = owner.hasRole;
   const checking = owner.isLoading || owner.error || membershipFailed || isMember === null;

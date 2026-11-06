@@ -2,6 +2,7 @@ import {
   recordGardenDeparture,
   withoutDepartedMembers,
 } from "../../modules/garden/garden-departures";
+import { pendingJoinGardenIds } from "../../modules/garden/pending-joins";
 /**
  * useJoinGarden Hook Tests
  *
@@ -226,7 +227,7 @@ describe("hooks/garden/useJoinGarden", () => {
       });
     });
 
-    it("makes a garden visible again when its former member rejoins", async () => {
+    it("records an optimistic rejoin without trusting the pre-departure roster", async () => {
       const account = MOCK_ADDRESSES.smartAccount;
       const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, gardeners: [account] });
       recordGardenDeparture(11155111, garden.id, account, 40n);
@@ -235,7 +236,8 @@ describe("hooks/garden/useJoinGarden", () => {
       await act(async () => {
         await result.current.joinGarden(garden.id);
       });
-      expect(withoutDepartedMembers([garden], 11155111)[0].gardeners).toContain(account);
+      expect(withoutDepartedMembers([garden], 11155111)[0].gardeners).toEqual([]);
+      expect(pendingJoinGardenIds(account).has(garden.id.toLowerCase())).toBe(true);
     });
 
     it("joins garden successfully with smart account", async () => {
