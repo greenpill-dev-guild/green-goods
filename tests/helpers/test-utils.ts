@@ -179,10 +179,11 @@ export class ClientTestHelper {
 export async function setupAuthenticatedClient(
   page: Page,
   role: AdminMockRole = "user",
-  backend?: MockClientBackendOptions
+  backend?: MockClientBackendOptions,
+  options: { uploadTerms?: "fresh" | "accepted" } = {}
 ) {
   const helper = new ClientTestHelper(page);
-  if (role !== "disconnected") {
+  if (role !== "disconnected" && options.uploadTerms !== "fresh") {
     await seedAcceptedUploadTerms(page.context(), TEST_URLS.client, [
       role === "operator" ? "steward" : role,
     ]);

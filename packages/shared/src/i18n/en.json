@@ -8635,6 +8635,7 @@
   "app.profile.help.support.terms.title": "Terms of Use",
   "app.profile.help.support.terms.description": "Read the rules for sharing work and media.",
   "app.work.uploadConsent.title": "Before You Share",
+  "app.work.uploadConsent.admin": "Review the public-sharing rules before uploading this file.",
   "app.work.uploadConsent.body": "Review the public-sharing rules before uploading this work.",
   "app.work.uploadConsent.public": "Files go to public IPFS, and submitted work goes to a public blockchain. Steward approval controls the website listing, not whether files are private. Independent copies may remain permanently.",
   "app.work.uploadConsent.terms": "I agree to the Terms of Use and the rules for sharing publicly.",

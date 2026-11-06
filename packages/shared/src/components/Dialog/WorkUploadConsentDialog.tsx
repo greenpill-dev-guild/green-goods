@@ -1,7 +1,9 @@
-import { useId } from "react";
+import { type ReactNode, useCallback, useId } from "react";
 import { useIntl } from "react-intl";
+import { AdminUploadPolicyContext } from "../../hooks/admin-ui/useAdminUploadPolicy";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUploadPolicy, type UploadPolicyPrompt } from "../../hooks/work/useUploadPolicy";
+import { UploadPolicyCancelledError } from "../../modules/work/upload-policy";
 import { useOptionalAuthContext } from "../../providers/Auth";
 import type { Address } from "../../types/domain";
 import { DialogShell } from "./DialogShell";
@@ -11,7 +13,7 @@ export function WorkUploadConsentDialog({
   kind = "work",
 }: {
   prompt: UploadPolicyPrompt | null | undefined;
-  kind?: "work" | "profile-photo";
+  kind?: "work" | "profile-photo" | "admin-file";
 }) {
   const { formatMessage } = useIntl();
   const id = useId();
@@ -28,7 +30,9 @@ export function WorkUploadConsentDialog({
           ? "app.work.uploadConsent.signIn"
           : kind === "profile-photo"
             ? "profile.avatar.uploadConsent.body"
-            : "app.work.uploadConsent.body",
+            : kind === "admin-file"
+              ? "app.work.uploadConsent.admin"
+              : "app.work.uploadConsent.body",
       })}
       sheetSize="full"
       actions={{
@@ -108,4 +112,28 @@ function SignedInUploadPolicy({ owner }: { owner: Address }) {
   const { locale } = useIntl();
   const { prompt } = useUploadPolicy(owner, locale, true);
   return <WorkUploadConsentDialog prompt={prompt} />;
+}
+
+/** Shares the sign-in prompt with public upload actions in the Admin workspace. */
+export function AdminUploadPolicyProvider({ children }: { children: ReactNode }) {
+  const auth = useOptionalAuthContext();
+  const address = usePrimaryAddress();
+  const { locale } = useIntl();
+  const owner = auth?.isReady && auth.isAuthenticated ? address : null;
+  const { request, prompt } = useUploadPolicy(owner, locale, true);
+  const authorize = useCallback(async () => {
+    try {
+      await request();
+      return true;
+    } catch (error) {
+      if (error instanceof UploadPolicyCancelledError) return false;
+      throw error;
+    }
+  }, [request]);
+  return (
+    <AdminUploadPolicyContext.Provider value={authorize}>
+      <WorkUploadConsentDialog prompt={prompt} kind="admin-file" />
+      {children}
+    </AdminUploadPolicyContext.Provider>
+  );
 }

@@ -15,6 +15,7 @@ import type { CreateActionFormData } from "../../action/useActionForm";
 import { useActionOperations } from "../../action/useActionOperations";
 import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
 import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
+import { useAdminUploadPolicy } from "../useAdminUploadPolicy";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -41,6 +42,7 @@ export function useCreateActionController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const {
     registerAction,
     isLoading,
@@ -227,6 +229,13 @@ export function useCreateActionController() {
 
     try {
       await assertReady();
+      const authorized = await authorizeUpload();
+      if (!mounted.current || activeScope.current !== submissionScope) return;
+      if (!authorized) {
+        setSend("idle");
+        sendLockRef.current = false;
+        return;
+      }
       const mediaUploads = await Promise.all(
         data.media.map((file: File) => uploadFileToIPFS(file))
       );
@@ -243,7 +252,9 @@ export function useCreateActionController() {
       const instructionsFile = new File([instructionsBlob], "instructions.json", {
         type: "application/json",
       });
+      if (!mounted.current || activeScope.current !== submissionScope) return;
       const instructionsUpload = await uploadFileToIPFS(instructionsFile);
+      if (!mounted.current || activeScope.current !== submissionScope) return;
 
       const telemetryBase = {
         gardenAddress: actionCreateGardenAddress,

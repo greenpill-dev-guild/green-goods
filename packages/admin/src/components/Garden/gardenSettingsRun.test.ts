@@ -55,6 +55,7 @@ function harness(
     values: VALUES,
     sendBatch,
     uploadBanner,
+    authorizeBanner: async () => true,
     writeField,
     onRun: (run) => runs.push(run),
     onLanded,
@@ -63,6 +64,18 @@ function harness(
   };
   return { input, runs, writeField, onLanded };
 }
+
+it("leaves every change in the draft when the banner upload agreement is canceled", async () => {
+  const { input, runs, writeField } = harness(
+    { values: { ...VALUES, bannerFile: FILE }, authorizeBanner: async () => false },
+    ["name", "banner"]
+  );
+  await runGardenSettingsSave(input);
+  expect(input.uploadBanner).not.toHaveBeenCalled();
+  expect(input.sendBatch).not.toHaveBeenCalled();
+  expect(writeField).not.toHaveBeenCalled();
+  expect(runs).toHaveLength(0);
+});
 
 describe("gardenSettingsChanges", () => {
   it("writes what each field writes on its own", () => {

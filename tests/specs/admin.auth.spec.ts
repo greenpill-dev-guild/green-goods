@@ -29,6 +29,20 @@ test.describe("Admin Authentication", () => {
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
+  test("introduces the upload terms once and lets a new Admin member skip", async ({ page }) => {
+    test.setTimeout(150_000);
+    const helper = new AdminTestHelper(page);
+    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
+    const terms = page.getByRole("dialog", { name: "Before You Share" });
+    await expect(terms).toBeVisible({ timeout: 60000 });
+    await expect(terms.getByRole("button", { name: "Agree and Continue" })).toBeDisabled();
+    await terms.getByRole("button", { name: "Skip for Now" }).click();
+    await expect(page.getByRole("main")).toBeVisible({ timeout: 30000 });
+    await page.reload();
+    await expect(page.getByRole("main")).toBeVisible({ timeout: 60000 });
+    await expect(terms).toHaveCount(0);
+  });
+
   test.describe("Dev mock-auth flow", () => {
     test.beforeEach(async ({ context }) => {
       await seedAcceptedUploadTerms(context, ADMIN_URL, ["steward", "deployer"]);

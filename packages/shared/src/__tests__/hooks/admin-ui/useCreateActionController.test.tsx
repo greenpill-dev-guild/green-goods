@@ -29,6 +29,10 @@ const mockSetFormState = vi.fn();
 const mockClearViewState = vi.fn();
 const mockRestoreViewState = vi.fn(() => null);
 
+vi.mock("../../../hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {

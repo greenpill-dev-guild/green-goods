@@ -1,3 +1,4 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
@@ -147,7 +148,7 @@ export const GardenSettingsEditor = forwardRef<
   ref
 ) {
   const { formatMessage } = useIntl();
-
+  const authorizeUpload = useAdminUploadPolicy();
   const updateName = useUpdateGardenName();
   const updateDescription = useUpdateGardenDescription();
   const updateLocation = useUpdateGardenLocation();
@@ -344,7 +345,6 @@ export const GardenSettingsEditor = forwardRef<
   };
 
   const handleSave = async () => {
-    // A read still running could yet hold one of these fields.
     if (dirtyFields.length === 0 || hasValidationError || isSaving || isSettlingHold) return;
     setIsSaving(true);
     await runGardenSettingsSave({
@@ -352,6 +352,7 @@ export const GardenSettingsEditor = forwardRef<
       values: draft,
       sendBatch: settingsBatch.available ? settingsBatch.send : undefined,
       uploadBanner: bannerUploader.upload,
+      authorizeBanner: authorizeUpload,
       writeField,
       onRun: setRun,
       onLanded: landField,

@@ -53,6 +53,10 @@ const attestationsState = vi.hoisted(() => ({
   hasError: false,
   attestations: [] as unknown[],
 }));
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
+
 vi.mock("@green-goods/shared/hooks/hypercerts/useAttestations", () => ({
   useAttestations: () => ({
     attestations: attestationsState.attestations,

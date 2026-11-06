@@ -8635,6 +8635,7 @@
   "app.profile.help.support.terms.title": "Condiciones de Uso",
   "app.profile.help.support.terms.description": "Lee las reglas para compartir trabajo y archivos.",
   "app.work.uploadConsent.title": "Antes de Compartir",
+  "app.work.uploadConsent.admin": "Revisa las reglas para compartir en público antes de subir este archivo.",
   "app.work.uploadConsent.body": "Revisa las reglas de publicación antes de subir este trabajo.",
   "app.work.uploadConsent.public": "Los archivos van a IPFS público y el trabajo enviado a una cadena de bloques pública. La aprobación de los responsables controla la publicación en el sitio web, no la privacidad de los archivos. Las copias independientes pueden permanecer para siempre.",
   "app.work.uploadConsent.terms": "Acepto las Condiciones de Uso y las reglas para compartir contenido público.",
