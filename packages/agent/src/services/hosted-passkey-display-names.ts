@@ -12,6 +12,8 @@ import {
 export type LookupHostedPasskeys = (userName: string) => Promise<unknown[]>;
 type AddressIdentity = Pick<PasskeyAddressRecord, "accountProfile" | "credentialId" | "publicKey">;
 const MAX_CONCURRENT_NAMES = 8;
+// Username observations come from a public endpoint. Bound the in-memory backlog.
+const MAX_QUEUED_NAMES = 256;
 const MAX_CREDENTIALS = 32;
 
 /** Learn display labels from the provider's name lookup without writing sign-in records. */
@@ -30,9 +32,10 @@ export function createHostedPasskeyDisplayNames({
   lookup: LookupHostedPasskeys;
 }) {
   const pending = new Map<string, Promise<void>>();
+  const waiting: (() => void)[] = [];
+  let running = 0;
 
   async function remember(userName: string) {
-    if (store.hasHostedDisplayName(chainId, userName)) return;
     const listed = await lookup(userName);
     if (listed.length > MAX_CREDENTIALS) throw new Error("Unexpected hosted passkey count");
     const identities = listed.map(readHostedIdentity);
@@ -42,13 +45,32 @@ export function createHostedPasskeyDisplayNames({
     if (addresses.length) store.rememberHostedDisplayName(chainId, userName, addresses);
   }
 
+  async function rememberWhenReady(userName: string) {
+    if (running < MAX_CONCURRENT_NAMES) {
+      running += 1;
+    } else {
+      await new Promise<void>((resume) => waiting.push(resume));
+    }
+    try {
+      await remember(userName);
+    } finally {
+      // Hand this slot to the oldest waiter before another observation can claim it.
+      const next = waiting.shift();
+      if (next) next();
+      else running -= 1;
+    }
+  }
+
   return {
     async observe(userName: string) {
       if (!displayablePasskeyName(userName)) return;
       const existing = pending.get(userName);
       if (existing) return existing;
-      if (pending.size >= MAX_CONCURRENT_NAMES) return;
-      const task = remember(userName).finally(() => pending.delete(userName));
+      if (store.hasHostedDisplayName(chainId, userName)) return;
+      if (waiting.length >= MAX_QUEUED_NAMES) {
+        throw new Error("Hosted passkey observation queue is full");
+      }
+      const task = rememberWhenReady(userName).finally(() => pending.delete(userName));
       pending.set(userName, task);
       await task;
     },

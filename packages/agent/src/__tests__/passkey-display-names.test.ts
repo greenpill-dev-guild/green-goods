@@ -34,6 +34,79 @@ describe("hosted passkey display names", () => {
     }
   });
 
+  it("drains a queued legacy name after a lookup fails and coalesces duplicate observations", async () => {
+    const db = new Database(":memory:");
+    try {
+      initSchema(db);
+      const names = Array.from({ length: 9 }, (_, index) => `member-${index}`);
+      let releaseLookups!: () => void;
+      const blocked = new Promise<void>((resolve) => {
+        releaseLookups = resolve;
+      });
+      const lookup = vi.fn(async (name: string) => {
+        await blocked;
+        if (name === names[0]) throw new Error("Pimlico unavailable");
+        return name === names[8] ? [{ id: "deadbeef", publicKey: hostedKey }] : [];
+      });
+      const hosted = createHostedPasskeyDisplayNames({
+        chainId: 42161,
+        store: passkeyDirectoryQueries(db),
+        derive: async () => first,
+        lookup,
+      });
+
+      const observations = Promise.allSettled([
+        ...names.map((name) => hosted.observe(name)),
+        hosted.observe(names[8]),
+      ]);
+      const startedBeforeRelease = lookup.mock.calls.map(([name]) => name);
+      releaseLookups();
+      const results = await observations;
+
+      expect(startedBeforeRelease).toEqual(names.slice(0, 8));
+      expect(results.map(({ status }) => status)).toEqual([
+        "rejected",
+        ...Array(9).fill("fulfilled"),
+      ]);
+      expect(lookup.mock.calls.map(([name]) => name)).toEqual(names);
+      expect(hosted.read([first])).toEqual([names[8]]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("rejects new names at the backlog limit while keeping accepted observations", async () => {
+    let releaseLookups!: () => void;
+    const blocked = new Promise<void>((resolve) => {
+      releaseLookups = resolve;
+    });
+    const lookup = vi.fn(async () => {
+      await blocked;
+      return [];
+    });
+    const hosted = createHostedPasskeyDisplayNames({
+      chainId: 42161,
+      store: {
+        hasHostedDisplayName: () => false,
+        rememberHostedDisplayName: vi.fn(),
+        readHostedDisplayNames: () => [],
+      },
+      derive: async () => first,
+      lookup,
+    });
+
+    const accepted = Promise.all(
+      Array.from({ length: 264 }, (_, index) => hosted.observe(`member-${index}`))
+    );
+    const overflow = hosted.observe("overflow");
+    const duplicate = hosted.observe("member-263");
+    releaseLookups();
+
+    await expect(overflow).rejects.toThrow("Hosted passkey observation queue is full");
+    await Promise.all([accepted, duplicate]);
+    expect(lookup).toHaveBeenCalledTimes(264);
+  });
+
   it("keeps the provider's exact legacy ID and only stores the derived address and username", async () => {
     const db = new Database(":memory:");
     try {
