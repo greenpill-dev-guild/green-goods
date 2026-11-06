@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-18",
-    "updated_at": "2026-11-05T05:19:55Z"
+    "updated_at": "2026-11-06T22:40:30.436Z"
   },
   "links": {
     "brief": "brief.md",
@@ -24,7 +24,7 @@
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
+    "lastSyncedAt": "2026-11-06T22:40:30.436Z",
     "lanes": {},
     "stateSyncMode": "preserve_existing",
     "laneSyncMode": "parent_only"
@@ -205,6 +205,22 @@
       "status": "validation_passed",
       "branch": "feature/public-strategy-privacy-and-research-follow-through",
       "note": "Integrated follow-through QA passed all 17 selected automated checks after generated-doc regeneration: Shared locale coverage 17, Client focused 157, Admin 1644, Agent focused unit 10 and SQLite 251, owner/test typechecks, Client/Agent/Docs builds, documentation authority, staged modules, ontology and story quality. Separate curated-garden focused proof passed 10 tests. Rendered proof: Storybook in Brave, EN/ES/PT desktop and mobile, plus mock-auth localhost navigation. Live research acceptance remains open; current routines UI shows no scheduled tasks in the observed account and does not establish retirement. No routine fire, pin, human reply or permission change performed."
+    },
+    {
+      "timestamp": "2026-11-06T23:30:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "Closed as superseded by the research-threads hub (PR #1504): research-synthesis v6 retires the intake loop and keeps the pending-edits document, the research-agenda skill and the Growth radar comment. Parent issue PRD-1293 reads Done in Linear and is preserved unchanged. Open items routed in plan.todo.md § Closeout (2026-11-06); archive follows the merge."
+    },
+    {
+      "timestamp": "2026-11-06T22:40:30.436Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ]
 }

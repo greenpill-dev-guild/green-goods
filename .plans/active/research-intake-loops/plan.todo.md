@@ -2,9 +2,9 @@
 
 **Feature Slug**: `research-intake-loops`
 **Stage**: `active`
-**Status**: `ACTIVE — v5 and v5.1 shipped; two cron runs reviewed; cycle decisions and agenda v6 in draft PR #1485; GROW-92 created; pinned note and controlled live proofs remain open`
+**Status**: `CLOSED — superseded by the research-threads hub in PR #1504; the v5 intake loop retires with research-synthesis v6, the pending-edits document, the research-agenda skill and the Growth radar comment carry on`
 **Created**: `2026-10-18`
-**Last Updated**: `2026-11-05`
+**Last Updated**: `2026-11-06`
 
 ## Decision Log
 
@@ -124,3 +124,23 @@ before step 5.
 
 - Product code of any kind; a midweek intake run; routine-opened PRs; the Research issue template
   change naming the Growth ask; the guild-side spec changes (step 7 names them as follow-ups).
+
+## Closeout (2026-11-06)
+
+Closed as `superseded`. The research-threads hub (`.plans/active/research-threads/`) supersedes
+this design in PR #1504, open at the time of this record; the archive commit follows the merge.
+Every lane here was `n/a` (routine specs, guidance and a skill), so no lane was ever certified.
+What v5 and v5.1 built and what became of it: the share-intake loop (reactions, intake threads,
+receipts, the question back to a sharer) is retired by research-synthesis v6; the pending-edits
+document, the `research-agenda` skill and the Growth radar comment stay in service; agenda v6
+landed through the delegated 4 November review, which v6 makes the standing ritual.
+
+Still open:
+- AC-2, AC-4, AC-5's thread line and AC-10 (intake failure, reclassification and fallback checks) → dropped because v6 removes reactions, intake threads and receipts.
+- AC-7's positive accepted-count footer → research-threads eval AC-9 (the post's shape and footer, checked on the first v6 run).
+- AC-9's radar comment branch and AC-12's failed-write retry → research-threads eval AC-13 (writes checked and retried on the first live runs; the radar issue now exists).
+- The pinned "share with one line of why" note → dropped because the sharer loop is gone; the pin for v6 is the *Research threads* document (research-threads plan step 6).
+- Confirming the guild-level v3 routine disabled → carried in `docs/routines/research-synthesis.md` § Migration from v3.
+- Open question 1, who reads `#research` → research-threads spec default D3.
+- Open question 2, committing the green-goods-os hub → dropped from this hub; it is its owners' call and no longer affects the routine, which reads hubs by name from the checkout.
+- Guild-side follow-ups (the grant scout reading the agenda's settled facts; `docs/teams/research.md` merge markers in `greenpill-dev-guild/.github`) → dropped from this hub; they belong to that repository.
