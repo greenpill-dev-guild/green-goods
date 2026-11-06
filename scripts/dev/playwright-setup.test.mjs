@@ -16,19 +16,21 @@ function runInstall(failures = 0) {
   mkdirSync(bin);
   const cli = join(fixture, "pinned-cli.mjs");
   const log = join(fixture, "calls.jsonl");
+  const mirrors = join(fixture, "apt-mirrors.txt");
+  writeFileSync(mirrors, "http://azure.archive.ubuntu.com/ubuntu/\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n");
   writeFileSync(cli, `
 import {appendFileSync,existsSync,readFileSync,writeFileSync} from 'node:fs';
 const command=process.argv[2];
 const state=process.env.TEST_ATTEMPT_FILE;
 const attempt=command==='install-deps'?(existsSync(state)?Number(readFileSync(state,'utf8')):0)+1:1;
 if(command==='install-deps')writeFileSync(state,String(attempt));
-appendFileSync(process.env.TEST_CALL_LOG,JSON.stringify({command,attempt,privileged:process.env.TEST_PRIVILEGED==='1',timeoutOwner:process.env.TEST_TIMEOUT_OWNER,argv:process.argv.slice(2)})+'\\n');
+appendFileSync(process.env.TEST_CALL_LOG,JSON.stringify({command,attempt,privileged:process.env.TEST_PRIVILEGED==='1',timeoutOwner:process.env.TEST_TIMEOUT_OWNER,argv:process.argv.slice(2),mirrors:readFileSync(process.env.TEST_MIRRORS,'utf8')})+'\\n');
 if(command==='install-deps'&&process.env.TEST_TIMEOUT_OWNER!=='root')process.exit(77);
 process.exit(command==='install-deps'&&attempt<=Number(process.env.TEST_DEP_FAILURES)?124:0);
 `);
   const scripts = {
     node: '#!/bin/sh\nif [ "$1" = "-p" ]; then printf "%s\\n" "$TEST_PINNED_CLI"; else exec "$TEST_REAL_NODE" "$@"; fi\n',
-    sudo: '#!/bin/sh\nexport TEST_PRIVILEGED=1\nexec "$@"\n',
+    sudo: '#!/bin/sh\nexport TEST_PRIVILEGED=1\nif [ "$1" = sed ] && [ "$2" = -i ]; then\n  sed "$3" "$4" "$5" > "$5.tmp" && mv "$5.tmp" "$5"\nelse\n  exec "$@"\nfi\n',
     timeout: '#!/bin/sh\nprintf "%s\\n" "${TEST_PRIVILEGED:-0}:$1:$2" >> "$TEST_BUDGET_LOG"\nif [ "${TEST_PRIVILEGED:-0}" = 1 ]; then export TEST_TIMEOUT_OWNER=root; else export TEST_TIMEOUT_OWNER=user; fi\nshift 2\nexec "$@"\n',
     bunx: '#!/bin/sh\nshift\nexec "$TEST_REAL_NODE" "$TEST_PINNED_CLI" "$@"\n',
   };
@@ -37,13 +39,14 @@ process.exit(command==='install-deps'&&attempt<=Number(process.env.TEST_DEP_FAIL
     chmodSync(join(bin, name), 0o755);
   }
   try {
-    const result = spawnSync("bash", ["-e", "-c", install.run], {
+    const result = spawnSync("bash", ["-e", "-c", install.run.replace("/etc/apt/apt-mirrors.txt", '"$TEST_MIRRORS"')], {
       cwd: fixture,
       encoding: "utf8",
       env: {
         ...process.env, ...Object.fromEntries(Object.entries(install.env).map(([k,v]) => [k,String(v)])),
         PATH: `${bin}:${process.env.PATH}`, RETRY_BACKOFF: "0",
         TEST_PINNED_CLI: cli, TEST_REAL_NODE: process.execPath,
+        TEST_MIRRORS: mirrors,
         TEST_ATTEMPT_FILE: join(fixture, "attempt"), TEST_CALL_LOG: log,
         TEST_BUDGET_LOG: join(fixture, "budgets"), TEST_DEP_FAILURES: String(failures),
       },
@@ -61,13 +64,16 @@ test("system dependency timeout owns privilege; browser download stays unprivile
   ]);
   assert.deepEqual(result.budgets, ["1:--kill-after=30s:150s", "0:--kill-after=30s:150s"]);
   assert.deepEqual(result.calls.map(c => c.argv), [["install-deps", "chromium"], ["install", "chromium"]]);
+  assert.equal(result.calls[1].mirrors, result.calls[0].mirrors);
 });
 
-test("a timed-out dependency attempt retries within the same privilege boundary", () => {
+test("a timed-out dependency attempt switches mirrors within the same privilege boundary", () => {
   const result = runInstall(1);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.calls.map(c => c.command), ["install-deps", "install-deps", "install"]);
   assert.ok(result.calls.slice(0, 2).every(c => c.privileged && c.timeoutOwner === "root"));
+  assert.equal(result.calls[1].mirrors, "https://archive.ubuntu.com/ubuntu/\tpriority:1\nhttp://security.ubuntu.com/ubuntu/\tpriority:2\n");
+  assert.match(result.calls[0].mirrors, /^http:\/\/azure\.archive\.ubuntu\.com\//);
   assert.match(result.stdout, /attempt 1 failed or timed out/);
 });
 

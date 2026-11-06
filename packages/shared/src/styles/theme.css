@@ -2359,6 +2359,27 @@
     padding-inline-start: 0.75rem;
   }
 
+  /* Overlay the icon mark while letting it contribute to the lead's width. */
+  .gg-item-row-lead:has(> .gg-item-row-mark) {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+  }
+
+  .gg-item-row-lead:has(> .gg-item-row-mark) > .gg-item-row-tile,
+  .gg-item-row-lead > .gg-item-row-mark {
+    grid-area: 1 / 1;
+  }
+
+  .gg-item-row-lead > .gg-item-row-mark {
+    position: relative;
+    inset: auto;
+    align-self: start;
+    justify-self: end;
+    margin-block-start: 0.3125rem;
+    margin-inline-end: 0.3125rem;
+  }
+
   .gg-item-row-tile {
     position: relative;
     display: flex;

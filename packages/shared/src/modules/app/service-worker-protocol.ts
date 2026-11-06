@@ -27,6 +27,8 @@ export const SW_MESSAGE = {
   MEDIA_SWEEP: "MEDIA_SWEEP",
   REGISTER_SYNC: "REGISTER_SYNC",
   SKIP_WAITING: "SKIP_WAITING",
+  /** Startup has no work guard. The worker must first check for other app windows. */
+  ACTIVATE_BOOT_UPDATE: "ACTIVATE_BOOT_UPDATE",
 } as const;
 
 export type ServiceWorkerMessageType = (typeof SW_MESSAGE)[keyof typeof SW_MESSAGE];

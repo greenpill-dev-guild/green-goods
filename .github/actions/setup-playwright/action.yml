@@ -37,9 +37,18 @@ runs:
         RETRY_BACKOFF: 30
         MAX_ATTEMPTS: 2
       run: |
+        use_ubuntu_archive() {
+          local mirrors=/etc/apt/apt-mirrors.txt
+          if [ -f "$mirrors" ]; then
+            # The Azure mirror can keep transferring data below the throughput
+            # needed to finish within the attempt budget. Retry on Ubuntu's archive.
+            sudo sed -i -E 's#^https?://azure\.archive\.ubuntu\.com/ubuntu/?([[:space:]]|$)#https://archive.ubuntu.com/ubuntu/\1#' "$mirrors"
+            echo 'Retrying system dependencies via the Ubuntu archive'
+          fi
+        }
         retry() {
-          label="$1"
-          shift
+          local label="$1" on_retry="$2" attempt
+          shift 2
           for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
             if "$@"; then
               return 0
@@ -47,6 +56,7 @@ runs:
             # Only back off when another attempt actually follows.
             if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
               echo "::warning::${label} attempt ${attempt} failed or timed out after ${ATTEMPT_TIMEOUT}; retrying"
+              "$on_retry"
               sleep "$RETRY_BACKOFF"
             fi
           done
@@ -58,5 +68,5 @@ runs:
         # The timeout must own the same privilege as apt's children. With sudo
         # inside an unprivileged timeout, timed-out root children can retain
         # the dpkg lock. This targets only this attempt's process group.
-        retry "playwright install-deps" sudo timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$PLAYWRIGHT_NODE_BINARY" "$PLAYWRIGHT_CLI" install-deps chromium
-        retry "playwright install chromium" timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" bunx playwright install chromium
+        retry "playwright install-deps" use_ubuntu_archive sudo timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$PLAYWRIGHT_NODE_BINARY" "$PLAYWRIGHT_CLI" install-deps chromium
+        retry "playwright install chromium" : timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" bunx playwright install chromium

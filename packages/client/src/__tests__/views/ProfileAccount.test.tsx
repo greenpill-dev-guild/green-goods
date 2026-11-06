@@ -71,7 +71,7 @@ describe("ProfileAccount", () => {
 
     expect(
       screen.getByText(
-        "To sign in on another device, choose “Already have an account?” and enter alice."
+        "To sign in on another device, choose “Continue with Passkey” and enter alice."
       )
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Username" })).not.toBeInTheDocument();

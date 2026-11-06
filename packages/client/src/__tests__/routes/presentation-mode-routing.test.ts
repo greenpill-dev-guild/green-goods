@@ -304,6 +304,27 @@ describe("presentation-mode route guards", () => {
     expectRedirect(result, "/");
   });
 
+  it.each([
+    "/home",
+    "/home/explore",
+    "/home/profile",
+    "/home/unknown/nested",
+    "/login",
+    "/garden",
+    "/profile",
+  ])("takes a direct browser visit to %s back to the homepage", async (path) => {
+    setWebsiteMode();
+    const route = matchRoutes(publicAppRoutes, path)?.at(-1)?.route;
+    const loader = route?.loader;
+    expect(loader).toBeTypeOf("function");
+    expectRedirect(
+      await (loader as (args: LoaderFunctionArgs) => unknown)(
+        loaderArgs(`https://www.greengoods.app${path}`)
+      ),
+      "/"
+    );
+  });
+
   it("redirects /home with website override back to the public root", () => {
     setLocalDevicePreviewMode();
 

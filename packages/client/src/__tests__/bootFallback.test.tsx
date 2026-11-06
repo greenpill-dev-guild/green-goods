@@ -113,7 +113,10 @@ function detectPresentation(options: DetectOptions): string | undefined {
   return detectBootDataset(options).bootPresentation;
 }
 
-type BootWindow = Pick<Window, "addEventListener" | "clearTimeout" | "setTimeout"> & {
+type BootWindow = Pick<
+  Window,
+  "addEventListener" | "clearTimeout" | "setTimeout" | "dispatchEvent" | "crypto"
+> & {
   __GG_CLEAR_BOOT_FALLBACK?: () => void;
   __GG_MARK_BOOT_FAILED?: () => void;
   __GG_MARK_REACT_MOUNTED?: () => void;
@@ -141,6 +144,9 @@ function createBootWindow() {
   const windowLike = {
     addEventListener: window.addEventListener.bind(window),
     clearTimeout: window.clearTimeout.bind(window),
+    dispatchEvent: vi.fn(),
+    crypto: window.crypto,
+    localStorage: createStorage(),
     location,
     setTimeout: window.setTimeout.bind(window),
   } as BootWindow;
@@ -571,8 +577,8 @@ describe("presentation-specific boot fallback", () => {
     expectSlotsReserved();
     expect(pwaActionSlot).toContainElement(pwaReload);
     expect(pwaReload).not.toHaveAttribute("hidden");
-    expect(pwaReload).toHaveTextContent("Update App");
-    expect(pwaMessage).toHaveTextContent("Green Goods needs an update.");
+    expect(pwaReload).toHaveTextContent("Try Again");
+    expect(pwaMessage).toHaveTextContent("Taking longer to load.");
     expect(pwaNote).toHaveAttribute("hidden");
 
     // The scene scrolls instead of clipping on a short screen, and never locks the document.
@@ -709,6 +715,7 @@ describe("presentation-specific boot fallback", () => {
     expect(websiteRecovery).toHaveAttribute("role", "alert");
     expect(websiteRecovery).toHaveTextContent("This page is taking longer than expected.");
     expect(websiteRecovery.querySelector("button")).toHaveTextContent("Reload");
+    expect(websiteRecovery.querySelector("a")).toHaveAttribute("href", "/");
   });
 
   it("does not claim stale app files while a mounted app waits on auth", () => {
@@ -742,12 +749,12 @@ describe("presentation-specific boot fallback", () => {
     expect(fallback).toHaveAttribute("data-state", "cleared");
   });
 
-  it("leaves a waiting worker for the browser to activate on the next cold start", async () => {
-    const { worker } = createWorker();
+  it("applies a waiting worker and restarts only once, even if activation is late", async () => {
+    const { worker, dispatchStateChange } = createWorker();
     const { registration } = createRegistration({ waiting: worker });
     const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
-    const { fallback, pwaMessage, pwaNote, pwaReload } = runController("pwa", {
+    const { fallback, pwaMessage, pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
       window: windowLike,
     });
@@ -755,42 +762,47 @@ describe("presentation-specific boot fallback", () => {
 
     pwaReload.click();
     pwaReload.click();
-    await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
-
-    // One line under the logo; what to do about it is the quiet note under the action.
-    expect(pwaMessage).toHaveTextContent("An update is waiting.");
-    expect(pwaNote).not.toHaveAttribute("hidden");
-    expect(pwaNote).toHaveTextContent("Close every Green Goods window, then open the app again.");
-    expect(pwaReload).toHaveTextContent("Try Again");
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalledTimes(1));
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: "ACTIVATE_BOOT_UPDATE" }, [
+      expect.objectContaining({ postMessage: expect.any(Function) }),
+    ]);
+    expect(fallback).toHaveAttribute("data-state", "applying");
     expect(location.reload).not.toHaveBeenCalled();
-    expect(serviceWorker.getRegistration).toHaveBeenCalledTimes(1);
-    expect(worker.postMessage).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(pwaMessage).toHaveTextContent("The update is taking longer.");
+    worker.state = "activated";
+    dispatchStateChange();
+    dispatchStateChange();
+    expect(location.reload).toHaveBeenCalledTimes(1);
     expect(registration.unregister).not.toHaveBeenCalled();
   });
 
-  it("checks for an update and leaves a newly installed worker waiting for cold start", async () => {
+  it("follows an installing worker before requesting activation", async () => {
     const installing = createWorker("installing");
-    const { registration, dispatchUpdateFound } = createRegistration();
+    const { registration } = createRegistration();
     registration.update.mockImplementation(async () => {
       registration.installing = installing.worker;
-      dispatchUpdateFound();
     });
     const { serviceWorker } = createServiceWorkerContainer(registration);
     const { windowLike } = createBootWindow();
-    const { pwaReload } = runController("pwa", {
+    const { pwaMessage, pwaReload, markReactMounted } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
       window: windowLike,
     });
     vi.advanceTimersByTime(4500);
 
     pwaReload.click();
-    await vi.waitFor(() => expect(registration.update).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(pwaMessage).toHaveTextContent("Downloading an update…"));
+    expect(installing.worker.postMessage).not.toHaveBeenCalled();
 
     registration.waiting = installing.worker;
     installing.worker.state = "installed";
     installing.dispatchStateChange();
 
-    expect(installing.worker.postMessage).not.toHaveBeenCalled();
+    expect(installing.worker.postMessage).toHaveBeenCalledWith({ type: "ACTIVATE_BOOT_UPDATE" }, [
+      expect.objectContaining({ postMessage: expect.any(Function) }),
+    ]);
+    markReactMounted?.();
   });
 
   it("keeps an offline user and their app data safe when no update is waiting", async () => {
@@ -820,57 +832,51 @@ describe("presentation-specific boot fallback", () => {
     await vi.waitFor(() => expect(registration.update).toHaveBeenCalledTimes(1));
   });
 
-  it("offers a retry when the worker registration is missing or the update check fails", async () => {
-    const missing = createServiceWorkerContainer(null);
-    const missingWindow = createBootWindow();
-    const missingView = runController("pwa", {
-      navigator: { language: "en", onLine: true, serviceWorker: missing.serviceWorker },
-      window: missingWindow.windowLike,
-    });
-    vi.advanceTimersByTime(4500);
-
-    missingView.pwaReload.click();
-    await vi.waitFor(() => expect(missingView.fallback).toHaveAttribute("data-state", "stalled"));
-    expect(missingView.pwaReload).toHaveTextContent("Try Again");
-    expect(missingWindow.location.reload).not.toHaveBeenCalled();
-
+  it.each([
+    false,
+    true,
+  ])("retries loading when no update exists (registered=%s)", async (registered) => {
     const { registration } = createRegistration();
-    registration.update.mockRejectedValue(new Error("update failed"));
-    const failed = createServiceWorkerContainer(registration);
-    const failedWindow = createBootWindow();
-    const failedView = runController("pwa", {
-      navigator: { language: "en", onLine: true, serviceWorker: failed.serviceWorker },
-      window: failedWindow.windowLike,
-    });
-    vi.advanceTimersByTime(4500);
-
-    failedView.pwaReload.click();
-    await vi.waitFor(() => expect(failedView.fallback).toHaveAttribute("data-state", "stalled"));
-    expect(failedView.pwaReload).toHaveTextContent("Try Again");
-    expect(registration.unregister).not.toHaveBeenCalled();
-    expect(failedWindow.location.reload).not.toHaveBeenCalled();
-  });
-
-  it("stops after a bounded update attempt instead of silently reloading", async () => {
-    const { registration } = createRegistration();
-    const { serviceWorker } = createServiceWorkerContainer(registration);
+    const { serviceWorker } = createServiceWorkerContainer(registered ? registration : null);
     const { location, windowLike } = createBootWindow();
-    const { fallback, pwaMessage, pwaNote, pwaReload } = runController("pwa", {
+    const { pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
       window: windowLike,
     });
     vi.advanceTimersByTime(4500);
-
     pwaReload.click();
-    await vi.waitFor(() => expect(registration.update).toHaveBeenCalledTimes(1));
-    await vi.advanceTimersByTimeAsync(15_000);
 
-    expect(fallback).toHaveAttribute("data-state", "stalled");
-    expect(pwaMessage).toHaveTextContent("Green Goods couldn’t update.");
-    expect(pwaNote).toHaveTextContent("Close every Green Goods window, then open the app again.");
-    expect(pwaReload).toHaveTextContent("Try Again");
+    await vi.waitFor(() =>
+      expect(location.replace).toHaveBeenCalledWith(expect.stringContaining("/home?gg_reload="))
+    );
     expect(registration.unregister).not.toHaveBeenCalled();
-    expect(location.reload).not.toHaveBeenCalled();
+  });
+
+  it("records startup and update-check failures for later delivery without logging the URL or exception", async () => {
+    const { registration } = createRegistration();
+    registration.update.mockRejectedValue(new Error("private URL and input"));
+    const { serviceWorker } = createServiceWorkerContainer(registration);
+    const { windowLike } = createBootWindow();
+    const { pwaReload } = runController("pwa", {
+      navigator: { language: "en", onLine: true, serviceWorker },
+      window: windowLike,
+    });
+    vi.advanceTimersByTime(4500);
+    pwaReload.click();
+
+    await vi.waitFor(() => {
+      const raw = windowLike.localStorage!.getItem("gg-crash-reports")!;
+      expect(JSON.parse(raw)).toEqual([
+        expect.objectContaining({
+          properties: expect.objectContaining({ error_message: "startup_slow" }),
+        }),
+        expect.objectContaining({
+          properties: expect.objectContaining({ error_message: "update_check_failed" }),
+        }),
+      ]);
+      expect(raw).not.toContain("private URL and input");
+      expect(raw).not.toContain("staging.greengoods.app");
+    });
   });
 
   it("uses transparent recovery artwork and ships every recovery state in three languages", () => {
@@ -894,7 +900,7 @@ describe("presentation-specific boot fallback", () => {
   });
 
   it("removes update listeners while preserving the PWA surface when React mounts", async () => {
-    const { worker } = createWorker();
+    const { worker, dispatchStateChange } = createWorker();
     const { registration } = createRegistration({ waiting: worker });
     const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
@@ -904,11 +910,12 @@ describe("presentation-specific boot fallback", () => {
     });
     vi.advanceTimersByTime(4500);
     pwaReload.click();
-    await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
-    expect(worker.postMessage).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "applying"));
 
     document.getElementById("root")?.append(document.createElement("main"));
     markReactMounted?.();
+    worker.state = "activated";
+    dispatchStateChange();
 
     expect(fallback).not.toHaveAttribute("hidden");
     expect(fallback).toHaveAttribute("data-state", "loading");
