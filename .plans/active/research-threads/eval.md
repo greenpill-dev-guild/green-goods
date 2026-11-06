@@ -1,6 +1,6 @@
 # Research threads and weekly plan Evaluation Plan
 
-**Status**: `DRAFT · written 2026-11-06 with the spec; evidence is recorded from the first two Saturday v6 runs and the first two Monday runs`
+**Status**: `IN EVIDENCE · spec accepted 2026-11-06; evidence is recorded from the first two Saturday v6 runs and the first two Monday runs`
 
 ## Release Gates
 

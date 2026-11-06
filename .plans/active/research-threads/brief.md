@@ -1,13 +1,13 @@
 # Research threads and weekly plan
 
 **Slug**: `research-threads`
-**Stage**: `ideas`
-**Status**: `IDEA · brief, spec, plan and eval written 2026-11-06 from the diagnosis and three decision rounds with Afo; in PR #1504 for his review; the hub moves to active when he accepts the spec`
+**Stage**: `active`
+**Status**: `ACTIVE · brief and spec accepted by Afo on 2026-11-06; step 2 (Saturday spec v6, the routing clause and the research-intake-loops closeout) in PR #1504`
 **Priority**: `p2`
 **Created**: `2026-11-06`
 **Owner**: Afo · readers of the private surface: afo, matt (decision 10)
-**Supersedes**: [research-intake-loops](../../active/research-intake-loops/brief.md) (the v5 intake, drift and growth loops), which closes with `superseded` when this hub's first PR lands
-**Reads**: [`docs/routines/research-synthesis.md`](../../../docs/routines/research-synthesis.md) (v5.1) and [`docs/routines/research-agenda.md`](../../../docs/routines/research-agenda.md) (v6)
+**Supersedes**: [research-intake-loops](../research-intake-loops/brief.md) (the v5 intake, drift and growth loops), which closes with `superseded` when this hub's first PR lands
+**Reads**: [`docs/routines/research-synthesis.md`](../../../docs/routines/research-synthesis.md) (v5.1 → v6 in step 2) and [`docs/routines/research-agenda.md`](../../../docs/routines/research-agenda.md) (v6)
 
 ## Problem
 

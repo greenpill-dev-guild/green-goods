@@ -1,11 +1,11 @@
 # Research threads and weekly plan Plan
 
 **Feature Slug**: `research-threads`
-**Stage**: `ideas`
-**Status**: `DRAFT · brief in PR #1504; spec, plan and eval written 2026-11-06; implementation waits for Afo's acceptance of the spec, then the hub moves to active`
+**Stage**: `active`
+**Status**: `ACTIVE · spec accepted 2026-11-06; step 1 done (hub promoted); step 2 in PR #1504; steps 3 to 7 follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-06`
-**Supersedes**: [research-intake-loops](../../active/research-intake-loops/plan.todo.md), which closes as `superseded` in the PR that lands step 2
+**Supersedes**: [research-intake-loops](../research-intake-loops/plan.todo.md), which closes as `superseded` in the PR that lands step 2
 
 ## Decision Log
 
