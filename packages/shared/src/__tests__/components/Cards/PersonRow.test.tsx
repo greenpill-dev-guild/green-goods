@@ -9,9 +9,9 @@
  */
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const hooks = vi.hoisted(() => ({ protocol: vi.fn(), ens: vi.fn(), avatar: vi.fn() }));
 vi.mock("../../../hooks/ens/useGreenGoodsEnsName", () => ({
@@ -25,18 +25,9 @@ vi.mock("../../../hooks/profile/useProfileAvatar", () => ({
 import { PersonRow } from "../../../components/Cards/PersonRow/PersonRow";
 
 const person = "0x1111111111111111111111111111111111111111" as Address;
-const messages = {
-  "app.roles.owner": "Owner",
-  "app.roles.steward": "Steward",
-  "app.roles.gardener": "Gardener",
-};
 
 const renderRow = (props: Partial<Parameters<typeof PersonRow>[0]> = {}) =>
-  render(
-    <IntlProvider locale="en" messages={messages}>
-      <PersonRow address={person} {...props} />
-    </IntlProvider>
-  );
+  render(<PersonRow address={person} {...props} />, { wrapper: createTestWrapper() });
 
 describe("PersonRow", () => {
   beforeEach(() => {
@@ -65,11 +56,7 @@ describe("PersonRow", () => {
     const { rerender } = renderRow({ fallbackName: "Member 7" });
     expect(screen.getByText("Member 7")).toBeInTheDocument();
 
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} />
-      </IntlProvider>
-    );
+    rerender(<PersonRow address={person} />);
     expect(screen.getByText("0x11...111")).toBeInTheDocument();
   });
 
@@ -90,32 +77,20 @@ describe("PersonRow", () => {
         img.getAttribute("src")
       );
     hooks.avatar.mockReturnValue({ avatarUri: photo, isLoading: false });
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} fallbackAvatar="/images/avatar.png" />
-      </IntlProvider>
-    );
+    rerender(<PersonRow address={person} fallbackAvatar="/images/avatar.png" />);
     expect(sources()).toEqual(["/images/avatar.png", photo]);
     fireEvent.load(container.querySelector(`img[src="${photo}"]`) as HTMLImageElement);
     expect(sources()).toEqual([photo]);
 
     const avatar = () => container.querySelector(".gg-item-row-avatar");
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: false });
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} />
-      </IntlProvider>
-    );
+    rerender(<PersonRow address={person} />);
     expect(container.querySelector("img")).toBeNull();
     expect(avatar()?.querySelector("svg")).not.toBeNull();
 
     // A photo still being looked up keeps the glyph, as in the cockpit, never an empty circle.
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: true });
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} />
-      </IntlProvider>
-    );
+    rerender(<PersonRow address={person} />);
     expect(avatar()?.querySelector("svg")).not.toBeNull();
   });
 });
