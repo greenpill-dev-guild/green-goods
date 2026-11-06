@@ -3,15 +3,27 @@
  * hosted passkey server about a name.
  */
 
+import {
+  createPasskeyKernelAccount,
+  supportsPasskeyAccountProfile,
+} from "@green-goods/shared/modules/auth/passkey-kernel-account";
+import { PASSKEY_RP_ID } from "@green-goods/shared/public-contracts";
+import { createPublicClient, http, type Chain, zeroAddress } from "viem";
 import * as db from "./db";
 import {
   type PasskeyChallengePurpose,
   type PasskeyInsertResult,
   type PendingPasskeyRegistration,
   type StoredPasskey,
+  type PasskeyAddressRecord,
   storedPasskeyPublicKey,
 } from "./db/passkey-directory";
-import type { HostedPasskeyNameCheck, PasskeyDirectoryStore } from "./passkey-directory";
+import {
+  createHostedPasskeyDisplayNames,
+  type LookupHostedPasskeys,
+} from "./hosted-passkey-display-names";
+import type { PasskeyDirectoryStore } from "./passkey-directory";
+import { createPasskeyDisplayNames } from "./passkey-display-names";
 
 /** A sign-up waits on this answer, and the app asks again by itself when it gets none. */
 const HOSTED_LOOKUP_TIMEOUT_MS = 4_000;
@@ -20,13 +32,13 @@ const HOSTED_LOOKUP_TIMEOUT_MS = 4_000;
  * Ask the hosted passkey server whether it holds a name. Accounts created before the directory
  * live only there, and their names must stay taken.
  */
-export function createHostedPasskeyNameCheck(options: {
+export function createHostedPasskeyLookup(options: {
   /** The hosted server's JSON-RPC address, including its API key. */
   rpcUrl: string;
   /** An origin the hosted server recognizes; it refuses requests without one. */
   origin: string;
   fetch?: typeof fetch;
-}): HostedPasskeyNameCheck {
+}): LookupHostedPasskeys {
   const request = options.fetch ?? fetch;
   return async (userName) => {
     const response = await request(options.rpcUrl, {
@@ -49,11 +61,11 @@ export function createHostedPasskeyNameCheck(options: {
     if (!response.ok) {
       throw new Error(`Hosted passkey lookup answered ${response.status}`);
     }
-    const body = (await response.json()) as { result?: unknown } | null;
+    const body = (await response.json().catch(() => null)) as { result?: unknown } | null;
     if (!Array.isArray(body?.result)) {
       throw new Error("Hosted passkey lookup returned no result");
     }
-    return body.result.length > 0;
+    return body.result;
   };
 }
 
@@ -111,5 +123,58 @@ export function createSqlitePasskeyDirectoryStore(): PasskeyDirectoryStore {
     saveChallenge: async (pending, now) => queries().saveChallenge(pending, now),
     takeChallenge: async (challenge, now, purpose) =>
       queries().takeChallenge(challenge, now, purpose),
+  };
+}
+
+export function createSqlitePasskeyDisplayNames(
+  chain: Chain,
+  rpcUrl: string,
+  hostedLookup?: LookupHostedPasskeys
+) {
+  const client = createPublicClient({
+    chain,
+    transport: http(rpcUrl, { batch: true, retryCount: 0, timeout: 5_000 }),
+  });
+  const store = db.getDB().passkeyDirectory();
+  const deriveAddress = async (
+    record: Omit<PasskeyAddressRecord, "rowId" | "userName" | "credentialKey" | "rpId"> &
+      Partial<Pick<PasskeyAddressRecord, "credentialKey" | "rpId">>
+  ) => {
+    if (!supportsPasskeyAccountProfile(record.accountProfile, chain.id)) return null;
+    const account = await createPasskeyKernelAccount({
+      client,
+      chainId: chain.id,
+      credential: {
+        id: record.credentialId,
+        signingId: record.credentialKey,
+        publicKey: record.publicKey,
+      },
+      profile: record.accountProfile,
+      rpId: record.rpId ?? PASSKEY_RP_ID,
+      getFn: async () => {
+        throw new Error("Display name lookup cannot sign");
+      },
+    });
+    if (account.address === zeroAddress) throw new Error("Passkey account address unavailable");
+    return account.address;
+  };
+  const directory = createPasskeyDisplayNames(store.readAddressRecords, deriveAddress);
+  const hosted =
+    hostedLookup &&
+    createHostedPasskeyDisplayNames({
+      chainId: chain.id,
+      store,
+      derive: deriveAddress,
+      lookup: hostedLookup,
+    });
+  return {
+    chainId: chain.id,
+    observeHostedName: hosted?.observe,
+    async lookup(addresses: Parameters<typeof directory>[0]) {
+      const names = await directory(addresses);
+      if (!hosted || names.every((name) => name !== null)) return names;
+      const legacy = hosted.read(addresses);
+      return names.map((name, index) => name ?? legacy[index] ?? null);
+    },
   };
 }

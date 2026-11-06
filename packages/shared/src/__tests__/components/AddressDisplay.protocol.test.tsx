@@ -1,8 +1,9 @@
 /** @vitest-environment happy-dom */
 
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../types/domain";
+import { AuthStateContext, type AuthStateValue } from "../../providers/authContext";
 import { createTestWrapper } from "../test-utils/render-helpers";
 
 const hooks = vi.hoisted(() => ({ protocol: vi.fn(), ens: vi.fn() }));
@@ -20,6 +21,52 @@ describe("AddressDisplay protocol identity", () => {
   beforeEach(() => {
     hooks.protocol.mockReset().mockReturnValue({ data: null });
     hooks.ens.mockReset().mockReturnValue({ data: null });
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("loads stored passkey names for public rows with no ENS and batches the requested addresses", async () => {
+    vi.stubEnv("VITE_PASSKEY_SERVER_ENABLED", "true");
+    vi.stubEnv("VITE_API_BASE_URL", "https://agent.example");
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () =>
+        Response.json({ jsonrpc: "2.0", id: 1, result: ["maya", null] })
+      );
+    try {
+      render(
+        <>
+          <AddressDisplay address={first} interactive={false} />
+          <AddressDisplay address={second} interactive={false} />
+        </>,
+        { wrapper: createTestWrapper() }
+      );
+
+      expect(await screen.findByText("maya")).toBeInTheDocument();
+      expect(screen.getByTitle(second)).toHaveTextContent("0x22...222");
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(request.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+        method: "pks_getDisplayNames",
+        params: [{ addresses: [first, second] }],
+      });
+    } finally {
+      request.mockRestore();
+    }
+  });
+
+  it("keeps ENS as the label without querying the passkey directory", async () => {
+    vi.stubEnv("VITE_PASSKEY_SERVER_ENABLED", "true");
+    const request = vi.spyOn(globalThis, "fetch");
+    try {
+      hooks.ens.mockReturnValue({ data: "maya.eth" });
+      render(<AddressDisplay address={first} interactive={false} />, {
+        wrapper: createTestWrapper(),
+      });
+      await waitFor(() => expect(screen.getByText("maya.eth")).toBeInTheDocument());
+      expect(request).not.toHaveBeenCalled();
+    } finally {
+      request.mockRestore();
+    }
   });
 
   it("prefers the viewed account's registered protocol name over generic ENS", () => {
@@ -53,6 +100,33 @@ describe("AddressDisplay protocol identity", () => {
       wrapper: createTestWrapper(),
     });
     expect(screen.getByTitle(second)).toHaveTextContent("0x22...222");
+  });
+
+  it("uses the signed-in passkey name only for the account it belongs to", () => {
+    const state = {
+      authMode: "passkey",
+      isAuthenticated: true,
+      userName: "maya",
+      smartAccountAddress: first,
+    } as AuthStateValue;
+    const { rerender } = render(
+      <AuthStateContext.Provider value={state}>
+        <AddressDisplay address={first} interactive={false} />
+        <AddressDisplay address={second} interactive={false} />
+      </AuthStateContext.Provider>,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("maya")).toBeInTheDocument();
+    expect(screen.getByTitle(second)).toHaveTextContent("0x22...222");
+
+    hooks.ens.mockReturnValue({ data: "maya.eth" });
+    rerender(
+      <AuthStateContext.Provider value={state}>
+        <AddressDisplay address={first} interactive={false} />
+      </AuthStateContext.Provider>
+    );
+    expect(screen.getByText("maya.eth")).toBeInTheDocument();
+    expect(screen.queryByText("maya")).not.toBeInTheDocument();
   });
 
   it("keeps generic ENS visible when the protocol lookup fails", () => {

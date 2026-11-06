@@ -15,6 +15,7 @@ import {
   normalizePasskeyName,
   PASSKEY_NAME_MAX_LENGTH,
   PASSKEY_NAME_MIN_LENGTH,
+  PASSKEY_DISPLAY_NAMES_BATCH_LIMIT,
   LEGACY_PASSKEY_PROFILE,
   PASSKEY_ACCOUNT_PROFILE_VERSION,
   getDefaultPasskeyRegistrationProfile,
@@ -27,6 +28,7 @@ import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import { cose } from "@simplewebauthn/server/helpers";
+import { isAddress, type Address } from "viem";
 import type {
   PasskeyChallengePurpose,
   PasskeyInsertResult,
@@ -75,6 +77,7 @@ export type HostedPasskeyNameCheck = (userName: string) => Promise<boolean>;
 
 export type PasskeyDirectoryErrorCode =
   | "invalid_name"
+  | "invalid_display_name_request"
   | "name_taken"
   | "origin_not_allowed"
   | "registration_expired"
@@ -84,6 +87,7 @@ export type PasskeyDirectoryErrorCode =
 
 const ERROR_MESSAGES: Record<PasskeyDirectoryErrorCode, string> = {
   invalid_name: `Names need ${PASSKEY_NAME_MIN_LENGTH} to ${PASSKEY_NAME_MAX_LENGTH} characters.`,
+  invalid_display_name_request: "Provide a chain and a list of account addresses.",
   name_taken: "That name is already registered.",
   origin_not_allowed: "Passkeys are not available from this origin.",
   registration_expired: "Passkey verification expired. Start again.",
@@ -126,11 +130,17 @@ export type PasskeyDirectory = {
     userName: unknown;
     accountProfileVersion?: unknown;
   }): Promise<PasskeyDirectoryCredential[]>;
+  getDisplayNames(input: unknown): Promise<(string | null)[]>;
 };
 
 export type PasskeyDirectoryDeps = {
   store: PasskeyDirectoryStore;
   relyingParty: PasskeyRelyingParty;
+  displayNames?: {
+    chainId: number;
+    lookup(addresses: readonly Address[]): Promise<(string | null)[]>;
+    observeHostedName?(userName: string): Promise<void>;
+  };
   /** Omit only where no hosted list exists, as in local development. */
   hostedNameTaken?: HostedPasskeyNameCheck;
   /** Lets `localhost` pages register passkeys under `localhost`. Never set in production. */
@@ -302,7 +312,13 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       const userName = readName(input.userName);
       if (!userName) return [];
       const stored = await deps.store.findByName(userName);
-      if (!stored) return [];
+      if (!stored) {
+        // The caller can fall through to Pimlico immediately. This only fills in a public label.
+        void deps.displayNames?.observeHostedName?.(userName).catch(() => {
+          log.warn("Could not resolve a hosted passkey display name");
+        });
+        return [];
+      }
       if (
         stored.accountProfile !== LEGACY_PASSKEY_PROFILE &&
         input.accountProfileVersion !== PASSKEY_ACCOUNT_PROFILE_VERSION
@@ -319,7 +335,35 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
         },
       ];
     },
+
+    async getDisplayNames(input) {
+      const { chainId, addresses } = readDisplayNameRequest(input);
+      if (deps.displayNames?.chainId !== chainId) return addresses.map(() => null);
+      try {
+        return await deps.displayNames.lookup(addresses);
+      } catch {
+        throw new PasskeyDirectoryError("unavailable");
+      }
+    },
   };
+}
+
+function readDisplayNameRequest(input: unknown): { chainId: number; addresses: Address[] } {
+  const { chainId, addresses } = (input ?? {}) as { chainId?: unknown; addresses?: unknown };
+  if (
+    typeof chainId !== "number" ||
+    !Number.isSafeInteger(chainId) ||
+    chainId < 1 ||
+    !Array.isArray(addresses) ||
+    addresses.length < 1 ||
+    addresses.length > PASSKEY_DISPLAY_NAMES_BATCH_LIMIT ||
+    !addresses.every(
+      (address) => typeof address === "string" && isAddress(address, { strict: false })
+    )
+  ) {
+    throw new PasskeyDirectoryError("invalid_display_name_request");
+  }
+  return { chainId, addresses };
 }
 
 function readName(value: unknown): string | undefined {

@@ -1,9 +1,7 @@
 import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
 import type { Work } from "@green-goods/shared/types/domain";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -64,12 +62,9 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
 }) => {
   const { formatMessage } = useIntl();
   const labels = getWorkCardLabels(formatMessage);
-  const { data: gardenerEnsName } = useEnsName(
+  const { display: gardenerName } = useAddressDisplayName(
     variant === "detailed" ? work.gardenerAddress : null,
-    { enabled: variant === "detailed" }
-  );
-  const { data: gardenerGreenGoodsEnsName } = useGreenGoodsEnsName(
-    variant === "detailed" ? work.gardenerAddress : null
+    { list: true, variant: "default" }
   );
   const effectiveStatus = work.status;
   // Work still on this device names where it stands instead of reading "Offline".
@@ -80,9 +75,6 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   // The action names the work when it is known. A generated name gives way to the work's own
   // title, and the shared card drops timestamps and says untitled when nothing real is left.
   const title = toWorkDisplayTitle(actionTitle, "") || work.title;
-  const gardenerName = formatAddress(work.gardenerAddress, {
-    ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
-  });
   // The detail line gives who, then how long ago; the work's page carries any feedback (DL-132).
 
   return (

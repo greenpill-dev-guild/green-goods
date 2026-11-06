@@ -1,4 +1,8 @@
-import { normalizePasskeyName, PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
+import {
+  normalizePasskeyName,
+  PASSKEY_DISPLAY_NAMES_METHOD,
+  PUBLIC_AGENT_ROUTES,
+} from "@green-goods/shared/public-contracts";
 import type { Context, Hono } from "hono";
 import { loggers } from "../../services/logger";
 import {
@@ -32,6 +36,7 @@ const REFUSED = -32000;
 
 const ERROR_CODES: Record<PasskeyDirectoryErrorCode, number> = {
   invalid_name: INVALID_PARAMS,
+  invalid_display_name_request: INVALID_PARAMS,
   name_taken: REFUSED,
   origin_not_allowed: REFUSED,
   registration_expired: REFUSED,
@@ -49,7 +54,10 @@ type RpcId = string | number | null;
 type RpcCall = { id: RpcId; method: string; params: unknown[] };
 
 type RpcMethod = {
-  rateLimit: Extract<PublicRouteClass, "passkey_registration" | "passkey_lookup">;
+  rateLimit: Extract<
+    PublicRouteClass,
+    "passkey_registration" | "passkey_lookup" | "passkey_display_names"
+  >;
   /** The name the call concerns, so one name cannot be hammered from one address. */
   name(params: unknown[]): unknown;
   run(directory: PasskeyDirectory, params: unknown[], origin: string): Promise<unknown>;
@@ -86,6 +94,11 @@ const METHODS: Record<string, RpcMethod> = {
         userName: userNameOf(params[0]),
         accountProfileVersion: profileVersionOf(params[0]),
       }),
+  },
+  [PASSKEY_DISPLAY_NAMES_METHOD]: {
+    rateLimit: "passkey_display_names",
+    name: () => undefined,
+    run: (directory, params) => directory.getDisplayNames(params[0]),
   },
 };
 

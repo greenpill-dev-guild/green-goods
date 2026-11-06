@@ -31,7 +31,8 @@ vi.mock("../../config/pimlico", async (importOriginal) => {
   };
 });
 
-import { createPasskeyOwner, defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
+import { createPasskeyOwner } from "../../modules/auth/passkey-kernel-account";
+import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 
 const credential: P256Credential = {
   id: "canary-test-credential",
@@ -227,7 +228,7 @@ describe("account identity and ceremony encoding", () => {
   ])("keeps $id as identity and requests $lengths byte IDs", async ({ id, signingId, lengths }) => {
     const getFn = vi.fn<NonNullable<Parameters<typeof createPasskeyOwner>[2]>>(async () => null);
     const owner = createPasskeyOwner(
-      { id, signingId, publicKey: "0x1234", raw: undefined as unknown as PublicKeyCredential },
+      { id, signingId, publicKey: "0x1234" },
       "greengoods.app",
       getFn
     );

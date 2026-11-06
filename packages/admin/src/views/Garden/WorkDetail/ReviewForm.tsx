@@ -6,8 +6,7 @@ import { ConfidenceSelector } from "@green-goods/shared/components/Form/Confiden
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
 import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useReviewBatch, useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { logger } from "@green-goods/shared/modules/app/logger";
@@ -26,7 +25,6 @@ import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
-import { formatEnsAddressName } from "@/components/EnsAddressText";
 import {
   ReviewSummary,
   reviewFormState,
@@ -67,12 +65,7 @@ export function ReviewForm({
   const { formatMessage } = useIntl();
   const authorizeUpload = useAdminUploadPolicy();
   const primaryAddress = usePrimaryAddress();
-  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
-  const { data: gardenerProtocolName } = useGreenGoodsEnsName(work.gardenerAddress);
-  const gardenerDisplayName = formatEnsAddressName(
-    work.gardenerAddress,
-    gardenerProtocolName || gardenerEnsName
-  );
+  const { display: gardenerDisplayName } = useAddressDisplayName(work.gardenerAddress);
 
   const workTitle = localizeCanonicalActionTitle(
     toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
