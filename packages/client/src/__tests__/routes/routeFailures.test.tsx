@@ -147,10 +147,7 @@ describe("a failing route in the real route tables", () => {
       await screen.findByRole("heading", { level: 1, name: "This page could not be loaded" })
     ).toBeInTheDocument();
     expect(framesUp()).toEqual(SITE_FRAME);
-    expect(screen.getByRole("link", { name: "Browse Gardens" })).toHaveAttribute(
-      "href",
-      "/gardens"
-    );
+    expect(screen.getByRole("link", { name: "Go to Homepage" })).toHaveAttribute("href", "/");
 
     fireEvent.click(reloadButton());
     expect(window.location.reload).toHaveBeenCalledTimes(1);
@@ -175,7 +172,7 @@ describe("a failing route in the real route tables", () => {
       await screen.findByRole("heading", { level: 1, name: "This screen didn't load" })
     ).toBeInTheDocument();
     expect(framesUp()).toEqual(SITE_FRAME);
-    expect(screen.queryByRole("link", { name: "Browse Gardens" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to Homepage" })).toHaveAttribute("href", "/");
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
   });
 
@@ -186,8 +183,7 @@ describe("a failing route in the real route tables", () => {
       await screen.findByRole("heading", { level: 1, name: "This page could not be loaded" })
     ).toBeInTheDocument();
     expect(framesUp()).toEqual([]);
-    // The card has one act. Navigation it cannot vouch for is not offered.
-    expect(screen.queryByRole("link", { name: "Browse Gardens" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to Homepage" })).toHaveAttribute("href", "/");
     expect(reloadButton()).toBeInTheDocument();
   });
 
