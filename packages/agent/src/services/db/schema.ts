@@ -78,6 +78,18 @@ export function initSchema(db: Database): void {
     `);
   db.run(`CREATE TABLE IF NOT EXISTS passkey_credentials (${PASSKEY_CREDENTIAL_COLUMNS})`);
   db.run(`
+      CREATE TABLE IF NOT EXISTS hosted_passkey_display_names (
+        chainId INTEGER NOT NULL,
+        address TEXT NOT NULL,
+        userName TEXT NOT NULL,
+        PRIMARY KEY (chainId, address, userName)
+      )
+    `);
+  db.run(`
+      CREATE INDEX IF NOT EXISTS idx_hosted_passkey_display_names_username
+      ON hosted_passkey_display_names(chainId, userName)
+    `);
+  db.run(`
       CREATE TABLE IF NOT EXISTS passkey_registration_challenges (
         challenge TEXT PRIMARY KEY,
         userName TEXT NOT NULL,

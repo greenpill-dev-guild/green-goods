@@ -9,8 +9,8 @@
 import { toWebAuthnAccount } from "viem/account-abstraction";
 import { describe, expect, it, vi } from "vitest";
 
+import { createPasskeyOwner } from "../../modules/auth/passkey-kernel-account";
 import { type PasskeyCredential } from "../../modules/auth/session";
-import { createPasskeyOwner } from "../../workflows/auth-passkey-adapters";
 
 // One 20-byte credential (the length Apple passkeys use), in both encodings it is stored in.
 const CREDENTIAL_BYTES = [

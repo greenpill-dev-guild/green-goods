@@ -10,15 +10,13 @@ import type {
   HubActionSummary,
   HubOlderRecords,
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import type { ReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckboxCircleLine, RiErrorWarningLine, RiSearchLine } from "@remixicon/react";
 import { type IntlShape, useIntl } from "react-intl";
-import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { HubReviewBatchBar } from "./HubReviewBatchBar";
 import { HubShowOlder, HubShowOlderButton } from "./HubShowOlder";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
@@ -136,9 +134,9 @@ function HubWorkQueueItem({
   onOpenWorkDetail,
 }: HubWorkQueueItemProps) {
   const { formatMessage } = useIntl();
-  const { data: ensName } = useEnsName(work.gardenerAddress);
-  const { data: protocolName } = useGreenGoodsEnsName(work.gardenerAddress);
-  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, protocolName || ensName);
+  const { display: gardenerDisplayName } = useAddressDisplayName(work.gardenerAddress, {
+    list: true,
+  });
 
   if (asRow) {
     const approved = work.status === "approved";
