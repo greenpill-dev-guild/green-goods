@@ -5,7 +5,7 @@
 **Status**: `ACTIVE · spec accepted 2026-11-06; step 1 done (hub promoted); step 2 in PR #1504; steps 3 to 7 follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-06`
-**Supersedes**: [research-intake-loops](../research-intake-loops/plan.todo.md), which closes as `superseded` in the PR that lands step 2
+**Supersedes**: the `research-intake-loops` hub, closed as `superseded` in the PR that lands step 2 and listed in `.plans/ARCHIVE.md` once archived
 
 ## Decision Log
 

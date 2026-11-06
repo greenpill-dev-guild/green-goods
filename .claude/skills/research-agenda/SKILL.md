@@ -12,7 +12,7 @@ The `research-synthesis` routine proposes agenda edits every Saturday in the Lin
 and never edits `docs/routines/research-agenda.md` itself. Humans tick the edits they accept. This
 skill is the hand that applies them, so the agenda stays human-owned in substance and the drift
 loop closes in minutes instead of a memo read. The design lives in
-`.plans/active/research-intake-loops/spec.md` (R10 to R13).
+`.plans/active/research-threads/spec.md` (R20; the v5 design lived in the superseded research-intake-loops hub).
 
 ## Modes
 

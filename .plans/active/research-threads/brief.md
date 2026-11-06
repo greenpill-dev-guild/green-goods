@@ -6,7 +6,7 @@
 **Priority**: `p2`
 **Created**: `2026-11-06`
 **Owner**: Afo · readers of the private surface: afo, matt (decision 10)
-**Supersedes**: [research-intake-loops](../research-intake-loops/brief.md) (the v5 intake, drift and growth loops), which closes with `superseded` when this hub's first PR lands
+**Supersedes**: the `research-intake-loops` hub (the v5 intake, drift and growth loops), closed as `superseded` with this hub's step 2 and listed in `.plans/ARCHIVE.md` once archived
 **Reads**: [`docs/routines/research-synthesis.md`](../../../docs/routines/research-synthesis.md) (v5.1 → v6 in step 2) and [`docs/routines/research-agenda.md`](../../../docs/routines/research-agenda.md) (v6)
 
 ## Problem

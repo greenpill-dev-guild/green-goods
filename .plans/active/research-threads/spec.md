@@ -2,7 +2,7 @@
 
 **Status**: `ACCEPTED · 2026-11-06 by Afo; the five open questions run as defaults D1 to D5 in Human Judgment Points until he changes them; step 2 in progress`
 **Brief**: [brief.md](brief.md) · **Plan**: [plan.todo.md](plan.todo.md) · **Eval**: [eval.md](eval.md)
-**Owning files**: [`docs/routines/research-synthesis.md`](../../../docs/routines/research-synthesis.md) (v5.1 → v6), a new `docs/routines/research-week.md` (v1), [`docs/routines/README.md`](../../../docs/routines/README.md), [`.claude/skills/research-agenda/SKILL.md`](../../../.claude/skills/research-agenda/SKILL.md) (`review` mode), and the closeout of [research-intake-loops](../research-intake-loops/plan.todo.md).
+**Owning files**: [`docs/routines/research-synthesis.md`](../../../docs/routines/research-synthesis.md) (v5.1 → v6), a new `docs/routines/research-week.md` (v1), [`docs/routines/README.md`](../../../docs/routines/README.md), [`.claude/skills/research-agenda/SKILL.md`](../../../.claude/skills/research-agenda/SKILL.md) (`review` mode), and the closeout of the `research-intake-loops` hub.
 
 ## Summary
 

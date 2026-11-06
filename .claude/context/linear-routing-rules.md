@@ -38,7 +38,11 @@ routine limits; this file owns interactive routing and issue execution.
      member, stays unresolved. Anyone else gets the need without `customer` and a
      `Customer: unresolved` line for a person to attach later. A duplicate from the same
      customer, or from the same unresolved reporter, is a comment on the existing need;
-     any other duplicate gets a need of its own on the same Issue.
+     any other duplicate gets a need of its own on the same Issue. A need that records a
+     partner's research ask (a next step one party owes another, from the notes of a call
+     the team hosted, captured by `research-synthesis`) links the Research issue it serves,
+     or the Product issue that already tracks it, or no issue; it never creates a Product
+     issue, and its writer dedupes against every need on the customer by source and gist.
    - Explicitly scoped community coordination → **Community**. Do not route
      engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
