@@ -2,7 +2,7 @@
 
 **Slug**: `research-threads`
 **Stage**: `ideas`
-**Status**: `IDEA · brief written 2026-11-06 from the diagnosis and three decision rounds with Afo; awaiting his review; the spec follows acceptance`
+**Status**: `IDEA · brief, spec, plan and eval written 2026-11-06 from the diagnosis and three decision rounds with Afo; in PR #1504 for his review; the hub moves to active when he accepts the spec`
 **Priority**: `p2`
 **Created**: `2026-11-06`
 **Owner**: Afo · readers of the private surface: afo, matt (decision 10)
