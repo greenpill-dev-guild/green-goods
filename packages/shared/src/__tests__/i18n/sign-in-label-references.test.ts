@@ -12,9 +12,8 @@ const locales: Array<{ locale: string; messages: LocaleCatalog }> = [
 ];
 
 // Copy read on one device that tells a gardener what to tap on another. The sign-in
-// screen labels its username door by whether this browser already holds a passkey
-// (views/Login/index.tsx), so on the other device it reads haveAccount, never
-// recoverWithUsername. Naming the wrong one sends people to a link that isn't there.
+// screen opens its shared username form through Continue with Passkey on a new
+// device. Naming a retired action sends people to a link that is no longer there.
 const otherDeviceInstructions = [
   "app.identity.passkeyRecovery.device",
   "app.identity.passkeyRecovery.deviceGeneric",
@@ -27,7 +26,8 @@ describe("sign-in label references", () => {
     it.each(
       otherDeviceInstructions
     )("%s names the door a browser without a passkey shows", (id) => {
-      expect(messages[id]).toContain(messages["app.login.button.haveAccount"]);
+      expect(messages[id]).toContain(messages["app.login.button.continuePasskey"]);
+      expect(messages[id]).not.toContain(messages["app.login.button.haveAccount"]);
       expect(messages[id]).not.toContain(messages["app.login.button.recoverWithUsername"]);
     });
   });
