@@ -66,6 +66,8 @@
   policy, scope discipline, model tier.
 - `.claude/skills/research-agenda/SKILL.md` and its README: `review` mode as the delegated
   review (R20).
+- `.claude/context/linear-routing-rules.md`: one clause on the Customer Need line for partner
+  research asks (R8), with link, routing and consistency proof.
 - `.plans/active/research-intake-loops/plan.todo.md` and `status.json`: closeout record
   (superseded), in the same PR as step 2.
 
@@ -96,9 +98,9 @@ Rewrite the owning sections of `docs/routines/research-synthesis.md` per R1 to R
 R19, R21 to R24: the threads document contract and rewrite rules, the widened call-note read and
 the new out-of-scope table, the thread ledger in Phase 2, the Customer and Need writes and the
 status pointer in Phase 4, the deletion of Phases 5a and 5b, the memo's new shape, the caps, and a
-migration section that names the one-time closure of the sixteen ❔ shares. In the same PR, write
-the closeout record of `research-intake-loops` (plan skill steps 1 to 5, resolution
-`superseded`).
+migration section that names the one-time closure of the sixteen ❔ shares. In the same PR, add
+the routing contract's clause for research asks on Customer Needs (R8) and write the closeout
+record of `research-intake-loops` (plan skill steps 1 to 5, resolution `superseded`).
 Verification: `check-guidance-links.mjs`, `plan-hub.mjs validate`, and a read-through of the spec
 against R1 to R9 and R16 to R19 by Afo.
 

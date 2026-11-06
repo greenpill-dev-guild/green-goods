@@ -31,7 +31,7 @@
     "tracks": ["docs", "ops"],
     "work_types": ["research", "maintenance"],
     "surfaces": [],
-    "depends_on_features": ["research-intake-loops"]
+    "depends_on_features": []
   },
   "notes": [
     "Mark unused lanes as n/a before promoting QA.",
@@ -136,11 +136,15 @@
     },
     {
       "date": "2026-11-06",
-      "event": "Brief written from the 2026-11-06 diagnosis of research-synthesis v5.1 and three decision rounds with Afo (eleven decisions); supersedes research-intake-loops once accepted; lanes n/a (docs, routine specs and skill work)."
+      "event": "Brief written from the 2026-11-06 diagnosis of research-synthesis v5.1 and three decision rounds with Afo (eleven decisions); supersedes research-intake-loops when its first implementation PR lands; lanes n/a (docs, routine specs and skill work)."
     },
     {
       "date": "2026-11-06",
       "event": "Spec (R1 to R24, defaults D1 to D5), plan (steps 1 to 7) and eval (AC-1 to AC-13) written on the same day from the accepted brief; stage stays ideas until Afo accepts the spec on PR #1504."
+    },
+    {
+      "date": "2026-11-06",
+      "event": "Review round one on PR #1504: depends_on_features emptied (archiving the superseded hub would break validation), Customers created with partner and speaker ids, Notes blocks opaque to the routine, Need dedupe across routines and no Product-issue creation, routing-contract clause planned for step 2."
     }
   ]
 }

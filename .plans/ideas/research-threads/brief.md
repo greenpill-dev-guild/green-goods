@@ -92,10 +92,14 @@ Reverse any of these in review; each is a one-line change to the spec.
 - A1. Status updates on product project pages shrink to a state line plus a link to the thread,
   one per moved track as today, so the full state lives in one place.
 - A2. The routine may create a Linear Customer for a new organisation that appears in a call note
-  with a next step, as Prospect and tier Ecosystem with external id `green-goods:partner:<slug>`,
-  and never changes an existing Customer's status, tier or owner.
+  with a next step, as Prospect and tier Ecosystem, with the external ids `green-goods:partner:<slug>`
+  and `green-goods:speaker:<slug>` for the organisation and each speaker the call vouches for, so the
+  speaker-resolution path finds it on later runs; it never changes an existing Customer's status,
+  tier or owner.
 - A3. The threads document is routine-owned section by section; each thread carries a human
-  Notes block that the rewrite carries verbatim.
+  Notes block the routine treats as opaque: it reads only the block's first word for a control,
+  never rewrites it, and carries it as it stands. The privacy rule binds what the routine writes;
+  the document tells humans the same exclusions apply to what they write there.
 - A4. Thread lifecycle: open; dormant after four quiet weeks (listed in one line, not a section);
   closed when its question is answered, its ask is done or its Customer is marked Lost. A thread
   opens for a Customer with an open ask or for an agenda Open item with activity.

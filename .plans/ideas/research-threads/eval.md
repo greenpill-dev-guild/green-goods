@@ -22,10 +22,10 @@
 | ID | Behavior Boundary | Check | Owner | Evidence |
 |---|---|---|---|---|
 | AC-1 | R1, R2, R3 | The first v6 run creates `Research threads` on the Research team with the marker line, the six sections in order, at most twelve open threads, each with every labelled field and a `Notes.` block. | human | pending |
-| AC-2 | R4 | A `Notes.` block written by hand survives the next Saturday rewrite verbatim; a human edit outside a `Notes.` block does not; a `close` control closes the thread. | human | pending |
+| AC-2 | R4 | A `Notes.` block written by hand survives the next Saturday rewrite untouched (the routine reads only its first word); a human edit outside a `Notes.` block does not; a `close` control closes the thread. | human | pending |
 | AC-3 | R5 | A thread with no movement for four runs moves to `## Dormant` as one line and reopens on movement; a thread whose Customer reads `Lost` closes. | human | pending |
-| AC-4 | R7 | A Customer is created only for an organisation that appears with a next step and has no match by name or external id, as `Prospect`, with the partner external id; no existing Customer's status, tier or owner changes; at most three per run. | human | pending |
-| AC-5 | R8, R9 | Each open ask has one Customer Need with `source` set to the call note and `issue` set when one exists; a rerun creates no duplicate; a done ask gets the `Done {date} ·` prefix; the thread's `Asks.` bullet links the Need. | human | pending |
+| AC-4 | R7 | A Customer is created only for an organisation that appears with a next step and has no match by name or external id, as `Prospect`, with the partner and speaker external ids; no existing Customer's status, tier or owner changes; at most three per run. | human | pending |
+| AC-5 | R8, R9 | Each open ask has one Customer Need with `source` set to the call note and `issue` set when one exists; a rerun creates no duplicate, nor does a signal another routine already captured from the same call note; a done ask gets the `Done {date} ·` prefix; the thread's `Asks.` bullet links the Need. | human | pending |
 | AC-6 | R12 | The Monday brief replaces `## This week` in place, respects every cap, names a thread per item, stays under 2,000 characters, and mentions Matt only on his lines (the mention renders and notifies him). | human | pending |
 | AC-7 | R13 | The pointer line carries identifiers, counts and the document URL only, with no mention and no name; a run that patched nothing posts nothing. | human | pending |
 | AC-8 | R15 | At most two `DRAFT ·` documents a week in the Research memo folder with the marker first line, linked from the brief, shared with nobody; an unedited draft is listed as stale once, then dropped from the brief. | human | pending |
