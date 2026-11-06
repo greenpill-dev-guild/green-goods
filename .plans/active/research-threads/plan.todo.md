@@ -145,9 +145,11 @@ trigger id.
 
 Read the first Saturday v6 run (the Saturday after step 2 merges) and the first Monday run: the
 threads document, the Customers and Needs written, the status pointers, the public post, the
-brief, the drafts and the pointer line. Record AC-1 to AC-11 and AC-13 in [eval.md](eval.md);
-schedule the second Saturday for AC-2 and AC-4; archive `research-intake-loops` after the human
-merge of step 2 (plan skill step 6).
+brief, the drafts and the pointer line. Record AC-1, AC-5 to AC-10 and AC-13 in [eval.md](eval.md)
+from the first runs; then keep the hub open and record the later observations as they come: the
+second Saturday for AC-2 and AC-4, the second Monday for AC-6's stale-draft rule and AC-11's two
+weeks of delivery, and the fifth Saturday for AC-3's dormancy. Archive `research-intake-loops`
+after the human merge of step 2 (plan skill step 6).
 Verification: every acceptance check carries where it was observed; failures become spec fixes in
 a follow-up PR, not silent reruns.
 

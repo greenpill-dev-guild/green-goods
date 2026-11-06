@@ -97,7 +97,7 @@ Reverse any of these in review; each is a one-line change to the spec.
   speaker-resolution path finds it on later runs; it never changes an existing Customer's status,
   tier or owner.
 - A3. The threads document is routine-owned section by section; each thread carries a human
-  Notes block the routine treats as opaque: it reads only the block's first word for a control,
+  Notes block the routine treats as opaque: it reads only the block's first line for a control,
   never rewrites it, and carries it as it stands. The privacy rule binds what the routine writes;
   the document tells humans the same exclusions apply to what they write there.
 - A4. Thread lifecycle: open; dormant after four quiet weeks (listed in one line, not a section);
