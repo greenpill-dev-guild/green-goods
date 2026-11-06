@@ -59,6 +59,11 @@ only the accepted work. Continue authorized work until its completion criteria a
 return unresolved product decisions or scope expansion to the user. Implementation permission
 does not imply permission to deploy, broadcast, merge, publish, or change branches.
 
+Use merge commits by default for authorized PR merges into `develop` and `main`, including
+promotions from `develop` to `main`. Squash only when documented repository policy calls for it or
+the user explicitly requests it for that PR. Verify that GitHub allows the selected method and pass
+it explicitly to the merge tool. If the selected method is unavailable, ask before merging.
+
 ### Multi-Agent Repo Safety
 
 Concurrent sessions share this checkout. Inspect `git status` before editing and leave changes
