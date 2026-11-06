@@ -34,6 +34,37 @@ describe("hosted passkey display names", () => {
     }
   });
 
+  it("coalesces empty hosted results until they expire, then finds newly available names", async () => {
+    const db = new Database(":memory:");
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    try {
+      initSchema(db);
+      const lookup = vi
+        .fn(async () => [{ id: "deadbeef", publicKey: hostedKey }])
+        .mockResolvedValueOnce([]);
+      const hosted = createHostedPasskeyDisplayNames({
+        chainId: 42161,
+        store: passkeyDirectoryQueries(db),
+        derive: async () => first,
+        lookup,
+      });
+
+      await hosted.observe("maya");
+      clock.mockReturnValue(60_999);
+      await hosted.observe("maya");
+      expect(lookup).toHaveBeenCalledTimes(1);
+      expect(hosted.read([first])).toEqual([null]);
+
+      clock.mockReturnValue(61_000);
+      await hosted.observe("maya");
+      expect(lookup).toHaveBeenCalledTimes(2);
+      expect(hosted.read([first])).toEqual(["maya"]);
+    } finally {
+      clock.mockRestore();
+      db.close();
+    }
+  });
+
   it("drains a queued legacy name after a lookup fails and coalesces duplicate observations", async () => {
     const db = new Database(":memory:");
     try {
@@ -206,6 +237,28 @@ describe("passkey display names", () => {
     rows.push(record(2, "river"));
     await expect(lookup([second])).resolves.toEqual(["river"]);
     expect(derive).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips an invalid credential without blocking later records or changing their labels", async () => {
+    const invalid = {
+      ...record(1, "broken"),
+      accountProfile: "kernel-0.3.3" as const,
+      credentialId: "",
+      credentialKey: "",
+    };
+    const valid = record(2, "maya");
+    const derive = vi.fn(async ({ rowId }: { rowId: number }) => {
+      if (rowId === invalid.rowId) throw new Error("Invalid credential");
+      return first;
+    });
+    const lookup = createPasskeyDisplayNames(
+      (after) => [invalid, valid].filter((row) => row.rowId > after),
+      derive
+    );
+
+    await expect(lookup([first])).resolves.toEqual(["maya"]);
+    await expect(lookup([first])).resolves.toEqual(["maya"]);
+    expect(derive).toHaveBeenCalledExactlyOnceWith(valid);
   });
 
   it("retries a failed derivation instead of caching an empty answer", async () => {

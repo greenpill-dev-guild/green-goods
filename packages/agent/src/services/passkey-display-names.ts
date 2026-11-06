@@ -1,6 +1,10 @@
-import { displayablePasskeyName } from "@green-goods/shared/public-contracts";
+import {
+  displayablePasskeyName,
+  KERNEL_033_PASSKEY_PROFILE,
+} from "@green-goods/shared/public-contracts";
 import type { Address } from "viem";
 import type { PasskeyAddressRecord } from "./db/passkey-directory";
+import { loggers } from "./logger";
 
 const DERIVATION_BATCH_SIZE = 32;
 
@@ -21,16 +25,30 @@ export function createPasskeyDisplayNames(
       const outcomes = await Promise.allSettled(
         records.map(async (record) => {
           const name = displayablePasskeyName(record.userName);
-          return { name, address: name ? await deriveAddress(record) : null };
+          if (!name) return null;
+          // The 0.3.3 recipe requires a canonical browser ID. Preserve the exact legacy ID.
+          const invalidBrowserId =
+            record.accountProfile === KERNEL_033_PASSKEY_PROFILE &&
+            (!record.credentialKey ||
+              Buffer.from(record.credentialKey, "base64url").toString("base64url") !==
+                record.credentialKey);
+          if (!record.credentialId || invalidBrowserId) {
+            loggers.api.warn(
+              { rowId: record.rowId },
+              "Skipping invalid passkey display-name record"
+            );
+            return null;
+          }
+          const address = await deriveAddress(record);
+          return address ? { name, address } : null;
         })
       );
       // Wait for all RPCs to finish before retrying a failed batch.
       const failure = outcomes.find((outcome) => outcome.status === "rejected");
       if (failure) throw failure.reason;
       for (const outcome of outcomes) {
-        if (outcome.status === "rejected") continue;
+        if (outcome.status === "rejected" || !outcome.value) continue;
         const { address, name } = outcome.value;
-        if (!address) continue;
         const key = address.toLowerCase();
         names.set(key, names.has(key) ? null : name);
       }

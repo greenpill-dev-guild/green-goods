@@ -281,7 +281,7 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
 
       const { credential } = verification.registrationInfo;
       const publicKey = uncompressedP256PublicKey(credential.publicKey);
-      if (!publicKey) throw new PasskeyDirectoryError("verification_failed");
+      if (!credential.id || !publicKey) throw new PasskeyDirectoryError("verification_failed");
 
       const result = await deps.store.insert({
         userName,

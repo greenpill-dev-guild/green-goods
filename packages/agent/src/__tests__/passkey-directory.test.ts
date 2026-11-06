@@ -223,6 +223,17 @@ describe("passkey directory", () => {
     }
   });
 
+  it("rejects an attested empty credential ID even when the browser envelope supplies an ID", async () => {
+    const { app, store } = createDirectoryApp();
+    const { verify } = await signUp(app, "maya", {
+      accountProfileVersion: 1,
+      passkey: { emptyAttestedCredentialId: true },
+    });
+
+    expect(verify.error?.message).toBe("Passkey verification failed.");
+    expect(await store.findByName("maya")).toBeUndefined();
+  });
+
   it.each([
     [BETA, "kernel-0.3.3"],
     ["https://beta.admin.greengoods.app", "kernel-0.3.3"],
