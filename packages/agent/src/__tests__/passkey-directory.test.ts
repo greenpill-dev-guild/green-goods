@@ -3,9 +3,12 @@ import {
   PASSKEY_DISPLAY_NAMES_METHOD,
   PUBLIC_AGENT_ROUTES,
 } from "@green-goods/shared/public-contracts";
-import { describe, expect, it } from "vitest";
+import { BaseError } from "viem";
+import { describe, expect, it, vi } from "vitest";
 import { InMemoryPublicRateLimiter, PUBLIC_RATE_LIMIT_POLICIES } from "../api/public-protection";
 import { createServer } from "../api/server";
+import { HostedPasskeyQueueFullError } from "../services/hosted-passkey-display-names";
+import { loggers } from "../services/logger";
 import {
   createPasskeyDirectory,
   type HostedPasskeyNameCheck,
@@ -176,6 +179,47 @@ describe("passkey directory", () => {
       await expect(
         call(app, PASSKEY_DISPLAY_NAMES_METHOD, [{ chainId: 42161, addresses }])
       ).resolves.toMatchObject({ error: { code: -32602 } });
+    }
+  });
+
+  it("logs safe display-name failure categories and throttles queue-full warnings", async () => {
+    const warn = vi.spyOn(loggers.api, "warn").mockImplementation(() => undefined);
+    try {
+      const detail = "https://rpc.example/private-token";
+      const { app, advance } = createDirectoryApp({
+        displayNames: {
+          chainId: 42161,
+          async lookup() {
+            throw new BaseError(detail);
+          },
+          async observeHostedName(userName) {
+            if (userName === "river") throw new Error(detail);
+            throw new HostedPasskeyQueueFullError(detail);
+          },
+        },
+      });
+      const signIn = (userName: string) => call(app, "pks_getCredentials", [{ userName }], WWW);
+      await expect(signIn("maya")).resolves.toMatchObject({ result: [] });
+      await expect(signIn("forest")).resolves.toMatchObject({ result: [] });
+      await expect(signIn("river")).resolves.toMatchObject({ result: [] });
+      advance(60_000);
+      await expect(signIn("maya")).resolves.toMatchObject({ result: [] });
+      await expect(
+        call(app, PASSKEY_DISPLAY_NAMES_METHOD, [
+          { chainId: 42161, addresses: ["0x1111111111111111111111111111111111111111"] },
+        ])
+      ).resolves.toMatchObject({
+        error: { code: -32603, message: "Passkey sign-up is unavailable right now." },
+      });
+
+      expect(warn.mock.calls).toEqual([
+        [{ reason: "queue_full" }, "Could not resolve a hosted passkey display name"],
+        [{ reason: "lookup_failed" }, "Could not resolve a hosted passkey display name"],
+        [{ reason: "queue_full" }, "Could not resolve a hosted passkey display name"],
+        [{ reason: "chain_client_error" }, "Could not look up passkey display names"],
+      ]);
+    } finally {
+      warn.mockRestore();
     }
   });
 

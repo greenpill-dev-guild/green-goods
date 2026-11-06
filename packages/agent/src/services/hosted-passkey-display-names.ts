@@ -16,6 +16,8 @@ const MAX_CONCURRENT_NAMES = 8;
 const MAX_QUEUED_NAMES = 256;
 const MAX_CREDENTIALS = 32;
 
+export class HostedPasskeyQueueFullError extends Error {}
+
 /** Learn display labels from the provider's name lookup without writing sign-in records. */
 export function createHostedPasskeyDisplayNames({
   chainId,
@@ -68,7 +70,7 @@ export function createHostedPasskeyDisplayNames({
       if (existing) return existing;
       if (store.hasHostedDisplayName(chainId, userName)) return;
       if (waiting.length >= MAX_QUEUED_NAMES) {
-        throw new Error("Hosted passkey observation queue is full");
+        throw new HostedPasskeyQueueFullError("Hosted passkey observation queue is full");
       }
       const task = rememberWhenReady(userName).finally(() => pending.delete(userName));
       pending.set(userName, task);

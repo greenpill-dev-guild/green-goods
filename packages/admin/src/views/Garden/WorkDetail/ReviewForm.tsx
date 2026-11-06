@@ -26,6 +26,7 @@ import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import {
+  ReviewDecisionSubject,
   ReviewSummary,
   reviewFormState,
   uploadReviewNotes,
@@ -65,7 +66,8 @@ export function ReviewForm({
   const { formatMessage } = useIntl();
   const authorizeUpload = useAdminUploadPolicy();
   const primaryAddress = usePrimaryAddress();
-  const { display: gardenerDisplayName } = useAddressDisplayName(work.gardenerAddress);
+  const { display, preferredName } = useAddressDisplayName(work.gardenerAddress);
+  const gardenerIdentity = { name: display, address: preferredName ? work.gardenerAddress : null };
 
   const workTitle = localizeCanonicalActionTitle(
     toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
@@ -399,7 +401,7 @@ export function ReviewForm({
                           "{gardener} will see this decision. This counts toward {garden}'s impact record.",
                       },
                       {
-                        gardener: gardenerDisplayName,
+                        gardener: <ReviewDecisionSubject {...gardenerIdentity} />,
                         garden: gardenName,
                       }
                     )}
@@ -455,7 +457,7 @@ export function ReviewForm({
                   onClose={() => setRejectDialogOpen(false)}
                   onConfirm={(reason) => finishReject(reason, false)}
                   title={formatMessage({ id: "app.work.detail.rejectDialog.title" })}
-                  target={`${workTitle} · ${gardenerDisplayName}`}
+                  target={<ReviewDecisionSubject {...gardenerIdentity} title={workTitle} />}
                   description={formatMessage(
                     { id: "app.work.detail.rejectDialog.description" },
                     { garden: gardenName }

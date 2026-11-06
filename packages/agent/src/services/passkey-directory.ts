@@ -28,13 +28,14 @@ import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import { cose } from "@simplewebauthn/server/helpers";
-import { isAddress, type Address } from "viem";
+import { BaseError, isAddress, type Address } from "viem";
 import type {
   PasskeyChallengePurpose,
   PasskeyInsertResult,
   PendingPasskeyRegistration,
   StoredPasskey,
 } from "./db/passkey-directory";
+import { HostedPasskeyQueueFullError } from "./hosted-passkey-display-names";
 import { loggers } from "./logger";
 import {
   readRegistrationChallenge,
@@ -46,6 +47,7 @@ const log = loggers.api;
 
 /** Long enough for a person to read the device prompt, short enough to bound stale sign-ups. */
 const REGISTRATION_TTL_MS = 5 * 60 * 1000;
+const QUEUE_FULL_WARNING_INTERVAL_MS = 60_000;
 /** The smart account's passkey validator checks P-256 signatures, so no other key type is usable. */
 const SUPPORTED_ALGORITHMS = [cose.COSEALG.ES256];
 
@@ -176,6 +178,7 @@ function passkeyDomainForOrigin(
 
 export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirectory {
   const now = deps.now ?? Date.now;
+  let nextQueueFullWarningAt = 0;
 
   const requireDomain = (origin: string): string => {
     const domain = passkeyDomainForOrigin(
@@ -314,8 +317,18 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       const stored = await deps.store.findByName(userName);
       if (!stored) {
         // The caller can fall through to Pimlico immediately. This only fills in a public label.
-        void deps.displayNames?.observeHostedName?.(userName).catch(() => {
-          log.warn("Could not resolve a hosted passkey display name");
+        void deps.displayNames?.observeHostedName?.(userName).catch((error: unknown) => {
+          if (error instanceof HostedPasskeyQueueFullError) {
+            const time = now();
+            if (time < nextQueueFullWarningAt) return;
+            nextQueueFullWarningAt = time + QUEUE_FULL_WARNING_INTERVAL_MS;
+            log.warn({ reason: "queue_full" }, "Could not resolve a hosted passkey display name");
+            return;
+          }
+          log.warn(
+            { reason: displayNameFailureReason(error) },
+            "Could not resolve a hosted passkey display name"
+          );
         });
         return [];
       }
@@ -341,11 +354,22 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       if (deps.displayNames?.chainId !== chainId) return addresses.map(() => null);
       try {
         return await deps.displayNames.lookup(addresses);
-      } catch {
+      } catch (error) {
+        log.warn(
+          { reason: displayNameFailureReason(error) },
+          "Could not look up passkey display names"
+        );
         throw new PasskeyDirectoryError("unavailable");
       }
     },
   };
+}
+
+// Error messages and causes can include RPC URLs or private passkey identifiers.
+function displayNameFailureReason(error: unknown) {
+  if (error instanceof BaseError) return "chain_client_error";
+  if (error instanceof Error && error.name === "SQLiteError") return "storage_error";
+  return "lookup_failed";
 }
 
 function readDisplayNameRequest(input: unknown): { chainId: number; addresses: Address[] } {

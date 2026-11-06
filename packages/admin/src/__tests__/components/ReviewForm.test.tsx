@@ -623,11 +623,16 @@ describe("ReviewForm", () => {
     expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("names the actual submitter with their registered protocol name", () => {
+  it("shows the named submitter’s full account address in both decision surfaces", () => {
     mockProtocolName.mockReturnValue({ data: "river.greengoods.eth" });
     renderReviewForm();
 
-    expect(screen.getByText(/river will see this decision/)).toBeInTheDocument();
+    expect(screen.getByText("river").closest("p")).toHaveTextContent(TEST_WORK.gardenerAddress);
     expect(mockProtocolName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("river")).toBeVisible();
+    expect(within(dialog).getByText(TEST_WORK.gardenerAddress)).toHaveAttribute("dir", "ltr");
   });
 });
