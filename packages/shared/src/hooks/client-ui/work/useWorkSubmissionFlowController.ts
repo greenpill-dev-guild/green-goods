@@ -260,7 +260,7 @@ export function useWorkSubmissionFlowController({
     try {
       await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
-      // The work's checks, then an Open ask's take-up, then admission; a stop leaves no outcome.
+      // Work validation and consent precede the linked take-up and queue admission.
       await form.uploadWork({ beforeAdmission: takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {

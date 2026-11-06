@@ -294,7 +294,7 @@ describe("hooks/work/useWorkMutation", () => {
     expect(policyRequest).not.toHaveBeenCalled();
     expect(submitWorkDirectly).not.toHaveBeenCalled();
   });
-  it("queues and sends nothing while sharing consent waits, then cancels cleanly", async () => {
+  it("claims and sends nothing while sharing consent waits, then cancels cleanly", async () => {
     const { UploadPolicyCancelledError } = await import("../../modules/work/upload-policy");
     let decline!: (error: Error) => void;
     policyRequest.mockReturnValue(
@@ -305,13 +305,15 @@ describe("hooks/work/useWorkMutation", () => {
     const { result } = renderHook(() => useWorkMutation(defaultOptions), {
       wrapper: createWrapper(),
     });
+    const beforeAdmission = vi.fn(async () => true);
     let outcome!: Promise<unknown>;
     act(() => {
       outcome = result.current
-        .mutateAsync({ draft: createMockWorkDraft(), images: [] })
+        .mutateAsync({ draft: createMockWorkDraft(), images: [], beforeAdmission })
         .catch((error) => error);
     });
     await waitFor(() => expect(policyRequest).toHaveBeenCalledOnce());
+    expect(beforeAdmission).not.toHaveBeenCalled();
     expect(jobQueueDB.addJob).not.toHaveBeenCalled();
     expect(submitWorkDirectly).not.toHaveBeenCalled();
     expect(submitWorkToQueue).not.toHaveBeenCalled();
@@ -319,6 +321,7 @@ describe("hooks/work/useWorkMutation", () => {
       decline(new UploadPolicyCancelledError());
       await outcome;
     });
+    expect(beforeAdmission).not.toHaveBeenCalled();
     expect(jobQueueDB.addJob).not.toHaveBeenCalled();
     expect(submitWorkDirectly).not.toHaveBeenCalled();
   });

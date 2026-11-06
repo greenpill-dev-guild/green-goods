@@ -1,5 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
+import { AdminUploadConsentDialog } from "@/components/AdminUploadConsentDialog";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import {
   getMinRequiredWorkImages,
@@ -238,7 +238,7 @@ export function SubmitWorkFlow({
 
   return (
     <>
-      <WorkUploadConsentDialog prompt={mutation.uploadPolicy} />
+      <AdminUploadConsentDialog prompt={mutation.uploadPolicy} />
       <ActionFlowShell
         layout={layout}
         title={title}

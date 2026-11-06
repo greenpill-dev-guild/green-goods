@@ -7,50 +7,57 @@ import { UploadPolicyCancelledError } from "../../modules/work/upload-policy";
 import { useOptionalAuthContext } from "../../providers/Auth";
 import type { Address } from "../../types/domain";
 import { DialogShell } from "./DialogShell";
+import type { SheetActionsProps } from "./SheetActions";
 
-export function WorkUploadConsentDialog({
-  prompt,
-  kind = "work",
-}: {
+type ConsentPromptProps = {
   prompt: UploadPolicyPrompt | null | undefined;
   kind?: "work" | "profile-photo" | "admin-file";
-}) {
+};
+
+type ConsentPresentation = {
+  title: string;
+  description: string;
+  actions: SheetActionsProps;
+  content: ReactNode;
+};
+
+/** Shares the policy copy and agreement controls across each surface's own dialog. */
+export function WorkUploadConsentContent({
+  prompt,
+  kind = "work",
+  render,
+}: ConsentPromptProps & { render: (presentation: ConsentPresentation) => ReactNode }) {
   const { formatMessage } = useIntl();
   const id = useId();
   if (!prompt) return null;
   const atSignIn = prompt.reason === "sign-in";
-  return (
-    <DialogShell
-      open
-      onOpenChange={(open) => !open && prompt.cancel()}
-      preventClose={prompt.saving}
-      title={formatMessage({ id: "app.work.uploadConsent.title" })}
-      description={formatMessage({
-        id: atSignIn
-          ? "app.work.uploadConsent.signIn"
-          : kind === "profile-photo"
-            ? "profile.avatar.uploadConsent.body"
-            : kind === "admin-file"
-              ? "app.work.uploadConsent.admin"
-              : "app.work.uploadConsent.body",
-      })}
-      sheetSize="full"
-      actions={{
-        primary: {
-          label: formatMessage({ id: "app.work.uploadConsent.accept" }),
-          disabled: !prompt.checked,
-          loading: prompt.saving,
-          onClick: () => void prompt.accept(),
-        },
-        secondary: {
-          label: formatMessage({
-            id: atSignIn ? "app.work.uploadConsent.skip" : "app.common.cancel",
-          }),
-          disabled: prompt.saving,
-          onClick: prompt.cancel,
-        },
-      }}
-    >
+  return render({
+    title: formatMessage({ id: "app.work.uploadConsent.title" }),
+    description: formatMessage({
+      id: atSignIn
+        ? "app.work.uploadConsent.signIn"
+        : kind === "profile-photo"
+          ? "profile.avatar.uploadConsent.body"
+          : kind === "admin-file"
+            ? "app.work.uploadConsent.admin"
+            : "app.work.uploadConsent.body",
+    }),
+    actions: {
+      primary: {
+        label: formatMessage({ id: "app.work.uploadConsent.accept" }),
+        disabled: !prompt.checked,
+        loading: prompt.saving,
+        onClick: () => void prompt.accept(),
+      },
+      secondary: {
+        label: formatMessage({
+          id: atSignIn ? "app.work.uploadConsent.skip" : "app.common.cancel",
+        }),
+        disabled: prompt.saving,
+        onClick: prompt.cancel,
+      },
+    },
+    content: (
       <div className="space-y-4 text-sm text-text-strong-950">
         <p>
           {formatMessage({
@@ -96,7 +103,30 @@ export function WorkUploadConsentDialog({
           </p>
         ) : null}
       </div>
-    </DialogShell>
+    ),
+  });
+}
+
+export function WorkUploadConsentDialog({ prompt, kind }: ConsentPromptProps) {
+  if (!prompt) return null;
+  return (
+    <WorkUploadConsentContent
+      prompt={prompt}
+      kind={kind}
+      render={({ title, description, actions, content }) => (
+        <DialogShell
+          open
+          onOpenChange={(open) => !open && prompt.cancel()}
+          preventClose={prompt.saving}
+          title={title}
+          description={description}
+          sheetSize="full"
+          actions={actions}
+        >
+          {content}
+        </DialogShell>
+      )}
+    />
   );
 }
 
@@ -115,7 +145,13 @@ function SignedInUploadPolicy({ owner }: { owner: Address }) {
 }
 
 /** Shares the sign-in prompt with public upload actions in the Admin workspace. */
-export function AdminUploadPolicyProvider({ children }: { children: ReactNode }) {
+export function AdminUploadPolicyProvider({
+  children,
+  renderPrompt,
+}: {
+  children: ReactNode;
+  renderPrompt: (prompt: UploadPolicyPrompt | null) => ReactNode;
+}) {
   const auth = useOptionalAuthContext();
   const address = usePrimaryAddress();
   const { locale } = useIntl();
@@ -132,7 +168,7 @@ export function AdminUploadPolicyProvider({ children }: { children: ReactNode })
   }, [request]);
   return (
     <AdminUploadPolicyContext.Provider value={authorize}>
-      <WorkUploadConsentDialog prompt={prompt} kind="admin-file" />
+      {renderPrompt(prompt)}
       {children}
     </AdminUploadPolicyContext.Provider>
   );

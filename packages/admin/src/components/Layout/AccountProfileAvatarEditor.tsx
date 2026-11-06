@@ -1,4 +1,4 @@
-import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
+import { AdminUploadConsentDialog } from "@/components/AdminUploadConsentDialog";
 import { UploadPolicyCancelledError } from "@green-goods/shared/modules/work/upload-policy";
 import { Button } from "@green-goods/shared/components/Button";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
@@ -124,7 +124,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
 
   return (
     <>
-      <WorkUploadConsentDialog kind="profile-photo" prompt={editor.uploadPolicy} />
+      <AdminUploadConsentDialog kind="profile-photo" prompt={editor.uploadPolicy} />
       <button
         type="button"
         onClick={() => setOpen(true)}

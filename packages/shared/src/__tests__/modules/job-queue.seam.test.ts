@@ -834,12 +834,20 @@ describe("work confirmation recovery", () => {
     await second.queue.processJob("job-1", { transactionSender: {} as never });
     expect((await second.deps.store.getJob("job-1"))?.attempts).toBe(0);
   });
-  it("explicit retry clears the reverted broadcast while retaining uploaded media", async () => {
+  it.each([
+    "meta",
+    "checkpoint",
+  ])("explicit retry clears the revert in %s while retaining uploaded media", async (revertIn) => {
     const store = createInMemoryJobQueueStore([
       queuedJob({
-        payload: { uploadCheckpoint: { ...checkpoint } },
+        payload: {
+          uploadCheckpoint: { ...checkpoint, transactionReverted: revertIn === "checkpoint" },
+        },
         attempts: 5,
-        meta: { workTransactionReverted: true, submittedTxHash: checkpoint.transactionHash },
+        meta: {
+          workTransactionReverted: revertIn === "meta",
+          submittedTxHash: checkpoint.transactionHash,
+        },
       }),
     ]);
     const { queue } = setup({ store });

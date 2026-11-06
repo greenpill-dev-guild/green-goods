@@ -21,7 +21,11 @@ import {
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
-import { hasRecordedSend, isOfflineTxHash } from "../../modules/job-queue/queue-policy";
+import {
+  hasRecordedSend,
+  hasRevertedWorkSend,
+  isOfflineTxHash,
+} from "../../modules/job-queue/queue-policy";
 import {
   createDefaultSubmitWorkPorts,
   submitWork,
@@ -73,7 +77,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const session = useRef({ identity, generation: 0 });
   if (session.current.identity !== identity)
     session.current = { identity, generation: session.current.generation + 1 };
-  type Variables = { draft: WorkDraft; images: File[] };
+  type Variables = { draft: WorkDraft; images: File[]; beforeAdmission?: () => Promise<boolean> };
   const origins = useRef(new WeakMap<Variables, Origin>());
   const ownsSession = (origin: Origin | undefined) =>
     Boolean(
@@ -260,16 +264,16 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         journeyId: flow.ensureWorkSubmissionJourneyId(),
       };
       origins.current.set(variables, origin);
-      if (
-        userAddress &&
-        gardenAddress &&
-        typeof actionUID === "number" &&
-        !hasRecordedSend({ kind: "work", payload: variables.draft })
-      ) {
+      const work = { kind: "work", payload: variables.draft };
+      const hasSubmissionContext = userAddress && gardenAddress && typeof actionUID === "number";
+      if (hasSubmissionContext && (!hasRecordedSend(work) || hasRevertedWorkSend(work))) {
         const receipt = await uploadPolicy.request();
         if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
         assertWorkUploadConsent(receipt, userAddress);
         origin.uploadConsent = receipt;
+        if (variables.beforeAdmission && !(await variables.beforeAdmission()))
+          throw new UploadPolicyCancelledError();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
       }
       const workSubmissionJourneyId = origin.journeyId;
 

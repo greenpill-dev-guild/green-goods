@@ -167,6 +167,27 @@ describe("owner publication", () => {
     expect(row("SELECT state FROM execution_operations")).toEqual({ state: "prepared" });
   });
 
+  it("renews a prepared report before letting the owner reserve a send", async () => {
+    await confirmLinkAndPublish(harness);
+    const previous = await openSigningPage(harness);
+    expect(harness.uploader.uploads).toHaveLength(1);
+    harness.core.db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
+    expect((await reserve(previous.browser, previous.view, previous.envelope)).status).toBe(403);
+
+    await harness.say(ADA, "RETRY");
+    const accepted = await harness.press(ADA, "I agree");
+    const summary = accepted.some((text) => /CONFIRM \d{4}/.test(text))
+      ? accepted
+      : await harness.say(ADA, "RETRY");
+    expect(harness.uploader.uploads).toHaveLength(1);
+    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+
+    const updated = await openSigningPage(harness);
+    expect(updated.envelope.payloadDigest).not.toBe(previous.envelope.payloadDigest);
+    expect(harness.uploader.uploads).toHaveLength(2);
+    expect((await reserve(updated.browser, updated.view, updated.envelope)).status).toBe(200);
+  });
+
   it("returns a rejected signature for explicit reconfirmation without another publication", async () => {
     await confirmLinkAndPublish(harness);
     const { browser, view, envelope } = await openSigningPage(harness);

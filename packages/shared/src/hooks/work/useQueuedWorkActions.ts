@@ -6,7 +6,7 @@ import { jobQueue } from "../../modules/job-queue/default-instance";
 import { deleteDraftOfQueuedWork } from "../../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../../modules/work/upload-preparation";
 import { jobQueueDB } from "../../modules/job-queue/db";
-import { hasRecordedSend } from "../../modules/job-queue/queue-policy";
+import { hasRecordedSend, hasRevertedWorkSend } from "../../modules/job-queue/queue-policy";
 import { acquireAvailableWorkJobs, saveUnderClaim } from "../../modules/job-queue/work-claims";
 import {
   assertWorkUploadConsent,
@@ -52,7 +52,7 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
       const job = await jobQueueDB.getJob(workId);
       if (!owner || job?.kind !== "work" || job.userAddress.toLowerCase() !== owner.toLowerCase())
         throw new UploadPolicyCancelledError();
-      if (!hasRecordedSend(job)) {
+      if (!hasRecordedSend(job) || hasRevertedWorkSend(job)) {
         try {
           assertWorkUploadConsent((job.payload as WorkJobPayload).uploadConsent, owner);
         } catch (error) {
@@ -73,7 +73,7 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
                 stored.userAddress.toLowerCase() !== owner.toLowerCase()
               )
                 throw new UploadPolicyCancelledError();
-              if (hasRecordedSend(stored)) return;
+              if (hasRecordedSend(stored) && !hasRevertedWorkSend(stored)) return;
               assertWorkUploadConsent(receipt, owner);
               (stored.payload as WorkJobPayload).uploadConsent = receipt;
               const { preparation: _preparation, ...meta } = stored.meta ?? {};

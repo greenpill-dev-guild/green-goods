@@ -159,6 +159,30 @@ describe("useQueuedWorkActions", () => {
     expect(job.payload.uploadCheckpoint?.transactionHash).toBe("0x123");
     expect(mocks.retryJob).toHaveBeenCalledOnce();
   });
+  it("renews missing consent on the first retry after a confirmed revert", async () => {
+    const job = queuedWorkJob({
+      payload: {
+        uploadConsent: undefined,
+        uploadCheckpoint: {
+          submittedAt: "now",
+          files: {},
+          transactionHash: "0x123",
+          transactionReverted: true,
+        },
+      },
+    });
+    mocks.getJob.mockResolvedValue(job);
+    const actions = render("job-1");
+
+    await act(() => actions.current.tryAgain());
+
+    expect(job.payload.uploadConsent).toEqual(uploadConsent());
+    expect(mocks.request).toHaveBeenCalledOnce();
+    expect(mocks.save.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.retryJob.mock.invocationCallOrder[0]
+    );
+    expect(mocks.retryJob).toHaveBeenCalledOnce();
+  });
   it("reconciles an already recorded send without new consent", async () => {
     mocks.getJob.mockResolvedValue(
       queuedWorkJob({
