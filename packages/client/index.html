@@ -800,7 +800,16 @@
         cursor: pointer;
       }
 
-      .boot-reload-button:focus-visible {
+      .boot-home-link {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        margin-inline-start: 16px;
+        text-decoration: underline;
+      }
+
+      .boot-reload-button:focus-visible,
+      .boot-home-link:focus-visible {
         outline: 3px solid var(--boot-action);
         outline-offset: 3px;
       }
@@ -1173,6 +1182,7 @@
                 <h1 id="boot-website-recovery-title">This page is taking longer than expected.</h1>
                 <p id="boot-website-recovery-body">Reload to try again.</p>
                 <button class="boot-reload-button" id="boot-website-reload" type="button">Reload</button>
+                <a class="boot-home-link" id="boot-website-home" href="/">Go to Homepage</a>
               </div>
             </div>
           </div>
@@ -1222,6 +1232,7 @@
         var websiteRecoveryTitle = document.getElementById("boot-website-recovery-title");
         var websiteRecoveryBody = document.getElementById("boot-website-recovery-body");
         var websiteReload = document.getElementById("boot-website-reload");
+        var websiteHome = document.getElementById("boot-website-home");
         var pwa = document.getElementById("boot-fallback-pwa");
         var pwaMessage = document.getElementById("boot-pwa-message");
         var pwaNote = document.getElementById("boot-pwa-note");
@@ -1235,12 +1246,14 @@
             offline: "You’re offline.",
             offlineNote: "Saved screens may still be available.",
             retry: "Try Again",
-            stalled: "Green Goods couldn’t update.",
-            stalledNote: "Close every Green Goods window, then open the app again.",
-            updateWaiting: "An update is waiting.",
-            updateWaitingNote: "Close every Green Goods window, then open the app again.",
-            update: "Green Goods needs an update.",
-            updateAction: "Update App",
+            slow: "Taking longer to load.",
+            checking: "Checking for an update…",
+            downloading: "Downloading an update…",
+            delayed: "The update is taking longer.",
+            failed: "The update couldn’t finish.",
+            blocked: "An update is ready.",
+            blockedNote: "Finish your work in the other Green Goods window and close it, then try again.",
+            homepage: "Go to Homepage",
             websiteRecoveryTitle: "This page is taking longer than expected.",
             websiteRecoveryBody: "Reload to try again.",
             reload: "Reload",
@@ -1252,12 +1265,14 @@
             offline: "Estás sin conexión.",
             offlineNote: "Las pantallas guardadas pueden seguir disponibles.",
             retry: "Intentar de nuevo",
-            stalled: "Green Goods no se pudo actualizar.",
-            stalledNote: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
-            updateWaiting: "Hay una actualización pendiente.",
-            updateWaitingNote: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
-            update: "Green Goods necesita actualizarse.",
-            updateAction: "Actualizar app",
+            slow: "La carga está tardando más.",
+            checking: "Buscando una actualización…",
+            downloading: "Descargando una actualización…",
+            delayed: "La actualización está tardando.",
+            failed: "No se completó la actualización.",
+            blocked: "Hay una actualización lista.",
+            blockedNote: "Termina tu trabajo en la otra ventana de Green Goods, ciérrala e inténtalo de nuevo.",
+            homepage: "Ir al inicio",
             websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
             websiteRecoveryBody: "Recarga para intentarlo de nuevo.",
             reload: "Recargar",
@@ -1269,12 +1284,14 @@
             offline: "Você está offline.",
             offlineNote: "As telas salvas ainda podem estar disponíveis.",
             retry: "Tentar novamente",
-            stalled: "O Green Goods não pôde atualizar.",
-            stalledNote: "Feche todas as janelas do Green Goods e abra o app novamente.",
-            updateWaiting: "Há uma atualização pendente.",
-            updateWaitingNote: "Feche todas as janelas do Green Goods e abra o app novamente.",
-            update: "O Green Goods precisa atualizar.",
-            updateAction: "Atualizar app",
+            slow: "O app está demorando a abrir.",
+            checking: "Buscando uma atualização…",
+            downloading: "Baixando uma atualização…",
+            delayed: "A atualização está demorando.",
+            failed: "A atualização não foi concluída.",
+            blocked: "Uma atualização está pronta.",
+            blockedNote: "Termine seu trabalho na outra janela do Green Goods, feche-a e tente novamente.",
+            homepage: "Ir para a página inicial",
             websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
             websiteRecoveryBody: "Recarregue para tentar novamente.",
             reload: "Recarregar",
@@ -1293,11 +1310,11 @@
         var timer;
         var updateTimer;
         var observer;
-        var recoveryTimer;
-        var recoveryRegistration;
-        var recoveryInstallingWorker;
-        var recoveryInFlight = false;
+        var recovery;
+        var reactMounted = false;
         var appReady = false;
+        var reloadOnRetry = false;
+        var reported = Object.create(null);
 
         var PWA_RECOVERY_TIMEOUT_MS = 15000;
 
@@ -1320,13 +1337,13 @@
           if (!fallback || hasAppContent()) return;
           if (
             kind === "loading" &&
-            ["recovery", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
+            ["recovery", "checking", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
           ) {
             return;
           }
           if (
             kind === "recovery" &&
-            ["applying", "stalled"].indexOf(fallback.dataset.state) !== -1
+            ["checking", "applying", "stalled"].indexOf(fallback.dataset.state) !== -1
           ) {
             return;
           }
@@ -1343,11 +1360,11 @@
               pwa.setAttribute("aria-busy", isRecovery ? "false" : "true");
             }
             if (website) website.hidden = true;
-            setPwaCopy(isRecovery ? labels.update : labels.loading);
+            setPwaCopy(isRecovery ? labels.slow : labels.loading);
             if (pwaReload) {
               pwaReload.hidden = !isRecovery;
               pwaReload.setAttribute("aria-disabled", "false");
-              pwaReload.textContent = labels.updateAction;
+              pwaReload.textContent = labels.retry;
             }
             return;
           }
@@ -1375,24 +1392,50 @@
           }
         }
 
-        function removeRecoveryListeners() {
-          if (recoveryTimer) {
-            window.clearTimeout(recoveryTimer);
-            recoveryTimer = undefined;
+        // Use the existing crash queue, which sends when analytics connects. Keep
+        // only fixed reasons and context: no URL, stack, or user input at boot.
+        function reportBootFailure(reason) {
+          if (reported[reason]) return;
+          reported[reason] = true;
+          try {
+            var storage = window.localStorage;
+            var raw = storage.getItem("gg-crash-reports");
+            var reports;
+            try { reports = JSON.parse(raw || "[]"); } catch (_) { reports = []; }
+            var occurredAt = Date.now();
+            var error = { name: "StartupError", message: reason };
+            var report = {
+              id: window.crypto.randomUUID(),
+              occurredAt: occurredAt,
+              error: error,
+              properties: {
+                source: "client_boot",
+                error_type: error.name,
+                error_message: reason,
+                presentation: presentation,
+                is_offline: navigator.onLine === false,
+              },
+            };
+            storage.setItem("gg-crash-reports", JSON.stringify(
+              (Array.isArray(reports) ? reports : []).slice(-9).concat(report)
+            ));
+          } catch (_) {
+            // An unavailable store must not interfere with recovery.
           }
-          if (recoveryRegistration) {
-            recoveryRegistration.removeEventListener("updatefound", handleUpdateFound);
-          }
-          if (recoveryInstallingWorker) {
-            recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
-          }
-          recoveryRegistration = undefined;
-          recoveryInstallingWorker = undefined;
+        }
+
+        function stopRecovery() {
+          if (!recovery) return;
+          var attempt = recovery;
+          recovery = undefined;
+          window.clearTimeout(attempt.timer);
+          if (attempt.worker) attempt.worker.removeEventListener("statechange", attempt.onState);
+          if (attempt.port) attempt.port.close();
         }
 
         function setPwaRecoveryState(kind, line, note) {
           if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
-          var isApplying = kind === "applying";
+          var isApplying = kind === "applying" || kind === "checking";
           var isAlert = kind === "stalled";
 
           fallback.dataset.state = kind;
@@ -1402,7 +1445,7 @@
           setPwaCopy(line, note);
           pwaReload.hidden = false;
           pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
-          pwaReload.textContent = isApplying ? labels.applyingAction : labels.retry;
+          pwaReload.textContent = kind === "applying" ? labels.applyingAction : labels.retry;
         }
 
         function setPwaLoadingState() {
@@ -1415,123 +1458,119 @@
           setPwaCopy(labels.loading);
           pwaReload.hidden = true;
           pwaReload.setAttribute("aria-disabled", "false");
-          pwaReload.textContent = labels.updateAction;
+          pwaReload.textContent = labels.retry;
         }
 
-        // reason: "stalled", "updateWaiting" or "offline".
-        function stallPwaRecovery(reason) {
-          var key = reason || "stalled";
-          removeRecoveryListeners();
-          recoveryInFlight = false;
-          setPwaRecoveryState("stalled", labels[key], labels[key + "Note"]);
+        function stallPwaRecovery(reason, diagnostic, keepWatching) {
+          if (!keepWatching) stopRecovery();
+          if (diagnostic) reportBootFailure(diagnostic);
+          setPwaRecoveryState("stalled", labels[reason], labels[reason + "Note"]);
           if (pwaReload) pwaReload.focus();
         }
 
-        function activateWaitingWorker(worker) {
-          if (!worker || !recoveryInFlight || !("serviceWorker" in navigator)) {
-            stallPwaRecovery("stalled");
-            return;
-          }
-
-          // A waiting worker activates when every page using the old worker is
-          // closed. The boot scene must not force activation around the app's
-          // quiescence handshake.
-          stallPwaRecovery("updateWaiting");
+        function watchWorker(attempt, worker, onState) {
+          if (attempt.worker) attempt.worker.removeEventListener("statechange", attempt.onState);
+          attempt.worker = worker;
+          attempt.onState = onState;
+          worker.addEventListener("statechange", onState);
+          onState();
         }
 
-        function handleInstallingStateChange() {
-          if (!recoveryInstallingWorker || !recoveryInFlight) return;
-
-          if (recoveryInstallingWorker.state === "installed") {
-            activateWaitingWorker(
-              (recoveryRegistration && recoveryRegistration.waiting) || recoveryInstallingWorker
-            );
-          } else if (recoveryInstallingWorker.state === "redundant") {
-            stallPwaRecovery("stalled");
-          }
-        }
-
-        function watchInstallingWorker(worker) {
-          if (!worker || !recoveryInFlight) return;
-          if (recoveryInstallingWorker === worker) {
-            handleInstallingStateChange();
-            return;
-          }
-          if (recoveryInstallingWorker && recoveryInstallingWorker !== worker) {
-            recoveryInstallingWorker.removeEventListener("statechange", handleInstallingStateChange);
-          }
-          recoveryInstallingWorker = worker;
-          recoveryInstallingWorker.addEventListener("statechange", handleInstallingStateChange);
-          handleInstallingStateChange();
-        }
-
-        function handleUpdateFound() {
-          if (recoveryRegistration && recoveryRegistration.waiting) {
-            activateWaitingWorker(recoveryRegistration.waiting);
-            return;
-          }
-          if (recoveryRegistration && recoveryRegistration.installing) {
-            watchInstallingWorker(recoveryRegistration.installing);
-          }
+        function activateWaitingWorker(attempt, worker) {
+          setPwaRecoveryState("applying", labels.applying);
+          window.clearTimeout(attempt.timer);
+          attempt.timer = window.setTimeout(function () {
+            // The browser may still be draining the previous worker. Keep
+            // listening for this worker to activate after the busy UI ends.
+            reloadOnRetry = !attempt.requested;
+            stallPwaRecovery("delayed", "activation_delayed", true);
+          }, PWA_RECOVERY_TIMEOUT_MS);
+          watchWorker(attempt, worker, function () {
+            if (worker.state === "activated") {
+              stopRecovery();
+              window.location.reload();
+            } else if (worker.state === "redundant") {
+              stallPwaRecovery("failed", "activation_failed");
+            }
+          });
+          if (recovery !== attempt) return;
+          var channel = new MessageChannel();
+          attempt.port = channel.port1;
+          channel.port1.onmessage = function (event) {
+            channel.port1.close();
+            if (recovery !== attempt) return;
+            if (event.data?.status === "requested") attempt.requested = true;
+            if (event.data?.status === "blocked") stallPwaRecovery("blocked");
+            if (event.data?.status === "failed") stallPwaRecovery("failed", "activation_failed");
+          };
+          worker.postMessage({ type: "ACTIVATE_BOOT_UPDATE" }, [channel.port2]);
         }
 
         async function recoverPwa() {
-          if (recoveryInFlight || presentation !== "pwa") return;
-          recoveryInFlight = true;
-          setPwaRecoveryState("applying", labels.applying);
-          recoveryTimer = window.setTimeout(function () {
-            stallPwaRecovery("stalled");
-          }, PWA_RECOVERY_TIMEOUT_MS);
-
-          if (!("serviceWorker" in navigator)) {
-            stallPwaRecovery("stalled");
+          if (reactMounted || presentation !== "pwa" || pwaReload.getAttribute("aria-disabled") === "true") return;
+          stopRecovery();
+          if (reloadOnRetry && navigator.onLine !== false) {
+            reloadWithCacheBust();
             return;
           }
+          var attempt = {};
+          recovery = attempt;
+          setPwaRecoveryState("checking", labels.checking);
+          attempt.timer = window.setTimeout(function () {
+            reloadOnRetry = true;
+            stallPwaRecovery("delayed", "update_check_delayed");
+          }, PWA_RECOVERY_TIMEOUT_MS);
 
           try {
-            recoveryRegistration = await navigator.serviceWorker.getRegistration();
-            if (!recoveryInFlight) return;
-            if (!recoveryRegistration) {
-              stallPwaRecovery("stalled");
-              return;
+            var registration = await navigator.serviceWorker?.getRegistration();
+            if (recovery !== attempt) return;
+            if (!registration?.waiting && !registration?.installing) {
+              if (navigator.onLine === false) {
+                stallPwaRecovery("offline");
+                return;
+              }
+              await registration?.update();
+              if (recovery !== attempt) return;
             }
 
-            recoveryRegistration.addEventListener("updatefound", handleUpdateFound);
-
-            if (recoveryRegistration.waiting) {
-              activateWaitingWorker(recoveryRegistration.waiting);
-              return;
-            }
-            if (recoveryRegistration.installing) {
-              watchInstallingWorker(recoveryRegistration.installing);
-              return;
-            }
-            if (navigator.onLine === false) {
-              stallPwaRecovery("offline");
-              return;
-            }
-
-            await recoveryRegistration.update();
-            if (!recoveryInFlight) return;
-
-            if (recoveryRegistration.waiting) {
-              activateWaitingWorker(recoveryRegistration.waiting);
-            } else if (recoveryRegistration.installing) {
-              watchInstallingWorker(recoveryRegistration.installing);
+            if (registration?.waiting) {
+              activateWaitingWorker(attempt, registration.waiting);
+            } else if (registration?.installing) {
+              var worker = registration.installing;
+              setPwaRecoveryState("checking", labels.downloading);
+              watchWorker(attempt, worker, function () {
+                if (registration.waiting === worker) {
+                  activateWaitingWorker(attempt, worker);
+                } else if (worker.state === "activated") {
+                  stopRecovery();
+                  window.location.reload();
+                } else if (worker.state === "redundant") {
+                  reloadOnRetry = true;
+                  stallPwaRecovery("failed", "update_download_failed");
+                }
+              });
+            } else {
+              stopRecovery();
+              reloadWithCacheBust();
             }
           } catch (_) {
-            stallPwaRecovery(navigator.onLine === false ? "offline" : "stalled");
+            if (recovery !== attempt) return;
+            reloadOnRetry = true;
+            stallPwaRecovery(navigator.onLine === false ? "offline" : "failed", "update_check_failed");
           }
         }
 
         function clearFallback() {
+          if (!appReady && presentation === "pwa" && typeof performance.mark === "function") {
+            performance.mark("gg-pwa-startup-ready");
+            window.dispatchEvent(new Event("gg-pwa-startup-ready"));
+          }
           appReady = true;
           if (!hasAppContent()) return;
           if (timer) window.clearTimeout(timer);
           if (updateTimer) window.clearTimeout(updateTimer);
           if (observer) observer.disconnect();
-          removeRecoveryListeners();
-          recoveryInFlight = false;
+          stopRecovery();
           if (fallback) {
             fallback.hidden = true;
             fallback.dataset.state = "cleared";
@@ -1539,13 +1578,14 @@
         }
 
         function markReactMounted() {
-          // Cancel the stale-assets timer the moment React calls in, whatever it
-          // has painted. That timer exists to catch a bundle that never arrived,
-          // and React running proves one did. A login waiting on auth
-          // restoration renders nothing ON PURPOSE, so leaving it armed told the
-          // installed PWA after 4.5s that it "needs the latest app files" and
-          // offered an update that would reload the sign-in already in flight.
+          // Recovery belongs to the boot screen. Once React mounts, its work
+          // guard and error boundaries take over even if sign-in is still empty.
+          reactMounted = true;
+          stopRecovery();
           if (updateTimer) window.clearTimeout(updateTimer);
+          if (fallback && ["recovery", "checking", "applying", "stalled"].includes(fallback.dataset.state) && presentation === "pwa") {
+            setPwaLoadingState();
+          }
           // Everything below is about CONTENT, not about the bundle. With an
           // empty root the boot surface has to stay up — and `timer`, which
           // raises it, has to stay armed — or a slow restore flashes blank.
@@ -1565,12 +1605,13 @@
             return;
           }
 
-          removeRecoveryListeners();
-          recoveryInFlight = false;
+          stopRecovery();
           setPwaLoadingState();
         }
 
         function markBootFailed() {
+          // A failure clears the static layer, but is not a successful launch.
+          appReady = true;
           clearFallback();
         }
 
@@ -1591,16 +1632,22 @@
         if (websiteReload) websiteReload.addEventListener("click", reloadWithCacheBust);
         if (pwaReload) pwaReload.addEventListener("click", recoverPwa);
 
-        window.addEventListener(
-          "error",
-          function (event) {
-            var target = event && event.target;
-            if (target && target.tagName === "SCRIPT" && target.type === "module") {
-              showFallback("recovery");
-            }
-          },
-          true
-        );
+        window.addEventListener("error", function (event) {
+          if (reactMounted || appReady) return;
+          var target = event.target;
+          if (target?.tagName === "SCRIPT" && target.type === "module") {
+            reportBootFailure("startup_module_failed");
+            showFallback("recovery");
+          } else if (event.error) {
+            reportBootFailure("startup_script_failed");
+            showFallback("recovery");
+          }
+        }, true);
+        window.addEventListener("unhandledrejection", function () {
+          if (reactMounted || appReady) return;
+          reportBootFailure("startup_promise_rejected");
+          showFallback("recovery");
+        });
 
         if (root && "MutationObserver" in window) {
           observer = new MutationObserver(function () {
@@ -1618,6 +1665,7 @@
         }
 
         updateTimer = window.setTimeout(function () {
+          reportBootFailure("startup_slow");
           showFallback("recovery");
         }, 4500);
       })();

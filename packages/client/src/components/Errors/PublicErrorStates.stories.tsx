@@ -64,7 +64,9 @@ export const PageError: Story = {
       () => expect(canvas.getByRole("button", { name: "Reload" })).toBeVisible(),
       HERO_ENTRANCE
     );
-    await expect(canvas.getByRole("link", { name: "Browse Gardens" })).toBeVisible();
+    const homepage = canvas.getByRole("link", { name: "Go to Homepage" });
+    await expect(homepage).toBeVisible();
+    await expect(homepage).toHaveAttribute("href", "/");
   },
 };
 
