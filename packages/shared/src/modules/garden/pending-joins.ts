@@ -52,14 +52,16 @@ function savePendingJoins(pending: Record<string, { address: string; timestamp: 
   refusedRemovals.clear();
 }
 
-export function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.now()) {
+export function addPendingJoin(gardenId: string, userAddress: string, submittedAt?: number) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
   const existing = pending[gardenId];
+  const timestamp = submittedAt ?? Date.now();
   if (
     existing &&
     existing.address.toLowerCase() === userAddress.toLowerCase() &&
-    Date.now() - existing.timestamp < PENDING_JOIN_TTL
+    Date.now() - existing.timestamp < PENDING_JOIN_TTL &&
+    (submittedAt === undefined || existing.timestamp >= submittedAt)
   ) {
     return;
   }
@@ -71,13 +73,14 @@ export function addPendingJoin(gardenId: string, userAddress: string, timestamp 
 // Idempotent: must not notify when nothing changed. `hasFreshPendingJoin` runs on the render path
 // and cleans up an expired record here, and an unconditional notify would re-trigger any memo
 // subscribed to the record, producing an infinite render loop.
-export function removePendingJoin(gardenId: string, account?: string) {
+export function removePendingJoin(gardenId: string, account?: string, submittedBy = Infinity) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
   const matching = Object.keys(pending).filter(
     (id) =>
       id.toLowerCase() === gardenId.toLowerCase() &&
-      (!account || pending[id]?.address?.toLowerCase() === account.toLowerCase())
+      (!account || pending[id]?.address?.toLowerCase() === account.toLowerCase()) &&
+      (submittedBy === Infinity || pending[id]?.timestamp <= submittedBy)
   );
   if (matching.length === 0) return;
   for (const id of matching) delete pending[id];

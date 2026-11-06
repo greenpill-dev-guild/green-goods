@@ -1,4 +1,4 @@
-import { RiArrowDropRightLine, RiBookOpenLine, RiTwitterLine } from "@remixicon/react";
+import { RiArrowDropRightLine, RiBookOpenLine, RiMailLine, RiTwitterLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { FlexCard } from "@/components/Cards";
 import { Avatar, Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display";
@@ -77,6 +77,15 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   const intl = useIntl();
 
   const socials: Social[] = [
+    ...(["privacy", "terms", "deletion", "report"] as const).map((kind) => ({
+      title: intl.formatMessage({ id: `app.profile.help.support.${kind}.title` }),
+      description: intl.formatMessage({ id: `app.profile.help.support.${kind}.description` }),
+      url:
+        kind === "privacy" || kind === "terms"
+          ? `/${kind}`
+          : `/contact#${kind === "deletion" ? "account-deletion" : "report-a-concern"}`,
+      Icon: <RiMailLine />,
+    })),
     {
       title: intl.formatMessage({
         id: "app.profile.help.socials.twitter.title",

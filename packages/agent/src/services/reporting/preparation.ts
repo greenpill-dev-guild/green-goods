@@ -7,7 +7,8 @@ import {
 import { buildWorkMetadataPayload } from "@green-goods/shared/utils/eas/work-metadata";
 import type { ReportingCatalog } from "./catalog";
 import type { ReportingChain } from "./chain";
-import { activeConsentId, hasPublicationConsent } from "./consent";
+import { activeConsentId, hasPublicationConsent, workUploadConsent } from "./consent";
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import { confirmationById } from "./confirmations";
 import { issueContinuation } from "./continuations";
 import { readControl } from "./controls";
@@ -48,6 +49,7 @@ export interface PreparationDeps {
 type Blocker =
   | "paused"
   | "consent_withdrawn"
+  | "policy_changed"
   | "stale"
   | "role_missing"
   | "garden_unlisted"
@@ -68,12 +70,22 @@ function stillPublishable(
     lifecycleState(current) !== "preparing"
   )
     return "stale";
-  if (
-    !confirmation ||
-    !hasPublicationConsent(core, draft.id, current.revision, confirmation.summaryDigest)
-  )
-    return "consent_withdrawn";
-  if (!activeConsentId(core, subjectId, "processing")) return "consent_withdrawn";
+  if (!confirmation) return "consent_withdrawn";
+  const hasProcessing = activeConsentId(core, subjectId, "processing", WORK_UPLOAD_POLICY_VERSION);
+  const hasPublication = hasPublicationConsent(
+    core,
+    draft.id,
+    current.revision,
+    confirmation.summaryDigest,
+    WORK_UPLOAD_POLICY_VERSION
+  );
+  if (!hasProcessing || !hasPublication) {
+    const wasProcessingAllowed = hasProcessing || activeConsentId(core, subjectId, "processing");
+    const wasPublicationAllowed =
+      hasPublication ||
+      hasPublicationConsent(core, draft.id, current.revision, confirmation.summaryDigest);
+    return wasProcessingAllowed && wasPublicationAllowed ? "policy_changed" : "consent_withdrawn";
+  }
   if (!readControl(core, "publication").enabled) return "paused";
   return null;
 }
@@ -222,7 +234,20 @@ export async function prepareOperation(
     }
 
     const confirmation = confirmationById(core, operation.confirmationId);
+    const uploadConsent =
+      confirmation &&
+      workUploadConsent(core, {
+        subjectId,
+        resourceId: draft.id,
+        revision: draft.revision,
+        digest: confirmation.summaryDigest,
+        account: account.address as `0x${string}`,
+        locale: writer()?.target.locale ?? "en",
+      });
+    if (!uploadConsent)
+      return { status: "retry", errorCode: "publication_blocked", delayMs: 60_000 };
     const { payload } = buildWorkMetadataPayload({
+      uploadConsent,
       title: draft.content.title ?? "",
       feedback: draft.content.feedback ?? "",
       actionUID: snapshot.definition.actionUID,
@@ -318,7 +343,8 @@ export function retryPreparation(core: ReportingCore, draftId: string): boolean 
     !draft ||
     !operation ||
     lifecycleState(draft) !== "preparationFailed" ||
-    operation.state !== "preparation_failed"
+    operation.state !== "preparation_failed" ||
+    operation.failureCode === "policy_changed"
   ) {
     return false;
   }

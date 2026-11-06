@@ -1,5 +1,10 @@
 import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
-import { withoutDepartedMembers } from "../../modules/garden/garden-departures";
+import { useCallback, useSyncExternalStore } from "react";
+import {
+  getGardenFenceFilters,
+  getServerGardenFenceFilters,
+  subscribeToGardenFences,
+} from "../../modules/garden/garden-departures";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { withoutHiddenGardens } from "../../config/garden-visibility";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
@@ -59,15 +64,26 @@ export const useActions = createBaseListHook<Action>(
 );
 
 /** Retrieves gardens scoped to the active chain and keeps the list warm. */
-export const useGardens = createBaseListHook<Garden>(
-  (chainId) => gardensKeys.byChain(chainId),
-  getGardens,
-  // A cache an older build wrote can hold a garden since curated out of every surface.
-  {
+export function useGardens(chainId = DEFAULT_CHAIN_ID) {
+  const fences = useSyncExternalStore(
+    subscribeToGardenFences,
+    getGardenFenceFilters,
+    getServerGardenFenceFilters
+  );
+  const select = useCallback(
+    (gardens: Garden[]) => fences.roster(withoutHiddenGardens(gardens), chainId),
+    [chainId, fences]
+  );
+  return useQuery({
+    queryKey: gardensKeys.byChain(chainId),
+    queryFn: () => getGardens(),
+    staleTime: STALE_TIMES.baseLists,
+    gcTime: GC_TIMES.baseLists,
+    placeholderData: (previousData) => previousData,
     networkMode: "offlineFirst",
-    select: (gardens) => withoutDepartedMembers(withoutHiddenGardens(gardens), DEFAULT_CHAIN_ID),
-  }
-);
+    select,
+  });
+}
 
 /** Loads gardener profiles for steward dashboards. */
 export const useGardeners = createBaseListHook<GardenerCard>(() => gardenersKeys.all, getGardeners);

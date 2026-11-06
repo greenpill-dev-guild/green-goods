@@ -17,6 +17,7 @@ import {
   type CreateAssessmentFormData,
   useCreateAssessmentForm,
 } from "../../assessment/useCreateAssessmentForm";
+import { useAdminUploadPolicy } from "../useAdminUploadPolicy";
 import { useCreateAssessmentWorkflow } from "../../assessment/useCreateAssessmentWorkflow";
 import { useRouteItemClose } from "../../navigation/useCanvasSearchParams";
 import { useGardens } from "../../blockchain/useBaseLists";
@@ -112,6 +113,7 @@ function toUnixSeconds(value: string): number {
 }
 
 export function useCreateAssessmentController() {
+  const authorizeUpload = useAdminUploadPolicy();
   const intl = useIntl();
   const { formatMessage } = intl;
   const stepConfigs = useCreateAssessmentStepConfigs();
@@ -395,15 +397,13 @@ export function useCreateAssessmentController() {
 
   const handleSubmit = async () => {
     if (isSubmitting || isPending || isSent) return;
-    // A restored draft may select a domain this garden no longer documents.
-    // Return to the domain step so the steward can choose a valid one.
+    // A restored draft can name a domain the garden no longer documents.
     const allowedDomains =
       normalizedGardenDomainMask === undefined
         ? KNOWN_DOMAINS
         : expandDomainMask(normalizedGardenDomainMask);
     if (form.domain !== null && !allowedDomains.includes(form.domain)) {
       setField("domain", null);
-      // "Choose a domain" shows on the step the steward lands on.
       stepValidation.showValidationOnStep(0);
       goToStep(0);
       showIncompleteForm();
@@ -448,7 +448,7 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-    // Reset a rejected send so retry uses the edited answers. Accepted sends stay pending.
+    if (!(await authorizeUpload())) return;
     if (hasError) resetWorkflow();
     const started = startCreation(payload);
     if (!started) {

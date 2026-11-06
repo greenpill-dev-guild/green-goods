@@ -13,6 +13,7 @@ import { COMMITMENT_JOB_KINDS } from "../commitment-pooling/jobs";
 import { createCommitmentQueueAdmission } from "../commitment-pooling/queue-admission";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
 import { StrandedSendReopened } from "../work/stranded-intent";
+import { UploadPolicyRequiredError } from "../work/upload-policy";
 import {
   InvalidWorkAttachmentError,
   PendingHeicConversionError,
@@ -72,6 +73,8 @@ function createDefaultExecutorRegistry() {
       } catch (error) {
         const waiting = waitingAfterFailedSend(error);
         if (waiting) return waiting;
+        if (error instanceof UploadPolicyRequiredError)
+          return { status: "waiting", reason: "upload-policy-required" };
         if (error instanceof PendingHeicConversionError)
           return { status: "waiting", reason: error.reason };
         // A photo that cannot be published waits for the person, like one that will not convert.

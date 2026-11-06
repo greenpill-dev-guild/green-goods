@@ -29,7 +29,13 @@ const workMutationStoreMocks = vi.hoisted(() => ({
   ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
 }));
 const queueProcessJob = vi.fn();
-
+const policyRequest = vi.hoisted(() => vi.fn());
+vi.mock("../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: (owner: `0x${string}`) => ({
+    request: () => policyRequest(owner),
+    prompt: null,
+  }),
+}));
 // Mock modules
 vi.mock("../../modules/job-queue/default-instance", () => ({
   jobQueue: {
@@ -210,11 +216,18 @@ import {
   createMockAction,
   createMockFiles,
   createMockWorkDraft,
-  MOCK_ADDRESSES,
+  MOCK_ADDRESSES as BASE_ADDRESSES,
   MOCK_TX_HASH,
 } from "../test-utils/mock-factories";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { mock } from "../test-utils/render-helpers";
+import { uploadConsent } from "../test-utils/upload-policy";
+
+const MOCK_ADDRESSES = {
+  ...BASE_ADDRESSES,
+  user: "0x1111111111111111111111111111111111111111",
+  smartAccount: "0x3333333333333333333333333333333333333333",
+} as const;
 
 describe("hooks/work/useWorkMutation", () => {
   let queryClient: QueryClient;
@@ -237,6 +250,7 @@ describe("hooks/work/useWorkMutation", () => {
       },
     });
     vi.clearAllMocks();
+    policyRequest.mockImplementation(async (owner) => uploadConsent(owner));
     vi.spyOn(jobQueueDB, "addJob");
     workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-123");
 
@@ -261,6 +275,56 @@ describe("hooks/work/useWorkMutation", () => {
     userAddress: MOCK_ADDRESSES.user,
   };
 
+  it("checks an already-recorded send intent without requiring new upload consent", async () => {
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    await act(async () => {
+      await result.current.mutateAsync({
+        draft: createMockWorkDraft({
+          uploadCheckpoint: {
+            submittedAt: "2026-11-05T00:00:00.000Z",
+            files: {},
+            broadcastPending: true,
+          },
+        }),
+        images: [],
+      });
+    });
+    expect(policyRequest).not.toHaveBeenCalled();
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+  });
+  it("claims and sends nothing while sharing consent waits, then cancels cleanly", async () => {
+    const { UploadPolicyCancelledError } = await import("../../modules/work/upload-policy");
+    let decline!: (error: Error) => void;
+    policyRequest.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        decline = reject;
+      })
+    );
+    const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+      wrapper: createWrapper(),
+    });
+    const beforeAdmission = vi.fn(async () => true);
+    let outcome!: Promise<unknown>;
+    act(() => {
+      outcome = result.current
+        .mutateAsync({ draft: createMockWorkDraft(), images: [], beforeAdmission })
+        .catch((error) => error);
+    });
+    await waitFor(() => expect(policyRequest).toHaveBeenCalledOnce());
+    expect(beforeAdmission).not.toHaveBeenCalled();
+    expect(jobQueueDB.addJob).not.toHaveBeenCalled();
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+    expect(submitWorkToQueue).not.toHaveBeenCalled();
+    await act(async () => {
+      decline(new UploadPolicyCancelledError());
+      await outcome;
+    });
+    expect(beforeAdmission).not.toHaveBeenCalled();
+    expect(jobQueueDB.addJob).not.toHaveBeenCalled();
+    expect(submitWorkDirectly).not.toHaveBeenCalled();
+  });
   it("retries a terminal unsent admin failure with corrected work and a fresh identity", async () => {
     const failure = new WorkSubmissionError("Cannot encode work", "transaction");
     vi.mocked(submitWorkDirectly)
@@ -623,7 +687,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(submitWorkDirectly).toHaveBeenCalledWith(
-        draft,
+        expect.objectContaining({ ...draft, uploadConsent: uploadConsent(MOCK_ADDRESSES.user) }),
         MOCK_ADDRESSES.garden,
         1,
         "Test Action",

@@ -7,7 +7,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
-import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
@@ -29,7 +29,25 @@ test.describe("Admin Authentication", () => {
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
+  test("introduces the upload terms once and lets a new Admin member skip", async ({ page }) => {
+    test.setTimeout(150_000);
+    const helper = new AdminTestHelper(page);
+    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
+    const terms = page.getByRole("dialog", { name: "Before You Share" });
+    await expect(terms).toBeVisible({ timeout: 60000 });
+    await expect(terms.getByRole("button", { name: "Agree and Continue" })).toBeDisabled();
+    await terms.getByRole("button", { name: "Skip for Now" }).click();
+    await expect(page.getByRole("main")).toBeVisible({ timeout: 30000 });
+    await page.reload();
+    await expect(page.getByRole("main")).toBeVisible({ timeout: 60000 });
+    await expect(terms).toHaveCount(0);
+  });
+
   test.describe("Dev mock-auth flow", () => {
+    test.beforeEach(async ({ context }) => {
+      await seedAcceptedUploadTerms(context, ADMIN_URL, ["steward", "deployer"]);
+    });
+
     // Each test boots the signed-in cockpit one to three times. A boot shows "Opening your
     // workspace…" for 10 to 20 seconds on a quiet clean-room dev server, and the first also
     // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never

@@ -1,3 +1,4 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -57,6 +58,7 @@ interface DetailsStepProps {
 
 export function DetailsStep({ showValidation }: DetailsStepProps) {
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const form = useCreateGardenStore((s) => s.form);
   const setField = useCreateGardenStore((s) => s.setField);
   const domains = useCreateGardenStore((s) => s.form.domains) ?? [];
@@ -143,6 +145,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
       // Upload to IPFS (remaining 50%)
       setBannerUploadProgress(50);
 
+      if (!(await authorizeUpload())) return;
       const uploadResult = await uploadFileToIPFS(file);
       const ipfsUrl = resolveIPFSUrl(uploadResult.cid);
 

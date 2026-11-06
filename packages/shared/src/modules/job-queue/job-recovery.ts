@@ -12,7 +12,7 @@ import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { commitmentJobPrerequisite, type WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
 import type { JobQueueEvents, JobQueueExecutionClaims, JobQueueStore } from "./ports";
-import { hasRecordedSend, JOB_DISCARDED } from "./queue-policy";
+import { hasRecordedSend, hasRevertedWorkSend, JOB_DISCARDED } from "./queue-policy";
 import { isTakeUpOf, takeUpOf } from "./take-up-hold";
 
 /**
@@ -110,7 +110,7 @@ export function createJobRecovery(
           preparation: _preparation,
           ...meta
         } = job.meta ?? {};
-        if (job.kind === "work" && meta.workTransactionReverted) {
+        if (hasRevertedWorkSend(job)) {
           const payload = job.payload as WorkJobPayload;
           if (payload.uploadCheckpoint) {
             delete payload.uploadCheckpoint.transactionHash;

@@ -32,6 +32,7 @@ describe("presentation route trees", () => {
   it.each([
     ["/strategy", CLIENT_ROUTE_IDS.publicStrategy],
     ["/privacy", CLIENT_ROUTE_IDS.publicPrivacy],
+    ["/terms", CLIENT_ROUTE_IDS.publicTerms],
     ["/contact", CLIENT_ROUTE_IDS.publicContact],
   ])("opens %s in the public shell without an auth gate", (path, id) => {
     const ids = matchRoutes(publicAppRoutes, path)?.map(({ route }) => route.id);

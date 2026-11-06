@@ -25,6 +25,7 @@ describe("membership after a confirmed departure", () => {
   it("pins all six role reads to the same sufficiently new block", async () => {
     await expect(readRolesAfterDeparture(42161, garden, account, 40n)).resolves.toEqual({
       block: 50n,
+      complete: true,
       roles: [],
     });
     expect(reads.role).toHaveBeenCalledTimes(6);
@@ -35,6 +36,7 @@ describe("membership after a confirmed departure", () => {
     reads.role.mockImplementation(async ({ functionName }) => functionName === "isOperatorOf");
     await expect(readRolesAfterDeparture(42161, garden, account, 40n)).resolves.toEqual({
       block: 50n,
+      complete: true,
       roles: ["steward"],
     });
   });

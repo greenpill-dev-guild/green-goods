@@ -11,7 +11,7 @@ export async function readRolesAfterDeparture(
   garden: Address,
   account: Address,
   departedAt: bigint
-): Promise<{ block: bigint; roles: GardenRole[] } | undefined> {
+): Promise<{ block: bigint; roles: GardenRole[]; complete: boolean } | undefined> {
   const client = getPublicClient(getWagmiConfig(), { chainId });
   if (!client) return;
   const block = await client.getBlockNumber({ cacheTime: 0 });
@@ -33,6 +33,7 @@ export async function readRolesAfterDeparture(
   if (results.every((result) => result.status === "rejected")) return;
   return {
     block,
+    complete: results.every((result) => result.status === "fulfilled"),
     roles: roles.filter((_, index) => {
       const result = results[index];
       return result.status === "fulfilled" && result.value === true;

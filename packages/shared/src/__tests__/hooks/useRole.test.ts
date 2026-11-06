@@ -77,6 +77,26 @@ describe("useRole", () => {
     });
   });
 
+  it("removes a cached steward hint immediately when another tab records a departure", async () => {
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.stewardGardens).toEqual(gardens));
+    const key = "greengoods:garden-departures";
+    const fence = JSON.stringify({
+      [`${CHAIN_ID}:${gardens[1].id}:${SMART_ACCOUNT.toLowerCase()}`]: "50",
+    });
+    try {
+      act(() => {
+        localStorage.setItem(key, fence);
+        window.dispatchEvent(new StorageEvent("storage", { key, newValue: fence }));
+      });
+      expect(result.current.stewardGardens).toEqual([gardens[0]]);
+      expect(result.current.isProtocolTeam).toBe(false);
+      expect(mocks.query).toHaveBeenCalledOnce();
+    } finally {
+      localStorage.removeItem(key);
+    }
+  });
+
   it.each([false, true])("keeps deployer rights when stewardship is %s", async (isSteward) => {
     mocks.registry = { canDeploy: true, isOwner: true, isInAllowlist: true, loading: false };
     mocks.query.mockResolvedValueOnce({ data: { Garden: isSteward ? [gardens[0]] : [] } });

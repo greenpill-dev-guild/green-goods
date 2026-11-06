@@ -28,6 +28,7 @@ const DRAFT_FILE = stagedWorkPhoto("garden-portrait.jpg", 0, FIXTURE_IMAGE_AGROF
 
 function editor(overrides: Partial<Editor> = {}): Editor {
   return {
+    uploadPolicy: null,
     address: ACCOUNT,
     record: null,
     draft: null,

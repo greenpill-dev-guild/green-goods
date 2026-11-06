@@ -1,5 +1,12 @@
 import type { Address } from "../../types/domain";
 import { useQuery } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
+import {
+  getGardenFenceFilters,
+  reconcileStewardHints,
+  getServerGardenFenceFilters,
+  subscribeToGardenFences,
+} from "../../modules/garden/garden-departures";
 import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
@@ -35,7 +42,7 @@ interface StewardGarden {
  * Fetches gardens where the given address is a steward
  * (the indexer still spells the membership field `operators`)
  */
-async function fetchStewardGardens(address: string, chainId: number): Promise<StewardGarden[]> {
+async function fetchStewardGardens(address: Address, chainId: number): Promise<StewardGarden[]> {
   const { data, error } = await greenGoodsIndexer.query(
     GET_STEWARD_GARDENS,
     { steward: [address.toLowerCase()], chainId },
@@ -50,7 +57,9 @@ async function fetchStewardGardens(address: string, chainId: number): Promise<St
     throw error;
   }
 
-  return data?.Garden ?? [];
+  const gardens = data?.Garden ?? [];
+  await reconcileStewardHints(gardens, chainId, address);
+  return gardens;
 }
 
 export type UserRole = "deployer" | "steward" | "user";
@@ -98,7 +107,7 @@ export function useRole(): RoleInfo {
 
   // Use React Query for fetching steward gardens
   const {
-    data: stewardGardens = [],
+    data: indexedStewardGardens = [],
     isLoading: isFetching,
     isError: gardensError,
   } = useQuery({
@@ -110,6 +119,14 @@ export function useRole(): RoleInfo {
     networkMode: "offlineFirst",
   });
 
+  const fences = useSyncExternalStore(
+    subscribeToGardenFences,
+    getGardenFenceFilters,
+    getServerGardenFenceFilters
+  );
+  const stewardGardens = normalizedAddress
+    ? fences.stewardHints(indexedStewardGardens, chainId, normalizedAddress)
+    : [];
   const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
   const rootGarden = getNetworkConfig(chainId).rootGarden?.address;

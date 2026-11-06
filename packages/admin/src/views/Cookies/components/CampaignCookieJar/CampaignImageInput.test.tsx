@@ -1,10 +1,10 @@
-// TEST-QUALITY: allow-small-test-file - the campaign image input's only test, pinning what a steward reads when an image cannot be checked for its location
+import { AdminUploadPolicyContext } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import enMessages from "@green-goods/shared/i18n/en";
 import { UnpublishableImageError } from "@green-goods/shared/modules/data/ipfs/upload";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CampaignImageInput } from "./CampaignImageInput";
 
 const { mockUploadFileToIPFS } = vi.hoisted(() => ({ mockUploadFileToIPFS: vi.fn() }));
@@ -15,14 +15,10 @@ vi.mock("@green-goods/shared/modules/data/ipfs/upload", async (importOriginal) =
   return { ...actual, uploadFileToIPFS: mockUploadFileToIPFS };
 });
 
-describe("CampaignImageInput", () => {
-  it("says an image that could not be checked for its location was not uploaded, and sets no URL", async () => {
-    mockUploadFileToIPFS.mockRejectedValue(new UnpublishableImageError("cover.heic"));
-    // Stubbed, so no dismiss timer outlives the test.
-    const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
-    const onChange = vi.fn();
-    const { container } = render(
-      <IntlProvider locale="en" messages={enMessages}>
+function selectImage(authorizeUpload: () => Promise<boolean>, onChange = vi.fn()) {
+  const { container } = render(
+    <IntlProvider locale="en" messages={enMessages}>
+      <AdminUploadPolicyContext.Provider value={authorizeUpload}>
         <CampaignImageInput
           value=""
           onChange={onChange}
@@ -30,12 +26,52 @@ describe("CampaignImageInput", () => {
           onFileChange={vi.fn()}
           source="campaign-image-test"
         />
-      </IntlProvider>
-    );
+      </AdminUploadPolicyContext.Provider>
+    </IntlProvider>
+  );
+  fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, {
+    target: { files: [new File(["heic"], "cover.heic", { type: "image/heic" })] },
+  });
+  return onChange;
+}
 
-    fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, {
-      target: { files: [new File(["heic"], "cover.heic", { type: "image/heic" })] },
-    });
+describe("CampaignImageInput", () => {
+  beforeEach(() => {
+    mockUploadFileToIPFS.mockReset();
+  });
+
+  it("waits for the agreement before publishing a selected file", async () => {
+    let accept!: (accepted: boolean) => void;
+    const authorizeUpload = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          accept = resolve;
+        })
+    );
+    mockUploadFileToIPFS.mockResolvedValue({ cid: "test-cid" });
+    const onChange = selectImage(authorizeUpload);
+    expect(authorizeUpload).toHaveBeenCalledOnce();
+    expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
+
+    await act(async () => accept(true));
+    await waitFor(() => expect(onChange).toHaveBeenCalledOnce());
+    expect(mockUploadFileToIPFS).toHaveBeenCalledOnce();
+  });
+
+  it("does not upload or set the image when the agreement is canceled", async () => {
+    const authorizeUpload = vi.fn(async () => false);
+    const onChange = selectImage(authorizeUpload);
+    await act(async () => {});
+    expect(authorizeUpload).toHaveBeenCalledOnce();
+    expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("says an image that could not be checked for its location was not uploaded, and sets no URL", async () => {
+    mockUploadFileToIPFS.mockRejectedValue(new UnpublishableImageError("cover.heic"));
+    // Stubbed, so no dismiss timer outlives the test.
+    const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
+    const onChange = selectImage(async () => true);
 
     expect(await screen.findByText(enMessages["app.common.imageUnreadable"])).toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();

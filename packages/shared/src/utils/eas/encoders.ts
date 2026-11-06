@@ -14,12 +14,14 @@ import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
 import type {
+  Address,
   Domain,
   WorkApprovalDraft,
   WorkDraft,
   WorkUploadCheckpoint,
 } from "../../types/domain";
 import { buildWorkMetadataPayload } from "./work-metadata";
+import { assertWorkUploadConsent } from "../../modules/work/upload-policy";
 
 /**
  * Maps MIME types to file extensions.
@@ -81,6 +83,7 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  uploaderAddress?: Address;
   /** The published content, available for a receipt-confirmed local preview. */
   onEncoded?: (content: { metadata: Record<string, unknown>; media: string[] }) => void;
   checkpoint?: WorkUploadCheckpoint;
@@ -110,6 +113,7 @@ export async function encodeWorkData(
   chainId: number | string,
   options: EncodeWorkDataOptions = {}
 ) {
+  assertWorkUploadConsent(data.uploadConsent, options.uploaderAddress);
   const checkpoint = options.checkpoint ?? { submittedAt: new Date().toISOString(), files: {} };
   let checkpointWrite: Promise<void> = Promise.resolve();
   const persistCheckpoint = () => {
@@ -355,6 +359,7 @@ export async function encodeWorkData(
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
     const { payload: metadataPayload, version: metadataType } = buildWorkMetadataPayload({
+      uploadConsent: data.uploadConsent,
       title: data.title,
       feedback: data.feedback,
       actionUID: data.actionUID,

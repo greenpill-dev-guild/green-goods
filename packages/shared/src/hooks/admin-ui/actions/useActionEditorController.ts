@@ -2,6 +2,7 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import { getFileByHash } from "../../../modules/data/ipfs/resolve";
+import { useAdminUploadPolicy } from "../useAdminUploadPolicy";
 import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 import type { ActionInstructionConfig, ActionTranslationMap } from "../../../types/domain";
@@ -84,6 +85,7 @@ export function useActionEditorController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((candidate) => candidate.id === id);
   const actionUID = id?.split("-")[1];
@@ -385,6 +387,7 @@ export function useActionEditorController() {
       const changes = formChanges(data);
       // The instructions go up before anything is written, so a failed upload saves nothing.
       if (needsInstructions(data)) {
+        if (!(await authorizeUpload()) || !inScope()) return;
         toastService.loading({
           title: formatMessage({ id: "app.actions.edit.uploadingInstructions" }),
         });

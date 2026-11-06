@@ -112,7 +112,8 @@ export type CommitmentFailureReason =
   | "membershipLost"
   | "commitmentClosed"
   | "identityConflict"
-  | "unavailable";
+  | "unavailable"
+  | "uploadPolicyRequired";
 
 export interface FailedCommitmentJob {
   jobId: string;
@@ -193,6 +194,8 @@ function explainTerminalFailure(
   lastError?: string
 ): Pick<FailedCommitmentJob, "reason" | "retryable"> {
   if (!lastError) return { reason: null, retryable: true };
+  if (lastError === "unavailable:upload-policy-required")
+    return { reason: "uploadPolicyRequired", retryable: true };
   if (lastError.startsWith("unavailable:")) return { reason: "unavailable", retryable: true };
   if (!lastError.startsWith("identity_conflict:")) return { reason: null, retryable: true };
 

@@ -13,6 +13,7 @@ import {
 } from "../../../modules/work/upload-kinds";
 import { isUploadJob } from "../../../modules/work/upload-state";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../../types/job-queue";
+import { uploadConsent } from "../../test-utils/upload-policy";
 
 vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: {} }));
 vi.mock("../../../modules/job-queue/job-media-conversion", () => ({
@@ -44,6 +45,7 @@ function job<Payload>(kind: string, payload: Payload): Job<Payload> {
 
 const workJob = () =>
   job<WorkJobPayload>("work", {
+    uploadConsent: uploadConsent(),
     actionUID: 7,
     gardenAddress: GARDEN,
     feedback: "Weeded the east beds",

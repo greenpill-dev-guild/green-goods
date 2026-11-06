@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { SheetHeader } from "@green-goods/shared/components/Dialog/SheetHeader";
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
@@ -398,6 +399,7 @@ export const GardenWork: React.FC = () => {
 
   return (
     <article>
+      <WorkUploadConsentDialog prompt={queuedWork.uploadPolicy} />
       <TopNav onBackClick={handleBack} overlay />
       <div className="padded pt-[var(--app-top-bar-height)]">
         <WorkViewSection

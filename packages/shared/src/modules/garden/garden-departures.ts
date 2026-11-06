@@ -12,6 +12,39 @@ const ROLE_LISTS = {
   community: "communities",
 } as const;
 const ROLES = Object.keys(ROLE_LISTS) as GardenRole[];
+const listeners = new Set<() => void>();
+const serverFilters = {
+  roster: withoutDepartedMembers,
+  stewardHints: withoutDepartedStewardHints,
+};
+let filters = serverFilters;
+
+function notifyFencesChanged() {
+  filters = { ...serverFilters };
+  for (const listener of listeners) listener();
+}
+
+function onFenceStorage(event: StorageEvent) {
+  if (event.key === STORAGE_KEY || event.key === null) notifyFencesChanged();
+}
+
+/** Both fetched and cached roster consumers reapply fences when another tab changes them. */
+export function subscribeToGardenFences(listener: () => void) {
+  if (listeners.size === 0) window.addEventListener("storage", onFenceStorage);
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) window.removeEventListener("storage", onFenceStorage);
+  };
+}
+
+export function getGardenFenceFilters() {
+  return filters;
+}
+
+export function getServerGardenFenceFilters() {
+  return serverFilters;
+}
 
 type Regrant = { block: bigint; roles: GardenRole[] };
 type Fence = { departedAt: string; regrant?: { block: string; roles: GardenRole[] } };
@@ -83,6 +116,7 @@ function save(next: Fences, changes: ReadonlyMap<string, Fence>) {
     for (const [entry, fence] of changes) unsaved.set(entry, fence);
     logger.warn("Could not save garden departures", { error });
   }
+  notifyFencesChanged();
 }
 
 function prefix(chainId: number, garden: string) {
@@ -106,13 +140,13 @@ export function recordGardenDeparture(
   save({ ...next, [entry]: fence }, new Map([[entry, fence]]));
 }
 
-export function getGardenDepartureBlock(
+export function getGardenFenceBlock(
   chainId: number,
   garden: string,
   account: string
 ): bigint | undefined {
   const fence = records()[key(chainId, garden, account)];
-  return fence && BigInt(fence.departedAt);
+  return fence && BigInt(fence.regrant?.block ?? fence.departedAt);
 }
 
 function applyRegrant(fence: Fence, { block, roles }: Regrant): Fence {
@@ -137,6 +171,19 @@ export function recordGardenRegrant(
   if (updated !== fence) save({ ...next, [entry]: updated }, new Map([[entry, updated]]));
 }
 
+/** The address-filtered indexer query can also contain pre-departure steward or owner data. */
+function withoutDepartedStewardHints<T extends { id: string }>(
+  gardens: T[],
+  chainId: number,
+  account: string
+): T[] {
+  const fences = records();
+  return gardens.filter(({ id }) => {
+    const fence = fences[key(chainId, id, account)];
+    return !fence || fence.regrant?.roles.some((role) => role === "owner" || role === "steward");
+  });
+}
+
 /** Apply to restored caches too. Each indexed role needs its own post-departure confirmation. */
 export function withoutDepartedMembers(gardens: Garden[], chainId: number): Garden[] {
   const fences = records();
@@ -155,34 +202,25 @@ export function withoutDepartedMembers(gardens: Garden[], chainId: number): Gard
   });
 }
 
-/** Unversioned roster absence proves no ordering. Read only fenced accounts present in the roster. */
-export async function reconcileGardenDepartures(
-  gardens: Garden[],
-  chainId: number,
-  readRejoined = async (garden: Address, account: Address, block: bigint) => {
-    const { readRolesAfterDeparture } = await import("./garden-departure-reads");
-    return readRolesAfterDeparture(chainId, garden, account, block);
-  }
-): Promise<Garden[]> {
-  const pending = records();
-  const reads = gardens.flatMap((garden) => {
-    const accounts = new Set(
-      ROLES.flatMap((role) =>
-        (garden[ROLE_LISTS[role]] ?? []).map((address) => address.toLowerCase())
-      )
-    );
-    return [...accounts].flatMap((account) => {
-      const entry = key(chainId, garden.id, account);
-      const fence = pending[entry];
-      return fence
-        ? [{ garden: garden.id as Address, account: account as Address, entry, fence }]
-        : [];
-    });
-  });
+async function readRegrant(garden: Address, account: Address, chainId: number, block: bigint) {
+  const { readRolesAfterDeparture } = await import("./garden-departure-reads");
+  return readRolesAfterDeparture(chainId, garden, account, block);
+}
 
+async function reconcileFences(
+  members: { garden: Address; account: Address }[],
+  chainId: number,
+  read: (garden: Address, account: Address, block: bigint) => Promise<Regrant | undefined>
+) {
+  const pending = records();
+  const reads = members.flatMap(({ garden, account }) => {
+    const entry = key(chainId, garden, account);
+    const fence = pending[entry];
+    return fence ? [{ garden, account, entry, fence }] : [];
+  });
   const results = await Promise.allSettled(
     reads.map(({ garden, account, fence }) =>
-      readRejoined(garden, account, BigInt(fence.departedAt))
+      read(garden, account, BigInt(fence.regrant?.block ?? fence.departedAt))
     )
   );
   const next = records();
@@ -203,5 +241,39 @@ export async function reconcileGardenDepartures(
     }
   }
   if (changes.size) save(next, changes);
+}
+
+/** A direct steward query also finds gardens outside the paged catalog. */
+export async function reconcileStewardHints(
+  gardens: { id: string }[],
+  chainId: number,
+  account: Address
+) {
+  await reconcileFences(
+    gardens.map(({ id }) => ({ garden: id as Address, account })),
+    chainId,
+    (garden, member, block) => readRegrant(garden, member, chainId, block)
+  );
+}
+
+/** Unversioned roster absence proves no ordering. Read only fenced accounts present in the roster. */
+export async function reconcileGardenDepartures(
+  gardens: Garden[],
+  chainId: number,
+  read: (garden: Address, account: Address, block: bigint) => Promise<Regrant | undefined> = (
+    garden,
+    account,
+    block
+  ) => readRegrant(garden, account, chainId, block)
+): Promise<Garden[]> {
+  const members = gardens.flatMap((garden) => {
+    const accounts = new Set(
+      ROLES.flatMap((role) =>
+        (garden[ROLE_LISTS[role]] ?? []).map((address) => address.toLowerCase() as Address)
+      )
+    );
+    return [...accounts].map((account) => ({ garden: garden.id as Address, account }));
+  });
+  await reconcileFences(members, chainId, read);
   return withoutDepartedMembers(gardens, chainId);
 }

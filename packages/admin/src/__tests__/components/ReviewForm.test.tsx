@@ -39,6 +39,10 @@ const {
   mockToastError: vi.fn(),
 }));
 
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
+
 vi.mock("@green-goods/shared/components/Audio/AudioRecorder", () => ({
   AudioRecorder: ({ onRecordingComplete }: { onRecordingComplete: (file: File) => void }) => (
     <button

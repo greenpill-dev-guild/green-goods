@@ -16,7 +16,7 @@ import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
-import { expect, fn, mocked, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
@@ -160,6 +160,49 @@ const meta: Meta<typeof GardenCommitment> = {
 
 export default meta;
 type Story = StoryObj<typeof GardenCommitment>;
+
+const reviewedClaim = fn(async () => "queued");
+
+export const TakeUpReview: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("working", (page) => ({
+    ...page,
+    actKind: "takeUp",
+    seat: "bystander",
+    claimNeedsContext: false,
+    takeUpOpen: true,
+    acts: { ...page.acts, claimPersonal: reviewedClaim },
+    detail: page.detail
+      ? {
+          ...page.detail,
+          contributors: [],
+          commitment: {
+            ...page.detail.commitment,
+            direction: "REQUEST",
+            derivedState: "REQUESTED",
+            onchainState: "REQUESTED",
+            leadProvider: null,
+            counterparty: null,
+          },
+        }
+      : null,
+  })),
+  play: async ({ canvasElement }) => {
+    reviewedClaim.mockClear();
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole("button", { name: "Take This Up" }));
+    const review = within(await body.findByRole("dialog", { name: "Review This Promise" }));
+    await waitFor(() => expect(review.getByText("Riverside Commons Garden")).toBeVisible());
+    await expect(reviewedClaim).not.toHaveBeenCalled();
+    await userEvent.click(review.getByRole("button", { name: "Cancel" }));
+    await expect(reviewedClaim).not.toHaveBeenCalled();
+    await userEvent.click(await canvas.findByRole("button", { name: "Take This Up" }));
+    const confirmed = within(await body.findByRole("dialog", { name: "Review This Promise" }));
+    await userEvent.click(confirmed.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(reviewedClaim).toHaveBeenCalledTimes(1));
+  },
+};
 
 /** Amara leads the repair and has proof to add: Link Work and Add Proof share one row. */
 export const InProgress: Story = {

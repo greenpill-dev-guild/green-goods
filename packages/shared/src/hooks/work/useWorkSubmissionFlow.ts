@@ -1,3 +1,4 @@
+import { UploadPolicyCancelledError } from "../../modules/work/upload-policy";
 import { registerDraftFormReset } from "../../modules/work/draft-lifecycle";
 import { useIntl } from "react-intl";
 import {
@@ -222,7 +223,6 @@ export function useWorkSubmissionFlow(): {
         return;
       }
       setValidationErrors([]);
-      if (options.beforeAdmission && !(await options.beforeAdmission())) return;
       const imagesSnapshot = images.slice();
       if (DEBUG_ENABLED) {
         debugLog("[WorkProvider] Submitting work with validated draft", {
@@ -232,8 +232,13 @@ export function useWorkSubmissionFlow(): {
         });
       }
       try {
-        await workMutation.mutateAsync({ draft: draft as WorkDraft, images: imagesSnapshot });
+        await workMutation.mutateAsync({
+          draft: draft as WorkDraft,
+          images: imagesSnapshot,
+          beforeAdmission: options.beforeAdmission,
+        });
       } catch (error) {
+        if (error instanceof UploadPolicyCancelledError) return;
         if (DEBUG_ENABLED) {
           debugError("[WorkProvider] mutateAsync threw", error, { gardenAddress, actionUID });
         }

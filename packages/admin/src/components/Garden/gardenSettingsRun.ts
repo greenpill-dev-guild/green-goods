@@ -90,6 +90,7 @@ interface GardenSettingsSaveInput {
   values: SettingsDraft;
   /** Present when several fields can go as one batch now. Never rejects. */
   sendBatch?: (changes: readonly GardenSettingsChange[]) => Promise<GardenSettingsBatchOutcome>;
+  authorizeBanner: () => Promise<boolean>;
   uploadBanner: (file: File) => Promise<string>;
   /** Sends one field and resolves with the transaction that carried it. */
   writeField: (
@@ -208,6 +209,12 @@ async function saveOneAtATime(input: GardenSettingsSaveInput): Promise<void> {
  * when the person's rail can do that; everything else goes one field at a time.
  */
 export async function runGardenSettingsSave(input: GardenSettingsSaveInput): Promise<void> {
+  if (
+    input.values.bannerFile &&
+    input.fields.includes("banner") &&
+    !(await input.authorizeBanner())
+  )
+    return;
   if (input.sendBatch && input.fields.length > 1) {
     if (await saveWithOneSignature(input, input.sendBatch)) return;
   }
