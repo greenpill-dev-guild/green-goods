@@ -40,6 +40,34 @@ async function expectStableLogoHandoff(page: Page, expectedTop: number) {
   expect(react!.top).toBeCloseTo(expectedTop, 0);
 }
 
+function recoveryWorkStorage(write: boolean): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    // Disposable IndexedDB fixtures stand in for locally saved work during the restart.
+    const open = indexedDB.open("pwa-recovery-test");
+    open.onupgradeneeded = () => open.result.createObjectStore("work");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction("work", write ? "readwrite" : "readonly");
+      const work = tx.objectStore("work");
+      if (write) {
+        work.put("draft notes", "draft");
+        work.put(new Uint8Array([1, 2, 3]), "queued upload");
+      }
+      const draft = work.get("draft");
+      const upload = work.get("queued upload");
+      tx.oncomplete = () => {
+        db.close();
+        resolve({ draft: draft.result, upload: Array.from(upload.result ?? []) });
+      };
+      tx.onabort = () => {
+        db.close();
+        reject(tx.error);
+      };
+    };
+  });
+}
+
 test("production navigation cache restores the anonymous shell offline and is required", async ({
   page,
   context,
@@ -72,6 +100,42 @@ test("production navigation cache restores the anonymous shell offline and is re
   await info.attach("phone-logo-handoff", {
     body: await page.screenshot(),
     contentType: "image/png",
+  });
+  await test.step("apply a waiting update from the mobile startup screen", async () => {
+    // A different script URL installs a genuine waiting worker for the same
+    // scope. The worker and its precache come from the production build.
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.register("/sw.js?recovery-proof=1", { scope: "/home" });
+    });
+    await page.waitForFunction(async () =>
+      (await navigator.serviceWorker.getRegistration())?.waiting?.scriptURL.includes(
+        "recovery-proof=1"
+      )
+    );
+    await page.evaluate(recoveryWorkStorage, true);
+    await cdp.send("Network.setBlockedURLs", { urls: ["*/assets/index-*.js"] });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Taking longer to load.")).toBeVisible({ timeout: 10_000 });
+    const startupScreenshot = info.outputPath("mobile-startup-recovery.png");
+    await page.screenshot({ path: startupScreenshot });
+    await info.attach("mobile-startup-recovery", { path: startupScreenshot });
+    await cdp.send("Network.setBlockedURLs", { urls: [] });
+    await page.getByRole("button", { name: "Try Again" }).click();
+    await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 25_000 });
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          navigator.serviceWorker.controller?.scriptURL.includes("recovery-proof=1")
+        )
+      )
+      .toBe(true);
+    expect(await page.evaluate(recoveryWorkStorage, false)).toEqual({
+      draft: "draft notes",
+      upload: [1, 2, 3],
+    });
+    expect(await page.evaluate(() => localStorage.getItem("gg-crash-reports"))).toContain(
+      "startup_module_failed"
+    );
   });
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.reload();
@@ -193,6 +257,30 @@ test("production navigation cache restores the anonymous shell offline and is re
   await info.attach("public-home-evidence-failure", {
     body: await page.screenshot({ fullPage: true }),
     contentType: "image/png",
+  });
+  await test.step("recover a browser app URL on a phone viewport", async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    // The preceding negative control removed this context's cached document.
+    // Exercise the website's normal network entry in a plain browser visit.
+    const websiteSession = await context.newCDPSession(page);
+    await websiteSession.send("Network.enable");
+    await websiteSession.send("Network.setBypassServiceWorker", { bypass: true });
+    await page.goto("/home/profile?presentation=website");
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await websiteSession.send("Network.setBlockedURLs", { urls: ["*/assets/index-*.js"] });
+    await page.goto("/home/profile?presentation=website");
+    const home = page.getByRole("link", { name: "Go to Homepage" });
+    await expect(home).toBeVisible();
+    await expect(home).toHaveAttribute("href", "/");
+    const websiteScreenshot = info.outputPath("mobile-website-homepage-recovery.png");
+    await page.screenshot({ path: websiteScreenshot });
+    await info.attach("mobile-website-homepage-recovery", { path: websiteScreenshot });
+    await websiteSession.send("Network.setBlockedURLs", { urls: [] });
+    await home.click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await websiteSession.detach();
   });
 });
 
