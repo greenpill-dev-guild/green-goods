@@ -6,6 +6,7 @@ import type {
 } from "../modules/garden/leave-garden-command";
 import { getTransactionScopeKey, type TxResult } from "../modules/transactions/types";
 
+/** Scope a checkpoint to one garden, account and chain. */
 export function gardenLeaveScope(command: LeaveGardenCommand) {
   return `${getTransactionScopeKey(command.userAddress, command.chainId)}:${command.gardenAddress.toLowerCase()}`;
 }

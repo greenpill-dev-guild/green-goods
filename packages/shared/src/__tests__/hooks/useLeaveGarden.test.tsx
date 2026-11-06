@@ -449,13 +449,31 @@ it("does not let an old recovered receipt bypass a newer departure block", async
   );
   const { result } = setup();
   await act(async () => {
-    await result.current.reconcileDeparture();
+    await expect(result.current.reconcileDeparture()).rejects.toThrow(
+      "transaction-confirmation-pending"
+    );
   });
+  expect(result.current.hasPendingDeparture).toBe(true);
   expect(fakes.rejoined).toHaveBeenCalledWith(42161, address, account, 50n);
   expect(
     withoutDepartedMembers([createMockGarden({ id: address, gardeners: [account] })], 42161)[0]
       .gardeners
   ).toEqual([]);
+});
+
+it("keeps a confirmed receipt retryable if a role read fails and no role is verified", async () => {
+  const command = { gardenAddress: address, userAddress: account, chainId: 42161 };
+  useGardenLeaveStore.getState().record(command, { hash: "0xabc", sponsored: false });
+  fakes.rejoined.mockResolvedValue({ block: 50n, roles: [], complete: false });
+  const { result, client } = setup();
+  await act(async () => {
+    await expect(result.current.reconcileDeparture()).rejects.toThrow(
+      "transaction-confirmation-pending"
+    );
+  });
+  expect(result.current.hasPendingDeparture).toBe(true);
+  expect(client.getQueryData(gardensKeys.byChain(42161))).toMatchObject([{ gardeners: [account] }]);
+  expect(fakes.wallet).not.toHaveBeenCalled();
 });
 
 it("clears a join submitted before the recovered leave", async () => {
@@ -499,7 +517,7 @@ it("reconciles a checkpoint written by another tab without requesting a signatur
   });
   act(() => {
     localStorage.setItem(key, checkpoint);
-    window.dispatchEvent(new StorageEvent("storage", { key, newValue: checkpoint }));
+    window.dispatchEvent(Object.assign(new Event("storage"), { key }));
   });
   expect(result.current.hasPendingDeparture).toBe(true);
   await act(async () => {

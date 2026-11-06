@@ -38,10 +38,12 @@ export function subscribeToGardenFences(listener: () => void) {
   };
 }
 
+/** Give React Query a new filter identity when storage changes. */
 export function getGardenFenceFilters() {
   return filters;
 }
 
+/** Use a stable filter identity for server rendering and hydration. */
 export function getServerGardenFenceFilters() {
   return serverFilters;
 }
@@ -126,6 +128,7 @@ function key(chainId: number, garden: string, account: string) {
   return prefix(chainId, garden) + account.toLowerCase();
 }
 
+/** Fence the departed account’s roles without replacing a newer departure. */
 export function recordGardenDeparture(
   chainId: number,
   garden: string,
@@ -140,6 +143,7 @@ export function recordGardenDeparture(
   save({ ...next, [entry]: fence }, new Map([[entry, fence]]));
 }
 
+/** Return the newest chain observation that an incoming role read must include. */
 export function getGardenFenceBlock(
   chainId: number,
   garden: string,
@@ -157,6 +161,7 @@ function applyRegrant(fence: Fence, { block, roles }: Regrant): Fence {
   return { ...fence, regrant: { block: readBlock, roles } };
 }
 
+/** Release only the roles verified at or after the last observation. */
 export function recordGardenRegrant(
   chainId: number,
   garden: string,

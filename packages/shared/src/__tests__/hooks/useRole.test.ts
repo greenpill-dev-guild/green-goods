@@ -87,7 +87,7 @@ describe("useRole", () => {
     try {
       act(() => {
         localStorage.setItem(key, fence);
-        window.dispatchEvent(new StorageEvent("storage", { key, newValue: fence }));
+        window.dispatchEvent(Object.assign(new Event("storage"), { key }));
       });
       expect(result.current.stewardGardens).toEqual([gardens[0]]);
       expect(result.current.isProtocolTeam).toBe(false);

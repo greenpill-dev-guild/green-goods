@@ -11,6 +11,7 @@ import {
 } from "../../modules/garden/garden-departures";
 import type { Address } from "../../types/domain";
 
+/** Share the same detail cache between individual and batched garden lookups. */
 export function getGardenRecordOptions(gardenId: Address) {
   return {
     queryKey: gardensKeys.detail(gardenId, DEFAULT_CHAIN_ID),

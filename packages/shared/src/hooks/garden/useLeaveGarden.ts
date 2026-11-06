@@ -140,12 +140,11 @@ export function useLeaveGarden(gardenAddress: Address) {
           if (session.current !== origin)
             throw new Error(formatMessage({ id: "app.garden.leave.session" }));
         };
-        const recovering =
-          mode === "reconcile" ||
-          Boolean(useGardenLeaveStore.getState().load({ gardenAddress, userAddress, chainId }));
+        const submission = { gardenAddress, userAddress, chainId };
+        const savedReceipt = useGardenLeaveStore.getState().load(submission);
+        const recovering = mode === "reconcile" || Boolean(savedReceipt);
         const hasPendingJoin = () =>
           pendingJoinGardenIds(userAddress).has(gardenAddress.toLowerCase());
-        const submission = { gardenAddress, userAddress, chainId };
         let departed = true;
         const confirmed = async (_command?: LeaveGardenCommand, blockNumber = 0n) => {
           let regrant: Awaited<ReturnType<typeof readRolesAfterDeparture>>;
@@ -155,10 +154,17 @@ export function useLeaveGarden(gardenAddress: Address) {
             try {
               regrant = await readRolesAfterDeparture(chainId, gardenAddress, userAddress, minimum);
               // An older receipt cannot undo a departure recorded while its role read was running.
-              if ((getGardenFenceBlock(chainId, gardenAddress, userAddress) ?? 0n) > minimum)
+              if (
+                regrant &&
+                (getGardenFenceBlock(chainId, gardenAddress, userAddress) ?? 0n) > regrant.block
+              )
                 regrant = undefined;
             } catch {
-              /* An unknown current role cannot negate the confirmed departure. */
+              /* The saved receipt stays available if current membership cannot be verified. */
+            }
+            if (!regrant?.complete && !regrant?.roles.length) {
+              if (savedReceipt) throw new TransactionConfirmationPendingError(savedReceipt);
+              throw new Error("Current garden membership could not be verified");
             }
           }
           departed = !regrant?.roles.length;
