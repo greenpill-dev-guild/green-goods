@@ -49,6 +49,7 @@ export interface PreparationDeps {
 type Blocker =
   | "paused"
   | "consent_withdrawn"
+  | "policy_changed"
   | "stale"
   | "role_missing"
   | "garden_unlisted"
@@ -69,19 +70,22 @@ function stillPublishable(
     lifecycleState(current) !== "preparing"
   )
     return "stale";
-  if (
-    !confirmation ||
-    !hasPublicationConsent(
-      core,
-      draft.id,
-      current.revision,
-      confirmation.summaryDigest,
-      WORK_UPLOAD_POLICY_VERSION
-    )
-  )
-    return "consent_withdrawn";
-  if (!activeConsentId(core, subjectId, "processing", WORK_UPLOAD_POLICY_VERSION))
-    return "consent_withdrawn";
+  if (!confirmation) return "consent_withdrawn";
+  const hasProcessing = activeConsentId(core, subjectId, "processing", WORK_UPLOAD_POLICY_VERSION);
+  const hasPublication = hasPublicationConsent(
+    core,
+    draft.id,
+    current.revision,
+    confirmation.summaryDigest,
+    WORK_UPLOAD_POLICY_VERSION
+  );
+  if (!hasProcessing || !hasPublication) {
+    const wasProcessingAllowed = hasProcessing || activeConsentId(core, subjectId, "processing");
+    const wasPublicationAllowed =
+      hasPublication ||
+      hasPublicationConsent(core, draft.id, current.revision, confirmation.summaryDigest);
+    return wasProcessingAllowed && wasPublicationAllowed ? "policy_changed" : "consent_withdrawn";
+  }
   if (!readControl(core, "publication").enabled) return "paused";
   return null;
 }
@@ -339,7 +343,8 @@ export function retryPreparation(core: ReportingCore, draftId: string): boolean 
     !draft ||
     !operation ||
     lifecycleState(draft) !== "preparationFailed" ||
-    operation.state !== "preparation_failed"
+    operation.state !== "preparation_failed" ||
+    operation.failureCode === "policy_changed"
   ) {
     return false;
   }

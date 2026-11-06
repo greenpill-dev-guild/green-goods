@@ -7,7 +7,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
-import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
@@ -30,6 +30,10 @@ test.describe("Admin Authentication", () => {
   });
 
   test.describe("Dev mock-auth flow", () => {
+    test.beforeEach(async ({ context }) => {
+      await seedAcceptedUploadTerms(context, ADMIN_URL, ["steward", "deployer"]);
+    });
+
     // Each test boots the signed-in cockpit one to three times. A boot shows "Opening your
     // workspace…" for 10 to 20 seconds on a quiet clean-room dev server, and the first also
     // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never

@@ -146,7 +146,6 @@ class Blockchain {
   async submitWork(params: SubmitWorkParams): Promise<{ txHash: Hex; workUID: Hex }> {
     const { submitWorkBot } = await import("@green-goods/shared/modules/work/bot-submission");
     const account = privateKeyToAccount(params.privateKey);
-
     const walletClient = createWalletClient({
       account,
       chain: this.chain,
@@ -161,6 +160,7 @@ class Blockchain {
         title: params.workData.title,
         timeSpentMinutes: params.workData.timeSpentMinutes ?? 0,
         feedback: params.workData.feedback,
+        uploadConsent: params.workData.uploadConsent,
         media: [],
         details: {
           plantSelection: params.workData.plantSelection,

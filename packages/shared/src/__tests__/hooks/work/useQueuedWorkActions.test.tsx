@@ -81,7 +81,10 @@ describe("useQueuedWorkActions", () => {
   });
 
   it("requires consent for a legacy draft before claiming it or retrying", async () => {
-    const job = queuedWorkJob({ payload: { uploadConsent: undefined } });
+    const job = queuedWorkJob({
+      payload: { uploadConsent: undefined },
+      meta: { waitingReason: "upload-policy-required", waitingForDependency: true },
+    });
     mocks.getJob.mockResolvedValue(job);
     let accept!: (value: ReturnType<typeof uploadConsent>) => void;
     mocks.request.mockReturnValue(
@@ -103,6 +106,8 @@ describe("useQueuedWorkActions", () => {
       await pending;
     });
     expect(job.payload.uploadConsent).toEqual(uploadConsent());
+    expect(job.meta?.waitingReason).toBeUndefined();
+    expect(job.meta?.waitingForDependency).toBe(false);
     expect(mocks.release).toHaveBeenCalledOnce();
     expect(mocks.retryJob).toHaveBeenCalledOnce();
   });

@@ -197,7 +197,7 @@ export const TakeUpReview: Story = {
     await expect(reviewedClaim).not.toHaveBeenCalled();
     await userEvent.click(review.getByRole("button", { name: "Cancel" }));
     await expect(reviewedClaim).not.toHaveBeenCalled();
-    await userEvent.click(canvas.getByRole("button", { name: "Take This Up" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Take This Up" }));
     const confirmed = within(await body.findByRole("dialog", { name: "Review This Promise" }));
     await userEvent.click(confirmed.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(reviewedClaim).toHaveBeenCalledTimes(1));

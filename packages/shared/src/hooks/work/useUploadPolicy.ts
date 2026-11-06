@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createStore, get, set } from "idb-keyval";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address, WorkUploadConsent } from "../../types/domain";
@@ -74,8 +74,6 @@ async function rememberSkip(owner: Address) {
 export function useUploadPolicy(address: Address | null, locale: string, promptAtSignIn = false) {
   const owner = (address?.toLowerCase() as Address | undefined) ?? null;
   const identity = useRef({ owner, generation: 0 });
-  if (identity.current.owner !== owner)
-    identity.current = { owner, generation: identity.current.generation + 1 };
   const pending = useRef<Pending | null>(null);
   const [state, setState] = useState<PromptState | null>(null);
   const cancel = useCallback(() => {
@@ -84,11 +82,16 @@ export function useUploadPolicy(address: Address | null, locale: string, promptA
     setState(null);
     current?.reject(new UploadPolicyCancelledError());
   }, []);
-  useEffect(() => cancel, [owner, cancel]);
+  useLayoutEffect(() => {
+    if (identity.current.owner !== owner)
+      identity.current = { owner, generation: identity.current.generation + 1 };
+    return cancel;
+  }, [owner, cancel]);
 
   const start = useCallback(
     (reason: PromptReason): Promise<WorkUploadConsent> => {
-      if (!owner || pending.current) return Promise.reject(new UploadPolicyCancelledError());
+      if (!owner || identity.current.owner !== owner || pending.current)
+        return Promise.reject(new UploadPolicyCancelledError());
       return new Promise((resolve, reject) => {
         const current: Pending = {
           owner,

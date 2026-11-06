@@ -10,7 +10,7 @@
  */
 import { expect, type Page, type Route, test } from "@playwright/test";
 import { mockSepoliaRpc } from "../helpers/mock-backend";
-import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
@@ -181,6 +181,7 @@ async function mockAdminCockpitBackend(
 
 async function setupMockSteward(page: Page, fixture: CockpitFixture = {}) {
   const helper = new AdminTestHelper(page);
+  await seedAcceptedUploadTerms(page.context(), ADMIN_URL, ["steward"]);
   await helper.enableMockAuth("steward");
   await mockAdminCockpitBackend(page, fixture);
   return helper;

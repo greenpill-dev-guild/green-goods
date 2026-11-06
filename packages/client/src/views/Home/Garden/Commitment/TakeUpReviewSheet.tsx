@@ -57,7 +57,7 @@ export function TakeUpReviewSheet({
       }}
     >
       <div className="space-y-4">
-        <h3 className="text-label-lg">{heading}</h3>
+        <h3 className="type-title-md">{heading}</h3>
         <CommitmentPlace
           showGardenAddressWhenUnknown
           chainId={controller.chainId}

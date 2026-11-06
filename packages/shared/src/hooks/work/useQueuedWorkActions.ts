@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { logger } from "../../modules/app/logger";
@@ -38,7 +38,9 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
   const { formatMessage, locale } = useIntl();
   const owner = usePrimaryAddress() as Address | null;
   const currentWork = useRef({ owner, workId });
-  currentWork.current = { owner, workId };
+  useLayoutEffect(() => {
+    currentWork.current = { owner, workId };
+  }, [owner, workId]);
   const policy = useUploadPolicy(owner, locale);
   const [isTryingAgain, setIsTryingAgain] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
@@ -75,6 +77,10 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
               assertWorkUploadConsent(receipt, owner);
               (stored.payload as WorkJobPayload).uploadConsent = receipt;
               const { preparation: _preparation, ...meta } = stored.meta ?? {};
+              if (meta.waitingReason === "upload-policy-required") {
+                delete meta.waitingReason;
+                meta.waitingForDependency = false;
+              }
               stored.meta = meta;
             });
           } finally {

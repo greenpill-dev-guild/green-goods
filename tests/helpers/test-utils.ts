@@ -1,4 +1,5 @@
 import { type BrowserContext, type Page } from "@playwright/test";
+import { WORK_UPLOAD_POLICY_VERSION } from "../../packages/shared/src/modules/work/upload-policy";
 import { type MockClientBackendOptions, mockClientBackend } from "./mock-backend";
 
 // ============================================================================
@@ -27,6 +28,45 @@ const AUTH_STORAGE_KEYS = {
   authMode: "greengoods_auth_mode",
 };
 const DEV_MOCK_AUTH_STORAGE_KEY = "greengoods_dev_mock_auth";
+
+const MOCK_ACCOUNT_ADDRESSES = {
+  user: "0x1234567890123456789012345678901234567890",
+  steward: "0x04D60647836bcA09c37B379550038BdaaFD82503",
+  deployer: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+} as const;
+
+/** Initialize a fresh test context as a returning member before app navigation. */
+export async function seedAcceptedUploadTerms(
+  context: BrowserContext,
+  url: string,
+  roles: Array<keyof typeof MOCK_ACCOUNT_ADDRESSES>
+) {
+  const records = roles.map((role) => {
+    const address = MOCK_ACCOUNT_ADDRESSES[role].toLowerCase();
+    return {
+      key: `11155111:${address}:${WORK_UPLOAD_POLICY_VERSION}`,
+      value: {
+        uploaderAddress: address,
+        policyVersion: WORK_UPLOAD_POLICY_VERSION,
+        termsAcceptedAt: "2026-11-05T00:00:00.000Z",
+        permissionsConfirmed: true,
+        locale: "en",
+      },
+    };
+  });
+  const origin = {
+    origin: new URL(url).origin,
+    localStorage: [],
+    indexedDB: [
+      {
+        name: "green-goods-upload-policy",
+        version: 1,
+        stores: [{ name: "acceptances", autoIncrement: false, indexes: [], records }],
+      },
+    ],
+  };
+  await context.setStorageState({ cookies: [], origins: [origin] });
+}
 
 // ============================================================================
 // CLIENT AUTH HELPERS
@@ -142,6 +182,11 @@ export async function setupAuthenticatedClient(
   backend?: MockClientBackendOptions
 ) {
   const helper = new ClientTestHelper(page);
+  if (role !== "disconnected") {
+    await seedAcceptedUploadTerms(page.context(), TEST_URLS.client, [
+      role === "operator" ? "steward" : role,
+    ]);
+  }
   await helper.enableMockAuth(role);
   const scenario = await mockClientBackend(page, backend);
   return Object.assign(helper, { backend: scenario });

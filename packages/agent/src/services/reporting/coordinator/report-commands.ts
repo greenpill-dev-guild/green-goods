@@ -9,11 +9,17 @@ import { invalidateConfirmation, recordConfirmation } from "../confirmations";
 import type { ReportingCopyKey } from "../copy";
 import type { DraftRecord } from "../drafts";
 import { enqueueJob } from "../jobs";
+import { operationForSubject } from "../operations";
 import { setParticipantLocale } from "../participants";
 import { retryPreparation } from "../preparation";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import type { ChatCommand } from "./commands";
-import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
+import {
+  commitContentChange,
+  commitLifecycle,
+  EDITABLE_STATES,
+  lifecycleState,
+} from "./draft-commit";
 import { askEditMenu } from "./edit-menu";
 import { askGarden, askJoin, sayJoin } from "./garden-step";
 import { askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
@@ -209,6 +215,18 @@ export function handleReportCommand(
       });
     }
     case "retry": {
+      if (
+        draft &&
+        lifecycleState(draft) === "preparationFailed" &&
+        operationForSubject(core, { draftId: draft.id })?.failureCode === "policy_changed"
+      ) {
+        const reopened = commitContentChange(core, draft, {
+          content: draft.content,
+          cause: "upload-policy-renewed",
+          sourceEventId: ctx.event.id,
+        });
+        return promptNextStep(writer, reopened, external.catalog);
+      }
       if (draft && retryPreparation(core, draft.id)) return writer.say("publish.sending");
       if (draft && lifecycleState(draft) === "authority") {
         enqueueJob(core, {

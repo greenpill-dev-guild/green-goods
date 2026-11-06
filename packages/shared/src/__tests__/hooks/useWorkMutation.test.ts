@@ -36,13 +36,6 @@ vi.mock("../../hooks/work/useUploadPolicy", () => ({
     prompt: null,
   }),
 }));
-import { uploadConsent } from "../test-utils/upload-policy";
-const MOCK_ADDRESSES = {
-  ...BASE_ADDRESSES,
-  user: "0x1111111111111111111111111111111111111111",
-  smartAccount: "0x3333333333333333333333333333333333333333",
-} as const;
-
 // Mock modules
 vi.mock("../../modules/job-queue/default-instance", () => ({
   jobQueue: {
@@ -228,6 +221,13 @@ import {
 } from "../test-utils/mock-factories";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { mock } from "../test-utils/render-helpers";
+import { uploadConsent } from "../test-utils/upload-policy";
+
+const MOCK_ADDRESSES = {
+  ...BASE_ADDRESSES,
+  user: "0x1111111111111111111111111111111111111111",
+  smartAccount: "0x3333333333333333333333333333333333333333",
+} as const;
 
 describe("hooks/work/useWorkMutation", () => {
   let queryClient: QueryClient;

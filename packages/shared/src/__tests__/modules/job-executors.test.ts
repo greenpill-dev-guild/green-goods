@@ -54,6 +54,7 @@ vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
 }));
 
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
+import { uploadConsent } from "../test-utils/upload-policy";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -327,6 +328,7 @@ describe("work and approval job executors", () => {
       actionUID: 3,
       gardenAddress: GARDEN,
       feedback: "Done",
+      uploadConsent: uploadConsent(USER),
     });
 
     await expect(
