@@ -76,28 +76,33 @@ for (const scenario of workExplorationCases(process.env.GG_BROWSER_SEED)) {
       }
       throw new Error(`Unexpected exploration request: ${request.method()} ${url.origin}`);
     });
-    const helper = await setupAuthenticatedClient(page, scenario.role, {
-      garden,
-      required: ["eas: Attestations", "eas: WorkListPage"],
-      attestations: [
-        {
-          id: uid,
-          schemaId: deployment.schemas.workSchemaUID,
-          attester: "0x1234567890123456789012345678901234567890",
-          recipient: garden.id,
-          timeCreated: 1791158400,
-          decodedDataJson: JSON.stringify(
-            Object.entries({
-              actionUID: 1,
-              title: "Seeded planting evidence",
-              feedback: scenario.feedback,
-              metadata: "",
-              media: [],
-            }).map(([name, value]) => ({ name, value: { value } }))
-          ),
-        },
-      ],
-    });
+    const helper = await setupAuthenticatedClient(
+      page,
+      scenario.role,
+      {
+        garden,
+        required: ["eas: Attestations", "eas: WorkListPage"],
+        attestations: [
+          {
+            id: uid,
+            schemaId: deployment.schemas.workSchemaUID,
+            attester: "0x1234567890123456789012345678901234567890",
+            recipient: garden.id,
+            timeCreated: 1791158400,
+            decodedDataJson: JSON.stringify(
+              Object.entries({
+                actionUID: 1,
+                title: "Seeded planting evidence",
+                feedback: scenario.feedback,
+                metadata: "",
+                media: [],
+              }).map(([name, value]) => ({ name, value: { value } }))
+            ),
+          },
+        ],
+      },
+      { uploadTerms: "fresh" }
+    );
     const outage = (value: boolean) => {
       helper.backend.setUnavailable("eas: Attestations", value);
       helper.backend.setUnavailable("eas: WorkListPage", value);
@@ -107,8 +112,12 @@ for (const scenario of workExplorationCases(process.env.GG_BROWSER_SEED)) {
       for (const action of scenario.actions) {
         log.push(action);
         await test.step(action, async () => {
-          if (action === "open")
+          if (action === "open") {
             await page.goto(`${pathname}?presentation=pwa`, { waitUntil: "domcontentloaded" });
+            const terms = page.getByRole("dialog", { name: "Before You Share" });
+            await terms.getByRole("button", { name: "Skip for Now" }).click({ timeout: 60000 });
+            await expect(terms).toBeHidden();
+          }
           if (action === "recover") {
             await expect(page.getByText("Couldn't load this work", { exact: true })).toBeVisible({
               timeout: 60000,

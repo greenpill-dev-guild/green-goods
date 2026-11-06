@@ -47,9 +47,11 @@ export function WorkStatusNotice({ work, isOnline }: { work: Work; isOnline: boo
               ? blockedReasonMessage(state.blockedReason)
               : (queuedWorkDetailMessage(state) ?? blockedReasonMessage(undefined)),
           body:
-            state.blockedReason && ACTION_ENDED_REASONS.has(state.blockedReason)
-              ? { id: "app.work.notice.blocked.actionEnded.body" }
-              : { id: "app.work.notice.blocked.body" },
+            state.blockedReason === "upload-policy-required"
+              ? { id: "app.work.uploadConsent.retry" }
+              : state.blockedReason && ACTION_ENDED_REASONS.has(state.blockedReason)
+                ? { id: "app.work.notice.blocked.actionEnded.body" }
+                : { id: "app.work.notice.blocked.body" },
         };
       case "failed":
         return {

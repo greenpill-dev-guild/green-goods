@@ -4,6 +4,7 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { RiFlagLine, RiSunLine } from "@remixicon/react";
 
 interface CommitmentPlaceProps {
@@ -11,6 +12,7 @@ interface CommitmentPlaceProps {
   commitment: CommitmentReadModel;
   /** The garden whose pool holds the promise. */
   garden: Address | null | undefined;
+  showGardenAddressWhenUnknown?: boolean;
 }
 
 /**
@@ -18,7 +20,12 @@ interface CommitmentPlaceProps {
  * with that cycle's glyph, and its garden. Each part shows once it resolves;
  * a promise outside any season names only its garden.
  */
-export function CommitmentPlace({ chainId, commitment, garden }: CommitmentPlaceProps) {
+export function CommitmentPlace({
+  chainId,
+  commitment,
+  garden,
+  showGardenAddressWhenUnknown = false,
+}: CommitmentPlaceProps) {
   const cycle = useCommitmentCycleLabel({ chainId, cycleId: commitment.cycleId });
   const { data: gardens = [] } = useGardens(chainId);
   const gardenName = garden
@@ -27,7 +34,7 @@ export function CommitmentPlace({ chainId, commitment, garden }: CommitmentPlace
   const isCampaign = cycle?.isCampaign ?? false;
   const cycleName = cycle?.name ?? null;
 
-  if (!cycleName && !gardenName) return null;
+  if (!cycleName && !gardenName && !(showGardenAddressWhenUnknown && garden)) return null;
   return (
     <p className="-mt-2 flex flex-wrap items-center gap-x-1.5 text-xs text-text-sub-600">
       {cycleName ? (
@@ -42,6 +49,9 @@ export function CommitmentPlace({ chainId, commitment, garden }: CommitmentPlace
       ) : null}
       {cycleName && gardenName ? <span aria-hidden="true">·</span> : null}
       {gardenName ? <span>{gardenName}</span> : null}
+      {!gardenName && showGardenAddressWhenUnknown && garden ? (
+        <AddressDisplay address={garden} interactive={false} />
+      ) : null}
     </p>
   );
 }

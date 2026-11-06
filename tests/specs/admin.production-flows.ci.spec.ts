@@ -12,7 +12,7 @@
 
 import { expect, type Page, test } from "@playwright/test";
 import { mockClientBackend } from "../helpers/mock-backend";
-import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { AdminTestHelper, seedAcceptedUploadTerms, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 const ROUTE_SMOKE_TEST_TIMEOUT_MS = 90_000;
@@ -44,6 +44,7 @@ const MOCK_GARDEN = {
 
 async function setupAuthenticatedAdmin(page: Page) {
   const helper = new AdminTestHelper(page);
+  await seedAcceptedUploadTerms(page.context(), ADMIN_URL, ["deployer"]);
   const backend = await mockClientBackend(page, {
     garden: MOCK_GARDEN,
     required: ["indexer: Gardens"],

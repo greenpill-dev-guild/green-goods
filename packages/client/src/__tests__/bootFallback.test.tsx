@@ -370,6 +370,12 @@ describe("presentation-specific boot fallback", () => {
         displayMode: "standalone",
       })
     ).toBe("website");
+    expect(
+      detectPresentation({
+        href: "https://www.greengoods.app/terms",
+        displayMode: "standalone",
+      })
+    ).toBe("website");
   });
 
   it.each([

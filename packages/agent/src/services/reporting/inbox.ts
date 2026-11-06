@@ -67,7 +67,7 @@ export function acceptInboundEvent(
         event.chat,
         provisionalExpiry
       ).id;
-      if (!activeConsentId(core, subjectId, "processing")) {
+      if (!activeConsentId(core, subjectId, "processing", core.settings.noticeVersion)) {
         state = "quarantined";
         expiresAt = provisionalExpiry;
       }

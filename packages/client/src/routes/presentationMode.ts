@@ -18,6 +18,7 @@ const PUBLIC_WEBSITE_PATHS = new Set([
   "/landing",
   "/privacy",
   "/strategy",
+  "/terms",
   "/vaults",
 ]);
 // Chat ceremony links open as website pages even when an installed app captures the link.

@@ -1,3 +1,4 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { Button } from "@green-goods/shared/components/Button";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
@@ -29,6 +30,7 @@ export function CampaignImageInput({
   source: string;
 }) {
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const [showUrlFallback, setShowUrlFallback] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export function CampaignImageInput({
     setIsUploading(true);
     setUploadError(null);
     try {
+      if (!(await authorizeUpload())) return;
       const result = await uploadFileToIPFS(nextFile, { source });
       const imageUrl = resolveIPFSUrl(result.cid);
       onFileChange(nextFile);

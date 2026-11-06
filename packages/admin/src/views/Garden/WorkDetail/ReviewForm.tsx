@@ -1,3 +1,4 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
 import { Button } from "@green-goods/shared/components/Button";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
@@ -64,6 +65,7 @@ export function ReviewForm({
   onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const primaryAddress = usePrimaryAddress();
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const { data: gardenerProtocolName } = useGreenGoodsEnsName(work.gardenerAddress);
@@ -135,10 +137,10 @@ export function ReviewForm({
     setIsSubmitting(true);
 
     try {
-      // Build review notes CID if audio exists
       let reviewNotesCID: string | undefined;
 
       if (reviewAudioFile) {
+        if (!(await authorizeUpload())) return false;
         try {
           reviewNotesCID = await uploadReviewNotes(reviewAudioFile, formData.feedback || "");
         } catch (uploadError) {
@@ -151,8 +153,6 @@ export function ReviewForm({
             title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
             message: formatMessage({ id: "app.toast.approval.errorWallet.message" }),
           });
-          setIsSubmitting(false);
-          setSubmittingAction(null);
           return false;
         }
       }

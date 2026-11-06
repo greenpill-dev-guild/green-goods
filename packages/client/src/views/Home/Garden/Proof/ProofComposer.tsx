@@ -1,6 +1,7 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
@@ -280,6 +281,7 @@ export function ProofComposer() {
   return (
     <>
       <SubmissionFlow flow={flow} keepFormStill renderStage={renderStage} />
+      <WorkUploadConsentDialog kind="evidence" prompt={controller.uploadPolicy} />
 
       <ImagePreviewDialog
         isOpen={previewIndex !== null}

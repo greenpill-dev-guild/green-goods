@@ -29,7 +29,7 @@ export function sendConsentNotice(writer: TurnWriter): void {
         { id: "decline", label: writer.text("consent.decline"), value: "decline" },
       ],
     },
-    () => writer.text("consent.notice", { processors })
+    () => writer.text("consent.notice", { processors, version: core.settings.noticeVersion })
   );
   core.db
     .query(

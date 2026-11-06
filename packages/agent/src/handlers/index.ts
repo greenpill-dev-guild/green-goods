@@ -244,7 +244,7 @@ async function handleCallback(
     return textResponse(agentMessage(message.locale, "sessionExpired.start"));
   }
 
-  switch (callbackData) {
+  switch (callbackData.replace(/^confirm_submission:.+$/, "confirm_submission")) {
     case "confirm_submission": {
       const idempotencyResponse = await getExistingIdempotencyResponse(
         "submit-confirm",

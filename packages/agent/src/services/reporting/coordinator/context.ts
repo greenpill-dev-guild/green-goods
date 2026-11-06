@@ -187,8 +187,16 @@ export function loadTurnContext(
           })
       : null;
   const notice = core.db
-    .query("SELECT notice_sent_at FROM channel_subjects WHERE id = $id")
-    .get({ id: event.channel_subject_id }) as { notice_sent_at: number | null } | null;
+    .query("SELECT notice_sent_at, notice_version FROM channel_subjects WHERE id = $id")
+    .get({ id: event.channel_subject_id }) as {
+    notice_sent_at: number | null;
+    notice_version: string | null;
+  } | null;
+  const processingConsent =
+    activeConsentId(core, event.channel_subject_id, "processing", core.settings.noticeVersion) !==
+    null;
+  const olderConsent =
+    !processingConsent && activeConsentId(core, event.channel_subject_id, "processing") !== null;
   return {
     event,
     album: album.map((item) => item.row),
@@ -198,7 +206,7 @@ export function loadTurnContext(
     conversationId: event.conversation_id,
     subjectId: event.channel_subject_id,
     binding,
-    processingConsent: activeConsentId(core, event.channel_subject_id, "processing") !== null,
+    processingConsent,
     locale: binding?.locale ?? message.locale ?? "en",
     prompt,
     draft,
@@ -208,7 +216,10 @@ export function loadTurnContext(
     intakeEnabled: readControl(core, "intake").enabled,
     modelEnabled: modelProcessingOn(core),
     modelSwitchOn: readControl(core, "model_processing").enabled,
-    noticeSent: Boolean(notice?.notice_sent_at),
+    noticeSent:
+      Boolean(notice?.notice_sent_at) &&
+      notice?.notice_version === core.settings.noticeVersion &&
+      (!olderConsent || prompt?.kind === "processing_consent"),
   };
 }
 
@@ -244,7 +255,7 @@ function planTurn(ctx: TurnContext): TurnPlan {
     // The notice offers HELP, and its reply reads nothing of what was sent, so it is answered
     // before consent too. Every other command waits for the answer to the notice.
     if (command?.kind === "help") return { kind: "command", command };
-    if (prompt?.kind === "processing_consent") {
+    if (ctx.noticeSent && prompt?.kind === "processing_consent") {
       const option = matchReply(prompt, message.replyId);
       const answer = option ? (option.value as "agree" | "decline") : consentAnswer(message.text);
       return answer ? { kind: "consent_answer", answer } : { kind: "hold" };

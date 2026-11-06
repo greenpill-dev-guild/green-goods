@@ -47,6 +47,10 @@ const workflow = vi.hoisted(() => {
   };
 });
 
+vi.mock("../../../hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
+
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: domainsState.walletAddress }),
 }));

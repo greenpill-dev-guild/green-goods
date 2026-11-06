@@ -10,6 +10,7 @@
  * ```
  */
 
+import type { WorkUploadConsent } from "@green-goods/shared/types/domain";
 import type { Hex } from "viem";
 
 // ============================================================================
@@ -223,6 +224,7 @@ export interface WorkDraftData {
   plantCount: number;
   feedback: string;
   media: string[];
+  uploadConsent?: WorkUploadConsent;
 }
 
 // ============================================================================
@@ -316,6 +318,7 @@ export interface SubmitWorkParams {
     plantCount: number;
     feedback: string;
     timeSpentMinutes?: number;
+    uploadConsent: WorkUploadConsent;
   };
   media?: Buffer[];
 }

@@ -1,3 +1,17 @@
+import type { Address } from "viem";
+import type { Domain } from "./domain";
+
+/** The uploader's acceptance of the versioned terms and public-sharing rules. */
+export interface WorkUploadConsent {
+  policyVersion: string;
+  uploaderAddress: Address;
+  termsAcceptedAt: string;
+  /** Messaging also records when the participant confirmed the exact report. */
+  publicSharingAcceptedAt?: string;
+  locale: "en" | "es" | "pt";
+  permissionsConfirmed: true;
+}
+
 export interface ApproximateWorkLocation {
   lat: number;
   lng: number;
@@ -52,4 +66,35 @@ export interface WorkUploadCheckpoint {
   submittedAt: string;
   files: Record<string, { attachmentId: string; contentHash: string; cid: string }>;
   metadata?: { contentHash: string; cid: string };
+}
+
+/**
+ * Work metadata v2 — generic, domain-aware.
+ * Stored as JSON on IPFS, CID referenced in EAS attestation.
+ */
+export interface WorkMetadata {
+  uploadConsent?: WorkUploadConsent;
+  attachments?: Array<{ cid: string; type: string }>;
+  schemaVersion: "work_metadata_v2";
+  domain: Domain;
+  actionSlug: string;
+  timeSpentMinutes: number;
+  details: Record<string, unknown>;
+  tags?: string[];
+  audioNoteCids?: string[];
+  clientWorkId: string;
+  submittedAt: string;
+  /** Optional GPS location (coarse, user-triggered) */
+  location?: ApproximateWorkLocation | null;
+}
+
+/**
+ * Work metadata v1 — old shape for legacy works.
+ * Kept for backward compatibility with existing attestations.
+ */
+export interface WorkMetadataV1 {
+  clientWorkId?: string;
+  plantCount: number;
+  plantSelection: string[];
+  timeSpentMinutes?: number;
 }

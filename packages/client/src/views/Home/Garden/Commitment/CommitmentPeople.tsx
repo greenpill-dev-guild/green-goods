@@ -6,7 +6,8 @@ import {
   type CommitmentSeat,
   selectOrdinaryConfirmer,
 } from "@green-goods/shared/commitment-pooling";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+
 import {
   RiCoupon3Line,
   RiGroupLine,
@@ -20,6 +21,16 @@ import {
 import { useIntl } from "react-intl";
 
 import { PromiseRewardRow } from "@/components/Features/Commitments";
+
+/** A confirmer's steward role belongs to the promise's pool garden, even on another garden's route. */
+export function stewardsForPromiseGarden(
+  poolGarden: Address | null | undefined,
+  garden: Pick<Garden, "id" | "stewards"> | null | undefined
+): readonly Address[] {
+  return poolGarden && garden && garden.id.toLowerCase() === poolGarden.toLowerCase()
+    ? garden.stewards
+    : [];
+}
 
 export interface CommitmentPeopleProps {
   commitment: CommitmentReadModel;

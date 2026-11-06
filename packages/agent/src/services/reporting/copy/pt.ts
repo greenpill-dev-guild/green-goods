@@ -28,7 +28,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho no jardim, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
+    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho no jardim, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nAo concordar, você aceita as regras de compartilhamento, versão {version}: https://www.greengoods.app/terms. Compartilhe apenas material seu ou que tenha permissão para publicar, com a permissão de cada adulto identificável. Não envie crianças identificáveis, informações pessoais sensíveis, abuso, ódio, ameaças, conteúdo sexual ou ilegal, fraude ou spam. Relatos confirmados ficam públicos na Arbitrum e no IPFS; cópias independentes podem permanecer para sempre.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
   "consent.processors": " e posso usar IA para entendê-los",
   "consent.agree": "Concordo",
   "consent.decline": "Não, obrigado",
@@ -175,7 +175,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.summaryCodeInstruction":
     "Responda CONFIRM {token} para registrar, EDIT para mudar ou CANCEL.",
   "report.summary":
-    "Confira seu relato para {garden}:\n• Atividade: {action}\n• Título: {title}\n• Tempo dedicado: {time}\n• Descrição: {feedback}{details}\n• Fotos: {photos}\n\nAo publicar, o título, a descrição, os detalhes e as fotos ficam públicos na Arbitrum e no IPFS e não podem ser apagados.{account}\n\n{instruction}",
+    "Confira seu relato para {garden}:\n• Atividade: {action}\n• Título: {title}\n• Tempo dedicado: {time}\n• Descrição: {feedback}{details}\n• Fotos: {photos}\n\nAo publicar, o título, a descrição, os detalhes e as fotos ficam públicos na Arbitrum e no IPFS e não podem ser apagados.{account}\n\nAo confirmar, você concorda em tornar público este relato exato e confirma que tem permissão para compartilhar seu conteúdo e cada adulto identificável. Ele não contém crianças identificáveis nem informações pessoais sensíveis.\n\n{instruction}",
   "report.summaryAccount": "\nSerá publicado pela sua conta {account}.",
   "report.confirm": "Confirmar",
   "report.edit": "Editar",
@@ -242,7 +242,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.accountTaken":
     "Essa conta já está vinculada a outro chat. Se for sua, envie RECOVER pelo chat que você quer usar. Suporte: {support}",
   "publish.consent":
-    "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. {instruction}",
+    "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. Ao publicar, você concorda em tornar público este relato exato e confirma que tem permissão para compartilhar seu conteúdo e cada adulto identificável. Ele não contém crianças identificáveis nem informações pessoais sensíveis. {instruction}",
   "publish.publish": "Publicar",
   "publish.signLink": "Abra esta página para revisar e assinar a publicação exata com sua {kind}.",
   "publish.signLabel": "Revisar e publicar",

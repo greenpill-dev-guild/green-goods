@@ -27,6 +27,12 @@ import {
   type ProfileAvatarResolution,
 } from "../../modules/profile-avatar";
 import type { ProfileAvatarRecord } from "../../public-contracts/profile-avatar";
+import { useIntl } from "react-intl";
+import { useUploadPolicy } from "../work/useUploadPolicy";
+import {
+  assertWorkUploadConsent,
+  UploadPolicyCancelledError,
+} from "../../modules/work/upload-policy";
 
 export type ProfileAvatarEditorStage =
   | "idle"
@@ -110,6 +116,8 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
   const chainId = editorOptions?.chainId ?? defaultChainId;
   const address = usePrimaryAddress() as Address | null;
   const auth = useAuth();
+  const { locale } = useIntl();
+  const { request: requestUploadPolicy, prompt: uploadPolicy } = useUploadPolicy(address, locale);
   const queryClient = useQueryClient();
   const { signMessageAsync } = useSignMessage();
   const avatar = useProfileAvatar(address, chainId);
@@ -197,6 +205,11 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
       setIsSaving(true);
       setStage("idle");
       try {
+        if (input.action === "set") {
+          const consent = await requestUploadPolicy();
+          if (!isCurrentOperation()) throw new UploadPolicyCancelledError();
+          assertWorkUploadConsent(consent, address);
+        }
         const record = await publishProfileAvatar(chainId, address, input, {
           get: profileAvatarTransport.get,
           save: profileAvatarTransport.save,
@@ -218,6 +231,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
         }
         return record;
       } catch (caught) {
+        if (caught instanceof UploadPolicyCancelledError) throw caught;
         if (isCurrentOperation()) {
           const restored = await loadDraft();
           if (restored) {
@@ -232,7 +246,16 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
         if (isCurrentOperation()) setIsSaving(false);
       }
     },
-    [address, chainId, editorIdentity, getFactoryArgs, loadDraft, queryClient, sign]
+    [
+      address,
+      chainId,
+      editorIdentity,
+      getFactoryArgs,
+      loadDraft,
+      queryClient,
+      sign,
+      requestUploadPolicy,
+    ]
   );
 
   const mutation = useMutation({
@@ -279,6 +302,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
 
   return {
     address,
+    uploadPolicy,
     record: avatar.data ?? null,
     draft,
     stage,

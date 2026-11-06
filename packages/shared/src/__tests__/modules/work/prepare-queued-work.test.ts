@@ -50,6 +50,18 @@ function dependencies(overrides: Partial<PrepareQueuedJobDependencies> = {}) {
 }
 
 describe("preparing a queued item for Upload all", () => {
+  it("blocks legacy work before conversion, simulation or upload until consent is recorded", async () => {
+    const work = queuedWork({ payload: { uploadConsent: undefined } });
+    const { deps, raw } = dependencies();
+    await expect(prepareQueuedJob(work, 42161, CLAIM, deps)).resolves.toBe("blocked");
+    expect(work.meta?.preparation).toMatchObject({
+      status: "blocked",
+      reason: "upload-policy-required",
+    });
+    expect(raw.convertMedia).not.toHaveBeenCalled();
+    expect(raw.simulateWork).not.toHaveBeenCalled();
+    expect(raw.encodeWork).not.toHaveBeenCalled();
+  });
   it("prepares a decision by simulating it, and signs nothing", async () => {
     const decision = queuedDecision();
     const { deps, raw } = dependencies();

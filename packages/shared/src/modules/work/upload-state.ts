@@ -9,8 +9,12 @@
  * @module modules/work/upload-state
  */
 
-import type { Job, WorkJobPayload } from "../../types/job-queue";
-import { hasRecordedSend, isTerminallyFailedJob } from "../job-queue/queue-policy";
+import type { Job } from "../../types/job-queue";
+import {
+  hasRecordedSend,
+  hasRevertedWorkSend,
+  isTerminallyFailedJob,
+} from "../job-queue/queue-policy";
 
 /** What background preparation last found for a queued item. */
 export type UploadPreparation =
@@ -101,11 +105,7 @@ export function queuedUploadStatus(
   job: Job,
   options: { takeUp?: Job | null } = {}
 ): QueuedUploadStatus {
-  if (
-    job.meta?.workTransactionReverted ||
-    (job.kind === "work" && (job.payload as WorkJobPayload).uploadCheckpoint?.transactionReverted)
-  )
-    return { state: "reverted" };
+  if (hasRevertedWorkSend(job)) return { state: "reverted" };
   if (hasRecordedSend(job)) return { state: "sent" };
   if (isTerminallyFailedJob(job)) return { state: "failed" };
   // However far it was prepared, a work goes only after the take-up of its promise.
@@ -115,6 +115,7 @@ export function queuedUploadStatus(
   const preparation = uploadPreparationOf(job);
   // A send attempt's own wait outranks an older preparation answer.
   const waiting = job.meta?.waitingReason;
+  if (waiting === "upload-policy-required") return { state: "blocked", reason: waiting };
   if (waiting === "photo-conversion-pending") return { state: "photo-pending" };
   if (waiting === "photo-needs-attention") return { state: "photo-needs-attention" };
   if (waiting === "video-needs-attention") return { state: "photo-needs-attention", video: true };

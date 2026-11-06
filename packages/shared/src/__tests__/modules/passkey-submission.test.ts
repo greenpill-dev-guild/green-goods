@@ -7,6 +7,7 @@ import {
   submitWorkWithPasskey,
   type PasskeySubmissionDeps,
 } from "../../modules/work/passkey-submission";
+import { uploadConsent } from "../test-utils/upload-policy";
 import type { Address } from "../../types/domain";
 import {
   createFakeSmartAccountClient,
@@ -33,7 +34,10 @@ const EAS_CONFIG = {
 function workParams(client: FakeSmartAccountClient | null = createFakeSmartAccountClient()) {
   return {
     client,
-    draft: createMockWorkDraft({ title: "" }),
+    draft: createMockWorkDraft({
+      title: "",
+      uploadConsent: client?.account ? uploadConsent(client.account.address) : undefined,
+    }),
     gardenAddress: GARDEN,
     actionUID: 7,
     actionTitle: "Plant trees",
@@ -75,7 +79,7 @@ describe("passkey work submission", () => {
     expect(deps.encodeWork).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Plant trees", actionUID: 7 }),
       11155111,
-      { gardenAddress: GARDEN, authMode: "passkey" }
+      { gardenAddress: GARDEN, authMode: "passkey", uploaderAddress: client.account!.address }
     );
     expect(deps.assertSmartAccountsAllowed).toHaveBeenCalledOnce();
     expect(client.sendTransaction).toHaveBeenCalledOnce();

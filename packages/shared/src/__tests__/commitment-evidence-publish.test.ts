@@ -12,6 +12,7 @@
 
 import { webcrypto } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { uploadConsent } from "./test-utils/upload-policy";
 import { bytesOf, cameraPhoto, cleanPhoto, photoFile } from "./test-utils/photo-fixtures";
 
 const store = new Map<string, Record<string, unknown>>();
@@ -81,7 +82,9 @@ function job(overrides: Record<string, unknown> = {}) {
     kind: "evidence",
     userAddress: HOLDER,
     meta: {},
+    ...overrides,
     payload: {
+      uploadConsent: uploadConsent(HOLDER),
       clientEvidenceId: "proof-1",
       commitmentId: 9n,
       creditedContributors: [HOLDER],
@@ -90,7 +93,6 @@ function job(overrides: Record<string, unknown> = {}) {
       links: ["https://example.org/before"],
       ...(overrides.payload as object),
     },
-    ...overrides,
   } as never;
 }
 
@@ -108,6 +110,25 @@ describe("publishing proof at sync", () => {
     vi.stubGlobal("crypto", { ...crypto, subtle: webcrypto.subtle });
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it.each([
+    ["missing", undefined],
+    ["stale", { ...uploadConsent(HOLDER), policyVersion: "2025-01-01" }],
+    ["another account's", uploadConsent(GARDEN)],
+  ])("holds proof with %s consent before processing files or publishing", async (_label, consent) => {
+    const result = await executeCommitmentQueueJob(
+      "job-evidence",
+      job({ payload: { uploadConsent: consent } }),
+      42161,
+      {} as never
+    );
+
+    expect(result).toEqual({ status: "unavailable", reason: "upload-policy-required" });
+    expect(mocks.convertQueuedHeicMedia).not.toHaveBeenCalled();
+    expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
+    expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
+    expect(mocks.executeCommitmentJob).not.toHaveBeenCalled();
+  });
 
   it("uploads the media, pins the document, writes the CID back, then attaches", async () => {
     const picked = photoFile(

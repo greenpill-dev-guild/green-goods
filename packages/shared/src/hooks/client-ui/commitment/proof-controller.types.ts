@@ -8,6 +8,7 @@ import type {
 } from "../../../modules/commitment-pooling/types";
 import type { CommitmentPoolingAvailability } from "../../../modules/commitment-pooling/types-core";
 import type { Address } from "../../../types/domain";
+import type { UploadPolicyPrompt } from "../../work/useUploadPolicy";
 import type { ProofBeat, ProofReadiness } from "./proofReadiness";
 import type { ProofContents } from "./proofContents";
 
@@ -91,5 +92,6 @@ export interface ProofComposerController {
   removeMedia: (index: number) => void;
   removeAudio: (index: number) => void;
   submit: () => Promise<boolean>;
+  uploadPolicy?: UploadPolicyPrompt | null;
   refetch: () => Promise<unknown>;
 }

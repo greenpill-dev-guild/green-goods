@@ -4,6 +4,43 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { publicCuration } from "@/content/publicCuration";
 
+const contactRequests = [
+  {
+    anchor: "account-deletion",
+    subject: "Delete my Green Goods account",
+    title: {
+      id: "public.contact.deletion.title",
+      defaultMessage: "Request account deletion",
+    },
+    body: {
+      id: "public.contact.deletion.body",
+      defaultMessage:
+        "Ask us to remove your account information and the off-chain data Green Goods and its providers hold about you. Afolabi and Matt handle requests within 30 days and may ask you to confirm control of the account. Public blockchain records cannot be erased, and independent copies of public files may remain. Review the privacy policy before sending your request. Never send a password, private key or recovery phrase.",
+    },
+    action: {
+      id: "public.contact.deletion.action",
+      defaultMessage: "Email an Account Deletion Request",
+    },
+  },
+  {
+    anchor: "report-a-concern",
+    subject: "Report a Green Goods concern",
+    title: {
+      id: "public.contact.report.title",
+      defaultMessage: "Report a concern",
+    },
+    body: {
+      id: "public.contact.report.body",
+      defaultMessage:
+        "Email the public work or listing link and describe the concern. Afolabi and Matt monitor this mailbox and will reply to acknowledge your report and explain the next step. Avoid sending sensitive information about other people. Sending an email does not automatically hide a public record.",
+    },
+    action: {
+      id: "public.contact.report.action",
+      defaultMessage: "Email a Report",
+    },
+  },
+];
+
 export default function Contact() {
   const { formatMessage } = useIntl();
   return (
@@ -77,6 +114,23 @@ export default function Contact() {
               </EditorialLinkArrow>
             </div>
           </div>
+          {contactRequests.map(({ anchor, subject, title, body, action }) => (
+            <div
+              key={anchor}
+              id={anchor}
+              className="mt-10 scroll-mt-24 border-t border-stroke-soft-200 pt-7"
+            >
+              <EditorialHeading size="sub">{formatMessage(title)}</EditorialHeading>
+              <EditorialLede className="mt-4">{formatMessage(body)}</EditorialLede>
+              <div className="mt-6">
+                <EditorialLinkArrow
+                  to={`mailto:contact@greengoods.app?subject=${encodeURIComponent(subject)}`}
+                >
+                  {formatMessage(action)}
+                </EditorialLinkArrow>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
       <PublicFooter variant="soil" />

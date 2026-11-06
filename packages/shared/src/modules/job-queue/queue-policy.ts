@@ -1,4 +1,4 @@
-import type { Job, SendCheckpoint } from "../../types/job-queue";
+import type { Job, SendCheckpoint, WorkJobPayload } from "../../types/job-queue";
 
 export const MAX_RETRIES = 5;
 export const COMMITMENT_WAITING_REPROBE_MS = 30_000;
@@ -91,6 +91,17 @@ export function hasRecordedSend(job: Pick<Job, "kind" | "payload">): boolean {
   const sent = sendCheckpointOf(job);
   return Boolean(
     sent?.batchReference || sent?.broadcast || sent?.transactionHash || sent?.broadcastPending
+  );
+}
+
+/** A confirmed revert permits a fresh Work send. A missing receipt does not. */
+export function hasRevertedWorkSend(job: Pick<Job, "kind" | "payload" | "meta">): boolean {
+  return (
+    job.kind === "work" &&
+    Boolean(
+      job.meta?.workTransactionReverted ||
+        (job.payload as WorkJobPayload).uploadCheckpoint?.transactionReverted
+    )
   );
 }
 

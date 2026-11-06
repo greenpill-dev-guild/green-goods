@@ -45,6 +45,10 @@ const batch = vi.hoisted(() => ({
 const originalStart = new Date("2026-08-01T00:00:00.000Z");
 const originalEnd = new Date("2026-08-31T00:00:00.000Z");
 
+vi.mock("../../../hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {

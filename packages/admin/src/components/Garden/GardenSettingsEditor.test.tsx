@@ -57,6 +57,10 @@ const {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
+}));
+
 vi.mock("@green-goods/shared/hooks/garden/useSetGardenDomains", async () => {
   const asMutation = (mutateAsync: (params: unknown) => Promise<unknown>) => () => ({
     mutateAsync,

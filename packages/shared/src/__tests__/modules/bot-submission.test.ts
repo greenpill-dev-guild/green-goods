@@ -83,7 +83,8 @@ describe("modules/work/bot-submission", () => {
           feedback: "Bot submitted work",
           actionUID: 1,
         }),
-        11155111
+        11155111,
+        { uploaderAddress: mockWalletClient.account.address }
       );
       expect(buildWorkAttestTx).toHaveBeenCalled();
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
@@ -112,7 +113,8 @@ describe("modules/work/bot-submission", () => {
           title: "Community Cleanup",
           actionUID: 42,
         }),
-        11155111
+        11155111,
+        { uploaderAddress: mockWalletClient.account.address }
       );
     });
 
@@ -158,7 +160,8 @@ describe("modules/work/bot-submission", () => {
         expect.objectContaining({
           media: mockImages,
         }),
-        11155111
+        11155111,
+        { uploaderAddress: mockWalletClient.account.address }
       );
     });
 
@@ -175,7 +178,9 @@ describe("modules/work/bot-submission", () => {
       );
 
       expect(getEASConfig).toHaveBeenCalledWith(42161);
-      expect(encodeWorkData).toHaveBeenCalledWith(expect.anything(), 42161);
+      expect(encodeWorkData).toHaveBeenCalledWith(expect.anything(), 42161, {
+        uploaderAddress: mockWalletClient.account.address,
+      });
     });
 
     it("propagates transaction errors", async () => {

@@ -73,7 +73,11 @@ export function CommitmentActionBar({
           size="lg"
           emphasis={act.emphasis}
           tone={act.destructive ? "danger" : "default"}
-          onClick={onRun}
+          onClick={(event) => {
+            // Safari leaves a clicked button unfocused; state-driven sheets restore this opener.
+            event.currentTarget.focus();
+            onRun();
+          }}
           loading={isPending}
           disabled={unavailable}
           data-component="CommitmentActionBar"
@@ -87,7 +91,10 @@ export function CommitmentActionBar({
             type="button"
             emphasis="secondary"
             size="lg"
-            onClick={secondary.onRun}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              secondary.onRun();
+            }}
             disabled={isPending || unavailable || secondary.disabled}
             data-component="CommitmentActionBarSecondary"
             className="min-w-max grow basis-[calc(50%-0.25rem)]"
