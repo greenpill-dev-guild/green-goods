@@ -43,8 +43,10 @@ every section is rewritten by the routines except each thread's `Notes.` block.
 
 1. `## This week · {Monday date}` — the brief (R12). Monday replaces it; Saturday appends one
    `Week close · {date}:` line under it saying which of its steps show evidence of being taken.
-2. `## Threads` — one `### {thread title}` per open thread, at most twelve in full: question
-   threads in agenda track order first, then relationship threads by most recent movement.
+2. `## Threads` — one `### {thread title}` per open thread, at most twelve in full, ranked:
+   relationship threads that carry an open ask the team owes (oldest ask first), then question
+   threads in agenda track order, then the other relationship threads by most recent movement.
+   The first v6 run ranked every question thread first and held all five relationship threads.
 3. `## Held` — every open thread beyond the twelve, one line each: title · last movement · each
    open ask in brief (the ask · who owes it · opened date), with the thread's `Notes.` block
    beneath when not empty, so no active ask and no note leaves the document; Monday reads this
@@ -139,28 +141,33 @@ from a call note.
 and which serves an existing issue, Saturday creates one Customer Need with `save_customer_need`:
 `customer` the organisation, `body` the ask in the routine's own words (who owes what to whom,
 the context in one sentence, the call title and date, signed `— research-synthesis v6`), `issue`
-the Research issue the ask serves or the Product issue that already tracks it, `source` the call
-note's Drive URL, `priority` 0. Linear needs that issue link, so an ask that serves no existing
-issue stays in the thread only and is listed in the memo; it gets its Need once an issue exists
-(the new-issue rule may create one when the agenda's `Open` list names the question). The
-connector returns no URL for a Need, so a write is checked by its returned identity and the
-absence of an error, and the thread names the Customer and the linked issue instead of linking.
-Before creating, the run reads the Customer's existing needs (`list_customers` with
-`includeNeeds`) and does not create a second Need for the same ask: the dedupe covers every Need
-on the Customer, whichever routine made it, matched by `source` URL and by the ask's gist, so a
-signal `bug-intake` or `sync-triage-pulse` already captured from the same call note is not
-captured twice; a match made by another routine is deduped and left unchanged, since those
-Needs hold the reporter's verbatim signal, and the thread names it. Only a Need carrying this
-routine's own signature is updated: when the ask's wording sharpened, its body gets the sharper
-text; when direct evidence shows the ask done (a later call note records the owed step, the
-linked issue reached a terminal state that resolves it, or the thread's control says so; ordinary
-movement is not evidence), its body's first line gets the prefix `Done {date} ·`
-(the connector offers no status on a Need) and it is never deleted. The routine never creates a
-Product issue: an ask that implies product work is listed in the memo for a person to triage.
-The routing contract's Customer Need line gains one clause in step 2 of the plan: a Need that
-records a partner's research ask links the Research issue it serves. At most eight Needs are
-created or updated per run. Needs appear as authored by whichever identity the connector holds,
-so the signature line is what identifies the routine's writes.
+the Research issue the ask serves or the Product or Community issue that already tracks it,
+`source` the call note's Drive URL with a fragment naming the Customer, `priority` 0. Linear
+links a URL to an issue once and rejects a second Need whose source already links the same issue
+(the first v6 run met this when two Customers' asks from one call served one issue), so each Need
+on an issue carries a distinct source. Linear needs that issue link, so an ask that no existing
+issue serves or tracks stays in the thread only and is listed in the memo; it gets its Need once
+an issue exists (the new-issue rule may create one when the agenda's `Open` list names the
+question). The connector returns no URL for a Need, so a write is checked by its returned
+identity and the absence of an error, and the thread names the Customer and the linked issue
+instead of linking. Before creating, the run reads the Customer's existing needs
+(`list_customers` with `includeNeeds`) and does not create a second Need for the same ask: the
+dedupe covers every Need on the Customer, whichever routine made it, matched by `source` URL
+(without its fragment) and by the ask's gist, so a signal `bug-intake` or `sync-triage-pulse`
+already captured from the same call note is not captured twice; a match made by another routine
+is deduped and left unchanged, since those Needs hold the reporter's verbatim signal, and the
+thread names it. Only a Need carrying this routine's own signature is updated: when the ask's
+wording sharpened, its body gets the sharper text; when direct evidence shows the ask done (a
+later call note records the owed step, the linked issue reached a terminal state that resolves
+it, or the thread's control says so; ordinary movement is not evidence), its body's first line
+gets the prefix `Done {date} ·` (the connector offers no status on a Need) and it is never
+deleted. The routine never creates a Product or Community issue: an ask that implies product work
+is listed in the memo for a person to triage. The routing contract's Customer Need line gains one
+clause in step 2 of the plan: a Need that records a partner's research ask links the Research
+issue it serves, or the Product or Community issue that already tracks it (the first v6 run
+linked a partner's onboarding ask to its Community issue). At most eight Needs are created or
+updated per run. Needs appear as authored by whichever identity the connector holds, so the
+signature line is what identifies the routine's writes.
 
 **R9. Threads carry the asks; the brief lists them.** Each thread's `Asks.` bullets link the
 Needs they correspond to. Monday's `Write to` list is drawn from open asks that Afo owes, oldest
@@ -220,7 +227,8 @@ marker was verified) and on Linear (one line, as the Saturday preflight). A
 failed patch is announced by one `brief not written` line in `#research` in place of the pointer,
 which the next run reads back into its `## Run notes` line and treats as degraded; a failed pointer post is recorded by one more patch that appends `post failed` to the run's
 `## Run notes` line, the one exception to the single-patch cap, and next Monday reads it. A same-date
-receipt or pointer already in the channel means the run posts nothing more. Monday writes no Drive memo; its run record is its `## Run
+receipt (a skip line included) or pointer already in the channel means the run posts nothing more,
+so the channel is read before any preflight posts. Monday writes no Drive memo; its run record is its `## Run
 notes` line (mode, start time, inputs read, writes, failures).
 
 ### Surface D: drafts
@@ -265,7 +273,9 @@ pending-edits document hold them.
 **R18. One-time closure.** The first two v6 runs file or drop, with one `## Links filed` line each
 and within the twelve-fetch budget, the sixteen shares that carry an unanswered ❔ reaction, oldest
 first and before any newer link, and never ask about them again. They leave the old intake threads
-archived and do not react to anything.
+archived and do not react to anything. Shares older than the channel window that carry no ❔
+reaction, such as the 41 posted from July to September 2026 before the v5 intake loop, are never
+filed.
 
 **R19. Caps and budget.** Saturday: 1 post · ≤1 status pointer per moved track · ≤3 comments ·
 ≤1 issue · 1 pending-edits refresh · ≤1 radar comment · 1 threads document rewrite · ≤8 Needs ·
@@ -286,7 +296,9 @@ state-only, is rejected with a reason. It then runs `apply`, bumps the edition, 
 `## Delegated review · {date}` section into the pending-edits document (counts, what was
 promoted or deferred, the resulting edition), and leaves the commit and the PR to the session,
 whose diff Afo approves. The Saturday refresh of the pending-edits document carries every
-`## Delegated review` section forward verbatim.
+`## Delegated review` section forward verbatim. Unticked lines are therefore review inputs, not
+deferrals: a person who wants a line kept from the rules adds `· hold` to it, the refresh carries
+the mark, and the review puts that line to Afo.
 
 ### Cross-cutting
 
@@ -352,9 +364,9 @@ model-tier table records both.
   first Saturday after its merge; a `docs/*` branch name cannot be pushed while the remote `docs`
   branch exists; the Fable allowance ended grant-scout runs in August.
 - Open inferences: the Discord pointer line's length and the brief's 2,000-character cap are
-  estimates of what reads well on a phone; Matt's Linear display name and whether a document
-  mention notifies him are unverified until the first run; the twelve-thread cap is a guess at
-  what a weekly reader scans.
+  estimates of what reads well on a phone; whether a document mention notifies Matt is unverified
+  until the first run that mentions him (his display name, `matt`, was confirmed on 2026-11-07);
+  the twelve-thread cap is a guess at what a weekly reader scans.
 
 ## Human Judgment Points
 

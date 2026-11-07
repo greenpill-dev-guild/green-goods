@@ -35,7 +35,7 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
-source_digest: "sha256:060028897de1e1c802a3301bfa425da07a12095fc22c59d53e500c8823b5d8f9"
+source_digest: "sha256:0f8a1657fa80ceb3d301944b1c5bcd5fdf6dbae91378d408adff5e9b6e86caf2"
 source_of_truth:
   - .claude/skills/audit/README.md
   - .claude/skills/audit/SKILL.md
@@ -86,7 +86,7 @@ Skills are packaged workflows. A coding agent, or you driving one, runs a skill 
 | [qa-session](#qa-session) | While you walk the product live, with a partner, or from a recorded transcript, and want issues fixed as you find them. | Type `/qa-session` or announce a QA walk. |
 | [qa-triage](#qa-triage) | After a QA call, a Build Sync, or an Engineering Sync, or when a qa-session hands over findings it deferred. An agent closing an automated QA pass, with nobody there to confirm, runs it in unattended mode, which writes only the Linear session report and its fix slices. | Type `/qa-triage` after a QA call or handoff. |
 | [research](#research) | When a product, architecture, or implementation question needs evidence before anyone decides. | Describe the bounded question; research intent activates it. |
-| [research-agenda](#research-agenda) | At a Research cycle boundary, or whenever the Saturday research digest says accepted edits are waiting. | Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track. |
+| [research-agenda](#research-agenda) | At a Research cycle boundary (`review`), or whenever the Saturday research digest says accepted edits are waiting (`apply`). | Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track. |
 | [resolve-pr-comments](#resolve-pr-comments) | When a pull request has review threads or requested changes to work through. | Ask to address or resolve a PR's review comments. |
 | [review](#review) | Before merging, or any time you want to know whether a PR, branch, or set of changes is ready. | Type `/review [package\|PR\|path]`. |
 | [ship](#ship) | When your change is ready to commit, push, or open as a pull request. | Commit, push, or PR intent activates it. |
@@ -193,10 +193,10 @@ Evidence-first answers before decisions. Research reconciles repository and prim
 
 ## research-agenda {#research-agenda}
 
-Applies the research agenda edits the panel ticked in the Linear document *Research agenda · pending edits*, runs the cycle-boundary review of unticked proposals and candidates, and promotes a confirmed candidate track into `docs/routines/research-agenda.md`. The weekly `research-synthesis` routine proposes; this skill is the hand that applies, so the agenda stays human-owned.
+Applies the research agenda edits ticked in the Linear document *Research agenda · pending edits*, runs the delegated review of the unticked ones at each Research cycle boundary, and promotes a confirmed candidate track into `docs/routines/research-agenda.md`. The weekly `research-synthesis` routine proposes; this skill is the hand that applies, so the agenda stays human-owned. The delegated review accepts evidence appends, anchor identifier updates and answered questions by rule, rejects edits whose anchor is gone or that only restate Linear state, and puts every change to a track's stage, horizon, order, questions or bars to the steward.
 
-- **When to use it:** At a Research cycle boundary, or whenever the Saturday research digest says accepted edits are waiting.
-- **What you get:** The agenda file updated with exactly the ticked edits, the edition bumped with a change-log line, and the document's lines moved to Applied; the commit stays yours.
+- **When to use it:** At a Research cycle boundary (`review`), or whenever the Saturday research digest says accepted edits are waiting (`apply`).
+- **What you get:** The agenda file updated with exactly the accepted edits, the edition bumped once with a change-log line, and the document's lines moved to Applied or Rejected; a review also leaves a dated *Delegated review* section in the document. The commit stays yours; after a review the session makes the commit and the pull request when you ask, and the steward approves the diff.
 - **How to invoke:** Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track.
 
 [Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/research-agenda)
