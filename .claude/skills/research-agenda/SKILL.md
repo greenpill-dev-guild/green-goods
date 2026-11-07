@@ -62,7 +62,8 @@ loop closes in minutes instead of a memo read. The design lives in
    keep the agenda change; the routine reconciles the document on its next run.
 6. **Validate.** Run `node scripts/quality/check-guidance-links.mjs` and read the edited sections
    back. The commit is the user's: name the files and suggest
-   `docs(routines): agenda v{n+1}, {k} accepted edits`; do not commit or push unless asked.
+   `docs(routines): agenda v{e}, {k} accepted edits`, where `v{e}` is the edition the run left in
+   place (step 5); do not commit or push unless asked.
 
 ## Review mode
 
@@ -78,16 +79,16 @@ session, and the commit and the pull request are that session's to make when he 
    1. **Already applied** when the line's new text is already in the agenda, because an earlier
       run applied it and then failed to patch the document: it moves to *Applied* with no second
       edition bump, as Procedure step 3 allows, and is never rejected for the anchor it replaced.
-   2. **Rejected by rule**, with its reason, when the anchor no longer matches (the text the
+   2. **To the steward** when a person held the line back (it ends with `· hold`, the document's
+      way to keep a line from the rules) or an earlier review deferred it (it carries a
+      `reviewed {date}: deferred` note). This comes before any rejection: lifting a hold or a
+      deferral is his call, so the line reaches him even when its anchor has changed or it has
+      become state-only, and the round says which.
+   3. **Rejected by rule**, with its reason, when the anchor no longer matches (the text the
       edit replaces, or the item or bullet it extends, is not in the agenda exactly once), or when
       the line is state-only: read with its evidence, it says nothing beyond Linear state (a
       status, owner, due or target date, cycle or project membership), which Linear owns and the
       agenda never holds.
-   3. **To the steward** when a person held the line back (it ends with `· hold`, the document's
-      way to keep a line from the rules), or an earlier review deferred it (it carries a
-      `reviewed {date}: deferred` note), since lifting a hold or a deferral is his call and the
-      round shows why the line waits; or when the line depends on another line that goes to him
-      (it cites that line, or edits text that line changes), so the two are decided together.
    4. **Accepted by rule** when the line is one of these three kinds and its new text carries no
       Linear state:
       - an **evidence append**: an `append` to an existing `Open` item or `Settled` bullet that
@@ -104,7 +105,12 @@ session, and the commit and the pull request are that session's to make when he 
       subject into a track; a `Settled`, `Note`, `Why it matters` or watch-keyword change other
       than an evidence append; and an accepted kind whose new text would carry Linear state,
       offered with that state trimmed, because the skill applies exact text only.
-3. **Ask.** Put the steward's lines to him in numbered rounds: earlier deferrals and
+
+   Then dependencies: a line that cites another line routed to the steward, or whose anchor is
+   text such a line adds or changes, joins it in the round whichever of rules 3 to 5 settled it.
+   The two are decided together, and an edit anchored on a pending line is never rejected before
+   that line is decided.
+3. **Ask.** Put the steward's lines to him in numbered rounds: held lines, earlier deferrals and
    `decide or drop` lines first, then the rest by track in agenda order, then candidate questions,
    then candidate tracks. Each item shows the line, its evidence, the rule that routed it, and a
    recommended answer (accept, defer or reject) with one sentence of why. For an accepted candidate
@@ -114,8 +120,9 @@ session, and the commit and the pull request are that session's to make when he 
    one. A line he does not answer is deferred. Nothing routed to him is applied without his
    answer in this session.
 4. **Apply.** Run Procedure steps 3 and 4 once, on the lines already ticked, the lines accepted by
-   rule and the lines he accepted together: one edition bump and one change-log entry for the
-   whole review, which names the review and its date before listing the edits.
+   rule and the lines he accepted together: at most one edition bump and one change-log entry for
+   the whole review, which names the review and its date before listing the edits, and none when
+   nothing was newly applied.
 5. **Write back** with one `save_document` `patch` (one failing operation aborts the save, so the
    document never holds half a review):
    - each applied line moves to *Applied*, as in Procedure step 5;
@@ -140,7 +147,8 @@ session, and the commit and the pull request are that session's to make when he 
    agenda change either way. A rerun of `review` is safe: `apply` is idempotent and the rules give
    the same answers, so only the steward's lines are asked again.
 6. **Hand off.** Validate as in Procedure step 6, name the agenda file, the edition and the
-   counts, and suggest `docs(routines): agenda v{n+1}, delegated review {date}`. The commit and
+   counts, and suggest `docs(routines): agenda v{e}, delegated review {date}`, `v{e}` being the
+   edition the review left in place. The commit and
    the pull request are the session's to make under the `ship` skill once the steward asks for
    them; until then the hand-off ends at the suggestion. He approves the diff before it merges.
    Close with the cycle theme as one question when the new cycle has none; he sets it in Linear,
@@ -201,4 +209,5 @@ track; the user fills the rest before the edition bump.
 - Git stays outside the skill: no commit, push, branch or stash. After `apply` the commit is the
   user's; after `review` the commit and the pull request are the session's, made under the `ship`
   skill only when asked.
-- Every applied set bumps the edition and adds a change-log line.
+- A run that newly applies an agenda change bumps the edition once and adds one change-log entry;
+  a run that only records already-present edits as applied bumps nothing (Procedure step 4).
