@@ -504,8 +504,8 @@ export function isSupportedCiNodeVersion(version) {
   return Number.isInteger(major) && major >= 22;
 }
 
-// The selector compares the toolchain exactly, so a merely runnable Node — 22.22.0 against a
-// 22.22.1 pin — makes every check read `blocked:toolchain.node`, which is what drove people to
+// The selector compares the toolchain exactly, so a Node version that can run the checks but
+// differs from the pin makes every check read `blocked:toolchain.node`, which drove people to
 // --no-verify. Re-exec whenever the running version is not the pin itself; when the pinned Node
 // is installed nowhere, this finds nothing, the run proceeds, and the plan reports the mismatch.
 export function pinnedCiNodeVersion(policyLoader = loadPolicy) {

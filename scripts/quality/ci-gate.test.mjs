@@ -272,7 +272,7 @@ test("CI Gate pins Node and runs every standard-library validation fixture", () 
     ciGateWorkflow,
     /uses:\s*actions\/setup-node@[a-f0-9]{40}\b/,
   );
-  assert.match(ciGateWorkflow, /node-version:\s*["']22\.22\.1["']/);
+  assert.equal(ciGateWorkflow.match(/node-version:\s*["']([^"']+)["']/)?.[1], loadPolicy().toolchain.node);
   assert.match(
     ciGateWorkflow,
     /node --test scripts\/quality\/select-validation\.test\.mjs scripts\/dev\/ci-local\.test\.mjs scripts\/dev\/surface-leases\.test\.mjs scripts\/quality\/ci-gate\.test\.mjs scripts\/quality\/check-react-patterns\.test\.mjs/,

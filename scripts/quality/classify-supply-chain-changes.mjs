@@ -43,6 +43,7 @@ const supplyExact = new Set([
 // Every file the parity job's suites read or import, so a change to one runs them. The parity
 // suite's tests guard this list against what it reads.
 const parityExact = new Set([
+  ".mise.toml",
   ".github/actions/setup-js/action.yml",
   ".husky/pre-commit",
   ".husky/pre-push",
@@ -64,11 +65,13 @@ const parityExact = new Set([
   "packages/admin/package.json",
   "packages/admin/tsconfig.json",
   "packages/admin/vitest.config.ts",
+  "packages/agent/Dockerfile",
   "packages/agent/vitest.config.ts",
   "packages/client/package.json",
   "packages/client/tsconfig.json",
   "packages/client/vitest.config.ts",
   "packages/indexer/.c8rc.json",
+  "packages/indexer/Dockerfile",
   "packages/shared/package.json",
   "packages/shared/vitest.config.ts",
   // The parity suite holds the tests for these test-quality inputs.
