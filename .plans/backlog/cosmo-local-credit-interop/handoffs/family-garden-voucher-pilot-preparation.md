@@ -72,6 +72,10 @@ implementation must start from a current isolated checkout with permission.
    match each dispatch to the receiver's applied revision and signer eligibility. Before relying
    on roster control, confirm any configured bootstrap signer has an applied nonzero revision
    and its eligibility matches the source, including an ineligible readback for the case above.
+   After a grant, confirm `safe.isOwner(account)` and that `gate.registeredSignerHats(account)`
+   equals the receiver's signer Hat. If the revision applied but reconciliation was deferred,
+   include the receiver's permissionless `reconcile(account)` and repeat those readbacks.
+   On revocation, verify ineligibility and reconcile deferred Safe owner removal separately.
    Rehearse a grant, revocation and deferred dispatch recovery. Reconcile already dispatched
    messages before retrying and verify the selected threshold separately.
 3. **Prepare source authority and catalog integration.** In the proposed Arbitrum signing packet,
@@ -101,10 +105,12 @@ implementation must start from a current isolated checkout with permission.
    quote while retaining that floor. Prepare separately approved top-ups for
    any shortfall where a send draws on an endpoint balance, including the Gnosis adapter's
    earned-voucher acknowledgment. Verify top-up receipts and balances and refresh the quotes.
-   A positive-fee escrow acknowledgment is caller-funded. Budget for the caller to supply the
-   exact current quote to `retrySetupAcknowledgment` or `retryFinalAcknowledgment` if the
-   automatic send fails. An escrow top-up does not fund those retries. Record the latest result
-   sequence and outbound message ID, then verify the matching result was applied on Arbitrum.
+   A positive-fee escrow acknowledgment is caller-funded. For an unsent setup or final result,
+   or when its previous acknowledgment reached terminal delivery failure and Arbitrum has not
+   applied the result, pair `quoteSetupAcknowledgment` with `retrySetupAcknowledgment` or
+   `quoteFinalAcknowledgment` with `retryFinalAcknowledgment`. Have the caller pay the exact
+   current quote. Wait while a message is in flight. Record the result sequence and the new
+   message ID, then verify Arbitrum applied the matching result.
 4. **Prepare the on-chain service offer.** Before presenting an executable packet, document and
    rehearse a Family-specific publication path. Have the authorized pool actors create the
    commitment in the selected Family provider pool and prepare `setServiceOfferTerms` for that
@@ -163,11 +169,11 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    verified cause, such as a short reserve, consumed allowance or pause, then call the adapter's
    `retry(entitlementId)` and verify the next result sequence and exact credit. Duplicate CCIP
    delivery does not retry a recorded entitlement's transfer.
-3. Reconcile the matching result on the source. After an execution retry or an unsent
-   acknowledgment, use the adapter's `quoteAcknowledgment` and caller-funded
-   `retryAcknowledgment` with the exact current fee for that result. Record the acknowledgment
-   sequence and message ID and verify Arbitrum applied the successful result. Track a message
-   already in flight before considering any retry.
+3. Reconcile the matching result on the source. If the successful result has no acknowledgment
+   in flight and Arbitrum has not applied it, use the adapter's `quoteAcknowledgment` and
+   caller-funded `retryAcknowledgment` with the exact current fee. This includes an unsent result
+   after an execution retry or a confirmed terminal failure of a sent acknowledgment. Record the
+   result sequence and new message ID and verify Arbitrum applied it.
 4. Verify the published offer, terms revision and buyer eligibility, then have the named buyer
    request the claim. Select an approved source-chain acceptance window that allows for setup,
    deposit and acknowledgment. Have the named buyer call `prepareVoucherSetup` with the
@@ -217,11 +223,13 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    if needed.
 6. Complete the service commitment on Arbitrum. While it is Accepted, have an eligible actor
    call `attachEvidence` with the delivery evidence CID and credited active contributors. Attach
-   any required assessment before freezing the roster. For an eligible service without work
-   requirements, have the creator, counterparty, lead provider or pool steward call
-   `submitForConfirmation` and verify ReadyForConfirmation. If the approved pilot uses a
-   steward override, record the reason in `markReadyForConfirmation` and verify the same
-   state. Have eligible non-contributors call `confirmFulfillment` until the configured
+   any required assessment. Re-read the commitment after attaching it because the assessment
+   can move the commitment to ReadyForConfirmation. If the commitment is still Accepted and
+   the service is eligible without work requirements, have the creator, counterparty, lead
+   provider or pool steward call `submitForConfirmation`. If the commitment is still Accepted
+   and the approved pilot uses a steward override, record the reason in
+   `markReadyForConfirmation`. Verify ReadyForConfirmation before asking eligible
+   non-contributors to call `confirmFulfillment` until the configured
    threshold is reached. Read back Fulfilled and the recorded confirmation path separately
    from holder approval and financial closure.
 
