@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's delegated review mode) shipped in PR #1512 with #1509's review residuals and the first runs' fixes; the second reader's handle was confirmed on 2026-11-07; the remaining step 6 one-offs (panel line, pin) and step 7 (first runs) follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's delegated review mode) shipped in PR #1512 with #1509's review residuals and the first runs' fixes, and #1512's own five review residuals were fixed in PR #1514; the second reader's handle was confirmed on 2026-11-07; the remaining step 6 one-offs (panel line, pin) and step 7 (first runs) follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
 **Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
@@ -40,7 +40,7 @@
 | R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509; Need sources and Community issues (R8) fixed in #1512 |
 | R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | shipped in #1509; trigger created 2026-11-07; #1509's review residuals fixed in #1512 |
 | R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509; pre-v5 shares (R18) settled in #1512 |
-| R20 delegated review | none (skill) | Step 5 | shipped in #1512 |
+| R20 delegated review | none (skill) | Step 5 | shipped in #1512; its review residuals fixed in #1514 |
 | R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half shipped in #1509 |
 | Monday trigger, display name, panel line, pin | human | Step 6 | trigger created 2026-11-07; display name confirmed 2026-11-07 (`@matt`, in #1512); panel line and pin pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |

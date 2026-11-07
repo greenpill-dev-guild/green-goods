@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-11-06T21:13:11.564Z",
-    "updated_at": "2026-11-07T03:30:00.000Z"
+    "updated_at": "2026-11-07T07:10:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -173,6 +173,10 @@
     {
       "date": "2026-11-07",
       "event": "Step 5 shipped in PR #1512: the research-agenda skill's review mode is the delegated review (R20), dry-run against the live pending-edits document and a scratch agenda copy (8 lines accepted by rule, 9 to the steward, none rejected, one edition bump; AC-12). The same PR fixes #1509's three review residuals (no drafts after a failed inventory read, the channel read before any skip line, Drive's research use in the connector catalog) and five observations from the first runs (a distinct Need source per issue, Community issues that already track an ask, pre-v5 shares never filed, relationship threads with an ask the team owes ranked first, the trigger one-off pruned from the brief). Afo confirmed the second reader's Linear handle (@matt) the same day, so research-week Setup step 2 is done and both routines mention him by that handle on his lines; the panel line and the pin remain."
+    },
+    {
+      "date": "2026-11-07",
+      "event": "PR #1512 merged as 1700c5f9a. Its five Codex review residuals are fixed in PR #1514: holds and earlier deferrals reach the steward before any automatic rejection, and a line anchored on a pending steward line is decided with it; the edition wording holds for no-bump retries; the Saturday refresh marks a line whose edit the agenda already holds as applied at the current edition instead of dropping it; a same-day research-week retry keeps writing the brief and only suppresses the post; the Drive connector's rules link points to the routines README."
     }
   ]
 }

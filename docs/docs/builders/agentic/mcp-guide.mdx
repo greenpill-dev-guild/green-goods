@@ -18,7 +18,7 @@ generated_from:
   - docs/routines/sync-triage-pulse.md
   - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
-source_digest: "sha256:4e7f98463de523a6715660c9e4732d9ac64f70a54348c12c15777f99b37fe826"
+source_digest: "sha256:6c5c5a9d165448574f66ebfb123c129c184c48ede261f9f667f3a7c1b68d0d18"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
@@ -74,7 +74,7 @@ These are not in `.mcp.json`, and the routines' rules say to keep it that way. E
 | Vercel | Deployments of the client and admin apps: which commit is live, when a deploy landed, and the preview for a pull request. | `bug-intake`, `health-watch`, `sync-triage-pulse` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
 | Sentry | Error detail beside the PostHog evidence, when a Sentry connection is available. Every routine is written to work without it. | none | [docs/routines/README.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/README.md) |
 | GitHub | Pull requests, review threads, commit ranges, and releases. The gh CLI covers the same ground when no connector is present. | `release-prep` | [.claude/skills/resolve-pr-comments/SKILL.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/resolve-pr-comments/SKILL.md) |
-| Google Drive | The meeting notes that feed bug intake, QA triage and research, and the research routines' own documents: research-synthesis reads the Gemini call notes and writes its weekly memo, and research-week writes up to two drafts a week, both in the guild's Research folder. | `bug-intake`, `research-synthesis`, `research-week`, `sync-triage-pulse` | [docs/routines/sync-triage-pulse.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/sync-triage-pulse.md) |
+| Google Drive | The meeting notes that feed bug intake, QA triage and research, and the research routines' own documents: research-synthesis reads the Gemini call notes and writes its weekly memo, and research-week writes up to two drafts a week, both in the guild's Research folder. | `bug-intake`, `research-synthesis`, `research-week`, `sync-triage-pulse` | [docs/routines/README.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/README.md) |
 | Google Calendar | Upcoming events that explain a change in the numbers, such as a demo or a planting season. Optional context only. | `growth-pulse`, `health-watch` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
 
 The routine definitions live in [docs/routines](https://github.com/greenpill-dev-guild/green-goods/tree/develop/docs/routines), each with the connectors it may use in its frontmatter.
