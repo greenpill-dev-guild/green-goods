@@ -146,10 +146,13 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    entries and validated recognition hash. Verify the prepared entitlement ID, payload hash,
    accepted terms revision, recipient allocations and total. If the Family reserve is short,
    include the approved Gnosis issuance or replenishment operation in the signing packet and
-   verify its receipt. Before dispatch, confirm the issuer's token balance and finite adapter
-   allowance both cover the full transfer total. This also covers an issuer self-allocation
-   after earlier transfers have reduced the balance. Use the net reserve debit for the
-   post-execution reconciliation. Dispatch and record the source transaction and message ID.
+   verify its receipt. Before dispatch, confirm the finite adapter allowance covers the full
+   transfer total and the issuer balance covers the net reserve debit. If the issuer is also a
+   recipient, check the allocations in the adapter's transfer order. Subtract earlier transfers
+   to other recipients from the starting balance and confirm the remaining balance covers the
+   issuer's own transfer at that point. A self-transfer consumes allowance but leaves the balance
+   unchanged. Use the net reserve debit for the post-execution reconciliation. Dispatch and
+   record the source transaction and message ID.
    If CCIP reports a terminal delivery failure and the Gnosis adapter has no record of the
    command, refresh the source quote and
    reserve checks. Have an authorized pool steward call `dispatch` for the same prepared
