@@ -41,8 +41,10 @@ implementation must start from a current isolated checkout with permission.
   deployment to recreate the pool. The individual-member extension is a different custody model.
 - The closest controller implementation is
   [`StewardSafeReceiver.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/8b09ebdd5d770399c3d376b845e9a4b2e3c959ee/packages/contracts/src/accounts/StewardSafeReceiver.sol).
-  It mirrors one garden's Hats roster with a locked `(0,1,2)` gate. Roster synchronization,
-  spending threshold and separate issuer authority must all be reviewed before reuse.
+  It mirrors one garden's Hats roster with a locked `(0,1,2)` gate when paired with a
+  [per-garden publisher](../../../../packages/contracts/src/accounts/StewardRolePublisher.sol)
+  and registered Hats observer. Roster synchronization, spending threshold and separate
+  issuer authority must all be reviewed before reuse.
 - Shared owns reviewed issuer metadata and service eligibility. The current
   [`service-access-live-config.ts`](https://github.com/greenpill-dev-guild/green-goods/blob/8b09ebdd5d770399c3d376b845e9a4b2e3c959ee/packages/shared/src/modules/commitment-pooling/service-access-live-config.ts)
   lists only Green Goods and Tech and Sun assets/buyer gardens;
@@ -61,10 +63,29 @@ implementation must start from a current isolated checkout with permission.
    its validator and focused behavioral tests. Adopt existing deployment receipts; reject
    unresolved controls, cross-issuer addresses, unconfirmed capacity and replacement pool plans.
    Add a distinct controller-policy slice only if the selected controller requires one.
-3. **Prepare reviewed catalog integration.** Add the actual asset/garden pins and approved terms
-   through existing Shared configuration. Prove issuer ownership, source authority, finite
-   allowance and collective Safe routing. Keep this separate from contracts deployment.
-4. **Rehearse, then present a human signing packet.** Obtain the selected local/fork checks,
+   If selecting the roster controller, pin the paired Arbitrum publisher and Gnosis receiver for
+   this garden. Include Hats-owner `setStewardObserver` registration, approved transport funding,
+   and initial dispatches for the eligible stewards. Verify the observer and both peers, correlate
+   each source dispatch with the receiver's applied revision and signer eligibility, and verify
+   the bootstrap account has left revision-zero eligibility before relying on roster control.
+   Rehearse a grant, revocation and deferred dispatch recovery. Reconcile already dispatched
+   messages before retrying and verify the selected threshold separately.
+3. **Prepare source authority and catalog integration.** In the proposed Arbitrum signing packet,
+   record the source module's pause state and who can act. For an active module, schedule an approved
+   pause window and order the calls as `pause`, owner `setIssuerAuthority`, then owner `unpause`.
+   Read back the pause, the Family issuer/token authority mapping and restored service. If a later
+   call fails, reconcile receipts and current state before retrying. Keep the module paused while
+   the mapping is unverified and use the separately approved owner recovery sequence. Preserve an
+   existing pause unless resuming service is separately approved. Add the actual asset/garden pins
+   and approved terms through existing Shared configuration. Prove issuer ownership, source
+   authority, finite allowance and collective Safe routing.
+4. **Prepare the on-chain service offer.** Follow the
+   [offer publishing runbook](green-goods-offer-publishing-runbook.md) for the sequence. Have the
+   authorized pool actors prepare the Family Garden offer and its `setServiceOfferTerms` call.
+   Verify the commitment is Offered, Individual and approval-gated, and read back the nonzero
+   terms revision and hash, approved Family issuer/token, and service terms before attempting a
+   booking. Shared catalog configuration and on-chain offer publication are separate steps.
+5. **Rehearse, then present a human signing packet.** Obtain the selected local/fork checks,
    show each unsigned operation and expected readback, and obtain explicit activation approval.
    Each slice needs its own current-source proof; this handoff supplies none of that runtime proof.
 
@@ -79,16 +100,24 @@ optional phase with its own admission, quote, fee, cap and inventory approval. T
 contract does not require pool admission; prove that an unlisted asset remains usable through
 the selected application path before relying on this narrower pilot.
 
-Use a current, explicitly selected work request/cycle and freeze the exact voucher terms before
-acceptance. Obtain issuer approval and participant consent, complete the work/review, then send
-the approved distribution once. Preserve these separate observations:
+Use a current, explicitly selected work request or cycle. Obtain issuer approval for the exact
+earned-voucher revision, then have the creator consent to freeze it. If the counterparty is a
+different account, that account must consent to the same frozen revision before core acceptance.
+If one account fills both roles, its single consent covers both. Verify the consent revision
+for each required account, complete work and review, then send the approved distribution once.
+Preserve these separate observations:
 
 1. Source transaction confirmed and message identifier recorded.
 2. Destination execution succeeded, with exact recipient credit and reserve/allowance debit.
 3. Source acknowledgment reconciled; a late acknowledgment must not trigger duplicate delivery.
-4. Holder creates the service booking and reviews the exact escrow approval; issuer approval and
-   cross-chain activation are observed separately from the booking request.
-5. Actual service delivery and final confirmation settle the booking under the agreed terms.
+4. Verify the published service offer and terms revision, then have the holder create the booking
+   and review the exact escrow approval. Observe issuer approval and cross-chain activation
+   separately from the booking request.
+5. Record delivery and the holder's separate approval of the delivered service units and final
+   release/refund split. Verify `finalizeAllocation` froze that split under the agreed terms and
+   record its decision ID. Track each leg as succeeded, failed, pending or not required. Verify
+   every required leg succeeded and `isFinanciallyClosed` is true. Record final core confirmation
+   separately from holder approval and financial closure.
 
 Label authenticated Brave proof separately from local/fork proof. Check pending state, reopening
 the page, refresh, destination failure and safe recovery. Never resend an in-flight message.
