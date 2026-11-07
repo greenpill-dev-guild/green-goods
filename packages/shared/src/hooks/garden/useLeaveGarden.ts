@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { useIntl } from "react-intl";
 import type { Address } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -123,9 +123,10 @@ export function useGardenDepartureOptions() {
     : [];
   return {
     options,
-    isLoading: memberGardens.isLoading,
-    isError: memberGardens.isError,
-    refetch: memberGardens.refetch,
+    isLoading: memberGardens.isLoading || olderGardens.some((query) => query.isLoading),
+    isError: memberGardens.isError || olderGardens.some((query) => query.isError),
+    refetch: () =>
+      Promise.all([memberGardens.refetch(), ...olderGardens.map((query) => query.refetch())]),
   };
 }
 
@@ -157,9 +158,11 @@ export function useLeaveGarden(gardenAddress: Address) {
   );
   const identity = `${chainId}:${gardenAddress.toLowerCase()}:${primaryAddress?.toLowerCase()}:${authMode}:${ready}`;
   const session = useRef({ identity, sender });
-  if (session.current.identity !== identity || session.current.sender !== sender)
-    session.current = { identity, sender };
-  useEffect(
+  useLayoutEffect(() => {
+    if (session.current.identity !== identity || session.current.sender !== sender)
+      session.current = { identity, sender };
+  }, [identity, sender]);
+  useLayoutEffect(
     () => () => {
       session.current = { ...session.current };
     },
@@ -168,19 +171,24 @@ export function useLeaveGarden(gardenAddress: Address) {
 
   const mutation = useMutation({
     networkMode: "always",
-    mutationFn: (mode: "leave" | "reconcile") =>
-      withGardenLeaveLock(async () => {
+    mutationFn: (mode: "leave" | "reconcile") => {
+      const origin = session.current;
+      return withGardenLeaveLock(async () => {
         if (typeof navigator !== "undefined" && !navigator.onLine)
           throw new Error(formatMessage({ id: "app.garden.leave.offline" }));
         if (!primaryAddress || !ready || !sender) {
           throw new Error(formatMessage({ id: "app.garden.leave.session" }));
         }
         const userAddress = primaryAddress as Address;
-        const origin = session.current;
         const assertOwnership = () => {
-          if (session.current !== origin)
+          if (
+            session.current !== origin ||
+            origin.identity !== identity ||
+            origin.sender !== sender
+          )
             throw new Error(formatMessage({ id: "app.garden.leave.session" }));
         };
+        assertOwnership();
         const submission = { gardenAddress, userAddress, chainId };
         const savedReceipt = useGardenLeaveStore.getState().load(submission);
         const recovering = mode === "reconcile" || Boolean(savedReceipt);
@@ -200,8 +208,13 @@ export function useLeaveGarden(gardenAddress: Address) {
                 (getGardenFenceBlock(chainId, gardenAddress, userAddress) ?? 0n) > regrant.block
               )
                 regrant = undefined;
-            } catch {
-              /* The saved receipt stays available if current membership cannot be verified. */
+            } catch (error) {
+              logger.error("Could not read garden roles after departure", {
+                source: "useLeaveGarden",
+                error,
+                gardenAddress,
+                chainId,
+              });
             }
             if (!regrant?.complete && !regrant?.roles.length) {
               if (savedReceipt) throw new TransactionConfirmationPendingError(savedReceipt);
@@ -250,7 +263,15 @@ export function useLeaveGarden(gardenAddress: Address) {
               gardenAddress,
               userAddress,
               minimum
-            ).catch(() => undefined);
+            ).catch((error) => {
+              logger.error("Could not verify current garden membership", {
+                source: "useLeaveGarden",
+                error,
+                gardenAddress,
+                chainId,
+              });
+              return undefined;
+            });
             if (
               snapshot?.complete &&
               snapshot.roles.length === 0 &&
@@ -273,7 +294,8 @@ export function useLeaveGarden(gardenAddress: Address) {
             logger.error("Could not leave garden", { source: "useLeaveGarden", error });
           throw error;
         }
-      }),
+      });
+    },
   });
   return {
     availability: capability.isFetching

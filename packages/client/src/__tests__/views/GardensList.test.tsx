@@ -318,13 +318,15 @@ describe("GardensList", () => {
     view.rerender(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
-    mockNavigate.mockImplementationOnce(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
-    );
+    const dialogAtNavigation: Array<HTMLElement | null> = [];
+    mockNavigate.mockImplementationOnce(() => {
+      dialogAtNavigation.push(screen.queryByRole("dialog"));
+    });
     await act(async () => finish({ hash: "0xabc", departed: true }));
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith("/home", { replace: true, viewTransition: true })
     );
+    expect(dialogAtNavigation).toEqual([null]);
   });
 
   it.each([

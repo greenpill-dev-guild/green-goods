@@ -105,6 +105,7 @@ function setup() {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  fakes.gardens = [];
   localStorage.clear();
   useGardenLeaveStore.setState({ pending: {} });
   fakes.sender.mockReturnValue(sender());
@@ -529,9 +530,9 @@ it("reconciles a checkpoint written by another tab without requesting a signatur
   expect(fakes.wallet).not.toHaveBeenCalled();
 });
 
-function renderDepartureOptions() {
+function renderDepartureState() {
   const client = createTestQueryClient();
-  return renderHook(() => useGardenDepartureOptions().options, {
+  return renderHook(() => useGardenDepartureOptions(), {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     ),
@@ -544,9 +545,9 @@ describe("Profile departure options", () => {
     fakes.profileMemberGardens.mockResolvedValue([
       createMockGarden({ id: address, gardeners: [account] }),
     ]);
-    const { result } = renderDepartureOptions();
+    const { result } = renderDepartureState();
     await waitFor(() =>
-      expect(result.current).toMatchObject([
+      expect(result.current.options).toMatchObject([
         {
           garden: { id: address },
           membership: { roles: ["gardener"] },
@@ -567,19 +568,43 @@ describe("Profile departure options", () => {
         { gardenAddress: address, userAddress: account, chainId: 42161 },
         { hash: "0xabc", sponsored: false }
       );
-    const { result } = renderDepartureOptions();
+    const { result } = renderDepartureState();
     await waitFor(() =>
-      expect(result.current).toMatchObject([{ garden: { id: address }, hasPendingDeparture: true }])
+      expect(result.current.options).toMatchObject([
+        { garden: { id: address }, hasPendingDeparture: true },
+      ])
     );
     expect(fakes.gardenRecord).toHaveBeenCalledWith(address);
   });
+  it("can retry a failed lookup for a saved departure outside the current page", async () => {
+    fakes.gardenRecord.mockRejectedValueOnce(new Error("Garden lookup failed"));
+    fakes.gardenRecord.mockResolvedValue(createMockGarden({ id: address, gardeners: [] }));
+    useGardenLeaveStore
+      .getState()
+      .record(
+        { gardenAddress: address, userAddress: account, chainId: 42161 },
+        { hash: "0xabc", sponsored: false }
+      );
+    const { result } = renderDepartureState();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => {
+      expect(result.current.isError).toBe(false);
+      expect(result.current.options).toMatchObject([
+        { garden: { id: address }, hasPendingDeparture: true },
+      ]);
+    });
+  });
+
   it("keeps every held role reachable without treating funders as Home membership", () => {
     fakes.gardens = [
       createMockGarden({ id: address, gardeners: [account] }),
       createMockGarden({ id: module, gardeners: [], funders: [account], communities: [account] }),
     ];
-    const { result } = renderDepartureOptions();
-    expect(result.current.map(({ roles }) => roles)).toEqual([
+    const { result } = renderDepartureState();
+    expect(result.current.options.map(({ roles }) => roles)).toEqual([
       ["gardener"],
       ["funder", "community"],
     ]);
@@ -607,8 +632,8 @@ describe("Profile departure options", () => {
         { gardenAddress: module, userAddress: module, chainId: 42161 },
         { hash: "0xdef", sponsored: false }
       );
-    const { result } = renderDepartureOptions();
-    expect(result.current).toMatchObject([
+    const { result } = renderDepartureState();
+    expect(result.current.options).toMatchObject([
       { garden: { id: address }, roles: [], hasPendingDeparture: true },
     ]);
     act(() =>
@@ -619,11 +644,11 @@ describe("Profile departure options", () => {
           { hash: "0xabc", sponsored: false }
         )
     );
-    expect(result.current).toEqual([]);
+    expect(result.current.options).toEqual([]);
   });
   it("shows no other account's saved departure after sign-out", () => {
     fakes.user.mockReturnValue({ primaryAddress: null });
-    const { result } = renderDepartureOptions();
-    expect(result.current).toEqual([]);
+    const { result } = renderDepartureState();
+    expect(result.current.options).toEqual([]);
   });
 });

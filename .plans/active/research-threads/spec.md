@@ -55,7 +55,8 @@ every section is rewritten by the routines except each thread's `Notes.` block.
    eight weeks after closing.
 6. `## Links filed` — one line per human link posted in `#research` in the last two weeks: date ·
    domain or title · the thread it was filed on, or `parked` with a reason (R17).
-7. `## Run notes` — the footer: memo link, pending-edits link, radar link, each run's mode line
+7. `## Run notes` — the footer: the memo's title and folder (the document is rewritten before
+   the final memo exists, so never a memo URL), pending-edits link, radar link, each run's mode line
    and failed writes, newest first, last four runs.
 
 **R3. The thread shape.** Each thread section carries, in this order and with these labels:
@@ -82,9 +83,10 @@ A thread section is at most 1,200 characters excluding its `Notes.` block, so tw
 the brief stay under about 40 KB.
 
 **R4. Ownership and rewriting.** Saturday rewrites the whole document with `save_document`
-`content` after reading the current one; every `Notes.` block is opaque to the routine: it reads
-only the block's first line (the controls below), never rewrites or summarises it, and carries it
-as it stands into the same thread. Monday patches only the `## This week` section (`replace_range` from its heading to
+`content` after reading the current one; every `Notes.` block is opaque to the routine beyond its first line:
+the connector returns the whole document, so the routine strips the blocks from its working copy
+on read, uses only the first line (the controls below), never follows, quotes, summarises or
+rewrites the rest, and carries each block as it stands into the same thread. Monday patches only the `## This week` section (`replace_range` from its heading to
 `## Threads`) and appends to `## Run notes`; it never touches a thread. Human edits outside
 `Notes.` blocks do not survive the Saturday rewrite, and the document's second line says so.
 The only human controls are the first line of a `Notes.` block, when it reads exactly `close`,
@@ -121,8 +123,10 @@ scope.
 
 **R7. Organisations resolve to Linear Customers.** A call's organisations and people map to
 Customers by name and by the `green-goods:speaker:*` and `green-goods:partner:*` external ids,
-read once per run with `list_customers`. When no Customer matches an organisation that appears
-with a next step, Saturday may create one: `save_customer` with the organisation's name, status
+read once per run with `list_customers`; a slug that matches more than one Customer, or a Customer
+and a workspace member, stays unresolved, as the routing contract requires, and never gets a
+Customer. When no Customer matches an organisation at all and it carries an open ask, from this
+run's call notes or carried in a relationship thread from an earlier run, Saturday may create one: `save_customer` with the organisation's name, status
 `Prospect`, tier `Ecosystem` (or `Local Initiative` for a garden), owner Afo, and the external ids
 `green-goods:partner:{slug}` for the organisation and `green-goods:speaker:{slug}` for each speaker
 the call note vouches for, so the routing contract's speaker-resolution path finds the record on
@@ -147,7 +151,9 @@ signal `bug-intake` or `sync-triage-pulse` already captured from the same call n
 captured twice; a match made by another routine is deduped and left unchanged, since those
 Needs hold the reporter's verbatim signal, and the thread names it. Only a Need carrying this
 routine's own signature is updated: when the ask's wording sharpened, its body gets the sharper
-text; when evidence shows the ask done, its body's first line gets the prefix `Done {date} ·`
+text; when direct evidence shows the ask done (a later call note records the owed step, the
+linked issue reached a terminal state that resolves it, or the thread's control says so; ordinary
+movement is not evidence), its body's first line gets the prefix `Done {date} ·`
 (the connector offers no status on a Need) and it is never deleted. The routine never creates a
 Product issue: an ask that implies product work is listed in the memo for a person to triage.
 The routing contract's Customer Need line gains one clause in step 2 of the plan: a Need that
@@ -188,7 +194,8 @@ a human after creation. No `#research` read beyond the digest-dedupe check Satur
 - `Decisions owed` · up to two, each with the owner; Matt's carry his mention (R3);
 - `From the weekend` · one line when a call note arrived after Saturday, or omitted.
 
-Every item names the thread it came from. Selection order: a graduation or panel decision the
+Every item names the thread it came from, or the agenda track and `Open` item when no thread
+exists for it yet. Selection order: a graduation or panel decision the
 agenda now owes; asks older than a week; an agenda `Open` item on a `now` track whose next step
 is a human's; drafts created last week and still unedited (listed once as stale, then dropped);
 then the rest of the `now` and `quarter` tracks in agenda order. The whole section stays under
@@ -209,14 +216,16 @@ posts nothing. Monday never writes to any other channel, never reacts, never ope
 the wrong marker: post one line `🗓️ Research week {date}: threads document not found · skipping`,
 write nothing to any document, and exit; a `Run notes` line is written only to a document whose
 marker was verified) and on Linear (one line, as the Saturday preflight). A
-failed patch is recorded in `## Run notes` by the next run that can write and named in the
-pointer line as `degraded`; a failed pointer post is recorded in `## Run notes` and retried next
-Monday only as that week's line. Monday writes no Drive memo; its run record is its `## Run
+failed patch is announced by one `brief not written` line in `#research` in place of the pointer,
+which the next run reads back into its `## Run notes` line and treats as degraded; a failed pointer post is recorded by one more patch that appends `post failed` to the run's
+`## Run notes` line, the one exception to the single-patch cap, and next Monday reads it. A same-date
+receipt or pointer already in the channel means the run posts nothing more. Monday writes no Drive memo; its run record is its `## Run
 notes` line (mode, start time, inputs read, writes, failures).
 
 ### Surface D: drafts
 
-**R15. What Monday may draft.** At most two documents per week, created with the Drive connector
+**R15. What Monday may draft.** At most two documents per week, a rerun reusing this week's drafts
+rather than recreating them, created with the Drive connector
 in the Research memo folder, titled `DRAFT · {decision note | message} · {subject} · {date}`,
 first line `Drafted by research-week v1 · edit and send yourself · evidence below`. A decision
 note is at most one page: the question, the options, the evidence with citations, a
@@ -224,7 +233,8 @@ recommendation, and what a yes or a no changes. A message is at most 200 words, 
 organisation or person, stating the ask, the context and one evidence link, in the brand voice.
 Drafts are never shared with anyone, never posted, never sent, never attached to a Linear record;
 the brief links them. A draft a human has not modified within two weeks is listed once as stale
-and then no longer listed; the document stays.
+and then no longer listed; the document stays. A creation that errors or returns no document is
+named in the run's `## Run notes` line and retried once the next Monday, within that week's cap.
 
 ### Surface E: the Saturday run, v5.1 → v6
 
@@ -251,15 +261,16 @@ ledger, the thread ledger, the outside pass, writes and failed writes, and the p
 no longer carries a connections or drift narrative of its own, since the threads document and the
 pending-edits document hold them.
 
-**R18. One-time closure.** The first v6 run files or drops, with one `## Links filed` line each,
-the sixteen shares that carry an unanswered ❔ reaction, and never asks about them again. It
-leaves the old intake threads archived and does not react to anything.
+**R18. One-time closure.** The first two v6 runs file or drop, with one `## Links filed` line each
+and within the twelve-fetch budget, the sixteen shares that carry an unanswered ❔ reaction, oldest
+first and before any newer link, and never ask about them again. They leave the old intake threads
+archived and do not react to anything.
 
 **R19. Caps and budget.** Saturday: 1 post · ≤1 status pointer per moved track · ≤3 comments ·
 ≤1 issue · 1 pending-edits refresh · ≤1 radar comment · 1 threads document rewrite · ≤8 Needs ·
 ≤3 Customers · ≤12 link fetches · 1 memo; the retired caps (reactions, intake messages, thread
-reads, receipts) are gone. Monday: 1 section patch · ≤2 drafts · ≤1 pointer line · 1 `Run notes`
-line. Zero of each is a valid run. Saturday keeps its 180-turn, 40-minute budget and is expected
+reads, receipts) are gone. Monday: 1 section patch (plus one appending patch only when the pointer post fails) · ≤2 drafts ·
+≤1 pointer line · 1 `Run notes` line. Zero of each is a valid run. Saturday keeps its 180-turn, 40-minute budget and is expected
 to use less; Monday has 60 turns and 20 minutes.
 
 ### Surface F: the agenda review ritual
@@ -279,7 +290,8 @@ whose diff Afo approves. The Saturday refresh of the pending-edits document carr
 ### Cross-cutting
 
 **R21. Privacy, in two tiers.** The public `#research` post keeps the v5.1 rule: decisions in the
-routine's own words, call notes cited by title or by meeting kind and date, no transcript quotes,
+routine's own words, call notes cited by title, or by meeting kind and date whenever the title
+names a person or an organisation, no transcript quotes,
 no attendee lists, no email or wallet addresses, no participant names from one-to-ones. The
 private surfaces (the threads document, Customer Needs, Customers, comments, drafts) may name
 organisations and the people met, in the routine's own words and never quoted; they never carry

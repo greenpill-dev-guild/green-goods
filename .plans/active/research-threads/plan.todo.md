@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the six review residuals wait in RESR-112 for the step-3 PR; steps 3 to 7 follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's review mode), the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
 **Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
@@ -36,13 +36,13 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; residuals in RESR-112 |
-| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; residuals in RESR-112 |
-| R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | pending |
-| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; residuals in RESR-112 |
+| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
+| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
+| R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | shipped in #1509; trigger created 2026-11-07 |
+| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
 | R20 delegated review | none (skill) | Step 5 | pending |
-| R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half with step 3 |
-| Monday trigger, display name, panel line | human | Step 6 | pending |
+| R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half shipped in #1509 |
+| Monday trigger, display name, panel line | human | Step 6 | trigger created 2026-11-07; display name and panel line pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |
 
 ## Repository guidance compliance
@@ -104,7 +104,7 @@ record of `research-intake-loops` (plan skill steps 1 to 5, resolution `supersed
 Verification: `check-guidance-links.mjs`, `plan-hub.mjs validate`, and a read-through of the spec
 against R1 to R9 and R16 to R19 by Afo.
 
-### Step 3: Monday spec v1
+### Step 3: Monday spec v1 (written 2026-11-07)
 
 Create `docs/routines/research-week.md` per R10 to R15 and R21 to R24: frontmatter (cron
 `0 13 * * 1`, model `claude-opus-5-5`, connectors, env vars, budget), preflights, inputs, the
@@ -113,7 +113,7 @@ brief shape and selection order, the drafts rule, the pointer line, failure beha
 Verification: the file passes `check-guidance-links.mjs`; its pointer prompt names the file path
 on `develop`.
 
-### Step 4: README
+### Step 4: README (research-synthesis rows in #1504; research-week rows written 2026-11-07)
 
 Update `docs/routines/README.md`: the `research-synthesis` row (v6), a new `research-week` row,
 the connector matrix (Monday: Drive, Linear, Discord REST), the channel mapping for `#research`
@@ -132,14 +132,15 @@ pending-edits refresh carries those sections forward.
 Verification: a dry run (`--dry-run`) on a scratch copy of the agenda and a throwaway document,
 recorded in [eval.md](eval.md) AC-12.
 
-### Step 6: One-offs Afo owns
+### Step 6: One-offs Afo owns (the trigger created 2026-11-07; the display name and the pin remain)
 
-Create the Monday trigger on `claude-opus-5-5` in the green-goods environment with the pointer
-prompt, the Drive and Linear connectors and the two env vars; confirm Matt's Linear display name
-for the mention; say whether the agenda's panel line changes (D1); pin the threads document on the
-Research team page beside the agenda.
-Verification: the trigger's next fire shows in the routines UI; the README row records the
-trigger id.
+Done 2026-11-07: the Monday trigger `trig_01QAmX6qXWjywnKDQGQvb8pB` exists on `claude-opus-5-5` in the
+green-goods environment with the pointer prompt, the Drive and Linear connectors and the two env
+vars, and the README row records its id; do not create a second one. Still Afo's: confirm Matt's
+Linear display name for the mention; say whether the agenda's panel line changes (D1); pin the
+threads document on the Research team page beside the agenda once the first v6 run has created it.
+Verification: the trigger's next fire shows in the routines UI; the display name appears in a
+Monday brief's mention; the pin is visible on the team page.
 
 ### Step 7: First live runs
 

@@ -67,6 +67,30 @@ describe("confirmed garden departures", () => {
     localStorage.removeItem("greengoods:garden-departures");
     expect(withoutDepartedMembers([garden], 42161)[0]).toBe(garden);
   });
+  it("preserves another tab's departure written between reading and saving", () => {
+    const storage = localStorage;
+    let firstRead = true;
+    vi.stubGlobal("localStorage", {
+      getItem(key: string) {
+        const prior = storage.getItem(key);
+        if (firstRead) {
+          firstRead = false;
+          storage.setItem(
+            key,
+            JSON.stringify({ [`42161:${garden.id.toLowerCase()}:${other}`]: "50" })
+          );
+        }
+        return prior;
+      },
+      setItem: storage.setItem.bind(storage),
+    });
+    try {
+      recordGardenDeparture(42161, garden.id, account, 40n);
+      expect(withoutDepartedMembers([garden], 42161)[0].gardeners).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it("a restored raw roster is still filtered after storage is read", () => {
     localStorage.setItem(
       "greengoods:garden-departures",

@@ -2,7 +2,7 @@
 
 **Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07): Saturday spec v6, the routing clause and the research-intake-loops closeout; six review residuals wait in RESR-112; step 3, the Monday spec, is next`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); the Monday trigger exists since 2026-11-07; step 5, the remaining step 6 one-offs and step 7 follow`
 **Priority**: `p2`
 **Created**: `2026-11-06`
 **Owner**: Afo · readers of the private surface: afo, matt (decision 10)

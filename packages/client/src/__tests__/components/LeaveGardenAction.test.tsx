@@ -13,6 +13,7 @@ const account = "0x2222222222222222222222222222222222222222";
 const fakes = vi.hoisted(() => ({
   leave: vi.fn(),
   owner: false,
+  ownerError: null as Error | null,
   listed: true,
   availability: "available" as "available" | "unavailable" | "unknown" | "checking",
   checkAvailability: vi.fn(),
@@ -38,7 +39,7 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenMembership", () => ({
   useGardenMembership: () => ({ isMember: fakes.listed, refetch: vi.fn() }),
 }));
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
-  useHasRole: () => ({ hasRole: fakes.owner, refetch: vi.fn() }),
+  useHasRole: () => ({ hasRole: fakes.owner, error: fakes.ownerError, refetch: vi.fn() }),
 }));
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: fakes.error, success: fakes.success },
@@ -118,6 +119,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   fakes.leave.mockReset();
   fakes.owner = false;
+  fakes.ownerError = null;
   fakes.listed = true;
   fakes.availability = "available";
   fakes.pending = false;
@@ -144,6 +146,18 @@ describe("LeaveGardenAction", () => {
     open();
     expect(screen.getByText(en["app.garden.leave.owner"])).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Leave Garden" })).not.toBeInTheDocument();
+    expect(fakes.leave).not.toHaveBeenCalled();
+  });
+  it("reports a role lookup failure and blocks signing until it can be retried", () => {
+    fakes.ownerError = new Error("Role lookup failed");
+    setup();
+    open();
+    expect(screen.getByRole("alert")).toHaveTextContent(en["app.garden.leave.rolesFailed"]);
+    expect(screen.queryByText(en["app.garden.leave.checking"])).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: en["app.common.retry"] })).toBeEnabled();
+    const confirm = screen.getByRole("button", { name: en["app.garden.leave.action"] });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
     expect(fakes.leave).not.toHaveBeenCalled();
   });
   it("confirms once and reports the successful departure", async () => {

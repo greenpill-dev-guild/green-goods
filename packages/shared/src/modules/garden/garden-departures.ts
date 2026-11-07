@@ -81,6 +81,16 @@ function parseFence(value: unknown): Fence | undefined {
   return { departedAt };
 }
 
+function newerFence(current: Fence | undefined, incoming: Fence): Fence {
+  if (!current) return incoming;
+  if (current.departedAt !== incoming.departedAt)
+    return BigInt(current.departedAt) > BigInt(incoming.departedAt) ? current : incoming;
+  return BigInt(current.regrant?.block ?? current.departedAt) >
+    BigInt(incoming.regrant?.block ?? incoming.departedAt)
+    ? current
+    : incoming;
+}
+
 function records(): Fences {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -96,20 +106,15 @@ function records(): Fences {
   }
   const next = { ...lastRead };
   for (const [entry, fence] of unsaved) {
-    const stored = next[entry];
-    if (
-      !stored ||
-      BigInt(fence.departedAt) > BigInt(stored.departedAt) ||
-      (fence.departedAt === stored.departedAt &&
-        BigInt(fence.regrant?.block ?? fence.departedAt) >=
-          BigInt(stored.regrant?.block ?? stored.departedAt))
-    )
-      next[entry] = fence;
+    next[entry] = newerFence(next[entry], fence);
   }
   return next;
 }
 
-function save(next: Fences, changes: ReadonlyMap<string, Fence>) {
+function save(changes: ReadonlyMap<string, Fence>) {
+  // Rebase each changed entry on storage at the write boundary, preserving other tabs' fences.
+  const next = records();
+  for (const [entry, fence] of changes) next[entry] = newerFence(next[entry], fence);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     lastRead = next;
@@ -140,7 +145,7 @@ export function recordGardenDeparture(
   const previous = next[entry];
   if (previous && BigInt(previous.departedAt) >= blockNumber) return;
   const fence = { departedAt: blockNumber.toString() };
-  save({ ...next, [entry]: fence }, new Map([[entry, fence]]));
+  save(new Map([[entry, fence]]));
 }
 
 /** Return the newest chain observation that an incoming role read must include. */
@@ -173,7 +178,7 @@ export function recordGardenRegrant(
   const fence = next[entry];
   if (!fence) return;
   const updated = applyRegrant(fence, regrant);
-  if (updated !== fence) save({ ...next, [entry]: updated }, new Map([[entry, updated]]));
+  if (updated !== fence) save(new Map([[entry, updated]]));
 }
 
 /** The address-filtered indexer query can also contain pre-departure steward or owner data. */
@@ -245,7 +250,7 @@ async function reconcileFences(
       next[entry] = updated;
     }
   }
-  if (changes.size) save(next, changes);
+  if (changes.size) save(changes);
 }
 
 /** A direct steward query also finds gardens outside the paged catalog. */

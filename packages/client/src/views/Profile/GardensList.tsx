@@ -96,6 +96,35 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
     },
   ];
 
+  const unavailable = (
+    <Card>
+      <EmptyState
+        className="w-full"
+        tone="error"
+        icon={<RiErrorWarningLine />}
+        title={intl.formatMessage({
+          id: "app.profile.gardensUnavailable",
+          defaultMessage: "Gardens are unavailable right now.",
+        })}
+        action={
+          <Button
+            type="button"
+            emphasis="secondary"
+            onClick={() => {
+              refetch();
+              void refetchMemberships();
+            }}
+          >
+            {intl.formatMessage({
+              id: "app.home.retry",
+              defaultMessage: "Retry",
+            })}
+          </Button>
+        }
+      />
+    </Card>
+  );
+
   return (
     <>
       <section className="flex flex-col gap-2">
@@ -106,6 +135,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           })}
         </h5>
 
+        {membershipsError && myGardens.length > 0 ? unavailable : null}
         {myGardens.length === 0 && (membershipsLoading || (!isLoaded && !isError)) ? (
           <Card>
             <EmptyState
@@ -119,32 +149,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             />
           </Card>
         ) : myGardens.length === 0 && (!isLoaded || membershipsError) ? (
-          <Card>
-            <EmptyState
-              className="w-full"
-              tone="error"
-              icon={<RiErrorWarningLine />}
-              title={intl.formatMessage({
-                id: "app.profile.gardensUnavailable",
-                defaultMessage: "Gardens are unavailable right now.",
-              })}
-              action={
-                <Button
-                  type="button"
-                  emphasis="secondary"
-                  onClick={() => {
-                    refetch();
-                    void refetchMemberships();
-                  }}
-                >
-                  {intl.formatMessage({
-                    id: "app.home.retry",
-                    defaultMessage: "Retry",
-                  })}
-                </Button>
-              }
-            />
-          </Card>
+          unavailable
         ) : myGardens.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {myGardens.map(({ garden, membership }) => (

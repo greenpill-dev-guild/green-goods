@@ -56,7 +56,7 @@ export function LeaveGardenConfirmDialog({
                 }),
                 tone: recovery ? undefined : "danger",
                 loading: isLeaving,
-                disabled: !recovery && (checking || availability !== "available"),
+                disabled: !recovery && (checking || checkFailed || availability !== "available"),
                 onClick: onConfirm,
               },
         secondary: {
@@ -94,8 +94,11 @@ export function LeaveGardenConfirmDialog({
           <p>{message({ id: "app.garden.leave.rejoin" })}</p>
         </div>
       )}
-      {checking && !isOwner && !recovery ? (
+      {checking && !checkFailed && !isOwner && !recovery ? (
         <p role="status">{message({ id: "app.garden.leave.checking" })}</p>
+      ) : null}
+      {checkFailed && availability === "available" && !recovery ? (
+        <p role="alert">{message({ id: "app.garden.leave.rolesFailed" })}</p>
       ) : null}
       {failure ? (
         <p role="alert" className="mt-3 text-error-base">

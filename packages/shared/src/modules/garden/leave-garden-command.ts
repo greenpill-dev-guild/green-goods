@@ -1,6 +1,7 @@
 import { getPublicClient, waitForTransactionReceipt } from "@wagmi/core";
 import type { Address, Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
+import { logger } from "../app/logger";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { simulateGardenLeave } from "./garden-leave-availability";
@@ -80,7 +81,13 @@ async function settleDeparture(
   let receipt: Awaited<ReturnType<LeaveGardenPorts["receipt"]>>;
   try {
     receipt = await ports.receipt(hash, command.chainId);
-  } catch {
+  } catch (error) {
+    logger.error("Could not read garden departure receipt", {
+      source: "leaveGarden",
+      error,
+      hash,
+      chainId: command.chainId,
+    });
     throw new TransactionConfirmationPendingError(result);
   }
   if (receipt.status === "reverted") {
@@ -101,7 +108,8 @@ export function createDefaultLeaveGardenPorts(input: {
 }): LeaveGardenPorts {
   return {
     pending: input.pending,
-    moduleAddress: ({ gardenAddress, chainId }) => fetchHatsModuleAddress(gardenAddress, chainId),
+    moduleAddress: ({ gardenAddress, chainId }) =>
+      fetchHatsModuleAddress(gardenAddress, chainId, { throwOnError: true }),
     simulate: ({ gardenAddress, userAddress, chainId }, address) =>
       simulateGardenLeave(address, gardenAddress, userAddress, chainId),
     send: async (command, address) => {
