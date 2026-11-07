@@ -5,7 +5,7 @@
 **Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the six review residuals wait in RESR-112 for the step-3 PR; steps 3 to 7 follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
-**Supersedes**: the `research-intake-loops` hub, closed as `superseded` in the PR that lands step 2 and listed in `.plans/ARCHIVE.md` once archived
+**Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
 
 ## Decision Log
 

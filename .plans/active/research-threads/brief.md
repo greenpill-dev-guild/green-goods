@@ -2,11 +2,11 @@
 
 **Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · brief and spec accepted by Afo on 2026-11-06; step 2 (Saturday spec v6, the routing clause and the research-intake-loops closeout) in PR #1504`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07): Saturday spec v6, the routing clause and the research-intake-loops closeout; six review residuals wait in RESR-112; step 3, the Monday spec, is next`
 **Priority**: `p2`
 **Created**: `2026-11-06`
 **Owner**: Afo · readers of the private surface: afo, matt (decision 10)
-**Supersedes**: the `research-intake-loops` hub (the v5 intake, drift and growth loops), closed as `superseded` with this hub's step 2 and listed in `.plans/ARCHIVE.md` once archived
+**Supersedes**: the `research-intake-loops` hub (the v5 intake, drift and growth loops), closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
 **Reads**: [`docs/routines/research-synthesis.md`](../../../docs/routines/research-synthesis.md) (v5.1 → v6 in step 2) and [`docs/routines/research-agenda.md`](../../../docs/routines/research-agenda.md) (v6)
 
 ## Problem
