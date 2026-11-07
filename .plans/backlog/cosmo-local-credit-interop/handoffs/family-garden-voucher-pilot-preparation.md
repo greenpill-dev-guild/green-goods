@@ -81,12 +81,17 @@ implementation must start from a current isolated checkout with permission.
    call fails, reconcile receipts and current state before retrying. Keep the module paused while
    the mapping is unverified and use the separately approved owner recovery sequence. Preserve an
    existing pause unless resuming service is separately approved. Add the actual asset/garden pins
-   and approved terms through existing Shared configuration. Prove issuer ownership, source
-   authority, finite allowance and collective Safe routing.
+   and approved terms through existing Shared configuration. Have the Gnosis Family issuer Safe
+   call the adapter's `configureAsset(token, issuerAuthority, true)`. Before any earned-voucher
+   dispatch, read back `assetAuthorizations[issuer][token]` and verify it is enabled for the
+   authority approved on Arbitrum. Prove issuer ownership, finite allowance and Safe routing.
 
-   Before signing, quote native CCIP fees for each expected command and acknowledgment. Read
-   the native balances of the Arbitrum entitlement and redemption modules and the Gnosis adapter
-   and escrow. Check that the entitlement module's `feeReserveMinimum` is positive and that the
+   Budget native CCIP fees for each expected command and acknowledgment, then obtain exact
+   quotes once the corresponding payloads exist. Before every setup send, refresh
+   `quoteSetupCommand(setupId, kind)` and pass that exact value from the caller to
+   `dispatchSetupCommand`: kind 0 for Authorization and kind 1 for Activate or Abort. Read the
+   native balances of the Arbitrum entitlement module and Gnosis adapter. Check that the
+   entitlement module's `feeReserveMinimum` is positive and that the
    dispatch can pay its quote while retaining that floor. Prepare separately approved top-ups for
    any shortfall where a send draws on an endpoint balance, including the Gnosis adapter's
    earned-voucher acknowledgment. Verify top-up receipts and balances and refresh the quotes.
@@ -147,10 +152,11 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    deposit and acknowledgment. Have the named buyer call `prepareVoucherSetup` with the
    commitment ID, expected terms revision and hash, pending claim hash, request nonce, and
    approved `acceptanceDeadline`. Read back the resulting setup ID, bound buyer, exact claim,
-   authorization hash and deadline before dispatching that authorization. Verify the issuer's
-   `approveSetupAuthorization` on Gnosis. Verify the named holder's balance of the exact voucher
-   token and trace the units
-   to the earned credit or a separately approved transfer. If a transfer is needed, verify its
+   authorization hash and deadline before dispatching that authorization. On Gnosis, verify the
+   matching setup ID and authorization hash are recorded in the Authorized phase before presenting
+   the issuer Safe's `approveSetupAuthorization` call. Read back issuer approval before deposit.
+   Verify the named holder's balance of the exact voucher token and trace the units to the earned
+   credit or a separately approved transfer. If a transfer is needed, verify its
    receipt and the holder's balance before booking funds are committed. Have that holder approve
    only the required voucher units for the escrow, verify the finite allowance, then call
    `presentSetup`. Read back the successful deposit, exact escrow
@@ -159,10 +165,16 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    `acceptServiceClaim`, verify the deadline against the current Arbitrum block timestamp and the
    absence of an Abort decision. Read back acceptance for the same buyer, claim and setup, then
    run `finalizeActivation`, dispatch Activate and verify it was applied on Gnosis.
-   If the deadline passes without that acceptance, verify the exact claim has no acceptance
-   receipt. Use source `abortSetup`, dispatch its authenticated Abort decision, and verify any
-   deposited vouchers return to the holder. If the refund attempt fails, use the existing
-   `retrySetupAction` and reconcile the resulting acknowledgment before starting another setup.
+   If approved terms allow cancellation before acceptance, the buyer can call `abortSetup`
+   on Arbitrum for the exact setup ID and authorization hash. A separate holder can request
+   cancellation on Gnosis using `requestSetupAbort` with the exact current
+   `quoteSetupAbortRequest` fee. Track that request's message ID and confirm the authenticated
+   request selected Abort on Arbitrum. An existing acceptance receipt takes precedence.
+   If the deadline passes without acceptance, verify there is no receipt for the exact claim
+   before calling source `abortSetup`. For either cancellation or expiry, verify the source
+   selected Abort, dispatch that decision, and verify any deposited vouchers return to the
+   holder. If the refund fails, use `retrySetupAction` and reconcile the resulting acknowledgment
+   before starting another setup.
 5. Record delivery and the holder's separate approval of the delivered service units and proposed
    release/refund split. For any nonzero refund, have the issuer Safe use `authorizeReturn` and read
    back a cumulative return ceiling that covers the proposed refund before the holder freezes
