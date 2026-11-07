@@ -164,7 +164,8 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
   tester attribution, wallets, and replay links.
 - An agent closing an automated QA pass, with nobody there to confirm, runs the same command with
   `--unattended`. It writes the same record under stricter rules: it never guesses a Test ID or a
-  duplicate, and a slice stays in the backlog unless a person recorded the verdict behind it.
+  duplicate, and the slices from an automated pass wait in the backlog until a person promotes
+  them.
 - Fix sessions work slice by slice, and a slice is done when its test cases pass again. Re-QA
   later in the week is a scoped walk of the affected cases in a new run, so the earlier pass stays
   intact and the compare shows what was fixed, what still fails, and what regressed. Within a run,

@@ -48,16 +48,24 @@ run needs when nobody is watching. These rules ran as the `qa-call-report` cloud
 
 ## Sources
 
-- **Notes, when there was a call.** On a rerun, start from the Drive link in the existing parent's
-  source line. Otherwise query Drive for `(title contains 'QA' or title contains 'Build Sync') and
-  title contains 'Notes by Gemini' and modifiedTime > '<session date at 00:00 UTC, RFC 3339>' and
-  mimeType = 'application/vnd.google-apps.document'`, where the session date is the
+- **Notes, when there was a call.** Query Drive for `(title contains 'QA' or title contains 'Build
+  Sync') and title contains 'Notes by Gemini' and modifiedTime > '<session date at 00:00 UTC, RFC
+  3339>' and mimeType = 'application/vnd.google-apps.document'`, where the session date is the
   `--call <date>` argument, or today without one, so a late run still finds that day's call. The
   connector accepts only `title`, `fullText`, `mimeType` and `modifiedTime` terms; a `name` term
   reads as zero matches and would silently drop the call's decisions. Keep the documents whose
   header date is the session date, take the newest whose title names Green Goods or the QA call,
   and list the others in the summary. Reject a document whose main topic is proposals, grants,
-  roadmaps or partnerships.
+  roadmaps or partnerships. When the query finds nothing but exactly one parent for that date links
+  a notes document in its source line, use that document.
+- **Session identity, before the first pull.** A parent titled `QA session <date>` or
+  `QA session <date> · N` is this session when its source line links the same notes document or,
+  in an app-only run, when its attached full report covers the same QA run and an overlapping
+  window. Continue that session under its slug and title. Otherwise start a new one: the date's
+  first session takes the slug `<date>` and the title `QA session <date>`, and each later one the
+  next counter N, the slug `<date>-N` and the title `QA session <date> · N`. Every pull, `tmp/`
+  path and record title then uses that slug, so two calls on one day never share a parent or a
+  workspace.
 - **No notes.** Continue app-only: the report says no meeting notes were found, names the query
   window, and drops the `Decisions from the call` section. An automated pass with no call is
   app-only.
@@ -94,11 +102,14 @@ run needs when nobody is watching. These rules ran as the `qa-call-report` cloud
 ## Dedupe
 
 - **The parent.** The `session:<date>` label only narrows the candidates, because the sync pulse
-  puts it on ordinary Backlog Issues too. Reuse requires this run's exact title (`QA session
-  <date>`, or `QA session <date> · 2` for a second call that day) and no `package:*` label. Route a
-  reused parent that has no project, or a Completed or Canceled one, to the release project; then
-  add the missing children and one comment with the new context. Never create a second parent, and
-  never attach slices to an Issue that fails this shape test.
+  puts it on ordinary Backlog Issues too. Reuse requires the exact title the
+  [session identity](#sources) step chose and no `package:*` label. A reused parent in `Done` that
+  is about to gain a slice, a related Issue or a decisions child goes back to `Todo` first, and the
+  summary says so, because its `Done when` no longer holds. A `Canceled` parent was a person's
+  decision: stop and report instead of adding to it. Route a reused parent whose project is
+  missing, Completed or Canceled to the release project; then add the missing children and one
+  comment with the new context. Never create a second parent for the session, and never attach
+  slices to an Issue that fails this shape test.
 - **Findings.** Search the open Product Issues labelled `activity:build` or any `session:*`, plus
   every Issue created on the team since the window opened, whatever its labels. A match needs the
   same Test ID in the Issue's source line or in a comment the QA pipeline posted, or the same
@@ -126,17 +137,19 @@ failure.
    downstream would ever close it. A session with only decision or investigate lines is not
    all-pass. A failed parent write stops the run: children without a parent are orphans.
 2. **Full report document**, per the template's § Full report document. Retry a failed create
-   once. If it fails again, post the same content as a parent comment whose first line is
-   `Full report (document write failed)`, because the run's `tmp/` directory is deleted with the
-   run and nothing else would keep the attributed record. If that comment fails too, stop before
-   writing any child and report the parent's identifier. Then link the document from the parent's
-   lede, sending the title again; retry a failed patch once, then report it.
+   once. If it fails again, stop before writing any child: keep the pull's `tmp/qa-session/` folder
+   for a rerun (which can also pull the closed run again), and report the parent's identifier and
+   the failure. Never paste the report into a comment instead, because Linear comments carry no
+   attribution ([QA contract](../../../context/qa.md)). Once the document exists, link it from the
+   parent's lede, sending the title again; retry a failed patch once, then report it.
 3. **Decisions child**, when `Decisions needed` has lines: `Backlog`, unassigned.
-4. **Slices**, as sub-issues through `parentId`, each with one `package:*` label. Only a slice
-   backed by an in-window fail or blocked verdict that a person recorded lands in `Todo`: the
-   person's verdict is the first human check and the fix session is the second. A verdict that the
-   run or another agent recorded is not a person's judgment, so its slice lands in `Backlog` with
-   its derived priority for someone to promote. A notes-only slice lands in `Backlog` with no
+4. **Slices**, as sub-issues through `parentId`, each with one `package:*` label. Decide slice
+   state for the whole run, because the pulled state does not record whether a person or an agent
+   entered a verdict. A run that closes a team call, whose verdicts the testers recorded, files a
+   slice backed by an in-window fail or blocked verdict in `Todo`, as call mode derives it: the
+   tester's verdict is the first human check and the fix session is the second. Any other run,
+   including an automated pass or one the runner cannot classify, files every slice in `Backlog`
+   with its derived priority for a person to promote. A notes-only slice lands in `Backlog` with no
    priority. Apply the Todo budget after deriving states; overflow lands in `Backlog` at the same
    priority. Retry a failed slice write once, then report it.
 
