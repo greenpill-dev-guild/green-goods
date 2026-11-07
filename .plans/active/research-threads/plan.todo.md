@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) are in the research-week PR; step 5 (the skill's review mode), the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's review mode), the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
 **Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
@@ -36,12 +36,12 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes in the research-week PR |
-| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes in the research-week PR |
+| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
+| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
 | R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | shipped in #1509; trigger created 2026-11-07 |
-| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes in the research-week PR |
+| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
 | R20 delegated review | none (skill) | Step 5 | pending |
-| R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half written in the research-week PR |
+| R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half shipped in #1509 |
 | Monday trigger, display name, panel line | human | Step 6 | trigger created 2026-11-07; display name and panel line pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |
 

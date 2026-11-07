@@ -3,8 +3,7 @@ routine-name: research-week
 trigger:
   schedule: "0 13 * * 1"  # Mon 13:00 UTC = 05:00 PST / 06:00 PDT, so the brief is there before the steward's morning read; the scheduler starts a run up to 14 minutes after the cron time.
 max-duration: 30m
-repos:
-  - green-goods   # read-only: docs/routines/research-agenda.md is the compass. Never edits, commits, or pushes. If the trigger carries no checkout, the pointer prompt shallow-clones the public repo instead.
+repos: []  # the live trigger carries no repository source: its pointer prompt shallow-clones the public repository at develop into a scratch directory and reads this spec and docs/routines/research-agenda.md (the compass) there, read-only. A rebuild may attach green-goods instead; the pointer's first step then finds the checkout and skips the clone. Never edits, commits, or pushes.
 environment: green-goods  # the #research channel id, the bot token, and the Drive and Linear connectors
 network-access: full  # Discord REST (one post) + Drive (drafts, weekend call notes) + Linear (one document patch); no outside fetches
 env-vars:
