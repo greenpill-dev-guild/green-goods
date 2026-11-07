@@ -1,12 +1,6 @@
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
-import { toKernelSmartAccount } from "permissionless/accounts";
 import { type Hex, http } from "viem";
-import {
-  createWebAuthnCredential,
-  entryPoint07Address,
-  type P256Credential,
-  toWebAuthnAccount,
-} from "viem/account-abstraction";
+import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { getChain } from "../config/chains";
 import {
   buildPasskeyRecoveryContext,
@@ -38,7 +32,6 @@ import {
 import {
   clearSignedOutSentinel,
   getAuthMode,
-  getPasskeyRequestIds,
   getStoredCredential,
   getStoredRpId,
   getStoredSmartAccountAddress,
@@ -55,12 +48,11 @@ import {
   setStoredProfileAddress,
 } from "../modules/auth/session";
 import {
-  getPasskeyAccountRecipe,
-  isKernel033PasskeyProfile,
   getPilotCredentialId,
   LEGACY_PASSKEY_PROFILE,
   type PasskeyAccountProfileId,
 } from "../modules/auth/account-profile";
+import { createPasskeyKernelAccount } from "../modules/auth/passkey-kernel-account";
 import { discoverPilotAccountProof } from "../modules/auth/pilot-account-proof";
 
 export type PasskeyServerClientAdapter = ReturnType<typeof createPasskeyServerClient>;
@@ -131,32 +123,6 @@ export interface PasskeyAdapters {
   ): Promise<{ client: SmartAccountClient; address: Hex }>;
 }
 
-export function createPasskeyOwner(
-  credential: PasskeyCredential,
-  rpId: string,
-  getFn?: Parameters<typeof toWebAuthnAccount>[0]["getFn"]
-) {
-  const getCredential: NonNullable<Parameters<typeof toWebAuthnAccount>[0]["getFn"]> =
-    getFn ?? ((options) => navigator.credentials.get(options as CredentialRequestOptions));
-  return toWebAuthnAccount({
-    credential,
-    rpId,
-    getFn: (options) => {
-      if (!options?.publicKey?.allowCredentials) return getCredential(options);
-      return getCredential({
-        ...options,
-        publicKey: {
-          ...options.publicKey,
-          allowCredentials: getPasskeyRequestIds(credential).map((id) => ({
-            type: "public-key",
-            id,
-          })),
-        },
-      });
-    },
-  });
-}
-
 async function buildSmartAccount(
   credential: PasskeyCredential,
   chainId: number,
@@ -164,24 +130,17 @@ async function buildSmartAccount(
   knownAddress?: Hex,
   profile: PasskeyAccountProfileId = LEGACY_PASSKEY_PROFILE
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
-  const recipe = getPasskeyAccountRecipe(profile, chainId);
-  if (isKernel033PasskeyProfile(profile) && knownAddress) {
-    throw new Error("Pilot accounts must be derived without an address override");
-  }
-  const ownerCredential = isKernel033PasskeyProfile(profile)
-    ? { ...credential, id: getPilotCredentialId(credential) }
-    : credential;
+  const account = await createPasskeyKernelAccount({
+    client: createPublicClientForChain(chainId),
+    chainId,
+    credential,
+    rpId,
+    knownAddress,
+    profile,
+  });
   const sponsorshipPolicyId = getPimlicoSponsorshipPolicyId(chainId);
   const chain = getChain(chainId);
-  const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
-  const account = await toKernelSmartAccount({
-    client: publicClient,
-    ...recipe,
-    owners: [createPasskeyOwner(ownerCredential, rpId)],
-    entryPoint: { address: entryPoint07Address, version: "0.7" },
-    address: knownAddress,
-  });
   const client = createSmartAccountClient({
     account,
     chain,

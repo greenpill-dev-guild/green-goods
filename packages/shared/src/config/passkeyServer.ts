@@ -10,13 +10,16 @@
 
 import { createPasskeyServerClient as createPermissionlessPasskeyServerClient } from "permissionless/clients/passkeyServer";
 import { startRegistration, verifyRegistration } from "permissionless/actions/passkeyServer";
-import { http } from "viem";
+import { http, type Address } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { logger } from "../modules/app/logger";
 import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
 import { PUBLIC_AGENT_ROUTES } from "../public-contracts/routes";
 import {
   normalizePasskeyName,
+  displayablePasskeyName,
+  isRegistrablePasskeyName,
+  PASSKEY_DISPLAY_NAMES_METHOD,
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
 } from "../public-contracts/passkey-directory";
@@ -114,11 +117,8 @@ const DIRECTORY_TIMEOUT_MS = 6_000;
  * separate rollout URL. Local-only development does not create a server client.
  */
 export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskeyServerEnv()) {
-  if (!isPasskeyServerEnabled(env)) return null;
-  const baseUrl =
-    env.VITE_API_BASE_URL?.trim() ||
-    (env.DEV ? "http://127.0.0.1:3005" : "https://agent.greengoods.app");
-  const url = `${baseUrl.replace(/\/$/, "")}${PUBLIC_AGENT_ROUTES.passkeyDirectory}`;
+  const url = passkeyDirectoryUrl(env);
+  if (!url) return null;
   const client = createPermissionlessPasskeyServerClient({
     transport: http(url, { timeout: DIRECTORY_TIMEOUT_MS, retryCount: 1 }),
   });
@@ -128,6 +128,43 @@ export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskey
     verifyRegistration: (args: Parameters<typeof client.verifyRegistration>[0]) =>
       withDirectoryProfile(client, (source) => verifyRegistration(source, args)),
   }));
+}
+
+function passkeyDirectoryUrl(env: PasskeyServerEnv): string | null {
+  if (!isPasskeyServerEnabled(env)) return null;
+  const baseUrl =
+    env.VITE_API_BASE_URL?.trim() ||
+    (env.DEV ? "http://127.0.0.1:3005" : "https://agent.greengoods.app");
+  return `${baseUrl.replace(/\/$/, "")}${PUBLIC_AGENT_ROUTES.passkeyDirectory}`;
+}
+
+/** Look up labels only. This RPC never returns sign-in credential material. */
+export async function readPasskeyDisplayNames(chainId: number, addresses: readonly Address[]) {
+  const url = passkeyDirectoryUrl(readPasskeyServerEnv());
+  if (!url) return addresses.map(() => null);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: PASSKEY_DISPLAY_NAMES_METHOD,
+      params: [{ chainId, addresses }],
+    }),
+    signal: AbortSignal.timeout(DIRECTORY_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error("Passkey names are unavailable");
+
+  const body = (await response.json()) as { result?: unknown; error?: { code?: unknown } } | null;
+  if (body?.error?.code === -32601) return addresses.map(() => null);
+  const names = body?.result;
+  if (!Array.isArray(names) || names.length !== addresses.length) {
+    throw new Error("Invalid passkey name response");
+  }
+  return names.map((name: unknown) =>
+    typeof name === "string" && isRegistrablePasskeyName(name) ? displayablePasskeyName(name) : null
+  );
 }
 
 /** Keep the directory's recipe alongside the SDK's validated/decoded result, which drops extra fields. */

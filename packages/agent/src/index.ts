@@ -58,7 +58,8 @@ import { createGardenJoinRequestChainReader } from "./services/garden-join-reque
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
 import { createPasskeyDirectory } from "./services/passkey-directory";
 import {
-  createHostedPasskeyNameCheck,
+  createHostedPasskeyLookup,
+  createSqlitePasskeyDisplayNames,
   createSqlitePasskeyDirectoryStore,
 } from "./services/passkey-directory-adapters";
 import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
@@ -101,6 +102,12 @@ async function main(): Promise<void> {
   // Initialize services
   initDB(config.dbPath);
   const agentRpc = resolveAgentRpc(config.chainId);
+  const hostedPasskeys = config.passkeyHostedDirectoryUrl
+    ? createHostedPasskeyLookup({
+        rpcUrl: config.passkeyHostedDirectoryUrl,
+        origin: `https://${PASSKEY_RP_ID}`,
+      })
+    : undefined;
   // Only the host is logged: a configured address can carry a provider key in its path.
   const rpcLog = {
     chainId: config.chainId,
@@ -204,12 +211,10 @@ async function main(): Promise<void> {
     savedOffersChainIds: [config.chainId],
     passkeyDirectory: createPasskeyDirectory({
       store: createSqlitePasskeyDirectoryStore(),
+      displayNames: createSqlitePasskeyDisplayNames(config.chain, agentRpc.url, hostedPasskeys),
       relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
-      hostedNameTaken: config.passkeyHostedDirectoryUrl
-        ? createHostedPasskeyNameCheck({
-            rpcUrl: config.passkeyHostedDirectoryUrl,
-            origin: `https://${PASSKEY_RP_ID}`,
-          })
+      hostedNameTaken: hostedPasskeys
+        ? async (name) => (await hostedPasskeys(name)).length > 0
         : undefined,
       allowLocalDevelopment: config.isDevelopment,
     }),

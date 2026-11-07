@@ -31,9 +31,14 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
   const setGardenFilters = useUIStore((state) => state.setGardenFilters);
-  const { gardens: myGardens, isLoaded, isError, refetch } = useMyGardens(primaryAddress);
+  const { gardens: homeGardens, isLoaded, isError, refetch } = useMyGardens(primaryAddress);
   const { gardenId: activeGardenId } = useActiveGarden();
-  const departureOptions = useGardenDepartureOptions();
+  const {
+    options: departureOptions,
+    isLoading: membershipsLoading,
+    isError: membershipsError,
+    refetch: refetchMemberships,
+  } = useGardenDepartureOptions();
   const [selected, setSelected] = useState<{
     garden: Garden;
     wasActive: boolean;
@@ -69,6 +74,14 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   };
 
   if (!primaryAddress) return null;
+  const myGardens = [
+    ...homeGardens,
+    ...departureOptions.filter(
+      ({ garden, membership }) =>
+        membership.roles.length > 0 &&
+        !homeGardens.some((mine) => compareAddresses(mine.garden.id, garden.id))
+    ),
+  ];
   const outsideMembership = departureOptions.filter(
     (option) => !myGardens.some(({ garden }) => compareAddresses(garden.id, option.garden.id))
   );
@@ -93,7 +106,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           })}
         </h5>
 
-        {!isLoaded && !isError ? (
+        {myGardens.length === 0 && (membershipsLoading || (!isLoaded && !isError)) ? (
           <Card>
             <EmptyState
               busy
@@ -105,7 +118,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
               })}
             />
           </Card>
-        ) : !isLoaded ? (
+        ) : myGardens.length === 0 && (!isLoaded || membershipsError) ? (
           <Card>
             <EmptyState
               className="w-full"
@@ -116,7 +129,14 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 defaultMessage: "Gardens are unavailable right now.",
               })}
               action={
-                <Button type="button" emphasis="secondary" onClick={refetch}>
+                <Button
+                  type="button"
+                  emphasis="secondary"
+                  onClick={() => {
+                    refetch();
+                    void refetchMemberships();
+                  }}
+                >
                   {intl.formatMessage({
                     id: "app.home.retry",
                     defaultMessage: "Retry",

@@ -508,6 +508,7 @@
     "./modules/app/error-categories": "./src/modules/app/error-categories.ts",
     "./modules/app/posthog": "./src/modules/app/posthog.ts",
     "./modules/auth/session": "./src/modules/auth/session.ts",
+    "./modules/auth/passkey-kernel-account": "./src/modules/auth/passkey-kernel-account.ts",
     "./modules/job-queue/default-instance": "./src/modules/job-queue/default-instance.ts",
     "./modules/octant-vault-card-wallet-cache": "./src/modules/octant-vault-card-wallet-cache.ts",
     "./modules/vault-crowdfunding/card-endow": "./src/modules/vault-crowdfunding/card-endow.ts",

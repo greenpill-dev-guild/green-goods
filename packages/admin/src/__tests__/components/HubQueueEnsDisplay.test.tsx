@@ -3,11 +3,11 @@
  */
 
 import type { HubOlderRecords } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
-import enMessages from "@green-goods/shared/i18n/en.json";
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithProviders as renderWithIntl } from "../test-utils";
 
 const { mockUseEnsName, mockUseGreenGoodsEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
@@ -36,14 +36,6 @@ const TEST_WORK: Work = {
   createdAt: 1_700_000_000,
   status: "pending",
 };
-
-function renderWithIntl(ui: React.ReactElement) {
-  return render(
-    <IntlProvider locale="en" messages={enMessages}>
-      {ui}
-    </IntlProvider>
-  );
-}
 
 describe("Hub queue ENS display", () => {
   beforeEach(() => {
@@ -398,11 +390,7 @@ describe("Hub lists with older records", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show Older Hypercerts" }));
     expect(older.onShowOlder).toHaveBeenCalledTimes(1);
 
-    view.rerender(
-      <IntlProvider locale="en" messages={enMessages}>
-        {list([], "autumn")}
-      </IntlProvider>
-    );
+    view.rerender(list([], "autumn"));
     expect(screen.getByText("Older hypercerts aren't loaded yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show Older Hypercerts" })).toBeInTheDocument();
   });

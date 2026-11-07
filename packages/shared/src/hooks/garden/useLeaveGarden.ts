@@ -1,8 +1,10 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useIntl } from "react-intl";
 import type { Address } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { STALE_TIMES } from "../../config/react-query";
+import { getProfileMemberGardens } from "../../modules/data/indexer-garden";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { gardenersKeys, roleKeys } from "../../config/query-keys/identity";
 import { createTracker } from "../../modules/app/analytics-events";
@@ -10,6 +12,9 @@ import { logger } from "../../modules/app/logger";
 import { readRolesAfterDeparture } from "../../modules/garden/garden-departure-reads";
 import {
   getGardenFenceBlock,
+  getGardenFenceFilters,
+  getServerGardenFenceFilters,
+  subscribeToGardenFences,
   recordGardenDeparture,
   recordGardenRegrant,
   withoutDepartedMembers,
@@ -48,7 +53,27 @@ export function useGardenDepartureOptions() {
   const { primaryAddress } = useUser();
   const { data: gardens } = useGardens(DEFAULT_CHAIN_ID);
   const submissions = useGardenLeaveStore((state) => state.pending);
-  const knownGardens = gardens ?? [];
+  const memberGardens = useQuery({
+    queryKey: gardensKeys.profileMemberships(primaryAddress ?? undefined, DEFAULT_CHAIN_ID),
+    queryFn: () => getProfileMemberGardens(primaryAddress as Address),
+    enabled: Boolean(primaryAddress),
+    staleTime: STALE_TIMES.baseLists,
+    networkMode: "offlineFirst",
+  });
+  const fences = useSyncExternalStore(
+    subscribeToGardenFences,
+    getGardenFenceFilters,
+    getServerGardenFenceFilters
+  );
+  const knownGardens = new Map(
+    fences
+      .roster(memberGardens.data ?? [], DEFAULT_CHAIN_ID)
+      .map((garden) => [garden.id.toLowerCase(), garden])
+  );
+  for (const garden of gardens ?? []) {
+    const id = garden.id.toLowerCase();
+    if (!knownGardens.has(id)) knownGardens.set(id, garden);
+  }
   const prefix = primaryAddress
     ? `${getTransactionScopeKey(primaryAddress, DEFAULT_CHAIN_ID)}:`
     : "";
@@ -56,36 +81,52 @@ export function useGardenDepartureOptions() {
     ? Object.keys(submissions).flatMap((key) => {
         if (!key.startsWith(prefix)) return [];
         const address = key.slice(prefix.length);
-        return /^0x[a-f0-9]{40}$/.test(address) &&
-          !knownGardens.some((garden) => garden.id.toLowerCase() === address)
+        return /^0x[a-f0-9]{40}$/.test(address) && !knownGardens.has(address)
           ? [address as Address]
           : [];
       })
     : [];
   const olderGardens = useQueries({ queries: missing.map(getGardenRecordOptions) });
-  if (!primaryAddress) return [];
-  return [
-    ...knownGardens,
-    ...olderGardens.flatMap((query) => (query.data ? [query.data] : [])),
-  ].flatMap((garden) => {
-    const roles: GardenRole[] = [...gardenMembership(garden, primaryAddress).roles];
-    if (garden.funders?.some((account) => account.toLowerCase() === primaryAddress.toLowerCase()))
-      roles.push("funder");
-    if (
-      garden.communities?.some((account) => account.toLowerCase() === primaryAddress.toLowerCase())
-    )
-      roles.push("community");
-    const hasPendingDeparture = Boolean(
-      submissions[
-        gardenLeaveScope({
-          gardenAddress: garden.id as Address,
-          userAddress: primaryAddress,
-          chainId: DEFAULT_CHAIN_ID,
-        })
-      ]
-    );
-    return roles.length || hasPendingDeparture ? [{ garden, roles, hasPendingDeparture }] : [];
-  });
+  const options = primaryAddress
+    ? [
+        ...knownGardens.values(),
+        ...fences.roster(
+          olderGardens.flatMap((query) => (query.data ? [query.data] : [])),
+          DEFAULT_CHAIN_ID
+        ),
+      ].flatMap((garden) => {
+        const membership = gardenMembership(garden, primaryAddress);
+        const roles: GardenRole[] = [...membership.roles];
+        if (
+          garden.funders?.some((account) => account.toLowerCase() === primaryAddress.toLowerCase())
+        )
+          roles.push("funder");
+        if (
+          garden.communities?.some(
+            (account) => account.toLowerCase() === primaryAddress.toLowerCase()
+          )
+        )
+          roles.push("community");
+        const hasPendingDeparture = Boolean(
+          submissions[
+            gardenLeaveScope({
+              gardenAddress: garden.id as Address,
+              userAddress: primaryAddress,
+              chainId: DEFAULT_CHAIN_ID,
+            })
+          ]
+        );
+        return roles.length || hasPendingDeparture
+          ? [{ garden, membership, roles, hasPendingDeparture }]
+          : [];
+      })
+    : [];
+  return {
+    options,
+    isLoading: memberGardens.isLoading,
+    isError: memberGardens.isError,
+    refetch: memberGardens.refetch,
+  };
 }
 
 const trackLeave = createTracker<{ outcome: string; authMode: string; errorFamily?: string }>(

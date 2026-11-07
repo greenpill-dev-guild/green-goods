@@ -27,6 +27,7 @@ const fakes = vi.hoisted(() => ({
   sender: vi.fn(),
   ownership: vi.fn(),
   gardenRecord: vi.fn(),
+  profileMemberGardens: vi.fn(),
   rejoined: vi.fn(),
   log: vi.fn(),
   gardens: [] as ReturnType<typeof createMockGarden>[],
@@ -44,6 +45,7 @@ vi.mock("../../config/default-chain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
 vi.mock("../../utils/blockchain/garden-hats", () => ({ fetchHatsModuleAddress: fakes.module }));
 vi.mock("../../modules/data/indexer-garden", () => ({
   getGarden: fakes.gardenRecord,
+  getProfileMemberGardens: fakes.profileMemberGardens,
 }));
 vi.mock("../../modules/transactions/chain-guard", () => ({ ensureAppKitWalletChain: vi.fn() }));
 vi.mock("../../modules/transactions/local-fork-safety", () => ({
@@ -114,6 +116,7 @@ beforeEach(() => {
     smartAccountClient: null,
   });
   fakes.rejoined.mockResolvedValue({ block: 50n, roles: [], complete: true });
+  fakes.profileMemberGardens.mockResolvedValue([]);
   fakes.module.mockResolvedValue(module);
   fakes.simulate.mockResolvedValue({});
   fakes.wallet.mockResolvedValue("0xabc");
@@ -528,7 +531,7 @@ it("reconciles a checkpoint written by another tab without requesting a signatur
 
 function renderDepartureOptions() {
   const client = createTestQueryClient();
-  return renderHook(useGardenDepartureOptions, {
+  return renderHook(() => useGardenDepartureOptions().options, {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     ),
@@ -536,6 +539,25 @@ function renderDepartureOptions() {
 }
 
 describe("Profile departure options", () => {
+  it("offers departure to a member outside the catalog without a saved receipt", async () => {
+    fakes.gardens = [createMockGarden({ id: module, gardeners: [] })];
+    fakes.profileMemberGardens.mockResolvedValue([
+      createMockGarden({ id: address, gardeners: [account] }),
+    ]);
+    const { result } = renderDepartureOptions();
+    await waitFor(() =>
+      expect(result.current).toMatchObject([
+        {
+          garden: { id: address },
+          membership: { roles: ["gardener"] },
+          hasPendingDeparture: false,
+        },
+      ])
+    );
+    expect(fakes.profileMemberGardens).toHaveBeenCalledWith(account);
+    expect(fakes.gardenRecord).not.toHaveBeenCalled();
+  });
+
   it("looks up a saved departure for a garden outside the current page", async () => {
     fakes.gardens = [createMockGarden({ id: module, gardeners: [] })];
     fakes.gardenRecord.mockResolvedValue(createMockGarden({ id: address, gardeners: [] }));

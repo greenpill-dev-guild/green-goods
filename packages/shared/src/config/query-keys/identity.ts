@@ -26,6 +26,8 @@ export const ensKeys = {
   availability: (slug: string) => ["greengoods", "ens", "availability", slug] as const,
   protocolName: (address: Address | string) =>
     ["greengoods", "ens", "protocolName", address] as const,
+  passkeyName: (chainId: number, address: Address | string) =>
+    ["greengoods", "ens", "passkeyName", chainId, address.toLowerCase()] as const,
   protocolMembership: (address: Address | string) =>
     ["greengoods", "ens", "protocolMembership", address] as const,
 } as const;

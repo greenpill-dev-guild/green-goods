@@ -16,6 +16,8 @@ export const PASSKEY_RP_NAME = "Green Goods";
 
 export const PASSKEY_NAME_MIN_LENGTH = 3;
 export const PASSKEY_NAME_MAX_LENGTH = 64;
+export const PASSKEY_DISPLAY_NAMES_METHOD = "pks_getDisplayNames";
+export const PASSKEY_DISPLAY_NAMES_BATCH_LIMIT = 64;
 
 export const LEGACY_PASSKEY_PROFILE = "kernel-0.3.1-legacy" as const;
 export const KERNEL_033_PASSKEY_PROFILE = "kernel-0.3.3" as const;
@@ -60,6 +62,12 @@ export function isRegistrablePasskeyName(name: string): boolean {
     if (code < 0x20 || code === 0x7f) return false;
   }
   return true;
+}
+
+/** Generated sign-in identifiers are never used as people's display names. */
+export function displayablePasskeyName(name?: string | null): string | null {
+  const label = name?.trim();
+  return label && !/^user_\d+$/i.test(label) ? label : null;
 }
 
 export type PasskeyDirectoryCredential = {

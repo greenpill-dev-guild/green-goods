@@ -1,15 +1,14 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import en from "@green-goods/shared/i18n/en.json";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders } from "@/__tests__/test-utils";
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
@@ -21,10 +20,6 @@ vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
 
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
-}));
-
-vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
-  useUser: vi.fn(() => ({ primaryAddress: null })),
 }));
 
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
@@ -41,10 +36,6 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
 
 vi.mock("@/components/Inputs", () => ({
   AddressCopy: ({ address }: { address: string }) => <span>{address}</span>,
-}));
-
-vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
-  useGardens: vi.fn(() => ({ data: [] })),
 }));
 
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
@@ -80,9 +71,6 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(useUser).mockImplementation(
-    () => ({ primaryAddress: null }) as ReturnType<typeof useUser>
-  );
   vi.mocked(useGreenGoodsEnsName).mockImplementation(
     () => ({ data: null }) as ReturnType<typeof useGreenGoodsEnsName>
   );
@@ -111,7 +99,7 @@ describe("GardenGardeners", () => {
       toJSON: () => ({}),
     });
 
-    render(
+    renderWithProviders(
       <TestIntl>
         <GardenGardeners ref={ref} members={members} />
       </TestIntl>
@@ -136,7 +124,7 @@ describe("GardenGardeners", () => {
   it("reports a failed member-detail copy without claiming success", async () => {
     vi.mocked(copyToClipboard).mockResolvedValue(false);
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <TestIntl>
         <GardenGardeners members={[{ ...members[0], email: "member@example.com" }]} />
       </TestIntl>
@@ -152,7 +140,7 @@ describe("GardenGardeners", () => {
   });
 
   it("shows each member's highest role and since when a gardener has been one, and no date it lacks", () => {
-    render(
+    renderWithProviders(
       <TestIntl>
         <GardenGardeners
           members={[
@@ -187,7 +175,7 @@ describe("GardenGardeners", () => {
     } as ReturnType<typeof useResolvedProfileAvatar>);
     const member = { ...members[0], username: undefined, avatar: "blob:unpublished-preview" };
 
-    const { container, rerender } = render(
+    const { container, rerender } = renderWithProviders(
       <TestIntl>
         <GardenGardeners members={[member]} />
       </TestIntl>
@@ -238,7 +226,7 @@ describe("GardenGardeners", () => {
       isLoading: true,
     } as ReturnType<typeof useResolvedProfileAvatar>);
 
-    const { container } = render(
+    const { container } = renderWithProviders(
       <TestIntl>
         <GardenGardeners members={[members[0]]} />
       </TestIntl>
@@ -249,15 +237,12 @@ describe("GardenGardeners", () => {
     );
   });
 
-  it("keeps departure in Profile without a Gardeners action or redirect", () => {
-    render(
-      <MemoryRouter>
-        <IntlProvider locale="en" messages={en}>
-          <GardenGardeners members={members.slice(0, 2)} />
-        </IntlProvider>
-      </MemoryRouter>
+  it("keeps the leave action in Profile", () => {
+    renderWithProviders(
+      <IntlProvider locale="en" messages={en}>
+        <GardenGardeners members={members.slice(0, 2)} />
+      </IntlProvider>
     );
-    expect(screen.queryByRole("link", { name: /leave/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /leave/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /leave garden/i })).not.toBeInTheDocument();
   });
 });

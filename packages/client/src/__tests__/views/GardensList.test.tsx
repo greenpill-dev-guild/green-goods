@@ -30,7 +30,12 @@ const departure = vi.hoisted(() => ({
   check: vi.fn(),
 }));
 vi.mock("@green-goods/shared/hooks/garden/useLeaveGarden", () => ({
-  useGardenDepartureOptions: () => departure.options,
+  useGardenDepartureOptions: () => ({
+    options: departure.options,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
   useLeaveGarden: () => ({
     leaveGarden: departure.leave,
     reconcileDeparture: departure.recover,
@@ -207,6 +212,22 @@ describe("GardensList", () => {
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
   });
 
+  it("opens the normal leave sheet for an older membership found only in Profile", async () => {
+    departure.options = [
+      {
+        ...asMine({ id: "0xolder", name: "Older Garden" }),
+        roles: ["gardener"],
+        hasPendingDeparture: false,
+      },
+    ];
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    const myGardens = screen.getByText("My gardens").closest("section")!;
+    await userEvent
+      .setup()
+      .click(within(myGardens).getByRole("button", { name: "Leave Garden: Older Garden" }));
+    expect(screen.getByRole("dialog", { name: "Leave Older Garden?" })).toBeInTheDocument();
+  });
+
   it("marks the active garden On Home and offers no control to switch it", async () => {
     const user = userEvent.setup();
     mockMyGardens.gardens = [
@@ -325,7 +346,12 @@ describe("GardensList", () => {
 
   it("keeps a previous departure accessible after the member card disappears", () => {
     departure.options = [
-      { garden: { id: "0xleft", name: "Previous Garden" }, roles: [], hasPendingDeparture: true },
+      {
+        garden: { id: "0xleft", name: "Previous Garden" },
+        membership: { roles: [], pendingJoin: false },
+        roles: [],
+        hasPendingDeparture: true,
+      },
     ];
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
     expect(screen.getByRole("heading", { name: "Previous Departures" })).toBeInTheDocument();

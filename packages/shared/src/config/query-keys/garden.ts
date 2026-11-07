@@ -3,6 +3,8 @@ export const gardensKeys = {
   byChain: (chainId: number) => ["greengoods", "gardens", chainId] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
+  profileMemberships: (account: string | undefined, chainId: number) =>
+    ["greengoods", "gardens", "profileMemberships", account?.toLowerCase(), chainId] as const,
   setup: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "setup", gardenId, chainId] as const,
   leaveCapability: (gardenId: string, account: string | undefined, chainId: number) =>

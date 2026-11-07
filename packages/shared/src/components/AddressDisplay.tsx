@@ -24,7 +24,8 @@ export interface AddressDisplayProps {
   /**
    * For a caller that builds its own element around the name, such as a row's title or a
    * chip: it receives the name this display would show (the Green Goods name, then the ENS
-   * name, then a short address) and renders it, with no popover or copy button.
+   * name, then the chosen passkey name when available, then a short address) and renders it,
+   * with no popover or copy button.
    */
   children?: (name: string) => ReactNode;
   /**
