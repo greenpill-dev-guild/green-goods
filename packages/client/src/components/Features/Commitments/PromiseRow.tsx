@@ -67,7 +67,15 @@ export function PromiseRow({
       service={service}
       due={promiseDueDetail(intl, commitment.dueDate)}
       party={{ commitment, seat }}
-      group={copies ? { size: copies, counts: "" } : null}
+      // The tile's number says what it counts in the line's second place (DL-166).
+      group={
+        copies
+          ? {
+              size: copies,
+              counts: formatMessage({ id: "app.pool.group.row.size" }, { count: copies }),
+            }
+          : null
+      }
       // A row without a destination is a record, not a control.
       onOpen={onOpen ? () => onOpen(commitment.commitmentId) : undefined}
     />

@@ -10,7 +10,7 @@ import {
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
-import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
@@ -32,10 +32,16 @@ import {
 } from "./voucherWallet";
 
 export interface VouchersTabProps {
-  wallet: VoucherWalletSnapshot;
+  /** The account's vouchers, once the read answers; until then the tab holds its rows' places. */
+  wallet: VoucherWalletSnapshot | undefined;
+  /** The read failed outright, with no answer to show. */
+  failed?: boolean;
   /** Closes the wallet before a row opens a booking or a garden over Home. */
   onClose: () => void;
 }
+
+/** How many empty frames hold the list's place while the read runs (DL-056). */
+const LOADING_ROWS = 2;
 
 const shortAccount = (account: Address) => `${account.slice(0, 6)}…${account.slice(-4)}`;
 
@@ -51,22 +57,26 @@ function unitName(intl: IntlShape, issuer: VoucherIssuer) {
  * The wallet's Vouchers tab (PRD-1297 surface 4, `SWallet`). The wallet is account-wide while
  * the Promises sheet shows only the active garden, so a booking's row here is the way back to a
  * booking at any garden (decision 11). Item rows carry their amounts in the right slot (DL-113).
+ * The wallet lists the tab before its read answers (DL-167), so until then it holds its rows'
+ * places with empty frames and the note under them, and a failed read says so in the rows' place.
  */
-export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
+export function VouchersTab({ wallet, failed = false, onClose }: VouchersTabProps) {
   const intl = useIntl();
   const navigate = useNavigate();
   const [open, setOpen] = useState<Address | null>(null);
-  const rows = selectVoucherWalletRows(wallet);
-  const issuerName = (account: Address) =>
-    voucherIssuerOf(wallet, account)?.name ?? shortAccount(account);
   // The sheet sits over Home, so it closes before the screen it opens would show under it.
   const go = (path: string) => {
     onClose();
     navigate(path, { state: { from: "home" } });
   };
-  const empty = rows.bookings.length + rows.returns.length + rows.holdings.length === 0;
+  const where = (
+    <p className="flex items-start gap-2 type-meta text-text-soft-400">
+      <RiHandHeartLine aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{intl.formatMessage({ id: "app.voucher.wl.where" })}</span>
+    </p>
+  );
 
-  if (wallet.evidence === "unavailable")
+  if (wallet?.evidence === "unavailable" || (!wallet && failed))
     return (
       <div className={PWA_SHEET_SCROLL_CLASSNAME}>
         <div className="p-4">
@@ -76,6 +86,27 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
         </div>
       </div>
     );
+
+  if (!wallet)
+    return (
+      <div className={PWA_SHEET_SCROLL_CLASSNAME}>
+        <div className="flex flex-col gap-3 p-4">
+          <ul className="flex flex-col gap-(--gg-list-gap)" aria-busy="true">
+            {Array.from({ length: LOADING_ROWS }, (_, index) => (
+              <li key={index}>
+                <ItemRowSkeleton lead="icon" amount />
+              </li>
+            ))}
+          </ul>
+          {where}
+        </div>
+      </div>
+    );
+
+  const rows = selectVoucherWalletRows(wallet);
+  const issuerName = (account: Address) =>
+    voucherIssuerOf(wallet, account)?.name ?? shortAccount(account);
+  const empty = rows.bookings.length + rows.returns.length + rows.holdings.length === 0;
 
   return (
     <div className={PWA_SHEET_SCROLL_CLASSNAME}>
@@ -123,10 +154,7 @@ export function VouchersTab({ wallet, onClose }: VouchersTabProps) {
             ))}
           </ul>
         )}
-        <p className="flex items-start gap-2 type-meta text-text-soft-400">
-          <RiHandHeartLine aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{intl.formatMessage({ id: "app.voucher.wl.where" })}</span>
-        </p>
+        {where}
       </div>
     </div>
   );

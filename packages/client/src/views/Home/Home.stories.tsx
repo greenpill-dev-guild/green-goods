@@ -112,6 +112,8 @@ function homeState(active: ReturnType<typeof activeGarden>, { awaiting = [] as G
       isIncomplete: false,
       markSeen: fn(),
       clearAll: fn(),
+      refresh: fn(),
+      isFetching: false,
     });
     return resetHookMocks(
       useActiveGarden,

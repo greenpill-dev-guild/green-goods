@@ -55,8 +55,9 @@ it("says nothing about offline content while online", () => {
     lastSuccessfulRefresh: Date.now(),
   });
 
-  // Online, the header's status line is the count, never a saved-copy line.
-  expect(screen.getByRole("status")).toHaveTextContent("1 submission");
+  // Online, the header's status line is the count with what it counts, as the one text everyone
+  // reads (DL-166), never a saved-copy line.
+  expect(screen.getByRole("status")).toHaveTextContent(/^1 submission$/);
   expect(screen.queryByText(/Offline/)).toBeNull();
   expect(offline.useOfflineGardenInView).toHaveBeenCalledWith("0xgarden");
 });

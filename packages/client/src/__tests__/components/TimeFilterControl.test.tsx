@@ -10,7 +10,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TimeFilterControl } from "../../views/Home/WorkDashboard/TimeFilterControl";
+import { TimeFilterControl } from "../../components/Inputs/TimeFilterControl";
 
 const wrap = (node: ReactNode) => createElement(IntlProvider, { locale: "en", messages: {} }, node);
 

@@ -26,8 +26,7 @@ interface CycleDetailsSheetProps {
  * Promises selects the card and closes, so filtering stays one tap away.
  *
  * Seasons and campaigns share this one sheet; only the words and colour differ.
- * It is a half sheet, the tier for a single preview; a cycle record says little
- * more than this (its metadata is a name), so it never needs the tall tier. A
+ * It is a full sheet, the height of the other sheets over Home (DL-164). A
  * campaign that runs as a project brief adds its brief note (PRD-1299, SBrief):
  * how its separate promises fit together, in its stewards' words.
  *
@@ -90,7 +89,7 @@ export function CycleDetailsSheet({
     <AppSheet
       isOpen={isOpen}
       onClose={onClose}
-      size="half"
+      size="full"
       header={{
         title: name,
         description: cycleDates(intl, cycle, { withYear: true }) ?? undefined,

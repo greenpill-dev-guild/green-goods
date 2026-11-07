@@ -54,6 +54,8 @@ const reads = vi.hoisted(() => ({
   joinRequestsHasGrant: true,
   joinRequestsFailed: false,
   joinRequestReads: [] as Array<{ enabled?: boolean; kind?: string }>,
+  /** The sources a refresh read again, in the order it asked. */
+  readAgain: [] as string[],
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -72,6 +74,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
     isError: reads.worksFailed,
     refreshWarning: reads.worksPartial,
     hasUnknownStatuses: false,
+    refetch: () => reads.readAgain.push("works"),
   }),
 }));
 // The week's activity, however far back each work began.
@@ -90,6 +93,8 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
     pools: reads.pools.filter((pool) => pool.garden === input.garden),
     isLoading: false,
     isError: false,
+    isEnabled: true,
+    refetch: async () => reads.readAgain.push("pools"),
   }),
   // A disabled query still answers from the cache. A read with no pool id has the same key as a
   // chain-wide one, so these answer whatever was cached, enabled or not.
@@ -100,6 +105,8 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
       commitments: reads.commitments,
       isLoading: false,
       isError: false,
+      isEnabled: options.enabled !== false,
+      refetch: async () => reads.readAgain.push("commitments"),
     };
   },
 }));
@@ -113,14 +120,23 @@ vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
       hasGrant: reads.joinRequestsHasGrant,
       isLoading: false,
       isError: enabled && reads.joinRequestsFailed,
-      refetch: () => {},
+      refetch: () => {
+        if (enabled) reads.readAgain.push("joinRequests");
+      },
     };
   },
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
   usePoolClaimRequests: (input: Record<string, unknown>, options: { enabled?: boolean } = {}) => {
     reads.takeUpReads.push({ input, options });
-    return { data: reads.takeUps, rows: reads.takeUps, isLoading: false, isError: false };
+    return {
+      data: reads.takeUps,
+      rows: reads.takeUps,
+      isLoading: false,
+      isError: false,
+      isEnabled: options.enabled !== false,
+      refetch: async () => reads.readAgain.push("takeUps"),
+    };
   },
 }));
 
@@ -211,6 +227,7 @@ beforeEach(() => {
   reads.activity = { rows: [], complete: true };
   reads.commitmentReads = [];
   reads.takeUpReads = [];
+  reads.readAgain = [];
 });
 
 afterEach(() => {
@@ -280,6 +297,24 @@ describe("useGardenNotifications", () => {
     );
     const kinds = result.current.notifications.map(({ kind }) => kind);
     expect(kinds).toEqual(expect.arrayContaining(["workApproved", "promiseTakenUp"]));
+  });
+
+  it("reads again only the sources that are on: with no pool known, no promise or take-up read (DL-168)", async () => {
+    seedGarden({ stewards: [ALICE] });
+    reads.pools = [];
+    const { result } = renderNotifications();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.refresh());
+    // Without a pool id the take-up read would cover every request on the chain.
+    expect(reads.readAgain).toEqual(["works", "joinRequests", "pools"]);
+
+    reads.readAgain = [];
+    reads.pools = [poolFixture({ garden: GARDEN })];
+    const pooled = renderNotifications();
+    await waitFor(() => expect(pooled.result.current.isLoading).toBe(false));
+    act(() => pooled.result.current.refresh());
+    expect(reads.readAgain).toEqual(["works", "joinRequests", "pools", "commitments", "takeUps"]);
   });
 
   it("lists no promises until it knows the garden's pool, whatever the cache holds", async () => {

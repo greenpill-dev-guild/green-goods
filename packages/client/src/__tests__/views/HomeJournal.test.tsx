@@ -847,7 +847,7 @@ describe("Home journal", () => {
       expect(screen.getByText("1 member")).toBeInTheDocument();
     });
 
-    it("opens Insights as a tall sheet named for the garden, with its banner, and hands focus back to the row", async () => {
+    it("opens Insights as a full sheet named for the garden, with its banner, and hands focus back to the row", async () => {
       const user = userEvent.setup();
       mocks.account = NEIGHBOUR;
       renderAbout(garden(), ["gardener"]);
@@ -855,7 +855,7 @@ describe("Home journal", () => {
       const row = screen.getByRole("button", { name: /Insights/ });
       await user.click(row);
       const sheet = await screen.findByRole("dialog", { name: "Insights" });
-      expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+      expect(sheet).toHaveAttribute("data-sheet-size", "full");
       expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
       // The banner is decorative: the title names the garden's section, the chip the garden.
       expect(within(sheet).getByTestId("garden-sheet-banner").querySelector("img")).toHaveAttribute(
