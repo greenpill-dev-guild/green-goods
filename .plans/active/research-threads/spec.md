@@ -296,7 +296,9 @@ state-only, is rejected with a reason. It then runs `apply`, bumps the edition, 
 `## Delegated review · {date}` section into the pending-edits document (counts, what was
 promoted or deferred, the resulting edition), and leaves the commit and the PR to the session,
 whose diff Afo approves. The Saturday refresh of the pending-edits document carries every
-`## Delegated review` section forward verbatim.
+`## Delegated review` section forward verbatim. Unticked lines are therefore review inputs, not
+deferrals: a person who wants a line kept from the rules adds `· hold` to it, the refresh carries
+the mark, and the review puts that line to Afo.
 
 ### Cross-cutting
 

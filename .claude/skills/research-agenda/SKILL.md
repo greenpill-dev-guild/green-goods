@@ -55,7 +55,10 @@ loop closes in minutes instead of a memo read. The design lives in
    edits in one sentence each with their evidence. One bump per run, and none on a run that only
    marks already-present edits applied, such as a retry after a failed document patch.
 5. **Write back** with `save_document` `patch`: move each applied line to *Applied* as
-   `{edit} · applied {date} · edition v{n+1}` and touch nothing else. Report a failed patch and
+   `{edit} · applied {date} · edition v{e}` and touch nothing else, where `v{e}` and `{date}` name
+   the edition that carries the edit: `v{n+1}` and today when this run bumped it, or the agenda's
+   current `**Edition:**` line when the edit was already in place, so a retry never records an
+   edition that does not exist. Report a failed patch and
    keep the agenda change; the routine reconciles the document on its next run.
 6. **Validate.** Run `node scripts/quality/check-guidance-links.mjs` and read the edited sections
    back. The commit is the user's: name the files and suggest
@@ -80,10 +83,11 @@ session, and the commit and the pull request are that session's to make when he 
       the line is state-only: read with its evidence, it says nothing beyond Linear state (a
       status, owner, due or target date, cycle or project membership), which Linear owns and the
       agenda never holds.
-   3. **To the steward** when an earlier review deferred the line (it carries a
-      `reviewed {date}: deferred` note), since lifting a deferral is his call and the round shows
-      the condition it waits on; or when the line depends on another line that goes to him (it
-      cites that line, or edits text that line changes), so the two are decided together.
+   3. **To the steward** when a person held the line back (it ends with `· hold`, the document's
+      way to keep a line from the rules), or an earlier review deferred it (it carries a
+      `reviewed {date}: deferred` note), since lifting a hold or a deferral is his call and the
+      round shows why the line waits; or when the line depends on another line that goes to him
+      (it cites that line, or edits text that line changes), so the two are decided together.
    4. **Accepted by rule** when the line is one of these three kinds and its new text carries no
       Linear state:
       - an **evidence append**: an `append` to an existing `Open` item or `Settled` bullet that
