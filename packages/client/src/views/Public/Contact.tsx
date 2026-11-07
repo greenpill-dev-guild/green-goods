@@ -3,10 +3,11 @@ import { EditorialHeading, EditorialLede, EditorialLinkArrow } from "@/component
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { publicCuration } from "@/content/publicCuration";
+import { CONTACT_ANCHORS } from "./contactAnchors";
 
 const contactRequests = [
   {
-    anchor: "account-deletion",
+    anchor: CONTACT_ANCHORS.deletion,
     subject: "Delete my Green Goods account",
     title: {
       id: "public.contact.deletion.title",
@@ -23,7 +24,7 @@ const contactRequests = [
     },
   },
   {
-    anchor: "report-a-concern",
+    anchor: CONTACT_ANCHORS.report,
     subject: "Report a Green Goods concern",
     title: {
       id: "public.contact.report.title",
