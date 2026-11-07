@@ -35,7 +35,7 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
-source_digest: "sha256:f4f8cdcd79c4f4697122ad353625539333cee3ed72739328e8984dacd8e751e3"
+source_digest: "sha256:060028897de1e1c802a3301bfa425da07a12095fc22c59d53e500c8823b5d8f9"
 source_of_truth:
   - .claude/skills/audit/README.md
   - .claude/skills/audit/SKILL.md
@@ -173,10 +173,10 @@ Live product QA with fixes in the loop. Run it during a walk of the product (pai
 
 ## qa-triage {#qa-triage}
 
-Turns QA notes into tracked records. After a Build Sync, an Engineering Sync, or a qa-session handoff, it enriches findings against PostHog and existing Linear records, then files scope-locked issues and private QA-sheet rows, and it writes only after confirmation.
+Turns QA notes into tracked records. After a Build Sync, an Engineering Sync, or a qa-session handoff, it enriches findings against PostHog and existing Linear records, then files scope-locked issues and private QA-sheet rows. It writes only after you confirm, except in unattended mode.
 
 - **When to use it:** After a QA call, a Build Sync, or an Engineering Sync, or when a qa-session hands over findings it deferred. An agent closing an automated QA pass, with nobody there to confirm, runs it in unattended mode, which writes only the Linear session report and its fix slices.
-- **What you get:** Scope-locked Linear issues and QA sheet rows, filed only after you confirm them.
+- **What you get:** Scope-locked Linear issues and QA sheet rows, filed only after you confirm them. An unattended run files only the Linear session report and its slices, under stricter rules.
 - **How to invoke:** Type `/qa-triage` after a QA call or handoff.
 
 [Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/qa-triage)

@@ -115,9 +115,10 @@ The testers were in the product during the window, so its telemetry from that wi
 first-party evidence of what they hit. Enrichment never blocks the record: an unavailable or
 degraded source becomes one flag line in the run's summary.
 
-1. **Build under test (Vercel).** For `client` and `admin`, find every production deploy in state
-   `READY` that was live during any part of the window: the one live when it opened, plus any that
-   finished during it. Record one deploy as `surface @ <commit-sha>` in the parent's lede, and
+1. **Build under test (Vercel).** A beta or local session records the build it ran when the run
+   knows it, and otherwise `build: unknown`; it never takes a production SHA. For a production
+   session, find for `client` and `admin` every production deploy in state `READY` that was live
+   during any part of the window: the one live when it opened, plus any that finished during it. Record one deploy as `surface @ <commit-sha>` in the parent's lede, and
    several as `build: mixed` with every SHA, so no slice is investigated against the wrong release.
    The Blob store holds no build SHA, so this line ties the verdicts to a deployable. Pass the SHAs
    to `qa report --build client=<sha>,admin=<sha>`.

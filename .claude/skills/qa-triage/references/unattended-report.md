@@ -60,12 +60,13 @@ run needs when nobody is watching. These rules ran as the `qa-call-report` cloud
   a notes document in its source line, use that document.
 - **Session identity, before the first pull.** A parent titled `QA session <date>` or
   `QA session <date> · N` is this session when its source line links the same notes document or,
-  in an app-only run, when its attached full report covers the same QA run and an overlapping
-  window. Continue that session under its slug and title. Otherwise start a new one: the date's
-  first session takes the slug `<date>` and the title `QA session <date>`, and each later one the
-  next counter N, the slug `<date>-N` and the title `QA session <date> · N`. Every pull, `tmp/`
-  path and record title then uses that slug, so two calls on one day never share a parent or a
-  workspace.
+  in an app-only run, when its `Run:` line names the same QA run and the window on its source line
+  overlaps this run's. Both live on the parent itself, so a parent whose earlier run stopped before
+  the report was attached is still found. Continue that session under its slug and title.
+  Otherwise start a new one: the date's first session takes the slug `<date>` and the title
+  `QA session <date>`, and each later one the next counter N, the slug `<date>-N` and the title
+  `QA session <date> · N`. Every pull, `tmp/` path and record title then uses that slug, so two
+  calls on one day never share a parent or a workspace.
 - **No notes.** Continue app-only: the report says no meeting notes were found, names the query
   window, and drops the `Decisions from the call` section. An automated pass with no call is
   app-only.
@@ -132,7 +133,8 @@ failure.
 
 1. **Parent**, per [linear-templates.md § QA session report](../linear-templates.md), in `Todo`
    with no `package:*` label. An app-only run uses the template's app-only source line, never an
-   invented Drive link. An all-pass session, with no fail or blocked verdict in the window, no
+   invented Drive link, and ends it with the session window, `Window <start>..<end>.`, so a rerun
+   can find the session. An all-pass session, with no fail or blocked verdict in the window, no
    slice, no related Issue and no decisions child, is created in `Done`, because nothing
    downstream would ever close it. A session with only decision or investigate lines is not
    all-pass. A failed parent write stops the run: children without a parent are orphans.
