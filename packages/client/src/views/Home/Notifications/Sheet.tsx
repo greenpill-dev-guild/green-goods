@@ -10,7 +10,7 @@ import type {
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { getTimeCutoff, normalizeTimestamp, type TimeFilter } from "@green-goods/shared/utils/time";
+import { getTimeCutoff, normalizeTimestamp } from "@green-goods/shared/utils/time";
 import {
   RiFilterOffLine,
   RiHammerLine,
@@ -19,7 +19,7 @@ import {
 } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { TimeFilterControl } from "@/components/Inputs/TimeFilterControl";
+import { type TimePeriod, TimeFilterControl } from "@/components/Inputs/TimeFilterControl";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { SheetListHeader } from "@/components/Sheets/SheetListHeader";
@@ -74,8 +74,12 @@ const inTab = (notification: GardenNotification, tab: NotificationsTab) =>
 /** How many empty frames hold the list's place while the first read runs (DL-056). */
 const LOADING_ROWS = 3;
 
-/** The period the sheet opens on: the widest, so the filter only ever narrows the list. */
-const OPENING_PERIOD: TimeFilter = "year";
+type NotificationsPeriod = Extract<TimePeriod, "any" | "day" | "week">;
+/**
+ * The periods the bell's sources answer in full, in order (DL-168). Its work activity reaches back
+ * a week, so a longer span would list only part of it. It opens on any time: everything it lists.
+ */
+const PERIODS: readonly NotificationsPeriod[] = ["any", "day", "week"];
 
 /**
  * The bell's sheet (DL-130, DL-133): a `full` sheet over Home with the garden named beneath its
@@ -88,10 +92,11 @@ const OPENING_PERIOD: TimeFilter = "year";
  * tab's events seen on this device, as does switching to a tab, while an event under another tab
  * stays new; Clear All in the shared bar hides every listed event here for good. Each tab's list
  * starts under the header row Your Work's tabs share (DL-168): how many events it shows, a
- * compact Refresh, and a period filter that narrows the list to the past day, week, month or
- * year. Opening the sheet reads the events again. With nothing to list it shows the shared state
- * block, which says so when the period hides every event, and a read that failed or answered only
- * in part says so in one quiet line while the rows it did find stay. Offline the reads pause
+ * compact Refresh, and a period filter that narrows the list to the past day or week, as far
+ * back as its sources answer in full. Opening the sheet reads the events again. With nothing to
+ * list it shows the shared state block, which says so when the period hides every event, and a
+ * read that failed or answered only in part says so in one quiet line while the rows it did find
+ * stay, the period's state included. Offline the reads pause
  * rather than fail: a tab with nothing cached says the events cannot be checked instead of
  * reporting an empty inbox, and the rows that were cached keep the partial-read line above them.
  */
@@ -114,10 +119,11 @@ export function NotificationsSheet({
   const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const isOnline = useOnlineStatus();
   const [tab, setTab] = useState<NotificationsTab>("all");
-  const [period, setPeriod] = useState<TimeFilter>(OPENING_PERIOD);
+  const [period, setPeriod] = useState<NotificationsPeriod>("any");
   // The open tab's events, then those of them inside the period: the rows the sheet shows.
   const { inTabCount, shown } = useMemo(() => {
     const listed = notifications.filter((notification) => inTab(notification, tab));
+    if (period === "any") return { inTabCount: listed.length, shown: listed };
     const cutoff = getTimeCutoff(period);
     return {
       inTabCount: listed.length,
@@ -318,7 +324,7 @@ export function NotificationsSheet({
           onRefresh={isOnline && !holdsFrame ? refresh : undefined}
           isFetching={isFetching}
         >
-          <TimeFilterControl value={period} onChange={setPeriod} />
+          <TimeFilterControl value={period} onChange={setPeriod} periods={PERIODS} />
         </SheetListHeader>
         <div className="px-4 pb-4">{body}</div>
       </div>

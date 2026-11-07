@@ -432,7 +432,14 @@ describe("the sheet", () => {
     const header = within(within(sheet).getByRole("tabpanel")).getByTestId("sheet-list-header");
     expect(header).toHaveClass("pt-4");
     expect(within(header).getByRole("status")).toHaveTextContent(/^5 notifications$/);
-    expect(within(header).getByRole("combobox", { name: "Time period" })).toHaveValue("year");
+    // Only the spans its sources answer in full: its work activity reaches back a week.
+    const period = within(header).getByRole("combobox", { name: "Time period" });
+    expect(period).toHaveValue("any");
+    expect(
+      within(period)
+        .getAllByRole("option")
+        .map((o) => o.textContent)
+    ).toEqual(["Any time", "Day", "Week"]);
     fireEvent.click(within(header).getByRole("button", { name: "Refresh" }));
     expect(readAgain).toHaveBeenCalledTimes(2);
   });

@@ -786,6 +786,30 @@ describe("Home journal", () => {
       expect(promises.recorded.opener).toBe(card);
     });
 
+    it("says when a cycle's promises or units cannot be answered, offline included (DL-169)", async () => {
+      const user = userEvent.setup();
+      // Paused offline with nothing saved: no answer, no error, and nothing running.
+      mocks.cyclePromises.mockReturnValue({
+        data: undefined,
+        commitments: [],
+        isError: false,
+        fetchStatus: "paused",
+      });
+      mocks.cycleDetail.mockReturnValue({ detail: null, isError: false, fetchStatus: "paused" });
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const sheet = await screen.findByRole("dialog");
+      // The record's own count stays, and neither section passes a missing read off as the whole.
+      expect(within(sheet).getByText("3 of 7 kept")).toBeVisible();
+      expect(within(sheet).queryByText("Open to take up")).toBeNull();
+      expect(
+        within(sheet).getByText("The rest of its promises couldn't be read just now.")
+      ).toBeVisible();
+      expect(within(sheet).getByRole("heading", { name: "What it adds up to" })).toBeVisible();
+      expect(within(sheet).getByText("Its units couldn't be read just now.")).toBeVisible();
+    });
+
     // DL-162: the last open cycle leaves What's Open, and Take Part's lines, the second it ends;
     // a details sheet open on it stays, and turns to Ended, rather than vanishing with its entry.
     it.each([

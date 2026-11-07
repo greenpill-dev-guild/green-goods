@@ -90,13 +90,19 @@ export function CycleDetailsSheet({
         )
       : null;
 
-  // The list's counts hold their places while it is read; a list that could not be read says so
-  // under the record's own count instead of showing none.
+  // The list's counts hold their places while it is read. A list that cannot answer, because its
+  // read failed or waits offline with nothing saved, says so under the record's own count instead
+  // of showing less as though it were all.
   const listed = promisesRead.data !== undefined;
-  const reading = !listed && promisesRead.isLoading;
+  const promisesUnread = !listed && (promisesRead.isError || promisesRead.fetchStatus === "paused");
+  const reading = !listed && !promisesUnread && promisesRead.fetchStatus === "fetching";
   const where = cyclePromiseStanding(promisesRead.commitments);
   const count = (value: number) => (listed ? intl.formatNumber(value) : COUNT_PLACEHOLDER);
+  // A cycle with no units has no section; one whose read cannot answer keeps the heading and says
+  // so, so a failed read never passes for a cycle with nothing to add up.
   const units = unitsRead.detail?.unitSummaries ?? [];
+  const unitsUnread =
+    !unitsRead.detail && (unitsRead.isError || unitsRead.fetchStatus === "paused");
 
   return (
     <AppSheet
@@ -159,30 +165,36 @@ export function CycleDetailsSheet({
               />
             ) : null}
           </FactList>
-          {!listed && !reading && promisesRead.isError ? (
+          {promisesUnread ? (
             <p className="type-meta text-text-sub-600">
               {formatMessage({ id: "app.pool.cycle.standing.unread" })}
             </p>
           ) : null}
         </section>
-        {units.length > 0 ? (
+        {units.length > 0 || unitsUnread ? (
           <section className="space-y-2" data-component="CycleUnits">
             <SheetHeading>{formatMessage({ id: "app.pool.cycle.units.title" })}</SheetHeading>
-            <FactList>
-              {units.map((unit) => (
-                <FactRow
-                  key={unit.id}
-                  label={unit.unitLabel}
-                  value={formatMessage(
-                    { id: "app.pool.cycle.units.progress" },
-                    {
-                      fulfilled: intl.formatNumber(unit.fulfilledUnits),
-                      expected: intl.formatNumber(unit.expectedUnits),
-                    }
-                  )}
-                />
-              ))}
-            </FactList>
+            {unitsUnread ? (
+              <p className="type-meta text-text-sub-600">
+                {formatMessage({ id: "app.pool.cycle.units.unread" })}
+              </p>
+            ) : (
+              <FactList>
+                {units.map((unit) => (
+                  <FactRow
+                    key={unit.id}
+                    label={unit.unitLabel}
+                    value={formatMessage(
+                      { id: "app.pool.cycle.units.progress" },
+                      {
+                        fulfilled: intl.formatNumber(unit.fulfilledUnits),
+                        expected: intl.formatNumber(unit.expectedUnits),
+                      }
+                    )}
+                  />
+                ))}
+              </FactList>
+            )}
           </section>
         ) : null}
         {brief ? (
