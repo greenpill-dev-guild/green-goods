@@ -331,8 +331,8 @@ Its artifact is consumed by a separate `workflow_run` publisher that checks the 
 repository, PR association and exact head. The publisher executes only default-branch code and
 skips stale heads, closed PRs and runs without repair data. Generated docs use their existing
 generator. The root frozen-lockfile checks and three-day release-age rule remain enforced.
-Agent and Contracts pin `bun-types` to the already resolved
-`1.4.2` so regeneration does not float that unrelated tool dependency.
+Agent and Contracts pin `bun-types` to the repository Bun version so lockfile regeneration
+keeps the runtime types aligned.
 
 CI Gate requires Dependabot Sync for every same-repository Dependabot PR. A missing, pending,
 failed, cancelled or skipped sync cannot pass the gate. Its `Synchronized dependency files` job
