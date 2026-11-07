@@ -218,15 +218,17 @@ export const TopNav: React.FC<TopNavProps> = ({
             ariaLabel={formatMessage({ id: "app.treasury.open" })}
           />
         )}
-        {garden && onShareClick && (
-          <ShareButton
-            onClick={onShareClick}
-            ariaLabel={formatMessage({
-              id: "app.garden.share",
-              defaultMessage: "Share Garden",
-            })}
-          />
-        )}
+        <div className="flex items-center gap-4">
+          {garden && onShareClick && (
+            <ShareButton
+              onClick={onShareClick}
+              ariaLabel={formatMessage({
+                id: "app.garden.share",
+                defaultMessage: "Share Garden",
+              })}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -69,9 +69,27 @@ vi.mock("../../../hooks/auth/useUser", () => ({
 const { isGardenMember, usePendingJoinsVersion } = await import(
   "../../../hooks/garden/useJoinGarden"
 );
-const { addPendingJoin, forgetListedPendingJoins, pendingJoinGardenIds, removePendingJoin } =
-  await import("../../../modules/garden/pending-joins");
+const {
+  hasFreshPendingJoin,
+  addPendingJoin,
+  forgetListedPendingJoins,
+  pendingJoinGardenIds,
+  removePendingJoin,
+} = await import("../../../modules/garden/pending-joins");
 const { logger } = await import("../../../modules/app/logger");
+
+describe("departure cleanup of pending joins", () => {
+  it("forgets a pending join even when the garden address casing differs", () => {
+    const garden = "0xAbcDEF0000000000000000000000000000000000";
+    addPendingJoin(garden, "0x1111111111111111111111111111111111111111");
+    removePendingJoin(garden.toLowerCase());
+    expect(hasFreshPendingJoin(garden, "0x1111111111111111111111111111111111111111")).toBe(false);
+  });
+  it("treats a malformed saved record as empty rather than failing a confirmed departure", () => {
+    localStorage.setItem("greengoods:pending-joins", "null");
+    expect(() => removePendingJoin("0x1111111111111111111111111111111111111111")).not.toThrow();
+  });
+});
 
 describe("usePendingJoinsVersion at a join's limit", () => {
   const user = "0x7777777777777777777777777777777777777777";

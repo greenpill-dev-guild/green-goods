@@ -480,6 +480,23 @@ describe("Upload all", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("retains unsent work as blocked after garden departure without asking the signer", async () => {
+    const saved = work();
+    const { ports, store } = harness([saved], {
+      simulate: vi.fn(async () => {
+        throw new SimulationRejected("Not a garden member", "NotGardenMember", true);
+      }),
+    });
+    const sender = createMockTransactionSender();
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 1 });
+    expect(store.get(saved.id)?.meta?.preparation).toMatchObject({
+      status: "blocked",
+      reason: "NotGardenMember",
+    });
+    expect(store.get(saved.id)?.payload).toEqual(saved.payload);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("says nothing was sent, and what needs attention, when the only ready item is refused at the tap", async () => {
     const ended = work();
     const { ports, store } = harness([ended], {
