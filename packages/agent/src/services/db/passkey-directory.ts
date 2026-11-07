@@ -1,6 +1,5 @@
 import type { Database } from "bun:sqlite";
 import type { PasskeyDirectoryAccountProfile } from "@green-goods/shared/public-contracts";
-import type { Address } from "viem";
 
 /** Where a directory entry came from: a sign-up here, or an older account brought in. */
 export type PasskeySource = "registered" | "adopted";
@@ -58,29 +57,6 @@ export function storedPasskeyPublicKey(publicKey: string): `0x${string}` {
 export function passkeyDirectoryQueries(db: Database) {
   return {
     findByName: (userName: string) => getPasskeyByName(db, userName),
-    hasHostedDisplayName: (chainId: number, userName: string) =>
-      Boolean(
-        db
-          .query(
-            "SELECT 1 FROM hosted_passkey_display_names WHERE chainId = ? AND userName = ? LIMIT 1"
-          )
-          .get(chainId, userName)
-      ),
-    rememberHostedDisplayName: (chainId: number, userName: string, addresses: readonly Address[]) =>
-      db
-        .query(`
-        INSERT OR IGNORE INTO hosted_passkey_display_names (chainId, address, userName)
-        SELECT ?, lower(value), ? FROM json_each(?)
-      `)
-        .run(chainId, userName, JSON.stringify(addresses)),
-    readHostedDisplayNames: (chainId: number, addresses: readonly Address[]) =>
-      db
-        .query(`
-        SELECT address, min(userName) AS userName FROM hosted_passkey_display_names
-        WHERE chainId = ? AND address IN (SELECT lower(value) FROM json_each(?))
-        GROUP BY address HAVING count(*) = 1
-      `)
-        .all(chainId, JSON.stringify(addresses)) as { address: Address; userName: string }[],
     readAddressRecords: (after: number, limit: number) =>
       db
         .query(`

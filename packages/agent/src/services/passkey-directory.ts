@@ -35,7 +35,6 @@ import type {
   PendingPasskeyRegistration,
   StoredPasskey,
 } from "./db/passkey-directory";
-import { HostedPasskeyQueueFullError } from "./hosted-passkey-display-names";
 import { loggers } from "./logger";
 import {
   readRegistrationChallenge,
@@ -47,7 +46,6 @@ const log = loggers.api;
 
 /** Long enough for a person to read the device prompt, short enough to bound stale sign-ups. */
 const REGISTRATION_TTL_MS = 5 * 60 * 1000;
-const QUEUE_FULL_WARNING_INTERVAL_MS = 60_000;
 /** The smart account's passkey validator checks P-256 signatures, so no other key type is usable. */
 const SUPPORTED_ALGORITHMS = [cose.COSEALG.ES256];
 
@@ -141,7 +139,6 @@ export type PasskeyDirectoryDeps = {
   displayNames?: {
     chainId: number;
     lookup(addresses: readonly Address[]): Promise<(string | null)[]>;
-    observeHostedName?(userName: string): Promise<void>;
   };
   /** Omit only where no hosted list exists, as in local development. */
   hostedNameTaken?: HostedPasskeyNameCheck;
@@ -178,7 +175,6 @@ function passkeyDomainForOrigin(
 
 export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirectory {
   const now = deps.now ?? Date.now;
-  let nextQueueFullWarningAt = 0;
 
   const requireDomain = (origin: string): string => {
     const domain = passkeyDomainForOrigin(
@@ -315,23 +311,7 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       const userName = readName(input.userName);
       if (!userName) return [];
       const stored = await deps.store.findByName(userName);
-      if (!stored) {
-        // The caller can fall through to Pimlico immediately. This only fills in a public label.
-        void deps.displayNames?.observeHostedName?.(userName).catch((error: unknown) => {
-          if (error instanceof HostedPasskeyQueueFullError) {
-            const time = now();
-            if (time < nextQueueFullWarningAt) return;
-            nextQueueFullWarningAt = time + QUEUE_FULL_WARNING_INTERVAL_MS;
-            log.warn({ reason: "queue_full" }, "Could not resolve a hosted passkey display name");
-            return;
-          }
-          log.warn(
-            { reason: displayNameFailureReason(error) },
-            "Could not resolve a hosted passkey display name"
-          );
-        });
-        return [];
-      }
+      if (!stored) return [];
       if (
         stored.accountProfile !== LEGACY_PASSKEY_PROFILE &&
         input.accountProfileVersion !== PASSKEY_ACCOUNT_PROFILE_VERSION

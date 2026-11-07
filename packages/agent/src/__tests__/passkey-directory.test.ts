@@ -1,13 +1,15 @@
+import type { Database } from "bun:sqlite";
 import {
   PASSKEY_DISPLAY_NAMES_BATCH_LIMIT,
   PASSKEY_DISPLAY_NAMES_METHOD,
   PUBLIC_AGENT_ROUTES,
 } from "@green-goods/shared/public-contracts";
 import { BaseError } from "viem";
+import { arbitrum } from "viem/chains";
 import { describe, expect, it, vi } from "vitest";
 import { InMemoryPublicRateLimiter, PUBLIC_RATE_LIMIT_POLICIES } from "../api/public-protection";
 import { createServer } from "../api/server";
-import { HostedPasskeyQueueFullError } from "../services/hosted-passkey-display-names";
+import { closeDB, initDB } from "../services/db";
 import { loggers } from "../services/logger";
 import {
   createPasskeyDirectory,
@@ -16,6 +18,8 @@ import {
 } from "../services/passkey-directory";
 import {
   createHostedPasskeyLookup,
+  createSqlitePasskeyDirectoryStore,
+  createSqlitePasskeyDisplayNames,
   MemoryPasskeyDirectoryStore,
 } from "../services/passkey-directory-adapters";
 import { passkeyDirectoryStoreContract } from "./test-utils/passkey-directory-store-contract";
@@ -38,10 +42,11 @@ function createDirectoryApp(
     hostedNameTaken?: HostedPasskeyNameCheck;
     allowLocalDevelopment?: boolean;
     displayNames?: PasskeyDirectoryDeps["displayNames"];
+    store?: PasskeyDirectoryDeps["store"];
   } = {}
 ) {
   let now = NOW;
-  const store = new MemoryPasskeyDirectoryStore();
+  const store = options.store ?? new MemoryPasskeyDirectoryStore();
   const app = createServer({
     isAIReady: () => true,
     allowedOrigins: new Set([
@@ -121,40 +126,43 @@ async function signUp(
 }
 
 describe("passkey directory", () => {
-  it("lets hosted sign-in fall through before the legacy label is available", async () => {
+  it("keeps hosted credential discovery read-only and ignores previously cached labels", async () => {
     const address = "0x1111111111111111111111111111111111111111";
-    let name: string | null = null;
-    let release!: () => void;
-    const provider = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    let observation: Promise<void> | undefined;
-    const { app } = createDirectoryApp({
-      displayNames: {
-        chainId: 42161,
-        lookup: async (addresses) => addresses.map(() => name),
-        observeHostedName(userName) {
-          observation = provider.then(() => {
-            name = userName;
-          });
-          return observation;
-        },
-      },
-    });
-    const read = () =>
-      call(app, PASSKEY_DISPLAY_NAMES_METHOD, [{ chainId: 42161, addresses: [address] }], WWW);
-
+    const sqlite = Reflect.get(initDB(":memory:"), "db") as Database;
     try {
+      // An older Agent could have written this row from an unauthenticated lookup.
+      sqlite.run(`CREATE TABLE hosted_passkey_display_names (
+        chainId INTEGER NOT NULL, address TEXT NOT NULL, userName TEXT NOT NULL,
+        PRIMARY KEY (chainId, address, userName)
+      )`);
+      sqlite
+        .query("INSERT INTO hosted_passkey_display_names VALUES (?, ?, ?)")
+        .run(arbitrum.id, address, "maya");
+      const hostedNameTaken = vi.fn(async () => true);
+      const { app } = createDirectoryApp({
+        store: createSqlitePasskeyDirectoryStore(),
+        displayNames: createSqlitePasskeyDisplayNames(arbitrum, "http://127.0.0.1:1"),
+        hostedNameTaken,
+      });
+
       await expect(
         call(app, "pks_getCredentials", [{ userName: " @MAYA " }], WWW)
       ).resolves.toMatchObject({ result: [] });
-      expect(observation).toBeDefined();
-      await expect(read()).resolves.toMatchObject({ result: [null] });
+      expect(hostedNameTaken).not.toHaveBeenCalled();
+      await expect(
+        call(
+          app,
+          PASSKEY_DISPLAY_NAMES_METHOD,
+          [{ chainId: arbitrum.id, addresses: [address] }],
+          WWW
+        )
+      ).resolves.toMatchObject({ result: [null] });
+      expect(sqlite.query("SELECT userName FROM hosted_passkey_display_names").all()).toEqual([
+        { userName: "maya" },
+      ]);
     } finally {
-      release();
+      await closeDB();
     }
-    await observation;
-    await expect(read()).resolves.toMatchObject({ result: ["maya"] });
   });
 
   it("serves only labels for requested addresses and validates the lookup batch", async () => {
@@ -182,28 +190,17 @@ describe("passkey directory", () => {
     }
   });
 
-  it("logs safe display-name failure categories and throttles queue-full warnings", async () => {
+  it("logs a safe display-name failure category without exposing provider details", async () => {
     const warn = vi.spyOn(loggers.api, "warn").mockImplementation(() => undefined);
     try {
-      const detail = "https://rpc.example/private-token";
-      const { app, advance } = createDirectoryApp({
+      const { app } = createDirectoryApp({
         displayNames: {
           chainId: 42161,
           async lookup() {
-            throw new BaseError(detail);
-          },
-          async observeHostedName(userName) {
-            if (userName === "river") throw new Error(detail);
-            throw new HostedPasskeyQueueFullError(detail);
+            throw new BaseError("https://rpc.example/private-token");
           },
         },
       });
-      const signIn = (userName: string) => call(app, "pks_getCredentials", [{ userName }], WWW);
-      await expect(signIn("maya")).resolves.toMatchObject({ result: [] });
-      await expect(signIn("forest")).resolves.toMatchObject({ result: [] });
-      await expect(signIn("river")).resolves.toMatchObject({ result: [] });
-      advance(60_000);
-      await expect(signIn("maya")).resolves.toMatchObject({ result: [] });
       await expect(
         call(app, PASSKEY_DISPLAY_NAMES_METHOD, [
           { chainId: 42161, addresses: ["0x1111111111111111111111111111111111111111"] },
@@ -213,9 +210,6 @@ describe("passkey directory", () => {
       });
 
       expect(warn.mock.calls).toEqual([
-        [{ reason: "queue_full" }, "Could not resolve a hosted passkey display name"],
-        [{ reason: "lookup_failed" }, "Could not resolve a hosted passkey display name"],
-        [{ reason: "queue_full" }, "Could not resolve a hosted passkey display name"],
         [{ reason: "chain_client_error" }, "Could not look up passkey display names"],
       ]);
     } finally {
