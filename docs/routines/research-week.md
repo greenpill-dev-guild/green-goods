@@ -71,7 +71,7 @@ Search the Research memo folder for documents whose title starts `DRAFT ·` crea
 
 ### 1d. The channel
 
-Fetch the last 100 messages of `#research` once (`GET https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/messages?limit=100` with the bot token, never following redirects). Two things come from it: whether a bot message already starts with `🗓️ Research week of {YYYY-MM-DD}` (Phase 5's dedupe), and whether the previous Monday posted a `brief not written` line, which this run's `## Run notes` line records as last week's failure and which marks this run degraded. A channel that cannot be read marks the run degraded and skips the post.
+Fetch the last 100 messages of `#research` once (`GET https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/messages?limit=100` with the bot token, never following redirects). Three things come from it: whether a bot message already starts with `🗓️ Research week of {YYYY-MM-DD}` or `🗓️ Research week {YYYY-MM-DD}: brief not written` for this date (this date has had its one post, so this run posts nothing more whatever its outcome; a rerun's success shows in the document itself), whether the previous Monday posted a `brief not written` line, which this run's `## Run notes` line records as last week's failure and which marks this run degraded. A channel that cannot be read marks the run degraded and skips the post.
 
 ## Phase 2: Compose the brief
 
@@ -115,6 +115,8 @@ At most two per week: a `DRAFT ·` document created earlier this week (Phase 1c)
 
 A draft is never shared with anyone, never posted, never sent, never attached to a Linear record; the brief links it. Its text obeys the private tier (names of organisations and people met, never personal matters, never a quote). Prefer the decision note when both compete for the second slot, since it unblocks more.
 
+Check each creation: a Drive call that errors or returns no document is a failed draft. The brief lists the item without a link, and this run's `## Run notes` line names the subject (`failed draft: {subject}`). The next Monday reads that line in Phase 0 and retries the subject once, counting it against that week's cap; a second failure drops it, named once more in the run line.
+
 ## Phase 4: Write the brief
 
 One `save_document` call on the threads document with a `patch` of two operations, applied atomically: a `replace_range` from the exact text `## This week` to the exact text `## Threads` (the range ends before the latter, which stays), whose replacement is the Phase 2 section followed by a blank line; and an `insert_after` on the anchor `## Run notes` that adds this run's line:
@@ -123,7 +125,7 @@ One `save_document` call on the threads document with a `patch` of two operation
 - {YYYY-MM-DD} · research-week v1 · {active | degraded} · started {HH:MM}Z · read: threads {n open, m held}, Linear {k issues}, call notes {j}, drafts {d} · wrote: brief, {x} drafts · {failed writes, or none}{ · spec: …}
 ```
 
-Check the write: a call that errors, or returns no document identifier, is a failed write. There is nowhere in Linear to record it, so the channel is the durable record: post exactly one line, `🗓️ Research week {date}: brief not written · {the error, in a few words} · skipping`, in place of the pointer line, and exit. The next Monday's channel read (Phase 1d) finds that line and copies the failure into its own `## Run notes` line, marking itself degraded. Never retry the patch blindly in the same run: one attempt, then the exit path. Never touch any other section of the document.
+Check the write: a call that errors, or returns no document identifier, is a failed write. There is nowhere in Linear to record it, so the channel is the durable record: post exactly one line, `🗓️ Research week {date}: brief not written · {the error, in a few words} · skipping`, in place of the pointer line (unless Phase 1d found this date's post already made), and exit. The next Monday's channel read (Phase 1d) finds that line and copies the failure into its own `## Run notes` line, marking itself degraded. Never retry the patch blindly in the same run: one attempt, then the exit path. Never touch any other section of the document.
 
 ## Phase 5: The pointer line
 
@@ -136,17 +138,17 @@ POST https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/message
   -d '{ "content": "<message>", "allowed_mentions": { "parse": [] } }'
 ```
 
-**Post at most once per run date.** The Phase 1d read already showed whether a bot message starts with `🗓️ Research week of {YYYY-MM-DD}`; if one does, do not post again. Post only after the Phase 4 patch landed:
+**Post at most once per run date.** The Phase 1d read already showed whether a bot message starts with `🗓️ Research week of {YYYY-MM-DD}` or with this date's `brief not written` receipt; if either does, do not post again. Post only after the Phase 4 patch landed:
 
 ```text
 🗓️ Research week of {YYYY-MM-DD} · focus {identifiers, comma-separated} · {k} drafts ready · {m} asks to send · <threads document URL>{ · degraded}
 ```
 
-Identifiers, counts, the document URL and the one word `degraded` (when Phase 0 marked the run degraded or a draft failed) only; URLs wrapped in `<...>` to suppress embeds; no name, no organisation, no mention. A non-2xx response is logged with its status and body; nothing is retried this run, and next Monday's line stands on its own.
+Identifiers, counts, the document URL and the one word `degraded` (when Phase 0 marked the run degraded or a draft failed) only; URLs wrapped in `<...>` to suppress embeds; no name, no organisation, no mention. A non-2xx response is logged with its status and body and recorded durably by one more `save_document` patch that appends ` · post failed {status}` to this run's `## Run notes` line, the one exception to the single-patch cap; nothing else is retried this run, and next Monday reads that line, marks itself degraded, and posts its own pointer as usual.
 
 ## Guardrails
 
-- **Caps: 1 document patch (the brief and the run line together) · ≤2 drafts · ≤1 pointer line.** Zero drafts and zero posts are valid outcomes; zero patches means the run failed closed and said so.
+- **Caps: 1 document patch (the brief and the run line together), plus one appending patch only when the pointer post fails · ≤2 drafts · ≤1 pointer line.** Zero drafts and zero posts are valid outcomes; zero patches means the run failed closed and said so.
 - **Never**: edit a thread or any section beyond `## This week` and `## Run notes` · create or change a Linear Customer, Customer Need, issue, comment, status update or label · post a reaction, a thread or a mention in Discord · share, send or attach a draft · use a `Notes.` block (strip them on read) · fetch outside pages · open a PR or touch the checkout.
 - **Two privacy tiers**, as the scope contract states them.
 - **Run budget: at most 60 turns and 20 minutes.** Batch the Linear reads and the channel read into as few calls as the connector allows. If a rate-limit rejection arrives before Phase 4, exit without writing; the next Monday's run carries the week.

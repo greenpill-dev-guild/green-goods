@@ -217,8 +217,9 @@ the wrong marker: post one line `🗓️ Research week {date}: threads document 
 write nothing to any document, and exit; a `Run notes` line is written only to a document whose
 marker was verified) and on Linear (one line, as the Saturday preflight). A
 failed patch is announced by one `brief not written` line in `#research` in place of the pointer,
-which the next run reads back into its `## Run notes` line and treats as degraded; a failed pointer post is recorded in `## Run notes` and retried next
-Monday only as that week's line. Monday writes no Drive memo; its run record is its `## Run
+which the next run reads back into its `## Run notes` line and treats as degraded; a failed pointer post is recorded by one more patch that appends `post failed` to the run's
+`## Run notes` line, the one exception to the single-patch cap, and next Monday reads it. A same-date
+receipt or pointer already in the channel means the run posts nothing more. Monday writes no Drive memo; its run record is its `## Run
 notes` line (mode, start time, inputs read, writes, failures).
 
 ### Surface D: drafts
@@ -232,7 +233,8 @@ recommendation, and what a yes or a no changes. A message is at most 200 words, 
 organisation or person, stating the ask, the context and one evidence link, in the brand voice.
 Drafts are never shared with anyone, never posted, never sent, never attached to a Linear record;
 the brief links them. A draft a human has not modified within two weeks is listed once as stale
-and then no longer listed; the document stays.
+and then no longer listed; the document stays. A creation that errors or returns no document is
+named in the run's `## Run notes` line and retried once the next Monday, within that week's cap.
 
 ### Surface E: the Saturday run, v5.1 → v6
 
@@ -267,8 +269,8 @@ archived and do not react to anything.
 **R19. Caps and budget.** Saturday: 1 post · ≤1 status pointer per moved track · ≤3 comments ·
 ≤1 issue · 1 pending-edits refresh · ≤1 radar comment · 1 threads document rewrite · ≤8 Needs ·
 ≤3 Customers · ≤12 link fetches · 1 memo; the retired caps (reactions, intake messages, thread
-reads, receipts) are gone. Monday: 1 section patch · ≤2 drafts · ≤1 pointer line · 1 `Run notes`
-line. Zero of each is a valid run. Saturday keeps its 180-turn, 40-minute budget and is expected
+reads, receipts) are gone. Monday: 1 section patch (plus one appending patch only when the pointer post fails) · ≤2 drafts ·
+≤1 pointer line · 1 `Run notes` line. Zero of each is a valid run. Saturday keeps its 180-turn, 40-minute budget and is expected
 to use less; Monday has 60 turns and 20 minutes.
 
 ### Surface F: the agenda review ritual
