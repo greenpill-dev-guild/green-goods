@@ -105,8 +105,8 @@ run needs when nobody is watching. These rules ran as the `qa-call-report` cloud
 - **The parent.** The `session:<date>` label only narrows the candidates, because the sync pulse
   puts it on ordinary Backlog Issues too. Reuse requires the exact title the
   [session identity](#sources) step chose and no `package:*` label. A reused parent in `Done` that
-  is about to gain a slice, a related Issue or a decisions child goes back to `Todo` first, and the
-  summary says so, because its `Done when` no longer holds. A `Canceled` parent was a person's
+  is about to gain a slice, a related Issue, a decisions child or an `investigate` line goes back to
+  `Todo` first, and the summary says so, because its `Done when` no longer holds. A `Canceled` parent was a person's
   decision: stop and report instead of adding to it. Route a reused parent whose project is
   missing, Completed or Canceled to the release project; then add the missing children and one
   comment with the new context. Never create a second parent for the session, and never attach
