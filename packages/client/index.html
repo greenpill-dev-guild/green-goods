@@ -1451,8 +1451,14 @@
             settled = true;
             callback();
           };
-          logo.decode().then(settle, settle);
+          // The cap comes first, and a decode() that throws or hands back no
+          // promise counts as a browser without one: the scene leaves at once.
           window.setTimeout(settle, APP_LOGO_WAIT_MS);
+          try {
+            logo.decode().then(settle, settle);
+          } catch (error) {
+            settle();
+          }
         }
 
         // The installed app's scene says one thing on the line under the logo

@@ -746,6 +746,21 @@ describe("presentation-specific boot fallback", () => {
     expect(fallback).toHaveAttribute("data-leaving");
   });
 
+  it("still leaves sign-in when the logo's decode() throws", () => {
+    const { clearFallback, fallback } = runController("pwa");
+    const logo = document.createElement("img");
+    logo.setAttribute("src", "/icon.png");
+    logo.decode = () => {
+      throw new Error("decode unavailable");
+    };
+    document.getElementById("root")?.append(logo);
+
+    expect(() => clearFallback?.()).not.toThrow();
+    expect(fallback).toHaveAttribute("data-leaving");
+    vi.advanceTimersByTime(200);
+    expect(fallback).toHaveAttribute("hidden");
+  });
+
   it("shows the logo and line once the window holds still", () => {
     const { pwa } = runController("pwa");
 
