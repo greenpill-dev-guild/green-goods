@@ -146,9 +146,10 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    entries and validated recognition hash. Verify the prepared entitlement ID, payload hash,
    accepted terms revision, recipient allocations and total. If the Family reserve is short,
    include the approved Gnosis issuance or replenishment operation in the signing packet and
-   verify its receipt. Before dispatch, confirm the issuer's token balance covers the
-   entitlement's reserve debit and the finite adapter allowance covers the full transfer total.
-   Dispatch that entitlement and record the successful source transaction and message ID.
+   verify its receipt. Before dispatch, confirm the issuer's token balance and finite adapter
+   allowance both cover the full transfer total. This also covers an issuer self-allocation
+   after earlier transfers have reduced the balance. Use the net reserve debit for the
+   post-execution reconciliation. Dispatch and record the source transaction and message ID.
    If CCIP reports a terminal delivery failure and the Gnosis adapter has no record of the
    command, refresh the source quote and
    reserve checks. Have an authorized pool steward call `dispatch` for the same prepared
@@ -195,8 +196,12 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    If the deadline passes without acceptance, verify there is no receipt for the exact claim
    before calling source `abortSetup`. For either cancellation or expiry, verify the source
    selected Abort, dispatch that decision, and verify any deposited vouchers return to the
-   holder. If the refund fails, use `retrySetupAction` and reconcile the resulting acknowledgment
-   before starting another setup.
+   holder. If the refund fails, use `retrySetupAction` and reconcile the resulting acknowledgment.
+   Abort leaves `setupOfClaim` bound to the original claim hash. An identical authorization can
+   return the aborted setup ID, and a changed authorization for that claim reverts. If the buyer
+   wants to rebook after the refund is reconciled, withdraw the old claim with
+   `withdrawServiceClaim` if it is still pending. Request a new claim with the next nonce and
+   verify the new claim hash before preparing its setup.
 5. Record delivery and the holder's separate approval of the delivered service units and proposed
    release/refund split. For any nonzero refund, have the issuer Safe use `authorizeReturn` and read
    back a cumulative return ceiling that covers the proposed refund before the holder freezes
@@ -206,8 +211,16 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    leg, reconcile its recorded failure, repair the verified cause and retry that same leg for
    the same decision. Verify every required leg succeeded and `isFinanciallyClosed` is true.
    Verify the final acknowledgment reaches the source, using the quoted caller-funded retry
-   if needed. Record final core confirmation
-   separately from holder approval and financial closure.
+   if needed.
+6. Complete the service commitment on Arbitrum. While it is Accepted, have an eligible actor
+   call `attachEvidence` with the delivery evidence CID and credited active contributors. Attach
+   any required assessment before freezing the roster. For an eligible service without work
+   requirements, have the creator, counterparty, lead provider or pool steward call
+   `submitForConfirmation` and verify ReadyForConfirmation. If the approved pilot uses a
+   steward override, record the reason in `markReadyForConfirmation` and verify the same
+   state. Have eligible non-contributors call `confirmFulfillment` until the configured
+   threshold is reached. Read back Fulfilled and the recorded confirmation path separately
+   from holder approval and financial closure.
 
 Use the [voucher reconciliation handoff](codex-voucher-reconciliation.md) for protocol details
 and recovery cases when preparing the exact signing packet.
