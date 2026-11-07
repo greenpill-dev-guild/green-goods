@@ -172,7 +172,7 @@
     },
     {
       "date": "2026-11-07",
-      "event": "Step 5 shipped in PR #1512: the research-agenda skill's review mode is the delegated review (R20), dry-run against the live pending-edits document and a scratch agenda copy (8 lines accepted by rule, 9 to the steward, none rejected, one edition bump; AC-12). The same PR fixes #1509's three review residuals (no drafts after a failed inventory read, the channel read before any skip line, Drive's research use in the connector catalog) and five observations from the first runs (a distinct Need source per issue, Community issues that already track an ask, pre-v5 shares never filed, relationship threads with an ask the team owes ranked first, the trigger one-off pruned from the brief). The second reader's display name stays unconfirmed, so research-week Setup step 2 is unchanged."
+      "event": "Step 5 shipped in PR #1512: the research-agenda skill's review mode is the delegated review (R20), dry-run against the live pending-edits document and a scratch agenda copy (8 lines accepted by rule, 9 to the steward, none rejected, one edition bump; AC-12). The same PR fixes #1509's three review residuals (no drafts after a failed inventory read, the channel read before any skip line, Drive's research use in the connector catalog) and five observations from the first runs (a distinct Need source per issue, Community issues that already track an ask, pre-v5 shares never filed, relationship threads with an ask the team owes ranked first, the trigger one-off pruned from the brief). Afo confirmed the second reader's Linear handle (@matt) the same day, so research-week Setup step 2 is done and both routines mention him by that handle on his lines; the panel line and the pin remain."
     }
   ]
 }

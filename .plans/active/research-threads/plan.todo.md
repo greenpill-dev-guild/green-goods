@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's delegated review mode) shipped in PR #1512 with #1509's review residuals and the first runs' fixes; the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's delegated review mode) shipped in PR #1512 with #1509's review residuals and the first runs' fixes; the second reader's handle was confirmed on 2026-11-07; the remaining step 6 one-offs (panel line, pin) and step 7 (first runs) follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
 **Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
@@ -42,7 +42,7 @@
 | R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509; pre-v5 shares (R18) settled in #1512 |
 | R20 delegated review | none (skill) | Step 5 | shipped in #1512 |
 | R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half shipped in #1509 |
-| Monday trigger, display name, panel line | human | Step 6 | trigger created 2026-11-07; display name and panel line pending |
+| Monday trigger, display name, panel line, pin | human | Step 6 | trigger created 2026-11-07; display name confirmed 2026-11-07 (`@matt`, in #1512); panel line and pin pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |
 
 ## Repository guidance compliance
@@ -139,13 +139,15 @@ trimmed; and any line no rule settles. The Saturday spec's how-to line, its *Rej
 with the reason) and its refresh rule match. The dry run of 2026-11-07 read the live document
 without writing and applied the result to a scratch agenda copy (AC-12).
 
-### Step 6: One-offs Afo owns (the trigger created 2026-11-07; the display name and the pin remain)
+### Step 6: One-offs Afo owns (the trigger and the display name done 2026-11-07; the panel line and the pin remain)
 
 Done 2026-11-07: the Monday trigger `trig_01QAmX6qXWjywnKDQGQvb8pB` exists on `claude-opus-5-5` in the
 green-goods environment with the pointer prompt, the Drive and Linear connectors and the two env
-vars, and the README row records its id; do not create a second one. Still Afo's: confirm Matt's
-Linear display name for the mention; say whether the agenda's panel line changes (D1); pin the
-threads document on the Research team page beside the agenda once the first v6 run has created it.
+vars, and the README row records its id; do not create a second one. Also done 2026-11-07: Afo
+confirmed Matt's Linear handle, `@matt`, which research-week § Setup step 2 and both routines'
+mention rules record (PR #1512). Still Afo's: say whether the agenda's panel line changes (D1);
+pin the threads document on the Research team page beside the agenda once the first v6 run has
+created it.
 Verification: the trigger's next fire shows in the routines UI; the display name appears in a
 Monday brief's mention; the pin is visible on the team page.
 

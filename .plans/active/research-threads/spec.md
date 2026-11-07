@@ -361,9 +361,9 @@ model-tier table records both.
   first Saturday after its merge; a `docs/*` branch name cannot be pushed while the remote `docs`
   branch exists; the Fable allowance ended grant-scout runs in August.
 - Open inferences: the Discord pointer line's length and the brief's 2,000-character cap are
-  estimates of what reads well on a phone; Matt's Linear display name and whether a document
-  mention notifies him are unverified until the first run; the twelve-thread cap is a guess at
-  what a weekly reader scans.
+  estimates of what reads well on a phone; whether a document mention notifies Matt is unverified
+  until the first run that mentions him (his display name, `matt`, was confirmed on 2026-11-07);
+  the twelve-thread cap is a guess at what a weekly reader scans.
 
 ## Human Judgment Points
 
