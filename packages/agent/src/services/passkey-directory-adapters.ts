@@ -7,7 +7,6 @@ import {
   createPasskeyKernelAccount,
   supportsPasskeyAccountProfile,
 } from "@green-goods/shared/modules/auth/passkey-kernel-account";
-import { PASSKEY_RP_ID } from "@green-goods/shared/public-contracts";
 import { createPublicClient, http, type Chain, zeroAddress } from "viem";
 import * as db from "./db";
 import {
@@ -18,10 +17,6 @@ import {
   type PasskeyAddressRecord,
   storedPasskeyPublicKey,
 } from "./db/passkey-directory";
-import {
-  createHostedPasskeyDisplayNames,
-  type LookupHostedPasskeys,
-} from "./hosted-passkey-display-names";
 import type { PasskeyDirectoryStore } from "./passkey-directory";
 import { createPasskeyDisplayNames } from "./passkey-display-names";
 
@@ -38,7 +33,7 @@ export function createHostedPasskeyLookup(options: {
   /** An origin the hosted server recognizes; it refuses requests without one. */
   origin: string;
   fetch?: typeof fetch;
-}): LookupHostedPasskeys {
+}): (userName: string) => Promise<unknown[]> {
   const request = options.fetch ?? fetch;
   return async (userName) => {
     const response = await request(options.rpcUrl, {
@@ -126,20 +121,13 @@ export function createSqlitePasskeyDirectoryStore(): PasskeyDirectoryStore {
   };
 }
 
-export function createSqlitePasskeyDisplayNames(
-  chain: Chain,
-  rpcUrl: string,
-  hostedLookup?: LookupHostedPasskeys
-) {
+export function createSqlitePasskeyDisplayNames(chain: Chain, rpcUrl: string) {
   const client = createPublicClient({
     chain,
     transport: http(rpcUrl, { batch: true, retryCount: 0, timeout: 5_000 }),
   });
   const store = db.getDB().passkeyDirectory();
-  const deriveAddress = async (
-    record: Omit<PasskeyAddressRecord, "rowId" | "userName" | "credentialKey" | "rpId"> &
-      Partial<Pick<PasskeyAddressRecord, "credentialKey" | "rpId">>
-  ) => {
+  const deriveAddress = async (record: PasskeyAddressRecord) => {
     if (!supportsPasskeyAccountProfile(record.accountProfile, chain.id)) return null;
     const account = await createPasskeyKernelAccount({
       client,
@@ -150,7 +138,7 @@ export function createSqlitePasskeyDisplayNames(
         publicKey: record.publicKey,
       },
       profile: record.accountProfile,
-      rpId: record.rpId ?? PASSKEY_RP_ID,
+      rpId: record.rpId,
       getFn: async () => {
         throw new Error("Display name lookup cannot sign");
       },
@@ -158,23 +146,9 @@ export function createSqlitePasskeyDisplayNames(
     if (account.address === zeroAddress) throw new Error("Passkey account address unavailable");
     return account.address;
   };
-  const directory = createPasskeyDisplayNames(store.readAddressRecords, deriveAddress);
-  const hosted =
-    hostedLookup &&
-    createHostedPasskeyDisplayNames({
-      chainId: chain.id,
-      store,
-      derive: deriveAddress,
-      lookup: hostedLookup,
-    });
+  // Only directory records are verified. Old hosted lookup cache entries cannot establish ownership.
   return {
     chainId: chain.id,
-    observeHostedName: hosted?.observe,
-    async lookup(addresses: Parameters<typeof directory>[0]) {
-      const names = await directory(addresses);
-      if (!hosted || names.every((name) => name !== null)) return names;
-      const legacy = hosted.read(addresses);
-      return names.map((name, index) => name ?? legacy[index] ?? null);
-    },
+    lookup: createPasskeyDisplayNames(store.readAddressRecords, deriveAddress),
   };
 }

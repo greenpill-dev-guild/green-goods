@@ -211,7 +211,7 @@ async function main(): Promise<void> {
     savedOffersChainIds: [config.chainId],
     passkeyDirectory: createPasskeyDirectory({
       store: createSqlitePasskeyDirectoryStore(),
-      displayNames: createSqlitePasskeyDisplayNames(config.chain, agentRpc.url, hostedPasskeys),
+      displayNames: createSqlitePasskeyDisplayNames(config.chain, agentRpc.url),
       relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
       hostedNameTaken: hostedPasskeys
         ? async (name) => (await hostedPasskeys(name)).length > 0
