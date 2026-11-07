@@ -39,6 +39,8 @@ You are the research-week routine for Green Goods. Once a week, early Monday Pac
 
 **Channel preflight (fail closed), first.** If `DISCORD_RESEARCH_CHANNEL_ID` or `DISCORD_BOT_TOKEN` is unset, there is no channel to post to and no way to report a failure there: exit before any read or write, logging the missing variable.
 
+**Channel read, second, before anything can post.** Fetch the last 100 messages of `#research` once (`GET https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/messages?limit=100` with the bot token, never following redirects). Two things come from it. First, whether a bot message already starts with `🗓️ Research week of {YYYY-MM-DD}` or `🗓️ Research week {YYYY-MM-DD}:` for this run's date: a pointer, a `brief not written` receipt or a skip line means this date has had its one post, so this run posts nothing more whatever its outcome (a rerun's success shows in the document itself). Second, whether the previous Monday posted a `brief not written` line, which this run's `## Run notes` line records as last week's failure and which marks this run degraded. A channel that cannot be read marks the run degraded and suppresses every post this run. Each skip line below is posted only when this read succeeded and found no post for this date; otherwise the run exits without posting, so a same-day retry of a failing preflight never posts a second line.
+
 **Agenda preflight (fail closed).** Locate `docs/routines/research-agenda.md` in the checkout (Glob `**/docs/routines/research-agenda.md`), or in the shallow clone the pointer prompt made (`git clone --shallow-since='14 days ago' https://github.com/greenpill-dev-guild/green-goods`). Read it in full and record its edition line. If it cannot be read, post exactly one line to `#research` (`🗓️ Research week {date}: research agenda not readable from the green-goods checkout · skipping`) and exit.
 
 **Linear preflight (fail closed).** Probe the Linear connector by fetching one issue the agenda names (RESR-73). If it is unauthenticated or unreachable, post exactly one line (`🗓️ Research week {date}: Linear connector needs re-authorization · skipping`) and exit.
@@ -68,9 +70,7 @@ Query Drive for Gemini notes modified since the window start, with the Saturday 
 
 Search the Research memo folder for documents whose title starts `DRAFT ·` created in the last fourteen days. A draft is **edited** when its `modifiedTime` is later than its `createdTime` by more than two minutes, or its last modifying user is not the routine's own identity; otherwise it is **unedited**. An unedited draft from last week is listed once in the brief as stale and never listed again; its document stays where it is.
 
-### 1d. The channel
-
-Fetch the last 100 messages of `#research` once (`GET https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/messages?limit=100` with the bot token, never following redirects). Three things come from it: whether a bot message already starts with `🗓️ Research week of {YYYY-MM-DD}` or `🗓️ Research week {YYYY-MM-DD}: brief not written` for this date (this date has had its one post, so this run posts nothing more whatever its outcome; a rerun's success shows in the document itself), whether the previous Monday posted a `brief not written` line, which this run's `## Run notes` line records as last week's failure and which marks this run degraded. A channel that cannot be read marks the run degraded and skips the post.
+When the search errors or the folder cannot be read, the inventory is **unavailable** and the run is degraded: Phase 3 creates no draft, because it can neither count this week's drafts against the cap nor reuse them; the brief lists its `Draft` and `Write to` items without links; and the `## Run notes` line says `drafts unread`.
 
 ## Phase 2: Compose the brief
 
@@ -107,7 +107,7 @@ The brief is the plan, not a second synthesis: no state narration beyond the led
 
 ## Phase 3: Drafts
 
-At most two per week: a `DRAFT ·` document created earlier this week (Phase 1c) counts against the cap and is reused, never recreated, when its subject matches the item, so a rerun or a manual fire adds nothing. Drafts are created only for items the brief names under `Draft` or `Write to`, with the Drive connector in the Research memo folder (the folder the Saturday memos live in), titled `DRAFT · {decision note | message} · {subject} · {YYYY-MM-DD}`, first line `Drafted by research-week v1 · edit and send yourself · evidence below`:
+At most two per week: a `DRAFT ·` document created earlier this week (Phase 1c) counts against the cap and is reused, never recreated, when its subject matches the item, so a rerun or a manual fire adds nothing. When Phase 1c could not read the inventory, this run creates no draft. Drafts are created only for items the brief names under `Draft` or `Write to`, with the Drive connector in the Research memo folder (the folder the Saturday memos live in), titled `DRAFT · {decision note | message} · {subject} · {YYYY-MM-DD}`, first line `Drafted by research-week v1 · edit and send yourself · evidence below`:
 
 - a **decision note** for a `Decisions owed` item, at most one page: the question, the options, the evidence with citations (issues by identifier, call notes by title or by meeting kind and date, documents by title), a recommendation, and what a yes or a no changes;
 - a **message** for a `Write to` item, at most 200 words, addressed to the organisation or person, stating the ask, the context and one evidence link, in the brand voice (`docs/docs/reference/brand-voice.mdx` in the checkout: lead with the useful outcome, plain sentences, no hype).
@@ -124,7 +124,7 @@ One `save_document` call on the threads document with a `patch` of two operation
 - {YYYY-MM-DD} · research-week v1 · {active | degraded} · started {HH:MM}Z · read: threads {n open, m held}, Linear {k issues}, call notes {j}, drafts {d} · wrote: brief, {x} drafts · {failed writes, or none}{ · spec: …}
 ```
 
-Check the write: a call that errors, or returns no document identifier, is a failed write. There is nowhere in Linear to record it, so the channel is the durable record: post exactly one line, `🗓️ Research week {date}: brief not written · {the error, in a few words} · skipping`, in place of the pointer line (unless Phase 1d found this date's post already made), and exit. The next Monday's channel read (Phase 1d) finds that line and copies the failure into its own `## Run notes` line, marking itself degraded. Never retry the patch blindly in the same run: one attempt, then the exit path. Never touch any other section of the document.
+Check the write: a call that errors, or returns no document identifier, is a failed write. There is nowhere in Linear to record it, so the channel is the durable record: post exactly one line, `🗓️ Research week {date}: brief not written · {the error, in a few words} · skipping`, in place of the pointer line (unless the Phase 0 channel read found this date's post already made, or could not read the channel), and exit. The next Monday's channel read (Phase 0) finds that line and copies the failure into its own `## Run notes` line, marking itself degraded. Never retry the patch blindly in the same run: one attempt, then the exit path. Never touch any other section of the document.
 
 ## Phase 5: The pointer line
 
@@ -137,13 +137,13 @@ POST https://discord.com/api/v10/channels/${DISCORD_RESEARCH_CHANNEL_ID}/message
   -d '{ "content": "<message>", "allowed_mentions": { "parse": [] } }'
 ```
 
-**Post at most once per run date.** The Phase 1d read already showed whether a bot message starts with `🗓️ Research week of {YYYY-MM-DD}` or with this date's `brief not written` receipt; if either does, do not post again. Post only after the Phase 4 patch landed:
+**Post at most once per run date.** The Phase 0 channel read already showed whether this date has had its post (a pointer, a `brief not written` receipt or a skip line); if it has, or the channel could not be read, do not post. Post only after the Phase 4 patch landed:
 
 ```text
 🗓️ Research week of {YYYY-MM-DD} · focus {identifiers, comma-separated} · {k} drafts ready · {m} asks to send · <threads document URL>{ · degraded}
 ```
 
-Identifiers, counts, the document URL and the one word `degraded` (when Phase 0 marked the run degraded or a draft failed) only; URLs wrapped in `<...>` to suppress embeds; no name, no organisation, no mention. A non-2xx response is logged with its status and body and recorded durably by one more `save_document` patch that appends ` · post failed {status}` to this run's `## Run notes` line, the one exception to the single-patch cap; nothing else is retried this run, and next Monday reads that line, marks itself degraded, and posts its own pointer as usual.
+Identifiers, counts, the document URL and the one word `degraded` (when Phase 0 or Phase 1c marked the run degraded, or a draft failed) only; URLs wrapped in `<...>` to suppress embeds; no name, no organisation, no mention. A non-2xx response is logged with its status and body and recorded durably by one more `save_document` patch that appends ` · post failed {status}` to this run's `## Run notes` line, the one exception to the single-patch cap; nothing else is retried this run, and next Monday reads that line, marks itself degraded, and posts its own pointer as usual.
 
 ## Guardrails
 

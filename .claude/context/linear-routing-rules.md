@@ -40,11 +40,11 @@ routine limits; this file owns interactive routing and issue execution.
      customer, or from the same unresolved reporter, is a comment on the existing need;
      any other duplicate gets a need of its own on the same Issue. A need that records a
      partner's research ask (a next step one party owes another, from the notes of a call
-     the team hosted, captured by `research-synthesis`) links the Research issue it serves
-     or the Product issue that already tracks it; an ask that serves neither waits in that
-     routine's thread until an issue exists, the routine never creates a Product issue, and
-     it dedupes against every need on the customer by source and gist, leaving a need another
-     routine made unchanged.
+     the team hosted, captured by `research-synthesis`) links the Research issue it serves,
+     or the Product or Community issue that already tracks it; an ask no such issue serves
+     waits in that routine's thread until one exists, the routine never creates a Product or
+     Community issue, and it dedupes against every need on the customer by source and gist,
+     leaving a need another routine made unchanged.
    - Explicitly scoped community coordination → **Community**. Do not route
      engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
