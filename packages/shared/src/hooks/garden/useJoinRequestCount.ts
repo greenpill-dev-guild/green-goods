@@ -47,6 +47,8 @@ export interface JoinRequestCount {
   isLoading: boolean;
   /** The grant's read failed and kept the grant, so requests may wait unseen. */
   isError: boolean;
+  /** The grant's read is running, the first one or a read again. */
+  isFetching: boolean;
   /** Read the count again; without a grant there is nothing to read. */
   refetch: () => void;
 }
@@ -123,6 +125,7 @@ export function useJoinRequestCount(
     hasGrant: Boolean(token),
     isLoading: canRead && read.isLoading,
     isError: canRead && read.isError,
+    isFetching: canRead && read.isFetching,
     refetch: readAgain,
   };
 }

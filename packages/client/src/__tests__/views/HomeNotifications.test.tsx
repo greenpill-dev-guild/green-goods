@@ -453,6 +453,12 @@ describe("the sheet", () => {
     view.refresh();
     expect(within(sheet).getByText("Nothing in This Period")).toBeInTheDocument();
     expect(within(sheet).queryByText("Nothing New")).toBeNull();
+
+    // A read that answered only in part cannot promise the period is empty.
+    setBell({ notifications: [{ ...EVENTS[4], isNew: true }], isError: true });
+    view.refresh();
+    expect(within(sheet).getByText("Nothing in This Period")).toBeInTheDocument();
+    expect(within(sheet).getByText(en["app.home.notifications.partial"])).toBeInTheDocument();
   });
 
   it("opens the work from a work event and the promise from a promise event, closing first", () => {

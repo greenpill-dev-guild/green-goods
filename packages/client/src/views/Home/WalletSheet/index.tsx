@@ -101,7 +101,12 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
       {tab === "cookie-jar" && <CookieJarTab />}
       {tab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {tab === "vouchers" && (
-        <VouchersTab wallet={voucherRead.data} failed={voucherRead.isError} onClose={onClose} />
+        <VouchersTab
+          wallet={voucherRead.data}
+          // A read paused offline with nothing cached would otherwise hold its frames for good.
+          failed={voucherRead.isError || voucherRead.fetchStatus === "paused"}
+          onClose={onClose}
+        />
       )}
     </AppSheet>
   );

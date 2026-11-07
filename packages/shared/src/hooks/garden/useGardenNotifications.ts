@@ -311,11 +311,13 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     markSeen,
     clearAll,
     refresh,
+    // Every source a refresh reads again, so Refresh shows progress until the last has answered.
     isFetching:
       workRead.isFetching ||
       activityRead.isFetching ||
       poolsRead.isFetching ||
       commitmentsRead.isFetching ||
-      takeUpsRead.isFetching,
+      takeUpsRead.isFetching ||
+      joinRequestRead.isFetching,
   };
 }

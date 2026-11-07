@@ -53,6 +53,8 @@ const reads = vi.hoisted(() => ({
   /** Whether this browser holds a count grant for the garden. */
   joinRequestsHasGrant: true,
   joinRequestsFailed: false,
+  /** Whether the count grant's read is running. */
+  joinRequestsFetching: false,
   joinRequestReads: [] as Array<{ enabled?: boolean; kind?: string }>,
   /** The sources a refresh read again, in the order it asked. */
   readAgain: [] as string[],
@@ -120,6 +122,7 @@ vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
       hasGrant: reads.joinRequestsHasGrant,
       isLoading: false,
       isError: enabled && reads.joinRequestsFailed,
+      isFetching: enabled && reads.joinRequestsFetching,
       refetch: () => {
         if (enabled) reads.readAgain.push("joinRequests");
       },
@@ -221,6 +224,7 @@ beforeEach(() => {
   reads.joinRequestsWaiting = undefined;
   reads.joinRequestsHasGrant = true;
   reads.joinRequestsFailed = false;
+  reads.joinRequestsFetching = false;
   reads.joinRequestReads = [];
   reads.worksFailed = false;
   reads.worksPartial = false;
@@ -302,12 +306,16 @@ describe("useGardenNotifications", () => {
   it("reads again only the sources that are on: with no pool known, no promise or take-up read (DL-168)", async () => {
     seedGarden({ stewards: [ALICE] });
     reads.pools = [];
-    const { result } = renderNotifications();
+    const { result, rerender } = renderNotifications();
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => result.current.refresh());
     // Without a pool id the take-up read would cover every request on the chain.
     expect(reads.readAgain).toEqual(["works", "joinRequests", "pools"]);
+    // Refresh shows progress until the last source answers, the join-request count included.
+    reads.joinRequestsFetching = true;
+    rerender({ id: GARDEN });
+    expect(result.current.isFetching).toBe(true);
 
     reads.readAgain = [];
     reads.pools = [poolFixture({ garden: GARDEN })];

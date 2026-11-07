@@ -181,6 +181,15 @@ describe("WalletSheet", () => {
     const panel = screen.getByRole("tabpanel");
     expect(within(panel).getByRole("list")).toHaveAttribute("aria-busy", "true");
 
+    // Paused offline with nothing cached, the read says so instead of holding its frames.
+    mockUseVoucherWallet.mockReturnValue({
+      data: undefined,
+      isError: false,
+      fetchStatus: "paused",
+    });
+    view.rerender(sheet());
+    expect(within(panel).getByText(/could not be read/)).toBeInTheDocument();
+
     mockUseVoucherWallet.mockReturnValue(voucherWallet("onchain"));
     view.rerender(sheet());
     expect(within(panel).getByText("No vouchers yet")).toBeInTheDocument();

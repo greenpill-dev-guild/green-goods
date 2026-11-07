@@ -220,12 +220,18 @@ export function NotificationsSheet({
       />
     );
   } else if (periodHidesAll) {
+    // A partial read cannot promise the period is empty, so it says what it could not read.
     body = (
       <EmptyState
         placement="sheet"
+        tone={partial ? "warning" : "neutral"}
         icon={<RiFilterOffLine />}
         title={formatMessage({ id: "app.home.notifications.periodEmpty.title" })}
-        description={formatMessage({ id: "app.home.notifications.periodEmpty.description" })}
+        description={
+          partial
+            ? partialNotice
+            : formatMessage({ id: "app.home.notifications.periodEmpty.description" })
+        }
       />
     );
   } else if (shown.length === 0) {

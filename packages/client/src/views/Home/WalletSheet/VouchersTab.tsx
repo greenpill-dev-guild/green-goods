@@ -34,7 +34,7 @@ import {
 export interface VouchersTabProps {
   /** The account's vouchers, once the read answers; until then the tab holds its rows' places. */
   wallet: VoucherWalletSnapshot | undefined;
-  /** The read failed outright, with no answer to show. */
+  /** The read failed outright, or waits offline, with no answer to show. */
   failed?: boolean;
   /** Closes the wallet before a row opens a booking or a garden over Home. */
   onClose: () => void;
