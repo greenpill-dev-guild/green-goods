@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) are in the research-week PR; steps 5 to 7 follow, the Monday trigger first`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) are in the research-week PR; step 5 (the skill's review mode), the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
 **Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
@@ -134,12 +134,13 @@ recorded in [eval.md](eval.md) AC-12.
 
 ### Step 6: One-offs Afo owns (the trigger created 2026-11-07; the display name and the pin remain)
 
-Create the Monday trigger on `claude-opus-5-5` in the green-goods environment with the pointer
-prompt, the Drive and Linear connectors and the two env vars; confirm Matt's Linear display name
-for the mention; say whether the agenda's panel line changes (D1); pin the threads document on the
-Research team page beside the agenda.
-Verification: the trigger's next fire shows in the routines UI; the README row records the
-trigger id.
+Done 2026-11-07: the Monday trigger `trig_01QAmX6qXWjywnKDQGQvb8pB` exists on `claude-opus-5-5` in the
+green-goods environment with the pointer prompt, the Drive and Linear connectors and the two env
+vars, and the README row records its id; do not create a second one. Still Afo's: confirm Matt's
+Linear display name for the mention; say whether the agenda's panel line changes (D1); pin the
+threads document on the Research team page beside the agenda once the first v6 run has created it.
+Verification: the trigger's next fire shows in the routines UI; the display name appears in a
+Monday brief's mention; the pin is visible on the team page.
 
 ### Step 7: First live runs
 

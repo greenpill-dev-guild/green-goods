@@ -174,7 +174,7 @@ If the file cannot be located or read by either path, do not improvise a run fro
 
 ## Setup (steward one-offs)
 
-1. Done 2026-11-07: the trigger **Green Goods Research Week** (`trig_01QAmX6qXWjywnKDQGQvb8pB`) exists in the green-goods environment with cron `0 13 * * 1`, model `claude-opus-5-5`, the Google Drive and Linear connectors, the pointer prompt above and the default tool set; the environment carries `DISCORD_BOT_TOKEN` and `DISCORD_RESEARCH_CHANNEL_ID`. Its id is in this file's frontmatter and the README portfolio row.
+1. Done 2026-11-07: the trigger **Green Goods Research Week** (`trig_01QAmX6qXWjywnKDQGQvb8pB`) exists in the green-goods environment with cron `0 13 * * 1`, model `claude-opus-5-5`, the Google Drive and Linear connectors, the pointer prompt above, no repository source (the pointer's shallow clone is the checkout path), and the allowed tools `preset:default`, `Task`, `Bash`, `Glob`, `Grep`, `Read`, `Edit`, `MultiEdit`, `Write`, `NotebookEdit`, `WebFetch`, `TodoWrite`, `WebSearch`, `BashOutput`, `KillBash`, `Skill`, `Tmux`, `Monitor`, `SendUserFile` and `REPL` (the same list as the Saturday trigger); the environment carries `DISCORD_BOT_TOKEN` and `DISCORD_RESEARCH_CHANNEL_ID`. Its id is in this file's frontmatter and the README portfolio row; re-emit it with this record if it is ever lost.
 2. Confirm the second reader's Linear display name, so the mention on his lines resolves; until it is confirmed, the routine writes his name without the `@`.
 3. Pin the *Research threads* document on the Research team page beside the agenda and the pending-edits document once the first Saturday v6 run has created it.
 
