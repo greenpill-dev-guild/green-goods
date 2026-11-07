@@ -84,8 +84,12 @@ implementation must start from a current isolated checkout with permission.
    the native balances of the Arbitrum entitlement and redemption modules and the Gnosis adapter
    and escrow. Check that the entitlement module's `feeReserveMinimum` is positive and that the
    dispatch can pay its quote while retaining that floor. Prepare separately approved top-ups for
-   any shortfall, including the balances each endpoint needs to send its own acknowledgments.
-   Verify the top-up receipts, re-quote, and read back balances before activation.
+   any shortfall where a send draws on an endpoint balance, including the Gnosis adapter's
+   earned-voucher acknowledgment. Verify top-up receipts and balances and refresh the quotes.
+   A positive-fee escrow acknowledgment is caller-funded. Budget for the caller to supply the
+   exact current quote to `retrySetupAcknowledgment` or `retryFinalAcknowledgment` if the
+   automatic send fails. An escrow top-up does not fund those retries. Record the latest result
+   sequence and outbound message ID, then verify the matching result was applied on Arbitrum.
 4. **Prepare the on-chain service offer.** Follow the
    [offer publishing runbook](green-goods-offer-publishing-runbook.md) for the sequence. Have the
    authorized pool actors prepare the Family Garden offer and its `setServiceOfferTerms` call.
@@ -110,8 +114,10 @@ optional phase with its own admission, quote, fee, cap and inventory approval. T
 contract does not require pool admission; prove that an unlisted asset remains usable through
 the selected application path before relying on this narrower pilot.
 
-Use a current, explicitly selected work request or cycle. Obtain issuer approval for the exact
-earned-voucher revision, then have the creator consent to freeze it. If the counterparty is a
+Use a current, explicitly selected work request or cycle. Have the authorized pool steward call
+`registerTerms` on the entitlement module. Read back the revision, terms hash, approved issuer
+authority and matching core binding. Obtain issuer approval for that exact revision, then have
+the creator consent to freeze it. If the counterparty is a
 different account, that account must consent to the same frozen revision before core acceptance.
 If one account fills both roles, its single consent covers both. Verify the consent revision
 for each required account, complete work and review, then send the approved distribution once.
@@ -121,18 +127,31 @@ Preserve these separate observations:
 2. Destination execution succeeded, with exact recipient credit and reserve/allowance debit.
 3. Source acknowledgment reconciled; a late acknowledgment must not trigger duplicate delivery.
 4. Verify the published offer, terms revision and buyer eligibility, then have the named buyer
-   request the claim. Prepare and dispatch the setup authorization for that exact claim. Observe
-   issuer approval and the named holder's escrow deposit on Gnosis. Reconcile the successful
-   setup result and its deposit receipt on Arbitrum before the authorized provider-pool steward
-   calls `acceptServiceClaim`. Read back the acceptance bound to the same buyer, claim and setup.
-   Then run `finalizeActivation`, dispatch its Activate decision and verify it was applied on Gnosis.
+   request the claim. Select an approved source-chain acceptance window that allows for setup,
+   deposit and acknowledgment. Pass its `acceptanceDeadline` to `prepareVoucherSetup`, read back
+   the bound claim and deadline, then dispatch the setup authorization. Observe issuer approval
+   on Gnosis. Have the named holder approve only the required voucher units for the escrow, verify
+   the finite allowance, then call `presentSetup`. Read back the successful deposit, exact escrow
+   credit and allowance consumed by the transfer. Deliver the matching setup acknowledgment and
+   reconcile its deposit receipt on Arbitrum. Before the authorized provider-pool steward calls
+   `acceptServiceClaim`, verify the deadline against the current Arbitrum block timestamp and the
+   absence of an Abort decision. Read back acceptance for the same buyer, claim and setup, then
+   run `finalizeActivation`, dispatch Activate and verify it was applied on Gnosis.
+   If the deadline passes without that acceptance, verify the exact claim has no acceptance
+   receipt. Use source `abortSetup`, dispatch its authenticated Abort decision, and verify any
+   deposited vouchers return to the holder. If the refund attempt fails, use the existing
+   `retrySetupAction` and reconcile the resulting acknowledgment before starting another setup.
 5. Record delivery and the holder's separate approval of the delivered service units and proposed
    release/refund split. For any nonzero refund, have the issuer Safe use `authorizeReturn` and read
    back a cumulative return ceiling that covers the proposed refund before the holder freezes
    the split. Verify `finalizeAllocation` froze that split under the agreed terms and record its
    decision ID. Track each leg as succeeded, failed, pending or not required. Verify every required
-   leg succeeded and `isFinanciallyClosed` is true. Record final core confirmation separately from
-   holder approval and financial closure.
+   leg succeeded and `isFinanciallyClosed` is true. Verify the final acknowledgment reaches the
+   source, using the quoted caller-funded retry if needed. Record final core confirmation
+   separately from holder approval and financial closure.
+
+Use the [voucher reconciliation handoff](codex-voucher-reconciliation.md) for protocol details
+and recovery cases when preparing the exact signing packet.
 
 Label authenticated Brave proof separately from local/fork proof. Check pending state, reopening
 the page, refresh, destination failure and safe recovery. Never resend an in-flight message.
