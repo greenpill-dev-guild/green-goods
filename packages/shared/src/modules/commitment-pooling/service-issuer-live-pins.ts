@@ -1,3 +1,4 @@
+import { GREEN_GOODS_ACCESS_MANAGER } from "./service-access-chain-values";
 import type { ServiceIssuerProxyPin, ServiceIssuerRoute } from "./service-issuer-types";
 
 /** Existing public pilot deployments; factory calldata and receipt identities verified on 27 October 2026 UTC.
@@ -12,6 +13,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
   adapterSource: {
     address: "0x9eeA83dc46433F646707076294627E49692CC6Ed",
     owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    accessManager: GREEN_GOODS_ACCESS_MANAGER,
     runtimeCodeHash: "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
     implementation: {
       address: "0x8e3fa2816094df0592ab62f0ed2e678d7bc84fcc",
@@ -29,6 +31,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
   adapter: {
     address: "0x80a906C175ea875af8a2afcA8F91F60b201dc824",
     owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    accessManager: GREEN_GOODS_ACCESS_MANAGER,
     runtimeCodeHash: "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
     implementation: {
       address: "0x021368bf9958f4d535d39d571bc45f74d20e4666",
@@ -70,6 +73,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     deployment: {
       address: "0x6AFc963B583fBB536F05B2D7ae832880662b98A4",
       owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
       implementation: {
         address: "0x9e694d342cab02e295262b2290b0e64a0334160d",
@@ -91,6 +95,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     registry: {
       address: "0xf685212bB309F36F74B53ba0c9f1E49B4222d036",
       owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
       implementation: {
         address: "0x0ceb18ba6562d3227717d98c044a5849be8362ef",
@@ -112,6 +117,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     limiter: {
       address: "0xbA96741cc022F48a1F936a085b7549AEa3B01b9C",
       owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
       implementation: {
         address: "0x258aad6c933f70d7f071e112800a41fb60434048",
@@ -132,6 +138,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     quoter: {
       address: "0xC425a1d3296632062D22376106EA3778d9A3ACDa",
       owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
       implementation: {
         address: "0x0b0986c0e580377389337c453cc65a3933511165",
@@ -152,6 +159,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     feePolicy: {
       address: "0x7f1aa0f1C4628fD0931a871b1474352b8AF30a2e",
       owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
       implementation: {
         address: "0x1b97fffaf2d2e16c8f7de6826f4f658dc898e5b6",
@@ -173,6 +181,7 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     protocolFee: {
       address: "0x753Ed323a3ac014Fc206B9FCb7d0D1eF95fe0C31",
       owner: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      accessManager: GREEN_GOODS_ACCESS_MANAGER,
       runtimeCodeHash: "0x6b4490b96bd93ffcfea327772b10b51a4d013ef39d6ab274bc2883d1d16f2293",
       implementation: {
         address: "0x302e6d520e7d7aefcea4813e456234b5daa23b4d",

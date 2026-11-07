@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:c5fed9857f381771148ba9f1464cba41af611f2bd5a2698aba42cf8f34c0503f"
+source_digest: "sha256:1609d23e77abbf6ffd2f5da7413a3b218c66f2b0ea04d8e97d4e9b6b321586d6"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -114,11 +114,11 @@ Eight Forms of Capital used to tag actions and assessments by the kind of value 
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Capital</code> | <code>SOCIAL, MATERIAL, FINANCIAL, LIVING, INTELLECTUAL, EXPERIENTIAL, SPIRITUAL, CULTURAL, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel for unmapped on-chain values — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Capital</code> | <code>SOCIAL=0, MATERIAL=1, FINANCIAL=2, LIVING=3, INTELLECTUAL=4, EXPERIENTIAL=5, SPIRITUAL=6, CULTURAL=7</code> |  |
-| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Ordered deliberately: the union is declared here in canonical machine order because index-based bridges between Capital and CapitalType lists are a live bug risk. The current file deviates (living-first presentational order) — baselined until reordered or a mapping function lands. |
+| capital-type | shared | <code>packages/shared/src/types/hypercerts.ts · CapitalType</code> | <code>social, material, financial, living, intellectual, experiential, spiritual, cultural</code> | Declared in the Capital enum's order. Consumers store the words, never positions; convert only through capitalToCapitalType and capitalTypeToCapital. |
 
 - **Mapping `capital-enum-to-capital-type`** (shared-enum → capital-type; explicit; total; bijective): SOCIAL → social, MATERIAL → material, FINANCIAL → financial, LIVING → living, INTELLECTUAL → intellectual, EXPERIENTIAL → experiential, SPIRITUAL → spiritual, CULTURAL → cultural.
-  - Code anchor: none — no runtime mapping function exists yet.
-  - No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn.
+  - Code anchor: `packages/shared/src/types/hypercerts.ts`
+  - capitalToCapitalType and capitalTypeToCapital read one explicit record keyed by the enum, and the reverse is built from it. packages/shared/src/__tests__/types/domain-enums.test.ts checks both directions against these pairs.
 
 ### `domain`
 
@@ -131,15 +131,15 @@ Category of regenerative work — where the work happens. Four production domain
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Domain</code> | <code>SOLAR=0, AGRO=1, EDU=2, WASTE=3</code> |  |
-| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings used in hypercert metadata. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
-| slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). |
+| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when its work names exactly one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) publishes the same words from its own list. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
+| slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy actions validator and the create-action form reject a slug whose prefix is not its domain's. |
 
 - **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; bijective): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
   - Code anchor: `packages/shared/src/modules/data/hypercerts-filters.ts`
 
-- **Mapping `action-domain-vs-slug-prefix`** (action-domain → slug-prefix; identity; partial): identity (same spelling on both sides).
-  - Code anchor: none — no runtime mapping function exists yet.
-  - The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined.
+- **Mapping `domain-to-slug-prefix`** (solidity → slug-prefix; explicit; total; bijective): SOLAR → solar, AGRO → agro, EDU → edu, WASTE → waste.
+  - Code anchor: `packages/shared/src/hooks/action/useActionForm.ts`
+  - AGRO and EDU each have two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO.
 
 ### `garden-role`
 
@@ -207,8 +207,7 @@ Kind of Gardens V2 conviction signal pool attached to a garden. Distinct from th
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/IGardensModule.sol · PoolType</code> | <code>ActionSignal, HypercertSignal</code> |  |
-| indexer | indexer | <code>packages/indexer/schema.graphql · PoolType</code> | <code>ACTION_SIGNAL, HYPERCERT_SIGNAL</code> | Currently &#123;HYPERCERT, ACTION&#125; — inverted vs chain and referenced by zero entity fields (dead surface). Baselined; fix direction is deletion or correction alongside the shared enum. |
-| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Currently &#123;Hypercert = 0, Action = 1&#125; — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down. |
+| shared | shared | <code>packages/shared/src/types/gardens-community.ts · PoolType</code> | <code>ActionSignal=0, HypercertSignal=1</code> | Pools are classified by address identity (annotateGardenSignalPools), never decoded from a raw uint8; the values match the contract so that a decode, if one is ever added, cannot invert them. The indexer indexes no signal pool, so it declares no pool type. |
 
 ### `vault-event-type`
 
@@ -252,9 +251,17 @@ Canonical display status for work items across the UI — protocol states plus c
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | shared-union | shared | <code>packages/shared/src/types/domain.ts · WorkDisplayStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> |  |
-| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent five-value list (failed instead of sync_failed; missing uploading/offline) — baselined. |
-| offline-work-item | shared | <code>packages/shared/src/types/offline.ts · OfflineWorkItem.status</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent four-value list — baselined pending status-union consolidation. |
-| hypercert-sync-status | shared | <code>packages/shared/src/hooks/hypercerts/useHypercerts.ts · HypercertSyncStatus</code> | <code>approved, rejected, pending, syncing, uploading, sync_failed, offline</code> | Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation. |
+| enhanced-work-approval | shared | <code>packages/shared/src/hooks/work/useWorkApprovals.ts · EnhancedWorkApproval.status</code> | <code>approved, rejected</code> | The decided subset of the canonical union, declared in code as Extract&lt;WorkDisplayStatus, "approved" \| "rejected"&gt;: every review read from the attestation history has decided its work, so pending and the upload and sync states never apply to it. |
+
+### `hypercert-sync-status`
+
+How far a newly minted hypercert has caught up with the indexer; not the hypercert's lifecycle status (hypercert-status). It shares the word syncing with the work display status but not its meaning: it tracks a hypercert's indexing, not a work's upload or review.
+
+**Canonical members:** synced · syncing · optimistic · failed
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| shared-union | shared | <code>packages/shared/src/hooks/hypercerts/useHypercerts.ts · HypercertSyncStatus</code> | <code>synced, syncing, optimistic, failed</code> |  |
 
 ### `cynefin-phase`
 
@@ -984,7 +991,6 @@ Use `maturity.availability` and the returned evidence before making a release cl
 
 ## Known Issues
 
-- **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
 - **`community-surface-token`** — The ontology uses a `community` surface token on Need, Commitment, and Commitment Contributor while the product still treats community experiences as part of the client and public surfaces. Either promote Community to a distinct product surface or fold the token into `client`; until then the generated glossary carries the declared value verbatim. _(`docs/docs/reference/glossary.generated.mdx`, `packages/shared/src/ontology/green-goods-ontology.json`)_
 
 ## Deliberately excluded from v1

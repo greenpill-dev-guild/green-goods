@@ -24,7 +24,6 @@ interface StaticCommandRoute {
   labelId: string;
   defaultLabel: string;
   href: string;
-  roles?: UserRole[];
   /** The navigation bar permission that shows this workspace. */
   permission?: AdminWorkspacePermission;
 }
@@ -160,7 +159,6 @@ export function buildCommandPaletteResults({
   }
 
   for (const route of staticRoutes) {
-    if (route.roles && !route.roles.includes(role)) continue;
     if (route.permission && !permissions[route.permission]) continue;
     const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
     pushIfMatches({ id: route.id, label, href: route.href, category: "pages" }, [label]);
@@ -179,7 +177,7 @@ export function buildCommandPaletteResults({
     );
   }
 
-  if (role === "deployer") {
+  if (permissions.showActions) {
     for (const action of actions) {
       pushIfMatches(
         {

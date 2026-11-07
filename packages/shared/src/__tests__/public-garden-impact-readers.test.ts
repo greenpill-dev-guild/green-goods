@@ -1,3 +1,4 @@
+import { ContractFunctionExecutionError, ContractFunctionZeroDataError } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import type { Address } from "../public-contracts";
 import {
@@ -63,7 +64,7 @@ describe("public garden impact source readers", () => {
       if (input.functionName === "token") {
         return [11155111n, config?.gardenToken, 7n];
       }
-      if (input.functionName === "account") return gardenAddress;
+      if (input.functionName === "isGardenAccount") return true;
       if (input.functionName === "name" || input.functionName === "location") return "";
       throw new Error(`Unexpected function ${input.functionName}`);
     });
@@ -83,10 +84,51 @@ describe("public garden impact source readers", () => {
     });
     expect(readContract.mock.calls.map(([input]) => input.functionName)).toEqual([
       "token",
-      "account",
+      "isGardenAccount",
       "name",
       "location",
     ]);
+  });
+
+  it("derives the account on a token from before upgradeable accounts", async () => {
+    const sepolia = getPublicGardenImpactChainConfig(11155111);
+    const readContract = vi.fn(async (input: { functionName: string }) => {
+      if (input.functionName === "token") return [11155111n, sepolia?.gardenToken, 7n];
+      if (input.functionName === "isGardenAccount") {
+        throw new ContractFunctionExecutionError(
+          new ContractFunctionZeroDataError({ functionName: "isGardenAccount" }),
+          { abi: [], functionName: "isGardenAccount" }
+        );
+      }
+      if (input.functionName === "account") return gardenAddress;
+      if (input.functionName === "name" || input.functionName === "location") return "";
+      throw new Error(`Unexpected function ${input.functionName}`);
+    });
+    const impactReaders = createPublicGardenImpactReaders({
+      indexerReader: reader(vi.fn()),
+      createEasReader: () => reader(vi.fn()),
+      createChainReader: () => ({ readContract }),
+    });
+
+    await expect(impactReaders.readGarden(11155111, gardenAddress)).resolves.toMatchObject({
+      id: gardenAddress,
+    });
+  });
+
+  it("rejects an account the token does not count as a garden", async () => {
+    const sepolia = getPublicGardenImpactChainConfig(11155111);
+    const readContract = vi.fn(async (input: { functionName: string }) => {
+      if (input.functionName === "token") return [11155111n, sepolia?.gardenToken, 7n];
+      if (input.functionName === "isGardenAccount") return false;
+      throw new Error(`Unexpected function ${input.functionName}`);
+    });
+    const impactReaders = createPublicGardenImpactReaders({
+      indexerReader: reader(vi.fn()),
+      createEasReader: () => reader(vi.fn()),
+      createChainReader: () => ({ readContract }),
+    });
+
+    await expect(impactReaders.readGarden(11155111, gardenAddress)).resolves.toBeNull();
   });
 
   it("rejects an account whose token binding belongs to another chain", async () => {

@@ -33,6 +33,9 @@ const CREATE2_DEPLOYER = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
 const CREATE2_DEPLOYER_RUNTIME =
   "0x2fa86add0aed31f33a762c9d88e807c475bd51d0f52bd0955754b2608f7e4989";
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+/** The pinned owner, or the access manager the pin names beside it. */
+const pinnedOwner = (owner: Address, pin: Pick<ServiceDeploymentPin, "owner" | "accessManager">) =>
+  same(owner, pin.owner) || (pin.accessManager !== undefined && same(owner, pin.accessManager));
 
 export interface ServiceLiveChain {
   read: ServiceChainRead;
@@ -75,7 +78,7 @@ export async function verifyServiceDeploymentState(
     !same(`0x${slot.slice(-40)}`, pin.implementation.address) ||
     implementation === "0x" ||
     !same(keccak256(implementation), pin.implementation.runtimeCodeHash) ||
-    !same(address(owner), pin.owner)
+    !pinnedOwner(address(owner), pin)
   )
     throw new Error("Service deployment receipt, implementation or owner changed");
 }

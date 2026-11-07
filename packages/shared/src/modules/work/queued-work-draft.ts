@@ -22,6 +22,7 @@ export function buildQueuedWorkDraft(
   const audioFiles = files.filter((file) => file.type.startsWith("audio/"));
   const mediaFiles = files.filter((file) => !file.type.startsWith("audio/"));
   return {
+    ...(payload.uploadConsent ? { uploadConsent: payload.uploadConsent } : {}),
     actionUID: payload.actionUID,
     title,
     feedback: payload.feedback,

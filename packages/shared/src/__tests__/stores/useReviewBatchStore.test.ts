@@ -163,7 +163,7 @@ describe("stores/useReviewBatchStore", () => {
     expect(reviews()["0xw1"].refusal).toBe("Action expired");
   });
 
-  it("lasts the session when the device refuses the write", () => {
+  it("lasts the session when the device refuses storage", () => {
     const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
     vi.stubGlobal("localStorage", {
       getItem: () => null,
@@ -172,10 +172,33 @@ describe("stores/useReviewBatchStore", () => {
       },
       removeItem: () => {},
     });
+    const { stage } = useReviewBatchStore.getState();
 
-    useReviewBatchStore.getState().stage(SCOPE, draft("0xW1"));
+    stage(SCOPE, draft("0xW1"));
+    stage(SCOPE, draft("0xW2"));
 
-    expect(Object.keys(reviews())).toEqual(["0xw1"]);
-    expect(warn).toHaveBeenCalledOnce();
+    expect(Object.keys(reviews())).toEqual(["0xw1", "0xw2"]);
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps what a refused write added, though storage still holds an older list", () => {
+    vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const older = JSON.stringify({
+      state: { reviewsByScope: { [SCOPE]: { "0xw0": { draft: draft("0xW0") } } } },
+      version: 0,
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: () => older,
+      setItem: () => {
+        throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+      },
+      removeItem: () => {},
+    });
+    const { stage } = useReviewBatchStore.getState();
+
+    stage(SCOPE, draft("0xW1"));
+    stage(SCOPE, draft("0xW2"));
+
+    expect(Object.keys(reviews())).toEqual(["0xw0", "0xw1", "0xw2"]);
   });
 });

@@ -80,7 +80,8 @@ const mediaCardVariants = tv({
       },
       wide: {
         root: "flex-row",
-        frame: "min-h-30 w-36 self-stretch",
+        frame:
+          "min-h-[var(--gg-media-wide-height,7.5rem)] w-[var(--gg-media-wide-width,9rem)] self-stretch",
         body: "justify-center",
         count: "top-2",
       },
@@ -154,7 +155,7 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
       <div className={slots.body()}>
         <h3
           className={cn(
-            "type-card-title text-text-strong",
+            "gg-media-title text-text-strong",
             titleLines === 2 ? "line-clamp-2 min-h-[2lh] [overflow-wrap:anywhere]" : "truncate"
           )}
           title={title}
@@ -164,7 +165,7 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
         {status ? <div className="flex min-w-0">{status}</div> : null}
         {showSubtitle ? (
           <p
-            className="min-h-[1lh] truncate type-meta text-text-sub"
+            className="gg-media-subtitle min-h-[1lh] truncate text-text-sub"
             title={subtitle || undefined}
             aria-hidden={subtitle ? undefined : true}
           >
@@ -173,7 +174,8 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
         ) : null}
         {details || detailsEnd ? (
           <div
-            className="flex min-w-0 items-center justify-between gap-3 type-meta-sm"
+            data-slot="details"
+            className="gg-media-details flex min-w-0 items-center justify-between gap-3"
             title={detailsTitle}
           >
             <span className="min-w-0 truncate font-medium text-text-sub">{details}</span>
@@ -235,6 +237,7 @@ export function MediaCardSkeleton({
     <div
       aria-hidden="true"
       data-skeleton="media-card"
+      data-layout={layout}
       className={cn(slots.root(), "pointer-events-none", className)}
     >
       <div className={slots.frame()} />

@@ -23,7 +23,7 @@ import {
   type BatchReference,
   type BatchScope,
 } from "./batch-types";
-import { assertWalletAccount } from "./chain-guard";
+import { assertWalletAccount, walletErrorCodes } from "./chain-guard";
 import type { AtomicBatchOptions, ContractCall, TransactionSender } from "./types";
 import { walletBatchExecution, type WalletBatchStatus } from "./wallet-batch-status";
 
@@ -31,6 +31,8 @@ import { walletBatchExecution, type WalletBatchStatus } from "./wallet-batch-sta
 const CAPABILITY_TIMEOUT_MS = 4_000;
 /** How long an accepted batch may take to reach a receipt before its outcome is unknown. */
 const BATCH_STATUS_TIMEOUT_MS = 180_000;
+/** EIP-1193 4200 and JSON-RPC -32601 and -32004: the wallet has no such method. */
+const NO_SUCH_METHOD: ReadonlySet<number> = new Set([4200, -32601, -32004]);
 
 async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -116,10 +118,12 @@ export async function readWalletBatchCapability(
           ? status
           : "unknown",
     };
-  } catch {
-    // Most wallets without EIP-5792 answer "method not supported". That is the
-    // ordinary case, not a fault: the caller sends one call at a time.
-    return { ...scope, atomic: "unknown" };
+  } catch (error) {
+    // Most wallets without EIP-5792 answer that they have no such method. That is the ordinary
+    // case, not a fault: they can't batch, and the caller sends one call at a time. Anything
+    // else, a timeout or a failed read, leaves the answer unknown.
+    const noSuchMethod = walletErrorCodes(error).some((code) => NO_SUCH_METHOD.has(code));
+    return { ...scope, atomic: noSuchMethod ? "unsupported" : "unknown" };
   }
 }
 

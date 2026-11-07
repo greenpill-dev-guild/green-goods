@@ -4,7 +4,7 @@ import {
   trackAdminActionCreateStarted,
 } from "../../../modules/app/analytics-events";
 import { logger } from "../../../modules/app/logger";
-import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
+import { UnpublishableImageError, uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 import { Domain } from "../../../types/domain";
 import { buildActionInstructionsV2 } from "../../../utils/action/translations";
@@ -15,6 +15,7 @@ import type { CreateActionFormData } from "../../action/useActionForm";
 import { useActionOperations } from "../../action/useActionOperations";
 import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
 import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
+import { useAdminUploadPolicy } from "../useAdminUploadPolicy";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -41,6 +42,7 @@ export function useCreateActionController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const {
     registerAction,
     isLoading,
@@ -65,6 +67,8 @@ export function useCreateActionController() {
   // before the state above re-renders; this lock is set synchronously.
   const sendLockRef = useRef(false);
   const txError = useTxErrorMessages(sendError);
+  // An image that could not be checked for its location stops the send before any transaction.
+  const unreadableImage = sendError instanceof UnpublishableImageError;
   const mounted = useRef(true);
   const activeScope = useRef(registrationScope);
   activeScope.current = registrationScope;
@@ -225,6 +229,13 @@ export function useCreateActionController() {
 
     try {
       await assertReady();
+      const authorized = await authorizeUpload();
+      if (!mounted.current || activeScope.current !== submissionScope) return;
+      if (!authorized) {
+        setSend("idle");
+        sendLockRef.current = false;
+        return;
+      }
       const mediaUploads = await Promise.all(
         data.media.map((file: File) => uploadFileToIPFS(file))
       );
@@ -241,7 +252,9 @@ export function useCreateActionController() {
       const instructionsFile = new File([instructionsBlob], "instructions.json", {
         type: "application/json",
       });
+      if (!mounted.current || activeScope.current !== submissionScope) return;
       const instructionsUpload = await uploadFileToIPFS(instructionsFile);
+      if (!mounted.current || activeScope.current !== submissionScope) return;
 
       const telemetryBase = {
         gardenAddress: actionCreateGardenAddress,
@@ -390,8 +403,16 @@ export function useCreateActionController() {
   return {
     currentStep,
     domainOptions,
-    errorMessage: txError.message,
-    errorTitle: txError.title,
+    errorMessage: unreadableImage
+      ? formatMessage({
+          id: "app.common.imageUnreadable",
+          defaultMessage:
+            "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP.",
+        })
+      : txError.message,
+    errorTitle: unreadableImage
+      ? formatMessage({ id: "app.garden.create.uploadFailed", defaultMessage: "Upload failed" })
+      : txError.title,
     form,
     goToStep: stepValidation.handleStepClick,
     handleBack: stepValidation.handleBack,

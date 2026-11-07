@@ -21,6 +21,8 @@ import { OfflineContentRow } from "./OfflineContentRow";
 
 interface ApplicationSettings {
   title: string;
+  /** The title's id, which names the setting's control for assistive technology. */
+  titleId: string;
   description: string;
   Option: () => ReactNode;
   Icon: React.ReactNode;
@@ -112,6 +114,9 @@ export const AppSettings: React.FC = () => {
   // would do nothing, so the row is not offered at all.
   const canVibrate = isHapticsSupported();
   const [vibrationOn, setVibrationOn] = useState(isHapticsEnabled);
+  // Each control is named by its row's title, so a screen reader hears "Theme", not a bare combo box.
+  const themeTitleId = useId();
+  const languageTitleId = useId();
   const vibrationTitleId = useId();
 
   const handleVibrationChange = (enabled: boolean) => {
@@ -149,6 +154,7 @@ export const AppSettings: React.FC = () => {
           id: "app.settings.theme",
           defaultMessage: "Theme",
         }),
+        titleId: themeTitleId,
         description: intl.formatMessage({
           id: "app.settings.selectTheme",
           defaultMessage: "Choose how the app looks",
@@ -159,7 +165,11 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger size="sm" className={SETTING_SELECT_TRIGGER}>
+            <SelectTrigger
+              size="sm"
+              className={SETTING_SELECT_TRIGGER}
+              aria-labelledby={themeTitleId}
+            >
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -177,6 +187,7 @@ export const AppSettings: React.FC = () => {
           id: "app.settings.language",
           defaultMessage: "Language",
         }),
+        titleId: languageTitleId,
         description: intl.formatMessage(
           {
             id: "app.settings.selectLanguage",
@@ -192,7 +203,11 @@ export const AppSettings: React.FC = () => {
           // Controlled like Theme. With no value the trigger showed the language
           // as its placeholder, in the muted placeholder colour.
           <Select value={locale} onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger size="sm" className={SETTING_SELECT_TRIGGER}>
+            <SelectTrigger
+              size="sm"
+              className={SETTING_SELECT_TRIGGER}
+              aria-labelledby={languageTitleId}
+            >
               <SelectValue
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
               />
@@ -217,6 +232,8 @@ export const AppSettings: React.FC = () => {
       locale,
       switchLanguage,
       availableLocales,
+      themeTitleId,
+      languageTitleId,
     ]
   );
 
@@ -361,11 +378,12 @@ export const AppSettings: React.FC = () => {
           defaultMessage: "Settings",
         })}
       </h5>
-      {applicationSettings.map(({ title, Icon, description, Option }) => (
+      {applicationSettings.map(({ title, titleId, Icon, description, Option }) => (
         <SettingRow
           key={title}
           icon={Icon}
           title={title}
+          titleId={titleId}
           description={<div className={SETTING_DESCRIPTION}>{description}</div>}
           control={<Option />}
         />

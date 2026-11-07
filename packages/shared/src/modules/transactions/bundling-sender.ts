@@ -15,12 +15,21 @@
  * that didn't.
  *
  * The request is all or nothing, so every job in it ends the same way: sent
- * with one transaction hash, or refused with one error.
+ * with one transaction hash, or refused with one error. A passkey's request
+ * also needs the reviewed ceilings it is checked against before the prompt
+ * (`batchBudget`).
+ *
+ * The calls go in the order the participants were named, so a later one can
+ * rely on an earlier one: Add and Send's send reverts unless its proof runs
+ * first. Such a pair asks for `everyOrNone`, and then the request goes only
+ * with every call in it. Each job records its intent where the sender says the
+ * request can go out: after a passkey signs, or just before a wallet asks.
  *
  * @module modules/transactions/bundling-sender
  */
 
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
+import { type BatchBudget, BatchNotSubmittedError, BundleIncompleteError } from "./batch-types";
 import type { ContractCall, TransactionSender, TransactionSendOptions, TxResult } from "./types";
 
 /** How the one request ended, for whoever sends the next thing. */
@@ -28,7 +37,10 @@ export type BundleOutcome =
   | { status: "sent"; hash: `0x${string}` }
   /** The person declined in the wallet: nothing reached the chain. */
   | { status: "declined"; error: unknown }
-  /** Refused before or on the chain (reverted, unaffordable): nothing was recorded. */
+  /**
+   * Refused before or on the chain (reverted, unaffordable, or stopped by the
+   * sender's own checks before it went out): nothing was recorded.
+   */
   | { status: "refused"; error: unknown }
   /** Anything else. The answer may have been lost, so the chain must be read before sending again. */
   | { status: "failed"; error: unknown }
@@ -53,10 +65,11 @@ interface HeldCall {
   reject: (error: unknown) => void;
 }
 
-function outcomeOfError(error: unknown): BundleOutcome {
+/** A sender that proves the request never went out has answered, whatever its error says. */
+function outcomeOfError(error: unknown, neverSent: boolean): BundleOutcome {
   const { kind } = classifyTxError(error);
   if (kind === "cancelled") return { status: "declined", error };
-  if (kind === "reverted") return { status: "refused", error };
+  if (kind === "reverted" || neverSent) return { status: "refused", error };
   return { status: "failed", error };
 }
 
@@ -68,6 +81,10 @@ export function createBundlingSender(
     onAsking?: () => void;
     /** The wallet accepted the request; its receipt is still to come. */
     onAccepted?: () => void;
+    /** The ceilings the one request is checked against; a passkey sends none without them. */
+    batchBudget?: BatchBudget;
+    /** Send only with every participant's call: none of them may go without the others. */
+    everyOrNone?: boolean;
   } = {}
 ): BundlingSender {
   if (!base.sendAtomicBatch) throw new Error("This sender cannot send an atomic batch");
@@ -82,9 +99,20 @@ export function createBundlingSender(
   });
 
   const flush = async () => {
-    const calls = [...held.values()];
+    const calls = participants.flatMap((participant) => {
+      const call = held.get(participant);
+      return call ? [call] : [];
+    });
     if (calls.length === 0) {
       settle({ status: "empty" });
+      return;
+    }
+    if (hooks.everyOrNone && calls.length < participants.length) {
+      // One finished without a call (it had landed, or must wait), and the rest
+      // can't go without it. Nothing was asked of the wallet.
+      const error = new BundleIncompleteError();
+      settle({ status: "refused", error });
+      for (const { reject } of calls) reject(error);
       return;
     }
     const checkpointAll = async (
@@ -95,17 +123,25 @@ export function createBundlingSender(
       const failed = results.find((result) => result.status === "rejected");
       if (failed?.status === "rejected") throw failed.reason;
     };
+    let neverSent = false;
     try {
       // Each job checks it still owns its send, as a single send would, before
       // anything can reach the wallet. One that doesn't stops the whole request.
       for (const { options } of calls) await options.assertOwnership?.();
       hooks.onAsking?.();
-      for (const { options } of calls) await options.onBeforeBroadcast?.();
       const result = await sendAtomicBatch(
         calls.map(({ call }) => call),
         {
+          batchBudget: hooks.batchBudget,
+          onNeverSent: () => {
+            neverSent = true;
+          },
           assertOwnership: async () => {
             for (const { options } of calls) await options.assertOwnership?.();
+          },
+          // A job whose intent can't be recorded stops the request before it goes.
+          onBeforeBroadcast: async (reference) => {
+            for (const { options } of calls) await options.onBeforeBroadcast?.(reference);
           },
           onBatchReference: async (reference) => {
             await checkpointAll((options) => options.onBatchReference?.(reference));
@@ -122,8 +158,13 @@ export function createBundlingSender(
       settle({ status: "sent", hash: result.hash });
       for (const { resolve } of calls) resolve(result);
     } catch (error) {
-      settle(outcomeOfError(error));
-      for (const { reject } of calls) reject(error);
+      settle(outcomeOfError(error, neverSent));
+      // Proven unsent, so each job's own send record reads it so, intent or not.
+      const answer =
+        neverSent && !(error instanceof BatchNotSubmittedError)
+          ? new BatchNotSubmittedError(error)
+          : error;
+      for (const { reject } of calls) reject(answer);
     }
   };
 
@@ -149,6 +190,7 @@ export function createBundlingSender(
         authMode: base.authMode,
         supportsBatching: base.supportsBatching,
         supportsSponsorship: base.supportsSponsorship,
+        bundledWith: participants,
         ...(base.assertOwnership ? { assertOwnership: base.assertOwnership.bind(base) } : {}),
         ...(base.reconcileBatch ? { reconcileBatch: base.reconcileBatch.bind(base) } : {}),
         ...(base.reconcileBroadcast

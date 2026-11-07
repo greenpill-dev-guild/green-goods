@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Must mock before imports
 vi.mock("@wagmi/core", () => ({
+  estimateGas: vi.fn(),
   getAccount: vi.fn(),
   getBlock: vi.fn(),
   getWalletClient: vi.fn(),
@@ -141,6 +142,7 @@ describe("wallet-submission", () => {
     mockEnsureWagmiWalletChain.mockResolvedValue(undefined);
     mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
     mock(wagmiCore.getAccount).mockReturnValue({ address: "0xUserAddress" } as any);
+    mock(wagmiCore.estimateGas).mockResolvedValue(1_000_000n);
   });
 
   afterEach(() => {
@@ -578,10 +580,20 @@ describe("wallet-submission", () => {
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
+      // The resolver's Karma update runs inside try/catch: the wallet gets the estimate plus 50%.
+      expect(wagmiCore.estimateGas).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({
+          account: "0xUserAddress",
+          chainId: mockChainId,
+          to: "0xEASAddress",
+        })
+      );
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "0xEASAddress",
           value: 0n,
+          gas: 1_500_000n,
           chain: expect.objectContaining({ id: mockChainId }),
         })
       );

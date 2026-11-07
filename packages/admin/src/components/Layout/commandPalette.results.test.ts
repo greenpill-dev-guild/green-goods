@@ -111,11 +111,11 @@ describe("buildCommandPaletteResults", () => {
     ]);
   });
 
-  it("hides action records from non-deployer command palettes", () => {
+  it("hides action records from anyone outside the team, garden creators included", () => {
     const results = buildCommandPaletteResults({
       query: "mulch",
-      role: "steward",
-      permissions: allWorkspaces,
+      role: "deployer",
+      permissions: { ...allWorkspaces, showActions: false },
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
@@ -140,7 +140,7 @@ describe("buildCommandPaletteResults", () => {
     expect(results.some((result) => result.category === "actions")).toBe(false);
   });
 
-  it("keeps team-only static routes deployer-only", () => {
+  it("keeps team-only static routes to the team, not to garden creators", () => {
     const staticRoutes = [
       {
         id: "page-community",
@@ -153,19 +153,29 @@ describe("buildCommandPaletteResults", () => {
         labelId: "cockpit.community.cookies.title",
         defaultLabel: "Campaign cookie jars",
         href: "/cookies",
-        roles: ["deployer" as const],
+        permission: "showActions" as const,
       },
       {
         id: "page-actions",
         labelId: "app.admin.nav.actions",
         defaultLabel: "Actions",
         href: "/actions",
-        roles: ["deployer" as const],
+        permission: "showActions" as const,
       },
     ];
 
-    const stewardResults = buildCommandPaletteResults({
+    const creatorResults = buildCommandPaletteResults({
       query: "co",
+      role: "deployer",
+      permissions: { ...allWorkspaces, showActions: false },
+      formatMessage,
+      staticRoutes,
+      eligibleGardens: [],
+      actions: [],
+      assessments: [],
+    });
+    const teamResults = buildCommandPaletteResults({
+      query: "cookie",
       role: "steward",
       permissions: allWorkspaces,
       formatMessage,
@@ -174,19 +184,9 @@ describe("buildCommandPaletteResults", () => {
       actions: [],
       assessments: [],
     });
-    const deployerResults = buildCommandPaletteResults({
-      query: "cookie",
-      role: "deployer",
-      permissions: allWorkspaces,
-      formatMessage,
-      staticRoutes,
-      eligibleGardens: [],
-      actions: [],
-      assessments: [],
-    });
 
-    expect(stewardResults).toEqual([expect.objectContaining({ id: "page-community" })]);
-    expect(deployerResults).toEqual([
+    expect(creatorResults).toEqual([expect.objectContaining({ id: "page-community" })]);
+    expect(teamResults).toEqual([
       expect.objectContaining({ id: "page-cookies", href: "/cookies" }),
     ]);
   });

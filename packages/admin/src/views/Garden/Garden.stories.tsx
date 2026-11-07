@@ -266,7 +266,7 @@ export const CreateGardenRoute: Story = {
       await canvas.findByRole("heading", { name: "Create Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
     await expect(
-      await canvas.findByText(/Set the garden profile/i, undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByText(/profile and first team/i, undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
   },
 };

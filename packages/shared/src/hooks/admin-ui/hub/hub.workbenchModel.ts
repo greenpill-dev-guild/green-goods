@@ -89,6 +89,13 @@ export interface HubActionSummary {
   domain?: Domain;
 }
 
+/** A Hub list's older records, present while the garden has more than the list holds. */
+export interface HubOlderRecords {
+  /** Reads the next page; absent offline, where the list can only say there is more. */
+  onShowOlder?: () => void;
+  isLoading: boolean;
+}
+
 export function normalizeHubSearch(searchTerm: string): string {
   return searchTerm.trim().toLowerCase();
 }

@@ -54,6 +54,7 @@ The root and broad family barrels remain declared exports with consumer restrict
 | `data/` | Data-fetching adapters -- GraphQL clients, EAS/indexer/gardens reads, IPFS upload/resolve, marketplace and vault reads | `getGardens`, `getWorks`, `uploadFileToIPFS`, `resolveIPFSUrl`, `greenGoodsIndexer` |
 | `job-queue/` | Offline job queue -- IndexedDB queue, draft persistence, media resource manager, event bus | `jobQueue`, `jobQueueDB`, `jobQueueEventBus`, `mediaResourceManager` |
 | `marketplace/` | HypercertExchange SDK integration -- maker ask signing, approvals, validation | `getMarketplaceClient`, `buildMakerAsk`, `signMakerAsk`, `checkMarketplaceApprovals` |
+| `media/` | Photos and videos without the location, camera and other metadata written into them, for anything that publishes | `withoutPhotoMetadata`, `withoutVideoMetadata` |
 | `offline-content/` | Background offline preparation that yields to the screen, photo cache helpers and download progress | `OfflineScheduler`, `OfflineRunQueue`, plan, media and progress helpers |
 | `profile-avatar/` | Avatar drafts, normalization, signing, publishing, and resolution | Profile avatar transport and persistence helpers |
 | `transactions/` | Abstract transaction sending -- passkey, wallet, and embedded sender strategies | `createTransactionSender`, `PasskeySender`, `WalletSender`, `EmbeddedSender` |

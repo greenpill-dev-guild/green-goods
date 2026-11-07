@@ -144,14 +144,14 @@ export function selectOperationsCapabilities(input: {
   isProtocolSteward: boolean;
   isExecutorSteward: boolean;
   isDispatcher: boolean;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
 }) {
   if (!input.authorityResolved) {
     return {
       canQueueFunding: false,
       canDispatchOrRetry: false,
       canRequeueOrCancel: false,
-      showOperations: input.isDeployer,
+      showOperations: input.isProtocolTeam,
     };
   }
   const canQueueFunding = input.isSettlementOwner || input.isProtocolSteward;
@@ -161,6 +161,7 @@ export function selectOperationsCapabilities(input: {
     canQueueFunding,
     canDispatchOrRetry,
     canRequeueOrCancel,
-    showOperations: input.isDeployer || canQueueFunding || canDispatchOrRetry || canRequeueOrCancel,
+    showOperations:
+      input.isProtocolTeam || canQueueFunding || canDispatchOrRetry || canRequeueOrCancel,
   };
 }

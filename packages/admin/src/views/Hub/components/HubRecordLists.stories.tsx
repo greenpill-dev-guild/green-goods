@@ -138,3 +138,26 @@ export const NoHypercerts: Story = {
 export const NoHypercertsReadOnly: Story = {
   render: () => <HubHypercertList {...hypercertArgs} items={[]} createHref={undefined} />,
 };
+
+/** A garden with more hypercerts than the newest page holds reads the rest on request. */
+export const HypercertsWithOlder: Story = {
+  render: () => (
+    <HubHypercertList
+      {...hypercertArgs}
+      items={HYPERCERTS}
+      older={{ onShowOlder: fn(), isLoading: false }}
+    />
+  ),
+};
+
+/** A search that misses the loaded hypercerts says the older ones aren't read yet. */
+export const HypercertSearchMissesLoaded: Story = {
+  render: () => (
+    <HubHypercertList
+      {...hypercertArgs}
+      items={[]}
+      searchQuery="riverbank"
+      older={{ onShowOlder: fn(), isLoading: false }}
+    />
+  ),
+};

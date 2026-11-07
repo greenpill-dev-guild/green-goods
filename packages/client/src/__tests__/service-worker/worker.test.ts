@@ -118,7 +118,10 @@ async function loadServiceWorker(
     skipWaiting: vi.fn(),
     crypto: { randomUUID: vi.fn(() => "share-token"), subtle: webcrypto.subtle },
     location: { href: locationHref, origin: new URL(locationHref).origin },
-    registration: { showNotification: vi.fn().mockResolvedValue(undefined) },
+    registration: {
+      scope: new URL("/home", locationHref).href,
+      showNotification: vi.fn().mockResolvedValue(undefined),
+    },
   };
 
   // The worker reads these off the global scope at call time, the way it does
@@ -253,6 +256,32 @@ describe("client public service worker migration", () => {
     listeners.message[0]({ data: { type: "SKIP_WAITING" }, ports: [{ postMessage }], waitUntil });
     await waitUntil.mock.calls[1][0];
     expect(postMessage).toHaveBeenLastCalledWith({ type: "GG_UPDATE_ACK", status: "rejected" });
+  });
+
+  it("lets boot apply a waiting update only when no other app window is open", async () => {
+    const { clients, self, listeners } = await loadServiceWorker();
+    const boot = { id: "boot", url: "https://www.greengoods.app/home" };
+    const otherApp = { id: "work", url: "https://www.greengoods.app/home/garden" };
+    const website = { id: "site", url: "https://www.greengoods.app/" };
+    const postMessage = vi.fn();
+    const waitUntil = vi.fn();
+    const event = {
+      data: { type: "ACTIVATE_BOOT_UPDATE" },
+      source: boot,
+      ports: [{ postMessage }],
+      waitUntil,
+    };
+    clients.matchAll.mockResolvedValueOnce([boot, otherApp, website]);
+    listeners.message[0](event);
+    await waitUntil.mock.calls[0][0];
+    expect(postMessage).toHaveBeenLastCalledWith({ status: "blocked" });
+    expect(self.skipWaiting).not.toHaveBeenCalled();
+
+    clients.matchAll.mockResolvedValueOnce([boot, website]);
+    listeners.message[0](event);
+    await waitUntil.mock.calls[1][0];
+    expect(self.skipWaiting).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenLastCalledWith({ status: "requested" });
   });
 
   it("skips production shell population for the Vite development worker", async () => {

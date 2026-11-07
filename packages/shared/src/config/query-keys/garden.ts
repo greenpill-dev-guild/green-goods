@@ -3,6 +3,10 @@ export const gardensKeys = {
   byChain: (chainId: number) => ["greengoods", "gardens", chainId] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
+  setup: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "setup", gardenId, chainId] as const,
+  creationEstimate: (accountAddress: string | undefined, chainId: number, form: string) =>
+    ["greengoods", "gardens", "creationEstimate", accountAddress, chainId, form] as const,
   karmaStatus: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "karma", "status", gardenId, chainId] as const,
   karmaVersion: (gardenId: string, chainId: number) =>
@@ -20,7 +24,11 @@ export const gardensKeys = {
  * its target, as the batch journal does.
  */
 export const batchKeys = {
-  /** Per connector: the same account can reconnect through a wallet that batches differently. */
+  /**
+   * Per connector: the same account can reconnect through a wallet that batches differently.
+   * Every hook that asks shares this entry, so each stores the wallet's own answer
+   * (`BatchCapability["atomic"]`) and derives what it needs from that.
+   */
   capability: (account: string, chainId: number, connectorId: string) =>
     ["greengoods", "batch", "capability", account, chainId, connectorId] as const,
   hold: (domain: string, account: string, chainId: number) =>

@@ -5,9 +5,10 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act, type ReactNode } from "react";
 import type { Hex } from "viem";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
+import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 import { createSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
 import {
   createMockP256Credential,
@@ -1095,5 +1096,216 @@ describe("AuthProvider wallet login bridge", () => {
 
     expect(mocks.mockReconnect).toHaveBeenCalledTimes(1);
     view.unmount();
+  });
+
+  // PRD-1049: on some older Android phones, choosing MetaMask never opens the
+  // wallet app, and the sign-in screen waited with no end and no record of it.
+  describe("wallet sign-in attempts", () => {
+    type AppKitEventsState = { timestamp: number; data: Record<string, unknown> };
+    const walletConnectConnector = { id: "walletConnect", name: "WalletConnect" };
+    let captured: Array<{ event: string; properties: Record<string, unknown> }>;
+    let unregisterSink: () => void;
+    let appKit: ReturnType<typeof createFakeAppKit>;
+
+    /** The wallet modal as AuthProvider sees it: its open state and its event stream. */
+    function createFakeAppKit() {
+      let open = false;
+      const stateListeners = new Set<() => void>();
+      let eventsListener: ((state: AppKitEventsState) => void) | null = null;
+      let lastState: AppKitEventsState | null = null;
+      const setOpen = (next: boolean) => {
+        open = next;
+        for (const listener of stateListeners) listener();
+      };
+      return {
+        open: vi.fn(async () => setOpen(true)),
+        close: vi.fn(async () => setOpen(false)),
+        getState: () => ({ open }),
+        subscribeState: (listener: () => void) => {
+          stateListeners.add(listener);
+          return () => void stateListeners.delete(listener);
+        },
+        subscribeEvents: (listener: (state: AppKitEventsState) => void) => {
+          eventsListener = listener;
+          return () => {
+            if (eventsListener === listener) eventsListener = null;
+          };
+        },
+        emit: (event: string, properties: Record<string, unknown> = {}) => {
+          lastState = { timestamp: Date.now(), data: { type: "track", event, properties } };
+          const state = lastState;
+          act(() => eventsListener?.(state));
+        },
+        /** The events store notifies for its own bookkeeping too, still holding its last event. */
+        renotify: () => act(() => lastState && eventsListener?.(lastState)),
+        dismiss: () => act(() => setOpen(false)),
+      };
+    }
+
+    const recorded = (event: string) =>
+      captured.filter((entry) => entry.event === event).map((entry) => entry.properties);
+    const settle = (ms = 0) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+    const setVisibility = (value: "hidden" | "visible") => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, value });
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+    };
+    const tap = () => act(() => document.dispatchEvent(new Event("pointerdown")));
+
+    beforeEach(() => {
+      appKit = createFakeAppKit();
+      mocks.mockGetAppKit.mockReturnValue(appKit);
+      captured = [];
+      unregisterSink = registerTelemetrySink({
+        capture: (event, properties) => captured.push({ event, properties }),
+        isReady: () => true,
+      });
+    });
+
+    afterEach(() => unregisterSink());
+
+    it("times out a phone wallet whose app never opens, and records a later answer", async () => {
+      vi.useFakeTimers();
+      try {
+        const view = renderAuth();
+        await settle();
+        act(() => view.result.current.loginWithWallet());
+        expect(appKit.open).toHaveBeenCalledTimes(1);
+
+        // The modal hands MetaMask a WalletConnect request, but MetaMask never comes up.
+        setAccount({ isConnecting: true });
+        view.rerender();
+        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        await settle(15_000);
+        // The screen turns off and on again: that is not the wallet app opening.
+        setVisibility("hidden");
+        await settle(60_000);
+        setVisibility("visible");
+        await settle(15_000);
+        appKit.renotify();
+        await settle(4_999);
+        expect(recorded("auth_wallet_connect_failed")).toEqual([]);
+
+        await settle(1);
+        expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({
+            reason: "timeout",
+            wallet: "metamask",
+            platform: "mobile",
+            app_opened: false,
+          }),
+        ]);
+        expect(view.result.current.walletConnectFailure).toBe("timeout");
+        // The modal stays open: its own Open button can still reach the wallet.
+        expect(appKit.close).not.toHaveBeenCalled();
+
+        // Open brings MetaMask up; the member declines once, then approves.
+        tap();
+        setVisibility("hidden");
+        appKit.emit("USER_REJECTED", { message: "User rejected the request." });
+        await settle(10_000);
+        setVisibility("visible");
+        setAccount({ address: TEST_WALLET, isConnected: true, connector: walletConnectConnector });
+        view.rerender();
+        await settle();
+
+        expect(view.result.current.authMode).toBe("wallet");
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        expect(recorded("auth_wallet_connect_failed")).toHaveLength(1);
+        expect(recorded("auth_wallet_connect_success")).toEqual([
+          expect.objectContaining({ wallet: "metamask", platform: "mobile", timed_out: true }),
+        ]);
+        expect(JSON.stringify(captured).toLowerCase()).not.toContain(TEST_WALLET.toLowerCase());
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("never times out a wallet app that opened, and records the modal closed after it", async () => {
+      vi.useFakeTimers();
+      try {
+        const view = renderAuth();
+        await settle();
+        act(() => view.result.current.loginWithWallet());
+
+        // MetaMask comes up as soon as it is chosen, and the member returns unanswered.
+        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        await settle(1_000);
+        setVisibility("hidden");
+        await settle(60_000);
+        setVisibility("visible");
+        await settle(30_000);
+
+        // Rainbow comes up only from the modal's Open button.
+        appKit.emit("SELECT_WALLET", { name: "Rainbow", platform: "mobile" });
+        await settle(12_000);
+        tap();
+        await settle(500);
+        setVisibility("hidden");
+        await settle(60_000);
+        setVisibility("visible");
+        await settle(30_000);
+        expect(recorded("auth_wallet_connect_failed")).toEqual([]);
+
+        appKit.dismiss();
+        expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({
+            reason: "cancelled",
+            wallet: "rainbow",
+            platform: "mobile",
+            app_opened: true,
+          }),
+        ]);
+        expect(view.result.current.walletConnectFailure).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("records a connection error without its message and times only phone wallets", async () => {
+      vi.useFakeTimers();
+      try {
+        const view = renderAuth();
+        await settle();
+        act(() => view.result.current.loginWithWallet());
+        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        appKit.emit("CONNECT_ERROR", { message: `Pairing failed for ${TEST_WALLET}` });
+        expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({
+            reason: "connect_error",
+            wallet: "metamask",
+            platform: "mobile",
+          }),
+        ]);
+        expect(JSON.stringify(captured)).not.toContain("Pairing failed");
+        expect(view.result.current.walletConnectFailure).toBe("connect_error");
+
+        // Closing the modal after its error adds no second record.
+        appKit.dismiss();
+        await settle(1_000);
+        expect(recorded("auth_wallet_connect_failed")).toHaveLength(1);
+
+        // A new attempt clears the error and ignores the event the store still holds.
+        act(() => view.result.current.loginWithWallet());
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        appKit.renotify();
+        appKit.emit("SELECT_WALLET", { name: "MetaMask", platform: "mobile" });
+        appKit.emit("CONNECT_ERROR", { message: "Connection failed" });
+        expect(view.result.current.walletConnectFailure).toBe("connect_error");
+
+        // Choosing another wallet sets the error aside; a browser wallet is never timed.
+        appKit.emit("SELECT_WALLET", { name: "Rabby Wallet", platform: "browser" });
+        expect(view.result.current.walletConnectFailure).toBeNull();
+        await settle(30_000);
+        appKit.dismiss();
+
+        expect(recorded("auth_wallet_connect_failed")).toEqual([
+          expect.objectContaining({ reason: "connect_error", wallet: "metamask" }),
+          expect.objectContaining({ reason: "connect_error", wallet: "metamask" }),
+          expect.objectContaining({ reason: "cancelled", wallet: "rabby", platform: "browser" }),
+        ]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

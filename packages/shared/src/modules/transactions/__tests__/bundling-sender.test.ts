@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMockContractCall } from "../../../__tests__/test-utils/transaction-fakes";
 import { createBundlingSender } from "../bundling-sender";
-import { BatchConfirmationPendingError } from "../batch-types";
+import { BatchConfirmationPendingError, BundleIncompleteError } from "../batch-types";
 import type { AtomicBatchOptions, ContractCall, TransactionSender } from "../types";
 
 const hash = `0x${"a".repeat(64)}` as const;
@@ -91,6 +91,73 @@ describe("bundling sender checkpoints", () => {
       })
     ).rejects.toThrow("ownership changed");
     expect(await bundle.outcome).toMatchObject({ status: "failed" });
+  });
+  it("hands the sender its ceilings, and reads a request it proved never went out as refused", async () => {
+    const budget = {
+      maxCalls: 2,
+      maxCalldataBytes: 1_024,
+      maxGas: "1000000",
+      maxFeePerGas: "1000000000",
+      maxFee: "1000000000000000",
+      sponsorship: "required",
+    } as const;
+    const tooBig = new Error("batch-budget-exceeded");
+    const send = vi.fn(async (_calls: ContractCall[], options?: AtomicBatchOptions) => {
+      options?.onNeverSent?.();
+      throw tooBig;
+    });
+    const bundle = createBundlingSender(base(send), ["a"], { batchBudget: budget });
+
+    // Each job hears that it was never sent, so its own send record reads it so.
+    await expect(
+      bundle.senderFor("a").sendContractCall(createMockContractCall())
+    ).rejects.toMatchObject({ name: "BatchNotSubmittedError", cause: tooBig });
+    expect(send.mock.calls[0]![1]?.batchBudget).toBe(budget);
+    // Nothing reached the chain, so whoever sends next may send it again.
+    expect(await bundle.outcome).toEqual({ status: "refused", error: tooBig });
+  });
+  it("sends the calls in the participants' order, each job's intent at the sender's boundary", async () => {
+    const order: string[] = [];
+    const send = vi.fn(async (calls: ContractCall[], options?: AtomicBatchOptions) => {
+      order.push(...calls.map((call) => call.functionName));
+      // A passkey reaches its boundary after it signs, with the UserOperation's hash.
+      await options?.onBeforeBroadcast?.({ kind: "user-operation", hash, chainId: 42161 });
+      return { hash, sponsored: true };
+    });
+    const bundle = createBundlingSender(base(send), ["proof", "send"], { everyOrNone: true });
+    const intents: unknown[] = [];
+    const intent = async (reference?: unknown) => {
+      intents.push(reference);
+    };
+
+    // The send hands over its call first; the proof still goes ahead of it.
+    const sent = bundle
+      .senderFor("send")
+      .sendContractCall(createMockContractCall({ functionName: "submitForConfirmation" }), {
+        onBeforeBroadcast: intent,
+      });
+    const proof = bundle
+      .senderFor("proof")
+      .sendContractCall(createMockContractCall({ functionName: "attachEvidence" }), {
+        onBeforeBroadcast: intent,
+      });
+
+    await Promise.all([sent, proof]);
+    expect(order).toEqual(["attachEvidence", "submitForConfirmation"]);
+    expect(intents).toEqual(Array(2).fill({ kind: "user-operation", hash, chainId: 42161 }));
+    expect(bundle.senderFor("send").bundledWith).toEqual(["proof", "send"]);
+  });
+  it("asks nothing for a pair that can only go whole, once one of them hands over no call", async () => {
+    const send = vi.fn(async () => ({ hash, sponsored: false }));
+    const bundle = createBundlingSender(base(send), ["proof", "send"], { everyOrNone: true });
+
+    const sent = bundle.senderFor("send").sendContractCall(createMockContractCall());
+    bundle.finished("proof");
+
+    // Never sent, and never tried: the job that held it is left as it was.
+    await expect(sent).rejects.toBeInstanceOf(BundleIncompleteError);
+    expect(send).not.toHaveBeenCalled();
+    expect(await bundle.outcome).toMatchObject({ status: "refused" });
   });
   it("allows a no-op participant to finish without holding the other call", async () => {
     const send = vi.fn(async () => ({ hash, sponsored: false }));

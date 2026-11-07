@@ -21,6 +21,12 @@ vi.mock("@/routes/RequireRole", async () => {
     default: () => <Outlet />,
   };
 });
+vi.mock("@/routes/RequireProtocolTeam", async () => {
+  const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    default: () => <Outlet />,
+  };
+});
 
 const mockCommunityPermission = vi.hoisted(() => ({ allowed: true }));
 vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({

@@ -11,6 +11,11 @@ const mocks = vi.hoisted(() => ({
   logError: vi.fn(),
   removeDraft: vi.fn(),
   toast: { success: vi.fn(), error: vi.fn() },
+  getJob: vi.fn(),
+  request: vi.fn(),
+  acquire: vi.fn(),
+  save: vi.fn(),
+  release: vi.fn(),
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
@@ -27,6 +32,20 @@ vi.mock("../../../modules/app/logger", () => ({
   logger: { error: mocks.logError, warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x1111111111111111111111111111111111111111",
+}));
+vi.mock("../../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: () => ({ request: mocks.request, prompt: null }),
+}));
+vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: { getJob: mocks.getJob } }));
+vi.mock("../../../modules/job-queue/work-claims", () => ({
+  acquireAvailableWorkJobs: mocks.acquire,
+  saveUnderClaim: mocks.save,
+}));
+import { queuedWorkJob } from "../../test-utils/queued-jobs";
+import { uploadConsent } from "../../test-utils/upload-policy";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 import { useQueuedWorkActions } from "../../../hooks/work/useQueuedWorkActions";
 import en from "../../../i18n/en.json";
 
@@ -40,6 +59,10 @@ const render = (workId: string | undefined) =>
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.retryJob.mockResolvedValue(undefined);
+  mocks.getJob.mockResolvedValue(queuedWorkJob());
+  mocks.request.mockResolvedValue(uploadConsent());
+  mocks.acquire.mockResolvedValue(new Map([["job-1", { token: "claim", release: mocks.release }]]));
+  mocks.save.mockImplementation(async (_claim, _id, amend) => amend(await mocks.getJob()));
   mocks.discardJob.mockResolvedValue(true);
 });
 
@@ -57,6 +80,123 @@ describe("useQueuedWorkActions", () => {
     expect(actions.current.isTryingAgain).toBe(false);
   });
 
+  it("requires consent for a legacy draft before claiming it or retrying", async () => {
+    const job = queuedWorkJob({
+      payload: { uploadConsent: undefined },
+      meta: { waitingReason: "upload-policy-required", waitingForDependency: true },
+    });
+    mocks.getJob.mockResolvedValue(job);
+    let accept!: (value: ReturnType<typeof uploadConsent>) => void;
+    mocks.request.mockReturnValue(
+      new Promise((resolve) => {
+        accept = resolve;
+      })
+    );
+    const actions = render("job-1");
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = actions.current.tryAgain();
+      await Promise.resolve();
+    });
+    expect(mocks.request).toHaveBeenCalledOnce();
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    expect(mocks.retryJob).not.toHaveBeenCalled();
+    await act(async () => {
+      accept(uploadConsent());
+      await pending;
+    });
+    expect(job.payload.uploadConsent).toEqual(uploadConsent());
+    expect(job.meta?.waitingReason).toBeUndefined();
+    expect(job.meta?.waitingForDependency).toBe(false);
+    expect(mocks.release).toHaveBeenCalledOnce();
+    expect(mocks.retryJob).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry a different work after navigation while consent waits", async () => {
+    mocks.getJob.mockResolvedValue(queuedWorkJob({ payload: { uploadConsent: undefined } }));
+    let accept!: (value: ReturnType<typeof uploadConsent>) => void;
+    mocks.request.mockReturnValue(
+      new Promise((resolve) => {
+        accept = resolve;
+      })
+    );
+    const { result, rerender } = renderHook(({ id }) => useQueuedWorkActions(id), {
+      initialProps: { id: "job-1" },
+      wrapper,
+    });
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = result.current.tryAgain();
+      await Promise.resolve();
+    });
+    rerender({ id: "job-2" });
+    await act(async () => {
+      accept(uploadConsent());
+      await pending;
+    });
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    expect(mocks.retryJob).not.toHaveBeenCalled();
+  });
+  it("leaves a canceled legacy draft untouched", async () => {
+    mocks.getJob.mockResolvedValue(queuedWorkJob({ payload: { uploadConsent: undefined } }));
+    mocks.request.mockRejectedValue(new UploadPolicyCancelledError());
+    const actions = render("job-1");
+    await act(() => actions.current.tryAgain());
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    expect(mocks.retryJob).not.toHaveBeenCalled();
+    expect(mocks.toast.error).not.toHaveBeenCalled();
+  });
+  it("preserves a send another tab recorded while consent was open", async () => {
+    const job = queuedWorkJob({ payload: { uploadConsent: undefined } });
+    mocks.getJob.mockResolvedValue(job);
+    mocks.request.mockImplementation(async () => {
+      job.payload.uploadCheckpoint = { submittedAt: "now", files: {}, transactionHash: "0x123" };
+      return uploadConsent();
+    });
+    const actions = render("job-1");
+    await act(() => actions.current.tryAgain());
+    expect(job.payload.uploadConsent).toBeUndefined();
+    expect(job.payload.uploadCheckpoint?.transactionHash).toBe("0x123");
+    expect(mocks.retryJob).toHaveBeenCalledOnce();
+  });
+  it("renews missing consent on the first retry after a confirmed revert", async () => {
+    const job = queuedWorkJob({
+      payload: {
+        uploadConsent: undefined,
+        uploadCheckpoint: {
+          submittedAt: "now",
+          files: {},
+          transactionHash: "0x123",
+          transactionReverted: true,
+        },
+      },
+    });
+    mocks.getJob.mockResolvedValue(job);
+    const actions = render("job-1");
+
+    await act(() => actions.current.tryAgain());
+
+    expect(job.payload.uploadConsent).toEqual(uploadConsent());
+    expect(mocks.request).toHaveBeenCalledOnce();
+    expect(mocks.save.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.retryJob.mock.invocationCallOrder[0]
+    );
+    expect(mocks.retryJob).toHaveBeenCalledOnce();
+  });
+  it("reconciles an already recorded send without new consent", async () => {
+    mocks.getJob.mockResolvedValue(
+      queuedWorkJob({
+        payload: {
+          uploadConsent: undefined,
+          uploadCheckpoint: { submittedAt: "now", files: {}, transactionHash: "0x123" },
+        },
+      })
+    );
+    const actions = render("job-1");
+    await act(() => actions.current.tryAgain());
+    expect(mocks.request).not.toHaveBeenCalled();
+    expect(mocks.retryJob).toHaveBeenCalledOnce();
+  });
   it("says so when trying again fails, and keeps the work", async () => {
     const failure = new Error("storage unavailable");
     mocks.retryJob.mockRejectedValue(failure);

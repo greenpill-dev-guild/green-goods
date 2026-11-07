@@ -30,6 +30,8 @@ interface CookieJarPayoutCardProps {
   allocationCount: number;
   /** The payout history filled its list, so the count is a lower bound. */
   allocationCountAtLeast?: boolean;
+  /** The payout history could not be read, so the page states nothing about it. */
+  allocationCountUnread?: boolean;
   signer: JarSigner;
   /** Which of this jar's settings is open for editing, if any. */
   editingField: JarSettingField | null;
@@ -53,6 +55,7 @@ export function CookieJarPayoutCard({
   gardenName,
   allocationCount,
   allocationCountAtLeast = false,
+  allocationCountUnread = false,
   signer,
   editingField,
   onEdit,
@@ -183,6 +186,21 @@ export function CookieJarPayoutCard({
             )}
           </div>
 
+          <FactList frame="inset">
+            <FactRow
+              label={formatMessage({ id: "cockpit.community.payouts.claimHistory" })}
+              value={formatMessage({ id: "cockpit.community.payouts.claimHistoryUnavailable" })}
+            />
+            <FactRow
+              label={formatMessage({ id: "cockpit.community.payouts.fundingSource" })}
+              value={formatMessage({ id: "cockpit.community.payouts.fundingSourceUnavailable" })}
+            />
+            <FactRow
+              label={formatMessage({ id: "cockpit.community.payouts.lastJarYield" })}
+              value={formatMessage({ id: "cockpit.community.payouts.lastJarYieldUnavailable" })}
+            />
+          </FactList>
+
           {restricted ? (
             <p
               id={restrictionId}
@@ -203,16 +221,18 @@ export function CookieJarPayoutCard({
             </p>
           ) : null}
 
-          <p className="type-meta text-text-sub">
-            {formatMessage(
-              {
-                id: allocationCountAtLeast
-                  ? "cockpit.community.payouts.jarFundingContextAtLeast"
-                  : "cockpit.community.payouts.jarFundingContext",
-              },
-              { count: allocationCount }
-            )}
-          </p>
+          {allocationCountUnread ? null : (
+            <p className="type-meta text-text-sub">
+              {formatMessage(
+                {
+                  id: allocationCountAtLeast
+                    ? "cockpit.community.payouts.jarFundingContextAtLeast"
+                    : "cockpit.community.payouts.jarFundingContext",
+                },
+                { count: allocationCount }
+              )}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <Button

@@ -5,7 +5,7 @@ slug: /community/steward-guide/managing-members
 description: "Add people to your garden, change their roles, answer requests to join, and decide whether anyone can join without asking."
 audience: steward
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Let a steward bring the right people into a garden with the right roles, and keep the door set the way the garden wants."
 difficulty: "standard"
@@ -35,17 +35,15 @@ keywords:
   - steward access requests
 ---
 
-import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
-
 # Manage Members
-
 
 Bring people into your garden, give them the right role, and decide how new people get in. Everything here happens in the steward dashboard, in the **Community** workspace.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="eager" width="2000" height="1250" />
-  <figcaption>Use <strong className="gg-inline-label">Manage Roles</strong> on the row of the member whose access you want to change.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="eager" width="2000" height="1250" className="gg-figure">
+
+Use <InlineLabel>Manage Roles</InlineLabel> on the row of the member whose access you want to change.
+
+</GuideImage>
 
 <StewardPathNav />
 
@@ -114,10 +112,11 @@ By default a garden is invite only: people join when you add them or approve the
 3. To cap how many people can join this way, turn on **Limit gardeners** and set **Maximum gardeners**.
 4. Tap **Save Changes** and confirm. You confirm once for each setting you changed.
 
-<figure className="gg-figure" style={{maxWidth: '520px'}}>
-  <img src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" />
-  <figcaption>Wait for the garden’s limit to load before changing <strong className="gg-inline-label">Limit gardeners</strong>.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" className="gg-figure" maxWidth="520px">
+
+Wait for the garden’s limit to load before changing <InlineLabel>Limit gardeners</InlineLabel>.
+
+</GuideImage>
 
 Two things to know about the limit. It counts people who join by themselves, not members you add. And the count does not go down when someone leaves, so raise the limit if you need more room.
 

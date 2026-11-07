@@ -1,5 +1,6 @@
 import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { usePendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
 import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
@@ -314,6 +315,7 @@ const meta: Meta<typeof DashboardFrame> = {
   // The list reads drafts, proof and promise links itself; each story hands it the frame's.
   beforeEach: ({ args }) => {
     const fixture = fixtureAt(args.moment ?? "all", args.documentationPhoto);
+    mocked(usePrimaryAddress).mockReturnValue(JOURNEY_VIEWER);
     mocked(useDrafts).mockReturnValue({
       drafts: fixture.drafts,
       draftCount: fixture.drafts.length,
@@ -336,6 +338,7 @@ const meta: Meta<typeof DashboardFrame> = {
       data: PENDING_ACTIONS,
     } as unknown as ReturnType<typeof useActions>);
     return resetHookMocks(
+      usePrimaryAddress,
       useDrafts,
       usePendingProof,
       useCommitmentJobs,

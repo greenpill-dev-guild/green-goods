@@ -17,14 +17,12 @@ import {
   createMockContractCall,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
-import type { ContractCall } from "../types";
 import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
 
 // ============================================
 // Test fixtures
 // ============================================
 
-const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 const TEST_CALL = createMockContractCall();
 const MOCK_ERC7677_URL = "https://paymaster.example.com/rpc";
 
@@ -58,6 +56,27 @@ describe("EmbeddedSender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("gives a call that asks for headroom that much gas over the node's estimate", async () => {
+      const estimateGas = vi.fn(async () => 100_000n);
+      mockDeps.estimateGas = estimateGas;
+
+      await sender.sendContractCall(createMockContractCall({ gasHeadroomPercent: 50 }));
+      expect(estimateGas).toHaveBeenCalledWith(
+        expect.objectContaining({ account: MOCK_ADDRESSES.deployer, chainId: 42161 })
+      );
+      expect(mockDeps.writeContract).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ gas: 150_000n })
+      );
+
+      // Any other call is still sized by the wallet.
+      estimateGas.mockClear();
+      vi.mocked(mockDeps.writeContract).mockClear();
+      await sender.sendContractCall(TEST_CALL);
+      expect(estimateGas).not.toHaveBeenCalled();
+      expect(vi.mocked(mockDeps.writeContract).mock.calls[0][1]).not.toHaveProperty("gas");
+    });
+
     it("sends transaction via writeContract and waits for receipt", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
@@ -194,27 +213,6 @@ describe("EmbeddedSender", () => {
       );
 
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("Embedded wallet rejected");
-    });
-  });
-
-  describe("sendBatch", () => {
-    it("sends multiple calls sequentially", async () => {
-      const hash1 = `0x${"a".repeat(64)}` as `0x${string}`;
-      const hash2 = `0x${"b".repeat(64)}` as `0x${string}`;
-      (mockDeps.writeContract as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce(hash1)
-        .mockResolvedValueOnce(hash2);
-
-      const calls: ContractCall[] = [TEST_CALL, { ...TEST_CALL, args: [VALID_RECIPIENT, 2000n] }];
-      const result = await sender.sendBatch(calls);
-
-      expect(result.hash).toBe(hash2);
-      expect(result.sponsored).toBe(false);
-      expect(mockDeps.writeContract).toHaveBeenCalledTimes(2);
-    });
-
-    it("throws on empty batch", async () => {
-      await expect(sender.sendBatch([])).rejects.toThrow("Cannot send empty batch");
     });
   });
 });

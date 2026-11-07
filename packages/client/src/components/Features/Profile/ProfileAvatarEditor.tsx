@@ -1,3 +1,5 @@
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
+import { UploadPolicyCancelledError } from "@green-goods/shared/modules/work/upload-policy";
 import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import { PwaSheet } from "@green-goods/shared/components/Dialog/PwaSheet";
 import type {
@@ -110,6 +112,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setOpen(false);
       setRemoveConfirmOpen(false);
     } catch (caught) {
+      if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("save", formatMessage, caught));
     } finally {
       setActiveAction(null);
@@ -141,6 +144,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setOpen(false);
       setRemoveConfirmOpen(false);
     } catch (caught) {
+      if (caught instanceof UploadPolicyCancelledError) return;
       setError(getProfileAvatarFailureMessage("continue", formatMessage, caught));
     } finally {
       setActiveAction(null);
@@ -243,6 +247,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
 
   return (
     <>
+      <WorkUploadConsentDialog kind="profile-photo" prompt={editor.uploadPolicy} />
       <button
         type="button"
         data-pressable="trigger"

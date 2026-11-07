@@ -1,20 +1,23 @@
 import type { Hex } from "viem";
 import { provenItems, settleOpenBatches } from "../transactions/batch-hold";
 import type { BatchOperations } from "../transactions/batch-types";
-import { type ReviewBatchInput, reviewDomain, verifyReviews } from "./review-batch";
+import { decisionSent, type ReviewBatchInput, reviewDomain, verifyReviews } from "./review-batch";
 
 /** Decisions whose last send has an unknown outcome. They stay held until it is settled. */
 export interface ReviewHold {
   /** The sends this hold shows. Moving on ends only these, since a person has seen them. */
   operationIds: string[];
   workUIDs: string[];
-  /** What EAS's index says now, for each work that could be read. */
+  /** Whether each work that could be read has a decision now, as `ReviewChain.isDecided` reads it. */
   onChain: { workUID: string; decided: boolean }[];
 }
 
 /** A decision a read proved landed, with the hash that keeps it on screen until it's indexed. */
 export interface ProvenReview {
   workUID: string;
+  /** What it decided, read back from the call the journal kept; unknown if that can't be read. */
+  approved?: boolean;
+  feedback?: string;
   attestationUID?: Hex;
   transactionHash?: Hex;
 }
@@ -45,6 +48,7 @@ async function settleOpenReviews(
   const saved = ended.flatMap((record) =>
     provenItems(record).map(({ id }) => ({
       workUID: id,
+      ...decisionSent(record.prepared, id),
       attestationUID: attestationUIDs.get(id),
       transactionHash: record.receipts[0]?.transactionHash,
     }))

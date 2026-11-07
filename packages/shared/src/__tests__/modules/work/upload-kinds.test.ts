@@ -13,6 +13,7 @@ import {
 } from "../../../modules/work/upload-kinds";
 import { isUploadJob } from "../../../modules/work/upload-state";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../../types/job-queue";
+import { uploadConsent } from "../../test-utils/upload-policy";
 
 vi.mock("../../../modules/job-queue/db", () => ({ jobQueueDB: {} }));
 vi.mock("../../../modules/job-queue/job-media-conversion", () => ({
@@ -44,6 +45,7 @@ function job<Payload>(kind: string, payload: Payload): Job<Payload> {
 
 const workJob = () =>
   job<WorkJobPayload>("work", {
+    uploadConsent: uploadConsent(),
     actionUID: 7,
     gardenAddress: GARDEN,
     feedback: "Weeded the east beds",
@@ -185,6 +187,8 @@ describe("what each kind of queued job brings to Upload all", () => {
       schema: EAS_CONFIG.WORK_APPROVAL.uid,
       gardenAddress: GARDEN,
       attestationData: "0x123456",
+      // Its resolver's Karma update runs inside try/catch, so Upload all sends it with headroom.
+      gasHeadroomPercent: 50,
     });
     expect(ctx.dependencies.encodeApproval).toHaveBeenCalledWith(
       expect.objectContaining({ approved: false, feedback: "Photo is of another bed" }),

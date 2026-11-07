@@ -9,14 +9,21 @@
  * @module modules/work/upload-state
  */
 
-import type { Job, WorkJobPayload } from "../../types/job-queue";
-import { hasRecordedSend, isTerminallyFailedJob } from "../job-queue/queue-policy";
+import type { Job } from "../../types/job-queue";
+import {
+  hasRecordedSend,
+  hasRevertedWorkSend,
+  isTerminallyFailedJob,
+} from "../job-queue/queue-policy";
 
 /** What background preparation last found for a queued item. */
 export type UploadPreparation =
   | { status: "ready" | "photo-pending"; checkedAt: string }
-  /** `photo` names one that cannot be published, when that is what needs attention. */
-  | { status: "photo-needs-attention"; photo?: string; checkedAt: string }
+  /**
+   * `photo` names one that cannot be published, when that is what needs attention;
+   * `video` says the file is a video.
+   */
+  | { status: "photo-needs-attention"; photo?: string; video?: true; checkedAt: string }
   | { status: "blocked"; reason: string; checkedAt: string };
 
 export type QueuedUploadState =
@@ -32,7 +39,7 @@ export type QueuedUploadState =
   | "take-up-failed"
   /** A HEIC photo is waiting for the decoder. */
   | "photo-pending"
-  /** A photo could not be converted. */
+  /** A photo could not be converted, or a video could not be read. */
   | "photo-needs-attention"
   /** The chain would refuse it now, for the recorded reason. */
   | "blocked"
@@ -47,6 +54,8 @@ export interface QueuedUploadStatus {
   reason?: string;
   /** The photo that needs attention, by file name, when one is named. */
   photo?: string;
+  /** The file that needs attention is a video. */
+  video?: true;
 }
 
 // Each kind here needs an entry in upload-kinds.ts, which says how it is prepared
@@ -67,10 +76,11 @@ export function uploadPreparationOf(job: Pick<Job, "meta">): UploadPreparation |
     case "photo-pending":
       return { status: preparation.status, checkedAt: preparation.checkedAt };
     case "photo-needs-attention": {
-      const { photo } = preparation as { photo?: unknown };
+      const { photo, video } = preparation as { photo?: unknown; video?: unknown };
       return {
         status: preparation.status,
         ...(typeof photo === "string" ? { photo } : {}),
+        ...(video === true ? { video } : {}),
         checkedAt: preparation.checkedAt,
       };
     }
@@ -95,11 +105,7 @@ export function queuedUploadStatus(
   job: Job,
   options: { takeUp?: Job | null } = {}
 ): QueuedUploadStatus {
-  if (
-    job.meta?.workTransactionReverted ||
-    (job.kind === "work" && (job.payload as WorkJobPayload).uploadCheckpoint?.transactionReverted)
-  )
-    return { state: "reverted" };
+  if (hasRevertedWorkSend(job)) return { state: "reverted" };
   if (hasRecordedSend(job)) return { state: "sent" };
   if (isTerminallyFailedJob(job)) return { state: "failed" };
   // However far it was prepared, a work goes only after the take-up of its promise.
@@ -109,11 +115,17 @@ export function queuedUploadStatus(
   const preparation = uploadPreparationOf(job);
   // A send attempt's own wait outranks an older preparation answer.
   const waiting = job.meta?.waitingReason;
+  if (waiting === "upload-policy-required") return { state: "blocked", reason: waiting };
   if (waiting === "photo-conversion-pending") return { state: "photo-pending" };
   if (waiting === "photo-needs-attention") return { state: "photo-needs-attention" };
+  if (waiting === "video-needs-attention") return { state: "photo-needs-attention", video: true };
   if (!preparation) return { state: "preparing" };
   if (preparation.status === "blocked") return { state: "blocked", reason: preparation.reason };
-  if (preparation.status === "photo-needs-attention" && preparation.photo)
-    return { state: preparation.status, photo: preparation.photo };
+  if (preparation.status === "photo-needs-attention")
+    return {
+      state: preparation.status,
+      ...(preparation.photo ? { photo: preparation.photo } : {}),
+      ...(preparation.video ? { video: preparation.video } : {}),
+    };
   return { state: preparation.status };
 }

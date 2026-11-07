@@ -8,6 +8,7 @@ import { act, waitFor } from "@testing-library/react";
 import { toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { gardensKeys } from "../../../config/query-keys/garden";
+import { runGardenRoleWrites } from "../../../hooks/garden/gardenRoleWriteQueue";
 import type { GardenMemberRow } from "../../../modules/garden/members-batch";
 import {
   type BatchExecution,
@@ -170,6 +171,35 @@ describe("useAddMembersBatch", () => {
     expect(tracking.failed).not.toHaveBeenCalled();
   });
 
+  it("reports each start before the add can reach the chain, so a later read's success has one", async () => {
+    const { result, sender } = renderBatch(CONFIRMED);
+    const list = rows();
+    mockRefusal.mockImplementation(async () => {
+      for (const { address, role } of list) wearing.add(`${address.toLowerCase()}:${role}`);
+      return null;
+    });
+    const send = vi.mocked(sender.sendContractCall);
+    const realSend = send.getMockImplementation()!;
+    let startedAtBroadcast = -1;
+    send.mockImplementationOnce(async (call, options) =>
+      realSend(call, {
+        ...options,
+        onBroadcastReference: async (reference) => {
+          startedAtBroadcast = tracking.started.mock.calls.length;
+          await options?.onBroadcastReference?.(reference);
+        },
+      })
+    );
+
+    await act(async () => {
+      await result.current.add(list);
+    });
+
+    expect(startedAtBroadcast).toBe(list.length);
+    expect(tracking.started).toHaveBeenCalledTimes(list.length);
+    expect(tracking.success).toHaveBeenCalledTimes(list.length);
+  });
+
   it("says there is nothing to sign only when nothing else is left to do", async () => {
     const { result, sender } = renderBatch(CONFIRMED);
     const [held, other] = rows();
@@ -253,8 +283,29 @@ describe("useAddMembersBatch", () => {
 
     sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
     for (const { address, role } of list) wearing.add(`${address.toLowerCase()}:${role}`);
+    let finishEarlierWrite!: () => void;
+    const earlierWrite = runGardenRoleWrites(
+      queryClient,
+      42161,
+      gardenAddress,
+      list,
+      () =>
+        new Promise<void>((resolve) => {
+          finishEarlierWrite = resolve;
+        })
+    );
+    let checking!: Promise<void>;
     await act(async () => {
-      await result.current.checkAgain();
+      checking = result.current.checkAgain();
+    });
+    await waitFor(() => expect(sender.reconcileBatch).toHaveBeenCalled());
+    expect(result.current.isSettlingHold).toBe(true);
+    expect(result.current.hold).not.toBeNull();
+    expect(toasts.success).not.toHaveBeenCalled();
+    await act(async () => {
+      finishEarlierWrite();
+      await earlierWrite;
+      await checking;
     });
 
     await waitFor(() => expect(result.current.saved).toHaveLength(2));

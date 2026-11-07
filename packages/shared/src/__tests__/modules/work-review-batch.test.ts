@@ -1,6 +1,8 @@
 import "fake-indexeddb/auto";
-import { type Hex, toHex } from "viem";
-import { describe, expect, it, vi } from "vitest";
+import { readContract } from "@wagmi/core";
+import { type Hex, toHex, zeroAddress } from "viem";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getWorkApprovalsForWork } from "../../modules/data/eas";
 import {
   BatchNotSubmittedError,
   type BatchExecution,
@@ -12,6 +14,7 @@ import {
 } from "../../modules/work/review-batch";
 import { moveOnFromReviewHold, readReviewHold } from "../../modules/work/review-hold";
 import {
+  createReviewChain,
   type ReviewAttestation,
   type ReviewChain,
   reviewBudget,
@@ -20,7 +23,19 @@ import {
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { createMockWorkApproval } from "../test-utils/mock-factories";
 import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
+
+// What `createReviewChain` reads: the chain through wagmi, and EAS's index.
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  readContract: vi.fn(),
+}));
+vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../modules/data/eas", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getWorkApprovalsForWork: vi.fn(),
+}));
 
 // The EAS SDK is stubbed in this project, so this writes what the schema does.
 vi.mock("../../utils/eas/encoders", async (importOriginal) => {
@@ -177,6 +192,17 @@ describe("sendReviewBatch", () => {
     });
   });
 
+  it("reads a send's transaction once, however many decisions it proves", async () => {
+    const { decide, landed, chain, send } = setup();
+    const decisions = Array.from({ length: 5 }, () => decide());
+    for (const decision of decisions) landed(decision);
+
+    const outcome = await send(decisions);
+
+    expect(outcome.sent).toHaveLength(5);
+    expect(chain.attestationsIn).toHaveBeenCalledTimes(1);
+  });
+
   it("reads again when a node answers from behind the attestation's block", async () => {
     const { decide, landed, chain, send } = setup();
     const decision = decide();
@@ -268,6 +294,31 @@ describe("sendReviewBatch", () => {
     const outcome = await send(decisions);
 
     expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(outcome.failure).toEqual(expect.objectContaining({ message: "OutOfGas" }));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("names a refused decision once when a later group is refused as a whole", async () => {
+    const { sender, decide, chain, send } = setup();
+    // Five share the first signature, and the last two take a second.
+    const decisions = Array.from({ length: 7 }, () => decide());
+    const [bad, , , , , sixth, seventh] = decisions.map(({ draft }) =>
+      encodeWorkApprovalData(draft, chainId)
+    );
+    chain.refusal.mockImplementation(async ({ args }) => {
+      const call = JSON.stringify(args, (_key, value) =>
+        typeof value === "bigint" ? String(value) : value
+      );
+      if (call.includes(bad)) return "ActionExpired";
+      // The last two together run out of gas, though each alone would go.
+      return call.includes(sixth) && call.includes(seventh) ? "OutOfGas" : null;
+    });
+
+    const outcome = await send(decisions);
+
+    const workUIDs = decisions.map(({ draft }) => draft.workUID);
+    expect(outcome.refused).toEqual([{ workUID: workUIDs[0], reason: "ActionExpired" }]);
+    expect(outcome.notSent).toEqual(workUIDs.slice(1));
     expect(outcome.failure).toEqual(expect.objectContaining({ message: "OutOfGas" }));
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
@@ -380,6 +431,89 @@ describe("sendReviewBatch", () => {
   });
 });
 
+describe("reading who has decided", () => {
+  // Either side of 13 August 2026, when the Arbitrum resolver began counting decisions.
+  const MADE_BEFORE_COUNTING = BigInt(Date.parse("2026-07-28T00:00:00Z") / 1000);
+  const MADE_SINCE_COUNTING = BigInt(Date.parse("2026-11-01T00:00:00Z") / 1000);
+
+  /** The resolver's counts and module, and when each work was made. Any other read fails. */
+  function chainHolds({
+    counted = [] as string[],
+    made = MADE_SINCE_COUNTING,
+    module = address(),
+  } = {}) {
+    vi.mocked(readContract).mockImplementation((async (
+      _config: unknown,
+      { functionName, args = [] }: { functionName: string; args?: readonly unknown[] }
+    ) => {
+      if (functionName === "latestDecisionSequence")
+        return counted.includes(String(args[0])) ? 1n : 0n;
+      if (functionName === "commitmentModule") return module;
+      if (functionName === "getAttestation") return { time: made };
+      throw new Error(`unexpected read: ${functionName}`);
+    }) as unknown as typeof readContract);
+  }
+
+  beforeEach(() => {
+    vi.mocked(readContract).mockReset();
+    vi.mocked(getWorkApprovalsForWork).mockReset().mockResolvedValue([]);
+  });
+
+  it("stops a send at a decision the resolver counted, without asking EAS", async () => {
+    const { sender, decide, input } = setup();
+    const [decided, fresh] = [decide(), decide()];
+    chainHolds({ counted: [decided.draft.workUID] });
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      chain: createReviewChain(chainId),
+      rail: "passkey",
+      decisions: [decided, fresh],
+    });
+
+    expect(outcome.stale).toEqual([decided.draft.workUID]);
+    expect(outcome.notSent).toEqual([fresh.draft.workUID]);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(getWorkApprovalsForWork).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["counted by the resolver", { counted: true }, true, false],
+    ["made since counting began, with nothing counted", {}, false, false],
+    ["made before counting began", { made: MADE_BEFORE_COUNTING }, true, true],
+    ["read while the resolver counts nothing", { module: zeroAddress }, true, true],
+  ])("answers for a work %s", async (_case, holds, decided, askedEAS) => {
+    const workUID = uid();
+    const { counted, ...rest } = holds as { counted?: boolean; made?: bigint; module?: Address };
+    chainHolds({ ...rest, counted: counted ? [workUID] : [] });
+    // EAS's index holds a decision for every work here, so only asking it can find one uncounted.
+    vi.mocked(getWorkApprovalsForWork).mockResolvedValue([createMockWorkApproval({ workUID })]);
+
+    await expect(createReviewChain(chainId).isDecided(workUID)).resolves.toBe(decided);
+
+    expect(vi.mocked(getWorkApprovalsForWork).mock.calls.length > 0).toBe(askedEAS);
+  });
+
+  it("asks only EAS on a chain whose resolver count has no known start", async () => {
+    const workUID = uid();
+    vi.mocked(getWorkApprovalsForWork).mockResolvedValue([createMockWorkApproval({ workUID })]);
+
+    await expect(createReviewChain(11155111).isDecided(workUID)).resolves.toBe(true);
+
+    expect(readContract).not.toHaveBeenCalled();
+    expect(getWorkApprovalsForWork).toHaveBeenCalledWith(workUID, 11155111);
+  });
+
+  it("won't call a work undecided when the chain can't be read", async () => {
+    vi.mocked(readContract).mockRejectedValue(new Error("rpc down"));
+
+    await expect(createReviewChain(chainId).isDecided(uid())).rejects.toThrow("rpc down");
+
+    // EAS can miss a decision made minutes ago, so it doesn't stand in for the chain.
+    expect(getWorkApprovalsForWork).not.toHaveBeenCalled();
+  });
+});
+
 describe("holding reviews whose outcome is unknown", () => {
   const onChainAfterReload = async (setupResult: ReturnType<typeof setup>) => {
     const decision = setupResult.decide();
@@ -413,6 +547,8 @@ describe("holding reviews whose outcome is unknown", () => {
       saved: [
         {
           workUID: decision.draft.workUID.toLowerCase(),
+          // Read back from the call the journal kept, so a reload still shows what was decided.
+          approved: decision.draft.approved,
           attestationUID,
           transactionHash: hash,
         },

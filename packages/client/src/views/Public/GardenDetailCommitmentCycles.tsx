@@ -2,9 +2,10 @@ import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentUnitSummaryRecord,
+  cycleStanding,
   type PublicCommitmentCycleRecord,
 } from "@green-goods/shared/commitment-pooling/public";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
 
@@ -63,6 +64,9 @@ export function OpenCycles({
   className?: string;
 }) {
   const { formatMessage } = useIntl();
+  // The website has no wallet runtime to read the chain's time from, so the device's clock
+  // stands in, as it does for `useExpiryClock` there; it is read as the record opens.
+  const [now] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
   return (
     <div className={cn("@container flex flex-col gap-4", className)}>
       <EditorialKicker>
@@ -73,6 +77,7 @@ export function OpenCycles({
           <OpenCycle
             key={cycle.id}
             cycle={cycle}
+            ended={cycleStanding(cycle, now) === "ended"}
             units={units.filter((unit) => unit.cycleId === cycle.cycleId)}
           />
         ))}
@@ -81,28 +86,46 @@ export function OpenCycles({
   );
 }
 
-/** One open cycle: name, type, calm end date, counts, exact-label units. */
+/**
+ * One open cycle: name, type, calm end date, counts, exact-label units. Past its
+ * end it reads ended, not open, until a steward closes it (DL-162).
+ */
 function OpenCycle({
   cycle,
+  ended,
   units,
 }: {
   cycle: PublicCommitmentCycleRecord;
+  ended: boolean;
   units: CommitmentUnitSummaryRecord[];
 }) {
   const intl = useIntl();
   const { formatMessage, formatNumber } = intl;
   const end = cycle.endTime === null ? null : toDate(cycle.endTime);
+  const endDate = end ? intl.formatDate(end, { dateStyle: "medium" }) : null;
   const meta = [
     cycleTypeLabel(formatMessage, cycle.cycleType),
-    formatMessage({ id: "public.pool.garden.cycle.openNow", defaultMessage: "Open now" }),
-    ...(end
+    ...(ended && endDate
       ? [
           formatMessage(
-            { id: "public.pool.garden.cycle.runsThrough", defaultMessage: "Runs through {date}" },
-            { date: intl.formatDate(end, { dateStyle: "medium" }) }
+            { id: "public.pool.garden.cycle.endedOn", defaultMessage: "Ended {date}" },
+            { date: endDate }
           ),
         ]
-      : []),
+      : [
+          formatMessage({ id: "public.pool.garden.cycle.openNow", defaultMessage: "Open now" }),
+          ...(endDate
+            ? [
+                formatMessage(
+                  {
+                    id: "public.pool.garden.cycle.runsThrough",
+                    defaultMessage: "Runs through {date}",
+                  },
+                  { date: endDate }
+                ),
+              ]
+            : []),
+        ]),
   ];
   return (
     <li className="@container flex flex-col gap-3">

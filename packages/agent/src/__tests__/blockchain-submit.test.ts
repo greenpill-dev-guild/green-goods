@@ -9,6 +9,7 @@
  *   PWA approval paths), never the gardener.
  */
 
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const WORK_TX = `0x${"c".repeat(64)}` as const;
@@ -107,7 +108,19 @@ function workParams() {
     gardenAddress: GARDEN,
     actionUID: 1,
     actionTitle: "Work Submission",
-    workData: { title: "t", plantSelection: [], plantCount: 0, feedback: "" },
+    workData: {
+      title: "t",
+      plantSelection: [],
+      plantCount: 0,
+      feedback: "",
+      uploadConsent: {
+        policyVersion: WORK_UPLOAD_POLICY_VERSION,
+        uploaderAddress: GARDENER,
+        termsAcceptedAt: "2026-11-05T00:00:00.000Z",
+        locale: "en" as const,
+        permissionsConfirmed: true as const,
+      },
+    },
   };
 }
 
@@ -134,6 +147,16 @@ describe("blockchain.submitWork", () => {
     const result = await blockchain.submitWork(workParams());
 
     expect(result).toEqual({ txHash: WORK_TX, workUID: WORK_UID });
+    expect(submitWorkBot).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ uploadConsent: workParams().workData.uploadConsent }),
+      GARDEN,
+      1,
+      "Work Submission",
+      sepolia.id,
+      []
+    );
     expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith(
       expect.objectContaining({ hash: WORK_TX })
     );

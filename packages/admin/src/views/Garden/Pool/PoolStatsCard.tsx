@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared/utils/styles/cn";
+import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
 import { AdminCard } from "@/components/AdminCard";
 
 export interface PoolStat {
@@ -11,7 +11,7 @@ export interface PoolStat {
 
 /**
  * What needs the steward, as counts (interaction-patterns §5): one hairline
- * card of columns, the number leading in tabular figures over its label, with
+ * card of columns, the label above its headline number in tabular figures, with
  * no button chrome. A count that lands somewhere is still a real button, named
  * by its number and label; a zero goes nowhere, so it is calm text.
  */
@@ -25,19 +25,7 @@ export function PoolStatsCard({ stats, label }: { stats: readonly PoolStat[]; la
     >
       <ul className="grid grid-cols-3 divide-x divide-stroke-soft" aria-label={label}>
         {stats.map((stat) => {
-          const body = (
-            <>
-              <span
-                className={cn(
-                  "block type-title-md font-semibold tabular-nums",
-                  stat.count > 0 ? "text-text-strong" : "text-text-soft"
-                )}
-              >
-                {stat.count}
-              </span>
-              <span className="block type-meta text-text-soft">{stat.label}</span>
-            </>
-          );
+          const body = <StatTile label={stat.label} value={stat.count} />;
           return (
             <li key={stat.id} className="min-w-0" data-stat={stat.id}>
               {stat.count > 0 ? (

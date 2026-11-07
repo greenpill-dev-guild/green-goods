@@ -26,6 +26,12 @@ const mocks = vi.hoisted(() => ({
   reviewLoading: false,
   reviewError: false,
   reviewRefetch: vi.fn(async () => true),
+  joinEnabled: [] as boolean[],
+  joinKinds: [] as Array<string | undefined>,
+  joinWaiting: undefined as number | undefined,
+  joinLoading: false,
+  joinError: false,
+  joinRefetch: vi.fn(),
   hatGarden: [] as Array<string | null | undefined>,
   wearsStewardHat: false,
   roleLoading: false,
@@ -64,6 +70,20 @@ vi.mock("../../../hooks/work/useNeedsReview", () => ({
       isLoading: gardenIds.length > 0 && mocks.reviewLoading,
       isError: gardenIds.length > 0 && mocks.reviewError,
       refetch: mocks.reviewRefetch,
+    };
+  },
+}));
+// The count grant's read hands back nothing while it may not read, as the hook does.
+vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
+  useJoinRequestCount: (_gardenId: string, options: { enabled?: boolean; kind?: string } = {}) => {
+    const enabled = options.enabled !== false;
+    mocks.joinEnabled.push(enabled);
+    mocks.joinKinds.push(options.kind);
+    return {
+      waiting: enabled ? mocks.joinWaiting : undefined,
+      isLoading: enabled && mocks.joinLoading,
+      isError: enabled && mocks.joinError,
+      refetch: mocks.joinRefetch,
     };
   },
 }));
@@ -144,6 +164,7 @@ function pendingClaim(commitmentId: bigint) {
 
 function everythingWaits() {
   mocks.toReview = [createMockWork({ id: "0x01" })];
+  mocks.joinWaiting = 2;
   mocks.claimRows = [pendingClaim(4n)];
   mocks.confirmGroups = [
     { garden: OTHER_GARDEN, rows: [{ commitment: { commitmentId: 7n } }] },
@@ -158,6 +179,11 @@ describe("useStewardDuties", () => {
     mocks.reviewReady = true;
     mocks.reviewLoading = false;
     mocks.reviewError = false;
+    mocks.joinEnabled = [];
+    mocks.joinKinds = [];
+    mocks.joinWaiting = undefined;
+    mocks.joinLoading = false;
+    mocks.joinError = false;
     mocks.hatGarden = [];
     mocks.wearsStewardHat = false;
     mocks.roleLoading = false;
@@ -186,6 +212,7 @@ describe("useStewardDuties", () => {
 
     expect(duties.duties).toEqual([]);
     expect(mocks.reviewGardens.at(-1)).toEqual([]);
+    expect(mocks.joinEnabled.at(-1)).toBe(false);
     expect(mocks.claimsEnabled.at(-1)).toBe(false);
     expect(mocks.confirmViewer.at(-1)).toBeUndefined();
     // Not even the confirmation queue's pool reads start for them.
@@ -200,8 +227,11 @@ describe("useStewardDuties", () => {
 
     expect(mocks.reviewGardens.at(-1)).toEqual([GARDEN]);
     expect(mocks.hatGarden.at(-1)).toBe(GARDEN.toLowerCase());
+    // Gardeners lists requests to join alone, so the row counts no other kind.
+    expect(mocks.joinKinds.at(-1)).toBe("garden_membership");
     expect(duties.duties.map((duty) => [duty.kind, duty.count])).toEqual([
       ["review", 1],
+      ["joinRequests", 2],
       ["takeUp", 1],
       ["confirm", 1],
     ]);
@@ -214,7 +244,7 @@ describe("useStewardDuties", () => {
 
     const duties = render(garden({ owners: [ME] }));
 
-    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "confirm"]);
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "joinRequests", "confirm"]);
     expect(mocks.claimsEnabled.at(-1)).toBe(false);
   });
 
@@ -223,7 +253,7 @@ describe("useStewardDuties", () => {
 
     const duties = render(garden({ stewards: [ME] }));
 
-    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "confirm"]);
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "joinRequests", "confirm"]);
     expect(mocks.claimsEnabled.at(-1)).toBe(false);
   });
 
@@ -233,18 +263,24 @@ describe("useStewardDuties", () => {
 
     const duties = render(garden({ owners: [ME] }));
 
-    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "confirm"]);
+    expect(duties.duties.map((duty) => duty.kind)).toEqual(["review", "joinRequests", "confirm"]);
     expect(duties.duties[0]).toMatchObject({ kind: "review", uncounted: true });
   });
 
   it("publishes promises to confirm only once the queue's eligibility reads have all answered", () => {
     everythingWaits();
     mocks.confirmLoading = true;
-    expect(render(garden({ owners: [ME] })).duties.map((duty) => duty.kind)).toEqual(["review"]);
+    expect(render(garden({ owners: [ME] })).duties.map((duty) => duty.kind)).toEqual([
+      "review",
+      "joinRequests",
+    ]);
 
     mocks.confirmLoading = false;
     mocks.confirmError = true;
-    expect(render(garden({ owners: [ME] })).duties.map((duty) => duty.kind)).toEqual(["review"]);
+    expect(render(garden({ owners: [ME] })).duties.map((duty) => duty.kind)).toEqual([
+      "review",
+      "joinRequests",
+    ]);
     expect(mocks.confirmEnabled.at(-1)).toBe(true);
   });
 
@@ -284,6 +320,49 @@ describe("useStewardDuties", () => {
     mocks.roleError = false;
     mocks.poolsLoading = true;
     expect(render(garden({ stewards: [ME] })).isLoading).toBe(true);
+    mocks.poolsLoading = false;
+
+    // A count read that failed may hide join requests from whoever answers them.
+    mocks.joinError = true;
+    mocks.joinLoading = true;
+    expect(render(garden({ owners: [ME] }))).toMatchObject({ isLoading: true, isError: true });
+    expect(render(garden({ gardeners: [ME] }))).toMatchObject({ isLoading: false, isError: false });
+  });
+
+  it("keeps an incomplete empty review window visible only for a manager", () => {
+    mocks.reviewReady = false;
+    expect(render(garden({ stewards: [ME] })).duties).toEqual([
+      { kind: "review", count: 0, works: [], uncounted: true },
+    ]);
+    expect(render(garden({ gardeners: [ME] })).duties).toEqual([]);
+  });
+
+  it("leaves an empty first review read to its loading or error state", () => {
+    mocks.reviewReady = false;
+    mocks.reviewLoading = true;
+    expect(render(garden({ stewards: [ME] })).duties).toEqual([]);
+    mocks.reviewLoading = false;
+    mocks.reviewError = true;
+    expect(render(garden({ stewards: [ME] }))).toMatchObject({ duties: [], isError: true });
+  });
+
+  it("does not count loaded partial work while its read refreshes", () => {
+    mocks.toReview = [createMockWork({ id: "0x01" })];
+    mocks.reviewReady = false;
+    mocks.reviewLoading = true;
+    expect(render(garden({ stewards: [ME] })).duties[0]).toMatchObject({ uncounted: true });
+  });
+
+  it("retries the pool lookup without running disabled role or claim reads", () => {
+    mocks.poolsError = true;
+    const duties = render(garden({ stewards: [ME] }));
+    expect(duties.isError).toBe(true);
+
+    duties.refetch();
+
+    expect(mocks.poolsRefetch).toHaveBeenCalledOnce();
+    expect(mocks.roleRefetch).not.toHaveBeenCalled();
+    expect(mocks.claimsRefetch).not.toHaveBeenCalled();
   });
 
   it("reads every queue again on refetch", () => {
@@ -292,6 +371,7 @@ describe("useStewardDuties", () => {
     render(garden({ stewards: [ME] })).refetch();
 
     expect(mocks.reviewRefetch).toHaveBeenCalledTimes(1);
+    expect(mocks.joinRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.claimsRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.confirmRefetch).toHaveBeenCalledTimes(1);
     expect(mocks.poolsRefetch).toHaveBeenCalledTimes(1);
@@ -300,7 +380,7 @@ describe("useStewardDuties", () => {
 });
 
 describe("useOpenStewardDuty", () => {
-  it("opens each duty's own queue: the Work sheet over Home, the promise's page, Promises on To confirm", () => {
+  it("opens each duty's own queue: the Work or Gardeners sheet over Home, the promise's page, Promises on To confirm", () => {
     const openCommitmentsSheet = vi.fn();
     const openGardenSheet = vi.fn();
     const real = {
@@ -315,6 +395,11 @@ describe("useOpenStewardDuty", () => {
       // pending work first; Home keeps its place under it.
       open({ kind: "review", count: 1, works: [createMockWork({ id: "0x01" })] });
       expect(openGardenSheet).toHaveBeenCalledWith("work");
+      expect(mocks.navigate).not.toHaveBeenCalled();
+
+      // Join requests open the Gardeners sheet over Home, whose queue comes first for a steward.
+      open({ kind: "joinRequests", count: 2 });
+      expect(openGardenSheet).toHaveBeenLastCalledWith("gardeners");
       expect(mocks.navigate).not.toHaveBeenCalled();
 
       open({ kind: "takeUp", count: 2, commitment: { commitmentId: 4n } as never, newestAt: 10 });

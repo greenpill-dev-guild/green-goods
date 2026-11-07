@@ -8,6 +8,7 @@ import {
 import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { IntlShape } from "react-intl";
+import { voucherServiceDescriptions } from "@/components/Features/Commitments/voucherServices";
 import { formatVoucherMessage } from "./serviceBooking";
 import type { ServiceBandTone } from "./serviceBookingTypes";
 
@@ -17,6 +18,8 @@ export interface ServiceRewardRow {
   title: string;
   status: { label: string; tone: ItemRowTone };
   detail: string;
+  services: string[];
+  arrival: { label: string; dateTime: string | null } | null;
 }
 
 export interface ServiceRewardsView {
@@ -55,7 +58,7 @@ export interface ServiceRewardsInput {
   snapshot: ServiceAccessSnapshot;
   coreState: CommitmentDerivedState;
   /** The voucher reward's issuer, from the voucher wallet's directory: a garden or a member. */
-  issuer: Pick<VoucherIssuer, "name" | "gender" | "kind"> | null;
+  issuer: Pick<VoucherIssuer, "name" | "gender" | "kind" | "services"> | null;
   /** The request's garden, whose pool pays any G$. */
   garden: string;
   /**
@@ -138,6 +141,30 @@ export function serviceRewardsView(
       title: d.kind === "voucher" ? vouchers : t("rw.gd", { amt: amount(d) }),
       status: { label: t(status.id), tone: status.tone },
       detail,
+      services:
+        d.kind === "voucher"
+          ? voucherServiceDescriptions(input.issuer, d.asset.decimals, intl)
+          : [],
+      arrival:
+        d.kind === "voucher" && d.status === "received"
+          ? d.receivedAt
+            ? {
+                label: intl.formatMessage(
+                  { id: "app.voucher.reward.receivedAt" },
+                  {
+                    date: new Intl.DateTimeFormat(intl.locale, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(d.receivedAt * 1000),
+                  }
+                ),
+                dateTime: new Date(d.receivedAt * 1000).toISOString(),
+              }
+            : {
+                label: intl.formatMessage({ id: "app.voucher.reward.arrivalUnknown" }),
+                dateTime: null,
+              }
+          : null,
     };
   });
 
@@ -147,6 +174,9 @@ export function serviceRewardsView(
     if (!due) return OPEN.includes(input.coreState) ? t("rw.band.open") : t("rw.n.prog.b");
     if (voucher?.status === "unavailable") return t("wait.rewardUnavailableDetail");
     if (voucher?.status === "preparing") return t("wait.rewardPreparingDetail");
+    // The row's single detail line may truncate. Keep live transit guidance in the wrapping band.
+    if (voucher?.status === "on-the-way" && input.snapshot.earnedReward)
+      return t("wait.rewardInTransit");
     if (all && input.snapshot.earnedReward) return t("wait.rewardDelivered");
     if (all)
       return gd

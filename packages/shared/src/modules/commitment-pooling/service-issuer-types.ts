@@ -32,6 +32,8 @@ export interface ServiceIssuerAsset {
     capacity: bigint | null;
     /** Reviewed offer bindings for a token redeemable against several services. Capacities are voucher base units. */
     offers?: readonly {
+      /** Public service name from the reviewed offer. */
+      name?: string;
       unit: string;
       serviceUnits: bigint;
       voucherUnits: bigint;

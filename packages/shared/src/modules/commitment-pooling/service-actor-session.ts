@@ -3,13 +3,14 @@ import type { TransactionSender } from "../transactions/types";
 import type { ServiceLiveSession } from "./service-access-live";
 import type { ServiceLiveChain } from "./service-access-live-route";
 import { sessionIdentity } from "./service-access-live-submission";
+import { isKernel033PasskeyProfile } from "../auth/account-profile";
 
 /** The pilot's member accounts: a member-owned wallet, or a passkey on the pilot's account profile. */
 export const serviceActorAccountSupported = (
   session: Pick<ServiceLiveSession, "authMode" | "profile">
 ) =>
   session.authMode === "wallet" ||
-  (session.authMode === "passkey" && session.profile === "kernel-0.3.3-pilot");
+  (session.authMode === "passkey" && isKernel033PasskeyProfile(session.profile));
 
 /** The same member/session rule protects buyer, issuer and holder operations. Roles stay domain-owned. */
 export async function assertServiceActor(

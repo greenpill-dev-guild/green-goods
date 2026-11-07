@@ -12,7 +12,7 @@ import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/com
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarPayoutCard, type JarSettingField } from "./CookieJarPayoutCard";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
-import { resolveCookieJarReadState } from "./cookieJarReadState";
+import { type CookieJarReadState, resolveCookieJarReadState } from "./cookieJarReadState";
 
 // Jars are funded and claimed from the PWA and from other wallets, so this panel re-reads
 // them while it is open instead of waiting for a reload.
@@ -26,59 +26,13 @@ interface CookieJarPayoutPanelProps {
   allocationCount?: number;
   /** The payout history filled its list, so the count is a lower bound. */
   allocationCountAtLeast?: boolean;
+  /** The payout history could not be read, so there is no count to state. */
+  allocationCountUnread?: boolean;
 }
 
-export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
-  gardenAddress,
-  gardenName,
-  routeEditLimitJar,
-  allocationCount = 0,
-  allocationCountAtLeast = false,
-}) => {
+/** What the panel says while it has no jars to list. */
+function JarReadNotice({ readState }: { readState: Exclude<CookieJarReadState, "ready"> }) {
   const { formatMessage } = useIntl();
-
-  const jarRead = useGardenCookieJars(gardenAddress, {
-    enabled: Boolean(gardenAddress),
-    refetchInterval: JAR_STATE_REFRESH_MS,
-  });
-  const { jars } = jarRead;
-  const readState = resolveCookieJarReadState(jarRead);
-  // Jar settings are written by the garden account, so the gate is who can sign for it, not
-  // the garden's role list: a steward's own wallet would only produce a revert.
-  const signer = useGardenAccountSigner(gardenAddress);
-
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [selectedJarAddress, setSelectedJarAddress] = useState<Address | null>(null);
-  // One inline editor at a time across the jars.
-  const [editing, setEditing] = useState<{ jarAddress: Address; field: JarSettingField } | null>(
-    null
-  );
-  const handledRouteEditRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    // Forget the handled jar once the route moves on, so the alert can open it again later.
-    if (!routeEditLimitJar) {
-      handledRouteEditRef.current = null;
-      return;
-    }
-    if (handledRouteEditRef.current === routeEditLimitJar) return;
-    const jar = jars.find((candidate) => compareAddresses(candidate.jarAddress, routeEditLimitJar));
-    if (!jar) return;
-
-    handledRouteEditRef.current = routeEditLimitJar;
-    setEditing({ jarAddress: jar.jarAddress, field: "limit" });
-  }, [jars, routeEditLimitJar]);
-
-  const openDeposit = (jar: CookieJar) => {
-    setSelectedJarAddress(jar.jarAddress);
-    setDepositOpen(true);
-  };
-
-  const openWithdraw = (jar: CookieJar) => {
-    setSelectedJarAddress(jar.jarAddress);
-    setWithdrawOpen(true);
-  };
 
   if (readState === "unavailable") {
     return (
@@ -130,68 +84,132 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
     );
   }
 
-  if (readState === "checking") {
-    return (
-      <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
-        <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
-        {[0, 1].map((index) => (
-          <ItemRowSkeleton key={index} lead="icon" amount />
-        ))}
-      </div>
-    );
-  }
+  // Still checking.
+  return (
+    <div className="flex flex-col gap-(--gg-list-gap)" role="status" aria-live="polite">
+      <span className="sr-only">{formatMessage({ id: "app.cookieJar.loading" })}</span>
+      {[0, 1].map((index) => (
+        <ItemRowSkeleton key={index} lead="icon" amount />
+      ))}
+    </div>
+  );
+}
+
+export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
+  gardenAddress,
+  gardenName,
+  routeEditLimitJar,
+  allocationCount = 0,
+  allocationCountAtLeast = false,
+  allocationCountUnread = false,
+}) => {
+  const { formatMessage } = useIntl();
+
+  const jarRead = useGardenCookieJars(gardenAddress, {
+    enabled: Boolean(gardenAddress),
+    refetchInterval: JAR_STATE_REFRESH_MS,
+  });
+  const { jars } = jarRead;
+  const readState = resolveCookieJarReadState(jarRead);
+  // Jar settings are written by the garden account, so the gate is who can sign for it, not
+  // the garden's role list: a steward's own wallet would only produce a revert.
+  const signer = useGardenAccountSigner(gardenAddress);
+
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [selectedJarAddress, setSelectedJarAddress] = useState<Address | null>(null);
+  // One inline editor at a time across the jars.
+  const [editing, setEditing] = useState<{ jarAddress: Address; field: JarSettingField } | null>(
+    null
+  );
+  const handledRouteEditRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Forget the handled jar once the route moves on, so the alert can open it again later.
+    if (!routeEditLimitJar) {
+      handledRouteEditRef.current = null;
+      return;
+    }
+    if (handledRouteEditRef.current === routeEditLimitJar) return;
+    const jar = jars.find((candidate) => compareAddresses(candidate.jarAddress, routeEditLimitJar));
+    if (!jar) return;
+
+    handledRouteEditRef.current = routeEditLimitJar;
+    setEditing({ jarAddress: jar.jarAddress, field: "limit" });
+  }, [jars, routeEditLimitJar]);
+
+  const openDeposit = (jar: CookieJar) => {
+    setSelectedJarAddress(jar.jarAddress);
+    setDepositOpen(true);
+  };
+
+  const openWithdraw = (jar: CookieJar) => {
+    setSelectedJarAddress(jar.jarAddress);
+    setWithdrawOpen(true);
+  };
 
   return (
     <>
-      <AdminCard density="none" className="overflow-hidden">
-        <AdminCardHeader>
-          <div>
-            <AdminCardTitle>
-              {formatMessage({
-                id: "app.cookieJar.payoutTitle",
-                defaultMessage: "Cookie Jars",
-              })}
-            </AdminCardTitle>
-            <p className="mt-1 type-meta text-text-sub">
-              {formatMessage(
-                {
-                  id: allocationCountAtLeast
-                    ? "cockpit.community.payouts.totalAtLeast"
-                    : "cockpit.community.payouts.total",
-                },
-                { count: allocationCount }
-              )}
-            </p>
-            <p className="mt-1 type-body text-text-sub">
-              {formatMessage({
-                id: "app.cookieJar.payoutDescription",
-                defaultMessage: "Gardeners claim rewards from cookie jars for completed work",
-              })}
-            </p>
-          </div>
-        </AdminCardHeader>
+      {readState !== "ready" ? (
+        <JarReadNotice readState={readState} />
+      ) : (
+        <AdminCard density="none" className="overflow-hidden">
+          <AdminCardHeader>
+            <div>
+              <AdminCardTitle>
+                {formatMessage({
+                  id: "app.cookieJar.payoutTitle",
+                  defaultMessage: "Cookie Jars",
+                })}
+              </AdminCardTitle>
+              <p className="mt-1 type-body text-text-sub">
+                {allocationCountUnread
+                  ? formatMessage({ id: "cockpit.community.payouts.totalUnread" })
+                  : formatMessage(
+                      {
+                        id: allocationCountAtLeast
+                          ? "cockpit.community.payouts.totalAtLeast"
+                          : "cockpit.community.payouts.total",
+                      },
+                      { count: allocationCount }
+                    )}
+              </p>
+              <p className="mt-1 type-body text-text-sub">
+                {formatMessage({
+                  id: "app.cookieJar.payoutDescription",
+                  defaultMessage: "Gardeners claim rewards from cookie jars for completed work",
+                })}
+              </p>
+            </div>
+          </AdminCardHeader>
 
-        <AdminCardBody className="space-y-3">
-          <div className="flex flex-col gap-(--gg-list-gap)">
-            {jars.map((jar) => (
-              <CookieJarPayoutCard
-                key={jar.jarAddress}
-                jar={jar}
-                gardenAddress={gardenAddress}
-                gardenName={gardenName}
-                allocationCount={allocationCount}
-                allocationCountAtLeast={allocationCountAtLeast}
-                signer={signer}
-                editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
-                onEdit={(field) => setEditing(field ? { jarAddress: jar.jarAddress, field } : null)}
-                onDeposit={() => openDeposit(jar)}
-                onClaim={() => openWithdraw(jar)}
-              />
-            ))}
-          </div>
-        </AdminCardBody>
-      </AdminCard>
+          <AdminCardBody className="space-y-3">
+            <div className="flex flex-col gap-(--gg-list-gap)">
+              {jars.map((jar) => (
+                <CookieJarPayoutCard
+                  key={jar.jarAddress}
+                  jar={jar}
+                  gardenAddress={gardenAddress}
+                  gardenName={gardenName}
+                  allocationCount={allocationCount}
+                  allocationCountAtLeast={allocationCountAtLeast}
+                  allocationCountUnread={allocationCountUnread}
+                  signer={signer}
+                  editingField={editing?.jarAddress === jar.jarAddress ? editing.field : null}
+                  onEdit={(field) =>
+                    setEditing(field ? { jarAddress: jar.jarAddress, field } : null)
+                  }
+                  onDeposit={() => openDeposit(jar)}
+                  onClaim={() => openWithdraw(jar)}
+                />
+              ))}
+            </div>
+          </AdminCardBody>
+        </AdminCard>
+      )}
 
+      {/* The dialogs stay mounted whatever a later read shows: a refresh that fails or goes
+          offline mid-deposit must not take a pending deposit, its hold or its outcome with it. */}
       <CookieJarWithdrawModal
         isOpen={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}

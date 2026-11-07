@@ -1635,7 +1635,8 @@ const auditDocumentAnchors = () => {
 };
 
 const auditStaticAssets = async () => {
-  const assets = await walkAllFiles(staticRoot);
+  // Tina owns this generated editor bundle; authored assets still require consumers.
+  const assets = (await walkAllFiles(staticRoot)).filter((asset) => !asset.startsWith(path.join(staticRoot, "admin") + path.sep));
   if (assets.length === 0) return;
   const sourceFiles = await walkAllFiles(path.resolve(repoRoot, "docs"), new Set(["static", "build", "node_modules", ".docusaurus"]));
   let sourceCorpus = "";

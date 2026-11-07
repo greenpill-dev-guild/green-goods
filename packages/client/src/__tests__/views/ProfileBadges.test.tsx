@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -221,7 +221,7 @@ describe("ProfileBadges", () => {
           metadataURI: "ipfs://first-work",
           validator: "0x0000000000000000000000000000000000000001",
           authorizedIssuer: "0x0000000000000000000000000000000000000002",
-          unlockLock: "0x0000000000000000000000000000000000000003",
+          unlockLock: "0x0000000000000000000000000000000000000005",
           claimable: true,
           active: true,
           holderCount: 2,
@@ -357,14 +357,27 @@ describe("ProfileBadges", () => {
     cleanup();
   });
 
-  it("renders earned badge data and prefers the protocol ENS identity", () => {
+  it("renders Unlock artwork for earned and claimable badges and prefers the protocol ENS identity", () => {
     render(wrap(createElement(ProfileBadges)));
 
     expect(screen.getByText("Issued to river")).toBeInTheDocument();
     expect(screen.getByText("Genesis")).toBeInTheDocument();
     expect(screen.getByTestId("profile-badge-grid")).toHaveClass("grid-cols-2");
-    expect(screen.getByRole("button", { name: "View Genesis badge" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View First Work badge" })).toBeInTheDocument();
+    const genesis = screen.getByRole("button", { name: "View Genesis badge" });
+    const firstWork = screen.getByRole("button", { name: "View First Work badge" });
+    const genesisImage = within(genesis).getByAltText("");
+    expect(genesisImage).toHaveAttribute(
+      "src",
+      "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000003/icon"
+    );
+    expect(within(firstWork).getByAltText("")).toHaveAttribute(
+      "src",
+      "https://locksmith.unlock-protocol.com/42161/lock/0x0000000000000000000000000000000000000005/icon"
+    );
+
+    fireEvent.error(genesisImage);
+    expect(within(genesis).queryByAltText("")).toBeNull();
+    expect(within(genesis).getByTestId("icon-seedling")).toBeInTheDocument();
   });
 
   it("renders one neutral empty state when no badges are returned", () => {

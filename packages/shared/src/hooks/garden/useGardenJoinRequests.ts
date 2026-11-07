@@ -471,10 +471,12 @@ function failureToShow(
 }
 
 // The declared join-request entrypoint also exposes the service's availability, the dialog's
-// presentation lifecycle and the gardens awaiting review, each kept in its own module.
+// presentation lifecycle, the gardens awaiting review and what a signed queue read does for the
+// waiting count, each kept in its own module.
 export { useGardenJoinRequestActivity } from "./useGardenJoinRequestActivity";
 export {
   useGardenJoinRequestAvailability,
   useGardenJoinRequestAvailabilityState,
 } from "./useGardenJoinRequestAvailability";
 export { useAwaitingJoinRequests } from "./useGardenJoinRequestSession";
+export { useJoinRequestCountUpdates } from "./useJoinRequestCount";

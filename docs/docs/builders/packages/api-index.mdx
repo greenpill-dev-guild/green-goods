@@ -27,7 +27,7 @@ generated_from:
   - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
-source_digest: "sha256:06cc8b987f5bb6ca8f3ed50b246b8b2b8244c3126e4d1a03984c0a8f2f278909"
+source_digest: "sha256:8f5eac3eaec04590a92dada2f8a29fe9b9dd47092e254599467ce4dd1e4d10a7"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -97,7 +97,7 @@ The route constants are exported by these Shared files:
 
 ## Package exports
 
-529 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+530 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
 
 ### @green-goods/contracts
 
@@ -108,19 +108,19 @@ The route constants are exported by these Shared files:
 
 ### @green-goods/shared
 
-527 specifiers. Open a group to see its specifiers.
+528 specifiers. Open a group to see its specifiers.
 
 | Group | Specifiers |
 |---|---|
 | `./__tests__` | 5 |
-| `./components` | 73 |
+| `./components` | 75 |
 | `./config` | 16 |
-| `./hooks` | 264 |
+| `./hooks` | 262 |
 | `./i18n` | 8 |
-| `./modules` | 52 |
+| `./modules` | 54 |
 | `./providers` | 8 |
 | `./public-contracts` | 6 |
-| `./stores` | 11 |
+| `./stores` | 10 |
 | `./styles` | 4 |
 | `./types` | 10 |
 | `./utils` | 45 |
@@ -140,7 +140,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./components` (73)</summary>
+<summary>`./components` (75)</summary>
 
 **`./components`** (13)
 
@@ -194,7 +194,7 @@ The route constants are exported by these Shared files:
 | `./components/Canvas/viewActions.types` | `./src/components/Canvas/viewActions.types.ts` |
 | `./components/Canvas/WorkbenchCard` | `./src/components/Canvas/WorkbenchCard.tsx` |
 
-**`./components/Cards`** (8)
+**`./components/Cards`** (9)
 
 | Specifier | Target |
 |---|---|
@@ -205,6 +205,7 @@ The route constants are exported by these Shared files:
 | `./components/Cards/ItemRow/ItemRow` | `./src/components/Cards/ItemRow/ItemRow.tsx` |
 | `./components/Cards/MediaCard` | `./src/components/Cards/MediaCard.tsx` |
 | `./components/Cards/PersonRow/PersonRow` | `./src/components/Cards/PersonRow/PersonRow.tsx` |
+| `./components/Cards/StatTile` | `./src/components/Cards/StatTile.tsx` |
 | `./components/Cards/WorkCard/WorkCard` | `./src/components/Cards/WorkCard/WorkCard.tsx` |
 
 **`./components/Conviction`** (2)
@@ -220,7 +221,7 @@ The route constants are exported by these Shared files:
 |---|---|
 | `./components/DatePicker/DatePicker` | `./src/components/DatePicker/DatePicker.tsx` |
 
-**`./components/Dialog`** (7)
+**`./components/Dialog`** (8)
 
 | Specifier | Target |
 |---|---|
@@ -231,6 +232,7 @@ The route constants are exported by these Shared files:
 | `./components/Dialog/SheetActions` | `./src/components/Dialog/SheetActions.tsx` |
 | `./components/Dialog/SheetHeader` | `./src/components/Dialog/SheetHeader.tsx` |
 | `./components/Dialog/SheetHeading` | `./src/components/Dialog/SheetHeading.tsx` |
+| `./components/Dialog/WorkUploadConsentDialog` | `./src/components/Dialog/WorkUploadConsentDialog.tsx` |
 
 **`./components/Display`** (3)
 
@@ -322,7 +324,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./hooks` (264)</summary>
+<summary>`./hooks` (262)</summary>
 
 **`./hooks`** (2)
 
@@ -339,7 +341,7 @@ The route constants are exported by these Shared files:
 | `./hooks/action/useActionForm` | `./src/hooks/action/useActionForm.ts` |
 | `./hooks/action/useActionOperations` | `./src/hooks/action/useActionOperations.ts` |
 
-**`./hooks/admin-ui`** (46)
+**`./hooks/admin-ui`** (47)
 
 | Specifier | Target |
 |---|---|
@@ -387,6 +389,7 @@ The route constants are exported by these Shared files:
 | `./hooks/admin-ui/pool/useSettlementOperationsController` | `./src/hooks/admin-ui/pool/useSettlementOperationsController.ts` |
 | `./hooks/admin-ui/pool/useWaitingForApproval` | `./src/hooks/admin-ui/pool/useWaitingForApproval.ts` |
 | `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
+| `./hooks/admin-ui/useAdminUploadPolicy` | `./src/hooks/admin-ui/useAdminUploadPolicy.ts` |
 | `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
 | `./hooks/admin-ui/useDirtyClose` | `./src/hooks/admin-ui/useDirtyClose.ts` |
 
@@ -460,7 +463,7 @@ The route constants are exported by these Shared files:
 | `./hooks/blockchain/useSendToken` | `./src/hooks/blockchain/useSendToken.ts` |
 | `./hooks/blockchain/useWalletNetworkAlignment` | `./src/hooks/blockchain/useWalletNetworkAlignment.ts` |
 
-**`./hooks/client-ui`** (19)
+**`./hooks/client-ui`** (18)
 
 | Specifier | Target |
 |---|---|
@@ -476,7 +479,6 @@ The route constants are exported by these Shared files:
 | `./hooks/client-ui/pool/useGardenPoolController` | `./src/hooks/client-ui/pool/useGardenPoolController.ts` |
 | `./hooks/client-ui/pool/usePromiseGroupController` | `./src/hooks/client-ui/pool/usePromiseGroupController.ts` |
 | `./hooks/client-ui/pool/usePromiseGroups` | `./src/hooks/client-ui/pool/usePromiseGroups.ts` |
-| `./hooks/client-ui/profile/useUsernameController` | `./src/hooks/client-ui/profile/useUsernameController.ts` |
 | `./hooks/client-ui/submission/useSubmissionFlowController` | `./src/hooks/client-ui/submission/useSubmissionFlowController.ts` |
 | `./hooks/client-ui/useDashboardNavigation` | `./src/hooks/client-ui/useDashboardNavigation.ts` |
 | `./hooks/client-ui/wallet/useCeloWallet` | `./src/hooks/client-ui/wallet/useCeloWallet.ts` |
@@ -532,17 +534,15 @@ The route constants are exported by these Shared files:
 | `./hooks/cookie-jar/useCookieJarWithdraw` | `./src/hooks/cookie-jar/useCookieJarWithdraw.ts` |
 | `./hooks/cookie-jar/useGardenCookieJars` | `./src/hooks/cookie-jar/useGardenCookieJars.ts` |
 
-**`./hooks/ens`** (7)
+**`./hooks/ens`** (5)
 
 | Specifier | Target |
 |---|---|
-| `./hooks/ens/useENSClaim` | `./src/hooks/ens/useENSClaim.ts` |
+| `./hooks/ens/useAddressDisplayName` | `./src/hooks/ens/useAddressDisplayName.ts` |
 | `./hooks/ens/useENSRegistrationStatus` | `./src/hooks/ens/useENSRegistrationStatus.ts` |
-| `./hooks/ens/useENSReleaseName` | `./src/hooks/ens/useENSReleaseName.ts` |
 | `./hooks/ens/useGreenGoodsEnsName` | `./src/hooks/ens/useGreenGoodsEnsName.ts` |
 | `./hooks/ens/useProtocolMemberStatus` | `./src/hooks/ens/useProtocolMemberStatus.ts` |
 | `./hooks/ens/useSlugAvailability` | `./src/hooks/ens/useSlugAvailability.ts` |
-| `./hooks/ens/useSlugForm` | `./src/hooks/ens/useSlugForm.ts` |
 
 **`./hooks/garden`** (22)
 
@@ -747,7 +747,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./modules` (52)</summary>
+<summary>`./modules` (54)</summary>
 
 **`./modules`** (4)
 
@@ -776,10 +776,11 @@ The route constants are exported by these Shared files:
 | `./modules/app/posthog` | `./src/modules/app/posthog.ts` |
 | `./modules/app/service-worker-protocol` | `./src/modules/app/service-worker-protocol.ts` |
 
-**`./modules/auth`** (1)
+**`./modules/auth`** (2)
 
 | Specifier | Target |
 |---|---|
+| `./modules/auth/passkey-kernel-account` | `./src/modules/auth/passkey-kernel-account.ts` |
 | `./modules/auth/session` | `./src/modules/auth/session.ts` |
 
 **`./modules/commitment-pooling`** (13)
@@ -856,7 +857,7 @@ The route constants are exported by these Shared files:
 | `./modules/wallet/good-dollar-price` | `./src/modules/wallet/good-dollar-price.ts` |
 | `./modules/wallet/send-flow` | `./src/modules/wallet/send-flow.ts` |
 
-**`./modules/work`** (5)
+**`./modules/work`** (6)
 
 | Specifier | Target |
 |---|---|
@@ -864,6 +865,7 @@ The route constants are exported by these Shared files:
 | `./modules/work/media-processing` | `./src/modules/work/media-processing.ts` |
 | `./modules/work/submission-flow` | `./src/modules/work/submission-flow.ts` |
 | `./modules/work/submit-work-command` | `./src/modules/work/submit-work-command.ts` |
+| `./modules/work/upload-policy` | `./src/modules/work/upload-policy.ts` |
 | `./modules/work/work-submission` | `./src/modules/work/work-submission.ts` |
 
 </details>
@@ -899,7 +901,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./stores` (11)</summary>
+<summary>`./stores` (10)</summary>
 
 | Specifier | Target |
 |---|---|
@@ -912,7 +914,6 @@ The route constants are exported by these Shared files:
 | `./stores/useHypercertWizardStore` | `./src/stores/useHypercertWizardStore.ts` |
 | `./stores/useSheetOrchestratorStore` | `./src/stores/useSheetOrchestratorStore.ts` |
 | `./stores/useUIStore` | `./src/stores/useUIStore.ts` |
-| `./stores/useUsernameChangeStore` | `./src/stores/useUsernameChangeStore.ts` |
 | `./stores/workFlowTypes` | `./src/stores/workFlowTypes.ts` |
 
 </details>

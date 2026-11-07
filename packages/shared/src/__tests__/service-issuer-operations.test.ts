@@ -1425,6 +1425,21 @@ describe("member-owned service operations", () => {
     expect((await restored.reconcile(f.actor))?.status).toBe("confirmed");
     expect(restored.pending(f.actor)).toBeNull();
   });
+  it("completes a transaction kept before its pins named the access manager", async () => {
+    const f = fixture();
+    const ops = f.create();
+    const review = await ops.review(f.actor, { kind: "issue", amount: 1n });
+    f.state.rpcFailure = true;
+    expect((await ops.execute(review)).status).toBe("pending");
+    const { service, adapter, pool } = f.route;
+    for (const pin of [service.core, service.destination, adapter, pool.deployment, pool.limiter])
+      pin.accessManager = account(70);
+    f.state.minted++;
+    f.state.balance++;
+    const restored = f.create();
+    expect((await restored.reconcile(f.actor))?.status).toBe("confirmed");
+    expect(restored.pending(f.actor)).toBeNull();
+  });
   it("keeps ambiguous mined readback and does not resend", async () => {
     const f = fixture();
     f.state.apply = false;

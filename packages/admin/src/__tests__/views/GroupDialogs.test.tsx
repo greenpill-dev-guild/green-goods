@@ -262,6 +262,14 @@ describe("Edit Reward's summary", () => {
   ] as const)("reads a %s change, with what Try Again would send", (_, copies, phase, retry) => {
     expect(view([...copies])).toMatchObject({ phase, retry });
   });
+
+  it("says a group past its ceilings changed nothing, and that Try Again asks for each", () => {
+    expect(view([copy(3n, "not-changed", "over-ceilings")])).toMatchObject({
+      phase: "refused",
+      retry: [3n],
+      description: expect.stringContaining("Try Again asks for each one on its own"),
+    });
+  });
 });
 
 describe("reward totals after earlier edits", () => {

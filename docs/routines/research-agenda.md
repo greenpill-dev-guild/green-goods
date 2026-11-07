@@ -1,6 +1,6 @@
 # Green Goods Research Agenda
 
-**Edition:** v5 · 2026-10-18 · **Owner:** Afo (Research panel: afo, coi, matt)
+**Edition:** v6 · 2026-11-04 · **Owner:** Afo (Research panel: afo, coi, matt)
 **Read by:** the [`research-synthesis`](research-synthesis.md) routine every Saturday 00:00 UTC, the `research-agenda` skill when a human applies accepted edits, and anyone asking "what are we researching and why".
 **Review cadence:** humans edit this file at each Research (RESR) cycle boundary, roughly monthly. The routine never edits it. It proposes edits in the Linear document *Research agenda · pending edits*, the panel ticks what it accepts, and the `research-agenda` skill applies the ticked edits and bumps the edition.
 
@@ -33,30 +33,33 @@ Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hol
 
 | # | Track | Horizon | Stage | Anchor | The frontier, in one line |
 |---|---|---|---|---|---|
-| 1 | Commitment pooling | now | evidencing | Linear projects *Commitment Pooling* and *Cosmo-Local Integration* · RESR-73 / RESR-74 | Use the completed deployment read to decide network terms; prove whether credits move through a third party |
+| 8 | External impact integrations and interoperability | now | evidencing | RESR-96 / RESR-98 / RESR-99 / RESR-100 / RESR-101 / RESR-102 | Source-backed lifecycle/capability matrices and a reviewed pursue, defer or no-go decision per provider |
+| 1 | Commitment pooling | quarter | evidencing | Linear projects *Commitment Pooling* and *Cosmo-Local Integration* · RESR-73 / RESR-74 | Use the checked deployment evidence to narrow partner questions and measure actual service use |
 | 2 | Impact methodology and verifiable reporting | quarter | evidencing | Linear project *Impact Framework v0.1 Refresh* · RESR-46 / RESR-49 / RESR-14 / RESR-77 | Settle the base evidence and evaluator meaning, then define what a report and certificate claim |
-| 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | A strategy and preset recommendation with live APY evidence, plus the funding-rail map it sits in |
-| 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 / RESR-82 | Five provider facts that only direct contact can settle; the on-ramp side is unframed |
-| 5 | Accessible impact reporting via WhatsApp and SMS | quarter | graduated | RESR-75 / RESR-79 · Linear project *Agent Messaging Channels (WhatsApp + SMS)* | Prototype entry criteria accepted; evaluate pilot burden, processor terms and live account/operational compatibility |
-| 6 | Revenue token models (Revnets) for a goods and services layer | next | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond pooling, vaults, and cash-out, using AgroforestDAO's live setup as the case |
+| 3 | Yield strategies for garden endowments | quarter | evidencing | RESR-9 / RESR-15 / RESR-8 | Accept the completed recommendation and frame feasibility questions alongside the funding-rail map |
+| 4 | Capital access: off-ramps and on-ramps by geography | quarter | blocked (external) | Linear project *Capital Off-Ramp Corridors* · RESR-70 / RESR-82 | Qualify provider-dependent payout facts and the separately framed supporter-inflow journeys |
+| 5 | Accessible impact reporting through familiar chat channels | quarter | graduated | RESR-75 / RESR-79 · Linear project *Agent Messaging Channels (Telegram + WhatsApp + SMS)* | Prototype entry criteria accepted; evaluate pilot burden, processor terms and live account/operational compatibility |
+| 6 | Revenue token models (Revnets) for a goods and services layer | 12mo | framing | RESR-76 (RESR-15 rail row; AgroforestDAO case) | Frame what a Revnet adds beyond vouchers, endowments and cash-out; verify the historical case first |
 | 7 | Community infrastructure with AI for data sovereignty | 12mo | horizon | Linear initiative *Community Evidence Mesh* | Phase 0 outputs: burden baseline, metric registry v0, Evidence Envelope v0, the ADR |
 
-**Why this order.** Commitment pooling is the core loop and the current cycle theme, so it leads. Impact methodology is second because its evidence and evaluator definitions feed tracks 3, 5, and 7. The first House of Alignment report (GROW-15) is Done and its metric-inventory issue (RESR-65) was Canceled; neither remains an open September gate. Yield is third because the Sustainability & Monetization initiative is at risk and the strategy research is in progress. Capital access is fourth: the desk research is finished and the next step requires provider contact. Accessible reporting is fifth because the entry criteria are Done; the remaining pilot research measures reporting burden and verifies processing terms, quality and live compatibility. Revnets is sixth because its framing sits in the December cycle. The evidence mesh is the long horizon and is reviewed monthly.
+**Why this order.** The table defines priority; section numbers stay stable for references. External integration evidence leads, as selected by Afo on 2026-11-04. Certified and Ma Earth stay first; the other providers need their own capability matrices and bounded recommendations. Product usability and Tech and Sun delivery remain the approved product priorities. Commitment-pooling research now focuses on partner terms and pilot evidence, while methodology supplies the meaning of the claims being exchanged. Yield research consumes the completed recommendation before proposing implementation. Capital access keeps its provider-dependent gate; familiar-channel reporting measures real burden and consent. Revnets and the evidence mesh remain long-horizon work, with Grove inside the sovereignty track.
 
 ## 1. Commitment pooling
 
-**Horizon:** now · **Stage:** evidencing
+**Horizon:** quarter · **Stage:** evidencing
 **Note:** v1 (contracts and indexer) has graduated to Product; the open frontier is exchange and interoperability.
 
 **Question.** Can gardens coordinate, keep, and settle commitments on Green Goods, and can kept commitments become value that moves beyond the garden without Green Goods holding funds?
 
-**Why it matters.** This is the product's core loop and the current RESR cycle theme (Q3 September: Evaluations, Commitments & Yield Impact). It carries the G$ settlement arrangement with GoodDollar's House of Alignment, the SustainableFinance.Live hackathon entry (GROW-43, PRD-857), and the first path from contribution to value.
+**Why it matters.** This is the contribution-to-service loop: a kept promise can earn a separately authorized voucher or G$ reward. The approved Q4 strategy prioritizes usable gardener and steward journeys and Tech and Sun delivery before additional integrations. The SustainableFinance.Live integration supplies implementation evidence; real service use and partner compatibility need their own evidence (GROW-68 draft 4; RESR-73; PRD-1197).
 
 **Anchors.**
 - Linear projects [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354) and [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7).
 - RESR-73 (design record for the Cosmo-Local voucher integration) and RESR-74 (live-deployment read). RESR-57 and RESR-58 (external brief and v1 scenarios) are the canonical scenario pack.
 - PRD-650 (foundation roadmap), PRD-649 (architecture record), PRD-651 (exchange, redemption, federation; evidence-gated), PRD-796 (compatibility boundary), PRD-857 (the two-pool hackathon outcome) with PRD-1096 (rehearsal on a local copy of Gnosis), PRD-1097 (funder passport), PRD-1100 (go live) and PRD-1197 (the go or no-go record); COM-46 (issuer terms and capacity) and COM-28 (the pilot).
 - Linear documents: *Commitment Pooling — Lifecycle And Aggregator Semantics*, *Pool Identity + Capability Architecture*, *Settlement Capability — Vouchers On Shared Pool Identity*, *Proof Capability*, *Feedback & Notes*.
+- PRD-1314 (integration roadmap), PRD-1315 (delivery architecture) and the Linear document *Architecture alignment and corrected plan*.
+- `.plans/backlog/cosmo-local-credit-interop/spec.md` (voucher direction) and `.plans/backlog/cosmo-local-credit-interop/handoffs/claude-conformance-evidence-2026-10-20.md` (published-build compatibility).
 - External canonical doc: the Green Goods Commitment Pooling Google Doc (tabs 01 External Brief and 04 Rollout Plan, owned by RESR-57).
 - `.plans/active/commitment-pooling/` (`plan.todo.md` is the entry point; `exchange-architecture-brief.md`, `pilot-evidence-spec.md`, `settlement-spec.md`), `.plans/backlog/commitment-credit-follow-on/`, `.plans/backlog/cosmo-local-credit-interop/`.
 
@@ -65,22 +68,24 @@ Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hol
 **Settled.**
 - Commitments are module-native records on a non-transferable registry; a future voucher is a separate settlement instrument and never carries promise authority (`.plans/active/commitment-pooling/status.json` notes; PRD-649).
 - G$ settles canonically on Celo through split-state CCIP commands; nothing bridges, only authorization crosses (settlement spec; RESR-73).
-- Valuation happens in three layers that must not collapse: native units, a published per-cycle comparison table frozen at cycle open, and exchange that consumes the table. Federation needs no shared valuation; never build a global cross-pool rate table (RESR-73).
+- Money and service vouchers are separate. The per-cycle valuation table and per-contribution voucher model were retired. An issuer's voucher represents its own service capacity under approved terms; curated issuance and finite reserve allowances do not prove service delivery. Funder money remains separate, no value is bridged, and Green Goods vouchers have no cash-out. Federation needs no universal cross-pool valuation table (RESR-73; canonical Cosmo-Local spec).
 - Token expiry is not used; the Grassroots Economics repository is AGPL-3.0 and its security review is internal, so it does not satisfy the external-audit gate (RESR-73). Clean-room boundary: paper and public docs only.
+- The delivery boundary accepted on 2026-10-20 to 22: a commitment promises one voucher asset and optional G$ at acceptance; a new Arbitrum voucher entitlement module and a Gnosis issuer adapter reuse Cosmo-Local's published contracts with no CommitmentPooling upgrade; stewards may admit gardeners as issuers; curated, capped issuance replaces the fulfilled-first order; presenting a voucher opens a promise that ends in discharge; one shared curated Gnosis exchange pool; the same member address on Arbitrum, Gnosis and Celo; no cash-out and no bridge (RESR-73; PRD-1315; canonical Cosmo-Local spec).
+- The conformance evidence compares the selected Gnosis GiftableToken, SwapPool, Limiter and ERC1967Factory runtime with the published v1.0.0 build and records the v1.1.0 comparison. This establishes the checked build boundary, not permission to use a network, catalog access or the legal meaning of deployed interaction (Cosmo-Local conformance evidence, 2026-10-20).
 
 **Open.**
-1. Which network-membership path, if any, the completed RESR-74 findings support. Next step: carry its live-deployment findings into the go or no-go decision and name any remaining partner terms. Answerable by the team and Grassroots Economics.
-2. The Grassroots Economics questions (supported versions for third-party use, license for deployed interaction, quoter and limiter behavior in production, wrap restriction to fulfilled commitments, who owns the pool a Green Goods voucher lists into). Next step: confirm whether the 19 August conversation happened and what it produced; if not, send the five prepared questions. Answerable by Grassroots Economics.
-3. The pilot's falsifiable question: do vouchers move through a third party, or does everything settle bilaterally? Next step: collect the pilot-evidence-spec metrics from one garden cycle. Answerable only by pilot data.
-4. The second confirmer on a redemption has no answer yet (RESR-73 tensions). Next step: a design note in the exchange brief.
-5. Pilot-garden adoption: the Tech & Sun weekly sync of 2026-09-01 recorded a next step to present the protocol and team incentives to the garden team. Next step: the presentation and its feedback into *Feedback & Notes*.
+1. Which compatibility and operating questions remain after the deployment read, rehearsal and controlled-pilot readiness record. Next step: consume RESR-74, PRD-1096, PRD-1197 and the current deployment handoff; distinguish checked contracts from observed member use and unresolved partner terms. Answerable by Afo and the pilot steward.
+2. What Grassroots Economics confirms about permission for deployed interaction, production quoter and limiter behavior, and catalog listing. Next step: use the checked build evidence to narrow the prepared questions for a direct partner conversation; record answers in the owning research record. A standing community call does not establish partner acceptance. Answerable by Grassroots Economics, with Afo coordinating follow-through.
+3. The pilot's falsifiable question: do vouchers move through a third party, or does everything settle bilaterally? Next step: collect the pilot-evidence-spec metrics from one garden cycle. Answerable only by pilot data. The booking window opened on 2026-10-28 and runs to 31 December under the approved issuer terms, so the pilot-evidence-spec metrics have a dated collection window (COM-46).
+4. What pilot evidence demonstrates holder-approved final delivery allocation and the partial/non-delivery remedy. The accepted rule uses explicit holder confirmation of the delivered/refundable split; provider response timings are issuer policy, not automatic contract completion. Next step: reconcile the design note and observed delivery/help cases against COM-46 and the canonical spec. Answerable by Afo and the issuer operator.
+5. Pilot-garden adoption: presented 2026-09-03, onboarding workshop 2026-09-08, beta demonstrated 2026-09-29, the garden's pool configured with 24 course commitments on 2026-10-13 and the first operator-seeded cycle opened on 2026-10-14 (PRD-732). Next step: collect the pilot-evidence-spec metrics from that cycle. Configured commitments are not evidence of distinct active members or delivered services.
 
 **Implementable when.**
 1. The RESR-74 findings are carried into a documented go or no-go on network membership.
 2. The Grassroots questions are answered.
 3. One garden cycle has produced pilot-evidence metrics.
 
-Exchange work then moves through the PRD-651 gates (external audit, 3-of-5 Safe, 48-hour timelock, two weeks of testnet, tested rollback, explicit authorization).
+The controlled pilot follows the release policy recorded in PRD-1197 and the canonical Cosmo-Local release package, including exact-candidate tests, simulation, permission controls and post-deployment readback. Broader exchange activation needs its own accepted release decision. This research agenda never authorizes deployment, fund movement or expanded permissions.
 
 **Watch keywords.** commitment, pool, pooling, voucher, Cosmo-Local, CLC, Grassroots Economics, Sarafu, settlement, G$, GoodDollar, clearing, mutual credit, CCIP, redemption, federation, cycle policy.
 
@@ -111,7 +116,7 @@ Exchange work then moves through the PRD-651 gates (external audit, 3-of-5 Safe,
 **Open.**
 1. The RESR-46 revision. Next step: a crosswalk from the current submission and approval schemas to the proposed base fields, starting with the location row that RESR-72 already evidenced. Answerable by anyone with repo access.
 2. Which metric definitions and sources from the completed GROW-15 report should become the reusable registry, and which still need a source. Next step: compare that report's evidence packet with the public garden impact API's response types. Answerable by the team.
-3. Which standard the first report targets and what "verifiable" means to a funder: evaluator attestation with provenance, or third-party MRV. IRIS+, IMP, and CIDS as reporting vocabularies versus IFRS S1/S2 as a disclosure-supporting overlay (RESR-49, RESR-47). Next step: a one-page decision note for the panel.
+3. Which standard the first report targets and what "verifiable" means to a funder: evaluator attestation with provenance, or third-party MRV. IRIS+, IMP, and CIDS as reporting vocabularies versus IFRS S1/S2 as a disclosure-supporting overlay (RESR-49, RESR-47). Next step: a one-page decision note for the panel. Ecosystem partners propose the Hypercerts lexicon as a shared vocabulary for the knowledge commons; treat it as a candidate vocabulary for the report and certificate definitions (RESR-77; Regen Coordination Council Sync, 2026-10-02). Provider capability matrices from track 8 inform this decision; anchoring a record does not establish the truth of its impact claim.
 4. What outcome-based verification (Savory EOV, Backstory's Prove) implies for the evaluator rubric (RESR-14). Next step: fold the 2026-08-23 memo's findings into the RESR-14 acceptance criteria.
 
 **Implementable when.**
@@ -126,7 +131,7 @@ RESR-47 remains an optional overlay.
 ## 3. Yield strategies for garden endowments
 
 **Horizon:** quarter · **Stage:** evidencing
-**Note:** the strategy question is research-owned; the operator UX project belongs to Product.
+**Note:** the strategy recommendation is research evidence; accepting presets, architecture or activation is a separate decision.
 
 **Question.** Which conservative Arbitrum yield strategies should garden endowments consider against the current Aave baseline, with what principal protection, liquidity, custody and failure risks; who controls principal and yield; and how does yield turn into funded impact?
 
@@ -146,11 +151,11 @@ RESR-47 remains an optional overlay.
 - Cookie Jar is historical context, not an active rail (RESR-15 boundary).
 
 **Open.**
-1. The current candidate strategy set on Arbitrum, compared with the Aave baseline on principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery. The former strategy list and Q2 dates are historical. Next step: RESR-9's first artifact, a strategy table with current primary sources and explicit uncertainty. Answerable by the owner.
+1. What the final RESR-9 recommendation establishes, rejects or leaves uncertain, and which feasibility checks remain before a bounded Product proposal. Next step: read its final dated artifact and compare it with the current Octant vault constraints; do not restart the completed market comparison. Answerable by Afo with the research owner.
 2. Whether presets or a policy layer are appropriate at all, and what allocation authority, liquidity model, migration boundary and timelocks a recommendation would require. Hats roles, buffer/FIFO redemption and the 48-hour switch are reopened hypotheses. Next step: compare alternatives and reconcile any recommendation with the scope-lock document before accepting implementation scope.
 3. The funding-rail map (RESR-15): Octant vault crowdfunding, Juicebox and Revnet, direct Safe payout, partner rounds, GoodDollar allocation paths, with initiator, principal control, yield control, evidence trigger, and funder view per rail. Next step: deliver its October comparison; it also feeds track 6.
 4. Yield-to-impact language (RESR-8) once RESR-15 lands.
-5. What yield outcome current evidence supports at conservative risk. Sustained ≥5% is a historical hypothesis, not a minimum acceptance bar. Next step: the panel reads RESR-9's table and accepts or rejects a revised outcome.
+5. What conservative-risk outcome the final study supports without treating a historical screening target as a guaranteed or minimum yield. Next step: the panel records acceptance, deferral or a bounded feasibility question from the dated recommendation; retain its principal, liquidity, custody and failure assumptions.
 
 **Implementable when.**
 1. A strategy recommendation and any required architecture with current yield evidence, risk notes and audit implications are accepted.
@@ -189,7 +194,7 @@ Presets are conditional on the accepted recommendation.
 **Open.**
 1. RESR-70's five provider facts: whether a foreign entity can hold the Nigerian payout provider's business account and disburse to third parties; whether any provider accepts a garden's local entity as account holder; per-provider minimums; whether the aggregator covers naira and rand; and what the two unpriced providers charge. Next step: direct provider contact. Answerable only by the providers.
 2. Regulatory movement in Brazil, Nigeria, and South Africa this quarter against the 2026-08-03 snapshot. Next step: a dated re-check of the sources cited in the brief. Answerable by desk research; this is the one part of the track the routine can advance.
-3. The on-ramp and supporter-inflow side is explicitly outside the corridor brief and has no issue. Next step: frame it as its own question (who the supporter is, which rails already exist through `/vaults` and Cookie Jar, and what geography changes). Answerable by the team.
+3. The supporter-inflow question is framed by RESR-82 and Garden Fiat Contributions. Keep the Nigerian existing-crypto-wallet journey distinct from the email-first US/EU donor pilot and from recipient cash-out. Next step: qualify the intended Arbitrum asset/destination and the first provider's actual delivery, including fees, cancellation, refund and confirmation. A familiar service is a candidate, not a qualified funding route. Answerable by Afo.
 4. Whether G$ through House of Alignment covers a pilot garden's near-term needs while fiat exits stay unresolved. Next step: read against the House of Alignment rail decision.
 
 **Implementable when.** For one corridor:
@@ -199,27 +204,27 @@ Presets are conditional on the accepted recommendation.
 
 **Watch keywords.** off-ramp, on-ramp, cash-out, payout, Breet, Kotani, Fonbnk, VALR, Yellow Card, Onramper, Transak, PIX, naira, NGN, rand, ZAR, BRL, KYC, KYB, money transmission, remittance, GoodDollar, G$, stablecoin.
 
-## 5. Accessible impact reporting via WhatsApp and SMS
+## 5. Accessible impact reporting through familiar chat channels
 
 **Horizon:** quarter · **Stage:** graduated
 **Note:** the entry-criteria research graduated to Product. Pilot research remains open; graduation does not establish implementation or live proof.
 
-**Question.** What must be true for gardeners to report impact from WhatsApp or SMS without installing the app, with a short account step only when signing is required, and what pilot proves lower total reporting burden rather than burden moved onto operators?
+**Question.** What must be true for gardeners to report impact through familiar chat channels without installing the app, with a short account step only when signing is required, and what pilot proves lower total reporting burden rather than burden moved onto operators? Telegram is the first pilot channel, WhatsApp follows on the shared core, and SMS remains future scope.
 
 **Why it matters.** The *Accessible Participation* initiative sets real pilot submissions as the bar. RESR-75 completed the entry-criteria gate, and the messaging project is In Progress. The remaining pilot research tests whether the accepted reporting architecture reduces total gardener and operator burden under acceptable consent, retention, regional and accuracy terms.
 
 **Anchors.**
-- Linear project [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7).
+- Linear project [Agent Messaging Channels (Telegram + WhatsApp + SMS)](https://linear.app/green-goods/project/agent-messaging-channels-telegram-whatsapp-sms-71cda634fcf7).
 - RESR-75 (entry criteria) and RESR-79 (which models may read a gardener's report, and on what terms); the pilot research set RESR-88 (what intake may retain before consent), RESR-89 (what each infrastructure milestone measures), RESR-90 (a Telegram Mini App for account linking), RESR-91 (the reporting service availability target) and RESR-92 (delegate key custody before wider rollout).
 - PRD-955 (the Meta Cloud API prototype record) and PRD-970 (the chat field walk). Older build assignments and gate instructions in those records do not redispatch delivered work; current handoffs own remaining live acceptance.
 - [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof.
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
-**Status surface.** Project status update on *Agent Messaging Channels (WhatsApp + SMS)*.
+**Status surface.** Project status update on *Agent Messaging Channels (Telegram + WhatsApp + SMS)*.
 
 **Settled.**
-- The prototype entry criteria were accepted on 2026-09-21. The current user-approved architecture is API-harness-first and Meta DM-first, with reporting/correction/review in chat and platform-neutral browser ceremonies when authentication or signing is needed.
+- The prototype entry criteria were accepted on 2026-09-21. The current user-approved architecture is API-harness-first and Telegram-first for the first verified Tech and Sun pilot (scope decision 2026-10-23), with WhatsApp following on the shared reporting core and SMS as future scope; reporting, correction and review stay in chat with platform-neutral browser ceremonies when authentication or signing is needed.
 - The prototype uses existing EOA/Kernel accounts and pre-enrolled TAS or Aiyeloja Family Garden members. EOA publications require exact signing; Kernel reporting and review delegation are separate, limited and subject to proof. Universal passkey onboarding/Profile wallet association remain future work.
 - OpenAI processes content and Jev makes bounded typed decisions. Documents, photos and spreadsheets are included, with isolated automatic Office conversion. Provider terms and live quality still need evidence.
 - Capture is private and consent-gated; public evidence requires separate confirmation. Afolabi operates WhatsApp as a sole proprietor doing business as Green Goods (decided 2026-10-04, replacing WEFA) and owns support at contact@greengoods.app. The accepted grant/retention limits and current implementation contract live in the Plan Hub.
@@ -242,12 +247,12 @@ The completed PRD-998 tracker and start gate do not authorize redispatch, and th
 
 ## 6. Revenue token models (Revnets) for a goods and services layer
 
-**Horizon:** next · **Stage:** framing
-**Note:** framing now, decision next quarter.
+**Horizon:** 12mo · **Stage:** framing
+**Note:** revisit framing when a named garden service model demonstrates a need beyond vouchers, endowments and ordinary revenue splits.
 
 **Question.** Could a Revnet-style revenue token let a garden sell goods and services through Green Goods with transparent, rule-based revenue sharing, and how would it relate to commitment vouchers, vault endowments, and cash-out?
 
-**Why it matters.** Gardens produce goods (harvests, seedlings, compost, energy) and services (workshops, training). Green Goods records the work but offers no way to sell its output. The *Sustainability & Monetization* initiative names tokenization and service revenue. At least one pilot garden already runs one: AgroforestDAO ties agroforestry to a biogas-to-electricity Revnet (pooling scenario B3).
+**Why it matters.** Gardens produce goods (harvests, seedlings, compost, energy) and services (workshops, training). Green Goods records the work but offers no way to sell its output. The *Sustainability & Monetization* initiative names tokenization and service revenue. AgroforestDAO appears in the historical pooling scenario B3; its actual configuration must be verified before it is used as a live case.
 
 **Anchors.**
 - RESR-15 lists Juicebox and Revnet as a Season Two funding rail to compare (initiator, principal control, yield control, evidence trigger, funder view).
@@ -284,16 +289,19 @@ The completed PRD-998 tracker and start gate do not authorize redispatch, and th
 - Linear initiative [Community Evidence Mesh](https://linear.app/greenpill-dev-guild/initiative/community-evidence-mesh-f7bdee530343).
 - Linear documents: *Community Evidence Mesh: Thesis, Architecture & Narrative*; *Evidence Model, Privacy & Trust*; *12-Month Roadmap, Dependencies & Measures*; *Green Goods and Gitcoin's Local-First Pivot*.
 - RESR-69 (the Certified and Ma Earth approval publishing contract, which carries the AT Protocol identity question) as a possible sovereignty prerequisite. The Public Goods Staking Protocol is a watched dependency for community edge compute, not an AI-node commitment.
+- Linear project *Grove — Garden Knowledge*, RESR-103 (garden knowledge architecture), `.plans/ideas/grove/` and `.plans/ideas/green-goods-os/`.
+- Linear document *Environmental & Energy Data Inputs — Research Register* (environmental and provider-data research).
 
 **Status surface.** Initiative status update on *Community Evidence Mesh*, monthly at most, and only when a Phase 0 output or a locked decision changes.
 
 **Settled (locked decisions).** The name; AI proposes and never originates evidence; a shared metric registry is required; an ADR precedes any expansion; raw media stays local by default; familiar channels before sensors; bounded energy sensing before ecological sensing; a separate edge box before validator colocation; connect existing projects rather than create a new project tree.
 
 **Open.**
-1. Phase 0 outputs: the current reporting-burden baseline, metric registry v0 (informed by the completed GROW-15 report and RESR-49 in track 2), Evidence Envelope v0, the ADR, two or three community co-design sessions, and a pilot selection rubric. Next step: reconcile the report's actual metrics with the framework research; RESR-65 is Canceled and no longer a gate.
+1. Phase 0 outputs: the current reporting-burden baseline, metric registry v0 (informed by the completed GROW-15 report and RESR-49 in track 2), Evidence Envelope v0, the ADR, two or three community co-design sessions, and a pilot selection rubric. Next step: reconcile the report's actual metrics with the framework research; RESR-65 is Canceled and no longer a gate. Review the current initiative checkpoints and the actual output artifacts together; dates stay in the initiative record rather than this agenda's Note. Answerable by Afo and the research panel.
 2. The 90-day go or no-go on the familiar-channel pilot, which is track 5's decision.
-3. Whether an identity layer (RESR-69) is a sovereignty prerequisite or a later concern.
+3. Whether public identity/publication and private permission control need different boundaries in the sovereignty ADR. Next step: compare the Certified/Ma Earth publishing requirements with Grove's consent, access, correction and revocation requirements using source-backed examples. Answerable by Afo with the Grove architecture owner.
 4. How the local-first funding narrative (the Gitcoin pivot document) shapes what funders are asked to pay for.
+5. Should Grove expose each garden's public snapshot and its own tools through WebMCP, the browser's model-context interface, as its page-to-extension boundary, and what must the public garden page publish for that? Next step: compare one public snapshot and a read-only tool inventory with the existing client WebMCP boundary, explicitly excluding private data and mutations. Answerable by Afo with the Grove implementation owner.
 
 **Implementable when.** The Phase 0 gate passes:
 1. The metric set is explicit.
@@ -302,13 +310,47 @@ The completed PRD-998 tracker and start gate do not authorize redispatch, and th
 4. The review authority is explicit.
 5. The correction path is explicit.
 
-**Watch keywords.** evidence mesh, data sovereignty, sovereign, local-first, edge, on-device, transcription, provenance, consent, metric registry, ADR, Evidence Envelope, AT Protocol, Certified, Gitcoin, sensor, edge node, privacy.
+**Watch keywords.** evidence mesh, data sovereignty, sovereign, local-first, edge, on-device, transcription, provenance, consent, metric registry, ADR, Evidence Envelope, AT Protocol, Certified, Gitcoin, sensor, edge node, privacy, Grove, knowledge workspace, WebMCP.
+
+## 8. External impact integrations and interoperability
+
+**Horizon:** now · **Stage:** evidencing
+**Note:** provider research precedes separately accepted Product scope; Certified and Ma Earth remain first, with other integrations selected by evidence and pilot need.
+
+**Question.** Which external systems can exchange community work and ecological evidence with Green Goods while preserving claim meaning, account authority, consent and reliable recovery?
+
+**Why it matters.** The approved Q4 strategy calls for selective connections that reduce repeated reporting and make reviewed delivery useful to partners and funders. A working transport or anchored record does not prove an impact claim, adoption or a completed partner pilot (GROW-68 draft 4; RESR-102).
+
+**Anchors.**
+- RESR-96, RESR-98, RESR-99, RESR-100, RESR-101 and RESR-102 (provider research and the shared capability/evidence contract).
+- Linear projects *Certified and Ma Earth Approval Publishing* and *Impact Sharing and Report Exports*.
+- [Provider architecture and extension plan](https://github.com/greenpill-dev-guild/green-goods/tree/research/certified-atproto-exploration/.plans/backlog/certified-approval-publishing), the external research source linked from RESR-102.
+
+**Status surface.** Comment on RESR-102; provider evidence stays in its owning research record.
+
+**Settled.**
+- RESR-102 defines the shared research bar: map the nine garden lifecycle actions; distinguish verified, proposed, unsupported and unresolved capability; document data/media rights and recovery; finish each provider with a pursue, defer or no-go recommendation.
+- Certified and Ma Earth remain the first publishing path to evaluate. Bloom, Silvi, GainForest and Regen Network require their own source-backed evidence. Social sharing is an independent path; a recommendation does not authorize implementation (RESR-102; approved Q4 strategy).
+
+**Open.**
+1. Which lifecycle actions each provider supports, defers or cannot support. Next step: reconcile each child capability matrix against the shared nine-action contract, including native records, historical adoption, visibility, readback, corrections/deletion and lost-response recovery. Answerable by Afo with the provider research owners.
+2. Which account, reviewer and data/media rights permit one bounded exchange. Next step: resolve consent, attribution, methods/units, duplicate prevention and partner-dependent access with a source or named partner answer. Answerable by the provider and Afo.
+3. Which provider merits a bounded pilot now, and what useful Growth opportunity follows from the evidence. Next step: bring the reviewed pursue/defer/no-go recommendation, pilot success criteria and proposed owner into the owning decision record; Afo owns Growth follow-through. Unverified opportunities stay research signals.
+
+**Implementable when.**
+1. Each selected provider has a reviewed lifecycle mapping and capability matrix with uncertainty explicit.
+2. Rights, authority, correction/deletion and recovery dependencies are resolved for the proposed pilot.
+3. A pursue, defer or no-go recommendation and bounded pilot evidence bar are reviewed.
+4. Product separately accepts implementation scope and ownership; no integration date, partner commitment or publication is implied by research acceptance.
+
+**Watch keywords.** interoperability, integration, Certified, Ma Earth, AT Protocol, Hypercerts, Bloom, Silvi, GainForest, Regen Network, ecological claim, export, capability matrix, readback, correction, consent.
 
 ## Off-agenda board work (watch only)
 
 These live on the Research team but are not agenda tracks this quarter. The routine mentions them in its memo only when a human touched them, and never in the digest unless they connect to a track above. Identifiers only; the routine reads their state live.
 
 - PGSP research trio: RESR-66, RESR-67, RESR-68.
+- App navigation and packaging: RESR-93, RESR-95 (PWA simplification and Play Store shell).
 - Cross-chain Safe owner validation: RESR-78, which gates external architecture sharing (GROW-56) and the Safe proposal (GROW-44). The October credit pilot (PRD-857) uses the separate settlement-lane path and does not wait on this memo.
 - GreenWill recognition mapping: RESR-4, with no badge build until the mapping decision.
 - Account recovery and identity: RESR-21, whose owner still needs to confirm the current plan and scope. RESR-69 is read through track 7 only.
@@ -322,6 +364,8 @@ Panel-confirmed entries only. Candidates live in the Linear document *Research a
 Routine-proposed one-line research questions from `#research` shares and call notes, in the Accepted Research Task question shape, confirmed by the panel before they become an Open item or a Research issue. None confirmed yet; proposals live in the pending-edits document.
 
 ## Change log
+
+- **v6 · 2026-11-04.** Afo selected external integration research and delegated the pending agenda decisions. Promoted track 8 with RESR-102's lifecycle, capability, rights and recovery bars; Afo owns Growth follow-through. Corrected the retired voucher valuation/issuance model and consumed the completed deployment-read/rehearsal/readiness evidence without granting release authority (RESR-73, PRD-1197 and the Cosmo-Local spec). Narrowed the remaining partner and pilot-evidence questions; added the conformance and architecture authorities. Kept methodology separate from provider transport and retained Hypercerts as a candidate vocabulary (RESR-77). Replaced historical yield snapshots with the completed RESR-9 handoff, preserving separate architecture/activation acceptance. Corrected the supporter-inflow frontier from RESR-82. Recorded the live messaging project name and Telegram-first direction. Moved Revnets to the long horizon and removed an unverified adoption premise. Kept Grove within track 7, added its research authorities and the bounded public WebMCP question, and kept initiative dates on their owning surface. Rejected stale, duplicate, private or unsupported proposals; measurement and regulatory-source questions remain deferred in the pending-edits document.
 
 - **v5 · 2026-10-18.** Restructure only; no track order, horizon, stage, question, settled fact or open item changed, apart from one settled line moved from track 4's anchors. Anchors now carry identifiers and topics, never state, owners, dates, cycles, targets or project membership, which the routine reads live. Removed from anchors and notes: the project states and targets on every track; the owners and cycles on RESR-9, RESR-15, RESR-70 and RESR-76; the Done and Canceled markers on RESR-74, RESR-57, RESR-58, RESR-65, RESR-6, RESR-52, RESR-71 and RESR-75; the "unowned" note on track 2; the PRD-998 gate narrative on track 5; the dates and states in the off-agenda list. Added by identifier: *Cosmo-Local Integration* on track 1, which is now its status surface because *Commitment Pooling* completed on 2026-10-09; PRD-1096, PRD-1097, PRD-1100, PRD-1197, COM-46 and COM-28 on track 1; RESR-82, RESR-94 and *Garden Fiat Contributions* on track 4; RESR-88 to RESR-92 on track 5; RESR-69's current title on track 7. Implementable-when bars are numbered so the routine can count them. New sections *Candidate tracks* and *Candidate questions* hold only panel-confirmed entries; proposals, including the three candidates the hub brief names, live in the pending-edits document until the 29 October review. The 2026-10-16 anchor-wording edit that carried no edition line is folded in. Substantive drift proposals since v4 stay in the pending-edits document for the 29 October cycle review.
 - **v4 · 2026-10-06.** Track 3 now treats the former yield mix, preset architecture, ≥5% target and Q2 dates as historical hypotheses; research must produce a current evidence-backed recommendation before implementation scope is accepted. It also records PRD-763 delivery separately from its uncertified QA and unrecorded Brave proof. Track 5 retires the completed PRD-998 start gate and points remaining live acceptance to current handoffs. Track order, horizons and stages are unchanged.

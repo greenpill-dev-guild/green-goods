@@ -25,6 +25,10 @@ export const CLIENT_ROUTE_IDS = {
   publicImpact: "public-impact",
   publicActions: "public-actions",
   publicGlossary: "public-glossary",
+  publicStrategy: "public-strategy",
+  publicPrivacy: "public-privacy",
+  publicContact: "public-contact",
+  publicTerms: "public-terms",
   publicReporting: "public-reporting",
   publicReportingRecovery: "public-reporting-recovery",
   publicReportingPermissions: "public-reporting-permissions",
@@ -164,6 +168,26 @@ const combinedAppRoutes = [
               lazy: async () => ({
                 Component: (await import("@/views/Public/Glossary")).default,
               }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicStrategy,
+              path: "strategy",
+              lazy: async () => ({ Component: (await import("@/views/Public/Strategy")).default }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicPrivacy,
+              path: "privacy",
+              lazy: async () => ({ Component: (await import("@/views/Public/Privacy")).default }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicTerms,
+              path: "terms",
+              lazy: async () => ({ Component: (await import("@/views/Public/Terms")).default }),
+            },
+            {
+              id: CLIENT_ROUTE_IDS.publicContact,
+              path: "contact",
+              lazy: async () => ({ Component: (await import("@/views/Public/Contact")).default }),
             },
           ]),
           // The reporting ceremony pages use the focused shell and take the website's look (DL-121).

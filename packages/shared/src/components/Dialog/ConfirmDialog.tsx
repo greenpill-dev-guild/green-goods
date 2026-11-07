@@ -3,6 +3,7 @@ import { SheetHeader } from "./SheetHeader";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useIntl } from "react-intl";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
+import { useOpenerFocus } from "../../hooks/utils/useOpenerFocus";
 import { logger } from "../../modules/app/logger";
 import {
   dialogOverlayClassName,
@@ -70,6 +71,8 @@ export function ConfirmDialog({
   // The sheet registers itself; the centered surface registers here so the
   // installed app's AppBar also steps aside on wide screens (DL-015).
   useSheetPresence(isOpen && !rendersAsSheet);
+  // State-driven Radix dialogs have no Trigger to restore focus to when they close.
+  useOpenerFocus(isOpen);
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
   const resolvedCancelLabel = cancelLabel ?? formatMessage({ id: "app.common.cancel" });
   const resolvedCloseLabel = formatMessage({ id: "app.common.close" });

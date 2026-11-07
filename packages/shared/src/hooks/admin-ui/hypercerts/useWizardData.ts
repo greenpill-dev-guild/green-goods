@@ -19,6 +19,7 @@ import { useHypercertAllowlist } from "../../hypercerts/useHypercertAllowlist";
 import { useHypercertContributorWeights } from "../../hypercerts/useHypercertContributorWeights";
 import { useHypercertDraft } from "../../hypercerts/useHypercertDraft";
 import { useHypercerts } from "../../hypercerts/useHypercerts";
+import { useAdminUploadPolicy } from "../useAdminUploadPolicy";
 import { useMintHypercert } from "../../hypercerts/useMintHypercert";
 import { useDirtyClose } from "../useDirtyClose";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -80,6 +81,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const { data: assessments } = useGardenAssessments(gardenId);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
   const { hypercerts } = useHypercerts({ gardenId });
+  const authorizeUpload = useAdminUploadPolicy();
   const { mint, retry, cancel } = useMintHypercert({ errorMode: "inline" });
 
   // Resolve the selected assessment object for prefill
@@ -321,7 +323,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     }
 
     if (mintingState.status === "failed") {
-      retry();
+      if (await authorizeUpload()) retry();
       return;
     }
 
@@ -337,6 +339,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
     setPreflightError(null);
     try {
+      if (!(await authorizeUpload())) return;
       await mint({
         draft,
         attestations: selectedAttestations,
@@ -358,6 +361,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     }
   }, [
     allowlist,
+    authorizeUpload,
     draft,
     formatMessage,
     gardenId,

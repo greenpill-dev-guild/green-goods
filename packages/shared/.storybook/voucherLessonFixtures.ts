@@ -31,6 +31,7 @@ export const LESSON_STORY_ISSUER: VoucherIssuer = {
   ...VOUCHER_STORY_ISSUERS.techAndSun,
   account: "0x000000000000000000000000000000000000e7e0",
   kind: "individual",
+  services: [{ name: "Integration lesson", unit: "minutes", serviceUnits: 60n, voucherUnits: 1_000_000n, serviceTermsRef: `0x${"d".repeat(64)}` }],
   name: "Teo Alves",
   gender: "masculine",
   asset: {

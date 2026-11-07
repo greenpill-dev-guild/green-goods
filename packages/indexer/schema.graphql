@@ -25,12 +25,6 @@ enum WeightScheme {
   POWER
 }
 
-# Retained for compatibility with existing helper mappings.
-enum PoolType {
-  HYPERCERT
-  ACTION
-}
-
 enum DisbursementState {
   UNKNOWN
   QUEUED

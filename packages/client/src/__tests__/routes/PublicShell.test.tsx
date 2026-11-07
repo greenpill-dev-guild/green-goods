@@ -21,7 +21,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
-  REPORTING_SUPPORT_CONTACT: "greengoods.app",
+  REPORTING_SUPPORT_CONTACT: "contact@greengoods.app",
 }));
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -384,9 +384,9 @@ describe("PublicShell", () => {
       "href",
       "/agent/reporting/permissions"
     );
-    expect(screen.getByRole("link", { name: /greengoods\.app/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Email Green Goods/ })).toHaveAttribute(
       "href",
-      "https://greengoods.app"
+      "mailto:contact@greengoods.app"
     );
     expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
   });

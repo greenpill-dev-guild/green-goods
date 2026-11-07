@@ -155,7 +155,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
               defaultMessage: "G$ Payout",
             })}
           </AdminCardTitle>
-          <p className="mt-1 type-meta text-text-soft">
+          <p className="mt-1 type-body text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.settlement.description",
               defaultMessage:

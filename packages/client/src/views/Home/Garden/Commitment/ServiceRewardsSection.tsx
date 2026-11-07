@@ -45,6 +45,24 @@ export function ServiceRewardsSection({ view }: { view: ServiceRewardsView }) {
               edge={row.status.tone}
               details={[row.detail]}
             />
+            {row.services.length > 0 ? (
+              <div className="mt-2 space-y-1 px-3 text-sm text-text-sub-600">
+                <ul className="space-y-1">
+                  {row.services.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {row.arrival ? (
+                  <p>
+                    {row.arrival.dateTime ? (
+                      <time dateTime={row.arrival.dateTime}>{row.arrival.label}</time>
+                    ) : (
+                      row.arrival.label
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>

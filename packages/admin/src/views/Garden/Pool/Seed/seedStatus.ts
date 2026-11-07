@@ -184,11 +184,17 @@ export function seedStatusView(input: {
                 defaultMessage:
                   "Your wallet declined the request. Your answers are still here, and Try Again asks once more.",
               })
-            : formatMessage({
-                id: "cockpit.garden.pool.seed.status.refusedHint",
-                defaultMessage:
-                  "The request didn't go through. Your answers are still here; check them, then Try Again.",
-              }),
+            : state.overCeilings
+              ? formatMessage({
+                  id: "cockpit.garden.pool.seed.status.overCeilingsHint",
+                  defaultMessage:
+                    "These promises can't share one signature right now, so nothing was sent. Your answers are still here, and Try Again asks for each one on its own.",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.seed.status.refusedHint",
+                  defaultMessage:
+                    "The request didn't go through. Your answers are still here; check them, then Try Again.",
+                }),
       };
     case "partial":
       return {

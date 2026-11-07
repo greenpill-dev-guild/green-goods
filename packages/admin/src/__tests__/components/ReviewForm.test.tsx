@@ -3,10 +3,11 @@
  */
 
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
+import { renderWithProviders as render } from "../test-utils";
 
 const {
   mockApprovalMutation,
@@ -37,6 +38,10 @@ const {
   mockProtocolName: vi.fn(),
   mockParseAndFormatError: vi.fn(),
   mockToastError: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy", () => ({
+  useAdminUploadPolicy: () => async () => true,
 }));
 
 vi.mock("@green-goods/shared/components/Audio/AudioRecorder", () => ({
@@ -130,12 +135,6 @@ vi.mock("@green-goods/shared/types/domain", () => ({
     ONCHAIN: 4,
     AGENT: 8,
   },
-}));
-
-vi.mock("@green-goods/shared/utils/app/text", () => ({
-  formatAddress: (address: string, options?: { ensName?: string | null }) =>
-    options?.ensName?.replace(/\.greengoods\.eth$/, "") ??
-    `${address.slice(0, 6)}...${address.slice(-4)}`,
 }));
 
 vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => {
@@ -624,11 +623,16 @@ describe("ReviewForm", () => {
     expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("names the actual submitter with their registered protocol name", () => {
+  it("shows the named submitter’s full account address in both decision surfaces", () => {
     mockProtocolName.mockReturnValue({ data: "river.greengoods.eth" });
     renderReviewForm();
 
-    expect(screen.getByText(/river will see this decision/)).toBeInTheDocument();
+    expect(screen.getByText("river").closest("p")).toHaveTextContent(TEST_WORK.gardenerAddress);
     expect(mockProtocolName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("river")).toBeVisible();
+    expect(within(dialog).getByText(TEST_WORK.gardenerAddress)).toHaveAttribute("dir", "ltr");
   });
 });

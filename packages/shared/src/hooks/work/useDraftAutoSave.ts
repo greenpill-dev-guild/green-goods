@@ -4,8 +4,9 @@ import {
   restoreWorkFile,
   validateWorkAttachments,
   validateWorkVideo,
+  WORK_VIDEO_MAX_BYTES,
 } from "../../modules/work/work-attachments";
-import { normalizeWorkMediaFiles } from "../../modules/work/media-processing";
+import { isVideoFile, normalizeWorkMediaFiles } from "../../modules/work/media-processing";
 import {
   deleteWorkDraft,
   queueDraftWrite,
@@ -307,6 +308,9 @@ export function useDraftSaveStatus() {
       const missing = before.draftMissingAttachments.find((item) => item.id === id);
       if (!missing) return;
       try {
+        // A video over the work limit is refused before it is read, as the picker refuses it.
+        const tooLarge = isVideoFile(pickerFile) && pickerFile.size > WORK_VIDEO_MAX_BYTES;
+        if (missing.kind !== "audio" && tooLarge) throw new Error("video-duration");
         let file = await captureWorkFile(pickerFile);
         if (missing.kind !== "audio") {
           const normalized = await normalizeWorkMediaFiles([file]);

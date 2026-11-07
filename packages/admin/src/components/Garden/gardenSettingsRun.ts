@@ -4,9 +4,13 @@ import type {
 } from "@green-goods/shared/hooks/garden/useUpdateGarden";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
-import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import {
+  UnpublishableImageError,
+  uploadFileToIPFS,
+} from "@green-goods/shared/modules/data/ipfs/upload";
 import { isTransactionHash } from "@green-goods/shared/utils/eas/explorers";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
+import type { MessageDescriptor } from "react-intl";
 import {
   effectiveMaxGardeners,
   type GardenSettingsField,
@@ -39,6 +43,23 @@ export function createBannerUploader() {
   };
 }
 
+/**
+ * What the steward reads when the banner did not upload. A banner that could
+ * not be checked for its location never uploads, so saving again cannot help.
+ */
+export function bannerUploadFailure(error: unknown): MessageDescriptor {
+  return error instanceof UnpublishableImageError
+    ? {
+        id: "app.common.imageUnreadable",
+        defaultMessage:
+          "We couldn't check this image for location details, so it wasn't uploaded. Try saving it again as a JPEG, PNG or WebP.",
+      }
+    : {
+        id: "app.garden.settings.saveFailedMessage",
+        defaultMessage: "Your edits are still here. Review the error and save again.",
+      };
+}
+
 /** What each changed field writes, in `fields` order, with the banner already uploaded. */
 export function gardenSettingsChanges(
   fields: readonly GardenSettingsField[],
@@ -69,6 +90,7 @@ interface GardenSettingsSaveInput {
   values: SettingsDraft;
   /** Present when several fields can go as one batch now. Never rejects. */
   sendBatch?: (changes: readonly GardenSettingsChange[]) => Promise<GardenSettingsBatchOutcome>;
+  authorizeBanner: () => Promise<boolean>;
   uploadBanner: (file: File) => Promise<string>;
   /** Sends one field and resolves with the transaction that carried it. */
   writeField: (
@@ -187,6 +209,12 @@ async function saveOneAtATime(input: GardenSettingsSaveInput): Promise<void> {
  * when the person's rail can do that; everything else goes one field at a time.
  */
 export async function runGardenSettingsSave(input: GardenSettingsSaveInput): Promise<void> {
+  if (
+    input.values.bannerFile &&
+    input.fields.includes("banner") &&
+    !(await input.authorizeBanner())
+  )
+    return;
   if (input.sendBatch && input.fields.length > 1) {
     if (await saveWithOneSignature(input, input.sendBatch)) return;
   }

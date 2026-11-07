@@ -3,6 +3,7 @@
  */
 
 import { waitFor } from "@testing-library/react";
+import { hashFn } from "@wagmi/core/query";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { worksKeys } from "../../../config/query-keys/work";
@@ -55,6 +56,13 @@ describe("useGardenReviewQueue", () => {
     queryClient.setQueryData(WORK_LIST, []);
     await queryClient.fetchQuery({ queryKey: WORK_LIST, queryFn: () => [] });
     await waitFor(() => expect(result.current).toEqual(THIRD));
+    expect(mocks.readGardenReviewQueue).toHaveBeenCalledTimes(3);
+
+    // A wagmi read keeps bigints in its key; refreshing or reading it is not the work list.
+    const wagmiRead = ["readContract", { args: [1n] }];
+    queryClient.setQueryDefaults(["readContract"], { queryKeyHashFn: hashFn });
+    await queryClient.fetchQuery({ queryKey: wagmiRead, queryFn: () => 1n });
+    await queryClient.invalidateQueries({ queryKey: wagmiRead });
     expect(mocks.readGardenReviewQueue).toHaveBeenCalledTimes(3);
   });
 

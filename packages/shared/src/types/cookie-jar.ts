@@ -124,12 +124,6 @@ export interface CreateCampaignCookieJarParams {
   withdrawalType: Exclude<CookieJarWithdrawalType, "unknown">;
 }
 
-export interface SyncCampaignCookieJarAllowlistParams {
-  jarAddress: Address;
-  grant: Address[];
-  revoke: Address[];
-}
-
 export interface CookieJarWithdrawParams {
   jarAddress: Address;
   amount: bigint;

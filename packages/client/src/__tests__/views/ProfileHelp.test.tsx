@@ -17,12 +17,25 @@ describe("ProfileHelp", () => {
   it("renders journey categories, the docs guide link, and surfaced/new topics", () => {
     render(wrap(createElement(ProfileHelp)));
 
+    expect(screen.getByRole("link", { name: /Request Account Deletion/ })).toHaveAttribute(
+      "href",
+      "/contact#account-deletion"
+    );
+    expect(screen.getByRole("link", { name: /Report a Concern/ })).toHaveAttribute(
+      "href",
+      "/contact#report-a-concern"
+    );
+    expect(screen.getByRole("link", { name: /Privacy & Data/ })).toHaveAttribute(
+      "href",
+      "/privacy"
+    );
+
     // Category headers (Title Case; "How it works" dissolved into Funds & Wallet / Privacy & Data)
     expect(screen.getByText("Getting Started")).toBeInTheDocument();
     expect(screen.getByText("Documenting Work")).toBeInTheDocument();
     expect(screen.getByText("Funds & Wallet")).toBeInTheDocument();
     expect(screen.getByText("Account & Identity")).toBeInTheDocument();
-    expect(screen.getByText("Privacy & Data")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Privacy & Data" })).toBeInTheDocument();
     expect(screen.queryByText("How it works")).not.toBeInTheDocument();
 
     // Newly authored + surfaced topics are present; the install FAQ was dropped
@@ -40,7 +53,7 @@ describe("ProfileHelp", () => {
     expect(screen.getByTestId("faq-content-photoStorage")).toBeInTheDocument();
 
     // Account/app-management + declined-work topics render
-    expect(screen.getByTestId("faq-content-profileName")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-profilePicture")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-changeLanguage")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-switchingAccounts")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-workDeclined")).toBeInTheDocument();

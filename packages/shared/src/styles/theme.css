@@ -2199,6 +2199,24 @@
     overflow: hidden;
   }
 
+  .gg-media-title {
+    font-size: var(--gg-media-title-size, var(--gg-type-card-title-size));
+    line-height: var(--gg-media-title-line, var(--gg-type-card-title-line));
+    font-weight: var(--gg-type-card-title-weight);
+    letter-spacing: var(--gg-type-card-title-tracking);
+  }
+
+  .gg-media-details {
+    font-size: var(--gg-media-details-size, var(--gg-type-meta-sm-size));
+    line-height: var(--gg-type-meta-sm-line);
+    letter-spacing: var(--gg-type-meta-sm-tracking);
+  }
+
+  .gg-media-subtitle {
+    font-size: var(--gg-media-subtitle-size, var(--gg-type-meta-size));
+    line-height: var(--gg-media-subtitle-line, var(--gg-type-meta-line));
+  }
+
   button.gg-media-card {
     cursor: pointer;
   }
@@ -2339,6 +2357,27 @@
     flex: 0 0 auto;
     align-items: center;
     padding-inline-start: 0.75rem;
+  }
+
+  /* Overlay the icon mark while letting it contribute to the lead's width. */
+  .gg-item-row-lead:has(> .gg-item-row-mark) {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+  }
+
+  .gg-item-row-lead:has(> .gg-item-row-mark) > .gg-item-row-tile,
+  .gg-item-row-lead > .gg-item-row-mark {
+    grid-area: 1 / 1;
+  }
+
+  .gg-item-row-lead > .gg-item-row-mark {
+    position: relative;
+    inset: auto;
+    align-self: start;
+    justify-self: end;
+    margin-block-start: 0.3125rem;
+    margin-inline-end: 0.3125rem;
   }
 
   .gg-item-row-tile {

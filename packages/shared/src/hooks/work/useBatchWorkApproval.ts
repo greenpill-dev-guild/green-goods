@@ -104,14 +104,28 @@ export function useBatchWorkApproval(
     queryClient.setQueryData(worksKeys.online(gardenAddress, chainId), patched);
   };
 
-  /** A proven decision outranks the indexer until the indexer reports it, with no deadline. */
-  const markLanded = (landed: readonly { workUID: string; transactionHash?: string }[]) => {
+  /**
+   * Only a proven decision shows, and it outranks the indexer until the indexer reports it, with no
+   * deadline. One whose decision can't be read back stays as the indexer says until it's indexed.
+   */
+  const markLanded = (landed: readonly ProvenReview[]) => {
     const byWork = new Map(landed.map((item) => [item.workUID.toLowerCase(), item]));
     patchWorks((workId) => {
       const item = byWork.get(workId);
-      return (
-        item && { _isPending: false, _pendingUntilMs: undefined, _txHash: item.transactionHash }
-      );
+      if (!item) return undefined;
+      const decided: OverlayPatch =
+        item.approved === undefined
+          ? {}
+          : {
+              status: item.approved ? "approved" : "rejected",
+              reviewFeedback: item.feedback?.trim() || undefined,
+            };
+      return {
+        ...decided,
+        _isPending: false,
+        _pendingUntilMs: undefined,
+        _txHash: item.transactionHash,
+      };
     });
     options.onLanded?.(landed.map(({ workUID }) => workUID));
   };
@@ -150,21 +164,12 @@ export function useBatchWorkApproval(
       await queryClient.cancelQueries({ queryKey: worksKeys.merged(gardenAddress, chainId) });
       await queryClient.cancelQueries({ queryKey: worksKeys.online(gardenAddress, chainId) });
       track("batch_approval_started", { count: decisions.length, auth_mode: rail });
-      const decided = new Map(
-        decisions.map(({ draft }) => [draft.workUID.toLowerCase(), draft] as const)
+      const inFlight = new Set(decisions.map(({ draft }) => draft.workUID.toLowerCase()));
+      // In flight, a work stays pending: it shows a decision only once that decision is proven.
+      // No deadline, since a send stays open until it is proven, moved on from, or known not sent.
+      patchWorks((workId) =>
+        inFlight.has(workId) ? { _isPending: true, _pendingUntilMs: undefined } : undefined
       );
-      // No deadline: a decision stays pending until it is proven, moved on from, or known not sent.
-      patchWorks((workId) => {
-        const draft = decided.get(workId);
-        return (
-          draft && {
-            status: draft.approved ? "approved" : "rejected",
-            reviewFeedback: draft.feedback?.trim() || undefined,
-            _isPending: true,
-            _pendingUntilMs: undefined,
-          }
-        );
-      });
       // TanStack hands a running mutation each later render's callbacks, so what a send has to
       // finish in comes from here: the garden and account it started in.
       return { clearOverlay, refreshWorks, holdKey, rail, gardenAddress };

@@ -218,11 +218,17 @@ button.garden-stat-row:hover {
     width: 100%;
   }
 
-  /* The work queue's wide cards (F12): from the desktop breakpoint each work
-     card lies wide, its mosaic on the left, so two share a row at 1280px where
-     three tall cards stood, and three from about 1380px. */
+  /* DL-135: two wide work cards at most; a lone search result keeps one track. */
   .hub-workbench-grid[data-card-layout="wide"] {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hub-work-card[data-layout="wide"] {
+    --gg-media-wide-width: 12rem;
+    --gg-media-wide-height: 10rem;
+    --gg-media-title-size: var(--gg-type-title-sm-size);
+    --gg-media-title-line: var(--gg-type-title-sm-line);
+    --gg-media-details-size: var(--gg-type-meta-size);
   }
 
   /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —

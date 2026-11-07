@@ -136,8 +136,7 @@ export function useWorkSubmissionFlowController({
     reviewReward: (intent) => saveOnExit().then(() => navigate(intent.returnTo)),
   });
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
-  // Hold submission and draft retirement until the dependent link settles. Queueing starts
-  // only after Work was sent; scheduling also covers Work saved on this device.
+  // Wait for the Work link before retiring its draft, including work queued on this device.
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
   const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
@@ -261,7 +260,7 @@ export function useWorkSubmissionFlowController({
     try {
       await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
-      // The work's checks, then an Open ask's take-up, then admission; a stop leaves no outcome.
+      // Work validation and consent precede the linked take-up and queue admission.
       await form.uploadWork({ beforeAdmission: takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {
@@ -472,6 +471,7 @@ export function useWorkSubmissionFlowController({
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
     retryLinkOnly,
     submissionOutcome: workMutation.lastSubmissionOutcome,
+    uploadPolicy: workMutation.uploadPolicy,
     heicStateOf: heic.stateOf,
     retryHeicConversion: heic.retry,
     markMediaPreviewFailed: media.markMediaPreviewFailed,

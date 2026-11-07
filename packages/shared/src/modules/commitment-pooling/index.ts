@@ -12,6 +12,7 @@ export * from "./data-settlement-operations";
 export { DEMO_POOLING_PARAM, isDemoPoolingActive } from "./demo/demo-mode";
 export * from "./disclosure";
 export * from "./document-store";
+export { type CycleStanding, cycleStanding } from "./due-dates";
 export * from "./evidence";
 export * from "./ids";
 export * from "./jobs";

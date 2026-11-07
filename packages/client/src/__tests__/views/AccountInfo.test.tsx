@@ -79,9 +79,9 @@ function renderAccountInfo() {
 
 describe("AccountInfo passkey recovery note", () => {
   const deviceLine =
-    "To sign in on another device, choose “Already have an account?” and enter alice.";
+    "To sign in on another device, choose “Continue with Passkey” and enter alice.";
   const genericLine =
-    "To sign in on another device, choose “Already have an account?” and enter your username.";
+    "To sign in on another device, choose “Continue with Passkey” and enter your username.";
   const accountLine =
     "Your passkey is saved in your Apple or Google account, so that device needs to be signed in to the same account.";
 

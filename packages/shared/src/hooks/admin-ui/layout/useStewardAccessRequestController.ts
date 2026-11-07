@@ -8,6 +8,7 @@ import { roleKeys } from "../../../config/query-keys/identity";
 import { derivePublicGardenSlug } from "../../../public-contracts/garden-slug";
 import type { GardenJoinRequestedVia } from "../../../public-contracts/join-requests";
 import type { Address, Garden } from "../../../types/domain";
+import { compareAddresses } from "../../../utils/blockchain/address";
 import { useAuth } from "../../auth/useAuth";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useGardens } from "../../blockchain/useBaseLists";
@@ -97,12 +98,17 @@ export function useStewardAccessRequestController(
     initialData: null,
     gcTime: 5 * 60_000,
   });
+  const alreadyStewards = (garden: Garden) =>
+    [...garden.owners, ...garden.stewards].some((address) =>
+      compareAddresses(address, accountAddress)
+    );
   const selectedGarden =
     gardens.find(
       (garden) =>
         garden.chainId === chainId &&
         garden.id.toLowerCase() === selected.data?.toLowerCase() &&
-        isGardenPubliclyReachable(garden)
+        isGardenPubliclyReachable(garden) &&
+        !alreadyStewards(garden)
     ) ?? null;
   const targetScope = `${identity}:${selected.data ?? "none"}`;
   const previousTarget = useRef(targetScope);
@@ -136,14 +142,18 @@ export function useStewardAccessRequestController(
   }, [client, chainId, join.request?.kind, join.request?.state]);
   const directTarget = parseStewardGardenTarget(search, gardens, chainId);
   const isLinkOrAddress = /^(?:https?:\/\/|0x)/i.test(search.trim());
+  const alreadyStewardTarget = Boolean(directTarget && alreadyStewards(directTarget));
   const candidates = directTarget
-    ? [directTarget]
+    ? alreadyStewardTarget
+      ? []
+      : [directTarget]
     : isLinkOrAddress
       ? []
       : gardens.filter(
           (garden) =>
             garden.chainId === chainId &&
             isGardenPubliclyReachable(garden) &&
+            !alreadyStewards(garden) &&
             `${garden.name} ${garden.location}`
               .toLocaleLowerCase()
               .includes(search.trim().toLocaleLowerCase())
@@ -159,7 +169,7 @@ export function useStewardAccessRequestController(
       if (next && selectedGarden) setStep("review");
       setOpen(next);
     },
-    step,
+    step: selectedGarden ? step : ("choose" as const),
     setStep,
     search,
     setSearch,
@@ -171,10 +181,13 @@ export function useStewardAccessRequestController(
       client.invalidateQueries({ queryKey: gardenJoinRequestKeys.availability() }),
     selectedGarden,
     candidates,
+    alreadyStewardTarget,
     invalidLink: isLinkOrAddress && !directTarget,
     catalogLoading: catalog.isLoading,
     catalogError: catalog.isError,
-    reloadGardens: catalog.refetch,
+    reloadGardens: async () => {
+      await catalog.refetch();
+    },
     request: join.request,
     hasCheckedStatus: join.hasCheckedStatus,
     outcomeUnknown: join.outcomeUnknown,
@@ -182,6 +195,7 @@ export function useStewardAccessRequestController(
     error: join.mutationState.error ?? join.statusState.error,
     activity: feedback.activity,
     selectGarden(garden: Garden) {
+      if (alreadyStewards(garden)) return;
       client.setQueryData(targetKey, garden.id as Address);
       setStep("review");
       setNote("");

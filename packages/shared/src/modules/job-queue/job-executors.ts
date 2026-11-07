@@ -73,6 +73,14 @@ export type CommitmentQueueExecution =
 
 /** As many tries as any other job gets, so a dead gateway cannot queue forever. */
 const MAX_METADATA_ATTEMPTS = 5;
+
+/** Whether this job's call goes out in one atomic request with `earlier`'s, after it. */
+function goesAfter(sender: TransactionSender, earlier: string, jobId: string): boolean {
+  const order = sender.bundledWith ?? [];
+  const at = order.indexOf(earlier);
+  return at >= 0 && at < order.indexOf(jobId);
+}
+
 // ICommitmentPoolingModule.ClaimType.Individual; the payload carries the Solidity ordinal.
 const CLAIM_TYPE_INDIVIDUAL = 1;
 
@@ -165,8 +173,10 @@ export async function executeCommitmentQueueJob(
   // Add and Send's second act goes after its proof: sent first, it would settle
   // the team before the proof and its credit were on the record. A proof that
   // landed has left the queue; one that was discarded took this send with it.
+  // In one request with its proof, after it, the send lands with it or not at all.
   const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
-  if (proofJobId && job.kind !== "workLink") {
+  const ridesWithProof = proofJobId !== null && goesAfter(sender, proofJobId, jobId);
+  if (proofJobId && job.kind !== "workLink" && !ridesWithProof) {
     const proof = await store.getJob(proofJobId);
     if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
   }
@@ -251,15 +261,18 @@ export async function executeCommitmentQueueJob(
         };
         if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
         // A wallet estimates inside its own send, after the intent is recorded;
-        // asking the chain first keeps a refusal a refusal.
+        // asking the chain first keeps a refusal a refusal. A send riding with its
+        // proof could only revert alone (`EvidenceRequired`); its request is
+        // simulated whole before anything is signed.
         try {
-          await chainReads.simulateSend?.({
-            address: target,
-            functionName: built.functionName,
-            args: built.args,
-            account: job.userAddress as Address,
-            chainId: targetChain,
-          });
+          if (!ridesWithProof)
+            await chainReads.simulateSend?.({
+              address: target,
+              functionName: built.functionName,
+              args: built.args,
+              account: job.userAddress as Address,
+              chainId: targetChain,
+            });
         } catch (simulationError) {
           // Reward state may have changed since preflight. Only that dependency waits.
           await beforeBroadcast?.();

@@ -8,11 +8,11 @@ argument-hint: "[apply | review | candidates <name>] [--dry-run]"
 # Research agenda skill
 
 The `research-synthesis` routine proposes agenda edits every Saturday in the Linear document
-`Research agenda · pending edits` (Research team, first line `Maintained by research-synthesis v5`)
+`Research agenda · pending edits` (Research team, first line starting `Maintained by research-synthesis v` followed by the routine's edition, v5 or later)
 and never edits `docs/routines/research-agenda.md` itself. Humans tick the edits they accept. This
 skill is the hand that applies them, so the agenda stays human-owned in substance and the drift
 loop closes in minutes instead of a memo read. The design lives in
-`.plans/active/research-intake-loops/spec.md` (R10 to R13).
+`.plans/active/research-threads/spec.md` (R20; the v5 design lived in the superseded research-intake-loops hub).
 
 ## Modes
 
@@ -27,7 +27,7 @@ loop closes in minutes instead of a memo read. The design lives in
 ## Procedure
 
 1. **Find the document.** Through the Linear connector, `list_documents` with the query
-   `Research agenda · pending edits` on the Research team; verify the first line is the marker.
+   `Research agenda · pending edits` on the Research team; verify the first line starts with `Maintained by research-synthesis v`.
    Refuse to continue on any other document, and never create one: the routine creates it.
 2. **Read the agenda** from the current checkout and record its edition line. Stop if the working
    tree already carries uncommitted changes to the agenda that the user did not ask for.

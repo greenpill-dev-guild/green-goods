@@ -137,9 +137,21 @@ describe("Highlights' seasons and campaigns", () => {
     const ended = cycle({ id: "c-5", cycleId: 5n, state: "RECONCILED" });
     const cancelled = cycle({ id: "c-4", cycleId: 4n, cycleType: "CAMPAIGN", state: "CANCELLED" });
 
-    const open = openCycles([campaignB, seeded, campaignA, ended, season, cancelled], NOW_MS);
+    const open = openCycles([campaignB, seeded, campaignA, ended, season, cancelled], NOW, NOW_MS);
 
     expect(open.map(({ cycle }) => cycle.id)).toEqual(["c-7", "c-9", "c-8"]);
+  });
+
+  // DL-162: an Open season or campaign past its end on the chain's clock has ended though no
+  // steward has closed it, so What's Open stops offering it at the second its promises fall due.
+  it("drops an open cycle past its end on the chain's clock, though no steward has closed it", () => {
+    const season = cycle({ id: "c-7", cycleId: 7n, cycleType: "SEASON", endTime: NOW - 1n });
+    const campaign = cycle({ id: "c-9", cycleId: 9n, cycleType: "CAMPAIGN", endTime: NOW - 1n });
+    const lastSecond = cycle({ id: "c-8", cycleId: 8n, cycleType: "CAMPAIGN", endTime: NOW });
+
+    const open = openCycles([season, campaign, lastSecond], NOW, NOW_MS);
+
+    expect(open.map(({ cycle }) => cycle.id)).toEqual(["c-8"]);
   });
 
   it("counts the days left to a cycle's end, the last part of a day as one", () => {
@@ -153,7 +165,11 @@ describe("Highlights' seasons and campaigns", () => {
     expect(cycleDaysLeft(seconds(NOW_MS), NOW_MS)).toBeNull();
     expect(cycleDaysLeft(seconds(NOW_MS - DAY_MS), NOW_MS)).toBeNull();
 
-    const [open] = openCycles([cycle({ endTime: seconds(NOW_MS + 3 * DAY_MS) })], NOW_MS);
+    const [open] = openCycles(
+      [cycle({ endTime: seconds(NOW_MS + 3 * DAY_MS) })],
+      seconds(NOW_MS),
+      NOW_MS
+    );
     expect(open?.daysLeft).toBe(3);
   });
 });

@@ -9,7 +9,8 @@
  * its queued job, so a copy whose answer was lost is read back from the chain
  * before anything is sent again, and none can become a second commitment.
  * Past the group's deadline it sends nothing: the chain would still create the
- * copies, due before anyone could take one up.
+ * copies, due before anyone could take one up. A bundle past a passkey's
+ * ceilings sends nothing either, and the next press asks once per copy.
  *
  * @module hooks/admin-ui/pool/useFinishCreating
  */
@@ -90,6 +91,7 @@ export function useFinishCreating(input: {
   const queryClient = useQueryClient();
   const [sendingGroupId, setSendingGroupId] = useState<string | null>(null);
   const [copies, setCopies] = useState<readonly SeedCopyProgress[] | null>(null);
+  const [pastCeilings, setPastCeilings] = useState(false);
   // Under the queue's key: whatever refreshes the queue refreshes this read.
   const waitingQuery = useQuery({
     queryKey: commitmentPoolingKeys.queuedGroupCopies(owner, chainId),
@@ -153,7 +155,9 @@ export function useFinishCreating(input: {
           },
           // The group already exists: a declined prompt leaves its copies waiting.
           clearable: () => false,
+          oneByOne: pastCeilings,
         });
+        if (ended.some((copy) => copy.miss === "over-ceilings")) setPastCeilings(true);
         return copiesToRetry(ended).length > 0 ? "left" : "sent";
       } finally {
         setSendingGroupId(null);
@@ -164,7 +168,7 @@ export function useFinishCreating(input: {
         ]);
       }
     },
-    [owner, sender, chainId, queryClient]
+    [owner, sender, chainId, queryClient, pastCeilings]
   );
 
   return { waiting: waitingQuery.data ?? NOTHING_WAITING, sendingGroupId, copies, finish };

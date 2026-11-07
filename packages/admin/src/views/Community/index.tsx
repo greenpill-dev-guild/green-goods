@@ -51,13 +51,18 @@ export default function CommunityView() {
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
         endowmentByAsset: community.endowmentByAsset,
-        distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
+        // An unread history has no total to state, as while it loads.
+        distributedAmounts:
+          community.allocationsLoading || community.allocationsUnread
+            ? null
+            : distributedAmountsByAsset,
         locale,
         formatMessage,
       }),
     [
       community.selectedGarden,
       community.allocationsLoading,
+      community.allocationsUnread,
       community.endowmentByAsset,
       distributedAmountsByAsset,
       locale,

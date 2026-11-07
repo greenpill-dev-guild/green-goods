@@ -167,6 +167,8 @@ export interface BatchOperations {
     options: {
       preflight: (prepared: PreparedBatch, itemIds: readonly string[]) => Promise<void>;
       verify: VerifyBatchItems;
+      /** Hears a group once it is signed and saved, just before it goes out. */
+      onBroadcasting?: (itemIds: readonly string[]) => void;
     }
   ): Promise<BatchRecord>;
   reconcile(operationId: string, scope: BatchScope, verify: VerifyBatchItems): Promise<BatchRecord>;
@@ -180,5 +182,16 @@ export class BatchNotSubmittedError extends Error {
   constructor(cause: unknown) {
     super(cause instanceof Error ? cause.message : "batch-not-submitted", { cause });
     this.name = "BatchNotSubmittedError";
+  }
+}
+
+/**
+ * A call held for a request that goes only whole, whose partner handed over no
+ * call. Nothing was asked of anyone, so the job that held it was never tried.
+ */
+export class BundleIncompleteError extends BatchNotSubmittedError {
+  constructor() {
+    super(new Error("bundle-incomplete"));
+    this.name = "BundleIncompleteError";
   }
 }

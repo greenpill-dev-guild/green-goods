@@ -206,11 +206,13 @@ function CycleLines({ gardenId }: { gardenId: string }) {
   });
   // Leaving Home closes them with Home's own drawers: they portal past its hidden wrapper.
   if (!homeShown && details.open) setDetails((current) => ({ ...current, open: false }));
-  if (state.status !== "ready") return null;
+  // The details stay mounted without the lines, so a sheet open on the last cycle stays as that
+  // cycle ends and its line goes (DL-162).
+  const lines = state.status === "ready" ? state.items : [];
 
   return (
     <>
-      {state.items.map(({ cycle, name }) => {
+      {lines.map(({ cycle, name }) => {
         const counts = formatMessage(
           { id: "app.pool.rail.counts" },
           { kept: Number(cycle.commitmentsFulfilled), made: Number(cycle.commitmentsDue) }
@@ -232,7 +234,8 @@ function CycleLines({ gardenId }: { gardenId: string }) {
               className="flex min-h-12 w-full min-w-0 items-center gap-2 text-start"
             >
               <span className="flex shrink-0">
-                <CycleIdentity cycle={cycle} />
+                {/* Listed only until it ends on the chain's clock (DL-162). */}
+                <CycleIdentity cycle={cycle} standing="open" />
               </span>
               <span className="min-w-0 truncate type-meta text-text-sub-600">
                 {formatMessage(

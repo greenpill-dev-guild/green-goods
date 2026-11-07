@@ -1,4 +1,8 @@
-import { useServiceAccess, useServiceAccessMutation } from "@green-goods/shared/commitment-pooling";
+import {
+  useCommitmentMetadataFor,
+  useServiceAccess,
+  useServiceAccessMutation,
+} from "@green-goods/shared/commitment-pooling";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
@@ -11,8 +15,8 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
-import { Route, Routes } from "react-router-dom";
-import { expect, fn, mocked, within } from "storybook/test";
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
@@ -25,17 +29,25 @@ import {
   withAppPage,
   withClientAppRuntime,
   withProofToast,
-  withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import { GardenCommitment } from "./GardenCommitment";
 
 /** The page reads its garden and promise from the route, as the app mounts it. */
-const withPromiseRoute: Decorator = (Story) => (
-  <Routes>
-    <Route path="/home/:id/commitments/:commitmentId" element={<Story />} />
-  </Routes>
+const withPromiseRoute: Decorator = (Story, context) => (
+  <MemoryRouter initialEntries={[`/home/${JOURNEY_GARDEN}/commitments/9`]}>
+    {context.parameters.notificationState ? (
+      <Navigate
+        to={`/home/${JOURNEY_GARDEN}/commitments/9`}
+        state={context.parameters.notificationState}
+        replace
+      />
+    ) : null}
+    <Routes>
+      <Route path="/home/:id/commitments/:commitmentId" element={<Story />} />
+    </Routes>
+  </MemoryRouter>
 );
 
 const withPortuguese: Decorator = (Story) => (
@@ -96,6 +108,7 @@ const atStage = (stage: Stage, reread?: (page: Page) => Page) => () => {
     };
   }
   mocked(useGardenCommitmentController).mockReturnValue(controller);
+  mocked(useCommitmentMetadataFor).mockReturnValue(fence.metadata);
   mocked(useCommitmentActivity).mockReturnValue({
     events: history,
     isError: false,
@@ -119,6 +132,7 @@ const atStage = (stage: Stage, reread?: (page: Page) => Page) => () => {
     useServiceAccessMutation,
     usePrimaryAddress,
     useGardenCommitmentController,
+    useCommitmentMetadataFor,
     useCommitmentActivity,
     useCommitmentCycle,
     useGardens,
@@ -139,7 +153,6 @@ const meta: Meta<typeof GardenCommitment> = {
   parameters: { layout: "fullscreen" },
   decorators: [
     withPromiseRoute,
-    withRouter([`/home/${JOURNEY_GARDEN}/commitments/9`]),
     withSeededQueryClient([...JOURNEY_CYCLE_NAMES, ...PROMISE_PAGE_SEEDS]),
     withAppPage,
   ],
@@ -147,6 +160,49 @@ const meta: Meta<typeof GardenCommitment> = {
 
 export default meta;
 type Story = StoryObj<typeof GardenCommitment>;
+
+const reviewedClaim = fn(async () => "queued");
+
+export const TakeUpReview: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("working", (page) => ({
+    ...page,
+    actKind: "takeUp",
+    seat: "bystander",
+    claimNeedsContext: false,
+    takeUpOpen: true,
+    acts: { ...page.acts, claimPersonal: reviewedClaim },
+    detail: page.detail
+      ? {
+          ...page.detail,
+          contributors: [],
+          commitment: {
+            ...page.detail.commitment,
+            direction: "REQUEST",
+            derivedState: "REQUESTED",
+            onchainState: "REQUESTED",
+            leadProvider: null,
+            counterparty: null,
+          },
+        }
+      : null,
+  })),
+  play: async ({ canvasElement }) => {
+    reviewedClaim.mockClear();
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole("button", { name: "Take This Up" }));
+    const review = within(await body.findByRole("dialog", { name: "Review This Promise" }));
+    await waitFor(() => expect(review.getByText("Riverside Commons Garden")).toBeVisible());
+    await expect(reviewedClaim).not.toHaveBeenCalled();
+    await userEvent.click(review.getByRole("button", { name: "Cancel" }));
+    await expect(reviewedClaim).not.toHaveBeenCalled();
+    await userEvent.click(await canvas.findByRole("button", { name: "Take This Up" }));
+    const confirmed = within(await body.findByRole("dialog", { name: "Review This Promise" }));
+    await userEvent.click(confirmed.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(reviewedClaim).toHaveBeenCalledTimes(1));
+  },
+};
 
 /** Amara leads the repair and has proof to add: Link Work and Add Proof share one row. */
 export const InProgress: Story = {
@@ -388,4 +444,20 @@ export const ProofFailed: Story = {
       await toasts(canvasElement).findByRole("button", { name: "Open Your Work" })
     ).toBeVisible();
   },
+};
+
+/** Opening a cached notification without ever having loaded its full promise page. */
+export const SavedNotificationOffline: Story = {
+  parameters: {
+    notificationState: {
+      commitmentGarden: JOURNEY_GARDEN,
+      commitment: promisePageFixture("working").controller.detail?.commitment,
+    },
+  },
+  beforeEach: atStage("working", (page) => ({
+    ...page,
+    isOnline: false,
+    status: "loading",
+    detail: null,
+  })),
 };

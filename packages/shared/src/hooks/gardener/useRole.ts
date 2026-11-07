@@ -1,5 +1,6 @@
 import type { Address } from "../../types/domain";
 import { useQuery } from "@tanstack/react-query";
+import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
@@ -9,6 +10,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { roleKeys } from "../../config/query-keys/identity";
+import { compareAddresses } from "../../utils/blockchain/address";
 
 const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
@@ -55,7 +57,13 @@ export type UserRole = "deployer" | "steward" | "user";
 
 export interface RoleInfo {
   role: UserRole;
+  /** May create gardens: the deployment registry's owner or an account on its allowlist. */
   isDeployer: boolean;
+  /**
+   * Runs the protocol: the registry's owner or an owner or steward of the Green Goods Community
+   * Garden. Being allowed to create gardens does not make an account part of the team.
+   */
+  isProtocolTeam: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
@@ -104,6 +112,11 @@ export function useRole(): RoleInfo {
 
   const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
+  const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
+  const isProtocolTeam =
+    deploymentRegistry.isOwner ||
+    (rootGarden !== undefined &&
+      stewardGardens.some((garden) => compareAddresses(garden.id, rootGarden)));
 
   // Determine primary role based on capabilities
   let role: UserRole = "user";
@@ -116,6 +129,7 @@ export function useRole(): RoleInfo {
   return {
     role,
     isDeployer,
+    isProtocolTeam,
     isSteward,
     stewardGardens,
     loading: !ready || isFetching || deploymentRegistry.loading,

@@ -5,6 +5,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FlushResult, JobQueueDependencies } from "../../modules/job-queue/ports";
 import { createJobQueue } from "../../modules/job-queue/queue";
+import type { ContractCall, TransactionSender } from "../../modules/transactions/types";
 import type { Job, JobKindMap, QueueEvent, WorkJobPayload } from "../../types/job-queue";
 import {
   createFakeJobExecutorRegistry,
@@ -58,6 +59,16 @@ describe("createJobQueue", () => {
     await expect(queue.flush({ transactionSender: null, userAddress: "" })).rejects.toThrow(
       "userAddress is required for flush operation"
     );
+  });
+
+  it("wakes the background flush once for jobs admitted together", async () => {
+    const backgroundSync = { request: vi.fn() };
+    const { queue } = setup({ backgroundSync });
+
+    await queue.addJob("evidence", {} as JobKindMap["evidence"], USER, {}, { wake: false });
+    expect(backgroundSync.request).not.toHaveBeenCalled();
+    queue.requestSync();
+    expect(backgroundSync.request).toHaveBeenCalledOnce();
   });
 
   it("caches quota reads and tolerates background-sync registration failure", async () => {
@@ -290,6 +301,119 @@ describe("createJobQueue", () => {
       clock.advance(60_000);
       await expect(queue.flush(context)).resolves.toEqual({ processed: 2, failed: 0, skipped: 0 });
       expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof", "send"]);
+    });
+
+    it("goes in one request with its proof where the sender takes both, and a decline keeps both", async () => {
+      const store = createInMemoryJobQueueStore([sendAfterProof(), proof()]);
+      const clock = createFakeJobQueueClock();
+      const requests: string[][] = [];
+      let declines = true;
+      const sender = {
+        authMode: "passkey",
+        supportsBatching: false,
+        supportsSponsorship: true,
+        sendContractCall: vi.fn(),
+        sendAtomicBatch: vi.fn(async (calls: ContractCall[]) => {
+          requests.push(calls.map((call) => call.functionName));
+          if (declines)
+            throw Object.assign(new Error("The operation was not allowed."), {
+              name: "NotAllowedError",
+            });
+          return { hash: "0x1", sponsored: true };
+        }),
+      } as unknown as TransactionSender;
+      // Each job hands its one call to the sender it was given, as the executors do.
+      const executors = {
+        execute: vi.fn(
+          async (jobId: string, _job: Job, _chainId: number, given: TransactionSender) => {
+            const { hash } = await given.sendContractCall({
+              address: "0x3333333333333333333333333333333333333333",
+              abi: [],
+              functionName: jobId === "proof" ? "attachEvidence" : "submitForConfirmation",
+              args: [],
+            });
+            return { status: "complete", txHash: hash } as const;
+          }
+        ),
+      };
+      const { queue } = setup({ store, clock, executors });
+      const sendsWith = vi.fn(async () => ({ maxCalls: 2 }) as never);
+      const context = { transactionSender: sender, userAddress: USER, sendsWith };
+
+      await expect(queue.flush(context)).resolves.toEqual({ processed: 0, failed: 2, skipped: 0 });
+      expect(sendsWith).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "proof" }),
+        expect.objectContaining({ id: "send" })
+      );
+      // The proof goes first, though the store gave the send back first.
+      expect(requests).toEqual([["attachEvidence", "submitForConfirmation"]]);
+      // Neither landed, and the proof is still on the device.
+      expect((await store.getJob("proof"))?.synced).toBe(false);
+      expect((await store.getJob("send"))?.synced).toBe(false);
+
+      declines = false;
+      clock.advance(60_000);
+      await expect(queue.flush(context)).resolves.toEqual({ processed: 2, failed: 0, skipped: 0 });
+      expect(requests).toEqual(Array(2).fill(["attachEvidence", "submitForConfirmation"]));
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    it("goes after its proof, one signature each, when the pairing check fails, and says why", async () => {
+      const store = createInMemoryJobQueueStore([proof(), sendAfterProof()]);
+      const executors = {
+        execute: vi.fn(async (_jobId: string) => ({ status: "complete", txHash: "0x1" }) as const),
+      };
+      const { deps, queue } = setup({ store, executors });
+      const failure = new Error("capability read failed");
+      const sendsWith = vi.fn(async () => {
+        throw failure;
+      });
+
+      await expect(
+        queue.flush({ transactionSender: {} as never, userAddress: USER, sendsWith })
+      ).resolves.toEqual({ processed: 2, failed: 0, skipped: 0 });
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof", "send"]);
+      expect(deps.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("one by one"),
+        expect.objectContaining({ jobId: "proof", followerJobId: "send", error: failure })
+      );
+    });
+
+    it("leaves its proof untried when the send can't go this pass, so neither goes alone", async () => {
+      const clock = createFakeJobQueueClock();
+      // The send failed a try a moment ago and is still backing off; its proof isn't.
+      const backingOff = { ...sendAfterProof(), attempts: 1, lastAttemptAt: clock.now() };
+      const store = createInMemoryJobQueueStore([proof(), backingOff]);
+      const sender = {
+        authMode: "passkey",
+        supportsBatching: false,
+        supportsSponsorship: true,
+        sendContractCall: vi.fn(),
+        sendAtomicBatch: vi.fn(async () => ({ hash: "0x1", sponsored: true })),
+      } as unknown as TransactionSender;
+      const executors = {
+        execute: vi.fn(
+          async (_jobId: string, _job: Job, _chainId: number, given: TransactionSender) => {
+            const { hash } = await given.sendContractCall({
+              address: "0x3333333333333333333333333333333333333333",
+              abi: [],
+              functionName: "attachEvidence",
+              args: [],
+            });
+            return { status: "complete", txHash: hash } as const;
+          }
+        ),
+      };
+      const { queue } = setup({ store, clock, executors });
+      const sendsWith = vi.fn(async () => ({ maxCalls: 2 }) as never);
+
+      await expect(
+        queue.flush({ transactionSender: sender, userAddress: USER, sendsWith })
+      ).resolves.toEqual({ processed: 0, failed: 0, skipped: 2 });
+      expect(sender.sendAtomicBatch).not.toHaveBeenCalled();
+      // Never tried: no failure on record, nothing to back off from.
+      expect(await store.getJob("proof")).toMatchObject({ attempts: 0, synced: false });
+      expect((await store.getJob("proof"))?.lastError).toBeUndefined();
     });
 
     it("is discarded with its proof, since nothing of it was ever sent", async () => {
@@ -710,12 +834,20 @@ describe("work confirmation recovery", () => {
     await second.queue.processJob("job-1", { transactionSender: {} as never });
     expect((await second.deps.store.getJob("job-1"))?.attempts).toBe(0);
   });
-  it("explicit retry clears the reverted broadcast while retaining uploaded media", async () => {
+  it.each([
+    "meta",
+    "checkpoint",
+  ])("explicit retry clears the revert in %s while retaining uploaded media", async (revertIn) => {
     const store = createInMemoryJobQueueStore([
       queuedJob({
-        payload: { uploadCheckpoint: { ...checkpoint } },
+        payload: {
+          uploadCheckpoint: { ...checkpoint, transactionReverted: revertIn === "checkpoint" },
+        },
         attempts: 5,
-        meta: { workTransactionReverted: true, submittedTxHash: checkpoint.transactionHash },
+        meta: {
+          workTransactionReverted: revertIn === "meta",
+          submittedTxHash: checkpoint.transactionHash,
+        },
       }),
     ]);
     const { queue } = setup({ store });

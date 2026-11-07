@@ -179,7 +179,7 @@ export function PoolClaimsCard({
             })}
           </p>
         ) : (
-          <p className="mt-1 type-meta text-text-soft">{description}</p>
+          <p className="mt-1 type-body text-text-soft">{description}</p>
         )}
       </div>
       {approvals.rows.length > 0 ? (

@@ -4,6 +4,7 @@ import { getStoredCredential, type PasskeyCredential } from "./passkey-credentia
 import {
   assertPasskeyAccountProfile,
   getPilotCredentialId,
+  isKernel033PasskeyProfile,
   LEGACY_PASSKEY_PROFILE,
   PILOT_PASSKEY_PROFILE,
   type PasskeyAccountProfileId,
@@ -48,7 +49,7 @@ function profileAccountKey(
   credential: PasskeyCredential
 ): string {
   assertPasskeyAccountProfile(profile);
-  const id = profile === PILOT_PASSKEY_PROFILE ? getPilotCredentialId(credential) : credential.id;
+  const id = isKernel033PasskeyProfile(profile) ? getPilotCredentialId(credential) : credential.id;
   return `${profile}:${credential.publicKey.toLowerCase()}:${id}`;
 }
 
@@ -78,7 +79,7 @@ export function getStoredProfileAddress(
     profileAccountKey(profile, {
       ...credential,
       id: record.credentialId,
-      signingId: profile === PILOT_PASSKEY_PROFILE ? record.credentialId : credential.signingId,
+      signingId: isKernel033PasskeyProfile(profile) ? record.credentialId : credential.signingId,
     }) !== key
   ) {
     throw new Error("Invalid saved passkey account profile");
@@ -108,8 +109,9 @@ export function setStoredProfileAddress(
   const records = readProfileAccounts(storage);
   records[profileAccountKey(profile, credential)] = {
     profile,
-    credentialId:
-      profile === PILOT_PASSKEY_PROFILE ? getPilotCredentialId(credential) : credential.id,
+    credentialId: isKernel033PasskeyProfile(profile)
+      ? getPilotCredentialId(credential)
+      : credential.id,
     publicKey: credential.publicKey,
     address,
     rpId,

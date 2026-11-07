@@ -36,6 +36,11 @@ import { WorkSendCancelledError } from "../../modules/work/send-outcome";
 import { StrandedSendReopened } from "../../modules/work/stranded-intent";
 import { PendingHeicConversionError } from "../../modules/work/work-attachments";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
+import type {
+  AtomicBatchOptions,
+  ContractCall,
+  TransactionSender,
+} from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { CommitmentPoolingModuleABI, EASABI } from "../../utils/blockchain/contracts";
@@ -49,6 +54,7 @@ vi.mock("../../modules/data/greengoods", async (importOriginal) => ({
 }));
 
 import { MOCK_TX_HASH } from "../test-utils/mock-factories";
+import { uploadConsent } from "../test-utils/upload-policy";
 
 const USER = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -322,6 +328,7 @@ describe("work and approval job executors", () => {
       actionUID: 3,
       gardenAddress: GARDEN,
       feedback: "Done",
+      uploadConsent: uploadConsent(USER),
     });
 
     await expect(
@@ -415,6 +422,35 @@ describe("commitment queue executor", () => {
     expect(queueStore.getJob).toHaveBeenCalledWith("job-evidence");
     expect(chainReads.hasMembership).not.toHaveBeenCalled();
     expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("sends Add and Send's send in its proof's request, neither waiting nor simulating it alone", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("evidence", { commitmentId: 1n }));
+    // Before its proof lands, the send alone can only revert.
+    const simulateSend = vi.fn().mockRejectedValue(new Error("EvidenceRequired"));
+    const sender = Object.assign(createMockTransactionSender({ authMode: "passkey" }), {
+      bundledWith: ["job-evidence", "job-confirmation"],
+    });
+    const send = job("confirmation", {
+      action: "submit",
+      commitmentId: 1n,
+      gardenAddress: GARDEN,
+      afterEvidenceJobId: "job-evidence",
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-confirmation", send, 42161, sender, {
+        demoActive: () => false,
+        reads: { ...reads(), simulateSend },
+        store: queueStore,
+      })
+    ).resolves.toMatchObject({ status: "complete" });
+    expect(simulateSend).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "submitForConfirmation" }),
+      expect.anything()
+    );
   });
 
   it("waits and persists a metadata attempt when publishing fails", async () => {
@@ -981,7 +1017,9 @@ describe("commitment acts record their sends", () => {
       sponsored: false,
       confirmation: "pending",
     });
-    const pendingSafe = job(kind, payload, { id: `${kind}-safe-first-send` });
+    const firstPayload =
+      kind === "evidence" ? { ...payload, uploadConsent: uploadConsent(USER) } : payload;
+    const pendingSafe = job(kind, firstPayload, { id: `${kind}-safe-first-send` });
     const safeDeps = {
       demoActive: () => false,
       reads: reads(),
@@ -1891,6 +1929,104 @@ describe("commitment chain reads", () => {
       logs: [workLinked(HASH, GARDEN)],
     });
     await expect(chainReads.transactionMadeWorkLink?.(MOCK_TX_HASH, link)).resolves.toBe(false);
+  });
+});
+
+describe("Add and Send in one request, through the real executors (decision 20)", () => {
+  const BUDGET = {
+    maxCalls: 2,
+    maxCalldataBytes: 4_096,
+    maxGas: "3000000",
+    maxFeePerGas: "1000000000",
+    maxFee: "3000000000000000",
+    sponsorship: "required",
+  } as const;
+  const operation = { kind: "user-operation", hash: HASH, chainId: 42161 } as const;
+
+  function setUpPair() {
+    const proof = job(
+      "evidence",
+      { commitmentId: 1n, cid: "bafy-proof", creditedContributors: [], gardenAddress: GARDEN },
+      { id: "proof", chainId: 42161 }
+    );
+    const send = job(
+      "confirmation",
+      { action: "submit", commitmentId: 1n, gardenAddress: GARDEN, afterEvidenceJobId: "proof" },
+      { id: "send", chainId: 42161 }
+    );
+    const queueStore = createInMemoryJobQueueStore([send, proof] as Job[]);
+    // Alone, before its proof lands, the send can only revert.
+    const simulateSend = vi.fn(async ({ functionName }: { functionName: string }) => {
+      if (functionName === "submitForConfirmation") throw new Error("EvidenceRequired");
+    });
+    const deps = {
+      demoActive: () => false,
+      reads: { ...reads(), simulateSend },
+      publishEvidence: vi.fn(async () => ({ published: true }) as const),
+      store: {
+        ...queueStore,
+        getSeriesIdByClientId: vi.fn(),
+        storeClientSeriesIdMapping: vi.fn(),
+        storeClientCommitmentIdMapping: vi.fn(),
+      },
+    };
+    const run = (jobId: string, queued: Job, chainId: number, given: TransactionSender) =>
+      executeCommitmentQueueJob(jobId, queued, chainId, given, deps);
+    const executors = createJobExecutorRegistry({ evidence: run, confirmation: run });
+    const queue = createJobQueue(createJobQueueDependencies({ store: queueStore, executors }));
+    return { queue, queueStore, simulateSend };
+  }
+
+  /** A passkey: its prompt comes before anything can go out, so a decline never sent. */
+  function passkey(declines: () => boolean) {
+    const requests: string[][] = [];
+    const sender = {
+      authMode: "passkey",
+      supportsBatching: false,
+      supportsSponsorship: true,
+      sendContractCall: vi.fn(),
+      sendAtomicBatch: vi.fn(async (calls: ContractCall[], options?: AtomicBatchOptions) => {
+        requests.push(calls.map((call) => call.functionName));
+        if (declines()) {
+          options?.onNeverSent?.();
+          throw new DOMException("The operation was not allowed.", "NotAllowedError");
+        }
+        await options?.onBeforeBroadcast?.(operation);
+        await options?.onBroadcastReference?.(operation);
+        await options?.onAccepted?.();
+        return { hash: HASH, sponsored: true };
+      }),
+    } as unknown as TransactionSender;
+    return { sender, requests };
+  }
+
+  it("lands both or neither, and a declined request keeps the proof on the device with nothing on record", async () => {
+    const { queue, queueStore, simulateSend } = setUpPair();
+    let declining = true;
+    const { sender, requests } = passkey(() => declining);
+    const context = { transactionSender: sender, explicit: true };
+
+    const declined = await queue.processTogether("proof", "send", context, BUDGET);
+    expect(declined.lead.success).toBe(false);
+    expect(requests).toEqual([["attachEvidence", "submitForConfirmation"]]);
+    for (const id of ["proof", "send"]) {
+      const kept = await queueStore.getJob(id);
+      expect(kept?.synced).toBe(false);
+      expect(hasRecordedSend(kept!)).toBe(false);
+      // Not asked again until the person sends it.
+      expect(kept?.meta?.requiresExplicitSend).toBe(true);
+    }
+
+    declining = false;
+    const sent = await queue.processTogether("proof", "send", context, BUDGET);
+    expect([sent.lead.success, sent.follower.success]).toEqual([true, true]);
+    expect(requests).toHaveLength(2);
+    expect(await queueStore.getJob("proof")).toBeUndefined();
+    expect(await queueStore.getJob("send")).toBeUndefined();
+    // The send was never simulated on its own, ahead of its proof.
+    expect(simulateSend).not.toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "submitForConfirmation" })
+    );
   });
 });
 

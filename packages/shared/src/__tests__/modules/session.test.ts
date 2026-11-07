@@ -75,7 +75,11 @@ import {
   setStoredProfileAddress,
   getStoredOriginalAccountAddress,
 } from "../../modules/auth/session";
-import { LEGACY_PASSKEY_PROFILE, PILOT_PASSKEY_PROFILE } from "../../modules/auth/account-profile";
+import {
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+} from "../../modules/auth/account-profile";
 
 // ============================================================================
 // TESTS
@@ -133,6 +137,21 @@ describe("modules/auth/session", () => {
       expect(
         getStoredProfileAddress(PILOT_PASSKEY_PROFILE, { ...credential, signingId: "AQID" })
       ).toBeNull();
+    });
+
+    it("persists a beta-created profile independently of the legacy default", () => {
+      setStoredCredential(credential);
+      setStoredProfileAddress(
+        KERNEL_033_PASSKEY_PROFILE,
+        credential,
+        pilot,
+        "greengoods.app",
+        "ada"
+      );
+      setStoredAccountProfile(KERNEL_033_PASSKEY_PROFILE);
+      expect(getStoredAccountProfile()).toBe(KERNEL_033_PASSKEY_PROFILE);
+      expect(getStoredProfileAddress(KERNEL_033_PASSKEY_PROFILE, credential)).toBe(pilot);
+      expect(getStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential)).toBeNull();
     });
 
     it("fails closed for unknown profile metadata without changing it into legacy", () => {

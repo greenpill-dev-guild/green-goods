@@ -13,7 +13,8 @@ const PASSKEY_CREDENTIAL_COLUMNS = `
   rpId TEXT NOT NULL,
   origin TEXT NOT NULL,
   source TEXT NOT NULL DEFAULT 'registered',
-  createdAt TEXT NOT NULL`;
+  createdAt TEXT NOT NULL,
+  accountProfile TEXT NOT NULL DEFAULT 'kernel-0.3.1-legacy'`;
 
 export function initSchema(db: Database): void {
   db.run(`
@@ -77,6 +78,18 @@ export function initSchema(db: Database): void {
     `);
   db.run(`CREATE TABLE IF NOT EXISTS passkey_credentials (${PASSKEY_CREDENTIAL_COLUMNS})`);
   db.run(`
+      CREATE TABLE IF NOT EXISTS hosted_passkey_display_names (
+        chainId INTEGER NOT NULL,
+        address TEXT NOT NULL,
+        userName TEXT NOT NULL,
+        PRIMARY KEY (chainId, address, userName)
+      )
+    `);
+  db.run(`
+      CREATE INDEX IF NOT EXISTS idx_hosted_passkey_display_names_username
+      ON hosted_passkey_display_names(chainId, userName)
+    `);
+  db.run(`
       CREATE TABLE IF NOT EXISTS passkey_registration_challenges (
         challenge TEXT PRIMARY KEY,
         userName TEXT NOT NULL,
@@ -88,6 +101,9 @@ export function initSchema(db: Database): void {
     `);
   ensureColumn(db, "passkey_credentials", "credentialKey", "TEXT");
   ensureColumn(db, "passkey_credentials", "source", "TEXT NOT NULL DEFAULT 'registered'");
+  for (const table of ["passkey_credentials", "passkey_registration_challenges"] as const) {
+    ensureColumn(db, table, "accountProfile", "TEXT NOT NULL DEFAULT 'kernel-0.3.1-legacy'");
+  }
   ensureColumn(
     db,
     "passkey_registration_challenges",
@@ -306,7 +322,7 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
   );
-  db.run("PRAGMA user_version = 9");
+  db.run("PRAGMA user_version = 10");
 }
 
 function ensureColumn(
@@ -350,9 +366,9 @@ function keyPasskeysByAccount(db: Database): void {
     db.run(`CREATE TABLE passkey_credentials_by_account (${PASSKEY_CREDENTIAL_COLUMNS})`);
     db.run(`
       INSERT INTO passkey_credentials_by_account
-        (userName, credentialId, credentialKey, publicKey, rpId, origin, source, createdAt)
+        (userName, credentialId, credentialKey, publicKey, rpId, origin, source, createdAt, accountProfile)
       SELECT userName, credentialId, COALESCE(credentialKey, credentialId), publicKey, rpId,
-        origin, source, createdAt
+        origin, source, createdAt, accountProfile
       FROM passkey_credentials
     `);
     db.run("DROP TABLE passkey_credentials");

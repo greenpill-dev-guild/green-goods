@@ -1,7 +1,8 @@
 import { useIntl } from "react-intl";
-import { EditorialPrimaryButton } from "@/components/Public/atoms";
+import { EditorialGhostLink, EditorialPrimaryButton } from "@/components/Public/atoms";
 import { PublicStatement } from "@/components/Public/PublicStatement";
 import type { RecoveryScreenProps } from "./ErrorRecovery";
+import { recoveryCopy } from "./recoveryCopy";
 
 /**
  * A reporting ceremony page that failed, under its focused bar and in the website's voice
@@ -39,9 +40,14 @@ export function CeremonyPageError({ offline, onReload }: RecoveryScreenProps) {
               })
         }
         action={
-          <EditorialPrimaryButton onClick={onReload}>
-            {formatMessage({ id: "app.screenError.reload", defaultMessage: "Reload" })}
-          </EditorialPrimaryButton>
+          <div className="flex flex-wrap gap-3">
+            <EditorialPrimaryButton onClick={onReload}>
+              {formatMessage({ id: "app.screenError.reload", defaultMessage: "Reload" })}
+            </EditorialPrimaryButton>
+            <EditorialGhostLink to="/" reloadDocument>
+              {recoveryCopy().homepage}
+            </EditorialGhostLink>
+          </div>
         }
       />
     </div>

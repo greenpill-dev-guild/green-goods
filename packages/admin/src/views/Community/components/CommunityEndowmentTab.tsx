@@ -1,3 +1,4 @@
+import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
@@ -44,31 +45,25 @@ export function CommunityEndowmentTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.endowment.status" })}
               </AdminCardTitle>
-              {/* A plain label and value, one line per asset held: amounts of
-                  different assets never add up (D14). */}
-              <div>
-                <p className="type-meta-sm text-text-sub">
-                  {formatMessage({ id: "app.treasury.totalValueLocked" })}
-                </p>
-                {!hasVaults ? (
-                  <p className="mt-1 type-title-sm font-semibold text-text-strong">
-                    {formatMessage({ id: "app.garden.detail.community.noVault" })}
-                  </p>
-                ) : shownAssets.length === 0 ? (
-                  <p className="mt-1 type-title-sm font-semibold text-text-strong">0</p>
-                ) : (
-                  <ul className="mt-1 space-y-0.5">
-                    {shownAssets.map((entry) => (
-                      <li
-                        key={entry.asset}
-                        className="type-title-sm font-semibold tabular-nums text-text-strong"
-                      >
-                        {formatTokenAmount(entry.amount, entry.decimals, 4, locale)} {entry.symbol}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <StatTile
+                label={formatMessage({ id: "app.treasury.totalValueLocked" })}
+                value={
+                  !hasVaults ? (
+                    formatMessage({ id: "app.garden.detail.community.noVault" })
+                  ) : shownAssets.length === 0 ? (
+                    "0"
+                  ) : (
+                    <span className="block space-y-1">
+                      {shownAssets.map((entry) => (
+                        <span className="block" key={entry.asset}>
+                          {formatTokenAmount(entry.amount, entry.decimals, 4, locale)}{" "}
+                          {entry.symbol}
+                        </span>
+                      ))}
+                    </span>
+                  )
+                }
+              />
               <FactList frame="inset">
                 <FactRow
                   label={formatMessage({ id: "app.treasury.totalHarvests" })}

@@ -63,6 +63,10 @@ export class FakeAgent {
   recoveryCode = "271828";
   /** Outcome POSTs to lose before they reach the Agent, as a dropped connection would. */
   dropOutcomes = 0;
+  /** The browser's session has ended, so a refreshed tab finds nothing to resume. */
+  accessEnded = false;
+  /** Answers a refreshed tab's session lookup once this settles, as a slow connection would. */
+  accessReply: Promise<void> = Promise.resolve();
   grant: GrantView | null = null;
   dropGrantApprovals = 0;
   activationStarted = false;
@@ -156,7 +160,9 @@ export class FakeAgent {
       return ok(this.challenge());
     }
     if (method === "POST" && path === "/access") return ok(this.access());
-    if (method === "GET" && path === "/access/current") return ok(this.access());
+    if (method === "GET" && path === "/access/current") {
+      return this.accessEnded ? refuse("access_required", 401) : ok(this.access());
+    }
     if (path.endsWith("/activation") && this.grant) {
       if (method === "POST") this.activationStarted = true;
       return this.activationStarted
@@ -269,6 +275,7 @@ export class FakeAgent {
       this.dropGrantApprovals -= 1;
       throw new TypeError("Failed to fetch");
     }
+    if (path === "/access/current") await this.accessReply;
     const { status, value } = this.route(init.method ?? "GET", path, body);
     return new Response(JSON.stringify(value), { status });
   }

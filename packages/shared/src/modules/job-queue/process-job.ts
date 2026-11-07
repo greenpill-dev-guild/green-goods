@@ -1,3 +1,4 @@
+import { BundleIncompleteError } from "../transactions/batch-types";
 import type { TransactionSender, TransactionSendOptions } from "../transactions/types";
 import {
   acquireWorkJobs,
@@ -272,6 +273,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = deps.clock.now() - startedAt;
       if (errorMessage === "submission-ownership-changed")
+        return { success: false, error: errorMessage, skipped: true };
+      // Its partner in a request that goes only whole never came, so this was never tried.
+      if (error instanceof BundleIncompleteError)
         return { success: false, error: errorMessage, skipped: true };
       if (error instanceof WorkTransactionReverted) {
         await deps.store.markJobTerminalFailed(jobId, errorMessage);

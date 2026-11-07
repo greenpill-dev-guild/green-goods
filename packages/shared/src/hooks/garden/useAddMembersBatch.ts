@@ -28,6 +28,7 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { applyOptimisticUpdate, resetRoleHatAnswers } from "./gardenRosterCache";
+import { runGardenRoleWrites } from "./gardenRoleWriteQueue";
 import { useHeldBatches } from "./useHeldBatches";
 
 interface AddMembersRequest {
@@ -113,26 +114,47 @@ export function useAddMembersBatch(gardenId: string) {
   const add = useMutation({
     onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
     mutationFn: async ({ rows, onLanded }: AddMembersRequest): Promise<AddMembersOutcome> => {
-      try {
-        return await addGardenMembersBatch({ ...batchInput(), rail: rail!, rows, onLanded });
-      } catch (error) {
-        return {
-          added: [],
-          alreadyHeld: [],
-          refused: [],
-          notSent: [...rows],
-          notBatchable: [],
-          unknown: [],
-          failure: error,
+      return runGardenRoleWrites(queryClient, chainId, gardenId, rows, async () => {
+        // A group's start is reported as it goes out, so a tab that closes then still has one for the
+        // success a later read reports. Each row starts once.
+        const started = new Set<string>();
+        const start = (tried: readonly GardenMemberRow[]) => {
+          for (const row of tried) {
+            const key = `${row.address.toLowerCase()}:${row.role}`;
+            if (started.has(key)) continue;
+            started.add(key);
+            trackStarted(row);
+          }
         };
-      }
+        let outcome: AddMembersOutcome;
+        try {
+          outcome = await addGardenMembersBatch({
+            ...batchInput(),
+            rail: rail!,
+            rows,
+            onLanded,
+            onSending: start,
+          });
+        } catch (error) {
+          outcome = {
+            added: [],
+            alreadyHeld: [],
+            refused: [],
+            notSent: [...rows],
+            notBatchable: [],
+            unknown: [],
+            failure: error,
+          };
+        }
+        // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
+        // no attempt, and a list past its ceilings has not been tried yet.
+        start([...outcome.added, ...outcome.unknown, ...outcome.refused, ...outcome.notSent]);
+        landRows([...outcome.added, ...outcome.alreadyHeld]);
+        return outcome;
+      });
     },
     onSuccess: (outcome) => {
-      landRows([...outcome.added, ...outcome.alreadyHeld]);
-      // Only what this path tried, as `createGardenOperation` does: a role the chain already has is
-      // no attempt, and a list past its ceilings has not been tried yet.
       const { added, unknown, refused, notSent, notBatchable, failure } = outcome;
-      for (const row of [...added, ...unknown, ...refused, ...notSent]) trackStarted(row);
       for (const { transactionHash, ...row } of added) trackAdded(row, transactionHash);
       for (const { reason, ...row } of refused) trackFailed(row, reason);
       const stoppedBy = failure ? parseContractError(failure).message : "Not sent";
@@ -163,11 +185,13 @@ export function useAddMembersBatch(gardenId: string) {
     read: (shown) => readAddMembersHold(batchInput(), shown),
     moveOn: (hold) => moveOnFromAddMembersHold(batchInput(), hold),
     onSaved: (saved) => {
-      landRows(saved);
-      for (const { transactionHash, ...row } of saved) {
-        if (transactionHash) trackAdded(row, transactionHash);
-      }
-      announceAdded(saved.length);
+      return runGardenRoleWrites(queryClient, chainId, gardenId, saved, async () => {
+        landRows(saved);
+        for (const { transactionHash, ...row } of saved) {
+          if (transactionHash) trackAdded(row, transactionHash);
+        }
+        announceAdded(saved.length);
+      });
     },
     onError: (error) => handleError(error, { authMode: rail, gardenAddress }),
   });

@@ -5,7 +5,7 @@ slug: /community/steward-guide/funding-and-governance
 description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the dashboard does not offer yet."
 audience: steward
 owner: docs
-last_verified: 2026-10-25
+last_verified: "2026-11-02"
 feature_status: Live
 goal: "Let a steward look after the garden's shared fund and endowment, and set honest expectations with gardeners and funders."
 difficulty: "advanced"
@@ -32,6 +32,7 @@ source_of_truth:
   - packages/contracts/deployments/42220-settlement-safes.json
   - packages/contracts/deployments/100-pilot-downstream.json
   - packages/shared/src/modules/commitment-pooling/service-access-live-config.ts
+  - packages/shared/src/modules/commitment-pooling/service-issuer-live-config.ts
   - docs/releases/2.0.0/README.md
   - packages/contracts/src/modules/CookieJar.sol
   - packages/contracts/src/modules/Octant.sol
@@ -46,16 +47,15 @@ keywords:
   - payouts
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Manage Garden Funding
 
 A garden can hold money in two ways. This page explains both, shows what you can do with each from the dashboard, and is plain about what is not there yet. Everything here is in the **Community** workspace.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-cookie-jars.webp" alt="The Cookie Jars card with two jars, WETH and DAI. Each shows its Jar Balance, a Per-claim limit and a Withdrawal cooldown with an Edit link beside each, the line 4 yield payouts so far, and the buttons Deposit and Claim. Both jars are marked Active, and the DAI jar also carries a Limit too low label" loading="eager" width="2000" height="736" />
-  <figcaption>Each jar shows its balance, claim limit and cooldown.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-cookie-jars.webp" alt="The Cookie Jars card with two jars, WETH and DAI. Each shows its Jar Balance, a Per-claim limit and a Withdrawal cooldown with an Edit link beside each, the line 4 yield payouts so far, and the buttons Deposit and Claim. Both jars are marked Active, and the DAI jar also carries a Limit too low label" loading="eager" width="2000" height="736" className="gg-figure">
+
+Each jar shows its balance, claim limit and cooldown.
+
+</GuideImage>
 
 ## The two funds
 
@@ -86,7 +86,6 @@ G$ for promises lives on the Celo network, in the garden's own Celo account. Tha
 ## Look after the shared fund
 
 Open **Community** and choose the **Payouts** tab. The **Cookie Jars** card shows each jar's balance, its per-claim limit, and its cooldown.
-
 
 ### How claims work
 
@@ -119,11 +118,11 @@ Stewards are gardeners too. Tap **Claim**, choose the jar, enter how much and th
 
 Open **Community** and choose the **Endowment** tab. There is one card for each kind of token the endowment holds. Each shows **Net deposited**, **Unharvested impact yield**, the number of **Depositors**, and the **Harvest count**.
 
+<GuideImage src="/img/screenshots/guide-garden-endowment.webp" alt="A DAI endowment card shows 250 DAI net deposited, 4 DAI accruing, three depositors and two harvests." loading="lazy" width="464" height="353" className="gg-figure" maxWidth="480px">
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/guide-garden-endowment.webp" alt="A DAI endowment card shows 250 DAI net deposited, 4 DAI accruing, three depositors and two harvests." loading="lazy" width="464" height="353" />
-  <figcaption>Each token has its own balance and yield.</figcaption>
-</figure>
+Each token has its own balance and yield.
+
+</GuideImage>
 
 ### Move the earnings to the garden
 
@@ -141,11 +140,11 @@ Small amounts wait. If the card says an amount "is waiting until the minimum is 
 
 The dashboard shows the split and has no control for changing it.
 
+<GuideImage src="/img/screenshots/guide-garden-distribution.webp" alt="An example distribution result reports DAI allocated to the Cookie Jar, hypercert funding and protocol treasury." loading="lazy" width="464" height="210" className="gg-figure" maxWidth="480px">
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/guide-garden-distribution.webp" alt="An example distribution result reports DAI allocated to the Cookie Jar, hypercert funding and protocol treasury." loading="lazy" width="464" height="210" />
-  <figcaption>Check the recorded distribution result, not only the submitted transaction.</figcaption>
-</figure>
+Check the recorded distribution result, not only the submitted transaction.
+
+</GuideImage>
 
 ### Deposit or withdraw your own money
 
@@ -176,7 +175,7 @@ Say these plainly when your community asks.
 - **Creating or pausing a shared fund.** A garden's jars are created with the garden.
 - **Paying a gardener when work is approved.** Approval and payment are separate. Nothing is paid automatically.
 - **Borrowing and repaying through the pool.** A borrow-and-repay companion to promises has been designed, but no app offers it.
-- **Service vouchers.** Tech and Sun Hub is preparing a pilot of service vouchers with Cosmo-Local Credit. Its contracts were deployed on 24 October 2026, paused and with no vouchers issued, and issuer terms and activation were still pending on 25 October 2026. The app does not use them yet, so nobody can earn, buy or redeem a voucher through Green Goods.
+- **Service vouchers.** These are a pilot between two issuers, Green Goods and Tech and Sun Hub, run with Cosmo-Local Credit. Other gardens cannot issue vouchers or publish voucher offers through Green Goods. The pilot's contracts have been running since 25 October 2026, and on 27 October each issuer published its offers as promises in its own garden. Only members of those two gardens, the Green Goods Community Garden and TAS HUB, can request an offer in the app. The pilot is still being set up: Tech and Sun has not yet confirmed its terms and capacity as its own.
 
 ## Money promises to avoid
 

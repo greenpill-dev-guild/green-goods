@@ -180,7 +180,9 @@
       "build",
       "check:search-index",
       "audit",
-      "typecheck"
+      "typecheck",
+      "cms:dev",
+      "cms:build"
     ]
   },
   "exceptions": []

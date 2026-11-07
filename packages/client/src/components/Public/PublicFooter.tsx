@@ -8,8 +8,8 @@ interface FooterLink {
   defaultLabel: string;
 }
 
-// Only the project's outside homes. The site's own routes are the header's job
-// (DESIGN.browser.md § Compact utility footer).
+// Site navigation belongs in the header. Privacy and human contact stay
+// discoverable here alongside the project's outside homes.
 const FOOTER_LINKS: readonly FooterLink[] = [
   {
     href: "https://x.com/greengoodsapp",
@@ -27,6 +27,9 @@ const FOOTER_LINKS: readonly FooterLink[] = [
     defaultLabel: "GitHub",
   },
   { href: "https://docs.greengoods.app", labelId: "public.footer.docs", defaultLabel: "Docs" },
+  { href: "/privacy", labelId: "public.footer.privacy", defaultLabel: "Privacy" },
+  { href: "/terms", labelId: "public.footer.terms", defaultLabel: "Terms of Use" },
+  { href: "/contact", labelId: "public.footer.contact", defaultLabel: "Contact" },
 ] as const;
 
 export type PublicFooterVariant = "default" | "soil";
@@ -39,7 +42,7 @@ interface PublicFooterProps {
  * PublicFooter — compact utility footer for every public-browser page.
  *
  * Single row at desktop with a small wordmark, restored provenance line, and
- * right-aligned links to Twitter, LinkedIn, GitHub, and Docs. Stacks gracefully on
+ * right-aligned social, documentation, privacy and contact links. Stacks gracefully on
  * mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the
  * footer stays quiet.
  *
@@ -53,6 +56,12 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
   const currentYear = new Date().getFullYear();
 
   const isSoil = variant === "soil";
+  const linkClassName = cn(
+    "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+    isSoil
+      ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
+      : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
+  );
 
   return (
     <footer
@@ -102,22 +111,23 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
             defaultMessage: "Footer links",
           })}
         >
-          {FOOTER_LINKS.map(({ href, labelId, defaultLabel }) => (
-            <a
-              key={href}
-              href={href}
-              target="_blank"
-              rel="noreferrer noopener"
-              className={cn(
-                "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                isSoil
-                  ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
-                  : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
-              )}
-            >
-              {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-            </a>
-          ))}
+          {FOOTER_LINKS.map(({ href, labelId, defaultLabel }) =>
+            href.startsWith("/") ? (
+              <Link key={href} to={href} viewTransition className={linkClassName}>
+                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+              </Link>
+            ) : (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={linkClassName}
+              >
+                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+              </a>
+            )
+          )}
         </nav>
       </div>
     </footer>

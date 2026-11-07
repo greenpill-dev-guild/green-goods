@@ -1,11 +1,12 @@
+import type { Address } from "../../types/domain";
 import type { PasskeyAccountProfileId } from "../auth/account-profile";
+import type { AtomicBatchAction } from "./types";
+
+export type { AtomicBatchAction };
 
 export type BatchRail = "passkey" | "wallet";
 
 export type DepositAction = "vault-deposit" | "jar-deposit";
-
-/** What a caller names when it asks a sender whether it may group its own writes. */
-export type AtomicBatchAction = "pool-setup";
 
 interface RailListing {
   rail: BatchRail;
@@ -23,18 +24,70 @@ interface RailListing {
 export type BatchEnablement = RailListing &
   (
     | {
-        action: "garden-settings" | "add-members" | "bulk-reviews" | AtomicBatchAction;
+        action:
+          | "garden-settings"
+          | "add-members"
+          | "bulk-reviews"
+          | "action-edit"
+          | "campaign-jar-sync"
+          | "karma-reconcile"
+          | AtomicBatchAction;
         asset?: never;
       }
-    | { action: DepositAction; asset: string }
+    | { action: DepositAction; asset: Address }
   );
 
 /**
  * What may send as one batch. `getBatchCapability` only checks an encoding, so a listing waits for
- * a live batch on that rail, account profile, and chain. Removing one stops new batches; a save
- * already sent still recovers, because recovery never reads this list.
+ * a live batch on that rail, account profile, and chain. A passkey signs only on a deployed host,
+ * so its entry reaches beta through `develop` and is proven there before a release carries it.
+ * Removing one stops new batches; a save already sent still recovers, because recovery never reads
+ * this list.
  */
-export const ENABLED_BATCHES: readonly BatchEnablement[] = [];
+export const ENABLED_BATCHES: readonly BatchEnablement[] = [
+  { action: "garden-settings", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  { action: "pool-setup", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  { action: "add-members", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  { action: "add-members", rail: "wallet", profile: "contract-call", chainId: 42161 },
+  { action: "bulk-reviews", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  { action: "bulk-reviews", rail: "wallet", profile: "contract-call", chainId: 42161 },
+  { action: "reward-edits", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  {
+    action: "commitment-creations",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+  },
+  { action: "proof-and-send", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  {
+    action: "vault-deposit",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "jar-deposit",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "vault-deposit",
+    rail: "wallet",
+    profile: "sequential",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "jar-deposit",
+    rail: "wallet",
+    profile: "sequential",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+];
 
 export function isBatchEnabled(
   query: BatchEnablement,

@@ -26,6 +26,7 @@ export type PublicRouteClass =
   | "join_request_resolve"
   | "passkey_registration"
   | "passkey_lookup"
+  | "passkey_display_names"
   | "webhook_pre"
   | "webhook_post"
   | "messaging_bootstrap"
@@ -82,6 +83,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   // A sign-up is two calls, and an onboarding session can put a whole group behind one address.
   passkey_registration: { limit: 120, windowMs: 10 * 60 * 1000 },
   passkey_lookup: { limit: 240, windowMs: 10 * 60 * 1000 },
+  passkey_display_names: { limit: 240, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
   // Agent reporting ceremonies: link openers and proofs are per IP; reads and commands per session.

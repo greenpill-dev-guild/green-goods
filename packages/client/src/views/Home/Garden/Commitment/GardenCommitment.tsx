@@ -5,7 +5,7 @@ import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useD
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
 import type { Address } from "@green-goods/shared/types/domain";
 import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -19,36 +19,30 @@ import { CommitmentEvidence } from "./CommitmentEvidence";
 import { CommitmentHistory } from "./CommitmentHistory";
 import { CommitmentIdentity } from "./CommitmentIdentity";
 import { CommitmentPlace } from "./CommitmentPlace";
+import { stewardsForPromiseGarden } from "./CommitmentPeople";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet } from "./ConfirmSheet";
 import { addProofReach, commitmentActForKind, takeUpMode } from "./commitmentActions";
+import { parseCommitmentId, savedCommitmentForRoute } from "./commitmentRoute";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
+import { SavedCommitment } from "./SavedCommitment";
 import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
 import { serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
-
-function parseCommitmentId(value: string | undefined): bigint | null {
-  if (!value) return null;
-  try {
-    return BigInt(value);
-  } catch {
-    return null;
-  }
-}
+import { TakeUpReviewSheet } from "./TakeUpReviewSheet";
 
 /** Errors are already surfaced by the shared mutation hooks; the view keeps its current surface. */
 function keepSurfaceOnFailure(promise: Promise<unknown>): void {
   void promise.catch(() => undefined);
 }
 
-/** One commitment rendered from the shared reader, selector, queue, and mutation contract. */
 export function GardenCommitment() {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -82,9 +76,10 @@ export function GardenCommitment() {
   // Member take-up follows consent; earned requests still need the stewards' ordinary decisions.
   const ordinary = serviceRead === "ordinary";
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  // Report a Problem opens the same sheet on its Not yet form.
   const [confirmOpen, setConfirmOpen] = useState<"kept" | "report" | null>(null);
   const [contextOpen, setContextOpen] = useState(false);
+  const [takeUpReviewOpen, setTakeUpReviewOpen] = useState(false);
+  useEffect(() => setTakeUpReviewOpen(false), [controller.viewer, commitmentId]);
   const [notYetFailed, setNotYetFailed] = useState(false);
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number | null } | true | null
@@ -96,6 +91,12 @@ export function GardenCommitment() {
       return navigate("../..", { relative: "path", replace: true });
     navigate(-1);
   };
+
+  const saved =
+    !controller.isOnline && !controller.detail
+      ? savedCommitmentForRoute(location.state, gardenAddress, commitmentId)
+      : null;
+  if (saved) return <SavedCommitment commitment={saved} onBack={back} />;
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {
@@ -155,15 +156,7 @@ export function GardenCommitment() {
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
-  // The stewards of the promise's own garden, so whoever confirms it carries the
-  // role. The page holds the route garden's record, which is the pool's garden
-  // unless the promise sits in another garden's pool.
-  const poolGarden = controller.pool?.garden;
-  const gardenRecord = controller.roles.garden;
-  const stewards =
-    poolGarden && gardenRecord && gardenRecord.id.toLowerCase() === poolGarden.toLowerCase()
-      ? gardenRecord.stewards
-      : [];
+  const stewards = stewardsForPromiseGarden(controller.pool?.garden, controller.roles.garden);
   const openWorkSubmission = (requirementIndex: number, actionUID: number | bigint) => {
     const parsedActionUID = Number(actionUID);
     if (!controller.routeGarden || !controller.workGarden || !Number.isSafeInteger(parsedActionUID))
@@ -197,7 +190,7 @@ export function GardenCommitment() {
       case "takeUp":
       case "askToTakeUp":
         if (controller.claimNeedsContext) setContextOpen(true);
-        else keepSurfaceOnFailure(controller.acts.claimPersonal());
+        else setTakeUpReviewOpen(true);
         return;
       case "sendForConfirmation":
         keepSurfaceOnFailure(controller.acts.sendForConfirmation());
@@ -349,7 +342,7 @@ export function GardenCommitment() {
             isDeciding={controller.isSending}
             onAskAgain={() => {
               if (controller.claimNeedsContext) setContextOpen(true);
-              else keepSurfaceOnFailure(controller.acts.claimPersonal());
+              else setTakeUpReviewOpen(true);
             }}
             onContinue={claim}
             onBackToBrowse={() => navigate("../..", { relative: "path" })}
@@ -416,7 +409,14 @@ export function GardenCommitment() {
           bookingLines={service.bookingLines}
         />
       </CommitmentDetailShell>
-
+      <TakeUpReviewSheet
+        open={ordinary && takeUpReviewOpen}
+        onOpenChange={setTakeUpReviewOpen}
+        controller={controller}
+        identity={{ commitment, contributors, band, units, stewards }}
+        heading={heading}
+        canConfirm={Boolean(mode || controller.canAskAgain)}
+      />
       <ConfirmSheet
         open={confirmOpen !== null}
         onOpenChange={(open) => !open && setConfirmOpen(null)}

@@ -2,8 +2,10 @@ import type { Hex } from "viem";
 import { getEASConfig } from "../../config/blockchain";
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { EASABI } from "../../utils/blockchain/contracts";
-import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { decodeWorkApprovalData, encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
 import { buildQueuedAttestationsCall } from "../../utils/eas/transaction-builder";
+import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
 import { verifyByReading } from "../transactions/batch-hold";
 import {
@@ -44,6 +46,7 @@ function reviewCall(decisions: readonly ReviewDecision[], chainId: number): Cont
       schema: eas.WORK_APPROVAL.uid as Hex,
       gardenAddress: gardenAddress as Hex,
       attestationData: encodeWorkApprovalData(draft, chainId),
+      gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
     }))
   );
   return { ...call, abi: onlyFunction(EASABI, call.functionName) };
@@ -86,6 +89,22 @@ function sentFor(prepared: PreparedBatch, id: string): SentRequest | undefined {
     : (args[0] as readonly { data: readonly SentRequest[] }[])[0].data[index];
 }
 
+/** What a prepared call decided for this work, so a send proven later shows that decision. */
+export function decisionSent(
+  prepared: PreparedBatch,
+  id: string
+): Pick<WorkApprovalDraft, "approved" | "feedback"> | undefined {
+  const sent = sentFor(prepared, id);
+  if (!sent) return undefined;
+  try {
+    return decodeWorkApprovalData(sent.data, prepared.chainId);
+  } catch (error) {
+    // It still landed: the work then waits for the indexer to say what it decided.
+    logger.warn("Could not read back a sent review's decision", { source: "review-batch", error });
+    return undefined;
+  }
+}
+
 export interface ReviewBatchInput {
   batches: BatchOperations;
   scope: BatchScope;
@@ -104,17 +123,24 @@ export function verifyReviews(
   { chain, retryMs }: Pick<ReviewBatchInput, "chain" | "retryMs">,
   attestationUIDs: Map<string, Hex>
 ): VerifyBatchItems {
-  const read = new Map<Hex, readonly ReviewAttestation[]>();
+  // Decisions are checked at once, so they share one read of each transaction.
+  const read = new Map<Hex, Promise<readonly ReviewAttestation[] | null>>();
+  const attestationsIn = (hash: Hex) => {
+    const reading = read.get(hash);
+    if (reading) return reading;
+    // A node can answer from before the receipt's block, so a failed read is another try.
+    const next = chain.attestationsIn(hash).catch(() => {
+      read.delete(hash);
+      return null;
+    });
+    read.set(hash, next);
+    return next;
+  };
   const madeIn = async (receipts: readonly BatchReceipt[]) => {
     const found = await Promise.all(
-      receipts.map(async ({ transactionHash: hash }) => {
-        // A node can answer from before the receipt's block, so a failed read is another try.
-        const made = read.get(hash) ?? (await chain.attestationsIn(hash).catch(() => null));
-        if (made) read.set(hash, made);
-        return made ?? [];
-      })
+      receipts.map(({ transactionHash }) => attestationsIn(transactionHash))
     );
-    return found.flat();
+    return found.flatMap((made) => made ?? []);
   };
   return (execution) => {
     const isProven = async (id: string) => {
@@ -139,6 +165,8 @@ export function verifyReviews(
 
 export interface SentReview {
   workUID: string;
+  approved: boolean;
+  feedback?: string;
   attestationUID: Hex;
   transactionHash: Hex;
 }
@@ -214,6 +242,11 @@ export async function sendReviewBatch(
     fresh.slice(index * perSignature, (index + 1) * perSignature)
   );
 
+  // A decision the resolver refuses on its own is reported as refused, never also as unsent.
+  const unrefused = () => {
+    const refusedIds = new Set(outcome.refused.map(({ workUID }) => workUID));
+    return uids(fresh).filter((workUID) => !refusedIds.has(workUID));
+  };
   for (const group of groups) {
     const refusal = await chain.refusal(reviewCall(group, scope.chainId), scope.account);
     if (!refusal) continue;
@@ -226,14 +259,11 @@ export async function sendReviewBatch(
     const refused = alone.flatMap(({ workUID, reason }) => (reason ? [{ workUID, reason }] : []));
     // The call is refused but no single decision is: nothing is sent blind.
     if (refused.length === 0) {
-      return { ...outcome, notSent: uids(fresh), failure: new Error(refusal) };
+      return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
     }
     outcome.refused.push(...refused);
   }
-  if (outcome.refused.length > 0) {
-    const refusedIds = new Set(outcome.refused.map(({ workUID }) => workUID));
-    return { ...outcome, notSent: uids(fresh).filter((workUID) => !refusedIds.has(workUID)) };
-  }
+  if (outcome.refused.length > 0) return { ...outcome, notSent: unrefused() };
 
   for (const [index, group] of groups.entries()) {
     const remaining = uids(groups.slice(index).flat());
@@ -263,8 +293,10 @@ export async function sendReviewBatch(
       });
       if (record.status === "confirmed") {
         const transactionHash = record.receipts[0].transactionHash;
-        const sent = group.map(({ draft: { workUID } }) => ({
+        const sent = group.map(({ draft: { workUID, approved, feedback } }) => ({
           workUID,
+          approved,
+          feedback,
           attestationUID: attestationUIDs.get(itemId(workUID)) as Hex,
           transactionHash,
         }));

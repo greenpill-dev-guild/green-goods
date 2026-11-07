@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { isAddress } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
+import type { GardenListPages } from "../../types/garden-detail";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
@@ -30,7 +31,14 @@ export function useGardenDetailData(id: string | undefined) {
   const queryClient = useQueryClient();
   const gardenPermissions = useGardenPermissions();
 
-  const { data: gardens = [], isLoading: fetching, error, isError } = useGardens();
+  const {
+    data: gardens = [],
+    isLoading: fetching,
+    isFetching: gardensFetching,
+    error,
+    isError,
+    refetch: refreshGardens,
+  } = useGardens();
   const {
     eligibleGardens,
     hasStaleBaseList,
@@ -49,7 +57,9 @@ export function useGardenDetailData(id: string | undefined) {
   const {
     data: assessmentList = [],
     isLoading: fetchingAssessments,
+    isFetching: assessmentsFetching,
     error: assessmentsError,
+    refetch: refreshAssessments,
   } = useGardenAssessments(id);
 
   const assessments = assessmentList;
@@ -96,7 +106,12 @@ export function useGardenDetailData(id: string | undefined) {
   const { community, isLoading: communityLoading } = useGardenCommunity(id as Address | undefined, {
     enabled: Boolean(id),
   });
-  const { pools } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
+  const {
+    pools,
+    poolsRead,
+    poolsUnread,
+    refetch: refetchPools,
+  } = useGardenPools(id as Address | undefined, { enabled: Boolean(id) });
   const { mutate: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
@@ -104,7 +119,11 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     atLimit: allocationsAtLimit,
     isLoading: allocationsLoading,
+    data: allocationsRead,
+    isError: allocationsFailed,
   } = useYieldAllocations(id as Address | undefined, { enabled: Boolean(id) });
+  // A failed first read leaves no history at all, which must not read as none paid out.
+  const allocationsUnread = allocationsFailed && allocationsRead === undefined;
 
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
@@ -134,6 +153,9 @@ export function useGardenDetailData(id: string | undefined) {
     error: worksError,
     refetch: refreshWorks,
     hasOlderWork,
+    loadOlderWork,
+    isLoadingOlder: isLoadingOlderWork,
+    lastSuccessfulRefresh: worksReadAt,
     hasUnknownStatuses,
     readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
@@ -144,11 +166,20 @@ export function useGardenDetailData(id: string | undefined) {
   // before it started.
   const worksCurrent =
     !hasUnknownStatuses && !isWorksError && !isWorksPaused && worksReadThisSession;
-  const gardenReviewQueue = useGardenReviewQueue(gardenId, { enabled: hasOlderWork });
+  // A widened read in flight has nothing older to show until it lands, so its
+  // rows are not the whole history yet.
+  const olderWorkUnread = hasOlderWork || isLoadingOlderWork;
+  const gardenReviewQueue = useGardenReviewQueue(gardenId, { enabled: olderWorkUnread });
   const {
     hypercerts,
     isLoading: hypercertsLoading,
+    isFetching: hypercertsFetching,
     error: hypercertsError,
+    refetch: refetchHypercerts,
+    hasOlder: hasOlderHypercerts,
+    loadOlder: loadOlderHypercerts,
+    isLoadingOlder: isLoadingOlderHypercerts,
+    listReadAt: hypercertsReadAt,
   } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
@@ -184,6 +215,9 @@ export function useGardenDetailData(id: string | undefined) {
     isBaseListError: isError || eligibleGardenBaseListError,
     fetching,
     error,
+    // A failed garden list read fails every Hub tab, so their refresh rereads it.
+    refreshGardens,
+    gardensFetching,
     gardenId,
     canManage,
     canReview,
@@ -191,7 +225,9 @@ export function useGardenDetailData(id: string | undefined) {
     isOwner,
     assessments,
     fetchingAssessments,
+    assessmentsFetching,
     assessmentsError,
+    refreshAssessments,
     roleMembers,
     roleActions,
     isOperationLoading,
@@ -199,6 +235,9 @@ export function useGardenDetailData(id: string | undefined) {
     communityLoading,
     weightSchemeLabel,
     pools,
+    poolsRead,
+    poolsUnread,
+    rereadPools: () => void refetchPools(),
     createPools,
     isCreatingPools,
     gardenVaults,
@@ -212,25 +251,44 @@ export function useGardenDetailData(id: string | undefined) {
     allocations,
     allocationsAtLimit,
     allocationsLoading,
+    allocationsUnread,
     works,
     // Current rows prove a stall alone only when they hold the whole history.
-    worksComplete: worksCurrent && !hasOlderWork,
+    worksComplete: worksCurrent && !olderWorkUnread,
     // Past the newest page, the garden's whole queue speaks for older work.
     // Beside its list, the rows add only decisions, which stay true however old
     // the rows are. Beside a floor, their own waiting work counts too, so it
     // must be current.
     gardenReviewQueue:
-      hasOlderWork && (gardenReviewQueue?.waiting !== null || worksCurrent)
+      olderWorkUnread && (gardenReviewQueue?.waiting !== null || worksCurrent)
         ? gardenReviewQueue
         : undefined,
     worksLoading,
     worksFetching,
     isWorksError,
+    isWorksPaused,
     worksError,
     refreshWorks,
+    // Each list holds the garden's newest page until a steward asks for older records.
+    workPages: {
+      hasOlder: hasOlderWork,
+      loadOlder: loadOlderWork,
+      reread: refreshWorks,
+      isLoadingOlder: isLoadingOlderWork,
+      readAt: worksReadAt,
+    } satisfies GardenListPages,
     hypercerts,
     hypercertsLoading,
+    hypercertsFetching,
     hypercertsError,
+    refreshHypercerts: refetchHypercerts,
+    hypercertPages: {
+      hasOlder: hasOlderHypercerts,
+      loadOlder: loadOlderHypercerts,
+      reread: () => void refetchHypercerts(),
+      isLoadingOlder: isLoadingOlderHypercerts,
+      readAt: hypercertsReadAt,
+    } satisfies GardenListPages,
     convictionStrategyCount: convictionStrategies.length,
     scheduleBackgroundRefetch,
   };

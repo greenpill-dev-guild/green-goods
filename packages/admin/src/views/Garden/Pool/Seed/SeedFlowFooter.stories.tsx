@@ -109,6 +109,9 @@ export const SendingOneByOne: Story = { args: { phase: "sending", mode: "one-by-
 
 export const Declined: Story = { args: { phase: "declined" } };
 
+/** Past one signature's ceilings, nothing went out, and the note counts one prompt per promise. */
+export const PastCeilings: Story = { args: { phase: "overCeilings", mode: "one-by-one" } };
+
 /** The answer was lost, so Try Again finishes whatever the chain already has. */
 export const Unconfirmed: Story = { args: { phase: "unconfirmed" } };
 

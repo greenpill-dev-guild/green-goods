@@ -142,14 +142,14 @@ export const AccountInfo: React.FC = () => {
                   {
                     id: "app.identity.passkeyRecovery.device",
                     defaultMessage:
-                      "To sign in on another device, choose “Already have an account?” and enter {name}.",
+                      "To sign in on another device, choose “Continue with Passkey” and enter {name}.",
                   },
                   { name: userName }
                 )
               : intl.formatMessage({
                   id: "app.identity.passkeyRecovery.deviceGeneric",
                   defaultMessage:
-                    "To sign in on another device, choose “Already have an account?” and enter your username.",
+                    "To sign in on another device, choose “Continue with Passkey” and enter your username.",
                 })}
           </p>
           <p>

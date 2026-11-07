@@ -1,6 +1,6 @@
 import { type CaptureResult, posthog } from "posthog-js";
 import { flushCrashReports } from "./crash-reports";
-import { restoreExceptionTopLevelProps } from "./posthog";
+import { getAppContext, restoreExceptionTopLevelProps, track } from "./posthog";
 import { isReportingCeremonyPath, redactPrivatePaths } from "./private-paths";
 import { registerTelemetrySink } from "./telemetry-sink";
 
@@ -164,6 +164,19 @@ export function initializePostHog(apiKey: string): void {
   // that wait for a connection go out when it returns. The listener lives as long as the page.
   if (initializedKey === null && typeof window !== "undefined") {
     window.addEventListener("online", flushCrashReports);
+    if (document.documentElement.dataset.bootPresentation === "pwa") {
+      const trackStartupReady = () => {
+        const mark = performance.getEntriesByName("gg-pwa-startup-ready", "mark")[0];
+        if (mark)
+          track("pwa_startup_ready", {
+            ...getAppContext(),
+            duration_ms: Math.round(mark.startTime),
+          });
+      };
+      // Auth can become ready before or after the analytics transport connects.
+      if (performance.getEntriesByName("gg-pwa-startup-ready", "mark").length) trackStartupReady();
+      else window.addEventListener("gg-pwa-startup-ready", trackStartupReady, { once: true });
+    }
   }
   initializedKey = apiKey;
   flushCrashReports();

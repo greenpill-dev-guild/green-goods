@@ -334,11 +334,13 @@ export const AppProvider = ({
             // the app is installed and usable but not yet offline-capable,
             // which is what the plain install message already says.
             showInstallToast(status === "ready" ? "offlineReady" : "installed");
+            track("pwa_install_offline_readiness", { status });
           });
         })
         .catch((error: unknown) => {
           logger.warn("[App] Offline-ready shell tier could not be requested", { error });
           showInstallToast("installed");
+          track("pwa_install_offline_readiness", { status: "failed" });
         });
       track("App Installed", {
         platform,

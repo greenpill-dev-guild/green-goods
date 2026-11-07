@@ -364,7 +364,8 @@ export function serviceBookingView(
       n,
       back: count(refund),
       rel: count(release),
-      d1: deadline !== null ? date(deadline) : "",
+      // Deadline sentences supply their own stop; fact rows keep the localized abbreviation.
+      d1: deadline !== null ? date(deadline).replace(/\.$/u, "") : "",
       done: daysDone ?? 0,
       of: accessDays,
     },

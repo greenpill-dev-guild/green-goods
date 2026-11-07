@@ -89,7 +89,7 @@ vi.mock("../../modules/app/error-tracking", () => ({
 
 import type { WorkApprovalDraft } from "../../types/domain";
 import { Confidence, VerificationMethod } from "../../types/domain";
-import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { decodeWorkApprovalData, encodeWorkApprovalData } from "../../utils/eas/encoders";
 
 const ABI_PARAMETERS = [
   { name: "actionUID", type: "uint256" },
@@ -194,5 +194,15 @@ describe("encodeWorkApprovalData", () => {
         11155111
       )
     ).toThrow();
+  });
+});
+
+describe("decodeWorkApprovalData", () => {
+  it("reads back the decision and feedback from the schema's own encoding", () => {
+    expect(decodeWorkApprovalData(RICH_ENCODING, 11155111)).toEqual({
+      approved: true,
+      feedback: "Good evidence — verified on site",
+    });
+    expect(decodeWorkApprovalData(REJECTION_ENCODING, "42161")).toEqual({ approved: false });
   });
 });

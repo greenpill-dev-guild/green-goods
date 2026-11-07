@@ -91,7 +91,9 @@ export function WorkbenchCard({
           {title}
         </h3>
         {description ? (
-          <p className="mt-1 line-clamp-2 type-body text-text-sub">{description}</p>
+          <p className="mt-1 line-clamp-2 type-body text-text-sub" title={description}>
+            {description}
+          </p>
         ) : null}
       </div>
 

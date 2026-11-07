@@ -99,8 +99,9 @@ export function CommunityMembersDialogs({
 
   return (
     <>
+      {/* Each restarts when the garden changes; sibling keys must still differ. */}
       <ManageMembersDialog
-        key={garden.id}
+        key={`manage-members:${garden.id}`}
         open={manageMembersOpen}
         initialSearch={initialMemberAddress}
         onClose={closeMembersModal}
@@ -113,7 +114,7 @@ export function CommunityMembersDialogs({
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
-          key={garden.id}
+          key={`add-members:${garden.id}`}
           open={canManage && (addMemberItemOpen || addingFromManage)}
           closesByRoute={addMemberItemOpen}
           onClose={closeAddMembers}

@@ -77,7 +77,7 @@ function MembersHarness({
 }
 
 describe("CommunityMembersTab", () => {
-  it("counts people, not role seats, and leaves role counts to the filter", () => {
+  it("keeps filters count-free, hides empty roles and puts each role count in the Members rail", () => {
     // The steward also evaluates: three role seats held by two people (DL-049).
     const roleSummary = storyRoleSummary.map((entry) =>
       entry.role === "evaluator" ? { ...entry, count: 1 } : entry
@@ -88,17 +88,23 @@ describe("CommunityMembersTab", () => {
       </MemoryRouter>
     );
 
-    const total = screen
-      .getByText("Total members")
-      .closest('[data-component="FactRow"]') as HTMLElement;
-    expect(within(total).getByText("2")).toBeInTheDocument();
-    // The total is the directory's own header line, not a number on the tab (DL-134).
-    const directory = screen.getByRole("heading", { name: "Member directory" });
-    expect(directory.nextElementSibling).toHaveTextContent(/^2 members$/);
-    // The rail no longer repeats role counts or the header's member actions (D9, D15).
-    expect(screen.queryByRole("link", { name: /^Stewards/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Manage Members" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Evaluators \(1\)/ })).toBeInTheDocument();
+    const rail = screen
+      .getByRole("heading", { name: "Members" })
+      .closest<HTMLElement>('[data-component="AdminCard"]')!;
+    for (const entry of roleSummary) {
+      const rows = rail.querySelectorAll('[data-component="FactRow"]');
+      const row = [...rows][roleSummary.indexOf(entry)] as HTMLElement;
+      expect(within(row).getByText(String(entry.count))).toBeInTheDocument();
+    }
+    const directory = screen.getByRole("heading", { name: "Member Directory" });
+    expect(directory.nextElementSibling).toHaveTextContent("2 members");
+    expect(screen.getByRole("button", { name: "Evaluators" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /\(\d+\)/ })).not.toBeInTheDocument();
+    for (const entry of roleSummary.filter((entry) => entry.count === 0)) {
+      expect(
+        screen.queryByRole("button", { name: new RegExp(entry.role, "i") })
+      ).not.toBeInTheDocument();
+    }
   });
 
   it("opens Manage Roles with the clicked member already filtered", async () => {

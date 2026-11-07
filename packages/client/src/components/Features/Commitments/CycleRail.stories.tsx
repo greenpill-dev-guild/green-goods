@@ -4,8 +4,10 @@ import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
   JOURNEY_CYCLES,
+  SEED_SWAP,
 } from "../../../../../shared/.storybook/clientJourneyFixtures";
 import { withSeededQueryClient } from "../../../../../shared/.storybook/decorators";
+import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { CycleRail } from "./CycleRail";
 
 /**
@@ -67,6 +69,26 @@ export const SeasonSelected: Story = {
     await expect(pressed).toHaveAttribute("aria-pressed", "true");
     pressed.click();
     await expect(args.onSelect).toHaveBeenCalledWith(null);
+  },
+};
+
+/**
+ * A season past its end that no steward has closed reads Ended on its card, though the chain
+ * still holds it Open (DL-162); the campaign still running stays Open.
+ */
+export const SeasonEnded: Story = {
+  args: {
+    cycles: [
+      { ...AUTUMN_PLANTING, startTime: BigInt(daysAgo(60)), endTime: BigInt(daysAgo(26)) },
+      SEED_SWAP,
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const season = canvas.getByRole("button", { name: "Show promises in Autumn Planting 2026" });
+    await expect(within(season).getByText("Ended")).toBeVisible();
+    const campaign = canvas.getByRole("button", { name: "Show promises in Seed Swap Weekend" });
+    await expect(within(campaign).getByText("Open")).toBeVisible();
   },
 };
 

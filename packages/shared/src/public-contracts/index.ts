@@ -57,12 +57,21 @@ export type {
 
 export {
   isRegistrablePasskeyName,
+  displayablePasskeyName,
+  PASSKEY_DISPLAY_NAMES_METHOD,
+  PASSKEY_DISPLAY_NAMES_BATCH_LIMIT,
   normalizePasskeyName,
   PASSKEY_NAME_MAX_LENGTH,
   PASSKEY_NAME_MIN_LENGTH,
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
   type PasskeyDirectoryCredential,
+  LEGACY_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+  PASSKEY_ACCOUNT_PROFILE_VERSION,
+  getDefaultPasskeyRegistrationProfile,
+  parsePasskeyDirectoryAccountProfile,
+  type PasskeyDirectoryAccountProfile,
 } from "./passkey-directory";
 
 export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passkey-assertion";

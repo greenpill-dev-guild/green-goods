@@ -55,7 +55,7 @@ export const Populated: Story = {};
 export const ReadOnly: Story = { args: { canManage: false } };
 
 /**
- * The steward also evaluates: the filter counts two roles for one person, and
+ * The steward also evaluates: the rail counts two roles for one person, and
  * the total counts people, so it still reads 2 (DL-049).
  */
 export const PersonWithSeveralRoles: Story = {

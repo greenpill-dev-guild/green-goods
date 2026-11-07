@@ -1,5 +1,10 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { StatTile } from "@green-goods/shared/components/Cards/StatTile";
+import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
+import { Fragment, useState } from "react";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
 import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
@@ -16,9 +21,9 @@ import type {
   GardenRange,
 } from "@green-goods/shared/types/garden-detail";
 import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
-import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
+import { RiLeafLine, RiGroupLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { localizeWorkActivityTitle } from "@/components/Action/actionDisplay";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
@@ -29,10 +34,13 @@ import {
   RANGE_OPTIONS,
   SECTION_CARD_MIN_HEIGHT,
 } from "./gardenDetail.constants";
+import { GardenSetupPanel } from "./GardenSetupCard";
 import { KarmaIntegrationPanel } from "./KarmaIntegrationPanel";
 
 export interface OverviewTabProps {
   chainId?: number;
+  gardenId: string;
+  canManage: boolean;
   mode: "health" | "activity";
   section: string | undefined;
   selectedItem: string | undefined;
@@ -67,6 +75,8 @@ export interface OverviewTabProps {
 
 export function OverviewTab({
   chainId,
+  gardenId,
+  canManage,
   mode,
   section,
   selectedItem,
@@ -90,16 +100,17 @@ export function OverviewTab({
   karmaIntegration,
 }: OverviewTabProps) {
   const intl = useIntl();
+  const navigate = useNavigate();
+  const [page, setPage] = useState({ filter: activityFilter, limit: 20 });
+  const activityEventLimit = page.filter === activityFilter ? page.limit : 20;
   const { formatMessage } = intl;
   const formatActivityTime = useLocalizedRelativeTime();
-  const formatEventTime = useLocalizedEventTime();
   // Below the 1024px desktop split, alerts lead the stacked main column;
   // the rest of the rail still follows (DL-051).
   const alertsLead = !useMediaQuery("(min-width: 1024px)");
   const alertsCard = <GardenAlertsCard alerts={overviewAlerts} />;
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
-  const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
   const actions = useActionsByUID(
     filteredActivityEvents
       .slice(0, activityEventLimit)
@@ -115,6 +126,32 @@ export function OverviewTab({
           event.hasGeneratedTitle
         )
       : event.title;
+
+  const dayLabel = (event: GardenActivityEvent) =>
+    event.timestamp
+      ? intl.formatDate(event.timestamp, { dateStyle: "full" })
+      : formatMessage({ id: "app.garden.detail.activity.unknownDay" });
+
+  const keyMetrics = (
+    <FactList frame="inset">
+      <FactRow
+        label={formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
+        value={pendingWorkCount}
+      />
+      <FactRow
+        label={formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
+        value={assessmentCount30d}
+      />
+      <FactRow
+        label={formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
+        value={gardenerCount}
+      />
+      <FactRow
+        label={formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
+        value={treasuryBalance}
+      />
+    </FactList>
+  );
 
   if (isLoading) {
     return (
@@ -189,32 +226,20 @@ export function OverviewTab({
               </AdminCardHeader>
               <AdminCardBody>
                 {/* Grouped by proximity inside the one card, not boxed again (D33). */}
-                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-live="polite">
-                  <div>
-                    <dt className="type-label-sm text-text-soft">
-                      {formatMessage({
-                        id: "app.garden.detail.metric.lastActivity",
-                        defaultMessage: "Last Activity",
-                      })}
-                    </dt>
-                    <dd className="mt-1 font-heading type-title-md font-semibold text-text-strong">
-                      {filteredActivityEvents.length > 0
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-live="polite">
+                  <StatTile
+                    label={formatMessage({ id: "app.garden.detail.metric.lastActivity" })}
+                    value={
+                      filteredActivityEvents.length > 0
                         ? formatActivityTime(filteredActivityEvents[0].timestamp)
-                        : formatMessage({
-                            id: "app.garden.detail.metric.noActivity",
-                            defaultMessage: "No activity yet",
-                          })}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="type-label-sm text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
-                    </dt>
-                    <dd className="mt-1 font-heading type-title-md font-semibold text-text-strong">
-                      {approvedInRangeCount}
-                    </dd>
-                    <dd className="mt-0.5 type-meta text-text-soft">
-                      {impactVelocityDelta === 0
+                        : formatMessage({ id: "app.garden.detail.metric.noActivity" })
+                    }
+                  />
+                  <StatTile
+                    label={formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
+                    value={intl.formatNumber(approvedInRangeCount)}
+                    delta={
+                      impactVelocityDelta === 0
                         ? formatMessage({ id: "app.garden.detail.metric.noDelta" })
                         : formatMessage(
                             {
@@ -224,36 +249,15 @@ export function OverviewTab({
                                   : "app.garden.detail.metric.deltaDown",
                             },
                             { count: Math.abs(impactVelocityDelta) }
-                          )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="type-label-sm text-text-soft">
-                      {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
-                    </dt>
-                    <dd className="mt-1 font-heading type-title-md font-semibold text-text-strong">
-                      {formatReviewTime(medianReviewLatencyMs, formatMessage)}
-                    </dd>
-                  </div>
-                </dl>
-                <FactList frame="inset" className="mt-4 border-t border-stroke-soft">
-                  <FactRow
-                    label={formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                    value={pendingWorkCount}
+                          )
+                    }
                   />
-                  <FactRow
-                    label={formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                    value={assessmentCount30d}
+                  <StatTile
+                    label={formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
+                    value={formatReviewTime(medianReviewLatencyMs, formatMessage)}
                   />
-                  <FactRow
-                    label={formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                    value={gardenerCount}
-                  />
-                  <FactRow
-                    label={formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                    value={treasuryBalance}
-                  />
-                </FactList>
+                </div>
+                <div className="mt-4 border-t border-stroke-soft">{keyMetrics}</div>
               </AdminCardBody>
             </AdminCard>
           )}
@@ -305,162 +309,185 @@ export function OverviewTab({
                   />
                 ) : (
                   <>
-                    <div className="relative space-y-3 before:absolute before:bottom-3 before:left-[0.6875rem] before:top-3 before:w-px before:bg-stroke-soft">
-                      {filteredActivityEvents.slice(0, activityEventLimit).map((event) => {
-                        const categoryBorder =
-                          event.category === "work"
-                            ? "border-l-success-base"
-                            : event.category === "impact"
-                              ? "border-l-information-base"
-                              : "border-l-warning-base";
-                        const activityTitle = formatActivityTitle(event);
-                        return (
-                          <div
-                            key={event.id}
-                            className={`relative ml-6 rounded-lg border border-stroke-soft border-l-4 ${categoryBorder} bg-bg-weak p-3 ${
-                              selectedItem && event.itemId === selectedItem
-                                ? "ring-1 ring-primary-base"
-                                : ""
-                            }`}
-                          >
-                            <span
-                              className="absolute -left-[1.95rem] top-4 h-3 w-3 rounded-full border-2 border-bg-white bg-primary-base"
-                              aria-hidden="true"
-                            />
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <p className="mb-1 inline-flex rounded-full bg-bg-soft px-2 py-0.5 type-meta-sm font-medium text-text-sub">
-                                  {formatMessage({
-                                    id: `app.garden.detail.activity.filter.${event.category}`,
-                                  })}
-                                </p>
-                                <p
-                                  className="truncate type-body font-medium text-text-strong"
-                                  title={activityTitle}
-                                >
-                                  {activityTitle}
-                                </p>
-                                <p className="mt-1 max-w-prose type-meta text-text-soft">
-                                  {event.description}
-                                </p>
-                              </div>
-                              <span className="type-meta text-text-soft">
-                                {formatEventTime(event.timestamp)}
-                              </span>
-                            </div>
-                            {event.href ? (
-                              <div className="mt-2">
-                                <Link
-                                  to={event.href}
-                                  onClick={() => {
-                                    if (
-                                      event.category === "work" &&
-                                      (!event.href || event.href.startsWith("/hub/work/"))
-                                    ) {
-                                      openSection("work", "work", event.itemId);
-                                    }
-                                  }}
-                                  className="inline-flex items-center gap-1 type-label-sm text-primary-base hover:text-primary-darker"
-                                >
-                                  {formatMessage({ id: "app.garden.detail.activity.view" })}
-                                  <RiArrowRightSLine className="h-4 w-4" />
-                                </Link>
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
+                    <p className="mb-3 type-meta text-text-soft">
+                      {formatMessage(
+                        { id: "app.garden.detail.activity.timezone" },
+                        {
+                          zone:
+                            new Intl.DateTimeFormat(intl.locale, { timeZoneName: "short" })
+                              .formatToParts()
+                              .find((part) => part.type === "timeZoneName")?.value ?? "",
+                        }
+                      )}
+                    </p>
+                    <div className="space-y-3">
+                      {filteredActivityEvents
+                        .slice(0, activityEventLimit)
+                        .map((event, index, events) => {
+                          const day = dayLabel(event);
+                          const previousDay = index > 0 ? dayLabel(events[index - 1]) : null;
+                          return (
+                            <Fragment key={event.id}>
+                              {day !== previousDay ? (
+                                <h3 className="type-label-sm font-medium text-text-sub">{day}</h3>
+                              ) : null}
+                              <ActivityItem
+                                event={event}
+                                title={formatActivityTitle(event)}
+                                selected={Boolean(selectedItem && event.itemId === selectedItem)}
+                                showCategory={activityFilter === "all"}
+                                onOpen={event.href ? () => navigate(event.href!) : undefined}
+                              />
+                            </Fragment>
+                          );
+                        })}
                     </div>
-                    {filteredActivityEvents.length > activityEventLimit && (
+                    {filteredActivityEvents.length > activityEventLimit ? (
                       <Button
                         type="button"
                         emphasis="tertiary"
-                        size="compact"
-                        onClick={() => openSection("overview", "activity")}
+                        size="sm"
+                        onClick={() =>
+                          setPage({ filter: activityFilter, limit: activityEventLimit + 20 })
+                        }
                         className="mt-3 w-full"
                       >
-                        {formatMessage(
-                          {
-                            id: "app.garden.detail.activity.viewAll",
-                            defaultMessage: "View all {count} activities",
-                          },
-                          { count: filteredActivityEvents.length }
-                        )}
+                        {formatMessage({ id: "app.common.showMore" })}
                       </Button>
-                    )}
+                    ) : null}
                   </>
                 )}
               </AdminCardBody>
             </AdminCard>
           )}
+          {isHealthMode ? (
+            <AdminCard density="none">
+              <AdminCardHeader>
+                <AdminCardTitle>
+                  {formatMessage({ id: "app.garden.detail.activity.title" })}
+                </AdminCardTitle>
+              </AdminCardHeader>
+              <AdminCardBody className="space-y-3">
+                {filteredActivityEvents.slice(0, 3).map((event) => (
+                  <ActivityItem
+                    key={event.id}
+                    event={event}
+                    title={formatActivityTitle(event)}
+                    showCategory={false}
+                    onOpen={event.href ? () => navigate(event.href!) : undefined}
+                  />
+                ))}
+                {filteredActivityEvents.length === 0 ? (
+                  <p className="type-body text-text-soft">
+                    {formatMessage({ id: "app.garden.detail.activity.empty" })}
+                  </p>
+                ) : null}
+                <Button
+                  type="button"
+                  emphasis="tertiary"
+                  size="sm"
+                  onClick={() => openSection("overview", "activity")}
+                >
+                  {formatMessage(
+                    { id: "app.garden.detail.activity.viewAll" },
+                    { count: filteredActivityEvents.length }
+                  )}
+                </Button>
+              </AdminCardBody>
+            </AdminCard>
+          ) : null}
         </div>
 
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
             {alertsLead ? null : alertsCard}
 
+            {isHealthMode ? <GardenSetupPanel gardenId={gardenId} canManage={canManage} /> : null}
             {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
 
-            <AdminCard density="none">
-              <AdminCardHeader>
-                <AdminCardTitle>
-                  {isActivityMode
-                    ? formatMessage({ id: "app.garden.detail.keyMetrics" })
-                    : formatMessage({ id: "app.garden.detail.activity.title" })}
-                </AdminCardTitle>
-              </AdminCardHeader>
-              <AdminCardBody className="space-y-2">
-                {isActivityMode ? (
-                  <FactList frame="inset">
-                    <FactRow
-                      label={formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                      value={pendingWorkCount}
-                    />
-                    <FactRow
-                      label={formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                      value={assessmentCount30d}
-                    />
-                    <FactRow
-                      label={formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                      value={gardenerCount}
-                    />
-                    <FactRow
-                      label={formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                      value={treasuryBalance}
-                    />
-                  </FactList>
-                ) : (
-                  <>
-                    {filteredActivityEvents.slice(0, 3).map((event) => {
-                      const activityTitle = formatActivityTitle(event);
-                      return (
-                        <button
-                          key={event.id}
-                          type="button"
-                          className="garden-stat-row w-full text-left"
-                          onClick={() => openSection("overview", "activity", event.itemId)}
-                        >
-                          <span className="min-w-0 truncate garden-stat-row-label">
-                            {activityTitle}
-                          </span>
-                          <span className="shrink-0 garden-stat-row-value">
-                            {formatEventTime(event.timestamp)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {filteredActivityEvents.length === 0 ? (
-                      <p className="type-body text-text-soft">
-                        {formatMessage({ id: "app.garden.detail.activity.empty" })}
-                      </p>
-                    ) : null}
-                  </>
-                )}
-              </AdminCardBody>
-            </AdminCard>
+            {isActivityMode ? (
+              <AdminCard density="none">
+                <AdminCardHeader>
+                  <AdminCardTitle>
+                    {formatMessage({ id: "app.garden.detail.keyMetrics" })}
+                  </AdminCardTitle>
+                </AdminCardHeader>
+                <AdminCardBody className="space-y-2">{keyMetrics}</AdminCardBody>
+              </AdminCard>
+            ) : null}
           </div>
         </aside>
       </div>
     </div>
+  );
+}
+
+function ActivityItem({
+  event,
+  title,
+  selected,
+  showCategory,
+  onOpen,
+}: {
+  event: GardenActivityEvent;
+  title: string;
+  selected?: boolean;
+  showCategory: boolean;
+  onOpen?: () => void;
+}) {
+  const intl = useIntl();
+  const actor = useAddressDisplayName(event.actorAddress, { list: true });
+  const formatEventTime = useLocalizedEventTime();
+  const Icon =
+    event.category === "work"
+      ? RiLeafLine
+      : event.category === "community"
+        ? RiGroupLine
+        : RiTimeLine;
+  const moment = formatEventTime(event.timestamp);
+  const category = showCategory
+    ? intl.formatMessage({ id: `app.garden.detail.activity.filter.${event.category}` })
+    : undefined;
+  const detail = actor.display ? `${actor.display} · ${event.description}` : event.description;
+  return (
+    <ItemRow
+      title={title}
+      selected={selected}
+      onOpen={onOpen}
+      lead={
+        event.category === "work" && event.photo
+          ? {
+              kind: "photo",
+              src: resolveIPFSUrl(event.photo),
+              mark: category,
+            }
+          : {
+              kind: "icon",
+              icon: <Icon />,
+              mark: category,
+            }
+      }
+      status={
+        event.statusLabel
+          ? { label: event.statusLabel, tone: event.statusTone ?? "neutral" }
+          : undefined
+      }
+      details={
+        moment
+          ? [
+              detail,
+              {
+                text: moment,
+                tone: "soft",
+                dateTime: new Date(event.timestamp).toISOString(),
+                title: intl.formatDate(event.timestamp, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }),
+              },
+            ]
+          : [detail]
+      }
+    />
   );
 }

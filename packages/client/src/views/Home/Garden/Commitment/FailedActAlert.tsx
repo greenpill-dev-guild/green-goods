@@ -1,5 +1,7 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
+import { usePendingProofConsent } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
 import { jobQueue } from "@green-goods/shared/modules/job-queue/default-instance";
 import { useJobQueue } from "@green-goods/shared/providers/JobQueue";
 import { RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
@@ -93,6 +95,8 @@ export interface FailedActAlertProps {
  */
 export function FailedActAlert({ failed, onChanged }: FailedActAlertProps) {
   const { retryAndSend } = useJobQueue();
+  const needsConsent = failed?.reason === "uploadPolicyRequired";
+  const consent = usePendingProofConsent(needsConsent ? failed.jobId : undefined);
   const [busy, setBusy] = useState(false);
   const run = async (act: (jobId: string) => Promise<unknown>) => {
     if (!failed) return;
@@ -106,11 +110,18 @@ export function FailedActAlert({ failed, onChanged }: FailedActAlertProps) {
   };
 
   return (
-    <FailedActRow
-      failed={failed}
-      isBusy={busy}
-      onRetry={() => void run((jobId) => retryAndSend(jobId))}
-      onDiscard={() => void run((jobId) => jobQueue.discardJob(jobId))}
-    />
+    <>
+      <FailedActRow
+        failed={failed}
+        isBusy={busy}
+        onRetry={() =>
+          void run(async (jobId) => {
+            if (!needsConsent || (await consent.authorize())) await retryAndSend(jobId);
+          })
+        }
+        onDiscard={() => void run((jobId) => jobQueue.discardJob(jobId))}
+      />
+      <WorkUploadConsentDialog kind="evidence" prompt={consent.prompt} />
+    </>
   );
 }
