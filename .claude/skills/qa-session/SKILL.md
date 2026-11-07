@@ -27,7 +27,7 @@ duplicate them:
 | Locked design decisions (DL-NNN ledger, graduation ladder) | [`design/decision-log.md`](../design/decision-log.md) |
 | In-session fast validation rungs (QA Speed Mode) | [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) § Partial rungs |
 | Journey matrices, receipt fields, defect labels, evidence hierarchy | `docs/docs/builders/quality/product-experience-qa.mdx` |
-| Post-call report + fix slices for team calls (app + Meet notes → Linear) | [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine / `/qa-triage --call` |
+| Post-call report + fix slices for team calls (app + Meet notes → Linear) | [`/qa-triage --call`](../qa-triage/references/call-mode.md); `--call --unattended` when nobody will confirm, such as an automated pass |
 | Fix posture for any QA fix (history, seams, update-over-add) | [`.claude/context/qa.md § Fix posture`](../../context/qa.md) |
 | Pre-merge gate at close | [`ship`](../ship/SKILL.md) |
 
@@ -334,8 +334,8 @@ that walker's ports.
 need running per person. For a team call where walkers recorded app-only, the per-walker
 artifacts in this section do **not** apply — with no per-walker agent there is no OBS log,
 deferred handoff, or per-walker receipt to produce, and none should be fabricated. That call's
-close IS the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine or
-`/qa-triage --call`: it joins the app state with the Meet notes, and the Linear session report
+close IS [`/qa-triage --call`](../qa-triage/references/call-mode.md), attended or unattended: it
+joins the app state with the Meet notes, and the Linear session report
 plus slices are the close-out artifacts. Per-walker artifacts remain required only for walks an
 agent drove: each agent-driven walker still produces their own OBS log, deferred handoff, and
 receipt, because dispositions and fixes are theirs. The decision lock gate (Phase 4.4) runs
