@@ -4,7 +4,7 @@ Applies the research agenda edits ticked in the Linear document *Research agenda
 
 **When to use it:** At a Research cycle boundary (`review`), or whenever the Saturday research digest says accepted edits are waiting (`apply`).
 
-**What you get:** The agenda file updated with exactly the accepted edits, the edition bumped once with a change-log line, and the document's lines moved to Applied or Rejected; a review also leaves a dated *Delegated review* section in the document. The commit stays yours, or the session's after a review, and the steward approves the diff.
+**What you get:** The agenda file updated with exactly the accepted edits, the edition bumped once with a change-log line, and the document's lines moved to Applied or Rejected; a review also leaves a dated *Delegated review* section in the document. The commit stays yours; after a review the session makes the commit and the pull request when you ask, and the steward approves the diff.
 
 **How to invoke:** Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track.
 

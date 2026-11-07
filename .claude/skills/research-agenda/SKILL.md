@@ -66,22 +66,25 @@ loop closes in minutes instead of a memo read. The design lives in
 The delegated review the steward invokes at each Research cycle boundary. It settles every
 unticked line in the document by the rules below, puts the judgment calls to him, applies the
 result once and records what it did. A session runs it: the steward answers the round in that
-session, and the commit and the pull request are that session's.
+session, and the commit and the pull request are that session's to make when he asks.
 
 1. **Read.** Find the document and read the agenda (Procedure steps 1 and 2). Take every unticked
    line under *Proposed edits*, *Candidate questions* and *Candidate tracks*. Lines already ticked
    are `apply`'s input as they stand.
 2. **Classify** each line against the agenda as read. The first rule that fits decides:
-   1. **Rejected by rule**, with its reason, when the anchor no longer matches (the text the
+   1. **Already applied** when the line's new text is already in the agenda, because an earlier
+      run applied it and then failed to patch the document: it moves to *Applied* with no second
+      edition bump, as Procedure step 3 allows, and is never rejected for the anchor it replaced.
+   2. **Rejected by rule**, with its reason, when the anchor no longer matches (the text the
       edit replaces, or the item or bullet it extends, is not in the agenda exactly once), or when
       the line is state-only: read with its evidence, it says nothing beyond Linear state (a
       status, owner, due or target date, cycle or project membership), which Linear owns and the
       agenda never holds.
-   2. **To the steward** when an earlier review deferred the line (it carries a
+   3. **To the steward** when an earlier review deferred the line (it carries a
       `reviewed {date}: deferred` note), since lifting a deferral is his call and the round shows
       the condition it waits on; or when the line depends on another line that goes to him (it
       cites that line, or edits text that line changes), so the two are decided together.
-   3. **Accepted by rule** when the line is one of these three kinds and its new text carries no
+   4. **Accepted by rule** when the line is one of these three kinds and its new text carries no
       Linear state:
       - an **evidence append**: an `append` to an existing `Open` item or `Settled` bullet that
         adds a sourced fact and changes no word already there;
@@ -91,7 +94,7 @@ session, and the commit and the pull request are that session's.
         resolves;
       - an **`Open` item marked answered**: the item replaced with text that says it is answered
         and cites the source that answers it.
-   4. **To the steward**, everything else: a change to a track's `Stage`, `Horizon`, order (the
+   5. **To the steward**, everything else: a change to a track's `Stage`, `Horizon`, order (the
       at-a-glance table or *Why this order*), `Question.`, `Open` questions or `Implementable
       when` bars; every candidate question and candidate track; an anchor that brings a new
       subject into a track; a `Settled`, `Note`, `Why it matters` or watch-keyword change other
@@ -133,9 +136,10 @@ session, and the commit and the pull request are that session's.
    agenda change either way. A rerun of `review` is safe: `apply` is idempotent and the rules give
    the same answers, so only the steward's lines are asked again.
 6. **Hand off.** Validate as in Procedure step 6, name the agenda file, the edition and the
-   counts, and suggest `docs(routines): agenda v{n+1}, delegated review {date}`. The session
-   commits and opens the pull request under the `ship` skill, and the steward approves the diff
-   before it merges. Close with the cycle theme as one question when the new cycle has none; he sets it in Linear,
+   counts, and suggest `docs(routines): agenda v{n+1}, delegated review {date}`. The commit and
+   the pull request are the session's to make under the `ship` skill once the steward asks for
+   them; until then the hand-off ends at the suggestion. He approves the diff before it merges.
+   Close with the cycle theme as one question when the new cycle has none; he sets it in Linear,
    and the skill records nothing for it.
 
 With `--dry-run`, the review classifies every line, shows the round (answers are optional), and
