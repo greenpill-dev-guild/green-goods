@@ -4,11 +4,10 @@ Load only for `--call`; apply these deltas alongside the intake and filing phase
 
 ## Call mode (`--call`)
 
-The post-QA-call variant: same phases, three deltas. A run with nobody at the Phase 4 gate, such
-as an agent closing an automated QA pass, also loads
-[unattended-report.md](./unattended-report.md): it keeps this join, clustering and write order and
-replaces each gate decision with a conservative rule. One writer per session; the Phase 3b dedupe
-catches the other's records if both ran.
+The post-QA-call variant: same phases, three deltas. A run nobody will confirm, such as an agent
+closing an automated QA pass, also loads [unattended-report.md](./unattended-report.md): it keeps
+this join and clustering, replaces the Phase 4 and Phase 6 gates with conservative rules, and skips
+the QA Sheet. One writer per session; the Phase 3b dedupe catches the other's records if both ran.
 
 - **Phases 1-2** — the source is threefold: `bun run qa pull --slug <slug> --run <id>` (the QA
   app's verdicts and notes, exact Test IDs, from the run the call recorded into: the `run-N` id

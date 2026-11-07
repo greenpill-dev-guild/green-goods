@@ -24,7 +24,7 @@ The [bug-intake routine](../../../docs/routines/bug-intake.md) is the unattended
 | Local slug | Resume `tmp/qa-triage/<slug>/notes.md` and its recorded phase/state. |
 | `session:<YYYY-MM-DD>` | Load [intake Phase 1 step 0](./references/intake.md#phase-1--discover-read-only), then resume the routine-pre-staged batch at Phase 4 with its existing provenance and record shapes. |
 | `--call [<date>]` | Load [call-mode.md](./references/call-mode.md) before intake: join the QA run and meeting window, classify observations, and propose slices. |
-| `--call --unattended` | Load call-mode.md, then [unattended-report.md](./references/unattended-report.md), when nobody will confirm the proposals, such as an agent closing an automated QA pass. Its conservative rules replace the Phase 4 gate, and the run writes only the Linear session record. |
+| `--call --unattended` | Load call-mode.md, then [unattended-report.md](./references/unattended-report.md), when nobody will confirm the proposals, such as an agent closing an automated QA pass. Its rules replace the Phase 4 scope lock and the Phase 6 confirmation, skip the QA Sheet, and write only the Linear session record. |
 | `--fixture` | Load the fixture section in [intake.md](./references/intake.md#fixture-mode---fixture); use synthetic inputs without live probes or auxiliary extraction. |
 
 Flags compose with the selected mode: `--dry-run` prints payloads and retains scratch without

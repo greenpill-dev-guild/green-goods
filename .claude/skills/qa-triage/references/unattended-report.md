@@ -2,23 +2,32 @@
 
 Load this file after [call-mode.md](./call-mode.md) when nobody will confirm the run's proposals
 before it writes: an agent closing an automated QA pass, such as a Codex automation or a scheduled
-local job. Call mode's sources, join, clustering, templates and write order still apply. This file
-replaces each Phase 4 gate decision with a conservative rule and adds the checks and failure
-handling a run needs when nobody is watching. These rules ran as the `qa-call-report` cloud
-routine until 2026-11-07.
+local job. Call mode's sources, join, clustering and templates still apply. Both of the skill's
+gates change, so the run never waits for a reply: [Without a gate](#without-a-gate) replaces the
+Phase 4 scope lock, and the [privacy sweep](#privacy-sweep) and [write order](#write-order) replace
+the Phase 6 payload review and its `confirm`. This file also adds the checks and failure handling a
+run needs when nobody is watching. These rules ran as the `qa-call-report` cloud routine until
+2026-11-07.
 
 ## Limits
 
 - Write only to Linear: the session parent, its full-report document, the decisions child, slices,
   and comments on existing Issues. Never write QA Sheet rows, Customer Needs, GitHub Issues,
-  branches or pull requests.
+  branches or pull requests, and post nowhere else; the [summary](#summary) stays in the run's own
+  output.
+- Skip the QA Sheet entirely: intake Phase 0 steps 4 to 6 (find the Sheet, check its sharing, read
+  it), the Phase 3c and 3d Sheet scans, and the Phase 6 rows with their guided-paste fallback. The
+  Sheet's state can neither stop nor change an unattended run.
 - One writer per session. When `/qa-triage --call` or an earlier run already filed the session,
   reuse its parent and add only what is missing.
 - Never set `In Progress` or an assignee, and never set `Done` on a record with open work. The one
   exception is an all-pass parent (see [Write order](#write-order)).
 - Decisions in the report are not design policy. Locking one into the design decision log is a
   human step.
-- Every record the run writes carries `ai:routine`, the label for an unattended write.
+- Label each record by who started the run, per
+  [routing rule 5](../../../context/linear-routing-rules.md#invariant-rules). A scheduled
+  automation, such as a Codex automation or a cron job, writes as a routine and adds `ai:routine`.
+  A run a person started carries no `ai:*` label, like any interactive write.
 
 ## Before the run
 
@@ -30,23 +39,28 @@ routine until 2026-11-07.
   repository. Without it, report the failure; never write a notes-only report in its place.
 - Resolve the Product team, its workflow states, the release project and the active bounded
   projects by name, never by a hardcoded ID. Resolve the label families `protocol:green-goods`,
-  `package:*`, `activity:qa` and `ai:routine`, and resolve or create `source:qa-session` and
-  `session:<YYYY-MM-DD>`. Any other missing label stops the run with a failure report.
+  `package:*` and `activity:qa`, plus `ai:routine` for a scheduled run, and resolve or create
+  `source:qa-session` and `session:<YYYY-MM-DD>`. Any other missing label stops the run with a
+  failure report.
 - Send labels to `save_issue` as bare child names, such as
-  `["green-goods", "qa", "qa-session", "routine", "2026-09-02"]`. The `group:child` display form
-  is rejected, and one unresolvable entry files nothing.
+  `["green-goods", "qa", "qa-session", "2026-09-02"]`, adding `"routine"` for a scheduled run. The
+  `group:child` display form is rejected, and one unresolvable entry files nothing.
 
 ## Sources
 
-- **Notes, when there was a call.** Query Drive for `(title contains 'QA' or title contains 'Build
-  Sync') and title contains 'Notes by Gemini' and modifiedTime > '<24 hours ago, RFC 3339>' and
-  mimeType = 'application/vnd.google-apps.document'`. The connector accepts only `title`,
-  `fullText`, `mimeType` and `modifiedTime` terms; a `name` term reads as zero matches and would
-  silently drop the call's decisions. Take the newest document whose title names Green Goods or the
-  QA call, and list the others in the summary. Reject a document whose main topic is proposals,
-  grants, roadmaps or partnerships.
-- **No notes.** Continue app-only: the report says no meeting notes were found and drops the
-  `Decisions from the call` section. An automated pass with no call is app-only.
+- **Notes, when there was a call.** On a rerun, start from the Drive link in the existing parent's
+  source line. Otherwise query Drive for `(title contains 'QA' or title contains 'Build Sync') and
+  title contains 'Notes by Gemini' and modifiedTime > '<session date at 00:00 UTC, RFC 3339>' and
+  mimeType = 'application/vnd.google-apps.document'`, where the session date is the
+  `--call <date>` argument, or today without one, so a late run still finds that day's call. The
+  connector accepts only `title`, `fullText`, `mimeType` and `modifiedTime` terms; a `name` term
+  reads as zero matches and would silently drop the call's decisions. Keep the documents whose
+  header date is the session date, take the newest whose title names Green Goods or the QA call,
+  and list the others in the summary. Reject a document whose main topic is proposals, grants,
+  roadmaps or partnerships.
+- **No notes.** Continue app-only: the report says no meeting notes were found, names the query
+  window, and drops the `Decisions from the call` section. An automated pass with no call is
+  app-only.
 - **Session window.** Use [call mode's rule](./call-mode.md#session-window). An automated pass with
   no call uses the start and end it recorded for its own walk.
 - **Snapshot timing.** A pull taken before the padded window closes cannot hold later entries, and
@@ -128,12 +142,8 @@ failure.
 
 ## Summary
 
-End with one summary in the run's own output. Post it to Discord `#product` only when the runner
-holds `DISCORD_PRODUCT_CHANNEL_ID` and `DISCORD_BOT_TOKEN`, under the
-[channel guard](../../../../docs/routines/README.md#scope-discipline), and never to another
-channel. Build the JSON body with an encoder such as `jq -n --arg` and post it with plain `curl`,
-without `-L`, so the bot token is never forwarded. On Discord, start the message with
-`<@${DISCORD_USER_ID_AFO}>` when a slice was filed or anything failed.
+End with one summary in the run's own output, such as the automation's log or inbox item. It goes
+nowhere else: the Linear record is the run's only external write.
 
 ```text
 **🧪 QA session · {YYYY-MM-DD}**
@@ -146,6 +156,6 @@ Report: <{parent-url}> · {N} slices ({T} Todo · {B} Backlog){ · M follow-ups 
 {⚠ failures and enrichment flags, such as posthog: degraded}
 ```
 
-Leave count tables to the report. The lede may quote the `P0:` line of `report.public.md`, the only
-report text allowed on a public surface; never quote `report.md`. A run that wrote nothing because
-something broke still reports, failure first.
+Leave count tables to the report. The lede may quote the `P0:` line of `report.public.md`; never
+quote `report.md`, whose notes are attributed. A run that wrote nothing because something broke
+still reports, failure first.
