@@ -615,7 +615,9 @@ describe("presentation-specific boot fallback", () => {
 
     document.getElementById("root")?.append(document.createElement("main"));
     await vi.advanceTimersByTimeAsync(0);
+    expect(fallback).toHaveAttribute("data-state", "cleared");
 
+    await vi.advanceTimersByTimeAsync(200);
     expect(fallback).toHaveAttribute("hidden");
   });
 
@@ -694,8 +696,104 @@ describe("presentation-specific boot fallback", () => {
 
     clearFallback?.();
 
-    expect(fallback).toHaveAttribute("hidden");
+    // The scene fades out over the app, already drawn underneath, and then leaves the page.
     expect(fallback).toHaveAttribute("data-state", "cleared");
+    expect(fallback).toHaveAttribute("data-leaving");
+    expect(fallback).toHaveAttribute("aria-hidden", "true");
+    expect(fallback).not.toHaveAttribute("hidden");
+    expect(inlineStyle("boot-fallback-styles")).toMatch(
+      /#boot-fallback\[data-presentation="pwa"\]\[data-leaving\]\s*{\s*opacity:\s*0;\s*pointer-events:\s*none;/
+    );
+    vi.advanceTimersByTime(199);
+    expect(fallback).not.toHaveAttribute("hidden");
+    vi.advanceTimersByTime(1);
+    expect(fallback).toHaveAttribute("hidden");
+  });
+
+  it("fades over sign-in only once sign-in's own logo can paint", async () => {
+    const { clearFallback, fallback } = runController("pwa");
+    const logo = document.createElement("img");
+    logo.setAttribute("src", "/icon.png");
+    let decoded: () => void = () => {};
+    logo.decode = () =>
+      new Promise<void>((resolve) => {
+        decoded = resolve;
+      });
+    document.getElementById("root")?.append(logo);
+
+    clearFallback?.();
+    expect(fallback).toHaveAttribute("data-state", "cleared");
+    expect(fallback).not.toHaveAttribute("data-leaving");
+
+    decoded();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fallback).toHaveAttribute("data-leaving");
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fallback).toHaveAttribute("hidden");
+  });
+
+  it("waits no more than 400ms for sign-in's logo", () => {
+    const { clearFallback, fallback } = runController("pwa");
+    const logo = document.createElement("img");
+    logo.setAttribute("src", "/icon.png");
+    logo.decode = () => new Promise<void>(() => {});
+    document.getElementById("root")?.append(logo);
+
+    clearFallback?.();
+    vi.advanceTimersByTime(399);
+    expect(fallback).not.toHaveAttribute("data-leaving");
+    vi.advanceTimersByTime(1);
+    expect(fallback).toHaveAttribute("data-leaving");
+  });
+
+  it("shows the logo and line once the window holds still", () => {
+    const { pwa } = runController("pwa");
+
+    // Chrome resizes a reloading installed app as it starts drawing it under the
+    // system bars. The canvas is up at once; the logo waits for the window to settle.
+    expect(pwa).not.toHaveAttribute("hidden");
+    expect(pwa).not.toHaveAttribute("data-revealed");
+    vi.advanceTimersByTime(100);
+    window.dispatchEvent(new Event("resize"));
+    vi.advanceTimersByTime(149);
+    expect(pwa).not.toHaveAttribute("data-revealed");
+    vi.advanceTimersByTime(1);
+    expect(pwa).toHaveAttribute("data-revealed");
+  });
+
+  it("never holds the logo back past 600ms", () => {
+    const { pwa } = runController("pwa");
+
+    for (let elapsed = 0; elapsed < 600; elapsed += 100) {
+      expect(pwa).not.toHaveAttribute("data-revealed");
+      vi.advanceTimersByTime(100);
+      window.dispatchEvent(new Event("resize"));
+    }
+    expect(pwa).toHaveAttribute("data-revealed");
+  });
+
+  it("shows a startup failure at once", () => {
+    const { fallback, pwa } = runController("pwa");
+
+    window.dispatchEvent(new ErrorEvent("error", { error: new Error("startup failed") }));
+
+    expect(fallback).toHaveAttribute("data-state", "recovery");
+    expect(pwa).toHaveAttribute("data-revealed");
+    window.localStorage.removeItem("gg-crash-reports");
+  });
+
+  it("breathes the logo while the scene is busy, on the page's clock", () => {
+    const now = vi.spyOn(performance, "now").mockReturnValue(5000);
+    const { pwa } = runController("pwa");
+
+    expect(pwa).toHaveAttribute("aria-busy", "true");
+    // 5000ms into the page is 200ms into its third 2400ms breath.
+    expect(pwa.style.getPropertyValue("--boot-breathe-delay")).toBe("-200ms");
+
+    // Taking longer to load: the scene asks for a decision and stops breathing.
+    vi.advanceTimersByTime(4500);
+    expect(pwa).toHaveAttribute("aria-busy", "false");
+    now.mockRestore();
   });
 
   it("reveals React error recovery after a mounted PWA boot fails", () => {
@@ -705,6 +803,7 @@ describe("presentation-specific boot fallback", () => {
     markReactMounted?.();
     markBootFailed?.();
     markReactMounted?.();
+    vi.advanceTimersByTime(200);
 
     expect(fallback).toHaveAttribute("hidden");
     expect(fallback).toHaveAttribute("data-state", "cleared");
@@ -751,6 +850,7 @@ describe("presentation-specific boot fallback", () => {
     expect(fallback).toHaveAttribute("data-state", "loading");
 
     clearFallback?.();
+    vi.advanceTimersByTime(200);
     expect(fallback).toHaveAttribute("hidden");
     expect(fallback).toHaveAttribute("data-state", "cleared");
   });

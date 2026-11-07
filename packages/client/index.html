@@ -828,7 +828,15 @@
          when either side changes, so update both together. Mirrored sizes and the
          logo breakpoint use rem, as Tailwind does, so browser text settings
          scale both scenes together. Every slot is reserved in every state:
-         the 11:9 split depends on the block's height. */
+         the 11:9 split depends on the block's height.
+
+         The split is taken inside the safe area. Chrome on Android decides per
+         document whether to draw an installed app under the status and
+         navigation bars (viewport-fit=cover), so a reload first lays the page
+         out between the bars and then, a few frames later, under them, with
+         the safe-area insets set to the bars it now covers. Padding by those
+         insets leaves the logo at one place on the screen in both layouts;
+         centring on the whole window moved it up mid-load. */
       .boot-pwa-shell {
         position: relative;
         display: flex; /* flex */
@@ -836,7 +844,9 @@
         align-items: center; /* items-center */
         min-height: 100vh; /* min-h-screen */
         box-sizing: border-box;
-        padding: 0.5rem 1rem; /* py-2 px-4 */
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)); /* pt-[calc(0.5rem+env(safe-area-inset-top,0px))] */
+        padding-inline: 1rem; /* px-4 */
+        padding-bottom: calc(0.5rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))); /* pb-[calc(0.5rem+var(--safe-area-bottom))] */
         overflow-x: hidden;
         overflow-y: auto;
         background: var(--boot-canvas);
@@ -863,6 +873,15 @@
         max-width: 24rem; /* max-w-sm */
         flex-direction: column;
         align-items: center;
+        /* The canvas paints at once and the logo and line fade in a moment
+           later (the controller sets data-revealed), so Chrome's switch to
+           drawing under the bars lands before anything is drawn on it. */
+        opacity: 0;
+        transition: opacity 200ms var(--spring-effects-easing, cubic-bezier(0.2, 0, 0, 1));
+      }
+
+      .boot-pwa-shell[data-revealed] .boot-pwa-content {
+        opacity: 1;
       }
 
       .boot-pwa-logo-slot {
@@ -874,6 +893,53 @@
         display: block;
         width: auto; /* w-auto */
         height: 6rem; /* h-24 */
+      }
+
+      /* MOTION SYNC: the logo breathes while the scene is busy: it grows 4% and
+         eases back every 2.4s. SplashScaffold's .logo-breathe (styles/
+         logo-screens.css) runs the same keyframes and easing token, and both
+         start on the page's clock (the controller sets the delay), so moving
+         from this scene to a breathing sign-in or update screen never restarts
+         the breath; bootFallbackGeometry.test.ts holds the two together. The
+         token's fallback is its own value, for the frames before the
+         stylesheet arrives. With reduced motion the logo holds still, as every
+         animation does under the app's reduced-motion rule (animation.css). */
+      @keyframes boot-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.04);
+          opacity: 0.8;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .boot-pwa-shell[aria-busy="true"] .boot-pwa-content img {
+          animation: boot-breathe 2.4s var(--spring-effects-easing, cubic-bezier(0.2, 0, 0, 1)) infinite;
+          animation-delay: var(--boot-breathe-delay, 0ms);
+        }
+      }
+
+      /* When the app is ready the scene fades out over it; the app is already
+         drawn underneath, so the hand-over has no cut. The controller sets
+         data-leaving once the app's own logo can paint. */
+      #boot-fallback[data-presentation="pwa"] {
+        transition: opacity 200ms var(--spring-effects-easing, cubic-bezier(0.2, 0, 0, 1));
+      }
+
+      #boot-fallback[data-presentation="pwa"][data-leaving] {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-pwa-content,
+        #boot-fallback[data-presentation="pwa"] {
+          transition: none;
+        }
       }
 
       .boot-pwa-message-slot {
@@ -1318,9 +1384,75 @@
         var reported = Object.create(null);
 
         var PWA_RECOVERY_TIMEOUT_MS = 15000;
+        // One breath of the logo (boot-breathe and SplashScaffold's .logo-breathe).
+        var BREATHE_MS = 2400;
+        // The scene's logo and line show once the window has kept its size this long...
+        var REVEAL_QUIET_MS = 150;
+        // ...and never later than this.
+        var REVEAL_LATEST_MS = 600;
+        // The scene's fade over the ready app (the opacity transition in the styles).
+        var FADE_OUT_MS = 200;
+        // The longest the scene waits for the app's own logo before it fades.
+        var APP_LOGO_WAIT_MS = 400;
+        var revealTimer;
+        var revealDeadline;
 
         function hasAppContent() {
           return root && root.children.length > 0;
+        }
+
+        // The logo breathes while the scene is busy. A breath that starts now is
+        // put on the page's clock, as SplashScaffold's is, so the two stay in step
+        // when one screen hands over to the other.
+        function setPwaBusy(busy) {
+          if (!pwa) return;
+          if (busy && pwa.getAttribute("aria-busy") !== "true") {
+            var now = typeof performance.now === "function" ? performance.now() : 0;
+            pwa.style.setProperty("--boot-breathe-delay", -(now % BREATHE_MS) + "ms");
+          }
+          pwa.setAttribute("aria-busy", busy ? "true" : "false");
+        }
+
+        // Chrome on Android resizes a reloading installed app a few frames after
+        // its first paint, as it starts drawing it under the system bars. The
+        // logo and line fade in once the window has stopped changing, so that
+        // switch happens on a bare canvas. A recovery state shows at once.
+        function revealPwa() {
+          window.clearTimeout(revealTimer);
+          window.clearTimeout(revealDeadline);
+          if (pwa) pwa.setAttribute("data-revealed", "");
+        }
+
+        function onRevealResize() {
+          if (!pwa || pwa.hasAttribute("data-revealed")) return;
+          window.clearTimeout(revealTimer);
+          revealTimer = window.setTimeout(revealPwa, REVEAL_QUIET_MS);
+        }
+
+        function scheduleReveal() {
+          if (!pwa || pwa.hasAttribute("data-revealed") || revealDeadline) return;
+          revealTimer = window.setTimeout(revealPwa, REVEAL_QUIET_MS);
+          revealDeadline = window.setTimeout(revealPwa, REVEAL_LATEST_MS);
+        }
+
+        // Sign-in and the update screen draw the logo where this scene does, in an
+        // image of their own that can take a few frames to load. The scene leaves
+        // once that logo can paint, so the hand-over never shows a screen without
+        // it. Home draws no logo, and the scene leaves at once.
+        function whenAppLogoReady(callback) {
+          var logo = root ? root.querySelector('img[src$="icon.png"]') : null;
+          if (!logo || typeof logo.decode !== "function") {
+            callback();
+            return;
+          }
+          var settled = false;
+          var settle = function () {
+            if (settled) return;
+            settled = true;
+            callback();
+          };
+          logo.decode().then(settle, settle);
+          window.setTimeout(settle, APP_LOGO_WAIT_MS);
         }
 
         // The installed app's scene says one thing on the line under the logo
@@ -1350,6 +1482,8 @@
           }
           var isRecovery = kind === "recovery";
           fallback.hidden = false;
+          fallback.removeAttribute("aria-hidden");
+          fallback.removeAttribute("data-leaving");
           fallback.dataset.presentation = presentation;
           fallback.dataset.state = isRecovery ? "recovery" : "loading";
 
@@ -1358,8 +1492,10 @@
               pwa.hidden = false;
               pwa.setAttribute("role", isRecovery ? "alert" : "status");
               pwa.setAttribute("aria-live", isRecovery ? "assertive" : "polite");
-              pwa.setAttribute("aria-busy", isRecovery ? "false" : "true");
+              setPwaBusy(!isRecovery);
             }
+            if (isRecovery) revealPwa();
+            else scheduleReveal();
             if (website) website.hidden = true;
             setPwaCopy(isRecovery ? labels.slow : labels.loading);
             if (pwaReload) {
@@ -1442,7 +1578,8 @@
           fallback.dataset.state = kind;
           pwa.setAttribute("role", isAlert ? "alert" : "status");
           pwa.setAttribute("aria-live", isAlert ? "assertive" : "polite");
-          pwa.setAttribute("aria-busy", isApplying ? "true" : "false");
+          setPwaBusy(isApplying);
+          revealPwa();
           setPwaCopy(line, note);
           pwaReload.hidden = false;
           pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
@@ -1455,7 +1592,7 @@
           fallback.dataset.state = "loading";
           pwa.setAttribute("role", "status");
           pwa.setAttribute("aria-live", "polite");
-          pwa.setAttribute("aria-busy", "true");
+          setPwaBusy(true);
           setPwaCopy(labels.loading);
           pwaReload.hidden = true;
           pwaReload.setAttribute("aria-disabled", "false");
@@ -1572,9 +1709,23 @@
           if (updateTimer) window.clearTimeout(updateTimer);
           if (observer) observer.disconnect();
           stopRecovery();
+          window.clearTimeout(revealTimer);
+          window.clearTimeout(revealDeadline);
           if (fallback) {
-            fallback.hidden = true;
             fallback.dataset.state = "cleared";
+            if (presentation === "pwa") {
+              // The scene fades out over the app (the styles), then leaves the page.
+              whenAppLogoReady(function () {
+                if (fallback.dataset.state !== "cleared") return;
+                fallback.setAttribute("aria-hidden", "true");
+                fallback.setAttribute("data-leaving", "");
+                window.setTimeout(function () {
+                  if (fallback.dataset.state === "cleared") fallback.hidden = true;
+                }, FADE_OUT_MS);
+              });
+            } else {
+              fallback.hidden = true;
+            }
           }
         }
 
@@ -1632,6 +1783,7 @@
 
         if (websiteReload) websiteReload.addEventListener("click", reloadWithCacheBust);
         if (pwaReload) pwaReload.addEventListener("click", recoverPwa);
+        if (presentation === "pwa") window.addEventListener("resize", onRevealResize);
 
         window.addEventListener("error", function (event) {
           if (reactMounted || appReady) return;
