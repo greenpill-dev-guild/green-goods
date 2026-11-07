@@ -9,9 +9,9 @@
 # "node-cli.js is still running under Bun", because `bun run` substitutes Bun for `node`.
 # Node is therefore the base and the pinned Bun binary is copied in from the official image.
 
-FROM oven/bun:1.3.14-slim AS bun
+FROM oven/bun:1.4.4-slim AS bun
 
-FROM node:22-slim
+FROM node:22.23.4-slim
 
 # Keep this pin aligned with the Bun version used by CI and the root workflows.
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
@@ -31,6 +31,7 @@ COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent/package.json ./packages/agent/package.json
 COPY packages/client/package.json ./packages/client/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/extension/package.json ./packages/extension/package.json
 COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY packages/qa/package.json ./packages/qa/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
