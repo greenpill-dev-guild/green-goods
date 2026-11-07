@@ -140,9 +140,12 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    already in flight before considering any retry.
 4. Verify the published offer, terms revision and buyer eligibility, then have the named buyer
    request the claim. Select an approved source-chain acceptance window that allows for setup,
-   deposit and acknowledgment. Pass its `acceptanceDeadline` to `prepareVoucherSetup`, read back
-   the bound claim and deadline, then dispatch the setup authorization. Observe issuer approval
-   on Gnosis. Verify the named holder's balance of the exact voucher token and trace the units
+   deposit and acknowledgment. Have the named buyer call `prepareVoucherSetup` with the
+   commitment ID, expected terms revision and hash, pending claim hash, request nonce, and
+   approved `acceptanceDeadline`. Read back the resulting setup ID, bound buyer, exact claim,
+   authorization hash and deadline before dispatching that authorization. Verify the issuer's
+   `approveSetupAuthorization` on Gnosis. Verify the named holder's balance of the exact voucher
+   token and trace the units
    to the earned credit or a separately approved transfer. If a transfer is needed, verify its
    receipt and the holder's balance before booking funds are committed. Have that holder approve
    only the required voucher units for the escrow, verify the finite allowance, then call
