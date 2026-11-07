@@ -118,7 +118,8 @@ From each it reads the summary, the decisions, the next steps and the transcript
 watch keyword, never a full export, and extracts facts for threads, asks (a next step one party
 owes another), opportunities and the people and organisations present. Personal matters stay out
 (R21). The out-of-scope table shrinks to: grants and funding programs (`guild-grant-scout`),
-treasury, stipends and compensation (`stipend-ledger`), bugs and QA items (`sync-triage-pulse`,
+treasury, stipends and compensation (the lead council, since the guild retired `stipend-ledger`
+on 2026-11-07), bugs and QA items (`sync-triage-pulse`,
 `bug-intake`), product and growth metrics (`growth-pulse`), and lead-council operating decisions
 (memo line only). Partnerships, partner contacts, partner terms and pilot arrangements are in
 scope.

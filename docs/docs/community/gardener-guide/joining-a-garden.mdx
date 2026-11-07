@@ -26,6 +26,8 @@ source_of_truth:
   - packages/client/src/views/Profile/AccountInfo.tsx
   - packages/client/src/views/Profile/GardensList.tsx
   - packages/shared/src/hooks/garden/useJoinGarden.ts
+  - packages/shared/src/hooks/garden/useLeaveGarden.ts
+  - packages/client/src/components/Features/Garden/LeaveGardenAction.tsx
   - packages/agent/src/config.ts
   - packages/shared/src/i18n/en.json
 keywords:
@@ -131,9 +133,29 @@ If you only see the public website, tap **Open This Garden in the App**, or open
 
 If the steward cannot find you, send the **Account ID** shown in the app again. It is easy to send a different address by mistake.
 
-If you joined the wrong garden, tell that garden's steward, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
+If you joined the wrong garden, follow **Leave a garden** below, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
 
 If you joined but cannot select the garden yet, allow the membership read to catch up, then reopen **Your Gardens** from Home. Check the account you signed in with before asking the steward to add you again.
+
+## Leave a garden
+
+Leaving gives up every role you hold in that garden. An owner must hand over their owner role first. Work you already sent stays on record and can still be reviewed.
+
+:::note Availability
+If leaving from the app is not available yet, ask a steward to remove you.
+:::
+
+Before leaving, review any work still on your phone, open promises, and loan requests. Saved work stays on your phone but cannot upload to this garden until you become a member again. Your work cannot be linked to an open promise after leaving, and pending loan requests cannot be approved. You can still repay a loan.
+
+1. Open **Profile**, then **Account**.
+2. Find the garden under **My gardens**.
+3. Choose **Leave Garden** on its card and read the confirmation.
+4. Choose **Cancel** to stay, or **Leave Garden** and confirm when your phone or wallet asks.
+5. Wait for **You left the garden**. The garden leaves **My gardens**, and your member and steward actions disappear. Other people's lists may take a little longer to update. If this was your active garden, the sheet closes and Home opens: choose a garden when several remain, continue in the only remaining garden, or find a garden when none remain. Leaving another garden keeps you in Profile.
+
+To return, join again or ask a steward to add you. In a garden with a member limit, each self-join uses another place even if you left before. Leaving does not promise to remove voting power or return a voting stake the garden paid.
+
+If the app cannot confirm your departure, open **Profile → Account** and choose **Check Previous Departure** on the garden's card. A saved departure stays under **Previous Departures** after membership disappears. This checks the transaction you already sent and does not send another departure. A delayed confirmation can still arrive. If you have since rejoined, confirming that earlier transaction does not leave the garden again.
 
 Still stuck? Ask the community in [Discord](https://discord.gg/greenpill).
 

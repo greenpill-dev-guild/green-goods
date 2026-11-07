@@ -55,7 +55,7 @@ import {
   getGardens,
   parseIndexerDomain,
 } from "../../modules/data/greengoods";
-import { getGarden } from "../../modules/data/indexer-garden";
+import { getGarden, getProfileMemberGardens } from "../../modules/data/indexer-garden";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
 import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
 import { Capital, Domain } from "../../types/domain";
@@ -66,6 +66,56 @@ const reader = { query: mockQuery } as GraphQLReader;
 describe("modules/data/greengoods", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("paginates Profile memberships for the account independently of the public catalog", async () => {
+    const account = "0xAa00000000000000000000000000000000000001";
+    const member = { _contains: [account.toLowerCase()] };
+    const rows = Array.from({ length: 51 }, (_, index) => {
+      const id = `0x${(index + 1).toString(16).padStart(40, "0")}`;
+      return {
+        id,
+        chainId: 11155111,
+        tokenID: String(index + 1),
+        name: `Garden ${index}`,
+        gardeners: member._contains,
+      };
+    });
+    mockQuery
+      .mockResolvedValueOnce({ data: { Garden: rows.slice(0, 50) } })
+      .mockResolvedValueOnce({ data: { Garden: rows.slice(50) } });
+
+    const result = await getProfileMemberGardens(account, reader);
+    expect(result).toHaveLength(51);
+    expect(result.some(({ id }) => id === rows[50].id)).toBe(true);
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      {
+        chainId: 11155111,
+        scope: {
+          id: { _gt: "" },
+          _or: [
+            { gardeners: member },
+            { operators: member },
+            { evaluators: member },
+            { owners: member },
+            { funders: member },
+            { communities: member },
+          ],
+        },
+        order: [{ id: "asc" }],
+      },
+      "getProfileMemberGardens"
+    );
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        scope: expect.objectContaining({ id: { _gt: rows[49].id } }),
+      }),
+      "getProfileMemberGardens"
+    );
   });
 
   describe("getGardens", () => {

@@ -1705,8 +1705,8 @@ Stage C rehearsal cycles are cancelled with no live commitments left behind.
 
 1. `bun run qa pull --slug <date> --run open`, then `bun run qa report --slug <date>`, with
    `--previous` naming the earlier run's pull.
-2. Bring the recording transcript and the pull into an AI session and run `/qa-triage --call` (or
-   the `qa-call-report` routine). It splits notes into observations, assigns each one disposition
+2. Bring the recording transcript and the pull into an AI session and run `/qa-triage --call`.
+   It splits notes into observations, assigns each one disposition
    (`defect`, `polish`, `decision`, `investigate`, `catalog`, `environment`), and after
    confirmation writes the `QA session` parent and its fix slices to Linear, each carrying its
    exact Test ID.

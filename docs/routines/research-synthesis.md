@@ -44,7 +44,7 @@ You are the research-synthesis routine for Green Goods. Once a week (Friday end 
 | Topic | Owner |
 |---|---|
 | Grants, funding programs, proposal drafts, deadlines | `guild-grant-scout` (Fri); a grant's fit for a track goes on the Growth radar, never into a thread |
-| Treasury, stipends, compensation, runway | `stipend-ledger` and the lead council |
+| Treasury, stipends, compensation, runway | The lead council |
 | Bugs, defects, QA items from the Build Sync or Engineering Sync | `sync-triage-pulse` (Mon and Wed) and `bug-intake` |
 | Green Goods product and growth metrics, funnel, retention | `growth-pulse` (Mon) |
 | Lead-council operating decisions | memo line only |

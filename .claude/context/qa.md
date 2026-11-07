@@ -42,10 +42,11 @@ connects them.
    as a document (§ Artifact ownership), so the full record outlives the laptop that pulled it.
 5. **Triage** — [`qa-triage`](../skills/qa-triage/SKILL.md) enriches and scope-locks accepted
    findings, then writes safe Issue and Customer Need records to Linear and appends private defect
-   rows to the Green Goods v1.1 QA Sheet. After a team QA call, the
-   [`qa-call-report`](../../docs/routines/qa-call-report.md) routine (or `/qa-triage --call`)
-   writes the session to Linear instead: one `QA session YYYY-MM-DD` parent issue carrying the
-   report, with slice sub-issues sized one slice = one branch = one PR.
+   rows to the Green Goods v1.1 QA Sheet. After a team QA call, `/qa-triage --call` writes the
+   session to Linear instead: one `QA session YYYY-MM-DD` parent issue carrying the report, with
+   slice sub-issues sized one slice = one branch = one PR. When nobody will confirm the run, such
+   as an agent closing an automated QA pass, `--call --unattended` writes the same record under
+   [conservative rules](../skills/qa-triage/references/unattended-report.md).
 6. **Decisions** — only user-locked design decisions enter
    [`design/decision-log.md`](../skills/design/decision-log.md). Observations and verdicts do not
    become design policy by implication.
@@ -83,8 +84,8 @@ deferred handoff, or a live session — works in this order:
 | Session log, pulled results, generated report, local handoff | `tmp/qa-session/<slug>/` | `qa-session`, `qa:pull`, and `qa:report`; local and gitignored — `report.md` leaves only as the session parent's attached Linear document (below), `report.public.md` only for the docs example or the Discord lede |
 | Coverage report | Standard output from `bun run qa status` | Read-only command; nothing is persisted |
 | Defect tracking | Linear plus the private Green Goods v1.1 QA Sheet | `qa-triage`, after explicit scope and write confirmation |
-| Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | [`qa-call-report`](../../docs/routines/qa-call-report.md) after a team call, or `/qa-triage --call` interactively |
-| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | [`qa-call-report`](../../docs/routines/qa-call-report.md), `/qa-triage --call`, or the `qa-session` close, after the privacy grep |
+| Session report and fix slices | Linear Product team — `QA session YYYY-MM-DD` parent plus slice sub-issues | `/qa-triage --call` after a team call, or `--call --unattended` when nobody will confirm the run |
+| Full session report, attributed | Linear document `QA session YYYY-MM-DD · full report` attached to the session parent; beside the receipt in the restricted Drive QA folder when a solo session has no parent | `/qa-triage --call`, attended or unattended, or the `qa-session` close, after the privacy grep |
 | Session receipts, screenshots, and recordings | Restricted Drive QA folder | `qa-session`, after content inspection |
 | Locked design decisions | `.claude/skills/design/decision-log.md` in git | `qa-session`, after the decision lock gate |
 

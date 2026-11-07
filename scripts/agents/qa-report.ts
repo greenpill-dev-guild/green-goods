@@ -3,8 +3,8 @@
  * QA session report — one deterministic core for every session record.
  *
  * Reads the session `qa:pull` already wrote (tmp/qa-session/<slug>/qa-state.json)
- * and joins it to the catalog, so the results the qa-call-report routine,
- * `/qa-triage --call`, and the qa-session receipt embed come from one
+ * and joins it to the catalog, so the results `/qa-triage --call` (attended
+ * or unattended) and the qa-session receipt embed come from one
  * computation instead of three hand-counts. The model and renderer are IO-free;
  * only the CLI at the bottom touches the filesystem, and nothing here reads the
  * Blob store.

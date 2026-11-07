@@ -239,7 +239,7 @@ describe("components/Navigation/TopNav", () => {
   });
 
   describe("Share action (DL-020)", () => {
-    it("puts Share last in the action stack, after notifications and endowment", () => {
+    it("keeps Share after notifications and endowment", () => {
       const handleShare = vi.fn();
 
       renderWithIntl(
@@ -254,12 +254,12 @@ describe("components/Navigation/TopNav", () => {
       );
 
       const share = screen.getByRole("button", { name: "Share Garden" });
-      const stack = share.parentElement as HTMLElement;
-      const labels = Array.from(stack.querySelectorAll(":scope > button")).map((button) =>
-        button.getAttribute("aria-label")
-      );
+      const labels = screen
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label"));
       expect(labels[labels.length - 1]).toBe("Share Garden");
       expect(labels).toContain("View notifications");
+      expect(labels).not.toContain("Garden Actions");
 
       fireEvent.click(share);
       expect(handleShare).toHaveBeenCalledTimes(1);

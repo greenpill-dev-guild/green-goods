@@ -1,17 +1,10 @@
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
-  UNKNOWN_GARDEN_LOCATION,
-  UNNAMED_GARDEN_NAME,
-  withoutHiddenGardens,
-} from "../../config/garden-visibility";
-import {
   type Action,
   type ActionContentLocale,
   type ActionInstructionConfig,
   type ActionTranslationMap,
-  type Address,
   Domain,
-  type Garden,
   type WorkInput,
 } from "../../types/domain";
 import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
@@ -22,10 +15,11 @@ import {
   normalizeActionTranslations,
 } from "../../utils/action/translations";
 import { logger } from "../app/logger";
-import { greenGoodsGraphQL, type ResultOf } from "./graphql";
+import { greenGoodsGraphQL } from "./graphql";
 import { type GraphQLReader, greenGoodsIndexer } from "./graphql-client";
 
 export { getGardeners } from "./gardener-reader";
+export { getGardens } from "./indexer-garden";
 
 import { parseIndexerCapital } from "./indexer-capitals";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
@@ -373,106 +367,6 @@ export async function getActionDomains(
     if (uid !== null && parsedDomain !== null) domains.set(uid, parsedDomain);
   }
   return domains;
-}
-
-const GARDENS_QUERY = greenGoodsGraphQL(/* GraphQL */ `
-  query Gardens($chainId: Int!) {
-    Garden(where: {chainId: {_eq: $chainId}}, order_by: {createdAt: desc}, limit: 50) {
-      id
-      chainId
-      tokenAddress
-      tokenID
-      name
-      description
-      location
-      bannerImage
-      gardeners
-      operators
-      evaluators
-      owners
-      funders
-      communities
-      openJoining
-      createdAt
-    }
-    GardenDomains(where: {chainId: {_eq: $chainId}}) {
-      garden
-      domainMask
-    }
-  }
-`);
-
-type IndexerGardenRow = ResultOf<typeof GARDENS_QUERY>["Garden"][number];
-
-/** A garden row as the app uses it. Any read that selects the list's fields maps through here. */
-export function gardenFromRow(garden: IndexerGardenRow, domainMask: number): Garden {
-  // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
-  const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
-  const isOctantGarden = garden.name === "Octant Community Garden";
-
-  const bannerImage = isOctantGarden
-    ? resolveIPFSUrl(OCTANT_BANNER_OVERRIDE)
-    : garden.bannerImage
-      ? resolveIPFSUrl(garden.bannerImage)
-      : "";
-
-  return {
-    id: garden.id,
-    chainId: garden.chainId,
-    tokenAddress: garden.tokenAddress as Address,
-    tokenID: BigInt(garden.tokenID),
-    name: garden.name || UNNAMED_GARDEN_NAME,
-    description: garden.description || "",
-    location: garden.location || UNKNOWN_GARDEN_LOCATION,
-    bannerImage,
-    gardeners: (garden.gardeners || []) as Address[],
-    // The indexer field keeps the deployed `operators` wire name.
-    stewards: (garden.operators || []) as Address[],
-    evaluators: (garden.evaluators || []) as Address[],
-    owners: (garden.owners || []) as Address[],
-    funders: (garden.funders || []) as Address[],
-    communities: (garden.communities || []) as Address[],
-    openJoining: Boolean(garden.openJoining),
-    domainMask,
-    assessments: [],
-    works: [],
-    createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
-  };
-}
-
-/** Returns gardens with resolved banner assets for the current chain. */
-export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Promise<Garden[]> {
-  try {
-    const chainId = DEFAULT_CHAIN_ID;
-    const { data, error } = await reader.query(GARDENS_QUERY, { chainId }, "getGardens");
-
-    if (error) throw error;
-
-    if (!data || !Array.isArray(data.Garden)) {
-      throw new Error("Garden indexer response is missing the garden list");
-    }
-
-    // Garden.id can be checksummed while GardenDomains.garden is normalized
-    // lower-case by the indexer, so join by a normalized lookup key.
-    const domainMap = new Map<string, number>(
-      ((data.GardenDomains ?? []) as Array<{ garden: string; domainMask: number }>).map((d) => [
-        d.garden.toLowerCase(),
-        d.domainMask,
-      ])
-    );
-
-    // Curated out of every surface — see config/garden-visibility.ts. Filtering
-    // here rather than per-view keeps the PWA and admin consistent with the
-    // website for gardens that should not exist anywhere in Green Goods.
-    const visibleGardens = withoutHiddenGardens(data.Garden);
-
-    return visibleGardens.map((garden) =>
-      gardenFromRow(garden, domainMap.get(garden.id.toLowerCase()) ?? 0)
-    );
-  } catch (error) {
-    logger.error("[getGardens] Failed to fetch gardens", { error });
-    throw error;
-  }
 }
 
 /** Updates the authenticated user's profile metadata via the API. */

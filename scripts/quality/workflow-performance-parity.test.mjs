@@ -30,6 +30,8 @@ function read(relativePath) {
   return readFileSync(join(root, relativePath), "utf8");
 }
 
+const { toolchain } = JSON.parse(read("scripts/data/validation-policy.json"));
+
 function workflowEventBlock(source, event) {
   const marker = `  ${event}:\n`;
   const start = source.indexOf(marker);
@@ -76,8 +78,8 @@ function coverageGlobFloors(packageName) {
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
-  assert.match(action, /node-version:\s*["']22\.22\.1["']/);
-  assert.match(action, /bun-version:\s*["']1\.4\.2["']/);
+  assert.equal(action.match(/node-version:\s*["']([^"']+)["']/)?.[1], toolchain.node);
+  assert.equal(action.match(/bun-version:\s*["']([^"']+)["']/)?.[1], toolchain.bun);
   assert.match(action, /uses:\s*actions\/setup-node@[0-9a-f]{40}/);
   assert.match(action, /uses:\s*oven-sh\/setup-bun@[0-9a-f]{40}/);
   assert.match(action, /bun install --frozen-lockfile/);
@@ -307,6 +309,9 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   const settings = JSON.parse(read(".claude/settings.json"));
   const completionGate = read(".claude/scripts/task-completion-gate.sh");
 
+  for (const hook of [preCommit, prePush]) {
+    assert.match(hook, /^export PATH="\$PATH:\$HOME\/\.bun\/bin:\$HOME\/\.local\/bin"$/m);
+  }
   assert.match(preCommit, /bunx lint-staged/);
   assert.doesNotMatch(preCommit, /ci-local|bun run lint|bun run test|typecheck/);
   assert.match(
@@ -323,15 +328,24 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   // agent-hooks.test.mjs exercises advisory completion through real event fixtures.
 });
 
-test("every direct Node and Bun setup uses the exact repository versions", () => {
-  for (const [file, source] of workflowSources()) {
+test("local, CI, and container runtime pins match the validation toolchain", () => {
+  const setupPaths = [".github/actions/setup-js/action.yml", ".github/workflows/ci-gate.yml"];
+  for (const [file, source] of [...workflowSources(), ...setupPaths.map((file) => [file, read(file)])]) {
     for (const match of source.matchAll(/node-version:\s*["']?([^\s"']+)/g)) {
-      assert.equal(match[1], "22.22.1", `${file} has a drifting Node pin`);
+      assert.equal(match[1], toolchain.node, `${file} has a drifting Node pin`);
     }
     for (const match of source.matchAll(/bun-version:\s*["']?([^\s"']+)/g)) {
-      assert.equal(match[1], "1.4.2", `${file} has a drifting Bun pin`);
+      assert.equal(match[1], toolchain.bun, `${file} has a drifting Bun pin`);
     }
   }
+  const mise = read(".mise.toml");
+  assert.equal(mise.match(/^node = "([^"]+)"/m)?.[1], toolchain.node);
+  assert.equal(mise.match(/^bun = "([^"]+)"/m)?.[1], toolchain.bun);
+  assert.equal(JSON.parse(read("package.json")).packageManager, `bun@${toolchain.bun}`);
+  assert.equal(read("packages/agent/Dockerfile").match(/^ARG BUN_VERSION=(\S+)/m)?.[1], toolchain.bun);
+  const indexer = read("packages/indexer/Dockerfile");
+  assert.equal(indexer.match(/^FROM oven\/bun:([^\s]+)-slim AS bun$/m)?.[1], toolchain.bun);
+  assert.equal(indexer.match(/^FROM node:([^\s]+)-slim$/m)?.[1], toolchain.node);
 });
 
 test("raw Solidity source does not fan out to mocked consumer workflows", () => {
@@ -946,7 +960,7 @@ test("contracts realism remains equivalent without unrelated tool setup", () => 
     realism,
     /Install Foundry|setup-bun|bun install|submodules:\s*recursive/,
   );
-  assert.match(realism, /node-version:\s*["']22\.22\.1["']/);
+  assert.equal(realism.match(/node-version:\s*["']([^"']+)["']/)?.[1], toolchain.node);
   assert.match(realism, /bash scripts\/contracts\/validate-test-realism-tooling\.sh/);
   assert.match(realism, /bash scripts\/contracts\/check-test-realism\.sh/);
 });

@@ -4,8 +4,8 @@ set -eu
 # Enable pipefail only if supported (dash doesn't support it)
 (set -o pipefail) 2>/dev/null && set -o pipefail
 
-# Add common package manager bin paths to PATH
-export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
+# Keep the active toolchain first and use home bin directories as fallbacks.
+export PATH="$PATH:$HOME/.bun/bin:$HOME/.local/bin"
 
 # Only try nvm when running in bash (nvm isn't POSIX-sh safe)
 if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then

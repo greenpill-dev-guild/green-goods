@@ -1,3 +1,8 @@
+import {
+  recordGardenDeparture,
+  withoutDepartedMembers,
+} from "../../modules/garden/garden-departures";
+import { pendingJoinGardenIds } from "../../modules/garden/pending-joins";
 /**
  * useJoinGarden Hook Tests
  *
@@ -126,6 +131,7 @@ import { trackContractError } from "../../modules/app/error-tracking";
 import { gardensKeys } from "../../config/query-keys/garden";
 import { useActiveGardenStore } from "../../stores/useActiveGardenStore";
 import {
+  createMockGarden,
   createMockSmartAccountClient,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
@@ -219,6 +225,19 @@ describe("hooks/garden/useJoinGarden", () => {
       await act(async () => {
         await expect(result.current.joinGarden(MOCK_ADDRESSES.garden)).resolves.toBe(MOCK_TX_HASH);
       });
+    });
+
+    it("records an optimistic rejoin without trusting the pre-departure roster", async () => {
+      const account = MOCK_ADDRESSES.smartAccount;
+      const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, gardeners: [account] });
+      recordGardenDeparture(11155111, garden.id, account, 40n);
+      expect(withoutDepartedMembers([garden], 11155111)[0].gardeners).toEqual([]);
+      const { result } = renderHookWithProviders(() => useJoinGarden(), { queryClient });
+      await act(async () => {
+        await result.current.joinGarden(garden.id);
+      });
+      expect(withoutDepartedMembers([garden], 11155111)[0].gardeners).toEqual([]);
+      expect(pendingJoinGardenIds(account).has(garden.id.toLowerCase())).toBe(true);
     });
 
     it("joins garden successfully with smart account", async () => {

@@ -459,6 +459,8 @@
     "./hooks/garden/useGardenJournal": "./src/hooks/garden/useGardenJournal.ts",
     "./hooks/garden/useGardenNotifications": "./src/hooks/garden/useGardenNotifications.ts",
     "./hooks/garden/useGardenTabs": "./src/hooks/garden/useGardenTabs.ts",
+    "./hooks/roles/useGardenMembership": "./src/hooks/roles/useGardenMembership.ts",
+    "./hooks/garden/useLeaveGarden": "./src/hooks/garden/useLeaveGarden.ts",
     "./hooks/garden/useJoinGarden": "./src/hooks/garden/useJoinGarden.ts",
     "./hooks/garden/useMyGardens": "./src/hooks/garden/useMyGardens.ts",
     "./hooks/garden/useStewardDuties": "./src/hooks/garden/useStewardDuties.ts",
