@@ -14,7 +14,8 @@ source_of_truth:
   - packages/client/src/config/routes.tsx
   - scripts/data/qa-test-catalog.json
   - scripts/agents/qa-workbook-build.ts
-  - docs/routines/qa-call-report.md
+  - .claude/skills/qa-triage/references/call-mode.md
+  - .claude/skills/qa-triage/references/unattended-report.md
   - .claude/skills/qa-triage/SKILL.md
   - .claude/context/qa.md
   - .claude/skills/debug/SKILL.md
@@ -77,8 +78,8 @@ However you enter a session, on a call, solo, or paired with an agent, the loop 
 3. Reproduce visible defects from the rendered surface inward.
 4. Fix only bounded, reversible work that fits the agreed session scope.
 5. Revalidate in the same surface and record the remaining risk.
-6. Hand deferred findings to QA triage (`qa-triage`, or the `qa-call-report` routine after a
-   call), which files them in Linear as fix slices.
+6. Hand deferred findings to QA triage (`qa-triage`, with `--call` after a call), which files
+   them in Linear as fix slices.
 
 Journey mode is for two people who need to meet at the same handoffs. Both select the same
 **Journey**; Tester A takes **Protocol & review** and Tester B takes **Garden & member**. **View**
@@ -151,15 +152,20 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
 - Five minutes on four questions before everyone drops: what did we cover and consciously skip,
   what works well enough to leave alone, which fails worry us most, and would we welcome a new
   garden onto this build tomorrow?
-- Trigger the `qa-call-report` routine, or run `/qa-triage --call` at a desk. It pulls every
-  tester's verdicts from the call's run with `bun run qa pull`, keeps the entries from the call
-  window, joins them with the call's notes by Test ID, and clusters failures into at most eight fix
-  slices, each sized for one branch and one PR. `bun run qa report --slug <session>` derives the
-  results-by-priority and results-by-kind blocks, so those numbers are never hand-counted.
-- The routine enriches without blocking (the build under test, PostHog exceptions per surface,
-  Sentry issues when that connector is wired), writes one `QA session YYYY-MM-DD` parent issue plus
-  slice sub-issues to Linear, deduplicated against open QA issues and swept of tester attribution,
-  wallets, and replay links, and posts a one-message summary to #product on Discord.
+- Run `/qa-triage --call` at a desk. It pulls every tester's verdicts from the call's run with
+  `bun run qa pull`, keeps the entries from the call window, joins them with the call's notes by
+  Test ID, and clusters failures into fix slices, each sized for one branch and one PR. The first
+  eight by priority go to the fix queue and the rest wait in the backlog.
+  `bun run qa report --slug <session>` derives the results-by-priority and results-by-kind blocks,
+  so those numbers are never hand-counted.
+- It enriches without blocking (the build under test, PostHog exceptions per surface, Sentry
+  issues when that connector is wired) and, once you confirm, writes one `QA session YYYY-MM-DD`
+  parent issue plus slice sub-issues to Linear, deduplicated against open QA issues and swept of
+  tester attribution, wallets, and replay links.
+- An agent closing an automated QA pass, with nobody there to confirm, runs the same command with
+  `--unattended`. It writes the same record under stricter rules: it never guesses a Test ID or a
+  duplicate, and the slices from an automated pass wait in the backlog until a person promotes
+  them.
 - Fix sessions work slice by slice, and a slice is done when its test cases pass again. Re-QA
   later in the week is a scoped walk of the affected cases in a new run, so the earlier pass stays
   intact and the compare shows what was fixed, what still fails, and what regressed. Within a run,

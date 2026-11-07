@@ -4,10 +4,10 @@ Load only for `--call`; apply these deltas alongside the intake and filing phase
 
 ## Call mode (`--call`)
 
-The post-QA-call variant: same phases, three deltas. The unattended sibling is the
-[`qa-call-report`](../../../../docs/routines/qa-call-report.md) routine — same join, clustering, and
-write rules; this mode runs them interactively at the desk. Run one of the two per session; the
-Phase 3b dedupe catches the other's records if both ran.
+The post-QA-call variant: same phases, three deltas. A run nobody will confirm, such as an agent
+closing an automated QA pass, also loads [unattended-report.md](./unattended-report.md): it keeps
+this join and clustering, replaces the Phase 4 and Phase 6 gates with conservative rules, and skips
+the QA Sheet. One writer per session; the Phase 3b dedupe catches the other's records if both ran.
 
 - **Phases 1-2** — the source is threefold: `bun run qa pull --slug <slug> --run <id>` (the QA
   app's verdicts and notes, exact Test IDs, from the run the call recorded into: the `run-N` id
@@ -16,7 +16,7 @@ Phase 3b dedupe catches the other's records if both ran.
   "Build Sync"), and any evidence page a tester linked from a note (a Notion or Drive URL beside
   an issue number, carried into the slice's evidence comment as a link, never re-typed). App
   verdicts recorded **during the call window** are ground truth — a run can hold several
-  sessions, so filter joined entries by their `at` timestamps (the routine's session-window rule)
+  sessions, so filter joined entries by their `at` timestamps ([§ Session window](#session-window))
   before calling anything verdict-backed; older entries are standing state. For a re-QA also pull
   the run it checks (`bun run qa pull --slug <slug> --run <previous id> --out
   tmp/qa-session/<slug>/previous`) and pass `--previous tmp/qa-session/<slug>/previous/qa-state.json`
@@ -30,8 +30,8 @@ Phase 3b dedupe catches the other's records if both ran.
   so the report reads that pull and not the earlier session's (add `--build client=<sha>,admin=<sha>`
   once Phase 6 has the deploys): the `report.md` written beside that pull is where both results
   blocks of the parent come from — never count by hand. Note items without a Test ID may be
-  fuzzy-matched into *proposals* here, because the Phase 4 gate confirms each one with you — the
-  unattended routine never guesses an ID. If `tmp/qa-session/<slug>/` already holds a pulled
+  fuzzy-matched into *proposals* here, because the Phase 4 gate confirms each one with you — an
+  unattended run never guesses an ID. If `tmp/qa-session/<slug>/` already holds a pulled
   session (a local close, or an earlier failed run), `qa pull` refuses to overwrite it: pull to a
   fresh directory with `--out tmp/qa-session/<slug>-call` and continue from that path — never
   `--force` over an existing pull, whose severity edits and redactions are sacred.
@@ -48,8 +48,9 @@ Phase 3b dedupe catches the other's records if both ran.
   cases test) before the workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
-  same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
-  cap is a **Todo queue budget**, default 8; the gate may raise it when the week's fixing
+  same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. A
+  cross-surface cluster whose root cause sits in shared code stays one slice on the shared
+  package. The cap is a **Todo queue budget**, default 8; the gate may raise it when the week's fixing
   capacity matches. File every accepted defect and polish cluster, or link its existing tracked
   Issue. After deriving state and priority below, the first N Todo-eligible slices by priority
   propose `Todo`; file every remaining slice as `Backlog`, keeping its derived priority. Record
@@ -78,10 +79,10 @@ Phase 3b dedupe catches the other's records if both ran.
   window, else `Backlog`); note-only items propose `Backlog`. **Human-filed issues**: list Product Issues created since the window opened,
   whatever their labels (a teammate filing from the call rarely stamps an activity label); propose a
   match per slice by title and surface; the gate confirms each. A confirmed match is linked as
-  `already tracked`, and the slice's Test IDs are posted as a comment on that Issue; the routine's
-  exact-key scan reads pipeline comments as well as source lines, so the reverse lookup works next
-  time. The Phase 4 scope-lock gate runs once over everything the run proposes, with this reply
-  grammar in place of the default prompt's tags: slice numbers, `all`, or `none`; `S3:urgent` /
+  `already tracked`, and the slice's Test IDs are posted as a comment on that Issue; an unattended
+  run's exact-key dedupe reads pipeline comments as well as source lines, so the reverse lookup
+  works next time. The Phase 4 scope-lock gate runs once over everything the run proposes, with
+  this reply grammar in place of the default prompt's tags: slice numbers, `all`, or `none`; `S3:urgent` /
   `S3:high` / `S3:medium` / `S3:low` to override a priority; `D2:drop` to drop a decision line;
   `I1:slice` to promote an investigate line into a slice; `M2:PRD-849` to confirm a proposed match
   or `M2:none` to reject it; catalog and environment lines are recorded as listed unless the reply
@@ -90,12 +91,51 @@ Phase 3b dedupe catches the other's records if both ran.
   from `report.md` — then attach the full `report.md` to the parent as a Linear document
   ([linear-templates.md § Full report document](../linear-templates.md), after the privacy grep;
   team display names allowed, nothing else private) and link it from the lede, then the decisions
-  child, then the slices. The routine's window-scoped
-  enrichment runs here too (build under test via Vercel; PostHog/Sentry safe summaries into each
-  slice's first comment — see `qa-call-report.md` § Phase 4); Sheet Defects rows are still
-  offered per slice member with the usual confirmation (the routine never writes the Sheet), and
-  the Sheet rows remain the one place replay URLs and session IDs may land, under its existing
-  private exception.
+  child, then the slices. [Window enrichment](#window-enrichment) runs here, with its safe
+  summaries in each slice's first comment; Sheet Defects rows are still offered per slice member
+  with the usual confirmation (an unattended run never writes the Sheet), and the Sheet rows
+  remain the one place replay URLs and session IDs may land, under its existing private exception.
 
 Downstream, fix sessions pull the slices via the `debug` skill's QA Slice Fix Protocol — one
 slice = one branch = one PR, posture per [`.claude/context/qa.md § Fix posture`](../../../context/qa.md).
+
+## Session window
+
+A QA run can hold several sessions, so a call's verdicts are the entries whose `at` timestamp falls
+inside its session window: the call's start and end from the Gemini notes header, padded 15
+minutes before and 60 minutes after, because testers often record late. A rehearsal that morning
+or an earlier solo pass is not this call. With no notes, use the slug date's calendar day up to the
+run, say so in the report, and weigh that wider window's verdicts with proportionate caution. Only
+in-window entries back slices and the results blocks, and the same window bounds the enrichment
+queries. Older entries are standing state: at most one context line in the report.
+
+## Window enrichment
+
+The testers were in the product during the window, so its telemetry from that window is
+first-party evidence of what they hit. Enrichment never blocks the record: an unavailable or
+degraded source becomes one flag line in the run's summary.
+
+1. **Build under test (Vercel).** A beta or local session records the build it ran when the run
+   knows it, and otherwise `build: unknown`; it never takes a production SHA. For a production
+   session, find for `client` and `admin` every production deploy in state `READY` that was live
+   during any part of the window: the one live when it opened, plus any that finished during it. Record one deploy as `surface @ <commit-sha>` in the parent's lede, and
+   several as `build: mixed` with every SHA, so no slice is investigated against the wrong release.
+   The Blob store holds no build SHA, so this line ties the verdicts to a deployable. Pass the SHAs
+   to `qa report --build client=<sha>,admin=<sha>`.
+2. **PostHog.** Switch to each surface's project (App `163591` for the PWA and website, Admin
+   `262122` for admin; skip docs). First run the degraded-telemetry probe from
+   [`sync-triage-pulse.md` § Phase 3](../../../../docs/routines/sync-triage-pulse.md); when the
+   exception payloads are structurally empty, flag `posthog: degraded` and skip matching. When
+   healthy, match each fail or blocked slice to in-window exceptions on its surface and route, and
+   keep only safe-summary fields: error hash, sessions, users, first and last seen, confidence.
+   The parent gets at most one line of per-surface counts. An in-window error hash that matches no
+   recorded case becomes a `[derived:telemetry]` line under `Not sliced`: the query has no tester
+   predicate, so it may be ordinary production traffic.
+3. **Sentry, when connected.** Resolve `green-goods-client` or `green-goods-admin` by name through
+   the connector, and keep the link, top frame and release of each issue first seen or active in
+   the window. Without a connector, skip this step silently.
+4. **Placement and privacy.** Enrichment goes in each slice's first comment, per the evidence
+   comment pattern in [linear-templates.md](../linear-templates.md), never in the body. Error
+   hashes, counts, commit SHAs and Sentry links are safe; replay URLs, session IDs and distinct IDs
+   never reach Linear. The parent may carry one recipe line, `recordings: PostHog App project,
+   session window <start>–<end>`, so a person can find the replays without a URL in Linear.
