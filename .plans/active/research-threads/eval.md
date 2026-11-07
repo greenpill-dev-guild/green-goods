@@ -1,6 +1,6 @@
 # Research threads and weekly plan Evaluation Plan
 
-**Status**: `IN EVIDENCE · spec accepted 2026-11-06; evidence is recorded from the first two Saturday v6 runs and the first two Monday runs`
+**Status**: `IN EVIDENCE · spec accepted 2026-11-06; evidence is recorded from the first two Saturday v6 runs and the first two Monday runs, and AC-12 from the step-5 dry run`
 
 ## Release Gates
 
@@ -32,7 +32,7 @@
 | AC-9 | R16, R17 | The Saturday post keeps its shape and ceiling; its footer links the threads document; each status update is a state line, the bars-met line and a thread link; no reaction, thread or receipt is written. | human | pending |
 | AC-10 | R18 | The first two v6 runs file or drop the sixteen ❔ shares with one `## Links filed` line each, within the fetch budget and before any newer link, and never ask about them again. | human | pending |
 | AC-11 | R23 | Afo opened the threads document in each of the first two weeks (Linear's document activity), and at least one Monday item was acted on by Friday. | human | pending |
-| AC-12 | R20 | The delegated review's dry run on a scratch agenda copy accepts only evidence appends and anchor updates by rule, puts every stage, horizon, order, question or implementable-when change to the user, writes the `## Delegated review` section and bumps the edition once. | human | pending |
+| AC-12 | R20 | The delegated review's dry run on a scratch agenda copy accepts only evidence appends, anchor identifier updates and answered `Open` items by rule, rejects a gone anchor or a state-only line with its reason, puts every stage, horizon, order, question or implementable-when change to the user, renders the `## Delegated review` section and bumps the edition once. | human | Dry run 2026-11-07 in the step-5 session (PR #1512), reading the live pending-edits document without writing and applying to a scratch agenda copy: of 17 unticked lines, 8 evidence appends were accepted by rule (each anchor matched once; edition v6 → v7 once, one change-log entry) and 9 went to the user (two new `Open` questions, an anchor that brings a new subject, an answered item whose text carried a Linear status, an append that cites a pending question, four earlier deferrals including both candidates); none was rejected, since the set held no gone anchor or state-only line, so the reject path is unexercised. The section and the patch were printed, not written. The first live review confirms the write path. |
 | AC-13 | R14, R19, R22, R24 | Each run records its mode line and budget; a Monday after a degraded Saturday marks its pointer `degraded`; the Monday trigger runs on `claude-opus-5-5`; a failed write appears in `Run notes` or the memo and is retried once. | human | pending |
 
 ## Test Strategy

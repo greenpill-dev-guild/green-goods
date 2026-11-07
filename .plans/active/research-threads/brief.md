@@ -2,7 +2,7 @@
 
 **Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); the Monday trigger exists since 2026-11-07; step 5, the remaining step 6 one-offs and step 7 follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); the Monday trigger exists since 2026-11-07; step 5 (the delegated review mode) shipped in PR #1512 with the first runs' fixes; the remaining step 6 one-offs and step 7 follow`
 **Priority**: `p2`
 **Created**: `2026-11-06`
 **Owner**: Afo · readers of the private surface: afo, matt (decision 10)
@@ -62,9 +62,10 @@ and what next", not repeat daily asks.
   the closeout of `research-intake-loops` with a pointer here.
 - Out of scope: Linear project restructuring (decision 6); reviving the guild weekly synthesis;
   grant scouting, which stays with `guild-grant-scout`; any product code; changes to the daily
-  journal routines; creating the Monday trigger from a spec (a one-off, below).
-- One-offs Afo owns: approve this brief; create the Monday trigger on `claude-opus-5-5` in the
-  routines UI or from a session; say whether the agenda's panel line changes (open question 1).
+  journal routines; creating the Monday trigger from a spec (a one-off, done 2026-11-07; see the
+  plan's step 6).
+- One-offs Afo owns: approve this brief; say whether the agenda's panel line changes (open
+  question 1).
 
 ## Decisions so far
 

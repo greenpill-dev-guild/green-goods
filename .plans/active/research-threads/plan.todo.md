@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's review mode), the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the RESR-112 fixes and steps 3 and 4 (the Monday spec and its README rows) shipped in PR #1509 (merged 2026-11-07); step 6's trigger exists since 2026-11-07 and is recorded in PR #1510; step 5 (the skill's delegated review mode) shipped in PR #1512 with #1509's review residuals and the first runs' fixes; the remaining step 6 one-offs (display name, panel line, pin) and step 7 (first runs) follow`
 **Created**: `2026-11-06`
 **Last Updated**: `2026-11-07`
 **Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
@@ -36,11 +36,11 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
-| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
-| R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | shipped in #1509; trigger created 2026-11-07 |
-| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509 |
-| R20 delegated review | none (skill) | Step 5 | pending |
+| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509; thread ranking (R2) fixed in #1512 |
+| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509; Need sources and Community issues (R8) fixed in #1512 |
+| R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | shipped in #1509; trigger created 2026-11-07; #1509's review residuals fixed in #1512 |
+| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes shipped in #1509; pre-v5 shares (R18) settled in #1512 |
+| R20 delegated review | none (skill) | Step 5 | shipped in #1512 |
 | R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half shipped in #1509 |
 | Monday trigger, display name, panel line | human | Step 6 | trigger created 2026-11-07; display name and panel line pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |
@@ -122,7 +122,7 @@ Linear mention is Matt), the scope-discipline paragraph on Drive reads (partner 
 meets now read; the two privacy tiers), and the model-tier note.
 Verification: `check-guidance-links.mjs`; the rows match the two specs' frontmatter.
 
-### Step 5: Delegated review mode
+### Step 5: Delegated review mode (shipped in PR #1512)
 
 Rewrite the `review` mode of `.claude/skills/research-agenda/SKILL.md` per R20 and update its
 README: rule-based classification, the numbered round for stage, horizon, order, question and
@@ -131,6 +131,13 @@ implementable-when changes, the `## Delegated review · {date}` section, the edi
 pending-edits refresh carries those sections forward.
 Verification: a dry run (`--dry-run`) on a scratch copy of the agenda and a throwaway document,
 recorded in [eval.md](eval.md) AC-12.
+
+Shipped in PR #1512. Beyond R20's three lists, the mode sends three more kinds of line to the
+steward rather than deciding them: a line an earlier review deferred, or one that cites a line he
+decides; an accepted kind whose new text would carry Linear state, offered with that state
+trimmed; and any line no rule settles. The Saturday spec's how-to line, its *Rejected* line (now
+with the reason) and its refresh rule match. The dry run of 2026-11-07 read the live document
+without writing and applied the result to a scratch agenda copy (AC-12).
 
 ### Step 6: One-offs Afo owns (the trigger created 2026-11-07; the display name and the pin remain)
 
