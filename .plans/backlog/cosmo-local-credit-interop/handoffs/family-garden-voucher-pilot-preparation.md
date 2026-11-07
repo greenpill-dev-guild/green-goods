@@ -223,15 +223,25 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    if needed.
 6. Complete the service commitment on Arbitrum. While it is Accepted, have an eligible actor
    call `attachEvidence` with the delivery evidence CID and credited active contributors. Attach
-   any required assessment. Re-read the commitment after attaching it because the assessment
-   can move the commitment to ReadyForConfirmation. If the commitment is still Accepted and
-   the service is eligible without work requirements, have the creator, counterparty, lead
-   provider or pool steward call `submitForConfirmation`. If the commitment is still Accepted
-   and the approved pilot uses a steward override, record the reason in
-   `markReadyForConfirmation`. Verify ReadyForConfirmation before asking eligible
-   non-contributors to call `confirmFulfillment` until the configured
-   threshold is reached. Read back Fulfilled and the recorded confirmation path separately
-   from holder approval and financial closure.
+   any required assessment. For a DomainImpact offer or another offer with Work requirements,
+   use `linkWork` to bind each Work attestation to its requirement while the roster is unfrozen.
+   Attach delivery evidence before the final required approval can freeze the roster. Verify
+   current WorkApproval decisions and resulting credits. If resolver hooks were missed, have
+   the pool steward use `syncWorkDecisions` with the current decisions for any stale linked Work.
+   Re-read the commitment after the last approval or assessment because either can make it
+   ReadyForConfirmation. If still Accepted and eligible for the path without Work requirements,
+   have the creator, counterparty, lead provider or pool steward call `submitForConfirmation`.
+   If still Accepted and the approved pilot uses a steward override, record the reason in
+   `markReadyForConfirmation`.
+
+   Verify ReadyForConfirmation and an open pool. Use `confirmFulfillment` from eligible
+   ordinary confirmers outside the frozen contributor roster until the threshold is reached.
+   If the ordinary threshold is unreachable after excluding contributors, an eligible
+   non-contributor can call `confirmFulfillmentAsFallback` with a nonempty reason. Use current
+   steward or owner Hat authority in the commitment pool. Authority in the registered protocol
+   pool qualifies only when protocol fallback is enabled. When the caller holds both roles,
+   the contract records PoolFallback. Read back Fulfilled and the recorded confirmation path
+   separately from holder approval and financial closure.
 
 Use the [voucher reconciliation handoff](codex-voucher-reconciliation.md) for protocol details
 and recovery cases when preparing the exact signing packet.
