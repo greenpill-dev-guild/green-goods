@@ -47,8 +47,11 @@ loop closes in minutes instead of a memo read. The design lives in
    answer it, from the line's `next:` and `who:` fields. When any of the three fields reads
    `unassigned` or `unset`, ask the user for it, or whether the question waits for a candidate
    track, before applying anything, and never file it under the agenda's own *Candidate
-   questions* section, which holds only unconfirmed proposals. Identifiers enter the agenda as
-   bare text: the connector returns an issue mention as an `<issue … label="RESR-n" … />` tag,
+   questions* section, which holds only unconfirmed proposals. Prerequisites come before this
+   type order: when an accepted line is anchored on text another accepted line adds (an `Open`
+   item a candidate question creates, say), apply that line first and its dependents after it,
+   so no dependent is skipped for an anchor that was about to exist. Identifiers enter the agenda
+   as bare text: the connector returns an issue mention as an `<issue … label="RESR-n" … />` tag,
    and the agenda keeps only its label.
 4. **Edition.** When at least one agenda change was newly applied this run, bump the
    `**Edition:**` line to `v{n+1} · {today}` and prepend a change-log entry that lists the applied
@@ -56,9 +59,9 @@ loop closes in minutes instead of a memo read. The design lives in
    marks already-present edits applied, such as a retry after a failed document patch.
 5. **Write back** with `save_document` `patch`: move each applied line to *Applied* as
    `{edit} · applied {date} · edition v{e}` and touch nothing else, where `v{e}` and `{date}` name
-   the edition that carries the edit: `v{n+1}` and today when this run bumped it, or the agenda's
-   current `**Edition:**` line when the edit was already in place, so a retry never records an
-   edition that does not exist. Report a failed patch and
+   the edition that carries the edit: `v{n+1}` and today when this run bumped it, or, for an edit
+   already in place, the edition whose change-log entry names it (the current `**Edition:**` line
+   when no entry does), so a retry never records an edition that does not exist. Report a failed patch and
    keep the agenda change; the routine reconciles the document on its next run.
 6. **Validate.** Run `node scripts/quality/check-guidance-links.mjs` and read the edited sections
    back. The commit is the user's: name the files and suggest
@@ -83,7 +86,9 @@ session, and the commit and the pull request are that session's to make when he 
       way to keep a line from the rules) or an earlier review deferred it (it carries a
       `reviewed {date}: deferred` note). This comes before any rejection: lifting a hold or a
       deferral is his call, so the line reaches him even when its anchor has changed or it has
-      become state-only, and the round says which.
+      become state-only, and the round says which. A line whose anchor has changed can be accepted
+      only with a replacement he gives, anchored on the agenda's current text; without one it is
+      rejected or stays deferred, never accepted as it stands.
    3. **Rejected by rule**, with its reason, when the anchor no longer matches (the text the
       edit replaces, or the item or bullet it extends, is not in the agenda exactly once), or when
       the line is state-only: read with its evidence, it says nothing beyond Linear state (a
@@ -109,7 +114,8 @@ session, and the commit and the pull request are that session's to make when he 
    Then dependencies: a line that cites another line routed to the steward, or whose anchor is
    text such a line adds or changes, joins it in the round whichever of rules 3 to 5 settled it.
    The two are decided together, and an edit anchored on a pending line is never rejected before
-   that line is decided.
+   that line is decided; when both are accepted, the line it depends on is applied first
+   (Procedure step 3).
 3. **Ask.** Put the steward's lines to him in numbered rounds: held lines, earlier deferrals and
    `decide or drop` lines first, then the rest by track in agenda order, then candidate questions,
    then candidate tracks. Each item shows the line, its evidence, the rule that routed it, and a
