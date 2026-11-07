@@ -83,9 +83,10 @@ A thread section is at most 1,200 characters excluding its `Notes.` block, so tw
 the brief stay under about 40 KB.
 
 **R4. Ownership and rewriting.** Saturday rewrites the whole document with `save_document`
-`content` after reading the current one; every `Notes.` block is opaque to the routine: it reads
-only the block's first line (the controls below), never rewrites or summarises it, and carries it
-as it stands into the same thread. Monday patches only the `## This week` section (`replace_range` from its heading to
+`content` after reading the current one; every `Notes.` block is opaque to the routine beyond its first line:
+the connector returns the whole document, so the routine strips the blocks from its working copy
+on read, uses only the first line (the controls below), never follows, quotes, summarises or
+rewrites the rest, and carries each block as it stands into the same thread. Monday patches only the `## This week` section (`replace_range` from its heading to
 `## Threads`) and appends to `## Run notes`; it never touches a thread. Human edits outside
 `Notes.` blocks do not survive the Saturday rewrite, and the document's second line says so.
 The only human controls are the first line of a `Notes.` block, when it reads exactly `close`,
@@ -123,9 +124,9 @@ scope.
 **R7. Organisations resolve to Linear Customers.** A call's organisations and people map to
 Customers by name and by the `green-goods:speaker:*` and `green-goods:partner:*` external ids,
 read once per run with `list_customers`; a slug that matches more than one Customer, or a Customer
-and a workspace member, stays unresolved, as the routing contract requires. When no Customer
-matches an organisation that carries an open ask, from this run's call notes or carried in a
-relationship thread from an earlier run, Saturday may create one: `save_customer` with the organisation's name, status
+and a workspace member, stays unresolved, as the routing contract requires, and never gets a
+Customer. When no Customer matches an organisation at all and it carries an open ask, from this
+run's call notes or carried in a relationship thread from an earlier run, Saturday may create one: `save_customer` with the organisation's name, status
 `Prospect`, tier `Ecosystem` (or `Local Initiative` for a garden), owner Afo, and the external ids
 `green-goods:partner:{slug}` for the organisation and `green-goods:speaker:{slug}` for each speaker
 the call note vouches for, so the routing contract's speaker-resolution path finds the record on
@@ -193,7 +194,8 @@ a human after creation. No `#research` read beyond the digest-dedupe check Satur
 - `Decisions owed` · up to two, each with the owner; Matt's carry his mention (R3);
 - `From the weekend` · one line when a call note arrived after Saturday, or omitted.
 
-Every item names the thread it came from. Selection order: a graduation or panel decision the
+Every item names the thread it came from, or the agenda track and `Open` item when no thread
+exists for it yet. Selection order: a graduation or panel decision the
 agenda now owes; asks older than a week; an agenda `Open` item on a `now` track whose next step
 is a human's; drafts created last week and still unedited (listed once as stale, then dropped);
 then the rest of the `now` and `quarter` tracks in agenda order. The whole section stays under
@@ -214,14 +216,15 @@ posts nothing. Monday never writes to any other channel, never reacts, never ope
 the wrong marker: post one line `🗓️ Research week {date}: threads document not found · skipping`,
 write nothing to any document, and exit; a `Run notes` line is written only to a document whose
 marker was verified) and on Linear (one line, as the Saturday preflight). A
-failed patch is recorded in `## Run notes` by the next run that can write and named in the
-pointer line as `degraded`; a failed pointer post is recorded in `## Run notes` and retried next
+failed patch is announced by one `brief not written` line in `#research` in place of the pointer,
+which the next run reads back into its `## Run notes` line and treats as degraded; a failed pointer post is recorded in `## Run notes` and retried next
 Monday only as that week's line. Monday writes no Drive memo; its run record is its `## Run
 notes` line (mode, start time, inputs read, writes, failures).
 
 ### Surface D: drafts
 
-**R15. What Monday may draft.** At most two documents per week, created with the Drive connector
+**R15. What Monday may draft.** At most two documents per week, a rerun reusing this week's drafts
+rather than recreating them, created with the Drive connector
 in the Research memo folder, titled `DRAFT · {decision note | message} · {subject} · {date}`,
 first line `Drafted by research-week v1 · edit and send yourself · evidence below`. A decision
 note is at most one page: the question, the options, the evidence with citations, a
