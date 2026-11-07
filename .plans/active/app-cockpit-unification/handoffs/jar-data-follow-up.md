@@ -1,7 +1,8 @@
 # Garden jar claims and funding: separate follow-up scope
 
 Status: proposed implementation scope, prepared 4 November 2026 Pacific time.
-Owner: PRD-1375 / DL-145. The six other cockpit slices can be reviewed independently.
+Tracking: [deferred Plan Hub follow-up](../plan.todo.md#deferred-follow-up-dl-145)
+identified in PRD-1375 / DL-145. The six cockpit slices can be reviewed independently.
 This document scopes the remaining data work; it authorizes no indexing deployment,
 contract change, transaction, public issue write or expansion into campaign jars.
 
@@ -22,7 +23,7 @@ These are source observations, not verification of the deployed contract version
 
 | Fact | Existing owner | Missing work |
 | --- | --- | --- |
-| Jar identity, balance, asset, per-claim limit and cooldown | [useGardenCookieJars](../../../../packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts) reads `getGardenJars` and each jar's views | Reuse these reads; add freshness/error information to any history composition |
+| Jar identity, balance, asset, per-claim limit and cooldown | [useGardenCookieJars](../../../../packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts) reads `getGardenJars` and each jar's views | Reuse the registry and underlying calls. Preserve each jar's field-level read outcomes before composing history; the hook currently substitutes zero or false for failed reads and 18 for unread ERC-20 decimals. |
 | Jar creation and metadata | [factory handler](../../../../packages/indexer/src/handlers/cookieJarFactory.ts), `CampaignCookieJar` | Establish garden-jar membership through the module; campaign metadata alone does not identify a garden jar |
 | Garden-wide yield allocations | [YieldAllocation](../../../../packages/indexer/schema.graphql), [yield handler](../../../../packages/indexer/src/handlers/yieldSplitter.ts) | Existing rows have no recipient jar and cannot establish a jar's last payout |
 | Yield attributed to a recipient jar | [YieldSplitter](../../../../packages/contracts/src/resolvers/Yield.sol) emits `YieldToCookieJar(garden, asset, amount, jar)` after a positive jar deposit | Add an indexed projection and read; the current [config](../../../../packages/indexer/config.yaml) subscribes only to `YieldSplit` |
@@ -56,7 +57,10 @@ but that default does not prove every historical jar has it.
    chain-scoped identities and dynamic registration pattern. Keep event transaction, log
    index, block and timestamp provenance. Reads return coverage start/end, completeness,
    truncation and failure/staleness alongside rows. Reuse the existing data-module/query-key
-   conventions; new hooks belong in Shared. Replaying the same event must not duplicate rows.
+   conventions; new hooks belong in Shared. Extend the existing read or expose a read model
+   that retains each jar's field status and freshness before composing history. Keep verified
+   zero values distinct from unread fields and use token decimals only after verification.
+   Replaying the same event must not duplicate rows.
 3. **Wire the existing jar page.** Replace unavailable facts only when the read supports them.
    Show each verified claim beside the current per-claim cap, explicitly labeled current;
    do not infer historical noncompliance from a later cap change. Identify observed yield
@@ -78,6 +82,9 @@ The history read supplies evidence, not claim eligibility or permission to send 
 - Funding distinguishes a proved yield deposit from another observed deposit. Amounts pulled,
   fees and ledger credits retain their own meaning. A failed jar deposit and treasury fallback
   do not create a jar payout.
+- When a multicall succeeds for one jar and fails for another, the successful values remain
+  visible. A failed cap, cooldown or ERC-20 decimals read is shown as unavailable. A verified
+  zero cap still renders as zero, and an amount with unread decimals is not formatted using 18.
 - Known-empty, unsupported, incomplete, truncated, stale and failed history render differently
   where the distinction affects a steward's decision. Pagination does not imply a complete total.
 - The jar page passes focused behavior and labeled phone/desktop rendered checks in EN/ES/PT;
