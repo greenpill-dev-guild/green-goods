@@ -79,12 +79,22 @@ implementation must start from a current isolated checkout with permission.
    existing pause unless resuming service is separately approved. Add the actual asset/garden pins
    and approved terms through existing Shared configuration. Prove issuer ownership, source
    authority, finite allowance and collective Safe routing.
+
+   Before signing, quote native CCIP fees for each expected command and acknowledgment. Read
+   the native balances of the Arbitrum entitlement and redemption modules and the Gnosis adapter
+   and escrow. Check that the entitlement module's `feeReserveMinimum` is positive and that the
+   dispatch can pay its quote while retaining that floor. Prepare separately approved top-ups for
+   any shortfall, including the balances each endpoint needs to send its own acknowledgments.
+   Verify the top-up receipts, re-quote, and read back balances before activation.
 4. **Prepare the on-chain service offer.** Follow the
    [offer publishing runbook](green-goods-offer-publishing-runbook.md) for the sequence. Have the
    authorized pool actors prepare the Family Garden offer and its `setServiceOfferTerms` call.
    Verify the commitment is Offered, Individual and approval-gated, and read back the nonzero
    terms revision and hash, approved Family issuer/token, and service terms before attempting a
-   booking. Shared catalog configuration and on-chain offer publication are separate steps.
+   booking. Verify the named buyer is distinct from the commitment creator and is a member of
+   the selected on-chain registered buyer garden. Record the voucher holder separately when
+   that is a different account. Shared catalog configuration and on-chain offer publication are
+   separate steps.
 5. **Rehearse, then present a human signing packet.** Obtain the selected local/fork checks,
    show each unsigned operation and expected readback, and obtain explicit activation approval.
    Each slice needs its own current-source proof; this handoff supplies none of that runtime proof.
@@ -110,14 +120,19 @@ Preserve these separate observations:
 1. Source transaction confirmed and message identifier recorded.
 2. Destination execution succeeded, with exact recipient credit and reserve/allowance debit.
 3. Source acknowledgment reconciled; a late acknowledgment must not trigger duplicate delivery.
-4. Verify the published service offer and terms revision, then have the holder create the booking
-   and review the exact escrow approval. Observe issuer approval and cross-chain activation
-   separately from the booking request.
-5. Record delivery and the holder's separate approval of the delivered service units and final
-   release/refund split. Verify `finalizeAllocation` froze that split under the agreed terms and
-   record its decision ID. Track each leg as succeeded, failed, pending or not required. Verify
-   every required leg succeeded and `isFinanciallyClosed` is true. Record final core confirmation
-   separately from holder approval and financial closure.
+4. Verify the published offer, terms revision and buyer eligibility, then have the named buyer
+   request the claim. Prepare and dispatch the setup authorization for that exact claim. Observe
+   issuer approval and the named holder's escrow deposit on Gnosis. Reconcile the successful
+   setup result and its deposit receipt on Arbitrum before the authorized provider-pool steward
+   calls `acceptServiceClaim`. Read back the acceptance bound to the same buyer, claim and setup.
+   Then run `finalizeActivation`, dispatch its Activate decision and verify it was applied on Gnosis.
+5. Record delivery and the holder's separate approval of the delivered service units and proposed
+   release/refund split. For any nonzero refund, have the issuer Safe use `authorizeReturn` and read
+   back a cumulative return ceiling that covers the proposed refund before the holder freezes
+   the split. Verify `finalizeAllocation` froze that split under the agreed terms and record its
+   decision ID. Track each leg as succeeded, failed, pending or not required. Verify every required
+   leg succeeded and `isFinanciallyClosed` is true. Record final core confirmation separately from
+   holder approval and financial closure.
 
 Label authenticated Brave proof separately from local/fork proof. Check pending state, reopening
 the page, refresh, destination failure and safe recovery. Never resend an in-flight message.
