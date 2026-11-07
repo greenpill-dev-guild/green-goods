@@ -2,10 +2,10 @@
 
 **Feature Slug**: `research-threads`
 **Stage**: `active`
-**Status**: `ACTIVE · spec accepted 2026-11-06; step 1 done (hub promoted); step 2 in PR #1504; steps 3 to 7 follow`
+**Status**: `ACTIVE · steps 1 and 2 shipped in PR #1504 (merged 2026-11-07); the six review residuals wait in RESR-112 for the step-3 PR; steps 3 to 7 follow`
 **Created**: `2026-11-06`
-**Last Updated**: `2026-11-06`
-**Supersedes**: the `research-intake-loops` hub, closed as `superseded` in the PR that lands step 2 and listed in `.plans/ARCHIVE.md` once archived
+**Last Updated**: `2026-11-07`
+**Supersedes**: the `research-intake-loops` hub, closed as `superseded` in PR #1504 and archived in PR #1508, listed in `.plans/ARCHIVE.md`
 
 ## Decision Log
 
@@ -36,12 +36,12 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| R1 to R5 threads document | none (routine spec) | Step 2 | pending |
-| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | pending |
+| R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; residuals in RESR-112 |
+| R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; residuals in RESR-112 |
 | R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | pending |
-| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | pending |
+| R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; residuals in RESR-112 |
 | R20 delegated review | none (skill) | Step 5 | pending |
-| R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | pending |
+| R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half with step 3 |
 | Monday trigger, display name, panel line | human | Step 6 | pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |
 
@@ -68,8 +68,8 @@
   review (R20).
 - `.claude/context/linear-routing-rules.md`: one clause on the Customer Need line for partner
   research asks (R8), with link, routing and consistency proof.
-- `.plans/active/research-intake-loops/plan.todo.md` and `status.json`: closeout record
-  (superseded), in the same PR as step 2.
+- The research-intake-loops hub's plan and status: closeout record (superseded) in #1504, then
+  archived and listed in `.plans/ARCHIVE.md`.
 
 ### Files to Create
 
