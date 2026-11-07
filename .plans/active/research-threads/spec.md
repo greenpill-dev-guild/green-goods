@@ -55,7 +55,8 @@ every section is rewritten by the routines except each thread's `Notes.` block.
    eight weeks after closing.
 6. `## Links filed` — one line per human link posted in `#research` in the last two weeks: date ·
    domain or title · the thread it was filed on, or `parked` with a reason (R17).
-7. `## Run notes` — the footer: memo link, pending-edits link, radar link, each run's mode line
+7. `## Run notes` — the footer: the memo's title and folder (the document is rewritten before
+   the final memo exists, so never a memo URL), pending-edits link, radar link, each run's mode line
    and failed writes, newest first, last four runs.
 
 **R3. The thread shape.** Each thread section carries, in this order and with these labels:
@@ -121,8 +122,10 @@ scope.
 
 **R7. Organisations resolve to Linear Customers.** A call's organisations and people map to
 Customers by name and by the `green-goods:speaker:*` and `green-goods:partner:*` external ids,
-read once per run with `list_customers`. When no Customer matches an organisation that appears
-with a next step, Saturday may create one: `save_customer` with the organisation's name, status
+read once per run with `list_customers`; a slug that matches more than one Customer, or a Customer
+and a workspace member, stays unresolved, as the routing contract requires. When no Customer
+matches an organisation that carries an open ask, from this run's call notes or carried in a
+relationship thread from an earlier run, Saturday may create one: `save_customer` with the organisation's name, status
 `Prospect`, tier `Ecosystem` (or `Local Initiative` for a garden), owner Afo, and the external ids
 `green-goods:partner:{slug}` for the organisation and `green-goods:speaker:{slug}` for each speaker
 the call note vouches for, so the routing contract's speaker-resolution path finds the record on
@@ -147,7 +150,9 @@ signal `bug-intake` or `sync-triage-pulse` already captured from the same call n
 captured twice; a match made by another routine is deduped and left unchanged, since those
 Needs hold the reporter's verbatim signal, and the thread names it. Only a Need carrying this
 routine's own signature is updated: when the ask's wording sharpened, its body gets the sharper
-text; when evidence shows the ask done, its body's first line gets the prefix `Done {date} ·`
+text; when direct evidence shows the ask done (a later call note records the owed step, the
+linked issue reached a terminal state that resolves it, or the thread's control says so; ordinary
+movement is not evidence), its body's first line gets the prefix `Done {date} ·`
 (the connector offers no status on a Need) and it is never deleted. The routine never creates a
 Product issue: an ask that implies product work is listed in the memo for a person to triage.
 The routing contract's Customer Need line gains one clause in step 2 of the plan: a Need that
@@ -251,9 +256,10 @@ ledger, the thread ledger, the outside pass, writes and failed writes, and the p
 no longer carries a connections or drift narrative of its own, since the threads document and the
 pending-edits document hold them.
 
-**R18. One-time closure.** The first v6 run files or drops, with one `## Links filed` line each,
-the sixteen shares that carry an unanswered ❔ reaction, and never asks about them again. It
-leaves the old intake threads archived and does not react to anything.
+**R18. One-time closure.** The first two v6 runs file or drop, with one `## Links filed` line each
+and within the twelve-fetch budget, the sixteen shares that carry an unanswered ❔ reaction, oldest
+first and before any newer link, and never ask about them again. They leave the old intake threads
+archived and do not react to anything.
 
 **R19. Caps and budget.** Saturday: 1 post · ≤1 status pointer per moved track · ≤3 comments ·
 ≤1 issue · 1 pending-edits refresh · ≤1 radar comment · 1 threads document rewrite · ≤8 Needs ·
@@ -279,7 +285,8 @@ whose diff Afo approves. The Saturday refresh of the pending-edits document carr
 ### Cross-cutting
 
 **R21. Privacy, in two tiers.** The public `#research` post keeps the v5.1 rule: decisions in the
-routine's own words, call notes cited by title or by meeting kind and date, no transcript quotes,
+routine's own words, call notes cited by title, or by meeting kind and date whenever the title
+names a person or an organisation, no transcript quotes,
 no attendee lists, no email or wallet addresses, no participant names from one-to-ones. The
 private surfaces (the threads document, Customer Needs, Customers, comments, drafts) may name
 organisations and the people met, in the routine's own words and never quoted; they never carry
