@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   userId: "0x1111111111111111111111111111111111111111" as string | undefined,
   sender: null as null | { authMode: string },
   lookupResult: null as null | Record<string, unknown>,
+  decisionOverlay: undefined as Record<string, unknown> | undefined,
   queuedLoading: false,
   online: true,
 }));
@@ -28,8 +29,8 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
-  useQuery: () => ({
-    data: mocks.lookupResult,
+  useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => ({
+    data: queryKey[1] === "merged" ? mocks.decisionOverlay : mocks.lookupResult,
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
@@ -238,6 +239,7 @@ describe("useWorkDetailController", () => {
     mocks.isUserAddress.mockReturnValue(false);
     mocks.sender = null;
     mocks.lookupResult = null;
+    mocks.decisionOverlay = undefined;
     mocks.queuedLoading = false;
     mocks.online = true;
   });
@@ -262,6 +264,14 @@ describe("useWorkDetailController", () => {
 
     expect(result.current.work?.title).toBe("Older work");
     expect(result.current.work?.status).toBe("rejected");
+  });
+
+  it("shows a confirmed decision when the direct UID read still reports pending", () => {
+    mocks.lookupResult = OLDER_ROW;
+    mocks.decisionOverlay = { ...OLDER_ROW, status: "approved", _txHash: "0x1234" };
+    const { result } = renderHook(() => useWorkDetailController(), { wrapper: OlderWorkWrapper });
+
+    expect(result.current.work?.status).toBe("approved");
   });
 
   // A notification row can list a work outside the garden's loaded page, and offline the direct
