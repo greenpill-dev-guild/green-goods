@@ -144,9 +144,13 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
 
 1. Have an authorized pool steward call `prepareDistribution` with the approved recognition
    entries and validated recognition hash. Verify the prepared entitlement ID, payload hash,
-   accepted terms revision, recipient allocations and total. Dispatch that entitlement and
-   record the successful source transaction and message ID. If CCIP reports a terminal delivery
-   failure and the Gnosis adapter has no record of the command, refresh the source quote and
+   accepted terms revision, recipient allocations and total. If the Family reserve is short,
+   include the approved Gnosis issuance or replenishment operation in the signing packet and
+   verify its receipt. Before dispatch, confirm the issuer's token balance covers the
+   entitlement's reserve debit and the finite adapter allowance covers the full transfer total.
+   Dispatch that entitlement and record the successful source transaction and message ID.
+   If CCIP reports a terminal delivery failure and the Gnosis adapter has no record of the
+   command, refresh the source quote and
    reserve checks. Have an authorized pool steward call `dispatch` for the same prepared
    entitlement and record the replacement message ID. Reconcile the original message first and
    leave any message still in flight to complete.
@@ -197,9 +201,12 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    release/refund split. For any nonzero refund, have the issuer Safe use `authorizeReturn` and read
    back a cumulative return ceiling that covers the proposed refund before the holder freezes
    the split. Verify `finalizeAllocation` froze that split under the agreed terms and record its
-   decision ID. Track each leg as succeeded, failed, pending or not required. Verify every required
-   leg succeeded and `isFinanciallyClosed` is true. Verify the final acknowledgment reaches the
-   source, using the quoted caller-funded retry if needed. Record final core confirmation
+   decision ID. Include `executeFinalLeg(setupId, decisionId, leg)` for each nonzero leg:
+   `ReleaseToIssuer` and `RefundToHolder` as applicable. Read back each leg's status. For a failed
+   leg, reconcile its recorded failure, repair the verified cause and retry that same leg for
+   the same decision. Verify every required leg succeeded and `isFinanciallyClosed` is true.
+   Verify the final acknowledgment reaches the source, using the quoted caller-funded retry
+   if needed. Record final core confirmation
    separately from holder approval and financial closure.
 
 Use the [voucher reconciliation handoff](codex-voucher-reconciliation.md) for protocol details
