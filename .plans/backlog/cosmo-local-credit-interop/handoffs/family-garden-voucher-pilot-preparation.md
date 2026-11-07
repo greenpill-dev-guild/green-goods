@@ -136,7 +136,11 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
 1. Have an authorized pool steward call `prepareDistribution` with the approved recognition
    entries and validated recognition hash. Verify the prepared entitlement ID, payload hash,
    accepted terms revision, recipient allocations and total. Dispatch that entitlement and
-   record the successful source transaction and message ID.
+   record the successful source transaction and message ID. If CCIP reports a terminal delivery
+   failure and the Gnosis adapter has no record of the command, refresh the source quote and
+   reserve checks. Have an authorized pool steward call `dispatch` for the same prepared
+   entitlement and record the replacement message ID. Reconcile the original message first and
+   leave any message still in flight to complete.
 2. Verify destination execution succeeded with exact recipient credit and reserve/allowance debit.
    If execution failed, reconcile the recorded entitlement, payload and result first. Repair the
    verified cause, such as a short reserve, consumed allowance or pause, then call the adapter's
@@ -159,9 +163,11 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    credit or a separately approved transfer. If a transfer is needed, verify its
    receipt and the holder's balance before booking funds are committed. Have that holder approve
    only the required voucher units for the escrow, verify the finite allowance, then call
-   `presentSetup`. Read back the successful deposit, exact escrow
-   credit and allowance consumed by the transfer. Deliver the matching setup acknowledgment and
-   reconcile its deposit receipt on Arbitrum. Before the authorized provider-pool steward calls
+   `presentSetup`. If `getSetupResult` records a failed Deposit, inspect the stored failure,
+   repair the verified cause and call `retrySetupAction(setupId)`. Confirm `actionSucceeded`
+   and the Deposited phase, then verify the exact escrow credit and allowance consumed against
+   the token's state. Reconcile the successful result's acknowledgment
+   and matching deposit receipt on Arbitrum. Before the authorized provider-pool steward calls
    `acceptServiceClaim`, verify the deadline against the current Arbitrum block timestamp and the
    absence of an Abort decision. Read back acceptance for the same buyer, claim and setup, then
    run `finalizeActivation`, dispatch Activate and verify it was applied on Gnosis.
