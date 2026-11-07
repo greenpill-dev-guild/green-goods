@@ -39,9 +39,11 @@ loop closes in minutes instead of a memo read. The design lives in
    *Candidate tracks* runs `candidates` first; it needs no agenda anchor. A `[x]` line typed
    *Proposed edits* names exact anchor text: show `old → new` and apply it with an exact-match
    replace that must match once; a line whose anchor no longer matches is skipped and reported,
-   never guessed. Apply is idempotent: an edit whose new text is already in place, or a question
-   already present as an `Open` item on its track, is marked applied without a second edition
-   bump, so a failed document patch (step 5) can be retried safely. A `[x]` line typed *Candidate
+   never guessed. Apply is idempotent: an edit whose new text is already in place, an edit the
+   change log already lists (a later edit in the same run can replace its new text, so the text
+   alone cannot show it), or a question already present as an `Open` item on its track, is marked
+   applied without a second edition bump, so a failed document patch (step 5) can be retried
+   safely. A `[x]` line typed *Candidate
    questions* becomes a numbered `Open` item on the track its `track:`
    field names, written in the agenda's shape: the question, its next concrete step and who can
    answer it, from the line's `next:` and `who:` fields. When any of the three fields reads
@@ -55,13 +57,15 @@ loop closes in minutes instead of a memo read. The design lives in
    and the agenda keeps only its label.
 4. **Edition.** When at least one agenda change was newly applied this run, bump the
    `**Edition:**` line to `v{n+1} · {today}` and prepend a change-log entry that lists the applied
-   edits in one sentence each with their evidence. One bump per run, and none on a run that only
+   edits in one sentence each, naming the track and the item or field each one changed, with its
+   evidence, so a retry can recognise every edit of a chain from the log. One bump per run, and none on a run that only
    marks already-present edits applied, such as a retry after a failed document patch.
 5. **Write back** with `save_document` `patch`: move each applied line to *Applied* as
    `{edit} · applied {date} · edition v{e}` and touch nothing else, where `v{e}` and `{date}` name
    the edition that carries the edit: `v{n+1}` and today when this run bumped it, or, for an edit
-   already in place, the edition whose change-log entry names it (the current `**Edition:**` line
-   when no entry does), so a retry never records an edition that does not exist. Report a failed patch and
+   already in place, the edition and date of the change-log entry that names it. When no entry
+   names it, write `{edit} · edition unknown, present in v{n}` instead, since the current edition
+   only shows the edit is there now. A retry never records an edition that does not exist. Report a failed patch and
    keep the agenda change; the routine reconciles the document on its next run.
 6. **Validate.** Run `node scripts/quality/check-guidance-links.mjs` and read the edited sections
    back. The commit is the user's: name the files and suggest
@@ -79,8 +83,9 @@ session, and the commit and the pull request are that session's to make when he 
    line under *Proposed edits*, *Candidate questions* and *Candidate tracks*. Lines already ticked
    are `apply`'s input as they stand.
 2. **Classify** each line against the agenda as read. The first rule that fits decides:
-   1. **Already applied** when the line's new text is already in the agenda, because an earlier
-      run applied it and then failed to patch the document: it moves to *Applied* with no second
+   1. **Already applied** when the line's new text is already in the agenda, or the change log
+      lists the edit (a later edit in the same chain replaced its text), because an earlier run
+      applied it and then failed to patch the document: it moves to *Applied* with no second
       edition bump, as Procedure step 3 allows, and is never rejected for the anchor it replaced.
    2. **To the steward** when a person held the line back (it ends with `· hold`, the document's
       way to keep a line from the rules) or an earlier review deferred it (it carries a
