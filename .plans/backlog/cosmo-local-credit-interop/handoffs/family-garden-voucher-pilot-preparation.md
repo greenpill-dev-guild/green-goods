@@ -65,9 +65,13 @@ implementation must start from a current isolated checkout with permission.
    Add a distinct controller-policy slice only if the selected controller requires one.
    If selecting the roster controller, pin the paired Arbitrum publisher and Gnosis receiver for
    this garden. Include Hats-owner `setStewardObserver` registration, approved transport funding,
-   and initial dispatches for the eligible stewards. Verify the observer and both peers, correlate
-   each source dispatch with the receiver's applied revision and signer eligibility, and verify
-   the bootstrap account has left revision-zero eligibility before relying on roster control.
+   and initial dispatches for the eligible stewards. If a configured bootstrap signer is
+   ineligible on Arbitrum and has no prior dispatch, `syncSteward` will leave its status queued.
+   Include `quoteSteward(bootstrapSigner)` and caller-funded `dispatchSteward(bootstrapSigner)`
+   with the current quoted fee in the signing packet. Verify the observer and both peers, then
+   match each dispatch to the receiver's applied revision and signer eligibility. Before relying
+   on roster control, confirm any configured bootstrap signer has an applied nonzero revision
+   and its eligibility matches the source, including an ineligible readback for the case above.
    Rehearse a grant, revocation and deferred dispatch recovery. Reconcile already dispatched
    messages before retrying and verify the selected threshold separately.
 3. **Prepare source authority and catalog integration.** In the proposed Arbitrum signing packet,
