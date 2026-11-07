@@ -3,8 +3,7 @@ routine-name: research-week
 trigger:
   schedule: "0 13 * * 1"  # Mon 13:00 UTC = 05:00 PST / 06:00 PDT, so the brief is there before the steward's morning read; the scheduler starts a run up to 14 minutes after the cron time.
 max-duration: 30m
-repos:
-  - green-goods   # read-only: docs/routines/research-agenda.md is the compass. Never edits, commits, or pushes. If the trigger carries no checkout, the pointer prompt shallow-clones the public repo instead.
+repos: []  # the live trigger carries no repository source: its pointer prompt shallow-clones the public repository at develop into a scratch directory and reads this spec and docs/routines/research-agenda.md (the compass) there, read-only. A rebuild may attach green-goods instead; the pointer's first step then finds the checkout and skips the clone. Never edits, commits, or pushes.
 environment: green-goods  # the #research channel id, the bot token, and the Drive and Linear connectors
 network-access: full  # Discord REST (one post) + Drive (drafts, weekend call notes) + Linear (one document patch); no outside fetches
 env-vars:
@@ -15,7 +14,7 @@ connectors:
   - linear         # OAuth connector only, no API key (guild rule 2026-07-04)
 model: claude-opus-5-5  # the plan is bounded by the threads document the Saturday run wrote; the weekly Fable allowance stays with that run
 allow-unrestricted-branch-pushes: false  # no PRs
-status: designed  # v1 (2026-11-07) from .plans/active/research-threads/ (R10 to R15, R21 to R24). The trigger is a steward one-off (§ Setup); this line and the README row read "designed" until it exists and carry its id afterwards.
+status: active  # v1 (2026-11-07) from .plans/active/research-threads/ (R10 to R15, R21 to R24). Trigger trig_01QAmX6qXWjywnKDQGQvb8pB ("Green Goods Research Week", created 2026-11-07 from a session) in the green-goods environment on claude-opus-5-5 with the Google Drive and Linear connectors, reading this file from develop on every run; first scheduled fire Monday 2026-11-09 13:00 UTC.
 ---
 
 # Prompt
@@ -174,7 +173,7 @@ If the file cannot be located or read by either path, do not improvise a run fro
 
 ## Setup (steward one-offs)
 
-1. Create the trigger **Green Goods Research Week** in the green-goods environment: cron `0 13 * * 1`, model `claude-opus-5-5`, the Google Drive and Linear connectors, env vars `DISCORD_BOT_TOKEN` and `DISCORD_RESEARCH_CHANNEL_ID`, Bash, Read, Glob and Grep allowed, the pointer prompt above, and optionally `greenpill-dev-guild/green-goods` as a source to skip the clone. Then record the trigger id in this file's frontmatter status line and in the README portfolio row, and change both from "designed" to "active".
+1. Done 2026-11-07: the trigger **Green Goods Research Week** (`trig_01QAmX6qXWjywnKDQGQvb8pB`) exists in the green-goods environment with cron `0 13 * * 1`, model `claude-opus-5-5`, the Google Drive and Linear connectors, the pointer prompt above, no repository source (the pointer's shallow clone is the checkout path), and the allowed tools `preset:default`, `Task`, `Bash`, `Glob`, `Grep`, `Read`, `Edit`, `MultiEdit`, `Write`, `NotebookEdit`, `WebFetch`, `TodoWrite`, `WebSearch`, `BashOutput`, `KillBash`, `Skill`, `Tmux`, `Monitor`, `SendUserFile` and `REPL` (the same list as the Saturday trigger); the environment carries `DISCORD_BOT_TOKEN` and `DISCORD_RESEARCH_CHANNEL_ID`. Its id is in this file's frontmatter and the README portfolio row; re-emit it with this record if it is ever lost.
 2. Confirm the second reader's Linear display name, so the mention on his lines resolves; until it is confirmed, the routine writes his name without the `@`.
 3. Pin the *Research threads* document on the Research team page beside the agenda and the pending-edits document once the first Saturday v6 run has created it.
 

@@ -3,8 +3,7 @@ routine-name: research-synthesis
 trigger:
   schedule: "0 0 * * 6"  # Sat 00:00 UTC = Fri 17:00 PT. Closes the week after Monday's syncs (the Engineering Sync among them) and Wednesday's Build Sync have landed in Drive.
 max-duration: 1h
-repos:
-  - green-goods   # read-only: docs/routines/research-agenda.md is the compass and .plans/ is execution truth. Never edits, commits, or pushes. If the trigger carries no checkout, the pointer prompt shallow-clones the public repo instead.
+repos: []  # the live trigger carries no repository source: its pointer prompt shallow-clones the public repository at develop, with two weeks of history, into a scratch directory and reads this spec, docs/routines/research-agenda.md (the compass) and .plans/ (execution truth) there, read-only. A rebuild may attach green-goods instead; the pointer's first step then finds the checkout and skips the clone. Never edits, commits, or pushes.
 environment: green-goods  # observed from the trigger configuration on 2026-10-18: the green-goods environment holds the #research channel id, the bot token, and the Drive and Linear connectors
 network-access: full  # Discord REST (read the channel, one post) + Drive + Linear (read + gated writes) + bounded fetches: classification of #research links and the outside pass on frontier questions
 env-vars:
