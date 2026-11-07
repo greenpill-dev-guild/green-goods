@@ -8,7 +8,10 @@ import { worksKeys } from "../../../config/query-keys/work";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { takeUpOf } from "../../../modules/job-queue/take-up-hold";
 import { readWorkByUID } from "../../../modules/work/work-list";
-import { resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
+import {
+  type OverlayWork,
+  resolveGardenWorkRows,
+} from "../../../modules/work/local-status-overlay";
 import { connectivityStore } from "../../../stores/connectivity";
 import { useDashboardNavigation } from "../useDashboardNavigation";
 import { isUserAddress } from "../../../utils/blockchain/address";
@@ -88,12 +91,25 @@ export function useWorkDetailController() {
     queryFn: () => readWorkByUID(workId!, chainId),
     enabled: !listedWork && !!workId && isValidAttestationId(workId) && isOnline,
   });
+  // A direct read of older work may be stale too. Use the same saved decision
+  // as the garden list while the indexer catches up.
+  const decisionOverlayKey = worksKeys.merged(gardenId || "", chainId);
+  const { data: decisionOverlay } = useQuery<OverlayWork[], Error, OverlayWork | undefined>({
+    queryKey: decisionOverlayKey,
+    queryFn: () => queryClient.getQueryData<OverlayWork[]>(decisionOverlayKey) ?? [],
+    enabled: false,
+    select: (rows) => rows.find((row) => row.id === workId),
+  });
   const fetchedWork = useMemo(() => {
     const row = workByUID.data;
     if (!row || row.gardenAddress.toLowerCase() !== gardenId.toLowerCase()) return undefined;
     const saved = routeStatus ? [{ ...row, status: routeStatus }] : undefined;
-    return resolveGardenWorkRows({ remote: [row], saved, overlay: undefined }).rows[0];
-  }, [workByUID.data, gardenId, routeStatus]);
+    return resolveGardenWorkRows({
+      remote: [row],
+      saved,
+      overlay: decisionOverlay ? [decisionOverlay] : undefined,
+    }).rows[0];
+  }, [workByUID.data, gardenId, routeStatus, decisionOverlay]);
   // Online, the direct read decides: a carried row may be stale (another steward decided the work),
   // so it never stands in, and never offers a decision, before that read answers.
   const work = listedWork ?? fetchedWork ?? (isOnline ? undefined : routeWork);
