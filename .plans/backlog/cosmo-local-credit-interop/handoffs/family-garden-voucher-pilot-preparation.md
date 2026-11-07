@@ -117,21 +117,36 @@ the selected application path before relying on this narrower pilot.
 Use a current, explicitly selected work request or cycle. Have the authorized pool steward call
 `registerTerms` on the entitlement module. Read back the revision, terms hash, approved issuer
 authority and matching core binding. Obtain issuer approval for that exact revision, then have
-the creator consent to freeze it. If the counterparty is a
-different account, that account must consent to the same frozen revision before core acceptance.
-If one account fills both roles, its single consent covers both. Verify the consent revision
-for each required account, complete work and review, then send the approved distribution once.
-Preserve these separate observations:
+the creator consent to freeze it. Verify an eligible counterparty and any separate claim requester
+are distinct from the creator. Have the actual counterparty consent to the same frozen revision.
+Read back both accounts' consent revisions before the claim operation that accepts the commitment.
+For an approval-gated claim, verify the pending claimant and later steward acceptance. For an open
+claim, verify both consents before the claim accepts it. Complete work and review, then verify
+the accepted voucher binding and Fulfilled commitment. Preserve these separate observations:
 
-1. Source transaction confirmed and message identifier recorded.
-2. Destination execution succeeded, with exact recipient credit and reserve/allowance debit.
-3. Source acknowledgment reconciled; a late acknowledgment must not trigger duplicate delivery.
+1. Have an authorized pool steward call `prepareDistribution` with the approved recognition
+   entries and validated recognition hash. Verify the prepared entitlement ID, payload hash,
+   accepted terms revision, recipient allocations and total. Dispatch that entitlement and
+   record the successful source transaction and message ID.
+2. Verify destination execution succeeded with exact recipient credit and reserve/allowance debit.
+   If execution failed, reconcile the recorded entitlement, payload and result first. Repair the
+   verified cause, such as a short reserve, consumed allowance or pause, then call the adapter's
+   `retry(entitlementId)` and verify the next result sequence and exact credit. Duplicate CCIP
+   delivery does not retry a recorded entitlement's transfer.
+3. Reconcile the matching result on the source. After an execution retry or an unsent
+   acknowledgment, use the adapter's `quoteAcknowledgment` and caller-funded
+   `retryAcknowledgment` with the exact current fee for that result. Record the acknowledgment
+   sequence and message ID and verify Arbitrum applied the successful result. Track a message
+   already in flight before considering any retry.
 4. Verify the published offer, terms revision and buyer eligibility, then have the named buyer
    request the claim. Select an approved source-chain acceptance window that allows for setup,
    deposit and acknowledgment. Pass its `acceptanceDeadline` to `prepareVoucherSetup`, read back
    the bound claim and deadline, then dispatch the setup authorization. Observe issuer approval
-   on Gnosis. Have the named holder approve only the required voucher units for the escrow, verify
-   the finite allowance, then call `presentSetup`. Read back the successful deposit, exact escrow
+   on Gnosis. Verify the named holder's balance of the exact voucher token and trace the units
+   to the earned credit or a separately approved transfer. If a transfer is needed, verify its
+   receipt and the holder's balance before booking funds are committed. Have that holder approve
+   only the required voucher units for the escrow, verify the finite allowance, then call
+   `presentSetup`. Read back the successful deposit, exact escrow
    credit and allowance consumed by the transfer. Deliver the matching setup acknowledgment and
    reconcile its deposit receipt on Arbitrum. Before the authorized provider-pool steward calls
    `acceptServiceClaim`, verify the deadline against the current Arbitrum block timestamp and the
