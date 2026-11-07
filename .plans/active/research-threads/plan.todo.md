@@ -38,11 +38,11 @@
 |---|---|---|---|
 | R1 to R5 threads document | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes in the research-week PR |
 | R6 to R9 calls, Customers, Needs | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes in the research-week PR |
-| R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | spec written in the research-week PR; trigger pending (step 6) |
+| R10 to R15 Monday run and drafts | none (new routine spec) | Step 3 | shipped in #1509; trigger created 2026-11-07 |
 | R16 to R19 Saturday v6 deltas, closure, caps | none (routine spec) | Step 2 | shipped in #1504; RESR-112 fixes in the research-week PR |
 | R20 delegated review | none (skill) | Step 5 | pending |
 | R21 to R24 privacy, retries, delivery, models | none (routine specs, README) | Steps 2 to 4 | Saturday half shipped in #1504; Monday half written in the research-week PR |
-| Monday trigger, display name, panel line | human | Step 6 | pending |
+| Monday trigger, display name, panel line | human | Step 6 | trigger created 2026-11-07; display name and panel line pending |
 | First live runs and acceptance evidence | human | Step 7 | pending |
 
 ## Repository guidance compliance
@@ -132,7 +132,7 @@ pending-edits refresh carries those sections forward.
 Verification: a dry run (`--dry-run`) on a scratch copy of the agenda and a throwaway document,
 recorded in [eval.md](eval.md) AC-12.
 
-### Step 6: One-offs Afo owns
+### Step 6: One-offs Afo owns (the trigger created 2026-11-07; the display name and the pin remain)
 
 Create the Monday trigger on `claude-opus-5-5` in the green-goods environment with the pointer
 prompt, the Drive and Linear connectors and the two env vars; confirm Matt's Linear display name

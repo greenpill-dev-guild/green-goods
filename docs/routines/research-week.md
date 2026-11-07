@@ -15,7 +15,7 @@ connectors:
   - linear         # OAuth connector only, no API key (guild rule 2026-07-04)
 model: claude-opus-5-5  # the plan is bounded by the threads document the Saturday run wrote; the weekly Fable allowance stays with that run
 allow-unrestricted-branch-pushes: false  # no PRs
-status: designed  # v1 (2026-11-07) from .plans/active/research-threads/ (R10 to R15, R21 to R24). The trigger is a steward one-off (§ Setup); this line and the README row read "designed" until it exists and carry its id afterwards.
+status: active  # v1 (2026-11-07) from .plans/active/research-threads/ (R10 to R15, R21 to R24). Trigger trig_01QAmX6qXWjywnKDQGQvb8pB ("Green Goods Research Week", created 2026-11-07 from a session) in the green-goods environment on claude-opus-5-5 with the Google Drive and Linear connectors, reading this file from develop on every run; first scheduled fire Monday 2026-11-09 13:00 UTC.
 ---
 
 # Prompt
@@ -174,7 +174,7 @@ If the file cannot be located or read by either path, do not improvise a run fro
 
 ## Setup (steward one-offs)
 
-1. Create the trigger **Green Goods Research Week** in the green-goods environment: cron `0 13 * * 1`, model `claude-opus-5-5`, the Google Drive and Linear connectors, env vars `DISCORD_BOT_TOKEN` and `DISCORD_RESEARCH_CHANNEL_ID`, Bash, Read, Glob and Grep allowed, the pointer prompt above, and optionally `greenpill-dev-guild/green-goods` as a source to skip the clone. Then record the trigger id in this file's frontmatter status line and in the README portfolio row, and change both from "designed" to "active".
+1. Done 2026-11-07: the trigger **Green Goods Research Week** (`trig_01QAmX6qXWjywnKDQGQvb8pB`) exists in the green-goods environment with cron `0 13 * * 1`, model `claude-opus-5-5`, the Google Drive and Linear connectors, the pointer prompt above and the default tool set; the environment carries `DISCORD_BOT_TOKEN` and `DISCORD_RESEARCH_CHANNEL_ID`. Its id is in this file's frontmatter and the README portfolio row.
 2. Confirm the second reader's Linear display name, so the mention on his lines resolves; until it is confirmed, the routine writes his name without the `@`.
 3. Pin the *Research threads* document on the Research team page beside the agenda and the pending-edits document once the first Saturday v6 run has created it.
 
