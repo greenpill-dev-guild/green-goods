@@ -89,10 +89,16 @@ implementation must start from a current isolated checkout with permission.
    Budget native CCIP fees for each expected command and acknowledgment, then obtain exact
    quotes once the corresponding payloads exist. Before every setup send, refresh
    `quoteSetupCommand(setupId, kind)` and pass that exact value from the caller to
-   `dispatchSetupCommand`: kind 0 for Authorization and kind 1 for Activate or Abort. Read the
-   native balances of the Arbitrum entitlement module and Gnosis adapter. Check that the
-   entitlement module's `feeReserveMinimum` is positive and that the
-   dispatch can pay its quote while retaining that floor. Prepare separately approved top-ups for
+   `dispatchSetupCommand`: kind 0 for Authorization and kind 1 for Activate or Abort. Record
+   each message ID and verify the exact authorization or decision on Gnosis. If CCIP reports a
+   terminal delivery failure and the destination has not applied the command, verify the source
+   state still calls for the same command. Refresh the quote, redispatch that setup ID and kind,
+   and record the replacement message ID. Wait for a message still in flight and check the
+   destination state before any retry.
+
+   Read the native balances of the Arbitrum entitlement module and Gnosis adapter. Check that
+   the entitlement module's `feeReserveMinimum` is positive and that the dispatch can pay its
+   quote while retaining that floor. Prepare separately approved top-ups for
    any shortfall where a send draws on an endpoint balance, including the Gnosis adapter's
    earned-voucher acknowledgment. Verify top-up receipts and balances and refresh the quotes.
    A positive-fee escrow acknowledgment is caller-funded. Budget for the caller to supply the
