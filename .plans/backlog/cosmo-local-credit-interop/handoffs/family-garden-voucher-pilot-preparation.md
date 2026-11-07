@@ -105,10 +105,13 @@ implementation must start from a current isolated checkout with permission.
    exact current quote to `retrySetupAcknowledgment` or `retryFinalAcknowledgment` if the
    automatic send fails. An escrow top-up does not fund those retries. Record the latest result
    sequence and outbound message ID, then verify the matching result was applied on Arbitrum.
-4. **Prepare the on-chain service offer.** Follow the
-   [offer publishing runbook](green-goods-offer-publishing-runbook.md) for the sequence. Have the
-   authorized pool actors prepare the Family Garden offer and its `setServiceOfferTerms` call.
-   Verify the commitment is Offered, Individual and approval-gated, and read back the nonzero
+4. **Prepare the on-chain service offer.** Before presenting an executable packet, document and
+   rehearse a Family-specific publication path. Have the authorized pool actors create the
+   commitment in the selected Family provider pool and prepare `setServiceOfferTerms` for that
+   commitment ID and the approved Family issuer, token, quantities, and service and remedy terms.
+   The [Green Goods offer runbook](green-goods-offer-publishing-runbook.md) illustrates the
+   two-step flow. Its batch script, commitments and GGV preflight apply only to those offers.
+   Verify the Family commitment is Offered, Individual and approval-gated, and read back the nonzero
    terms revision and hash, approved Family issuer/token, and service terms before attempting a
    booking. Verify the named buyer is distinct from the commitment creator and is a member of
    the selected on-chain registered buyer garden. Record the voucher holder separately when
@@ -181,7 +184,10 @@ the accepted voucher binding and Fulfilled commitment. Preserve these separate o
    on Arbitrum for the exact setup ID and authorization hash. A separate holder can request
    cancellation on Gnosis using `requestSetupAbort` with the exact current
    `quoteSetupAbortRequest` fee. Track that request's message ID and confirm the authenticated
-   request selected Abort on Arbitrum. An existing acceptance receipt takes precedence.
+   request selected Abort on Arbitrum. If the original request reaches a terminal delivery
+   failure, verify that both setups remain undecided and Arbitrum has no acceptance receipt.
+   Have the same holder refresh the quote, resend the same request and record the replacement
+   message ID. Wait for an in-flight request. An existing acceptance receipt takes precedence.
    If the deadline passes without acceptance, verify there is no receipt for the exact claim
    before calling source `abortSetup`. For either cancellation or expiry, verify the source
    selected Abort, dispatch that decision, and verify any deposited vouchers return to the
