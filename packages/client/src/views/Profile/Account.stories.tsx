@@ -2,6 +2,7 @@ import { ServiceWorkerUpdateProvider } from "@green-goods/shared/hooks/app/useSe
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { useGardenDepartureOptions } from "@green-goods/shared/hooks/garden/useLeaveGarden";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, within } from "storybook/test";
@@ -58,8 +59,14 @@ const meta: Meta<typeof ProfileAccount> = {
       gardenId: JOURNEY_GARDEN_RECORD.id,
       selectGarden: fn(),
     } as unknown as ReturnType<typeof useActiveGarden>);
+    mocked(useGardenDepartureOptions).mockReturnValue({
+      options: [],
+      isLoading: false,
+      isError: false,
+      refetch: fn(),
+    });
     mocked(useOnlineStatus).mockReturnValue(true);
-    return resetHookMocks(useGardens, useActiveGarden, useOnlineStatus);
+    return resetHookMocks(useGardens, useActiveGarden, useGardenDepartureOptions, useOnlineStatus);
   },
 };
 
