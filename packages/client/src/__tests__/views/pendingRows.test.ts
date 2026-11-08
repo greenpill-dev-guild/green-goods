@@ -63,7 +63,7 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     commitment: null,
     title: "Repair the north fence panel",
     savedAt: Date.now(),
-    contents: { photos: 2, videos: 0, voiceNotes: 0, links: 0, words: false },
+    contents: { photos: 2, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
     waitingReason: null,
     failed: false,
     sending: false,

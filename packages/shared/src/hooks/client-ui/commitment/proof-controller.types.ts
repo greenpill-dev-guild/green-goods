@@ -89,7 +89,10 @@ export interface ProofComposerController {
   readiness: (beat: ProofBeat) => ProofReadiness;
   toggleCredit: (address: Address) => void;
   toggleRecording: () => void;
-  pick: (files: FileList | File[] | null) => Promise<{ rejectedCount: number }>;
+  /** `overLimit`: the pick would take the proof past its document or size limit, so none of it was added. */
+  pick: (
+    files: FileList | File[] | null
+  ) => Promise<{ rejectedCount: number; overLimit?: boolean }>;
   removeMedia: (index: number) => void;
   removeAudio: (index: number) => void;
   submit: () => Promise<boolean>;

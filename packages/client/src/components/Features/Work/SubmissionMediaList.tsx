@@ -1,9 +1,14 @@
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
-import { getWorkMediaId, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import {
+  getWorkMediaId,
+  isVideoFile,
+  isWorkDocument,
+} from "@green-goods/shared/modules/work/media-processing";
 import { useState } from "react";
 
 import { Books } from "@/components/Features/Garden/BooksIcon";
 import type { PendingPhotoState } from "./PendingPhotoTile";
+import { WorkDocumentRow } from "./WorkDocumentRow";
 import { WorkMediaPhotoCard } from "./WorkMediaPhotoCard";
 import { WorkMediaVideoCard } from "./WorkMediaVideoCard";
 
@@ -24,8 +29,9 @@ export interface SubmissionMediaListProps {
 
 /**
  * What the Media stage holds, for both kinds of submission (DL-131): the photo and video cards
- * with their remove buttons, the voice notes, and the empty illustration until something is added.
- * Each kind owns its files, their preview URLs and what removing one records; this only draws them.
+ * with their remove buttons, a row for each document, the voice notes, and the empty
+ * illustration until something is added. Each kind owns its files, their preview URLs and what
+ * removing one records; this only draws them.
  */
 export function SubmissionMediaList({
   media,
@@ -57,6 +63,17 @@ export function SubmissionMediaList({
           if (playingVideoId === mediaId) setPlayingVideoId(null);
           onRemoveMedia(file, index);
         };
+        if (isWorkDocument(file))
+          return (
+            <div key={mediaId} className="md:col-span-2">
+              <WorkDocumentRow
+                name={file.name}
+                type={file.type}
+                size={file.size}
+                onRemove={remove}
+              />
+            </div>
+          );
         return isVideoFile(file) ? (
           <WorkMediaVideoCard
             key={mediaId}

@@ -213,6 +213,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               <MediaEvidence
                 media={work.media}
                 audioNoteCids={resolved.audioNoteCids}
+                documents={resolved.documents}
                 actionTitle={localizedActionTitle}
               />
             </section>
@@ -250,6 +251,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
             <MediaEvidence
               media={work.media}
               audioNoteCids={resolved.audioNoteCids}
+              documents={resolved.documents}
               actionTitle={localizedActionTitle}
             />
           </section>
