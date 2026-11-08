@@ -1,0 +1,203 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "transaction-batching-follow-ups",
+    "title": "Transaction Batching Follow-ups",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-11-07T20:13:19.318Z",
+    "updated_at": "2026-11-08T03:57:56.886Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-1399",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-11-08T03:57:56.886Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "admin", "client"],
+    "work_types": ["implementation"],
+    "surfaces": ["packages/shared/src", "packages/admin/src", "packages/client/src"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "PRD-1054 and PRD-1399 are Done. The maintainer accepted live beta proof for each enabled passkey route.",
+    "Shipped in PRs #1524, #1526, and #1528. The acceptance matrix records the evidence and scope decisions.",
+    "Closeout resolution is closed. Existing lane statuses preserve their evidence limits.",
+    "First pool setup, seeded-season opening, and the five-decision passkey review are deferred in the acceptance matrix and PRD-1399. Connected-wallet proofs were skipped."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "fix/work-approval-feedback",
+      "depends_on": [],
+      "handoff": "handoffs/hub-review-fixes.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/admin test src/__tests__/components/HubQueueEnsDisplay.test.tsx",
+          "evidence": "2026-11-07: 1 failed / 19 passed; loaded row disappeared after a read failure. handoffs/hub-review-fixes.md also records confirmed-chip RED."
+        },
+        "green": {
+          "command": "bun run --cwd packages/admin test src/__tests__/components/HubQueueEnsDisplay.test.tsx",
+          "evidence": "2026-11-07 20:45:42 UTC: 20 passed. Shared review suites later passed 72 tests; see lane handoff. Working-tree evidence, not clean-commit or live proof."
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "fix/work-approval-feedback",
+      "depends_on": [],
+      "handoff": "handoffs/continuation.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/action-edit-batch.test.ts",
+          "evidence": "2026-11-07: 4 new behavior failures, 15 passed; handoffs/capability-recovery.md. Octant wrap preparation also has recorded RED."
+        },
+        "green": {
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/action-edit-batch.test.ts src/__tests__/hooks/action/useActionEditBatch.test.ts src/__tests__/hooks/admin-ui/useActionEditorController.test.tsx src/__tests__/hooks/blockchain/useBatchCapability.test.tsx --maxWorkers=2",
+          "evidence": "2026-11-07 20:47:48 UTC: 4 files, 50 passed. Working-tree TDD evidence; integrated validation and live proof remain separate."
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract changes; existing transaction entrypoints are reused."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/continuation.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/continuation.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-11-07T20:13:19.649Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-11-07T20:17:25.161Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-11-07T20:33:13.706462Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_locked",
+      "branch": "fix/work-approval-feedback",
+      "note": "User accepted listed code fixes and automated proofs, live signing preparation, and explicit remaining decisions. Parent-only preserve manifest verified against PRD-1399 In Progress."
+    },
+    {
+      "timestamp": "2026-11-07T20:58:48.997Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/work-approval-feedback",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-07T20:59:09.233Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "fix/work-approval-feedback",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-07T21:22:36.905355Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "local_verification_recorded",
+      "branch": "fix/work-approval-feedback",
+      "note": "Working-tree implementation and proof preparation complete. Checkpoint: 22 passes, docs-authority drift from concurrent Agent edits and docs-test missing pinned dependency fail; authenticated live proof and publication pending. Lanes stay in progress without clean commit-attributed receipts."
+    },
+    {
+      "timestamp": "2026-11-07T22:57:39.681974Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "dependency_restore_verified",
+      "branch": "fix/work-approval-feedback",
+      "note": "User explicitly approved bun install --frozen-lockfile. Restore succeeded; all 12 tracked dependency inputs unchanged. Docs tests now pass 142/142. Authority tests pass 81/81; unrelated concurrent Agent API edits still cause generated API-index digest drift. No publication or live signing performed."
+    },
+    {
+      "timestamp": "2026-11-08T03:57:41.898Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": "chore/close-transaction-batching-follow-ups",
+      "note": "Closed with both Linear issues Done and live beta proof for every enabled passkey route. Shipped PRs #1524, #1526, and #1528. The closeout records the deferred passkey cases and skipped connected-wallet proofs."
+    },
+    {
+      "timestamp": "2026-11-08T03:57:56.886Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    }
+  ]
+}
