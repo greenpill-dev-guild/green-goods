@@ -13,6 +13,65 @@ import {
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+/**
+ * A zip whose central directory lists `names`, each stored empty, with `comment` after its end.
+ * Its local records carry `localNames`, which a well-formed zip keeps the same as `names`.
+ */
+function zipArchive(names: string[], comment = "", localNames = names): Uint8Array {
+  const encoder = new TextEncoder();
+  const out: number[] = [];
+  const le16 = (value: number) => [value & 0xff, (value >> 8) & 0xff];
+  const le32 = (value: number) => [...le16(value & 0xffff), ...le16(value >>> 16)];
+  const offsets = localNames.map((name) => {
+    const offset = out.length;
+    const bytes = [...encoder.encode(name)];
+    out.push(...le32(0x04034b50), ...le16(20), ...le16(0), ...le16(0), ...le16(0), ...le16(0));
+    out.push(...le32(0), ...le32(0), ...le32(0), ...le16(bytes.length), ...le16(0), ...bytes);
+    return offset;
+  });
+  const start = out.length;
+  names.forEach((name, index) => {
+    const bytes = [...encoder.encode(name)];
+    out.push(...le32(0x02014b50), ...le16(20), ...le16(20), ...le16(0), ...le16(0), ...le16(0));
+    out.push(...le16(0), ...le32(0), ...le32(0), ...le32(0), ...le16(bytes.length), ...le16(0));
+    out.push(...le16(0), ...le16(0), ...le16(0), ...le32(0), ...le32(offsets[index]), ...bytes);
+  });
+  const size = out.length - start;
+  const note = [...encoder.encode(comment)];
+  out.push(...le32(0x06054b50), ...le16(0), ...le16(0), ...le16(names.length));
+  out.push(...le16(names.length), ...le32(size), ...le32(start), ...le16(note.length), ...note);
+  return new Uint8Array(out);
+}
+
+/** A compound file of 512-byte sectors: its header, one allocation sector, one directory sector. */
+function compoundFile(entries: Array<{ name: string; type: number }>): Uint8Array {
+  const file = new Uint8Array(512 * 3);
+  const view = new DataView(file.buffer);
+  file.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+  view.setUint16(0x18, 0x3e, true);
+  view.setUint16(0x1a, 3, true);
+  view.setUint16(0x1c, 0xfffe, true);
+  view.setUint16(0x1e, 9, true);
+  view.setUint16(0x20, 6, true);
+  view.setUint32(0x2c, 1, true);
+  view.setUint32(0x30, 1, true);
+  view.setUint32(0x38, 4096, true);
+  view.setUint32(0x3c, 0xfffffffe, true);
+  view.setUint32(0x44, 0xfffffffe, true);
+  for (let index = 0; index < 109; index++)
+    view.setUint32(0x4c + index * 4, index === 0 ? 0 : 0xffffffff, true);
+  for (let index = 0; index < 128; index++) view.setUint32(512 + index * 4, 0xffffffff, true);
+  view.setUint32(512, 0xfffffffd, true);
+  view.setUint32(516, 0xfffffffe, true);
+  [{ name: "Root Entry", type: 5 }, ...entries].slice(0, 4).forEach(({ name, type }, index) => {
+    const entry = 1024 + index * 128;
+    Array.from(name).forEach((c, at) => view.setUint16(entry + at * 2, c.charCodeAt(0), true));
+    view.setUint16(entry + 0x40, (name.length + 1) * 2, true);
+    file[entry + 0x42] = type;
+  });
+  return file;
+}
+
 describe("work attachment boundaries", () => {
   it("copies bytes before the original picker file becomes unreadable", async () => {
     const original = new File(["photo"], "photo.jpg", { type: "image/jpeg" });
@@ -112,22 +171,35 @@ describe("work attachment boundaries", () => {
   it("keeps a document only when its bytes are what its type says", () => {
     const text = (value: string) => new TextEncoder().encode(value);
     const bytes = (...values: number[]) => new Uint8Array(values);
-    const zip = (...names: string[]) =>
-      new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...text(names.join("\0"))]);
-    const ole = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
-    const utf16 = (value: string) => Array.from(value).flatMap((c) => [c.charCodeAt(0), 0]);
+    const WORD = "application/msword";
     expect(documentMatchesType("application/pdf", text("%PDF-1.7"))).toBe(true);
     expect(documentMatchesType("application/pdf", text("<html><script>"))).toBe(false);
-    expect(documentMatchesType(DOCX, zip("[Content_Types].xml", "word/document.xml"))).toBe(true);
-    // Every zip and every compound file starts the same way, so a Word file needs its parts.
-    expect(documentMatchesType(DOCX, zip("[Content_Types].xml", "data/yields.csv"))).toBe(false);
-    expect(documentMatchesType("application/msword", bytes(...ole, ...utf16("WordDocument")))).toBe(
-      true
-    );
-    expect(documentMatchesType("application/msword", bytes(...ole, ...utf16("Workbook")))).toBe(
+    expect(
+      documentMatchesType(
+        DOCX,
+        zipArchive(["[Content_Types].xml", "_rels/.rels", "word/document.xml"])
+      )
+    ).toBe(true);
+    expect(documentMatchesType(DOCX, zipArchive(["[Content_Types].xml", "data/yields.csv"]))).toBe(
       false
     );
-    expect(documentMatchesType("application/msword", zip("word/document.xml"))).toBe(false);
+    // Names count only where the container's directory lists them, never inside other content.
+    expect(
+      documentMatchesType(DOCX, zipArchive(["notes.txt"], "[Content_Types].xml word/document.xml"))
+    ).toBe(false);
+    // A comment may hold bytes that look like the end record; the real one is still found.
+    const wordParts = ["[Content_Types].xml", "word/document.xml"];
+    expect(documentMatchesType(DOCX, zipArchive(wordParts, `PK\x05\x06${"x".repeat(40)}`))).toBe(
+      true
+    );
+    // A directory that lists the parts without their local records holds no Word document.
+    expect(documentMatchesType(DOCX, zipArchive(wordParts, "", ["a.txt", "b.txt"]))).toBe(false);
+    expect(documentMatchesType(WORD, compoundFile([{ name: "WordDocument", type: 2 }]))).toBe(true);
+    expect(documentMatchesType(WORD, compoundFile([{ name: "Workbook", type: 2 }]))).toBe(false);
+    expect(documentMatchesType(WORD, compoundFile([{ name: "WordDocument", type: 1 }]))).toBe(
+      false
+    );
+    expect(documentMatchesType(WORD, zipArchive(["word/document.xml"]))).toBe(false);
     expect(documentMatchesType("text/markdown", text("# Site report\n\nPanels: 12, all ✓"))).toBe(
       true
     );

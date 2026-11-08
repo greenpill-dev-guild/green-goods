@@ -126,7 +126,11 @@ export function useResolvedWorkDetail(workId: string | undefined) {
 
   // Published work names its metadata by CID; work confirmed on this device carries it
   // inline. The shared reader takes both, so voice notes and documents show either way.
-  const { metadata } = useWorkMetadata(work?.metadata);
+  const {
+    metadata,
+    status: metadataStatus,
+    retryFetch: retryMetadata,
+  } = useWorkMetadata(work?.metadata);
   const documents = useMemo(() => readPublishedWorkDocuments(metadata?.documents), [metadata]);
 
   return {
@@ -140,6 +144,9 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     metadata,
     audioNoteCids: metadata?.audioNoteCids,
     documents,
+    /** Whether the metadata file, and so the voice notes and documents, has been read. */
+    metadataStatus,
+    retryMetadata,
     resolutionStatus,
     isLoading: resolutionStatus === "loading",
     isTemporarilyAbsent: resolutionStatus === "temporarily-absent",

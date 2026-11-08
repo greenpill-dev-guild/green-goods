@@ -85,11 +85,12 @@ describe("useResolvedWorkDetail", () => {
   it("reads voice notes and documents through the metadata reader, which resolves a CID", () => {
     const cid = "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy";
     const certificate = { cid, type: "application/pdf", name: "Certificate.pdf", size: 1200 };
+    const retryFetch = vi.fn();
     mockUseWorkMetadata.mockReturnValue({
       metadata: { audioNoteCids: ["bafkreivoicenote"], documents: [certificate] },
       status: "success",
       error: null,
-      retryFetch: vi.fn(),
+      retryFetch,
     });
 
     const { result } = renderHook(() => useResolvedWorkDetail(work.id));
@@ -97,6 +98,9 @@ describe("useResolvedWorkDetail", () => {
     expect(mockUseWorkMetadata).toHaveBeenCalledWith(work.metadata);
     expect(result.current.audioNoteCids).toEqual(["bafkreivoicenote"]);
     expect(result.current.documents).toEqual([certificate]);
+    // The review screen says when that evidence is still loading, and can ask for it again.
+    expect(result.current.metadataStatus).toBe("success");
+    expect(result.current.retryMetadata).toBe(retryFetch);
   });
 
   it("retains the last authoritative work and garden while the current collection changes", () => {
