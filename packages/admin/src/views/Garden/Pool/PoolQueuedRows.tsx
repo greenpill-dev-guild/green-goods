@@ -160,16 +160,16 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
               }
             />
             {/* The row leads with the phase's words; the line stays for screen
-                readers, so each change is still announced. Once a refusal speaks, a
-                stale send's line would offer a try the row no longer has. */}
-            {refusal ? null : (
-              <ActPhaseLine
-                className="sr-only"
-                phase={phase}
-                chainId={pool.chainId}
-                confirmed={sentLine}
-              />
-            )}
+                readers, so each change is still announced. Once a refusal speaks, the
+                same line announces why in place of a stale send's words, which offered
+                a try the row no longer has. */}
+            <ActPhaseLine
+              className="sr-only"
+              phase={phase}
+              chainId={pool.chainId}
+              confirmed={sentLine}
+              reason={refusal}
+            />
           </li>
         );
       })}
