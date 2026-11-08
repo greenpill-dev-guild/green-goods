@@ -36,6 +36,7 @@ const BLOCKED_REASON_IDS: Record<BlockedReason, string> = {
   action: "app.compose.blocked.action",
   rowCount: "app.compose.blocked.rowCount",
   closedAction: "app.compose.blocked.closedAction",
+  uncheckedAction: "app.compose.blocked.uncheckedAction",
   noteTooLong: "app.compose.blocked.noteTooLong",
 };
 
@@ -95,7 +96,12 @@ function ComposeCommitmentForm({
 
   const beatIndex = COMPOSER_BEATS.indexOf(beat);
   const isReview = beat === "review";
-  const validity = selectBeatValidity(beat, controller.values, controller.closedActionUIDs);
+  const validity = selectBeatValidity(
+    beat,
+    controller.values,
+    controller.closedActionUIDs,
+    controller.uncheckedActionUIDs
+  );
   const blockingReasonId = validity.reason ? BLOCKED_REASON_IDS[validity.reason] : null;
   const blockingLimit = validity.reason ? BLOCKED_REASON_LIMITS[validity.reason] : undefined;
   const closedActionUID = controller.closedActionUIDs[0];
@@ -227,6 +233,7 @@ function ComposeCommitmentForm({
             actions={controller.actions}
             openActions={controller.openActions}
             closedActionUIDs={controller.closedActionUIDs}
+            uncheckedActionUIDs={controller.uncheckedActionUIDs}
           />
         ) : null}
         {beat === "details" ? <ComposeDetails form={controller.form} /> : null}

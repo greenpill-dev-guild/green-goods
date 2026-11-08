@@ -87,6 +87,26 @@ describe("useCommitmentQueueState", () => {
     });
   });
 
+  it("says why the queue refused a promise, and nothing of the kind for one that ran out of tries", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({ id: "closed", attempts: 5, lastError: "unavailable:action-closed" }),
+      creation({ id: "ended", attempts: 5, lastError: "unavailable:cycle-ended" }),
+      creation({ id: "tired", attempts: 5, lastError: "Max retries (5) exceeded" }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(3));
+    const row = (jobId: string) => result.current.pendingCreates.find((r) => r.jobId === jobId);
+
+    expect(row("closed")).toMatchObject({
+      failed: true,
+      refusal: "action-closed",
+      discardable: true,
+    });
+    expect(row("ended")).toMatchObject({ failed: true, refusal: "cycle-ended" });
+    expect(row("tired")).toMatchObject({ failed: true });
+    expect(row("tired")).not.toHaveProperty("refusal");
+  });
+
   it("marks unsent rewards deferred before a flush when settlement is off, but leaves recorded sends recoverable", async () => {
     mocks.settlementEnabled = false;
     const payload = { poolId: 7n, consideration: { rail: 2 } };

@@ -36,7 +36,12 @@ vi.mock("../modules/job-queue/db", () => ({
   },
 }));
 vi.mock("../modules/job-queue/commitment-chain-reads", () => ({
-  createCommitmentChainReads: () => ({}),
+  // The chain still holds every action and season open, so a creation goes on to publish.
+  createCommitmentChainReads: () => ({
+    readChainHead: async () => ({ number: 1n, timestamp: 1_900_000_000 }),
+    readActionWindow: async () => ({ startTime: 1n, endTime: 4_000_000_000n }),
+    readCycleWindow: async () => ({ state: "OPEN", endTime: 4_000_000_000n }),
+  }),
 }));
 vi.mock("../modules/commitment-pooling/jobs", async () => {
   const actual = await vi.importActual<typeof import("../modules/commitment-pooling/jobs")>(
@@ -93,6 +98,9 @@ function job() {
     payload: {
       clientCommitmentId: "draft-1",
       gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      // In no season and kept by proof, so its standing reads only the chain's clock.
+      cycleId: 0n,
+      requirements: [],
       metadataCID: "",
       metadata: { version: 1, title: "Compost workshop" },
     },

@@ -59,6 +59,7 @@ function withSavedDraft(title: string) {
       hasRole: true,
       isLoading: false,
       error: null,
+      isFetching: false,
       refetch: fn(),
     });
     useCommitmentComposerDraftStore.setState({

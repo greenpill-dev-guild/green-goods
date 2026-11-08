@@ -24,6 +24,9 @@ source_of_truth:
   - packages/shared/src/modules/commitment-pooling/selectors.ts
   - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
   - packages/shared/src/hooks/commitment-pooling/useCommitmentComposerForm.ts
+  - packages/shared/src/hooks/client-ui/commitment/useCommitmentComposerController.ts
+  - packages/shared/src/modules/commitment-pooling/creation-standing.ts
+  - packages/client/src/components/Features/Commitments/PendingCreationRow.tsx
   - packages/shared/src/config/app.ts
   - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
   - packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol
@@ -105,6 +108,8 @@ Someone takes the promise up. If steward approval is required, that decision com
 ## If something goes wrong
 
 A saved item on this phone is not yet a shared record. Keep the same account and device, check the status and history before retrying, and avoid duplicates. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) explains the send states.
+
+A promise saved on this phone is checked again before it sends. If one of its actions closed, or its season or campaign ended, while it waited, its row in **Promises** reads **Didn't send**, says which, and offers only **Discard**. Nothing reached the pool, so make a new promise if you still want it. While the app can't yet check that an action you chose still takes work, for example offline, you can't continue past that step; your answers stay saved.
 
 If **Promises are not ready here yet** appears, ask your steward whether the pool is open. Withdrawal needs a connection and a reason; after take-up, ask your steward about the existing record.
 

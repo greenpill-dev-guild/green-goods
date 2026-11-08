@@ -12,6 +12,7 @@ import { decodeEventLog, type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import {
+  ActionRegistryABI,
   CommitmentPoolingModuleABI,
   GardenAccountABI,
   getNetworkContracts,
@@ -32,6 +33,8 @@ export type CommitmentChainReads = Pick<
   | "readWorkLinkPayloadHash"
   | "readWorkLinkCommitmentState"
   | "readSettlementAccountActive"
+  | "readActionWindow"
+  | "readCycleWindow"
   | "hasMembership"
 > &
   SendChainReads & {
@@ -75,6 +78,16 @@ export type CommitmentChainReads = Pick<
   };
 
 const sameHex = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
+
+/** `ICommitmentPoolingModule.CycleState` by ordinal, in the app's words for a cycle's state. */
+const CYCLE_STATE_BY_ORDINAL = [
+  "UNKNOWN",
+  "SEEDED",
+  "OPEN",
+  "RECONCILED",
+  "COMPOSTED",
+  "CANCELLED",
+] as const;
 
 /** The one settlement read a queued reward needs, so the queue doesn't load the module's ABI. */
 const SETTLEMENT_ACCOUNT_ABI = [
@@ -202,6 +215,26 @@ export function createCommitmentChainReads({
         args: [commitmentId],
         chainId,
       })) as { creationPayloadHash: Hex; poolId: bigint; creator: Address },
+    readActionWindow: async (actionUID) => {
+      const action = (await readContract(wagmiConfig, {
+        address: getNetworkContracts(chainId).actionRegistry,
+        abi: ActionRegistryABI,
+        functionName: "getAction",
+        args: [actionUID],
+        chainId,
+      })) as { startTime: bigint; endTime: bigint };
+      return { startTime: action.startTime, endTime: action.endTime };
+    },
+    readCycleWindow: async (cycleId) => {
+      const cycle = (await readContract(wagmiConfig, {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCycle",
+        args: [cycleId],
+        chainId,
+      })) as { state: number; endTime: bigint };
+      return { state: CYCLE_STATE_BY_ORDINAL[cycle.state] ?? "UNKNOWN", endTime: cycle.endTime };
+    },
     readEvidenceAttached: async (commitmentId, cid) =>
       (await readContract(wagmiConfig, {
         address: moduleAddress,

@@ -104,6 +104,7 @@ export function activeGarden(
       isLoaded: known,
       isError: status === "error",
       isStale: false,
+      isFetching: false,
       refetch: fn(),
     },
     // The hook's own scope rule over the story's gardens.

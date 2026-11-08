@@ -37,12 +37,18 @@ type ReadCall = { input: Record<string, unknown>; options: { enabled?: boolean }
 const reads = vi.hoisted(() => ({
   account: null as string | null,
   gardens: [] as Garden[],
+  /** Whether the garden list's read fails, and how many times it was read. */
+  gardensFailed: false,
+  gardenReads: 0,
   works: [] as Work[],
   worksFailed: false,
   worksPartial: false,
   activity: { rows: [] as EASWorkListRow[], complete: true },
   /** Accounts the chain's steward read answers yes for, as the claim panel reads it. */
   chainStewards: [] as string[],
+  /** Whether the chain's steward read failed; asking it again answers. */
+  stewardRoleFailed: false,
+  stewardRoleFetching: false,
   pools: [] as CommitmentPoolRecord[],
   commitments: [] as CommitmentReadModel[],
   takeUps: [] as PoolClaimRequestRow[],
@@ -64,7 +70,12 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => reads.account,
 }));
 vi.mock("../../../modules/data/greengoods", () => ({
-  getGardens: () => Promise.resolve(reads.gardens),
+  getGardens: () => {
+    reads.gardenReads += 1;
+    return reads.gardensFailed
+      ? Promise.reject(new Error("The garden list could not be read"))
+      : Promise.resolve(reads.gardens);
+  },
   getActions: vi.fn(),
   getGardeners: vi.fn(),
 }));
@@ -85,9 +96,17 @@ vi.mock("../../../modules/work/work-list", () => ({
 }));
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: (_garden: string, user: string | undefined, role: string) => ({
-    hasRole: role === "steward" && reads.chainStewards.includes(String(user).toLowerCase()),
+    hasRole:
+      !reads.stewardRoleFailed &&
+      role === "steward" &&
+      reads.chainStewards.includes(String(user).toLowerCase()),
     isLoading: false,
-    error: null,
+    error: reads.stewardRoleFailed ? new Error("The steward role could not be read") : null,
+    isFetching: reads.stewardRoleFetching,
+    refetch: async () => {
+      reads.readAgain.push("stewardRole");
+      reads.stewardRoleFailed = false;
+    },
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
@@ -221,6 +240,10 @@ beforeEach(() => {
   localStorage.clear();
   useGardenNotificationsSeenStore.setState({ seenByScope: {}, joinRequestsByScope: {} });
   reads.account = ALICE;
+  reads.gardensFailed = false;
+  reads.gardenReads = 0;
+  reads.stewardRoleFailed = false;
+  reads.stewardRoleFetching = false;
   reads.joinRequestsWaiting = undefined;
   reads.joinRequestsHasGrant = true;
   reads.joinRequestsFailed = false;
@@ -485,6 +508,38 @@ describe("useGardenNotifications", () => {
     await waitFor(() =>
       expect(result.current.notifications.map(({ kind }) => kind)).toContain("promiseTakenUp")
     );
+  });
+
+  it("asks a failed roster or steward-role read again on refresh, so the steward events come back", async () => {
+    seedGarden({ stewards: [ALICE] });
+    reads.joinRequestsWaiting = 2;
+    reads.gardensFailed = true;
+    reads.stewardRoleFailed = true;
+    const { result, rerender } = renderNotifications();
+    const stewardKinds = () =>
+      result.current.notifications
+        .map(({ kind }) => kind)
+        .filter((kind) => STEWARD_KINDS.includes(kind));
+
+    // Once the garden list's read has failed too, the bell lists no steward event and says so.
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isError).toBe(true);
+    expect(stewardKinds()).toEqual([]);
+
+    // The garden list answers again; Refresh asks both role reads once more.
+    reads.gardensFailed = false;
+    const gardenReads = reads.gardenReads;
+    act(() => result.current.refresh());
+    expect(reads.gardenReads).toBe(gardenReads + 1);
+    expect(reads.readAgain).toContain("stewardRole");
+    await waitFor(() => expect(stewardKinds()).toEqual(STEWARD_KINDS));
+    expect(result.current.isError).toBe(false);
+
+    // Refresh shows progress while a role read runs, as it does for the events' own reads.
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    reads.stewardRoleFetching = true;
+    rerender({ id: GARDEN });
+    expect(result.current.isFetching).toBe(true);
   });
 
   it("lists the week's events in a garden with more works than its page holds", async () => {

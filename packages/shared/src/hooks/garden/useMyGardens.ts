@@ -23,6 +23,8 @@ export interface MyGardens {
   isError: boolean;
   /** `gardens` comes from a list past its freshness or kept after a failed refresh. */
   isStale: boolean;
+  /** The gardens list is being read, the first time or again. */
+  isFetching: boolean;
   /** Read the gardens list again, after a failure. */
   refetch: () => void;
 }
@@ -77,6 +79,7 @@ export function useMyGardens(
     isLoaded,
     isError: query.isError,
     isStale: isLoaded && (query.isStale || query.isError),
+    isFetching: query.isFetching,
     refetch,
   };
 }

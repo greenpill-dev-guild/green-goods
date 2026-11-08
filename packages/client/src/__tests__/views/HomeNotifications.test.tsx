@@ -468,6 +468,33 @@ describe("the sheet", () => {
     expect(within(sheet).getByText(en["app.home.notifications.partial"])).toBeInTheDocument();
   });
 
+  it("drops a row from the period as it ages past the cutoff, while the sheet stays open", () => {
+    // The cutoff reads Temporal where the runtime has it; fake timers move only Date.
+    vi.stubGlobal("Temporal", undefined);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      vi.setSystemTime(NOW * 1000);
+      // Seed Swap's approval, in the past day for one more minute.
+      const ageing = { ...EVENTS[4], at: NOW - 24 * HOUR + 60, isNew: false };
+      setBell({ notifications: [{ ...EVENTS[0], isNew: false }, ageing] });
+      renderBell();
+      const sheet = openSheet();
+      fireEvent.change(within(sheet).getByRole("combobox", { name: "Time period" }), {
+        target: { value: "day" },
+      });
+      expect(rowsOf(sheet).map(titleOf)).toContain("Seed Swap");
+
+      act(() => vi.advanceTimersByTime(61_000));
+      expect(rowsOf(sheet).map(titleOf)).not.toContain("Seed Swap");
+      expect(
+        within(within(sheet).getByTestId("sheet-list-header")).getByRole("status")
+      ).toHaveTextContent(/^1 notification$/);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("opens the work from a work event and the promise from a promise event, closing first", () => {
     renderBell();
     const rows = rowsOf(openSheet());

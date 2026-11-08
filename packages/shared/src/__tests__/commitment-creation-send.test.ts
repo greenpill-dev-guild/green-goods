@@ -139,8 +139,11 @@ function passkey(
   } satisfies TransactionSender;
 }
 
-/** The commitment executor's order: read the chain first, wait on a send on record, else send. */
-function executorOver(chain: ReturnType<typeof fakeChain>) {
+/**
+ * The commitment executor's order: read the chain first, wait on a send on record, refuse one the
+ * chain can no longer keep (`refuses`), else send.
+ */
+function executorOver(chain: ReturnType<typeof fakeChain>, refuses = false) {
   return {
     execute: vi.fn(async (_jobId: string, job: Job, chainId: number, sender: TransactionSender) => {
       const payload = job.payload as { clientCommitmentId: string };
@@ -150,6 +153,7 @@ function executorOver(chain: ReturnType<typeof fakeChain>) {
       if (typeof job.meta?.submittedTxHash === "string") {
         return { status: "waiting", reason: "pending-first-send" } satisfies JobExecution;
       }
+      if (refuses) return { status: "unavailable", reason: "action-closed" } satisfies JobExecution;
       const { hash } = await sender.sendContractCall({
         address: MODULE,
         abi: [],
@@ -162,10 +166,10 @@ function executorOver(chain: ReturnType<typeof fakeChain>) {
   };
 }
 
-function setUp() {
+function setUp({ refuses = false } = {}) {
   const chain = fakeChain();
   const store = createInMemoryJobQueueStore();
-  const executors = executorOver(chain);
+  const executors = executorOver(chain, refuses);
   const queue: JobQueueHandle = createJobQueue(createJobQueueDependencies({ store, executors }));
   return { chain, store, queue };
 }
@@ -251,6 +255,26 @@ describe("sending a set's creations", () => {
       creationIds(sender.sendAtomicBatch.mock.calls[0]![0])
     );
     expect([...chain.created.keys()]).toEqual(copies.map((copy) => copy.clientCommitmentId));
+  });
+
+  it("creates nothing when the queue refuses a bundled set, asks nothing, and clears it", async () => {
+    // An action the set names closed before it was sent: the steward's answers come back to edit.
+    const { chain, store, queue } = setUp({ refuses: true });
+    const sender = wallet(chain, { bundles: true });
+
+    const refused = await sendCreationCopies({
+      copies: setOf(3),
+      queue,
+      sender,
+      owner: STEWARD,
+      chainId: 42161,
+    });
+
+    expect(refused.map((row) => row.miss)).toEqual(Array(3).fill("refused"));
+    expect(seedSetLocked(refused)).toBe(false);
+    expect(sender.sendAtomicBatch).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(await store.getJobs({ userAddress: STEWARD })).toEqual([]);
   });
 
   it("asks per copy when the wallet can't bundle, and a retry sends only what didn't send", async () => {
