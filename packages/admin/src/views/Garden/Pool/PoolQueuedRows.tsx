@@ -13,6 +13,15 @@ export function isPastDeadline(dueDate: bigint | null | undefined, now: number):
   return Boolean(dueDate) && Number(dueDate) * 1000 <= now;
 }
 
+/** Why the chain can no longer keep a promise the queue refused, said where the row leads. */
+const REFUSAL_NOTE_IDS: Record<
+  NonNullable<PoolConsoleController["pendingCreates"][number]["refusal"]>,
+  string
+> = {
+  "action-closed": "app.pool.queued.actionClosedNote",
+  "cycle-ended": "app.pool.queued.cycleEndedNote",
+};
+
 export interface PoolQueuedRowsProps {
   console: PoolConsoleController;
   /** The creations still queued on this device that list as rows of their own. */
@@ -25,7 +34,9 @@ export interface PoolQueuedRowsProps {
  * rows, so a seeded promise shows up before the indexer has it. Nothing in the
  * admin sends a queued creation on its own, so each row offers the send and,
  * where the queue allows it, the way out (Discard), and leads its line with
- * the act in flight, then why it cannot go, else how much it promises.
+ * the act in flight, then why it cannot go, else how much it promises. One the
+ * queue refused (an action closed, a season ended) can't be sent again, so it
+ * offers Discard alone.
  */
 export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps) {
   const intl = useIntl();
@@ -60,21 +71,23 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
         // much it promises, since a promise not created yet has no dialog to tell it.
         const said =
           actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
-          (expired
-            ? formatMessage({
-                id: "cockpit.garden.pool.add.expired",
-                defaultMessage:
-                  "This group's deadline has passed, so nothing can join it. Start a new group instead.",
-              })
-            : row.settlementDeferred
-              ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
-              : row.waitingForSettlementAccount
-                ? formatMessage({
-                    id: "cockpit.garden.pool.reward.needsSettlement",
-                    defaultMessage:
-                      "A reward is paid through this garden's settlement account, which isn't active.",
-                  })
-                : null);
+          (row.refusal
+            ? formatMessage({ id: REFUSAL_NOTE_IDS[row.refusal] })
+            : expired
+              ? formatMessage({
+                  id: "cockpit.garden.pool.add.expired",
+                  defaultMessage:
+                    "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+                })
+              : row.settlementDeferred
+                ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
+                : row.waitingForSettlementAccount
+                  ? formatMessage({
+                      id: "cockpit.garden.pool.reward.needsSettlement",
+                      defaultMessage:
+                        "A reward is paid through this garden's settlement account, which isn't active.",
+                    })
+                  : null);
         // A failed act says so in the error color, as its phase line did.
         const note =
           said && phase.status === "failed" ? { text: said, tone: "error" as const } : said;
@@ -120,17 +133,22 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
                       icon={<RiDeleteBinLine aria-hidden="true" />}
                     />
                   ) : null}
-                  {/* A row that never tried has nothing to try again (A24). */}
-                  <IconButton
-                    emphasis="secondary"
-                    size="sm"
-                    aria-label={sendLabel}
-                    title={sendLabel}
-                    disabled={row.settlementDeferred || !isOnline || busyJobId !== null || expired}
-                    loading={busyJobId === row.jobId}
-                    onClick={() => void runQueued(row.jobId, acts.retryQueued)}
-                    icon={<SendGlyph aria-hidden="true" />}
-                  />
+                  {/* A row that never tried has nothing to try again (A24). One the queue
+                      refused can never send, so it offers Discard alone. */}
+                  {row.refusal ? null : (
+                    <IconButton
+                      emphasis="secondary"
+                      size="sm"
+                      aria-label={sendLabel}
+                      title={sendLabel}
+                      disabled={
+                        row.settlementDeferred || !isOnline || busyJobId !== null || expired
+                      }
+                      loading={busyJobId === row.jobId}
+                      onClick={() => void runQueued(row.jobId, acts.retryQueued)}
+                      icon={<SendGlyph aria-hidden="true" />}
+                    />
+                  )}
                 </span>
               }
             />

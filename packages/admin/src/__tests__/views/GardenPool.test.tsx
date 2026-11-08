@@ -861,6 +861,33 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
+  it("says why the queue refused a promise, and offers only Discard", () => {
+    mocks.controller = controller({
+      pendingCreates: [
+        {
+          jobId: "refused",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Prune the north beds",
+          unitLabel: "hours",
+          targetUnits: "6",
+          waitingForMembership: false,
+          failed: true,
+          refusal: "cycle-ended",
+          discardable: true,
+          createdAt: 1,
+        },
+      ],
+    });
+    renderTab();
+    const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
+    expect(row).toHaveTextContent("Its season or campaign ended before it was sent");
+    // Sending it again cannot help, so nothing offers to.
+    expect(within(row).queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
+  });
+
   it("lists a lapsed group's queued copy on its own to discard, with no Finish Creating", () => {
     mocks.controller = controller({
       // The group's deadline has passed.
