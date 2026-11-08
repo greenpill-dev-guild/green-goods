@@ -71,7 +71,6 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
     roleMembers: workspace.roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
-    memberSearch: "",
     section: undefined,
     canAccessCommunity: showCommunity && !permissionsLoading,
     formatMessage,

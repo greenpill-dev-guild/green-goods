@@ -6460,10 +6460,10 @@
       ],
       "steps": [
         "Open Community, then Members, and read Total members in the rail",
-        "Count the people in the directory, then open Manage Members and read its count and rows",
+        "Count the people in the directory, then open Manage Roles and read its count and rows",
         "At phone width, read the role filter"
       ],
-      "expected": "Total members, the directory, and Manage Members agree on the number of people; a member with several roles is one row with a chip per role; role counts appear only in the role filter, which is a select at phone width",
+      "expected": "Total members, the directory, and Manage Roles agree on the number of people; a member with several roles is one row with a check chip per role; role counts appear only in the Members rail, and the role filter, which is a select at phone width, shows none",
       "evidence": "Screenshots of the rail, the dialog, and the phone filter",
       "role": "steward",
       "tags": ["garden"],
@@ -8570,12 +8570,12 @@
       "scenario": "Remove one role from a member, with confirmation",
       "preconditions": ["Steward with manage rights", "A member who is not a steward"],
       "steps": [
-        "Open Manage Members and find a member who holds two roles",
-        "Press the remove on one of their role chips and cancel",
-        "Press it again and confirm"
+        "Open Manage Roles and find a member who holds two roles",
+        "Check one of their role chips, press Review Removal, then press Back",
+        "Press Review Removal again, then the red Remove 1 Role"
       ],
-      "expected": "The member has one row with a chip per role, each with its own remove named for the role ('Remove Gardener'); removal asks for confirmation naming the member and the role; Cancel changes nothing; Confirm sends one transaction and only that role leaves the row, which stays listed with the member's other role",
-      "evidence": "Screenshots of the confirmation and the directory afterwards",
+      "expected": "The member has one row with a check chip per role, each named for the role and the member ('Remove Gardener from …'); Review names the garden under its title, the role going and the roles the member keeps, and asks for one signature; Back returns with the chip still checked and nothing sent; Remove 1 Role sends one transaction and only that role leaves the row, which stays listed with the member's other role",
+      "evidence": "Screenshots of the review and the directory afterwards",
       "role": "steward",
       "tags": ["members", "tx"],
       "requiresProduction": false,
