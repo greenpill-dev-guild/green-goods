@@ -8,6 +8,7 @@ import type {
   GardenNotification,
   GardenNotifications,
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { getTimeCutoff, normalizeTimestamp } from "@green-goods/shared/utils/time";
@@ -80,6 +81,8 @@ type NotificationsPeriod = Extract<TimePeriod, "any" | "day" | "week">;
  * a week, so a longer span would list only part of it. It opens on any time: everything it lists.
  */
 const PERIODS: readonly NotificationsPeriod[] = ["any", "day", "week"];
+/** How long after a row leaves the period the sheet filters again, past clock granularity. */
+const PERIOD_CUTOFF_MARGIN_MS = 1_000;
 
 /**
  * The bell's sheet (DL-130, DL-133): a `full` sheet over Home with the garden named beneath its
@@ -93,7 +96,8 @@ const PERIODS: readonly NotificationsPeriod[] = ["any", "day", "week"];
  * stays new; Clear All in the shared bar hides every listed event here for good. Each tab's list
  * starts under the header row Your Work's tabs share (DL-168): how many events it shows, a
  * compact Refresh, and a period filter that narrows the list to the past day or week, as far
- * back as its sources answer in full. Opening the sheet reads the events again. With nothing to
+ * back as its sources answer in full; a row leaves the period as it ages past it, while the sheet
+ * stays open. Opening the sheet reads the events again. With nothing to
  * list it shows the shared state block, which says so when the period hides every event, and a
  * read that failed or answered only in part says so in one quiet line while the rows it did find
  * stay, the period's state included. Offline the reads pause
@@ -120,16 +124,39 @@ export function NotificationsSheet({
   const isOnline = useOnlineStatus();
   const [tab, setTab] = useState<NotificationsTab>("all");
   const [period, setPeriod] = useState<NotificationsPeriod>("any");
-  // The open tab's events, then those of them inside the period: the rows the sheet shows.
-  const { inTabCount, shown } = useMemo(() => {
+  // A period counts back from now, so its cutoff moves on while the sheet stays open; each move
+  // filters the list again.
+  const [cutoffMoves, setCutoffMoves] = useState(0);
+  // The open tab's events, then those of them inside the period: the rows the sheet shows, and
+  // how long until the oldest of them leaves the period.
+  const { inTabCount, shown, leavesPeriodInMs } = useMemo(() => {
     const listed = notifications.filter((notification) => inTab(notification, tab));
-    if (period === "any") return { inTabCount: listed.length, shown: listed };
+    if (period === "any") {
+      return { inTabCount: listed.length, shown: listed, leavesPeriodInMs: null };
+    }
     const cutoff = getTimeCutoff(period);
+    const inPeriod = listed.filter((notification) => normalizeTimestamp(notification.at) >= cutoff);
     return {
       inTabCount: listed.length,
-      shown: listed.filter((notification) => normalizeTimestamp(notification.at) >= cutoff),
+      shown: inPeriod,
+      leavesPeriodInMs:
+        inPeriod.length > 0
+          ? Math.min(...inPeriod.map((notification) => normalizeTimestamp(notification.at))) -
+            cutoff
+          : null,
     };
-  }, [notifications, tab, period]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cutoffMoves is a deliberate cache-buster: each move of the cutoff filters again, so the compiler must keep it (shared.md § Optimistic-UI Memos)
+  }, [notifications, tab, period, cutoffMoves]);
+
+  // While the sheet is open, the oldest row in the period leaves it when the cutoff passes it.
+  const { set: scheduleCutoffMove } = useTimeout();
+  useEffect(() => {
+    if (!open || leavesPeriodInMs === null) return;
+    return scheduleCutoffMove(
+      () => setCutoffMoves((moves) => moves + 1),
+      leavesPeriodInMs + PERIOD_CUTOFF_MARGIN_MS
+    );
+  }, [open, leavesPeriodInMs, scheduleCutoffMove]);
 
   // Opening shows the member the open tab's events, so the sheet marks those seen as it opens,
   // and again as the tab, the period or the list changes. An event that lands under another tab
