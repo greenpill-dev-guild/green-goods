@@ -15,8 +15,9 @@ import {
   useCommitmentComposerDraftStore,
 } from "../../../stores/useCommitmentComposerDraftStore";
 import { cycleStanding } from "../../../modules/commitment-pooling/due-dates";
-import type { Address } from "../../../types/domain";
+import type { Action, Address } from "../../../types/domain";
 import { isActionOpen, msUntilActionWindowChange } from "../../../utils/action/window";
+import { useActionsByUID } from "../../action/useAction";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
@@ -36,12 +37,14 @@ import { useComposeAgainValues } from "../../commitment-pooling/useComposeAgainV
 import { useCycleClock } from "../../commitment-pooling/useCycleClock";
 import { useHasRole } from "../../roles/useHasRole";
 import { useTimeout } from "../../utils/useTimeout";
-import { selectClosedActionUIDs } from "./composerBeats";
+import { selectClosedActionUIDs, selectUncheckedActionUIDs } from "./composerBeats";
 import type {
   CommitmentComposerAccess,
   CommitmentComposerController,
   CommitmentComposerDirection,
 } from "./composer-controller.types";
+
+const NO_ACTIONS: Action[] = [];
 
 export interface UseCommitmentComposerControllerInput {
   chainId: number;
@@ -92,7 +95,7 @@ export function useCommitmentComposerController(
     "owner",
     input.chainId
   );
-  const { data: actions = [] } = useActions(input.chainId);
+  const { data: listed = NO_ACTIONS, isPending: actionsPending } = useActions(input.chainId);
   const { data: gardens = [] } = useGardens();
   const jobs = useCommitmentJobs({ chainId: input.chainId });
 
@@ -137,14 +140,25 @@ export function useCommitmentComposerController(
 
   // Action windows are read against a clock that ticks when the next action
   // opens or ends, so the offered actions and the chosen rows stay true while
-  // the composer sits open.
+  // the composer sits open. A chosen action the list doesn't hold (a draft
+  // resumed offline, or one naming an action older than the newest the list
+  // reads) is read by its id once the list has answered. Until its window is
+  // known it holds the how-much step and placement (PRD-1004).
   const { set: setWindowTimer, clear: clearWindowTimer } = useTimeout();
   const [now, setNow] = useState(() => Date.now());
-  const openActions = useMemo(
-    () => actions.filter((action) => isActionOpen(action, now)),
-    [actions, now]
-  );
+  const unlistedUIDs = actionsPending
+    ? []
+    : selectUncheckedActionUIDs(values, listed, input.chainId).map(Number);
+  const lookedUp = useActionsByUID(unlistedUIDs, input.chainId);
+  const { actions, openActions } = useMemo(() => {
+    const known =
+      lookedUp.length === 0
+        ? listed
+        : [...listed, ...lookedUp.filter((found) => !listed.some(({ id }) => id === found.id))];
+    return { actions: known, openActions: known.filter((action) => isActionOpen(action, now)) };
+  }, [listed, lookedUp, now]);
   const closedActionUIDs = selectClosedActionUIDs(values, actions, input.chainId, now);
+  const uncheckedActionUIDs = selectUncheckedActionUIDs(values, actions, input.chainId);
   useEffect(() => {
     const delay = msUntilActionWindowChange(actions, now);
     if (delay === null) return;
@@ -210,8 +224,12 @@ export function useCommitmentComposerController(
     if (!pool || !poolOpen || !viewer || !garden) return false;
     // Placement reads the time itself rather than the last tick: the contract
     // takes a requirement whose action has closed, and no Work could keep it.
+    // One whose window isn't known yet waits as well.
     const placedAt = Date.now();
-    if (selectClosedActionUIDs(values, actions, input.chainId, placedAt).length > 0) {
+    if (
+      uncheckedActionUIDs.length > 0 ||
+      selectClosedActionUIDs(values, actions, input.chainId, placedAt).length > 0
+    ) {
       setNow(placedAt);
       return false;
     }
@@ -254,6 +272,7 @@ export function useCommitmentComposerController(
     actions,
     openActions,
     closedActionUIDs,
+    uncheckedActionUIDs,
     openCycles,
     cycleNames: cycleNames.byCycleId,
     gardenName,

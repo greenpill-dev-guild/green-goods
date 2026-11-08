@@ -490,6 +490,31 @@ describe("GardenPool", () => {
     expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
   });
 
+  it.each([
+    ["action-closed", "One of its actions closed before it was sent"],
+    ["cycle-ended", "Its season or campaign ended before it was sent"],
+  ])("says why the queue refused a promise (%s), and offers only Discard", async (refusal, why) => {
+    const user = userEvent.setup();
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 1,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: false,
+      pendingCreates: [creation({ failed: true, refusal })],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Didn't send")).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(why))).toBeInTheDocument();
+    // Sending it again cannot help, so nothing offers to.
+    expect(screen.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
+  });
+
   it("withholds discard from a creation whose transaction was already sent", async () => {
     // The record is the only local trace of a broadcast commitment. Deleting it
     // would file a second one, so only Try again is offered.

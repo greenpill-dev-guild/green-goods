@@ -18,7 +18,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { SETTLEMENT_ENABLED } from "../../../config/app";
+import { creationRefusalOf } from "../../../modules/commitment-pooling/creation-standing";
 import { isDiscardableJob } from "../../../modules/job-queue/job-recovery";
+import { isTerminallyFailedJob } from "../../../modules/job-queue/queue-policy";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -61,8 +63,13 @@ function waitingCopiesByGroup(
 
 const NOTHING_WAITING: ReadonlyMap<string, readonly string[]> = new Map();
 
-/** Leave unsent rewards in the visible queue; a recorded send still needs recovery. */
+/**
+ * Leave unsent rewards in the visible queue; a recorded send still needs recovery. A copy the
+ * queue refused (an action it names closed, its season ended) can't be finished either, so it
+ * leaves the group's count and lists on its own, where Discard clears it.
+ */
 function canFinishCreation(job: Job): boolean {
+  if (isTerminallyFailedJob(job) && creationRefusalOf(job.lastError)) return false;
   const payload = job.payload as Partial<CommitmentCreationPayload> | undefined;
   return (
     SETTLEMENT_ENABLED ||

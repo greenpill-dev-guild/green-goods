@@ -307,6 +307,9 @@ export async function executeCommitmentQueueJob(
     throw error;
   }
 
+  // A promise the chain can no longer keep is given up on, as on anything outside the queue:
+  // nothing about it conflicts with the chain, and sending it again cannot help.
+  if (result.status === "refused") return { status: "unavailable", reason: result.reason };
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {
       await store.storeClientSeriesIdMapping(

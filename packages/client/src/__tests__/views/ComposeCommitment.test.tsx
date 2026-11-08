@@ -101,6 +101,12 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
 }));
 
+// An action the list doesn't hold is read by its id; here that read never answers.
+vi.mock("@green-goods/shared/hooks/action/useAction", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/hooks/action/useAction")>()),
+  useActionsByUID: () => [],
+}));
+
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: false, isLoading: false }),
 }));
@@ -697,6 +703,42 @@ describe("ComposeCommitment", () => {
     expect(next()).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "Remove Harvest" }));
+    await user.click(screen.getByRole("button", { name: /Prune/ }));
+    expect(next()).toBeEnabled();
+  });
+
+  it("marks a resumed action it can't find, and holds the step until it goes", async () => {
+    // Saved from a list that held this action; the list now doesn't, and its window can't be read.
+    useCommitmentComposerDraftStore.getState().saveDraft(
+      commitmentComposerDraftKey({
+        chainId: 42161,
+        viewer: VIEWER,
+        garden: GARDEN,
+        direction: "OFFER",
+      }),
+      {
+        values: {
+          title: "Mulch the north beds",
+          kind: "GARDEN_WORK",
+          requirements: [{ actionUID: "77", requiredCount: 1 }],
+        },
+        clientCommitmentId: "draft-mulch",
+      },
+      NOW - DAY_MS
+    );
+    const user = userEvent.setup();
+    render("offer");
+    await user.click(screen.getByRole("button", { name: "Resume Draft" }));
+    await user.click(next());
+
+    const rows = screen.getByRole("list", { name: "Chosen actions" });
+    expect(within(rows).getByText("Not checked yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(/We can't yet check that every action you chose still takes work/)
+    ).toBeInTheDocument();
+    expect(next()).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Remove #77" }));
     await user.click(screen.getByRole("button", { name: /Prune/ }));
     expect(next()).toBeEnabled();
   });

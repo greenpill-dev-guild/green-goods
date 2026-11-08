@@ -43,7 +43,11 @@ import type {
 } from "../../modules/transactions/types";
 import type { Address } from "../../types/domain";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
-import { CommitmentPoolingModuleABI, EASABI } from "../../utils/blockchain/contracts";
+import {
+  CommitmentPoolingModuleABI,
+  EASABI,
+  getNetworkContracts,
+} from "../../utils/blockchain/contracts";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { sendLockName, stubWebLocks } from "../test-utils/web-locks";
 
@@ -93,6 +97,14 @@ function store() {
   };
 }
 
+/**
+ * The chain's clock, which a new promise's windows are read on. `reads()` leaves it out: without
+ * it a lost act's send is timed by the device's clock, as the settling cases below expect.
+ */
+const chainClock = () => ({
+  readChainHead: vi.fn().mockResolvedValue({ number: 1n, timestamp: 1_900_000_000 }),
+});
+
 function reads(
   overrides: Partial<CommitmentJobExecutionDependencies> = {}
 ): CommitmentJobExecutionDependencies & Pick<CommitmentChainReads, "assertClaimRewardAgreed"> {
@@ -104,6 +116,9 @@ function reads(
     readCommitment: vi.fn(),
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(ZERO_HASH),
     readEvidenceAttached: vi.fn().mockResolvedValue(false),
+    // The chain holds every action and season open.
+    readActionWindow: vi.fn().mockResolvedValue({ startTime: 1n, endTime: 4_000_000_000n }),
+    readCycleWindow: vi.fn().mockResolvedValue({ state: "OPEN", endTime: 4_000_000_000n }),
     hasMembership: vi.fn().mockResolvedValue(true),
     // The general executor fixtures have no bound reward. Consent cases below use the real reader.
     assertClaimRewardAgreed: vi.fn().mockResolvedValue(undefined),
@@ -370,7 +385,7 @@ describe("commitment queue executor", () => {
     await expect(
       executeCommitmentQueueJob(queued.id, queued, 42161, sender, {
         demoActive: () => false,
-        reads: reads(),
+        reads: reads(chainClock()),
         store: store(),
       })
     ).resolves.toEqual({ status: "waiting", reason: "group-deadline-passed" });
@@ -517,7 +532,7 @@ describe("commitment queue executor", () => {
     await expect(
       executeCommitmentQueueJob("job-commitment", queued, 42161, sender, {
         demoActive: () => false,
-        reads: reads(),
+        reads: reads(chainClock()),
         store: queueStore,
         uploadJson: vi.fn().mockResolvedValue({ cid: "bafy-published" }),
       })
@@ -687,6 +702,29 @@ describe("commitment queue executor", () => {
       "job-commitment",
       42161
     );
+  });
+
+  it("gives up on a promise whose action closed before it was sent, and sends nothing", async () => {
+    const sender = createMockTransactionSender();
+    const chainReads = reads({
+      ...chainClock(),
+      readActionWindow: vi.fn().mockResolvedValue({ startTime: 1n, endTime: 1_899_999_999n }),
+    });
+
+    await expect(
+      executeCommitmentQueueJob(
+        "job-commitment",
+        job(
+          "commitment",
+          commitmentPayload({ requirements: [{ actionUID: 4n, requiredCount: 1 }] })
+        ),
+        42161,
+        sender,
+        { demoActive: () => false, reads: chainReads, store: store() }
+      )
+    ).resolves.toEqual({ status: "unavailable", reason: "action-closed" });
+    expect(chainReads.readActionWindow).toHaveBeenCalledWith(4n);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("recovers a matching work link without an entity mapping", async () => {
@@ -1716,6 +1754,38 @@ describe("commitment chain reads", () => {
     await expect(chainReads.readSettlementAccountActive?.(GARDEN)).resolves.toBe(false);
     readContract.mockRejectedValueOnce(new Error("rpc down"));
     await expect(chainReads.readSettlementAccountActive?.(GARDEN)).resolves.toBeNull();
+  });
+
+  it("reads an action's window from the registry, and a season's state in the app's words", async () => {
+    const readContract = vi.fn(async (_config, request: { functionName: string }) => {
+      if (request.functionName === "getAction") {
+        return { startTime: 10n, endTime: 20n, title: "Prune", slug: "agro.prune" };
+      }
+      if (request.functionName === "getCycle") return { poolId: 1n, state: 3, endTime: 30n };
+      throw new Error(`unexpected read ${request.functionName}`);
+    });
+    const chainReads = createCommitmentChainReads({
+      chainId: 42161,
+      moduleAddress: MODULE,
+      readContract: readContract as never,
+      config: {} as Config,
+    });
+
+    await expect(chainReads.readActionWindow(4n)).resolves.toEqual({
+      startTime: 10n,
+      endTime: 20n,
+    });
+    expect(readContract.mock.calls[0]?.[1]).toMatchObject({
+      address: getNetworkContracts(42161).actionRegistry,
+      args: [4n],
+      chainId: 42161,
+    });
+    // CycleState's fourth ordinal: a steward has closed it.
+    await expect(chainReads.readCycleWindow(8n)).resolves.toEqual({
+      state: "RECONCILED",
+      endTime: 30n,
+    });
+    expect(readContract.mock.calls[1]?.[1]).toMatchObject({ address: MODULE, args: [8n] });
   });
 
   it("reads the chain's head: its latest block and that block's time", async () => {
