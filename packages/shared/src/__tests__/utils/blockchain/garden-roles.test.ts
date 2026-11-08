@@ -23,25 +23,31 @@ function block(
 }
 
 describe("utils/blockchain/garden-roles gardenRoleRemovalBlock", () => {
-  it("lets an owner remove any role from anyone but their own access and the last owner", () => {
+  it("lets an owner remove any role from anyone, other owners included", () => {
     expect(block(asOwner, PEER, ["owner", "steward"], "owner")).toBeNull();
     expect(block(asOwner, PEER, ["steward", "evaluator"], "steward")).toBeNull();
     expect(block(asOwner, OWNER, ["owner", "steward", "gardener"], "gardener")).toBeNull();
+  });
+
+  it("keeps the viewer's own Owner and Steward roles and the last Owner out of reach", () => {
     expect(block(asOwner, OWNER, ["owner", "steward"], "owner")).toBe("own-access");
     expect(block(asOwner, OWNER, ["owner", "steward"], "steward")).toBe("own-access");
+    expect(block(asSteward, STEWARD, ["steward", "evaluator"], "steward")).toBe("own-access");
     expect(block(asOwner, PEER, ["owner"], "owner", 1)).toBe("last-owner");
   });
 
-  it("keeps a steward to roles below Steward, on people who are not owners", () => {
+  it("keeps a steward off an owner's roles and another steward's Steward role", () => {
     expect(block(asSteward, OWNER, ["owner", "steward", "gardener"], "gardener")).toBe(
       "owner-only"
     );
     expect(block(asSteward, PEER, ["steward", "evaluator", "gardener"], "steward")).toBe(
       "owner-steward"
     );
+  });
+
+  it("lets a steward remove roles below Steward from anyone who is not an owner", () => {
     expect(block(asSteward, PEER, ["steward", "evaluator", "gardener"], "evaluator")).toBeNull();
     expect(block(asSteward, PEER, ["community"], "community")).toBeNull();
-    expect(block(asSteward, STEWARD, ["steward", "evaluator"], "steward")).toBe("own-access");
     expect(block(asSteward, STEWARD, ["steward", "evaluator"], "evaluator")).toBeNull();
   });
 
