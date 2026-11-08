@@ -3977,8 +3977,9 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
 
 Each block below is shaped as a package-level implementation surface with acceptance criteria and
 validation hints. Current thin lane mirrors are PRD-721 contracts, PRD-722 indexer, PRD-723
-state/API, PRD-724 client, PRD-725 admin, PRD-726 editorial, PRD-727 docs, and PRD-728
-walkthrough videos. PRD-671..681 remain historical labels only. Current feature order is Envio
+state/API, PRD-724 client, PRD-725 admin, PRD-726 editorial, and PRD-727 docs. MAR-46
+(formerly PRD-728) tracks the walkthrough videos under the Marketing demo-video packaging
+parent MAR-48, outside the lane sync. PRD-671..681 remain historical labels only. Current feature order is Envio
 foundation -> existing contract cleanup -> architecture freeze -> contracts/indexer/shared ->
 authorized non-value broadcast and live indexer read-back -> existing admin/UI foundation ->
 client/admin/editorial -> staging QA Pass 1 -> documentation polish -> QA Pass 2 -> walkthrough
