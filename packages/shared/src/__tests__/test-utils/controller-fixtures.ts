@@ -207,6 +207,7 @@ export function proofComposerControllerFixture(
     retryDraftSave: () => undefined,
     canSendToo: false,
     sendToo: false,
+    sendsProofWithItsSend: false,
     setSendToo: () => undefined,
     linkInvalid: false,
     imageUrls: [],

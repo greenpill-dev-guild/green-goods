@@ -3613,6 +3613,7 @@
   "app.proof.next.review": "Revisar prueba",
   "app.proof.review.info": "{who, select, named {Revisa lo que verá {name} antes de añadirla.} other {Revisa lo que verá quien confirma antes de añadirla.}}",
   "app.proof.review.next.teammate": "{who, select, named {{lead} lidera esta y se la envía a {name} cuando el equipo termine.} other {{lead} lidera esta y la envía para confirmar cuando el equipo termine.}}",
+  "app.proof.review.next.signOnce": "Firma una sola vez para añadir la prueba y enviarla para confirmación.",
   "app.proof.review.next.signTwice": "Se te pedirá firmar dos veces: una para la prueba y otra para enviarla.",
   "app.proof.review.next.stays": "Se queda en este teléfono hasta que llegue. Si no se puede enviar, espera en Tu trabajo › Pendiente.",
   "app.proof.review.offline": "Estás sin conexión. Espera en este teléfono, fotos incluidas, y se envía cuando vuelvas.",

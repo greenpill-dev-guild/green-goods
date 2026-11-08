@@ -6,8 +6,8 @@ import {
 } from "@green-goods/shared/public-contracts";
 import { Hono } from "hono";
 import { getAddress } from "viem";
-import { describe, expect, it, vi } from "vitest";
-import { createServer } from "../api/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createServer, startServer } from "../api/server";
 import { InMemoryPublicRateLimiter } from "../api/public-protection";
 import {
   PublicGardenImpactCache,
@@ -69,6 +69,142 @@ function deps(loader = vi.fn(async () => snapshot())) {
 }
 
 describe("public garden impact API", () => {
+  it("cancels sibling provider work when a snapshot fails before its deadline", async () => {
+    let signal: AbortSignal | undefined;
+    const app = createServer({
+      ...deps(),
+      publicGardenImpactLoader: async (input) => {
+        signal = input.signal;
+        throw new Error("garden identity read failed");
+      },
+    });
+    expect((await app.request(route)).status).toBe(503);
+    expect(signal?.aborted).toBe(true);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("gives the HTTP runtime time to return the snapshot deadline response", async () => {
+    const serve = vi.fn(() => ({}));
+    vi.stubGlobal("Bun", { serve });
+    await startServer(createServer(deps()), { port: 0 });
+    expect(serve).toHaveBeenCalledWith(expect.objectContaining({ idleTimeout: 30 }));
+  });
+
+  it("keeps complete data through failed refreshes without extending its maximum age", async () => {
+    let now = 0;
+    const cache = new PublicGardenImpactCache({ now: () => now });
+    const good = snapshot();
+    const load = vi.fn(async () => good);
+    await cache.get("a", load);
+    now = 300_000;
+    load.mockRejectedValue(new Error("provider unavailable"));
+    const [stale, coalesced] = await Promise.all([cache.get("a", load), cache.get("a", load)]);
+    expect(coalesced).toEqual(stale);
+    expect(stale.summary).toEqual(good.summary);
+    expect(stale.provenance).toMatchObject({
+      stale: true,
+      fetchedAt,
+      refreshFailedAt: new Date(now).toISOString(),
+    });
+    now += 1;
+    await cache.get("a", load);
+    expect(load).toHaveBeenCalledTimes(2);
+    now = 3_600_000;
+    await expect(cache.get("a", load)).rejects.toThrow("provider unavailable");
+  });
+
+  it("does not replace complete data with a partial refresh and recovers on the next retry", async () => {
+    let now = 0;
+    const cache = new PublicGardenImpactCache({ now: () => now });
+    const partial = snapshot();
+    partial.summary.approvedWorkCount = null;
+    partial.provenance = {
+      ...partial.provenance,
+      status: "partial",
+      partialData: true,
+      unavailableSources: ["approvals"],
+    };
+    const load = vi
+      .fn(async () => snapshot())
+      .mockResolvedValueOnce(snapshot())
+      .mockResolvedValueOnce(partial);
+    await cache.get("a", load);
+    now = 300_000;
+    expect((await cache.get("a", load)).summary.approvedWorkCount).toBe(12);
+    now += 30_000;
+    expect((await cache.get("a", load)).provenance.stale).not.toBe(true);
+    expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it("invalidates retained data when a garden is no longer public", async () => {
+    let now = 0;
+    const cache = new PublicGardenImpactCache({ now: () => now });
+    await cache.get("a", async () => snapshot());
+    now = 300_000;
+    const missing = Object.assign(new Error("hidden"), { name: "PublicGardenImpactNotFoundError" });
+    await expect(
+      cache.get("a", async () => {
+        throw missing;
+      })
+    ).rejects.toBe(missing);
+    await expect(
+      cache.get("a", async () => {
+        throw new Error("offline");
+      })
+    ).rejects.toThrow("offline");
+  });
+
+  it("gives cold partial responses a short cache lifetime", async () => {
+    let now = 0;
+    const partial = snapshot();
+    partial.provenance = {
+      ...partial.provenance,
+      status: "partial",
+      partialData: true,
+      unavailableSources: ["works"],
+    };
+    const loader = vi.fn(async () => partial);
+    const app = createServer({ ...deps(loader), now: () => now });
+    const response = await app.request(route);
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=0, s-maxage=30, must-revalidate"
+    );
+    now = 30_000;
+    await app.request(route);
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns stale provenance without allowing intermediaries to extend its lifetime", async () => {
+    let now = 0;
+    const loader = vi.fn(async () => snapshot()).mockResolvedValueOnce(snapshot());
+    const app = createServer({ ...deps(loader), now: () => now });
+    await app.request(route);
+    now = 300_000;
+    loader.mockRejectedValue(new Error("offline"));
+    const response = await app.request(route);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect((await response.json()).provenance).toMatchObject({ fetchedAt, stale: true });
+  });
+
+  it("aborts a hung snapshot at twenty seconds and allows a subsequent retry", async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const loader = vi.fn(async (input: { signal?: AbortSignal }) => {
+      signal = input.signal;
+      return new Promise<PublicGardenImpactResponseV1>(() => {});
+    });
+    const app = createServer({ ...deps(), publicGardenImpactLoader: loader });
+    const pending = app.request(route);
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect((await pending).status).toBe(503);
+    expect(signal?.aborted).toBe(true);
+    loader.mockResolvedValue(snapshot());
+    expect((await app.request(route)).status).toBe(200);
+  });
   it("registers the concrete route and slices one canonical cached snapshot", async () => {
     const loader = vi.fn(async () => snapshot());
     const app = createServer(deps(loader));
@@ -88,10 +224,11 @@ describe("public garden impact API", () => {
       chainId: 11155111,
       gardenAddress,
       recentLimit: 12,
+      signal: expect.any(AbortSignal),
     });
     expect(first.headers.get("access-control-allow-origin")).toBe("*");
     expect(first.headers.get("cache-control")).toBe(
-      "public, max-age=60, s-maxage=300, stale-while-revalidate=86400"
+      "public, max-age=60, s-maxage=300, must-revalidate"
     );
   });
 

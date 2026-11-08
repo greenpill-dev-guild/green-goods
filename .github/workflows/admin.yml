@@ -192,7 +192,8 @@ jobs:
   e2e:
     name: Playwright Admin CI
     if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
-    runs-on: ubuntu-latest
+    # Playwright 1.60 cannot install Chromium on Ubuntu 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
