@@ -10,7 +10,7 @@
 **Stage**: `active`
 **Status**: `IMPLEMENTED — roadmap Done; deployed QA, release, documentation and evidence remain open`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-10-21`
+**Last Updated**: `2026-11-08`
 
 Linear mirror: the [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354) project, now Completed; its closed issues stay there, and an issue a sync creates follows routing rule 4. Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -2016,7 +2016,7 @@ does not begin against moving contracts or indexer queries.
 13. [ ] **QA Pass 1 / deep QA (PRD-729):** run full human-flow, authenticated Brave, real-device PWA, offline/recovery, contract-indexer consistency, accessibility, locale, permissions, and regression review. Route defects back to their owning lanes and re-merge fixes to `develop`.
 14. [ ] **Post-QA documentation polish (PRD-727):** after QA Pass 1, reconcile architecture/glossary/reference prose, operator and gardener task guides, screenshots, accessible names, recovery instructions, translations, and every planned/live claim against the QA-tested product.
 15. [ ] **QA Pass 2 / release certification (PRD-730):** retest every QA1 correction and the polished documentation, run boundary checks and the full Ship Gate, and freeze the verified `develop` snapshot only when staging is green and no unaccepted release blocker remains.
-16. [ ] **Walkthrough-video completion (MAR-46, formerly PRD-728):** quick, unedited recordings of these flows come first (MAR-38 for the app, MAR-47 for admin); then, in the demo-video packaging pass (MAR-48) and after QA Pass 2, record, edit, caption, transcribe, privacy-review, and replay the approved client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operational walkthroughs against the final source SHA.
+16. [ ] **Walkthrough-video completion (MAR-46, formerly PRD-728):** quick, unedited recordings come first (MAR-38 for the app, MAR-16 for the website, MAR-47 for admin); then, in the demo-video packaging pass (MAR-48) and after QA Pass 2, record, edit, caption, transcribe, privacy-review, and replay the approved client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operational walkthroughs against the final source SHA.
 17. [ ] **Cycle 1 and separately authorized value operations:** open Cycle 1 from the approved mandate artifacts only when its readiness gate passes. Settlement broadcast/canary/exit proof remains human-owned and independently authorized; one Fulfilled commitment may read Confirmed only after the authenticated acknowledgment. The `CreditRegistry` remains an August-wave companion, but its contracts lane cannot dispatch until the in-code pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates all clear.
 
 PRD-758 closed on 2026-08-29. It was never part of the Commitment Pooling backend critical path.
@@ -2215,7 +2215,7 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 ### Walkthrough videos (`docs/commitment-pooling-walkthrough-videos`): MAR-46 (formerly PRD-728)
 
 - [ ] Start only after QA Pass 2 and PRD-727 completion
-- [ ] Start in the demo-video packaging pass (MAR-48), after the quick recordings in MAR-38 and MAR-47
+- [ ] Start in the demo-video packaging pass (MAR-48), after the quick recordings in MAR-38, MAR-16 and MAR-47
 - [ ] Record final client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operations
       walkthroughs with captions/transcripts, privacy review, source SHA, and final path replay
 - [ ] Write `handoffs/claude-walkthrough-videos.md`
