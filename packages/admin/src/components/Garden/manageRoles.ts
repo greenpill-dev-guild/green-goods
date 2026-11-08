@@ -110,3 +110,73 @@ export function coveringRole(removed: GardenRole, kept: readonly GardenRole[]): 
 
 /** One pair's identity in a selection or a review. */
 export const rolePairKey = ({ address, role }: RolePair) => `${address.toLowerCase()}:${role}`;
+
+/** What the Manage Roles list narrows to: everyone, one role, or the people with picks. */
+export type RoleFilter = GardenRole | "all" | "selected";
+
+interface ChooseViewInput {
+  people: readonly MemberPerson[];
+  /** Each person's roles the viewer cannot remove, by lower-cased address. */
+  blocked: ReadonlyMap<string, ReadonlyMap<GardenRole, GardenRoleRemovalBlock>>;
+  selected: ReadonlyMap<string, RolePair>;
+  filter: RoleFilter;
+  /** The one person a directory row opened Manage Roles for, while the list shows only them. */
+  scopedTo: Address | null;
+  search: string;
+  /** The name each person's row shows, by lower-cased address. */
+  names: ReadonlyMap<string, string>;
+  formatMessage: IntlShape["formatMessage"];
+}
+
+/**
+ * What the choose step shows. Search, filters and the one-person scope change which people
+ * show, never what is picked: a pick counts while its person still holds the role and the
+ * viewer may still remove it, and picks out of view are counted so the footer can say so.
+ */
+export function chooseView({
+  people,
+  blocked,
+  selected,
+  filter,
+  scopedTo,
+  search,
+  names,
+  formatMessage,
+}: ChooseViewInput) {
+  const byAddress = new Map(people.map((person) => [person.address.toLowerCase(), person]));
+  const picks = [...selected.values()].filter((pair) => {
+    const key = pair.address.toLowerCase();
+    return byAddress.get(key)?.roles.includes(pair.role) && !blocked.get(key)?.has(pair.role);
+  });
+  const pickedRoles = new Map<string, Set<GardenRole>>();
+  for (const pair of picks) {
+    const key = pair.address.toLowerCase();
+    pickedRoles.set(key, (pickedRoles.get(key) ?? new Set()).add(pair.role));
+  }
+  const roles = GARDEN_ROLE_ORDER.filter((role) =>
+    people.some((person) => person.roles.includes(role))
+  );
+  // A filter whose people are gone (the last pick cleared, a role's last holder removed) lets go.
+  const usable =
+    filter === "all" || (filter === "selected" ? picks.length > 0 : roles.includes(filter));
+  const activeFilter: RoleFilter = usable ? filter : "all";
+  const visiblePeople = people.filter((person) => {
+    const key = person.address.toLowerCase();
+    if (scopedTo) return key === scopedTo.toLowerCase();
+    if (activeFilter === "selected") {
+      if (!pickedRoles.has(key)) return false;
+    } else if (activeFilter !== "all" && !person.roles.includes(activeFilter)) {
+      return false;
+    }
+    return memberMatchesSearch(person, search, names.get(key), formatMessage);
+  });
+  const shown = new Set(visiblePeople.map((person) => person.address.toLowerCase()));
+  return {
+    picks,
+    pickedRoles,
+    roles,
+    activeFilter,
+    visiblePeople,
+    hiddenPicks: picks.filter((pair) => !shown.has(pair.address.toLowerCase())).length,
+  };
+}

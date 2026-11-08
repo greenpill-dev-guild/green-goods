@@ -1,38 +1,41 @@
-import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import type { RoleRemovalApi } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
-import {
-  GARDEN_ROLE_ORDER,
-  type GardenRole,
-} from "@green-goods/shared/utils/blockchain/garden-roles";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiUserAddLine, RiUserLine } from "@remixicon/react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
-import { AdminFilterChip } from "../AdminFilterChip";
-import { AdminInputChip } from "../AdminInputChip";
-import { AdminSearchToolbar } from "../AdminSearchToolbar";
-import { AdminSelect } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
-import { FlowStatusRow, type FlowStatusRowProps } from "../Layout/FlowStatusRow";
-import { getRoleLabel } from "./gardenUtils";
+import { FlowStatusRow } from "../Layout/FlowStatusRow";
+import { ManageRolesFilters } from "./ManageRolesFilters";
 import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
 import { MemberNameReaders, withMemberName } from "./MemberNames";
 import {
   blockedRoles,
-  type ManageRolesViewer,
+  chooseView,
   type MemberPerson,
-  memberMatchesSearch,
   peopleFromRoster,
+  type RoleFilter,
   type RolePair,
   rolePairKey,
 } from "./manageRoles";
-import { type ReviewPairStatus, type ReviewPerson, RoleRemovalReview } from "./RoleRemovalReview";
+import {
+  type ReviewMomentAction,
+  type ReviewState,
+  reviewFromPicks,
+  reviewMoment,
+  settledPairs,
+  startRun,
+  withCheckAgainAnswers,
+  withCheckAnswers,
+  withPairsStatus,
+  withUnsettledUnknown,
+} from "./manageRolesReview";
+import { type ReviewPairStatus, RoleRemovalReview } from "./RoleRemovalReview";
 
 export interface ManageMembersDialogProps {
   open: boolean;
@@ -62,78 +65,7 @@ export interface ManageMembersDialogProps {
   tone?: AdminDialogProps["tone"];
 }
 
-type RoleFilter = GardenRole | "all" | "selected";
-type ReviewPhase = "checking" | "ready" | "running" | "done";
-
-interface ReviewState {
-  phase: ReviewPhase;
-  people: ReviewPerson[];
-  /** The pairs the current or last run sent, by `rolePairKey`. */
-  run: string[];
-}
-
-const RETRYABLE: ReadonlySet<ReviewPairStatus> = new Set(["failed", "declined", "notSent"]);
-
-function statusOf(review: ReviewState, key: string): ReviewPairStatus | undefined {
-  for (const { person, pairs } of review.people) {
-    for (const pair of pairs) {
-      if (rolePairKey({ address: person.address, role: pair.role }) === key) return pair.status;
-    }
-  }
-  return undefined;
-}
-
-function pairsOf(review: ReviewState, statuses: ReadonlySet<ReviewPairStatus>): RolePair[] {
-  return review.people.flatMap(({ person, pairs }) =>
-    pairs
-      .filter((pair) => statuses.has(pair.status))
-      .map((pair) => ({ address: person.address, role: pair.role }))
-  );
-}
-
-function withPairStatus(
-  review: ReviewState,
-  row: RolePair,
-  status: ReviewPairStatus,
-  reason?: string
-): ReviewState {
-  const key = rolePairKey(row);
-  return {
-    ...review,
-    people: review.people.map((entry) => ({
-      ...entry,
-      pairs: entry.pairs.map((pair) =>
-        rolePairKey({ address: entry.person.address, role: pair.role }) === key
-          ? { role: pair.role, status, reason }
-          : pair
-      ),
-    })),
-  };
-}
-
-function tally(review: ReviewState) {
-  const count = (status: ReviewPairStatus) =>
-    review.people.reduce(
-      (total, { pairs }) => total + pairs.filter((pair) => pair.status === status).length,
-      0
-    );
-  const retryable = review.people.reduce(
-    (total, { pairs }) => total + pairs.filter((pair) => RETRYABLE.has(pair.status)).length,
-    0
-  );
-  return {
-    ready: count("ready"),
-    removed: count("removed"),
-    checking: count("checking"),
-    alreadyRemoved: count("alreadyRemoved"),
-    refused: count("refused"),
-    declined: count("declined"),
-    unknown: count("unknown"),
-    retryable,
-    people: review.people.length,
-    pairs: review.people.reduce((total, { pairs }) => total + pairs.length, 0),
-  };
-}
+const NOTHING_PICKED: ReadonlySet<GardenRole> = new Set();
 
 /**
  * Manage Roles: the one place a steward changes who holds which role in the garden.
@@ -145,6 +77,7 @@ function tally(review: ReviewState) {
  * reads every pair on chain again, and lists what each person loses and keeps. Its confirm is
  * the flow's one destructive button. Each pair takes its own signature; the run shows each
  * landing in place and ends on a result that says what landed before it offers anything again.
+ * What each step shows and offers lives in `manageRoles` and `manageRolesReview`.
  */
 export function ManageMembersDialog({
   open,
@@ -163,8 +96,7 @@ export function ManageMembersDialog({
   closesByRoute = false,
   tone,
 }: ManageMembersDialogProps) {
-  const intl = useIntl();
-  const { formatMessage } = intl;
+  const { formatMessage } = useIntl();
   const [filter, setFilter] = useState<RoleFilter>("all");
   const [search, setSearch] = useState("");
   const [scopedTo, setScopedTo] = useState<Address | null>(initialMember ?? null);
@@ -196,152 +128,69 @@ export function ManageMembersDialog({
     []
   );
 
-  const people = useMemo(() => peopleFromRoster(roleMembers), [roleMembers]);
-  const viewer = useMemo<ManageRolesViewer>(
-    () => ({ address: viewerAddress, isOwner: viewerIsOwner, canManage }),
-    [canManage, viewerAddress, viewerIsOwner]
-  );
-  const ownerCount = roleMembers.owner?.length ?? 0;
-  const blockedByPerson = useMemo(
-    () =>
-      new Map(
-        people.map((person) => [
+  const { people, blocked } = useMemo(() => {
+    const roster = peopleFromRoster(roleMembers);
+    const viewer = { address: viewerAddress, isOwner: viewerIsOwner, canManage };
+    const ownerCount = roleMembers.owner?.length ?? 0;
+    return {
+      people: roster,
+      blocked: new Map(
+        roster.map((person) => [
           person.address.toLowerCase(),
           blockedRoles(person, viewer, ownerCount),
         ])
       ),
-    [ownerCount, people, viewer]
-  );
+    };
+  }, [canManage, roleMembers, viewerAddress, viewerIsOwner]);
+  const view = chooseView({
+    people,
+    blocked,
+    selected,
+    filter,
+    scopedTo,
+    search,
+    names,
+    formatMessage,
+  });
+  const { picks } = view;
   const readOnly = !canManage;
-
-  // A pick counts while its person still holds the role and this viewer may still remove it.
-  const picks = useMemo(() => {
-    const byAddress = new Map(people.map((person) => [person.address.toLowerCase(), person]));
-    return [...selected.values()].filter((pair) => {
-      const key = pair.address.toLowerCase();
-      return (
-        byAddress.get(key)?.roles.includes(pair.role) && !blockedByPerson.get(key)?.has(pair.role)
-      );
-    });
-  }, [blockedByPerson, people, selected]);
-  const pickedAddresses = useMemo(
-    () => new Set(picks.map((pair) => pair.address.toLowerCase())),
-    [picks]
-  );
-
-  const availableRoles = GARDEN_ROLE_ORDER.filter((role) => (roleMembers[role]?.length ?? 0) > 0);
-  const activeFilter: RoleFilter =
-    filter === "selected"
-      ? picks.length > 0
-        ? "selected"
-        : "all"
-      : filter === "all" || availableRoles.includes(filter)
-        ? filter
-        : "all";
-
-  const visiblePeople = useMemo(() => {
-    if (scopedTo) {
-      return people.filter((person) => person.address.toLowerCase() === scopedTo.toLowerCase());
-    }
-    return people.filter((person) => {
-      if (activeFilter === "selected" && !pickedAddresses.has(person.address.toLowerCase())) {
-        return false;
-      }
-      if (
-        activeFilter !== "all" &&
-        activeFilter !== "selected" &&
-        !person.roles.includes(activeFilter)
-      ) {
-        return false;
-      }
-      return memberMatchesSearch(
-        person,
-        search,
-        names.get(person.address.toLowerCase()),
-        formatMessage
-      );
-    });
-  }, [activeFilter, formatMessage, names, people, pickedAddresses, scopedTo, search]);
-  const visibleAddresses = new Set(visiblePeople.map((person) => person.address.toLowerCase()));
-  const hiddenPicks = picks.filter((pair) => !visibleAddresses.has(pair.address.toLowerCase()));
-
   const running = review?.phase === "running";
   const busy = isLoading || running;
 
   const toggle = (person: MemberPerson, role: GardenRole, checked: boolean) => {
     const pair = { address: person.address, role };
-    const key = rolePairKey(pair);
     setSelected((current) => {
       const next = new Map(current);
-      if (checked) next.set(key, pair);
-      else next.delete(key);
+      if (checked) next.set(rolePairKey(pair), pair);
+      else next.delete(rolePairKey(pair));
       return next;
     });
   };
 
-  const showPicked = () => {
+  const chooseFilter = (next: RoleFilter) => {
     setScopedTo(null);
-    setSearch("");
-    setFilter("selected");
+    setFilter(next);
   };
 
-  const clearPicks = () => setSelected(new Map());
-
-  const settleCheck = (token: number, rows: RolePair[], held: (boolean | null)[]) => {
-    if (token !== reviewToken.current) return;
-    const gone = new Set(rows.filter((_, index) => held[index] === false).map(rolePairKey));
-    setReview((current) =>
-      current
-        ? {
-            ...current,
-            phase: "ready",
-            people: current.people.map((entry) => ({
-              ...entry,
-              pairs: entry.pairs.map((pair) => ({
-                role: pair.role,
-                status: gone.has(rolePairKey({ address: entry.person.address, role: pair.role }))
-                  ? "alreadyRemoved"
-                  : "ready",
-              })),
-            })),
-          }
-        : current
-    );
+  const showPicked = () => {
+    setSearch("");
+    chooseFilter("selected");
   };
 
   const openReview = () => {
-    const order = new Map(people.map((person, index) => [person.address.toLowerCase(), index]));
-    const byPerson = new Map<string, ReviewPerson>();
-    for (const pair of picks) {
-      const key = pair.address.toLowerCase();
-      const person = people[order.get(key) ?? -1];
-      if (!person) continue;
-      const entry = byPerson.get(key) ?? {
-        person: { address: person.address, roles: [...person.roles] },
-        pairs: [],
-      };
-      entry.pairs.push({ role: pair.role, status: "checking" });
-      byPerson.set(key, entry);
-    }
-    const reviewPeople = [...byPerson.entries()]
-      .sort(([a], [b]) => (order.get(a) ?? 0) - (order.get(b) ?? 0))
-      .map(([, entry]) => ({
-        ...entry,
-        pairs: [...entry.pairs].sort(
-          (a, b) => GARDEN_ROLE_ORDER.indexOf(a.role) - GARDEN_ROLE_ORDER.indexOf(b.role)
-        ),
-      }));
+    const { review: next, rows } = reviewFromPicks(picks, people);
     reviewToken.current += 1;
     const token = reviewToken.current;
-    setReview({ phase: "checking", people: reviewPeople, run: [] });
-    const rows = reviewPeople.flatMap(({ person, pairs }) =>
-      pairs.map((pair) => ({ address: person.address, role: pair.role }))
-    );
+    const settle = (held: (boolean | null)[]) => {
+      if (token !== reviewToken.current) return;
+      setReview((current) => current && withCheckAnswers(current, rows, held));
+    };
+    setReview(next);
     removal
       .check(rows)
-      .then((held) => settleCheck(token, rows, held))
+      .then(settle)
       // A failed read leaves every pair to the read before its own signature.
-      .catch(() => settleCheck(token, rows, []));
+      .catch(() => settle([]));
   };
 
   const backToChoose = () => {
@@ -353,17 +202,13 @@ export function ManageMembersDialog({
     if (pairs.length === 0) return;
     reviewToken.current += 1;
     const token = reviewToken.current;
+    const live = () => token === reviewToken.current;
     const update = (row: RolePair, status: ReviewPairStatus, reason?: string) => {
-      if (token !== reviewToken.current) return;
-      setReview((current) => (current ? withPairStatus(current, row, status, reason) : current));
+      if (!live()) return;
+      setReview((current) => current && withPairsStatus(current, [row], status, reason));
     };
-    setReview((current) => {
-      if (!current) return current;
-      let next: ReviewState = { ...current, phase: "running", run: pairs.map(rolePairKey) };
-      for (const pair of pairs) next = withPairStatus(next, pair, "ready");
-      return next;
-    });
-    let clean = true;
+    setReview((current) => current && startRun(current, pairs));
+    let clean = false;
     let settled: RolePair[] = [];
     try {
       const outcomes = await removal.remove(pairs, {
@@ -376,26 +221,13 @@ export function ManageMembersDialog({
           ),
       });
       clean = outcomes.every((outcome) => outcome.status === "removed");
-      settled = pairs.filter((_, index) =>
-        ["removed", "alreadyRemoved", "refused"].includes(outcomes[index]?.status ?? "")
-      );
+      settled = settledPairs(pairs, outcomes);
     } catch {
       // The run itself broke: whatever had not settled may or may not have landed.
-      clean = false;
-      setReview((current) => {
-        if (!current || token !== reviewToken.current) return current;
-        let next = current;
-        for (const pair of pairs) {
-          const status = statusOf(next, rolePairKey(pair));
-          if (status === "ready" || status === "sending") {
-            next = withPairStatus(next, pair, "unknown");
-          }
-        }
-        return next;
-      });
+      if (live()) setReview((current) => current && withUnsettledUnknown(current, pairs));
     }
-    if (token !== reviewToken.current) return;
-    setReview((current) => (current ? { ...current, phase: "done" } : current));
+    if (!live()) return;
+    setReview((current) => current && { ...current, phase: "done" });
     // Settled pairs leave the picks; a declined or unsent one stays picked for Back.
     setSelected((current) => {
       const next = new Map(current);
@@ -405,28 +237,14 @@ export function ManageMembersDialog({
     if (!clean) onRosterStale?.();
   };
 
-  const checkAgain = async () => {
-    if (!review) return;
-    const unknown = pairsOf(review, new Set(["unknown"]));
+  const checkAgain = async (pairs: RolePair[]) => {
+    if (pairs.length === 0) return;
     reviewToken.current += 1;
     const token = reviewToken.current;
-    for (const pair of unknown) {
-      setReview((current) => (current ? withPairStatus(current, pair, "checking") : current));
-    }
-    const held = await removal.check(unknown).catch((): (boolean | null)[] => []);
+    setReview((current) => current && withPairsStatus(current, pairs, "checking"));
+    const held = await removal.check(pairs).catch((): (boolean | null)[] => []);
     if (token !== reviewToken.current) return;
-    for (const [index, pair] of unknown.entries()) {
-      const answer = held[index];
-      setReview((current) =>
-        current
-          ? withPairStatus(
-              current,
-              pair,
-              answer === false ? "removed" : answer === true ? "failed" : "unknown"
-            )
-          : current
-      );
-    }
+    setReview((current) => current && withCheckAgainAnswers(current, pairs, held));
     onRosterStale?.();
   };
 
@@ -454,185 +272,47 @@ export function ManageMembersDialog({
     dirtyClose.onOpenChange(false);
   };
 
-  const counts = review ? tally(review) : null;
-  const sendable = counts ? counts.ready : 0;
-  const retryPairs = review ? pairsOf(review, RETRYABLE) : [];
-
-  const removeLabel = (count: number) =>
-    formatMessage({ id: "admin.manageRoles.removeCount" }, { count });
-  const remainingLabel = formatMessage(
-    { id: "admin.manageRoles.removeRemaining" },
-    { count: retryPairs.length }
-  );
-
-  let status: FlowStatusRowProps | null = null;
-  if (review && counts) {
-    if (review.phase === "checking" || (review.phase === "done" && counts.checking > 0)) {
-      status = {
-        tone: "neutral",
-        busy: true,
-        title: formatMessage({ id: "admin.manageRoles.checking.title" }),
-        description: formatMessage({ id: "admin.manageRoles.checking.body" }),
-      };
-    } else if (review.phase === "ready") {
-      const stale =
-        counts.alreadyRemoved > 0
-          ? ` ${formatMessage(
-              { id: "admin.manageRoles.ready.stale" },
-              { count: counts.alreadyRemoved }
-            )}`
-          : "";
-      status =
-        sendable > 0
-          ? {
-              tone: "neutral",
-              title: formatMessage(
-                { id: "admin.manageRoles.ready.title" },
-                {
-                  roles: sendable,
-                  people: review.people.filter(({ pairs }) =>
-                    pairs.some((pair) => pair.status === "ready")
-                  ).length,
-                }
-              ),
-              description: `${formatMessage({ id: "admin.manageRoles.ready.body" })}${stale}`,
-            }
-          : {
-              tone: "neutral",
-              title: formatMessage({ id: "admin.manageRoles.nothingLeft.title" }),
-              description: formatMessage({ id: "admin.manageRoles.nothingLeft.body" }),
-            };
-    } else if (review.phase === "running") {
-      const total = review.run.length;
-      const settled = review.run.filter((key) => {
-        const pairStatus = statusOf(review, key);
-        return pairStatus !== "ready" && pairStatus !== "sending";
-      }).length;
-      status = {
-        tone: "info",
-        busy: true,
-        title: formatMessage(
-          { id: "admin.manageRoles.sending.title" },
-          { current: Math.min(total, settled + 1), total }
-        ),
-        description: formatMessage({ id: "admin.manageRoles.sending.body" }),
-        progress: total > 0 ? Math.round((settled / total) * 100) : null,
-      };
-    } else if (counts.unknown > 0) {
-      status = {
-        tone: "warning",
-        title: formatMessage({ id: "admin.manageRoles.unknown.title" }, { count: counts.unknown }),
-        description: formatMessage({ id: "admin.manageRoles.unknown.body" }),
-      };
-    } else if (counts.retryable > 0) {
-      status =
-        counts.removed === 0 && counts.declined > 0
-          ? {
-              tone: "warning",
-              title: formatMessage({ id: "admin.manageRoles.declined.title" }),
-              description: formatMessage({ id: "admin.manageRoles.declined.body" }),
-            }
-          : {
-              tone: "warning",
-              title: formatMessage(
-                { id: "admin.manageRoles.partial.title" },
-                { removed: counts.removed, left: counts.retryable }
-              ),
-              description: formatMessage(
-                { id: "admin.manageRoles.partial.body" },
-                { action: counts.removed > 0 ? remainingLabel : removeLabel(retryPairs.length) }
-              ),
-            };
-    } else if (counts.removed > 0) {
-      status = {
-        tone: "success",
-        title: formatMessage({ id: "admin.manageRoles.done.title" }, { count: counts.removed }),
-        description:
-          counts.refused > 0
-            ? formatMessage({ id: "admin.manageRoles.done.someRefused" }, { count: counts.refused })
-            : formatMessage({ id: "admin.manageRoles.done.body" }),
-      };
-    } else {
-      status = {
-        tone: "neutral",
-        title: formatMessage({ id: "admin.manageRoles.declined.title" }),
-        description: formatMessage({ id: "admin.manageRoles.noneRemoved.body" }),
-      };
-    }
-  }
-
-  const signatureLine = (count: number) =>
-    count > 0 ? formatMessage({ id: "admin.manageRoles.signatures" }, { count }) : null;
+  const moment = review ? reviewMoment(review, formatMessage, isLoading) : null;
+  const act = (action: ReviewMomentAction) => {
+    if (action.act === "back") backToChoose();
+    else if (action.act === "done") onClose();
+    else if (action.act === "checkAgain") void checkAgain(action.pairs ?? []);
+    else void send(action.pairs ?? []);
+  };
+  const actionButton = (slot: "primary" | "secondary", action: ReviewMomentAction | null) =>
+    action ? (
+      <Button
+        key={slot}
+        type="button"
+        emphasis={slot}
+        tone={action.danger ? "danger" : "default"}
+        size="sm"
+        onClick={() => act(action)}
+        disabled={action.disabled}
+        loading={action.loading}
+      >
+        {action.label}
+      </Button>
+    ) : null;
 
   // Two fixed slots, end-aligned: a secondary and one primary per moment (RUI pp. 60–62).
-  let footerNote: string | null = null;
   let secondary: ReactNode = null;
-  let primary: ReactNode = null;
-  if (!review) {
-    if (canManage) {
-      secondary = (
-        <Button
-          key="secondary"
-          type="button"
-          emphasis="secondary"
-          size="sm"
-          leadingIcon={<RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-          onClick={() => onAddMembers(scopedTo ?? undefined)}
-          disabled={busy}
-        >
-          {formatMessage({ id: "admin.addMember.openAction" })}
-        </Button>
-      );
-      primary = (
-        <Button
-          key="primary"
-          type="button"
-          emphasis="primary"
-          size="sm"
-          onClick={openReview}
-          disabled={busy || picks.length === 0}
-        >
-          {formatMessage({ id: "admin.manageRoles.review" })}
-        </Button>
-      );
-    } else {
-      primary = (
-        <Button key="primary" type="button" emphasis="tertiary" size="sm" onClick={onClose}>
-          {formatMessage({ id: "admin.common.close" })}
-        </Button>
-      );
-    }
-  } else if (review.phase === "checking" || review.phase === "ready") {
-    footerNote = signatureLine(sendable);
+  let primary: ReactNode;
+  if (moment) {
+    secondary = actionButton("secondary", moment.secondary);
+    primary = actionButton("primary", moment.primary);
+  } else if (canManage) {
     secondary = (
-      <Button key="secondary" type="button" emphasis="secondary" size="sm" onClick={backToChoose}>
-        {formatMessage({ id: "app.common.back" })}
-      </Button>
-    );
-    primary = (
       <Button
-        key="primary"
+        key="secondary"
         type="button"
-        emphasis="primary"
-        tone="danger"
+        emphasis="secondary"
         size="sm"
-        onClick={() => void send(pairsOf(review, new Set(["ready"])))}
-        disabled={review.phase === "checking" || sendable === 0 || isLoading}
+        leadingIcon={<RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+        onClick={() => onAddMembers(scopedTo ?? undefined)}
+        disabled={busy}
       >
-        {removeLabel(sendable || counts?.pairs || 0)}
-      </Button>
-    );
-  } else if (review.phase === "running") {
-    footerNote = signatureLine(pairsOf(review, new Set(["ready", "sending"])).length);
-    primary = (
-      <Button key="primary" type="button" emphasis="primary" tone="danger" size="sm" loading>
-        {formatMessage({ id: "admin.manageRoles.removing" })}
-      </Button>
-    );
-  } else if (counts && (counts.unknown > 0 || counts.checking > 0)) {
-    secondary = (
-      <Button key="secondary" type="button" emphasis="secondary" size="sm" onClick={onClose}>
-        {formatMessage({ id: "app.common.done" })}
+        {formatMessage({ id: "admin.addMember.openAction" })}
       </Button>
     );
     primary = (
@@ -641,83 +321,59 @@ export function ManageMembersDialog({
         type="button"
         emphasis="primary"
         size="sm"
-        loading={counts.checking > 0}
-        onClick={() => void checkAgain()}
+        onClick={openReview}
+        disabled={busy || picks.length === 0}
       >
-        {formatMessage({ id: "admin.manageRoles.checkAgain" })}
-      </Button>
-    );
-  } else if (counts && counts.retryable > 0) {
-    footerNote = signatureLine(retryPairs.length);
-    secondary =
-      counts.removed === 0 ? (
-        <Button key="secondary" type="button" emphasis="secondary" size="sm" onClick={backToChoose}>
-          {formatMessage({ id: "app.common.back" })}
-        </Button>
-      ) : (
-        <Button key="secondary" type="button" emphasis="secondary" size="sm" onClick={onClose}>
-          {formatMessage({ id: "app.common.done" })}
-        </Button>
-      );
-    primary = (
-      <Button
-        key="primary"
-        type="button"
-        emphasis="primary"
-        tone="danger"
-        size="sm"
-        onClick={() => void send(retryPairs)}
-        disabled={isLoading}
-      >
-        {counts.removed === 0 ? removeLabel(retryPairs.length) : remainingLabel}
+        {formatMessage({ id: "admin.manageRoles.review" })}
       </Button>
     );
   } else {
     primary = (
-      <Button key="primary" type="button" emphasis="primary" size="sm" onClick={onClose}>
-        {formatMessage({ id: "app.common.done" })}
+      <Button key="primary" type="button" emphasis="tertiary" size="sm" onClick={onClose}>
+        {formatMessage({ id: "admin.common.close" })}
       </Button>
     );
   }
 
-  const selectionSummary =
-    !review && canManage ? (
-      picks.length > 0 ? (
+  let summary: ReactNode = moment?.note ?? null;
+  if (!review && canManage) {
+    summary =
+      picks.length === 0 ? (
+        formatMessage({ id: "admin.manageRoles.selectHint" })
+      ) : (
         <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-text-strong">
             {formatMessage(
               { id: "admin.manageRoles.selection" },
-              { roles: picks.length, people: pickedAddresses.size }
+              { roles: picks.length, people: view.pickedRoles.size }
             )}
           </span>
-          {hiddenPicks.length > 0 ? (
-            <span>
-              {formatMessage(
-                { id: "admin.manageRoles.selectionHidden" },
-                { count: hiddenPicks.length }
-              )}
-            </span>
+          {view.hiddenPicks > 0 ? (
+            <>
+              <span>
+                {formatMessage(
+                  { id: "admin.manageRoles.selectionHidden" },
+                  { count: view.hiddenPicks }
+                )}
+              </span>
+              <Button type="button" emphasis="tertiary" size="compact" onClick={showPicked}>
+                {formatMessage({ id: "admin.manageRoles.showSelected" })}
+              </Button>
+            </>
           ) : null}
-          {hiddenPicks.length > 0 ? (
-            <Button type="button" emphasis="tertiary" size="compact" onClick={showPicked}>
-              {formatMessage({ id: "admin.manageRoles.showSelected" })}
-            </Button>
-          ) : null}
-          <Button type="button" emphasis="tertiary" size="compact" onClick={clearPicks}>
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            onClick={() => setSelected(new Map())}
+          >
             {formatMessage({ id: "admin.manageRoles.clearSelection" })}
           </Button>
         </span>
-      ) : (
-        formatMessage({ id: "admin.manageRoles.selectHint" })
-      )
-    ) : (
-      footerNote
-    );
+      );
+  }
 
-  const roleOptionLabel = (role: GardenRole) => getRoleLabel(role, formatMessage).plural;
-  const scopedName = scopedTo
-    ? (names.get(scopedTo.toLowerCase()) ?? formatAddress(scopedTo, { variant: "card" }))
-    : "";
+  const viewerKey = viewerAddress?.toLowerCase();
 
   return (
     <>
@@ -743,108 +399,46 @@ export function ManageMembersDialog({
               className="mr-auto min-w-0 type-meta text-text-sub empty:hidden"
               aria-live="polite"
             >
-              {selectionSummary}
+              {summary}
             </div>
             {secondary}
             {primary}
           </div>
         }
       >
-        {review && status ? (
+        {review && moment ? (
           <div
             ref={reviewRegionRef}
             tabIndex={-1}
             className="space-y-3 outline-none"
             aria-label={formatMessage({ id: "admin.manageRoles.reviewTitle" })}
           >
-            <FlowStatusRow {...status} />
+            <FlowStatusRow {...moment.status} />
             <RoleRemovalReview people={review.people} chainId={chainId} viewer={viewerAddress} />
           </div>
         ) : (
           <div className="@container space-y-3">
-            <AdminSearchToolbar
+            <ManageRolesFilters
               search={search}
               onSearchChange={(value) => {
                 setScopedTo(null);
                 setSearch(value);
               }}
-              placeholder={formatMessage({ id: "app.garden.detail.community.memberSearch" })}
+              scopedTo={scopedTo}
+              scopedName={scopedTo ? names.get(scopedTo.toLowerCase()) : undefined}
+              onShowEveryone={() => setScopedTo(null)}
+              roles={view.roles}
+              hasPicks={picks.length > 0}
+              activeFilter={view.activeFilter}
+              onFilterChange={chooseFilter}
+              onShowPicked={showPicked}
             />
-            {scopedTo ? (
-              <AdminInputChip
-                label={
-                  <AddressDisplay address={scopedTo} list>
-                    {(name) => name}
-                  </AddressDisplay>
-                }
-                text={scopedName}
-                onRemove={() => setScopedTo(null)}
-                removeLabel={formatMessage({ id: "admin.manageRoles.showEveryone" })}
-              />
-            ) : null}
-            <AdminSelect
-              className="@[480px]:hidden"
-              label={formatMessage({ id: "cockpit.community.members.filterAria" })}
-              value={activeFilter}
-              onChange={(event) => {
-                setScopedTo(null);
-                setFilter(event.target.value as RoleFilter);
-              }}
-            >
-              <option value="all">
-                {formatMessage({ id: "cockpit.community.members.filterAll" })}
-              </option>
-              {availableRoles.map((role) => (
-                <option key={role} value={role}>
-                  {roleOptionLabel(role)}
-                </option>
-              ))}
-              {picks.length > 0 ? (
-                <option value="selected">
-                  {formatMessage({ id: "admin.manageRoles.filterSelected" })}
-                </option>
-              ) : null}
-            </AdminSelect>
-            <div
-              className="hidden flex-wrap gap-2 @[480px]:flex"
-              role="group"
-              aria-label={formatMessage({ id: "cockpit.community.members.filterAria" })}
-            >
-              <AdminFilterChip
-                label={formatMessage({ id: "cockpit.community.members.filterAll" })}
-                selected={!scopedTo && activeFilter === "all"}
-                onToggle={() => {
-                  setScopedTo(null);
-                  setFilter("all");
-                }}
-              />
-              {availableRoles.map((role) => (
-                <AdminFilterChip
-                  key={role}
-                  label={roleOptionLabel(role)}
-                  selected={!scopedTo && activeFilter === role}
-                  onToggle={() => {
-                    setScopedTo(null);
-                    setFilter(activeFilter === role ? "all" : role);
-                  }}
-                />
-              ))}
-              {picks.length > 0 ? (
-                <AdminFilterChip
-                  label={formatMessage({ id: "admin.manageRoles.filterSelected" })}
-                  selected={!scopedTo && activeFilter === "selected"}
-                  onToggle={() =>
-                    activeFilter === "selected" && !scopedTo ? setFilter("all") : showPicked()
-                  }
-                />
-              ) : null}
-            </div>
             {readOnly ? (
               <p className="type-body text-text-sub">
                 {formatMessage({ id: "admin.manageRoles.readOnly" })}
               </p>
             ) : null}
-            {visiblePeople.length === 0 ? (
+            {view.visiblePeople.length === 0 ? (
               <EmptyState
                 icon={<RiUserLine className="h-6 w-6" />}
                 title={formatMessage({
@@ -856,22 +450,16 @@ export function ManageMembersDialog({
               />
             ) : (
               <ul className="flex flex-col gap-(--gg-list-gap)">
-                {visiblePeople.map((person) => {
+                {view.visiblePeople.map((person) => {
                   const key = person.address.toLowerCase();
                   return (
                     <ManageRolesPersonRow
                       key={key}
                       person={person}
                       chainId={chainId}
-                      isViewer={Boolean(viewerAddress) && viewerAddress?.toLowerCase() === key}
-                      blocked={blockedByPerson.get(key) ?? new Map()}
-                      selected={
-                        new Set(
-                          picks
-                            .filter((pair) => pair.address.toLowerCase() === key)
-                            .map((pair) => pair.role)
-                        )
-                      }
+                      isViewer={viewerKey === key}
+                      blocked={blocked.get(key) ?? new Map()}
+                      selected={view.pickedRoles.get(key) ?? NOTHING_PICKED}
                       onToggle={(role, checked) => toggle(person, role, checked)}
                       readOnly={readOnly}
                       disabled={busy}
