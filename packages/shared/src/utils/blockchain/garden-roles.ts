@@ -151,6 +151,62 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
 } as const;
 
 /**
+ * Why the cockpit will not offer to remove one role from one person, or null when it will.
+ *
+ * - `no-access`: the viewer is neither an owner nor a steward of the garden.
+ * - `own-access`: the viewer's own Owner or Steward role; giving up your own access is not a
+ *   removal you make for someone else.
+ * - `owner-only`: a steward looking at someone who holds Owner. Only an owner changes an
+ *   owner's roles.
+ * - `owner-steward`: a steward looking at another person's Steward role. Only an owner
+ *   removes a steward.
+ * - `last-owner`: the garden's only Owner role. A garden keeps at least one owner.
+ *
+ * `owner-only` and `owner-steward` follow the garden's role ranks; `own-access` and
+ * `last-owner` are the cockpit's own guards against locking a garden out of its management.
+ */
+export type GardenRoleRemovalBlock =
+  | "no-access"
+  | "own-access"
+  | "owner-only"
+  | "owner-steward"
+  | "last-owner";
+
+export interface GardenRoleRemovalInput {
+  /** Who is looking: the account the cockpit signs with. */
+  viewer?: string | null;
+  viewerIsOwner: boolean;
+  /** Owners and stewards manage roles. */
+  viewerCanManage: boolean;
+  person: string;
+  /** Every role the person holds in the garden. */
+  personRoles: readonly GardenRole[];
+  role: GardenRole;
+  /** How many people hold Owner in the garden. */
+  ownerCount: number;
+}
+
+export function gardenRoleRemovalBlock({
+  viewer,
+  viewerIsOwner,
+  viewerCanManage,
+  person,
+  personRoles,
+  role,
+  ownerCount,
+}: GardenRoleRemovalInput): GardenRoleRemovalBlock | null {
+  if (!viewerCanManage && !viewerIsOwner) return "no-access";
+  const isSelf = Boolean(viewer) && viewer?.toLowerCase() === person.toLowerCase();
+  if (isSelf && (role === "owner" || role === "steward")) return "own-access";
+  if (!viewerIsOwner) {
+    if (personRoles.includes("owner")) return "owner-only";
+    if (role === "steward") return "owner-steward";
+  }
+  if (role === "owner" && ownerCount <= 1) return "last-owner";
+  return null;
+}
+
+/**
  * Helper to get color classes for a role.
  */
 export function getRoleColorClasses(role: GardenRole) {

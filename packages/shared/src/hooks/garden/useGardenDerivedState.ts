@@ -3,11 +3,7 @@ import { isAddress } from "viem";
 import type { CookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import { adminRoutes } from "../../utils/navigation/admin-routes";
-import {
-  type GardenRole,
-  GARDEN_ROLE_ORDER,
-  getRoleLabel,
-} from "../../utils/blockchain/garden-roles";
+import { type GardenRole, GARDEN_ROLE_ORDER } from "../../utils/blockchain/garden-roles";
 import { expandDomainMask } from "../../utils/domain";
 import { formatTokenAmount, getVaultAssetSymbol } from "../../utils/blockchain/vaults";
 import {
@@ -85,7 +81,6 @@ interface DerivedStateInput {
   roleMembers: Record<GardenRole, Address[]>;
   selectedRange: GardenRange;
   activityFilter: ActivityFilter;
-  memberSearch: string;
   section: string | undefined;
   canAccessCommunity?: boolean;
   formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
@@ -106,7 +101,6 @@ export function useGardenDerivedState({
   roleMembers,
   selectedRange,
   activityFilter,
-  memberSearch,
   section,
   canAccessCommunity = true,
   formatMessage,
@@ -384,25 +378,8 @@ export function useGardenDerivedState({
     return Array.from(map.values());
   }, [roleMembers]);
 
-  const filteredDirectory = directoryEntries.filter((entry) => {
-    const normalizedSearch = memberSearch.trim().toLowerCase();
-    if (!normalizedSearch) return true;
-
-    if (entry.address.toLowerCase().includes(normalizedSearch)) {
-      return true;
-    }
-
-    return entry.roles.some((role) => {
-      const label = getRoleLabel(role, formatMessage);
-      return (
-        label.singular.toLowerCase().includes(normalizedSearch) ||
-        label.plural.toLowerCase().includes(normalizedSearch)
-      );
-    });
-  });
-
-  const visibleDirectory =
-    section === "members" ? filteredDirectory : filteredDirectory.slice(0, 8);
+  // The Members tab searches it by the names its rows show, so search lives with the rows.
+  const visibleDirectory = section === "members" ? directoryEntries : directoryEntries.slice(0, 8);
 
   return {
     pendingWorks,
@@ -429,7 +406,6 @@ export function useGardenDerivedState({
     directoryEntries,
     /** Distinct people across every role; a role seat is not a member (DL-049). */
     memberCount: directoryEntries.length,
-    filteredDirectory,
     visibleDirectory,
   };
 }

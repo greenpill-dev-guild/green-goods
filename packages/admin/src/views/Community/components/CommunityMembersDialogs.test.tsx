@@ -29,6 +29,11 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
     isSettlingHold: false,
     available: false,
   }),
+  useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
+}));
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
 }));
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
   useEnsAddress: () => ({ data: null, isFetching: false }),
@@ -64,6 +69,7 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage={canManage}
+        isOwner={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         roleMembers={storyRoleMembers}
         scheduleBackgroundRefetch={() => {}}
@@ -181,12 +187,12 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     expect(addDialog()).not.toBeInTheDocument();
   });
 
-  it("opens over Manage Members without an item of its own, and hands back to it", async () => {
+  it("opens over Manage Roles without an item of its own, and hands back to it", async () => {
     const user = userEvent.setup();
     const manageUrl = `/community/members?gardenId=${storyGarden.id}&item=manage-members`;
     renderAt(manageUrl);
 
-    const manage = await screen.findByRole("dialog", { name: "Manage Members" });
+    const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
     await user.click(within(manage).getByRole("button", { name: "Add Members" }));
     const add = await screen.findByRole("dialog", { name: "Add Members" });
     expect(currentUrl()).toBe(manageUrl);
@@ -194,7 +200,7 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     await user.click(within(add).getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
-    expect(screen.getByRole("dialog", { name: "Manage Members" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Manage Roles" })).toBeInTheDocument();
     expect(currentUrl()).toBe(manageUrl);
   });
 
@@ -264,13 +270,13 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     expect(currentUrl()).toBe(TAB_URL);
   });
 
-  it("closes Manage Members and Add Members over it when Back leaves its item", async () => {
+  it("closes Manage Roles and Add Members over it when Back leaves its item", async () => {
     const user = userEvent.setup();
     renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`, {
       before: TAB_URL,
     });
 
-    const manage = await screen.findByRole("dialog", { name: "Manage Members" });
+    const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
     await user.click(within(manage).getByRole("button", { name: "Add Members" }));
     await screen.findByRole("dialog", { name: "Add Members" });
 
@@ -278,7 +284,7 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
 
     await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
     await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Manage Members" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("dialog", { name: "Manage Roles" })).not.toBeInTheDocument()
     );
     expect(currentUrl()).toBe(TAB_URL);
   });

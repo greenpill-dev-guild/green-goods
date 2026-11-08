@@ -190,6 +190,8 @@ export interface GardenOperationResult {
    * was sent. Counts as success, because the intended end state already exists.
    */
   alreadyHeld?: true;
+  /** The wallet returned a proposal (a Safe's, say) that has not run on chain yet. */
+  confirmation?: "pending";
   /** Optimistic update data */
   optimisticUpdate?: {
     memberType: GardenRole;
@@ -399,6 +401,7 @@ export function createGardenOperation(
       return {
         hash,
         success: true,
+        confirmation: transaction.confirmation,
         optimisticUpdate,
       };
     } catch (error) {

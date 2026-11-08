@@ -206,7 +206,6 @@ export function useHubWorkbenchController() {
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
-    memberSearch: "",
     section: "work",
     formatMessage,
     openSection,

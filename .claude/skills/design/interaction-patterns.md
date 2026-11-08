@@ -234,9 +234,14 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [garden-detail.ts](../../../packages/shared/src/utils/garden-detail.ts). An alarm on every card
   stops meaning anything. (Refactoring UI: emphasize by de-emphasizing.)
 - **Member counts mean people (DL-049).** Every member count counts distinct people, never
-  role seats: a person who owns, stewards, and gardens is one member. Manage Members lists each
-  person once, with one role chip per role, and each role carries its own remove, named for the
-  role it takes away ("Remove Gardener"), so taking one role leaves the others. Other lists of
+  role seats: a person who owns, stewards, and gardens is one member. Manage Roles lists each
+  person once, with a check chip for each role they hold; a checked chip picks that
+  person-and-role pair, so taking one role leaves the others (DL-173). Picks survive search and
+  filters, the footer counts them in roles and in people and says how many are out of view, and a
+  role the viewer may not remove is locked with the reason on its row. Review opens in the same
+  dialog, names the garden, reads every pair on chain again, and says what each person loses and
+  keeps; its confirm is the flow's only destructive button, and the result names what landed
+  before it offers anything again. Other lists of
   people are person rows (DL-112): the person once, their highest role as its one chip, and how
   many roles they hold when it is more than one. The lists DL-112 sets apart keep their own rows,
   the Add Members queue among them: each of its rows shows the role the person is about to be
@@ -244,7 +249,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   Members tab's counts per role live in its rail card; its count-free role filter folds into a
   select on a narrow card (DL-141, amending the role-filter clause). Proof: `memberCount` in
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
-  and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
+  and the rows and review of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
 - **A promise leads with its direction (DL-110).** Every promise in a list is the shared
   commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or a
