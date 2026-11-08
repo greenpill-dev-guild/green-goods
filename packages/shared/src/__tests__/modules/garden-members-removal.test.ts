@@ -65,7 +65,10 @@ function fakeChain({
       }
       return !removed.has(key);
     }),
-    refusal: vi.fn(async ({ address }: GardenMemberRow) => refused[address.toLowerCase()] ?? null),
+    refusal: vi.fn(
+      async ({ address }: GardenMemberRow): Promise<string | null> =>
+        refused[address.toLowerCase()] ?? null
+    ),
     removeRole: vi.fn(async ({ address }: GardenMemberRow) => {
       const key = address.toLowerCase();
       const scripted = sends[key] ?? { success: true, hash };
