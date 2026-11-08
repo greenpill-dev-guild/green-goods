@@ -63,7 +63,7 @@ function registryHolding(window: Window) {
   const held = { ...window, title: "Plant the August beds", instructions: "bafy-old" };
   const chain = {
     read: vi.fn(async (_call: Parameters<ActionEditChain["read"]>[0]) => ({ ...held })),
-    simulate: vi.fn(async () => undefined),
+    simulate: vi.fn(async (_call: Parameters<ActionEditChain["simulate"]>[0]) => undefined),
   } satisfies ActionEditChain;
   return { chain, held, update: (next: Partial<typeof held>) => Object.assign(held, next) };
 }
@@ -318,5 +318,161 @@ describe("an action edit whose outcome is unknown", () => {
 
     expect(release).not.toHaveBeenCalled();
     expect(hold?.onChain).toHaveLength(3);
+  });
+});
+
+describe("plain-wallet action edit recovery", () => {
+  function wallet() {
+    const state = setup();
+    Object.assign(state.sender, { authMode: "wallet" });
+    state.sender.preflightBatch = vi.fn(async () => ({
+      gas: "100000",
+      maxFeePerGas: "1000000000",
+      maxFee: "100000000000000",
+      sponsored: false,
+      authority: "wallet" as const,
+    }));
+    const writes: string[] = [];
+    state.sender.sendContractCall = vi.fn(async (call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash });
+      writes.push(call.functionName);
+      state.update(runOnRegistry(state.held, [call as unknown as { data: Hex }]));
+      return { hash, sponsored: false };
+    });
+    return { ...state, writes };
+  }
+  const changes: ActionEditChange[] = [
+    { field: "title", value: "Renamed" },
+    { field: "endTime", value: Number(OCTOBER.endTime) },
+  ];
+
+  it("journals each wallet signature and rechecks that exact field before sending", async () => {
+    const state = wallet();
+    const onSaved = vi.fn();
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes, onSaved })
+    ).resolves.toEqual({ status: "saved", transactionHash: hash });
+    expect(state.writes).toEqual(["updateActionTitle", "updateActionEndTime"]);
+    expect(state.chain.simulate.mock.calls.map(([call]) => call.functionName)).toEqual(
+      state.writes
+    );
+    expect(state.sender.submitAtomicBatch).not.toHaveBeenCalled();
+    expect(state.sender.preflightBatch).toHaveBeenCalledTimes(2);
+    expect(onSaved.mock.calls.flatMap(([saved]) => saved)).toEqual(changes);
+  });
+
+  it.each([
+    "account",
+    "chain",
+  ])("stops before the next signature when the %s changes", async (changed) => {
+    const state = wallet();
+    let sameScope = true;
+    state.sender.assertOwnership = vi.fn(async (account, chain) => {
+      expect(account).toBe(state.input.scope.account);
+      expect(chain).toBe(chainId);
+      if (!sameScope) throw new Error(`${changed}-changed`);
+    });
+    const onSaved = vi.fn(() => {
+      sameScope = false;
+    });
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes, onSaved })
+    ).rejects.toThrow(`${changed}-changed`);
+    expect(onSaved).toHaveBeenCalledWith([changes[0]]);
+    expect(state.writes).toEqual(["updateActionTitle"]);
+  });
+
+  it("keeps every field unsent after the first signature is declined", async () => {
+    const state = wallet();
+    state.sender.sendContractCall = vi
+      .fn()
+      .mockRejectedValue({ code: 4001, message: "User rejected request" });
+    const onSaved = vi.fn();
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes, onSaved })
+    ).resolves.toEqual({ status: "not-saved" });
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(state.sender.sendContractCall).toHaveBeenCalledTimes(1);
+    await expect(readActionEditHold(state.input)).resolves.toEqual({ hold: null, saved: [] });
+  });
+
+  it("keeps a wallet prompt with no returned reference held after a reload", async () => {
+    const state = wallet();
+    state.sender.sendContractCall = vi.fn(async () => {
+      throw new Error("Page disconnected while the prompt was open");
+    });
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes })
+    ).resolves.toEqual({ status: "unknown" });
+    const restored = await readActionEditHold(state.input);
+    expect(restored.saved).toEqual([]);
+    expect(restored.hold?.fields).toEqual(["title", "endTime"]);
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes })
+    ).rejects.toThrow("batch-items-held");
+    expect(state.sender.sendContractCall).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds an interrupted second prompt across reload and never resends the confirmed first field", async () => {
+    const state = wallet();
+    const sendOne = state.sender.sendContractCall;
+    state.sender.sendContractCall = vi.fn(async (call, options) => {
+      if (call.functionName === "updateActionTitle") return sendOne(call, options);
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash });
+      return { hash, sponsored: false, confirmation: "pending" as const };
+    });
+    const onSaved = vi.fn();
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes, onSaved })
+    ).resolves.toEqual({ status: "unknown" });
+    expect(onSaved).toHaveBeenCalledWith([changes[0]]);
+    const { hold } = await readActionEditHold(state.input);
+    expect(hold?.fields).toEqual(["title", "endTime"]);
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes })
+    ).rejects.toThrow("batch-items-held");
+    expect(state.sender.sendContractCall).toHaveBeenCalledTimes(2);
+    state.update({ endTime: OCTOBER.endTime });
+    state.sender.reconcileBatch = vi.fn(async () => ({
+      status: "confirmed" as const,
+      receipts: [{ transactionHash: hash, status: "success" as const }],
+      sponsored: false,
+    }));
+    await expect(readActionEditHold(state.input, hold)).resolves.toEqual({
+      hold: null,
+      saved: changes,
+    });
+    expect(state.sender.sendContractCall).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps proven progress when the next prompt is declined, so a retry sends only the remaining field", async () => {
+    const state = wallet();
+    const sendOne = state.sender.sendContractCall;
+    state.sender.sendContractCall = vi.fn(async (call, options) => {
+      if (call.functionName === "updateActionEndTime")
+        throw { code: 4001, message: "User rejected request" };
+      return sendOne(call, options);
+    });
+    const saved: ActionEditChange[] = [];
+    await expect(
+      sendActionEditBatch({
+        ...state.input,
+        rail: "wallet",
+        atomic: false,
+        changes,
+        onSaved: (fields) => saved.push(...fields),
+      })
+    ).resolves.toEqual({ status: "not-saved" });
+    expect(saved).toEqual([changes[0]]);
+    state.sender.sendContractCall = sendOne;
+    const remaining = changes.filter(
+      (change) => !saved.some((done) => done.field === change.field)
+    );
+    await expect(
+      sendActionEditBatch({ ...state.input, rail: "wallet", atomic: false, changes: remaining })
+    ).resolves.toEqual({ status: "saved", transactionHash: hash });
+    expect(state.writes).toEqual(["updateActionTitle", "updateActionEndTime"]);
   });
 });

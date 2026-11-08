@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBatchCapability } from "../blockchain/useBatchCapability";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
-import { useAccount } from "wagmi";
 import { toastService } from "../../components/toast";
 import { actionsKeys, batchKeys } from "../../config/query-keys/garden";
 import {
@@ -30,7 +30,7 @@ const HOLD_FIELD_LABELS = {
 } as const;
 
 /**
- * Save an action's changed fields under one signature, and settle a save whose outcome is unknown.
+ * Save action changes with durable recovery, atomically on listed routes.
  *
  * `available` says a save can go as one batch now: its rail is listed, and the sender reports
  * atomic. Recovery does not depend on that, so a hold from an earlier save still shows after
@@ -41,7 +41,6 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
   const queryClient = useQueryClient();
   const sender = useTransactionSender();
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
-  const { connector } = useAccount();
   const handleError = createMutationErrorHandler({
     source: "useActionEditBatch",
     toastContext: "save action",
@@ -63,15 +62,18 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
 
   // Asked only once listed: until then no wallet hears from this hook. Other batches share this
   // key, so it holds the wallet's answer itself.
-  const { data: capability } = useQuery({
-    queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
-    queryFn: async () => {
-      const { atomic } = await sender!.getBatchCapability!({ account: account!, chainId });
-      return atomic;
-    },
+  const { data: capability } = useBatchCapability({
+    sender,
+    account,
+    chainId,
     enabled: listed,
-    retry: false,
   });
+
+  const available = listed && capability === "supported";
+  const journaled = Boolean(
+    batches && account && rail === "wallet" && actionEditBudget(rail, chainId)
+  );
+  type SendOptions = { atomic?: boolean; onSaved?: (changes: ActionEditChange[]) => void };
 
   const domain = actionUID === null ? "" : actionEditDomain(chainId, actionUID);
   const holdKey = batchKeys.hold(domain, account ?? "", chainId);
@@ -86,12 +88,35 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
 
   const sendBatch = useMutation({
     onMutate: () => queryClient.cancelQueries({ queryKey: holdKey }),
-    mutationFn: async (changes: readonly ActionEditChange[]): Promise<ActionEditBatchOutcome> => {
+    mutationFn: async ({
+      changes,
+      options,
+    }: {
+      changes: readonly ActionEditChange[];
+      options: SendOptions;
+    }): Promise<ActionEditBatchOutcome> => {
+      let savedCount = 0;
       try {
-        const outcome = await sendActionEditBatch({ ...batchInput(), rail: rail!, changes });
+        const outcome = await sendActionEditBatch({
+          ...batchInput(),
+          rail: rail!,
+          changes,
+          atomic: options.atomic ?? (rail === "wallet" ? available : true),
+          onSaved: (saved) => {
+            savedCount += saved.length;
+            options.onSaved?.(saved);
+            // Refresh on the next visit without replacing the active editor's remaining draft.
+            void queryClient.invalidateQueries({
+              queryKey: actionsKeys.byChain(chainId),
+              refetchType: "none",
+            });
+          },
+        });
         if (outcome.status === "not-saved")
           toastService.error({
-            title: formatMessage({ id: "app.actions.edit.notSaved" }),
+            title: formatMessage({
+              id: savedCount ? "app.actions.edit.failed" : "app.actions.edit.notSaved",
+            }),
             context: "save action",
           });
         return outcome;
@@ -153,9 +178,12 @@ export function useActionEditBatch(chainId: number, actionUID: bigint | null) {
           onMoveOn: () => void held.moveOn(),
         }
       : null,
-    available: listed && capability === "supported",
+    available,
+    /** Plain-wallet saves keep one prompt per field, with durable recovery. */
+    journaled,
     isSending: sendBatch.isPending,
-    send: (changes: readonly ActionEditChange[]) => sendBatch.mutateAsync(changes),
+    send: (changes: readonly ActionEditChange[], options: SendOptions = {}) =>
+      sendBatch.mutateAsync({ changes, options }),
     /** For a save that goes one write at a time: the registry checks each against the last. */
     order: (changes: readonly ActionEditChange[]) =>
       orderActionEditOnChain({

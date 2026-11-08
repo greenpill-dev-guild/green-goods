@@ -136,6 +136,41 @@ describe("useActionEditBatch", () => {
     expect(result.current.available).toBe(false);
   });
 
+  it("journals an unlisted plain wallet and marks proven progress stale without resetting the active editor", async () => {
+    mockIsBatchEnabled.mockReturnValue(false);
+    const { result, sender, invalidate } = renderBatch({}, { authMode: "wallet" });
+    sender.preflightBatch = vi.fn(async () => ({
+      gas: "100000",
+      maxFeePerGas: "1000000000",
+      maxFee: "100000000000000",
+      sponsored: false,
+      authority: "wallet" as const,
+    }));
+    sender.sendContractCall = vi.fn(async (call, options) => {
+      await options?.onBeforeBroadcast?.();
+      await options?.onBroadcastReference?.({ kind: "transaction", hash });
+      if (call.functionName === "updateActionTitle") {
+        action.title = call.args[1];
+        return { hash, sponsored: false };
+      }
+      return { hash, sponsored: false, confirmation: "pending" as const };
+    });
+    await waitFor(() => expect(result.current.isSettlingHold).toBe(false));
+    expect(result.current.available).toBe(false);
+    expect(result.current.journaled).toBe(true);
+    const onSaved = vi.fn();
+    await act(async () => {
+      await result.current.send([MOVED_TO_OCTOBER[0], MOVED_TO_OCTOBER[2]], { onSaved });
+    });
+    expect(onSaved).toHaveBeenCalledWith([MOVED_TO_OCTOBER[0]]);
+    expect(sender.getBatchCapability).not.toHaveBeenCalled();
+    expect(sender.submitAtomicBatch).not.toHaveBeenCalled();
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: actionsKeys.byChain(42161),
+      refetchType: "none",
+    });
+  });
+
   it("explains a save that failed once, whether it reverted or never went out", async () => {
     const reverted = renderBatch({ status: "reverted" });
     let outcome: unknown;

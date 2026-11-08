@@ -101,36 +101,53 @@ export const WithIcons: Story = {
   render: () => <TabsDemo tabs={tabsWithIcons} />,
 };
 
-/** Under 360px the glyphs give way on every tab, and each label and count keep one line (DL-158). */
+/** Your Work's rail in Portuguese with a 99+ count: the longest label and count the app's rails hold. */
+const longestRailTabs = [
+  { id: "pending", label: "Pendente", icon: <RiHomeLine className="w-4 h-4" /> },
+  { id: "review", label: "Para revisar", icon: <RiPlantLine className="w-4 h-4" />, count: 120 },
+  { id: "done", label: "Concluído", icon: <RiUserLine className="w-4 h-4" /> },
+];
+
+/** Every tab's glyph is hidden and its label and count keep one line. */
+async function expectGlyphlessOneLineTabs(canvasElement: HTMLElement) {
+  const tabs = within(canvasElement).getAllByRole("button");
+  await expect(tabs).toHaveLength(3);
+  for (const tab of tabs) {
+    await expect(tab.querySelector("svg")?.parentElement).not.toBeVisible();
+    const label = tab.querySelector("span.line-clamp-2") as HTMLElement;
+    const range = document.createRange();
+    range.selectNodeContents(label);
+    const lines = new Set([...range.getClientRects()].map(({ top }) => Math.round(top)));
+    await expect(lines.size).toBe(1);
+  }
+  return tabs;
+}
+
+/** On a 320px phone the glyphs give way and the tabs size to what they hold (DL-158). */
 export const NarrowRailKeepsOneLine: Story = {
   tags: ["storybook-ci"],
   render: () => (
     <div style={{ width: 320 }}>
-      <TabsDemo
-        tabs={[
-          { id: "pending", label: "Pendente", icon: <RiHomeLine className="w-4 h-4" /> },
-          {
-            id: "review",
-            label: "Para revisar",
-            icon: <RiPlantLine className="w-4 h-4" />,
-            count: 120,
-          },
-          { id: "done", label: "Concluído", icon: <RiUserLine className="w-4 h-4" /> },
-        ]}
-      />
+      <TabsDemo tabs={longestRailTabs} />
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const tabs = within(canvasElement).getAllByRole("button");
-    await expect(tabs).toHaveLength(3);
-    for (const tab of tabs) {
-      await expect(tab.querySelector("svg")?.parentElement).not.toBeVisible();
-      const label = tab.querySelector("span.line-clamp-2") as HTMLElement;
-      const range = document.createRange();
-      range.selectNodeContents(label);
-      const lines = new Set([...range.getClientRects()].map(({ top }) => Math.round(top)));
-      await expect(lines.size).toBe(1);
-    }
+    await expectGlyphlessOneLineTabs(canvasElement);
+  },
+};
+
+/** A 360px phone's sheet rail is 358px: the tabs share it evenly, still on one line (DL-165). */
+export const PhoneSheetRailSplitsEvenly: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div style={{ width: 358 }}>
+      <TabsDemo tabs={longestRailTabs} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const tabs = await expectGlyphlessOneLineTabs(canvasElement);
+    const widths = tabs.map((tab) => Math.round(tab.getBoundingClientRect().width));
+    await expect(new Set(widths).size).toBe(1);
   },
 };
 
