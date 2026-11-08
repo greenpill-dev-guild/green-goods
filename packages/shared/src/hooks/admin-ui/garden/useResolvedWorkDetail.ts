@@ -1,9 +1,11 @@
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
-import type { Garden, Work, WorkMetadata } from "../../../types/domain";
+import { readPublishedWorkDocuments } from "../../../modules/work/work-attachments";
+import type { Garden, Work } from "../../../types/domain";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
 import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useWorkMetadata } from "../../work/useWorkMetadata";
 import { useWorks } from "../../work/useWorks";
 import { replaceEqualDeep } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -24,15 +26,6 @@ interface ResolvedWorkSnapshot {
 /** Whether two reads carry the same record, whichever objects hold it. */
 function isSameRecord<T>(known: T, next: T): boolean {
   return known === next || replaceEqualDeep(known, next) === known;
-}
-
-export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | null {
-  try {
-    const parsed = JSON.parse(metadataStr);
-    return parsed;
-  } catch {
-    return null;
-  }
 }
 
 export function useResolvedWorkDetail(workId: string | undefined) {
@@ -131,10 +124,10 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     }
   }, [activeGardenId, matchedGarden, selectGarden]);
 
-  const metadata = useMemo(
-    () => (work?.metadata ? parseWorkMetadata(work.metadata) : null),
-    [work?.metadata]
-  );
+  // Published work names its metadata by CID; work confirmed on this device carries it
+  // inline. The shared reader takes both, so voice notes and documents show either way.
+  const { metadata } = useWorkMetadata(work?.metadata);
+  const documents = useMemo(() => readPublishedWorkDocuments(metadata?.documents), [metadata]);
 
   return {
     garden,
@@ -146,6 +139,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isReviewed,
     metadata,
     audioNoteCids: metadata?.audioNoteCids,
+    documents,
     resolutionStatus,
     isLoading: resolutionStatus === "loading",
     isTemporarilyAbsent: resolutionStatus === "temporarily-absent",

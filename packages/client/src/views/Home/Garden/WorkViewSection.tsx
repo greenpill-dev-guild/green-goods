@@ -6,6 +6,7 @@ import type {
   WorkMetadata,
   WorkMetadataV1,
 } from "@green-goods/shared/types/domain";
+import { readPublishedWorkDocuments } from "@green-goods/shared/modules/work/media-processing";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import {
   RiCheckDoubleFill,
@@ -429,6 +430,11 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     }
     return undefined;
   }, [workMetadata]);
+  // Documents publish beside the media list, so only the metadata names them.
+  const documents = useMemo(
+    () => readPublishedWorkDocuments(resolveMetadata(workMetadata)?.documents),
+    [workMetadata]
+  );
 
   return (
     <WorkView
@@ -438,6 +444,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       actionTitle={actionTitle}
       media={media}
       audioNoteCids={audioNoteCids}
+      documents={documents}
       mediaTypes={resolveMetadata(workMetadata)?.attachments?.map((attachment) => attachment.type)}
       details={allDetails}
       afterHeading={notice}

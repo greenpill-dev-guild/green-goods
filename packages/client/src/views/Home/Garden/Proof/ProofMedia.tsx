@@ -1,5 +1,8 @@
 import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
-import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
+import {
+  getWorkMediaId,
+  WORK_DOCUMENT_ACCEPT,
+} from "@green-goods/shared/modules/work/media-processing";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiLoader4Line } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
@@ -71,7 +74,7 @@ export function ProofMedia({
         <input
           id="proof-media-upload"
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/*"
+          accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/*,${WORK_DOCUMENT_ACCEPT}`}
           multiple
           disabled={isProcessing}
           onChange={(event) => {

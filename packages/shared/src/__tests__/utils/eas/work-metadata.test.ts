@@ -43,6 +43,16 @@ describe("buildWorkMetadataPayload", () => {
     );
   });
 
+  it("lists documents last, and only when there are some, so earlier payloads hash the same", () => {
+    expect(buildWorkMetadataPayload(base).payload).not.toHaveProperty("documents");
+    const documents = [
+      { cid: "bafkreicert", type: "application/pdf", name: "Certificate.pdf", size: 1200 },
+    ];
+    const { payload } = buildWorkMetadataPayload({ ...base, documents });
+    expect(Object.keys(payload).at(-1)).toBe("documents");
+    expect(payload.documents).toEqual(documents);
+  });
+
   it.each([
     {
       label: "known domain and slug",

@@ -6,9 +6,16 @@ import {
 } from "./heic-conversion";
 import { withoutPhotoMetadata } from "../media/image-metadata";
 import { withoutVideoMetadata } from "../media/video-metadata";
-import { captureWorkFile, isHeicFile } from "./work-attachments";
+import {
+  WORK_DOCUMENT_MAX_BYTES,
+  captureWorkFile,
+  documentMatchesType,
+  isHeicFile,
+  isWorkDocument,
+  workDocumentType,
+} from "./work-attachments";
 export type WorkMediaSource = "camera" | "gallery";
-export type WorkMediaKind = "image" | "video" | "unknown";
+export type WorkMediaKind = "image" | "video" | "document" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed" | "too_large";
 
 export interface SafeMediaMetadata {
@@ -100,6 +107,7 @@ export function getSizeBucket(bytes: number): string {
 export function getMediaKind(file: File): WorkMediaKind {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
+  if (isWorkDocument(file)) return "document";
 
   if (supportedImageExtensions.has(getFileExtension(file)) || isHeicFile(file)) return "image";
   return "unknown";
@@ -123,6 +131,7 @@ export function getSafeMediaBatchMetadata(files: File[]) {
     size_buckets: Array.from(new Set(metadata.map((item) => item.size_bucket))).sort(),
     image_count: metadata.filter((item) => item.media_kind === "image").length,
     video_count: metadata.filter((item) => item.media_kind === "video").length,
+    document_count: metadata.filter((item) => item.media_kind === "document").length,
   };
 }
 
@@ -140,12 +149,16 @@ export async function normalizeWorkMediaFiles(
   const converted: ConvertedWorkMediaFile[] = [];
 
   for (const pickedFile of files) {
-    // Reading a long recording whole only to refuse it can run a phone out of memory, so a
-    // video over the flow's limit is refused unread.
+    // Read from the file as picked: capturing it gives a file with no type one from its name,
+    // and calls a name it does not know a JPEG, which would turn a Markdown file into a photo.
+    const documentType = workDocumentType(pickedFile);
+    // Reading a long recording or a large scan whole only to refuse it can run a phone out
+    // of memory, so a video over the flow's limit, or a document over its own, is refused unread.
     if (
-      options.maxVideoBytes !== undefined &&
-      isVideoFile(pickedFile) &&
-      pickedFile.size > options.maxVideoBytes
+      (options.maxVideoBytes !== undefined &&
+        isVideoFile(pickedFile) &&
+        pickedFile.size > options.maxVideoBytes) ||
+      (documentType !== null && pickedFile.size > WORK_DOCUMENT_MAX_BYTES)
     ) {
       rejected.push({
         file: pickedFile,
@@ -155,6 +168,27 @@ export async function normalizeWorkMediaFiles(
       continue;
     }
     const file = await captureWorkFile(pickedFile);
+    if (documentType) {
+      // A document publishes as it was picked, so it is kept only when its bytes
+      // are what its type says, and under that type: the upload is signed for it.
+      // The whole file is read (10 MB at most): a Word file is told by the parts it holds.
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (!documentMatchesType(documentType, bytes)) {
+        rejected.push({ file, reason: "unsupported", metadata: getSafeMediaMetadata(file) });
+        continue;
+      }
+      const typed =
+        file.type === documentType
+          ? file
+          : new File([file], file.name, { type: documentType, lastModified: file.lastModified });
+      accepted.push({
+        file: typed,
+        originalFile: file,
+        converted: false,
+        metadata: getSafeMediaMetadata(typed),
+      });
+      continue;
+    }
     if (isVideoFile(file)) {
       // A video loses its location, device and capture time as it is picked
       // too. One whose container cannot be read in full is refused: it could
@@ -283,10 +317,13 @@ export async function prepareMediaForUpload(
   const normalized = await normalizeWorkMediaFiles(files);
   const accepted = normalized.accepted.map((item) => item.file);
   const videos = accepted.filter(isVideoFile);
+  // A document is queued as it was picked: nothing compresses or converts it.
+  const documents = accepted.filter(isWorkDocument);
+  const photos = accepted.filter((file) => !isVideoFile(file) && !isWorkDocument(file));
   // An unconverted HEIC skips compression: the compressor decodes through the
   // browser, which is the very step that is not available for this format.
-  const deferred = accepted.filter((file) => !isVideoFile(file) && isHeicFile(file));
-  const images = accepted.filter((file) => !isVideoFile(file) && !isHeicFile(file));
+  const deferred = photos.filter((file) => isHeicFile(file));
+  const images = photos.filter((file) => !isHeicFile(file));
   const toCompress = images.filter((file) => compressor.shouldCompress(file, 1024));
   const asIs = images.filter((file) => !compressor.shouldCompress(file, 1024));
   const compressed =
@@ -296,15 +333,21 @@ export async function prepareMediaForUpload(
         )
       : [];
   return {
-    files: [...asIs, ...compressed, ...deferred, ...videos],
+    files: [...asIs, ...compressed, ...deferred, ...videos, ...documents],
     rejectedCount: normalized.rejected.length,
   };
 }
 
 export {
+  WORK_DOCUMENT_ACCEPT,
+  WORK_DOCUMENT_MAX_COUNT,
   isHeicFile,
+  isWorkDocument,
   isWorkPhoto,
+  readPublishedWorkDocuments,
   roundWorkLocation,
   validateWorkAttachments,
   validateWorkVideo,
+  workDocumentType,
 } from "./work-attachments";
+export type { PublishedWorkDocument } from "./work-attachments";

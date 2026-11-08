@@ -1,12 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   captureWorkFile,
+  documentMatchesType,
   isHeicFile,
   isWorkPhoto,
+  readPublishedWorkDocuments,
   validateWorkAttachments,
   roundWorkLocation,
   validateWorkVideo,
+  workDocumentType,
 } from "../../modules/work/work-attachments";
+
+const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 describe("work attachment boundaries", () => {
   it("copies bytes before the original picker file becomes unreadable", async () => {
@@ -90,6 +95,86 @@ describe("work attachment boundaries", () => {
         [sized("audio/webm", 10 * mib + 1)]
       )
     ).toContain("total-size");
+  });
+  it("names a document by its type, or by its extension when the picker reports none", () => {
+    const file = (name: string, type: string) => new File(["x"], name, { type });
+    expect(workDocumentType(file("certificate.pdf", "application/pdf"))).toBe("application/pdf");
+    expect(workDocumentType(file("report.md", ""))).toBe("text/markdown");
+    expect(workDocumentType(file("report.MD", "text/x-markdown"))).toBe("text/markdown");
+    expect(workDocumentType(file("notes.txt", "text/plain"))).toBe("text/plain");
+    expect(workDocumentType(file("permit.doc", "application/msword"))).toBe("application/msword");
+    expect(workDocumentType(file("permit.docx", "application/octet-stream"))).toBe(DOCX);
+    // A photo named .pdf stays a photo, a web page named .txt is not text, and a sheet is no document.
+    expect(workDocumentType(file("garden.pdf", "image/jpeg"))).toBeNull();
+    expect(workDocumentType(file("page.txt", "text/html"))).toBeNull();
+    expect(workDocumentType(file("sheet.xlsx", ""))).toBeNull();
+  });
+  it("keeps a document only when its bytes are what its type says", () => {
+    const text = (value: string) => new TextEncoder().encode(value);
+    const bytes = (...values: number[]) => new Uint8Array(values);
+    const zip = (...names: string[]) =>
+      new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...text(names.join("\0"))]);
+    const ole = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+    const utf16 = (value: string) => Array.from(value).flatMap((c) => [c.charCodeAt(0), 0]);
+    expect(documentMatchesType("application/pdf", text("%PDF-1.7"))).toBe(true);
+    expect(documentMatchesType("application/pdf", text("<html><script>"))).toBe(false);
+    expect(documentMatchesType(DOCX, zip("[Content_Types].xml", "word/document.xml"))).toBe(true);
+    // Every zip and every compound file starts the same way, so a Word file needs its parts.
+    expect(documentMatchesType(DOCX, zip("[Content_Types].xml", "data/yields.csv"))).toBe(false);
+    expect(documentMatchesType("application/msword", bytes(...ole, ...utf16("WordDocument")))).toBe(
+      true
+    );
+    expect(documentMatchesType("application/msword", bytes(...ole, ...utf16("Workbook")))).toBe(
+      false
+    );
+    expect(documentMatchesType("application/msword", zip("word/document.xml"))).toBe(false);
+    expect(documentMatchesType("text/markdown", text("# Site report\n\nPanels: 12, all ✓"))).toBe(
+      true
+    );
+    expect(documentMatchesType("text/plain", bytes(0x68, 0x00, 0x69))).toBe(false);
+    expect(documentMatchesType("text/plain", bytes(0xff, 0xfe, 0x41, 0x00))).toBe(false);
+    // The whole file is read, so a character cut off at its end is a fault.
+    expect(documentMatchesType("text/plain", text("café").slice(0, 4))).toBe(false);
+  });
+  it("counts documents apart from photos and videos: five at most, 10 MB each", () => {
+    const sized = (name: string, type: string, size: number) => {
+      const file = new File(["x"], name, { type });
+      Object.defineProperty(file, "size", { value: size });
+      return file;
+    };
+    const mib = 1024 * 1024;
+    const pdf = (size = 1) => sized("certificate.pdf", "application/pdf", size);
+    const photos = Array.from({ length: 10 }, () => sized("panels.png", "image/png", 1));
+    expect(validateWorkAttachments([...photos, ...Array.from({ length: 5 }, () => pdf())])).toEqual(
+      []
+    );
+    expect(validateWorkAttachments(Array.from({ length: 6 }, () => pdf()))).toContain(
+      "document-count"
+    );
+    expect(validateWorkAttachments([pdf(10 * mib)])).toEqual([]);
+    expect(validateWorkAttachments([pdf(10 * mib + 1)])).toContain("media-size");
+    // A certificate never stands in for the photos an action asks for.
+    expect(validateWorkAttachments([pdf()], [], 1)).toContain("photos-required");
+  });
+  it("reads only documents with a content identifier from published metadata", () => {
+    const cid = "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy";
+    expect(
+      readPublishedWorkDocuments([
+        {
+          cid,
+          type: "application/pdf",
+          name: "uploads/Install\u0000 certificate.pdf",
+          size: 1200.4,
+        },
+        { cid: "javascript:alert(1)", type: "application/pdf", name: "x.pdf", size: 1 },
+        { cid, name: 42 },
+        "not a document",
+      ])
+    ).toEqual([
+      { cid, type: "application/pdf", name: "Install certificate.pdf", size: 1200 },
+      { cid, type: "", name: "document", size: 0 },
+    ]);
+    expect(readPublishedWorkDocuments(undefined)).toEqual([]);
   });
   it.each([
     0,

@@ -10,7 +10,12 @@ export const DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES = [
   "video/webm",
   "video/quicktime",
   "application/json",
+  // The documents work and proof carry (WORK_DOCUMENT_ACCEPT in shared work-attachments).
   "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
 export interface PinataUploadSignerConfig {

@@ -58,6 +58,11 @@ vi.mock("@green-goods/shared/hooks/work/useWorks", () => ({
   useWorks: () => mockUseWorks(),
 }));
 
+// The work detail reads its metadata file; these works carry none.
+vi.mock("@green-goods/shared/hooks/work/useWorkMetadata", () => ({
+  useWorkMetadata: () => ({ metadata: null, status: "success", error: null, retryFetch: () => {} }),
+}));
+
 vi.mock("@green-goods/shared/modules/app/analytics-events", () => ({
   trackWorkApprovalPresentationFailed: (properties: unknown) =>
     mockTrackWorkApprovalPresentationFailed(properties),

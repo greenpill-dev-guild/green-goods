@@ -18,7 +18,7 @@ export function useWorkAudioRecording() {
           title: intl.formatMessage({
             id: "app.garden.attachments.invalid",
             defaultMessage:
-              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
+              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",
           }),
         });
         return;
