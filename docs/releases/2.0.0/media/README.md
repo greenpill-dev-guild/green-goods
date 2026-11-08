@@ -2,14 +2,21 @@
 
 ## Pilot release card
 
-![Green Goods card that reads Promises, work, and review, beside two people working on a solar panel at an outdoor table](pilot-release-card.jpg)
+![Green Goods card. Promises, work, and review. Green Goods helps communities make promises, document regenerative work, and review it together. Built with pilot communities. Want to try it with yours? Message us. Behind the text, an AI-generated illustration of two people working on a solar panel at an outdoor table.](pilot-release-card.jpg)
 
 A 1200 by 630 image for posts to prospective pilot communities: the separate announcement card that
 [social-preview-readiness.md](../social-preview-readiness.md) recommends. It names no version and
 makes no payment, payout, or reward claim, so later pilot outreach can use it too. It is marketing
-artwork, not evidence of authenticated 2.0 behavior. It was drawn with the website's share-card
-renderer and fonts (`renderSocialCardTextPaths` in `packages/client/vite/social-preview.ts`) over
-`docs/static/img/community/editorial-solar-workshop.webp`.
+artwork, not evidence of authenticated 2.0 behavior.
+
+The photo is an AI-generated illustration
+(`docs/static/img/community/editorial-solar-workshop.webp`), not a real pilot, person, workshop, or
+place. A post that uses the card keeps the caption "Image: AI-generated illustration, not a real
+pilot." Where the channel accepts alt text, use the alt text above, which carries all of the card's
+words.
+
+The card was drawn with the website's share-card renderer and fonts (`renderSocialCardTextPaths` in
+`packages/client/vite/social-preview.ts`).
 
 ## Steward access design references
 

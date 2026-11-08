@@ -43,6 +43,15 @@ No new image generation or replacement is claimed. The six request screenshots i
 a clearly labeled feature demonstration, but do not establish live behavior or private QA.
 The Garden Promises and steward Hub still need candidate screenshots cleared for public use.
 
+**Update, November 8, 2026.** The table above records the October 13 review. The separate
+announcement card now exists as the [pilot release card](media/README.md#pilot-release-card). On
+October 23 the Admin and Docs images were replaced by `packages/admin/public/social-card.webp` and
+`docs/static/img/social/green-goods-docs.webp`, and the public home card became
+`packages/client/public/social-home.png`. The Admin description is now in
+`packages/admin/index.html`. The website's preview copy comes from
+`packages/client/src/content/publicSocialPreviews.ts`, which uses the brand voice descriptor rather
+than the pilot sentence proposed above.
+
 ## Before announcement
 
 - Inspect the actual production HTML and confirm title, description, image URL and alt text.
