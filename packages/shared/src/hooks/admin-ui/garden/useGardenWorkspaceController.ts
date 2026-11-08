@@ -197,7 +197,6 @@ export function useGardenWorkspaceController() {
     roleMembers,
     selectedRange: range,
     activityFilter,
-    memberSearch: "",
     section: undefined,
     canAccessCommunity,
     formatMessage,

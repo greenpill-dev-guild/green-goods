@@ -133,6 +133,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           garden={workspace.garden}
           canManage={workspace.canManage}
           closeMembersModal={workspace.closeMembersModal}
+          isOwner={workspace.isOwner}
           roleMembers={workspace.roleMembers}
           scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
           selectedItem={workspace.selectedItem}

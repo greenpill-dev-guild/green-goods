@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useNavigate, useSearchParams } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, useNavigate, useSearchParams } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "../../../__tests__/test-utils";
 import { CommunityMembersDialogs } from "./CommunityMembersDialogs";
@@ -21,6 +21,14 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenOperations", () => ({
     isSettlingHold: false,
     available: false,
   }),
+  useRemoveMemberRoles: () => ({ account: null, check: vi.fn(), remove: vi.fn() }),
+}));
+// The steward has an ENS name; the owner has none, so their row shows a short address.
+vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({
+  useAddressDisplayName: (address: string) => {
+    const name = address === storyDirectory[1]?.address ? "ana-souza.eth" : null;
+    return { preferredName: name, display: name ?? `${address.slice(0, 6)}…` };
+  },
 }));
 vi.mock("./CommunityJoinRequests", () => ({
   CommunityJoinRequests: () => null,
@@ -43,9 +51,11 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
 
 function MembersHarness({
   memberCount = storyDirectory.length,
+  memberSearch = "",
   roleSummary = storyRoleSummary,
 }: {
   memberCount?: number;
+  memberSearch?: string;
   roleSummary?: typeof storyRoleSummary;
 }) {
   const [searchParams] = useSearchParams();
@@ -57,6 +67,7 @@ function MembersHarness({
         garden={storyGarden}
         canManage
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
+        isOwner
         roleMembers={storyRoleMembers}
         scheduleBackgroundRefetch={() => {}}
         selectedItem={searchParams.get("item")}
@@ -65,7 +76,7 @@ function MembersHarness({
         garden={storyGarden}
         canManage
         memberCount={memberCount}
-        memberSearch=""
+        memberSearch={memberSearch}
         noteJoinRequestsRead={() => {}}
         keepJoinRequestCountGrant={() => {}}
         roleSummary={roleSummary}
@@ -76,17 +87,21 @@ function MembersHarness({
   );
 }
 
+// Manage Roles guards its picks against Back, so the harness runs in a data router.
+function renderMembers(props: Parameters<typeof MembersHarness>[0] = {}) {
+  const router = createMemoryRouter([{ path: "*", element: <MembersHarness {...props} /> }], {
+    initialEntries: [`/community/members?gardenId=${storyGarden.id}`],
+  });
+  return renderWithProviders(<RouterProvider router={router} />);
+}
+
 describe("CommunityMembersTab", () => {
   it("keeps filters count-free, hides empty roles and puts each role count in the Members rail", () => {
     // The steward also evaluates: three role seats held by two people (DL-049).
     const roleSummary = storyRoleSummary.map((entry) =>
       entry.role === "evaluator" ? { ...entry, count: 1 } : entry
     );
-    renderWithProviders(
-      <MemoryRouter initialEntries={[`/community/members?gardenId=${storyGarden.id}`]}>
-        <MembersHarness memberCount={2} roleSummary={roleSummary} />
-      </MemoryRouter>
-    );
+    renderMembers({ memberCount: 2, roleSummary });
 
     const rail = screen
       .getByRole("heading", { name: "Members" })
@@ -107,22 +122,25 @@ describe("CommunityMembersTab", () => {
     }
   });
 
-  it("opens Manage Roles with the clicked member already filtered", async () => {
+  it("opens Manage Roles for everyone from the header, or for one person from their row", async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <MemoryRouter initialEntries={[`/community/members?gardenId=${storyGarden.id}`]}>
-        <MembersHarness />
-      </MemoryRouter>
-    );
+    renderMembers();
 
-    await user.click(screen.getAllByRole("link", { name: "Manage Roles" })[1]!);
+    const [header, firstRow, secondRow] = screen.getAllByRole("link", { name: "Manage Roles" });
+    expect(header).toHaveAttribute("href", expect.not.stringContaining("member="));
+    await user.click(secondRow!);
 
-    const dialog = await screen.findByRole("dialog", { name: "Manage Members" });
-    expect(
-      within(dialog).getByRole("textbox", {
-        name: "Search members by address, ENS name, or role",
-      })
-    ).toHaveValue(storyDirectory[1]!.address);
-    expect(within(dialog).getAllByRole("listitem")).toHaveLength(1);
+    const dialog = await screen.findByRole("dialog", { name: "Manage Roles" });
+    expect(within(dialog).getByRole("button", { name: "Show Everyone" })).toBeInTheDocument();
+    expect(dialog.querySelectorAll("[data-component='ManageRolesPersonRow']")).toHaveLength(1);
+    expect(within(dialog).getByRole("textbox")).toHaveValue("");
+    expect(firstRow).toBeInTheDocument();
+  });
+
+  it("finds a member by the name their row shows", () => {
+    renderMembers({ memberSearch: "ana" });
+
+    expect(screen.getByText("ana-souza.eth")).toBeInTheDocument();
+    expect(screen.queryByText(`${storyDirectory[0]!.address.slice(0, 6)}…`)).toBeNull();
   });
 });

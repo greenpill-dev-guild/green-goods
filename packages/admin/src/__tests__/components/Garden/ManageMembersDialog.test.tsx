@@ -1,258 +1,320 @@
 /**
- * ManageMembersDialog Component Tests
- *
- * The single membership surface: flat roster + role filter chips + remove +
- * the Add Members entry ("keep it simple" collapse of the old roles stack).
+ * Manage Roles (ManageMembersDialog): one row per person with a check chip per role, picks that
+ * outlive search and filters, the viewer's rank on every chip, and a review that reads the chain
+ * before it removes anything, then says what landed.
  */
 
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  RoleRemovalApi,
+  RoleRemovalOutcome,
+} from "@green-goods/shared/hooks/garden/useGardenOperations";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { renderWithProviders as render } from "../../test-utils";
-import { resetTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 
-const mockResolveEnsName = vi.fn();
+const OWNER = "0x1111111111111111111111111111111111111111" as Address;
+const VIEWER = "0x2222222222222222222222222222222222222222" as Address;
+const PEER = "0x3333333333333333333333333333333333333333" as Address;
+const CHIDI = "0x4444444444444444444444444444444444444444" as Address;
+const TOMI = "0x5555555555555555555555555555555555555555" as Address;
+const NEIGHBOR = "0x6666666666666666666666666666666666666666" as Address;
 
-vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
-  resolveEnsName: (...args: unknown[]) => mockResolveEnsName(...args),
-}));
+const NAMES: Record<string, string> = {
+  [OWNER]: "riolab",
+  [VIEWER]: "ana-souza.eth",
+  [PEER]: "kwame.eth",
+  [CHIDI]: "chidinma",
+  [TOMI]: "tomi.eth",
+};
+const nameOf = (address: string) => NAMES[address] ?? `${address.slice(0, 6)}…`;
 
 vi.mock("@green-goods/shared/components/AddressDisplay", () => ({
-  AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
-    createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
+  AddressDisplay: ({
+    address,
+    children,
+  }: {
+    address: string;
+    children?: (name: string) => ReactNode;
+  }) => (children ? children(nameOf(address)) : nameOf(address)),
 }));
+
+vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({
+  useAddressDisplayName: (address: string) => ({
+    preferredName: NAMES[address] ?? null,
+    display: nameOf(address),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
+  useResolvedProfileAvatar: () => ({ avatarUri: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
+  const { useState } = await import("react");
+  return {
+    // State mode of useDirtyClose without the router-bound blocker (no data router here).
+    useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
+      const [confirmOpen, setConfirmOpen] = useState(false);
+      return {
+        onOpenChange: (open: boolean) => {
+          if (open) return;
+          if (isDirty) setConfirmOpen(true);
+          else onClose();
+        },
+        confirmOpen,
+        cancelClose: () => setConfirmOpen(false),
+        confirmClose: () => {
+          setConfirmOpen(false);
+          onClose();
+        },
+      };
+    },
+  };
+});
 
 import { ManageMembersDialog } from "../../../components/Garden/ManageMembersDialog";
 
-const OWNER = "0x1111111111111111111111111111111111111111" as Address;
-const GARDENER_A = "0x4444444444444444444444444444444444444444" as Address;
-const GARDENER_B = "0x5555555555555555555555555555555555555555" as Address;
-
 const roleMembers: Record<GardenRole, Address[]> = {
   owner: [OWNER],
-  steward: [],
-  evaluator: [],
-  gardener: [GARDENER_A, GARDENER_B],
+  steward: [OWNER, VIEWER, PEER],
+  evaluator: [OWNER, VIEWER, PEER, CHIDI, TOMI],
+  gardener: [OWNER, VIEWER, PEER, CHIDI, TOMI],
   funder: [],
-  community: [],
+  community: [NEIGHBOR],
 };
 
-describe("components/Garden/ManageMembersDialog", () => {
-  const defaultProps = {
+/** A chain that answers every check with `held`, and settles every pair with `settle`. */
+function fakeRemoval({
+  held = () => true,
+  settle = () => ({ status: "removed" }),
+}: {
+  held?: (address: Address, role: GardenRole) => boolean | null;
+  settle?: (address: Address, role: GardenRole) => RoleRemovalOutcome;
+} = {}) {
+  return {
+    check: vi.fn<RoleRemovalApi["check"]>(async (rows) =>
+      rows.map((row) => held(row.address, row.role))
+    ),
+    remove: vi.fn<RoleRemovalApi["remove"]>(async (rows, events) =>
+      rows.map((row) => {
+        events?.onSending?.(row);
+        const outcome = settle(row.address, row.role);
+        events?.onSettled?.(row, outcome);
+        return outcome;
+      })
+    ),
+  } satisfies RoleRemovalApi;
+}
+
+function renderDialog(props: Partial<Parameters<typeof ManageMembersDialog>[0]> = {}) {
+  const defaults = {
     open: true,
     onClose: vi.fn(),
     roleMembers,
     canManage: true,
+    viewerIsOwner: false,
+    viewerAddress: VIEWER,
+    gardenName: "Rio Rainforest Lab",
     isLoading: false,
-    onRemoveMember: vi.fn(async () => ({ success: true })),
+    removal: fakeRemoval(),
     onAddMembers: vi.fn(),
   };
+  const merged = { ...defaults, ...props };
+  render(createElement(ManageMembersDialog, merged));
+  return merged;
+}
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    resetTestQueryClient();
-    mockResolveEnsName.mockImplementation(async (address: string) =>
-      address === GARDENER_B.toLowerCase() ? "Garden.Bloom.eth" : null
+const rowOf = (name: string) =>
+  screen.getByText(name).closest("[data-component='ManageRolesPersonRow']") as HTMLElement;
+const pick = (user: ReturnType<typeof userEvent.setup>, role: string, name: string) =>
+  user.click(screen.getByRole("checkbox", { name: `Remove ${role} from ${name}` }));
+
+describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("lists each person once, by the name the directory shows, with a check chip per role", () => {
+    renderDialog();
+
+    expect(screen.getByRole("dialog", { name: "Manage Roles" })).toBeInTheDocument();
+    expect(screen.getByText("Rio Rainforest Lab")).toBeInTheDocument();
+    expect(screen.getByText("6 members")).toBeInTheDocument();
+    const chidi = within(rowOf("chidinma"));
+    expect(
+      chidi.getByRole("checkbox", { name: "Remove Evaluator from chidinma" })
+    ).not.toBeChecked();
+    expect(
+      chidi.getByRole("checkbox", { name: "Remove Gardener from chidinma" })
+    ).toBeInTheDocument();
+  });
+
+  it("locks what a steward cannot remove, and the row says why", () => {
+    renderDialog();
+
+    const owner = within(rowOf("riolab"));
+    expect(owner.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(owner.getByText("Only an owner can change an owner's roles.")).toBeInTheDocument();
+
+    const peer = within(rowOf("kwame.eth"));
+    expect(peer.queryByRole("checkbox", { name: "Remove Steward from kwame.eth" })).toBeNull();
+    expect(
+      peer.getByRole("checkbox", { name: "Remove Evaluator from kwame.eth" })
+    ).toBeInTheDocument();
+    expect(
+      peer.getByText("Only an owner can remove a steward's Steward role.")
+    ).toBeInTheDocument();
+
+    const self = within(rowOf("ana-souza.eth"));
+    expect(self.getByText("You")).toBeInTheDocument();
+    expect(self.getByText("You can't remove your own Steward role here.")).toBeInTheDocument();
+    expect(
+      self.getByRole("checkbox", { name: "Remove Gardener from ana-souza.eth" })
+    ).toBeInTheDocument();
+  });
+
+  it("lets an owner remove another owner's roles but never their own Owner or Steward role", () => {
+    renderDialog({
+      viewerIsOwner: true,
+      viewerAddress: OWNER,
+      roleMembers: { ...roleMembers, owner: [OWNER, PEER] },
+    });
+
+    expect(
+      screen.getByRole("checkbox", { name: "Remove Owner from kwame.eth" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "Remove Steward from kwame.eth" })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Remove Owner from riolab" })).toBeNull();
+    expect(
+      screen.getByText("You can't remove your own Owner and Steward roles here.")
+    ).toBeInTheDocument();
+  });
+
+  it("keeps picks through search and filters, counts roles and people apart, and shows or clears picks out of view", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await pick(user, "Evaluator", "chidinma");
+    await pick(user, "Evaluator", "tomi.eth");
+    await pick(user, "Community member", "0x6666…");
+    expect(screen.getByText("3 roles from 3 people")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Evaluators" }));
+    expect(screen.queryByText("0x6666…")).toBeNull();
+    expect(screen.getByText("1 role not shown")).toBeInTheDocument();
+    expect(screen.getByText("3 roles from 3 people")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByText("0x6666…")).toBeInTheDocument();
+    expect(screen.queryByText("riolab")).toBeNull();
+    expect(screen.queryByText("1 role not shown")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+    expect(screen.getByText("Check the roles to remove.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review Removal" })).toBeDisabled();
+  });
+
+  it("finds people by the name their row shows, and opens on one person until Show Everyone", async () => {
+    const user = userEvent.setup();
+    renderDialog({ initialMember: TOMI });
+
+    expect(
+      screen.getByText("tomi.eth", { selector: "[data-component='ManageRolesPersonRow'] *" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("chidinma")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Show Everyone" }));
+    expect(screen.getByText("chidinma")).toBeInTheDocument();
+
+    await user.type(screen.getByRole("textbox"), "kwame");
+    expect(screen.getByText("kwame.eth")).toBeInTheDocument();
+    expect(screen.queryByText("chidinma")).toBeNull();
+  });
+
+  it("reviews against the garden, leaves out a role already gone, and removes the rest", async () => {
+    const user = userEvent.setup();
+    const removal = fakeRemoval({ held: (address) => address !== TOMI });
+    const { onClose } = renderDialog({ removal });
+
+    await pick(user, "Evaluator", "chidinma");
+    await pick(user, "Evaluator", "tomi.eth");
+    await pick(user, "Evaluator", "kwame.eth");
+    await user.click(screen.getByRole("button", { name: "Review Removal" }));
+
+    const review = screen.getByRole("dialog", { name: "Review Removal" });
+    expect(within(review).getByText("Rio Rainforest Lab")).toBeInTheDocument();
+    expect(await within(review).findByText("Removes 2 roles from 2 people")).toBeInTheDocument();
+    expect(
+      within(review).getByText(/1 role was already removed, so it won't be sent\./)
+    ).toBeInTheDocument();
+    expect(within(review).getByText("Already removed")).toBeInTheDocument();
+    expect(within(review).getAllByText("Keeps Gardener")).toHaveLength(2);
+    expect(
+      within(review).getByText("Their Steward role still covers this on chain.")
+    ).toBeInTheDocument();
+    expect(within(review).getByText("2 signatures")).toBeInTheDocument();
+
+    await user.click(within(review).getByRole("button", { name: "Remove 2 Roles" }));
+    expect(removal.remove).toHaveBeenCalledWith(
+      [
+        { address: PEER, role: "evaluator" },
+        { address: CHIDI, role: "evaluator" },
+      ],
+      expect.anything()
     );
+    expect(await within(review).findByText("2 roles removed")).toBeInTheDocument();
+    await user.click(within(review).getByRole("button", { name: "Done" }));
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it("renders one roster across all roles with the member count", () => {
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    expect(screen.getByText("3 members")).toBeInTheDocument();
-    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
-  });
-
-  it("lists a person with several roles once, with a remove for each role", async () => {
+  it("says nothing was removed after a declined signature, offers it again, and keeps the pick for Back", async () => {
     const user = userEvent.setup();
-    render(
-      createElement(ManageMembersDialog, {
-        ...defaultProps,
-        // The owner also gardens: four role seats, three people (DL-049).
-        roleMembers: { ...roleMembers, gardener: [GARDENER_A, OWNER, GARDENER_B] },
-      })
-    );
+    const removal = fakeRemoval({ settle: () => ({ status: "declined" }) });
+    renderDialog({ removal });
 
-    expect(screen.getByText("3 members")).toBeInTheDocument();
-    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
+    await pick(user, "Evaluator", "chidinma");
+    await user.click(screen.getByRole("button", { name: "Review Removal" }));
+    await user.click(await screen.findByRole("button", { name: "Remove 1 Role" }));
 
-    const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
-    expect(within(ownerRow).getByRole("button", { name: "Remove Owner" })).toBeInTheDocument();
-    await user.click(within(ownerRow).getByRole("button", { name: "Remove Gardener" }));
-    await user.click(await screen.findByRole("button", { name: "Remove Member" }));
+    expect(await screen.findByText("Nothing was removed")).toBeInTheDocument();
+    expect(screen.getByText("Not sent")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove 1 Role" }));
+    expect(removal.remove).toHaveBeenCalledTimes(2);
 
-    expect(defaultProps.onRemoveMember).toHaveBeenCalledWith(OWNER, "gardener");
+    await user.click(await screen.findByRole("button", { name: "Back" }));
+    expect(screen.getByRole("checkbox", { name: "Remove Evaluator from chidinma" })).toBeChecked();
   });
 
-  it("filters the roster by role via the filter chips", async () => {
+  it("holds a removal it could not confirm until Check Again reads where it stands", async () => {
     const user = userEvent.setup();
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    await user.click(screen.getByRole("button", { name: /Gardeners · 2/ }));
-    expect(screen.getAllByTestId("address-display")).toHaveLength(2);
-
-    // Toggling the active chip returns to the full roster.
-    await user.click(screen.getByRole("button", { name: /Gardeners · 2/ }));
-    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
-  });
-
-  it("filters the roster by member search text", async () => {
-    const user = userEvent.setup();
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    const search = screen.getByRole("textbox", {
-      name: "Search members by address, ENS name, or role",
+    let afterRun = false;
+    const removal = fakeRemoval({
+      held: () => (afterRun ? false : true),
+      settle: () => {
+        afterRun = true;
+        return { status: "unknown" };
+      },
     });
+    renderDialog({ removal });
 
-    await user.type(search, "5555");
-    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
-    expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
+    await pick(user, "Evaluator", "chidinma");
+    await user.click(screen.getByRole("button", { name: "Review Removal" }));
+    await user.click(await screen.findByRole("button", { name: "Remove 1 Role" }));
 
-    await user.clear(search);
-    await user.type(search, "owner");
-    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
-    expect(screen.getByText(OWNER.slice(0, 10))).toBeInTheDocument();
-
-    // A member without an ENS name is printed in the row's short form; typing it as shown finds them.
-    await user.clear(search);
-    await user.type(search, "0x44...444");
-    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
-    expect(screen.getByText(GARDENER_A.slice(0, 10))).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't confirm a removal")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Check Again" }));
+    await waitFor(() => expect(screen.getByText("1 role removed")).toBeInTheDocument());
   });
 
-  it("starts from its member address on every opening and every member change", async () => {
-    const user = userEvent.setup();
-    const search = () =>
-      screen.getByRole("textbox", { name: "Search members by address, ENS name, or role" });
-    const dialog = (props: Partial<typeof defaultProps> & { initialSearch?: string }) =>
-      createElement(ManageMembersDialog, { ...defaultProps, ...props });
-    const { rerender } = render(dialog({ initialSearch: GARDENER_A }));
+  it("shows roles without checkboxes to someone who cannot change them", () => {
+    renderDialog({ canManage: false });
 
-    expect(search()).toHaveValue(GARDENER_A);
-    expect(screen.getAllByTestId("address-display")).toHaveLength(1);
-    expect(screen.getByText(GARDENER_A.slice(0, 10))).toBeInTheDocument();
-
-    // Browser history can swap the member while the dialog stays open.
-    rerender(dialog({ initialSearch: GARDENER_B }));
-    expect(search()).toHaveValue(GARDENER_B);
-    expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
-
-    // A search the steward typed survives a roster refresh for the same member.
-    await user.clear(search());
-    await user.type(search(), "owner");
-    rerender(dialog({ initialSearch: GARDENER_B, roleMembers: { ...roleMembers } }));
-    expect(search()).toHaveValue("owner");
-
-    // The dialog stays mounted between openings, so reopening must replace the search.
-    rerender(dialog({ open: false, initialSearch: GARDENER_B }));
-    rerender(dialog({ initialSearch: GARDENER_B }));
-    expect(search()).toHaveValue(GARDENER_B);
-  });
-
-  it("matches a resolved ENS name by case-insensitive substring", async () => {
-    const user = userEvent.setup();
-    let finishLookup: ((name: string) => void) | undefined;
-    const lookup = new Promise<string>((resolve) => {
-      finishLookup = resolve;
-    });
-    mockResolveEnsName.mockImplementation(async (address: string) =>
-      address === GARDENER_B.toLowerCase() ? lookup : null
-    );
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    const search = screen.getByRole("textbox", {
-      name: "Search members by address, ENS name, or role",
-    });
-    await user.type(search, "BLOOM");
-    expect(screen.getByText("No members match your search")).toBeInTheDocument();
-    finishLookup?.("Garden.Bloom.eth");
-
-    await waitFor(() => expect(screen.getAllByTestId("address-display")).toHaveLength(1));
-    expect(screen.getByText(GARDENER_B.slice(0, 10))).toBeInTheDocument();
-  });
-
-  it("shows the empty state when a role filter has no members", async () => {
-    const user = userEvent.setup();
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    await user.click(screen.getByRole("button", { name: /Stewards · 0/ }));
-    expect(screen.getByText("No members found")).toBeInTheDocument();
-  });
-
-  it("confirms before removing a member from the row action", async () => {
-    const user = userEvent.setup();
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
-    await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
-
-    expect(defaultProps.onRemoveMember).not.toHaveBeenCalled();
-
-    const confirm = await screen.findByRole("alertdialog", {
-      name: "Confirm Member Removal",
-    });
-    expect(confirm).toHaveTextContent(OWNER.slice(0, 6));
-
-    await user.click(within(confirm).getByRole("button", { name: "Cancel" }));
-    expect(defaultProps.onRemoveMember).not.toHaveBeenCalled();
-
-    await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
-    await user.click(await screen.findByRole("button", { name: "Remove Member" }));
-
-    expect(defaultProps.onRemoveMember).toHaveBeenCalledWith(OWNER, "owner");
-  });
-
-  it("keeps the roster visible and reports a failed confirmed removal", async () => {
-    const user = userEvent.setup();
-    const onRemoveMember = vi.fn(async () => ({ success: false }));
-    render(createElement(ManageMembersDialog, { ...defaultProps, onRemoveMember }));
-
-    const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
-    await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
-    await user.click(await screen.findByRole("button", { name: "Remove Member" }));
-
-    expect(await screen.findByText("Failed to remove Owner")).toBeInTheDocument();
-    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
-  });
-
-  it("opens the Add Members flow from the footer action", async () => {
-    const user = userEvent.setup();
-    render(createElement(ManageMembersDialog, defaultProps));
-
-    await user.click(screen.getByRole("button", { name: "Add Members" }));
-    expect(defaultProps.onAddMembers).toHaveBeenCalledTimes(1);
-    expect(defaultProps.onAddMembers).toHaveBeenCalledWith(undefined);
-  });
-
-  it("hands the member it was opened for to Add Members", async () => {
-    const user = userEvent.setup();
-    // The Manage Roles link opens the roster searched by one exact address.
-    render(createElement(ManageMembersDialog, { ...defaultProps, initialSearch: GARDENER_A }));
-
-    await user.click(screen.getByRole("button", { name: "Add Members" }));
-    expect(defaultProps.onAddMembers).toHaveBeenCalledWith(GARDENER_A);
-  });
-
-  it("locks close and add-member affordances while a member write is loading", async () => {
-    render(createElement(ManageMembersDialog, { ...defaultProps, isLoading: true }));
-
-    for (const closeButton of screen.getAllByRole("button", { name: "Close" })) {
-      expect(closeButton).toBeDisabled();
-    }
-    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
-
-    fireEvent.keyDown(screen.getByRole("dialog", { name: "Manage Members" }), { key: "Escape" });
-
-    expect(defaultProps.onClose).not.toHaveBeenCalled();
-  });
-
-  it("hides write affordances for read-only viewers", () => {
-    render(createElement(ManageMembersDialog, { ...defaultProps, canManage: false }));
-
-    expect(screen.queryByRole("button", { name: "Add Members" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.getByText("Only owners and stewards can change roles.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review Removal" })).toBeNull();
   });
 });

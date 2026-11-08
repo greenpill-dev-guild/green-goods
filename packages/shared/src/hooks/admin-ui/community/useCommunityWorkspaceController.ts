@@ -180,7 +180,6 @@ export function useCommunityWorkspaceController() {
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
-    memberSearch,
     section,
     formatMessage,
     openSection,

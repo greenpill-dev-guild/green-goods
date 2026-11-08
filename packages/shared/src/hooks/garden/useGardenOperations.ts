@@ -10,9 +10,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createGardenMembersChain } from "../../modules/garden/members-batch";
+import {
+  readHeldRoles,
+  type RoleRemovalApi,
+  type RoleRemovalChain,
+  removeGardenRolesOneByOne,
+} from "../../modules/garden/members-removal";
 import type { Address, Garden } from "../../types/domain";
 import { formatAddress } from "../../utils/app/text";
-import type { GardenRole } from "../../utils/blockchain/garden-roles";
+import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
 import { gardensKeys } from "../../config/query-keys/garden";
 import {
@@ -36,6 +43,11 @@ import { runGardenRoleWrites } from "./gardenRoleWriteQueue";
 
 export { useAddMembersBatch } from "./useAddMembersBatch";
 export type { AddMembersOutcome } from "../../modules/garden/members-batch";
+export type {
+  RoleRemovalApi,
+  RoleRemovalOutcome,
+  RoleRemovalStatus,
+} from "../../modules/garden/members-removal";
 export {
   type GardenSetup,
   type GardenSetupStep,
@@ -403,4 +415,83 @@ export function useGardenOperations(gardenId: string) {
     ...operations,
     isLoading,
   };
+}
+
+/**
+ * Removes person-and-role pairs with one signature each, reading the chain before every
+ * signature and after any send that does not end cleanly (`removeGardenRolesOneByOne`). Each
+ * send is the role operation a single removal uses, with its simulation, roster update and
+ * toasts, so one removal and many take the same path.
+ */
+export function useRemoveMemberRoles(gardenId: string): RoleRemovalApi {
+  const gardenAddress = gardenId as Address;
+  const chainId = DEFAULT_CHAIN_ID;
+  const queryClient = useQueryClient();
+  const account = usePrimaryAddress();
+  const {
+    removeGardener,
+    removeSteward,
+    removeEvaluator,
+    removeOwner,
+    removeFunder,
+    removeCommunity,
+  } = useGardenOperations(gardenId);
+
+  return useMemo(() => {
+    const removeByRole: Record<GardenRole, GardenOperation> = {
+      gardener: removeGardener,
+      steward: removeSteward,
+      evaluator: removeEvaluator,
+      owner: removeOwner,
+      funder: removeFunder,
+      community: removeCommunity,
+    };
+    const members = createGardenMembersChain(gardenAddress, chainId);
+    const chain: RoleRemovalChain = {
+      wearsRole: (row) => members.wearsRole(row),
+      refusal: async ({ address, role }) => {
+        const hatsModule = await members.hatsModule();
+        // Without a module or a signer the send itself says what is missing.
+        if (!hatsModule || !account) return null;
+        return members.refusal(
+          {
+            address: hatsModule,
+            functionName: "revokeRole",
+            args: [gardenAddress, address, GARDEN_ROLE_IDS[role]],
+          },
+          account
+        );
+      },
+      removeRole: ({ address, role }) => removeByRole[role](address),
+      // The roster lags the chain, so a role a read proved gone leaves it now.
+      onGone: ({ address, role }) => {
+        const key = gardensKeys.byChain(chainId);
+        const gardens = queryClient.getQueryData<Garden[]>(key);
+        if (gardens) {
+          queryClient.setQueryData(
+            key,
+            applyOptimisticUpdate(gardens, gardenId, role, "remove", address)
+          );
+        }
+        void resetRoleHatAnswers(queryClient, gardenId, address);
+      },
+    };
+    return {
+      account,
+      check: (rows) => readHeldRoles(rows, chain),
+      remove: (rows, events) => removeGardenRolesOneByOne(rows, chain, events),
+    };
+  }, [
+    account,
+    chainId,
+    gardenAddress,
+    gardenId,
+    queryClient,
+    removeCommunity,
+    removeEvaluator,
+    removeFunder,
+    removeGardener,
+    removeOwner,
+    removeSteward,
+  ]);
 }
