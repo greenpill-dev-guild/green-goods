@@ -177,8 +177,11 @@ export function useProofComposerController(
         pendingHeic: "accept",
       });
       if (errors.includes("total-size")) {
+        // The limits are the message: without one the toast adds "Try again", which a
+        // note this size cannot pass.
         toastService.error({
-          title: intl.formatMessage({ id: "app.garden.attachments.invalid" }),
+          title: intl.formatMessage({ id: "app.garden.upload.truncatedTitle" }, { dropped: 1 }),
+          message: intl.formatMessage({ id: "app.garden.attachments.invalid" }),
           context: "mediaUpload",
         });
         return;

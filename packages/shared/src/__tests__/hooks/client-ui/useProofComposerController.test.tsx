@@ -5,6 +5,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toastService } from "../../../components/Toast/toast.service";
 import {
   proofSendKey,
   settleProofSend,
@@ -392,8 +393,14 @@ describe("useProofComposerController", () => {
     await act(async () => {
       await expect(result.current.pick(full)).resolves.toEqual({ rejectedCount: 0 });
     });
+    const error = vi.spyOn(toastService, "error");
     act(() => mocks.recordingComplete?.(sized("note.webm", "audio/webm", mib)));
     expect(result.current.audioNotes).toEqual([]);
+    // The limits are the toast's message, so it adds no "Try again" that this note cannot pass.
+    expect(error).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "app.garden.attachments.invalid" })
+    );
+    error.mockRestore();
   });
 
   it("keeps the draft and queues neither act if upload consent is canceled", async () => {

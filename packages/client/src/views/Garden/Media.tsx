@@ -396,8 +396,16 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         validateWorkAttachments([...images, ...keptFiles], audioNotes, 0, { pendingHeic: "accept" })
           .length
       ) {
+        // Nothing from this pick is added, and the limits say why; trying again cannot help.
         toastService.error({
-          title: intl.formatMessage({
+          title: intl.formatMessage(
+            {
+              id: "app.garden.upload.truncatedTitle",
+              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
+            },
+            { dropped: newFiles.length }
+          ),
+          message: intl.formatMessage({
             id: "app.garden.attachments.invalid",
             defaultMessage:
               "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",

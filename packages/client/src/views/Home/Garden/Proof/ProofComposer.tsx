@@ -159,7 +159,11 @@ export function ProofComposer() {
     const { rejectedCount, overLimit } = await controller.pick(files);
     if (overLimit) {
       toastService.error({
-        title: formatMessage({ id: "app.garden.attachments.invalid" }),
+        title: formatMessage(
+          { id: "app.garden.upload.truncatedTitle" },
+          { dropped: files?.length ?? 0 }
+        ),
+        message: formatMessage({ id: "app.garden.attachments.invalid" }),
         context: "mediaUpload",
       });
       return;
