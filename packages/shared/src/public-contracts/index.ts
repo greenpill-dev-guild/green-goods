@@ -78,6 +78,8 @@ export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passk
 
 export * from "./core";
 export * from "./saved-offers";
+export * from "./voucher-awards";
+export * from "./service-issuer-desk";
 
 export function validateProviderProofEntry(entry: ProviderProofEntry): string[] {
   const errors: string[] = [];

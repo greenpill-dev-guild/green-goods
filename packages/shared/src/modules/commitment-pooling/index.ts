@@ -51,7 +51,12 @@ export {
   serviceIssuerDraftApproval,
   serviceIssuerTermsDigest,
 } from "./service-issuer-approval";
-export { SERVICE_ISSUER_ROUTES, serviceIssuerIssuanceLimit } from "./service-issuer-metadata";
+export {
+  SERVICE_ISSUER_ROUTES,
+  serviceIssuerIssuanceLimit,
+  issuerPool,
+  issuerPoolPolicy,
+} from "./service-issuer-metadata";
 export { issuerPoolStatus } from "./service-issuer-pool";
 export {
   serviceIssuerDelistingDraft,
@@ -66,3 +71,8 @@ export * from "./work-decision-readback";
 export * from "./work-decisions";
 export * from "./work-identity";
 export * from "./work-link-intent";
+
+export {
+  serviceIssuerExchangeChoices,
+  type ServiceIssuerExchangeChoice,
+} from "./service-issuer-checkout";

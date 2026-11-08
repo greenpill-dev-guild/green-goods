@@ -2,11 +2,11 @@ import {
   SERVICE_ISSUER_ROUTES,
   type ServiceIssuerActor,
   type ServiceIssuerAsset,
-  type ServiceIssuerDraftRecord,
-  useServiceIssuerApproval,
-  useServiceIssuerDrafts,
+  type ServiceIssuerPool,
+  useServiceIssuerDesk,
   useServiceIssuerOperations,
 } from "@green-goods/shared/commitment-pooling";
+import { Button } from "@green-goods/shared/components/Button";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { RiCoupon3Line } from "@remixicon/react";
@@ -15,7 +15,7 @@ import { useIntl } from "react-intl";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { ServiceIssuerOnboarding } from "./ServiceIssuerOnboarding";
-import { ServiceIssuerPanel } from "./ServiceIssuerPanel";
+import { ServiceIssuerPanel } from "@/components/Features/Vouchers/ServiceIssuerPanel";
 
 /**
  * Command Surface: the member's own service drafts and service assets. A draft is approved by
@@ -25,16 +25,17 @@ export function ServiceAssets() {
   const { primaryAddress, authMode, passkeyAccountProfile } = useUser();
   const { formatMessage } = useIntl();
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
-  const drafts = useServiceIssuerDrafts(primaryAddress);
+  const desk = useServiceIssuerDesk();
+  const { canSign } = desk;
   const [selection, setSelection] = useState("");
+  const [continuing, setContinuing] = useState(false);
   const id = useId();
   // Only the signed-in member's own drafts: a draft is theirs to approve or decline.
-  const records =
-    drafts.data?.status === "observed" && primaryAddress
-      ? drafts.data.records.filter(
-          ({ draft }) => draft.member.toLowerCase() === primaryAddress.toLowerCase()
-        )
-      : [];
+  const records = primaryAddress
+    ? desk.records.filter(
+        ({ draft }) => draft.member.toLowerCase() === primaryAddress.toLowerCase()
+      )
+    : [];
   const choices = SERVICE_ISSUER_ROUTES.flatMap((route, r) =>
     route.assets.map((asset, a) => ({ key: `${r}:${a}`, route, asset }))
   );
@@ -59,7 +60,10 @@ export function ServiceAssets() {
                 controlSize="sm"
                 density="condensed"
                 value={selection}
-                onChange={(e) => setSelection(e.target.value)}
+                onChange={(e) => {
+                  setSelection(e.target.value);
+                  setContinuing(false);
+                }}
                 // Under the sentence on a phone under 390px.
                 className="w-[120px] shrink-0 sm:w-[140px] @max-[358px]:w-full @max-[358px]:basis-full"
               >
@@ -80,11 +84,37 @@ export function ServiceAssets() {
               </NativeSelect>
             )}
           </div>
+          {primaryAddress ? (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                emphasis="secondary"
+                loading={desk.load.isPending}
+                onClick={() => desk.load.mutate()}
+              >
+                {formatMessage({ id: "app.voucher.exchange.loadServices" })}
+              </Button>
+              {desk.load.isError || desk.decline.isError ? (
+                <p role="alert" className="text-sm">
+                  {formatMessage({ id: "app.voucher.exchange.servicesFailed" })}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           {unconfigured ? (
             <p className="text-xs text-text-sub-600">{text("unconfigured")}</p>
           ) : null}
           {record ? (
-            <SelectedServiceDraft key={`${primaryAddress}:${record.draft.id}`} record={record} />
+            <ServiceIssuerOnboarding
+              key={`${primaryAddress}:${record.draft.id}:${record.revision}`}
+              record={record}
+              canSign={canSign}
+              approving={desk.approve.isPending || desk.decline.isPending}
+              onApprove={async () => {
+                await desk.approve.mutateAsync(record);
+              }}
+              onDecline={() => desk.decline.mutate(record)}
+            />
           ) : null}
           {selected && primaryAddress ? (
             <SelectedServiceAsset
@@ -95,6 +125,19 @@ export function ServiceAssets() {
                 assetId: selected.asset.id,
               }}
               assets={selected.route.assets}
+              pools={selected.route.pools}
+              continuing={continuing}
+              onContinue={(assetId) => {
+                const next = choices.find(
+                  (choice) =>
+                    choice.route.service.id === selected.route.service.id &&
+                    choice.asset.id === assetId
+                );
+                if (next) {
+                  setSelection(next.key);
+                  setContinuing(true);
+                }
+              }}
             />
           ) : null}
         </div>
@@ -103,38 +146,104 @@ export function ServiceAssets() {
   );
 }
 
-/** The member's own draft: only their signature, from this account, approves it. */
-function SelectedServiceDraft({ record }: { record: ServiceIssuerDraftRecord }) {
-  const { approve, canSign } = useServiceIssuerApproval();
-  return (
-    <ServiceIssuerOnboarding
-      record={record}
-      canSign={canSign}
-      approving={approve.isPending}
-      onApprove={(draft) => approve.mutateAsync(draft)}
-    />
-  );
-}
-
 function SelectedServiceAsset({
   actor,
   assets,
+  pools,
+  continuing,
+  onContinue,
 }: {
   actor: ServiceIssuerActor;
   assets: readonly ServiceIssuerAsset[];
+  pools: readonly ServiceIssuerPool[];
+  continuing: boolean;
+  onContinue: (assetId: string) => void;
 }) {
-  const operations = useServiceIssuerOperations(actor);
+  const intl = useIntl();
+  const [poolId, setPoolId] = useState("");
+  const selected = pools.find((pool) => pool.id === poolId);
+  const selectedActor = selected ? { ...actor, poolId: selected.id } : actor;
+  const operations = useServiceIssuerOperations(selectedActor);
+  const receipt = operations.lastExchange.data;
+  const first = receipt?.review;
+  const continuation =
+    continuing &&
+    first?.action.kind === "exchange" &&
+    !first.continuation &&
+    first.actor.routeId === actor.routeId &&
+    first.action.outputAssetId === actor.assetId;
+  const choices = pools.filter(
+    (pool) =>
+      pool.listings.some((listing) => listing.assetId === actor.assetId) &&
+      (!continuation || pool.id !== first.actor.poolId)
+  );
+  const canContinue =
+    !continuing &&
+    first?.action.kind === "exchange" &&
+    !first.continuation &&
+    first.actor.routeId === actor.routeId &&
+    pools.some(
+      (pool) =>
+        pool.id !== first.actor.poolId &&
+        pool.listings.some(
+          (listing) =>
+            first.action.kind === "exchange" && listing.assetId === first.action.outputAssetId
+        )
+    );
   return (
-    <ServiceIssuerPanel
-      snapshot={operations.snapshot.data}
-      assets={assets}
-      isLoading={operations.snapshot.isLoading}
-      isError={operations.snapshot.isError}
-      onRefresh={() => operations.snapshot.refetch()}
-      onReview={operations.review.mutateAsync}
-      onExecute={operations.execute.mutateAsync}
-      onReconcile={() => operations.reconcile.mutateAsync()}
-      onQuote={operations.quote.mutateAsync}
-    />
+    <div className="space-y-3">
+      {continuation ? (
+        <p role="status" className="text-sm">
+          {intl.formatMessage({ id: "app.voucher.exchange.continueNote" })}
+        </p>
+      ) : null}
+      {canContinue ? (
+        <Button
+          type="button"
+          emphasis="secondary"
+          onClick={() => {
+            if (first.action.kind === "exchange") onContinue(first.action.outputAssetId);
+          }}
+        >
+          {intl.formatMessage({ id: "app.voucher.exchange.continue" })}
+        </Button>
+      ) : null}
+      <label className="block space-y-1 text-sm">
+        <span>{intl.formatMessage({ id: "app.voucher.exchange.pool" })}</span>
+        <NativeSelect value={poolId} onChange={(event) => setPoolId(event.target.value)}>
+          <option value="">{intl.formatMessage({ id: "app.voucher.exchange.choosePool" })}</option>
+          {choices.map((pool) => (
+            <option key={pool.id} value={pool.id}>
+              {pool.name}
+            </option>
+          ))}
+        </NativeSelect>
+      </label>
+      <ServiceIssuerPanel
+        key={poolId}
+        poolName={selected?.name}
+        snapshot={operations.snapshot.data}
+        assets={
+          selected
+            ? assets.filter((asset) =>
+                selected.listings.some((policy) => policy.assetId === asset.id)
+              )
+            : assets
+        }
+        isLoading={operations.snapshot.isLoading}
+        isError={operations.snapshot.isError}
+        onRefresh={() => operations.snapshot.refetch()}
+        onReview={(action) =>
+          continuation && action.kind === "exchange"
+            ? operations.reviewContinuation.mutateAsync(action)
+            : operations.review.mutateAsync(action)
+        }
+        onExecute={operations.execute.mutateAsync}
+        onReconcile={() => operations.reconcile.mutateAsync()}
+        onQuote={
+          continuation ? operations.quoteContinuation.mutateAsync : operations.quote.mutateAsync
+        }
+      />
+    </div>
   );
 }

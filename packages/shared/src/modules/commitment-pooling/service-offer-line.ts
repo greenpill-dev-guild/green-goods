@@ -46,9 +46,10 @@ function offerBooking(
   held: bigint,
   units: bigint,
   decimals: number
-): ServiceOfferLine["booking"] {
+): ServiceOfferLine["booking"] | null {
   if (standing.bookings === "paused") return { kind: "paused" };
   if (held > 0n && held >= units) return { kind: "hold", held, decimals };
+  if (standing.exchange === "unavailable") return null;
   return standing.exchange === "listed" ? { kind: "exchange" } : { kind: standing.exchange };
 }
 
@@ -65,8 +66,10 @@ export function serviceOfferLine(
   if (!issuer || decimals === null) return null;
   const held =
     wallet.holdings.find((holding) => sameIssuerToken(holding.issuer, issuer))?.available ?? 0n;
+  const booking = offerBooking(issuer.standing, held, voucher.units, decimals);
+  if (!booking) return null;
   return {
     promisedBy: issuer.name,
-    booking: offerBooking(issuer.standing, held, voucher.units, decimals),
+    booking,
   };
 }

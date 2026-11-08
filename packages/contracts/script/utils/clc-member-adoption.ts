@@ -1,5 +1,4 @@
 import { keccak256, type JsonRpcProvider } from "ethers";
-import type { CLCMemberPlan } from "./clc-member-release";
 
 type ReadClient = Pick<JsonRpcProvider, "getTransaction" | "getTransactionReceipt" | "getBlock" | "getCode">;
 export interface CLCAdoptionReceipts {
@@ -11,7 +10,16 @@ function equal(actual: unknown, expected: unknown, label: string): void {
 /** Only a contiguous, exact canonical receipt prefix may be adopted. Existing code alone is insufficient. */
 export async function verifyCLCAdoptionPrefix(
   client: ReadClient,
-  plan: CLCMemberPlan,
+  plan: {
+    transactions: readonly {
+      component: string;
+      address: string;
+      from: string;
+      to: string | null;
+      nonce: number;
+      data: string;
+    }[];
+  },
   input: unknown = { transactions: {} },
 ) {
   if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).join() !== "transactions")

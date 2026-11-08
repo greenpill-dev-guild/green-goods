@@ -1,3 +1,5 @@
+import { SERVICE_ISSUER_ROUTES } from "@green-goods/shared/commitment-pooling";
+import { VoucherAwardDesk } from "./VoucherAwardDesk";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
@@ -40,6 +42,14 @@ export function VoucherReserveCard({
   onRaiseAllowance,
 }: VoucherReserveCardProps) {
   const { formatMessage } = useIntl();
+  const [awarding, setAwarding] = useState(false);
+  const awardAvailable =
+    reserve.issuer.chainId === 100 &&
+    SERVICE_ISSUER_ROUTES.some((route) =>
+      route.assets.some(
+        (asset) => asset.ownerReserve.toLowerCase() === reserve.issuer.safe.toLowerCase()
+      )
+    );
   const [raising, setRaising] = useState(false);
   const raiseButtonRef = useRef<HTMLButtonElement>(null);
   const { issuer, allowance, terms, cap, waitingReward } = reserve;
@@ -271,6 +281,23 @@ export function VoucherReserveCard({
             </Alert>
           )}
         </WithPerson>
+      ) : null}
+      {awardAvailable ? (
+        <Button
+          type="button"
+          emphasis="secondary"
+          disabled={disabled}
+          onClick={() => setAwarding(true)}
+        >
+          {formatMessage({ id: "cockpit.voucherAward.title" })}
+        </Button>
+      ) : null}
+      {awarding ? (
+        <VoucherAwardDesk
+          reserve={reserve}
+          disabled={disabled}
+          onClose={() => setAwarding(false)}
+        />
       ) : null}
       <VoucherRaiseAllowanceDialog
         reserve={raising ? reserve : null}

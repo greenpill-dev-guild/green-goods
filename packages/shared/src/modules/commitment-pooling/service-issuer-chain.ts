@@ -13,11 +13,12 @@ import {
 } from "./service-access-live-route";
 import { AdapterABI, PoolABI, TokenABI } from "./service-issuer-abis";
 import { verifyIssuerProxyDeployment } from "./service-issuer-deployment";
-import { issuerSame } from "./service-issuer-metadata";
+import { issuerPoolPolicy, issuerSame } from "./service-issuer-metadata";
 import type {
   ServiceIssuerAsset,
   ServiceIssuerCodePin,
   ServiceIssuerPoolListing,
+  ServiceIssuerPool,
   ServiceIssuerRoute,
 } from "./service-issuer-types";
 
@@ -60,7 +61,7 @@ export const serviceIssuerChain: ServiceIssuerChain = {
   },
 };
 export const issuerRead = (
-  chain: ServiceIssuerChain,
+  chain: ServiceLiveChain,
   account: Address,
   functionName: string,
   args: readonly unknown[] = [],
@@ -136,15 +137,7 @@ export async function verifyIssuerRoute(
   await Promise.all([
     codePin(chain, route.factory),
     verifyIssuerRewardRoute(route, chain),
-    ...[
-      asset.token,
-      route.pool.deployment,
-      route.pool.registry,
-      route.pool.limiter,
-      route.pool.quoter,
-      route.pool.feePolicy,
-      route.pool.protocolFee,
-    ].map((pin) => verifyIssuerProxyDeployment(pin, route.factory, chain)),
+    verifyIssuerProxyDeployment(asset.token, route.factory, chain),
   ]);
   if (
     !issuerSame(
@@ -162,7 +155,31 @@ export async function verifyIssuerRoute(
     await issuerRead(chain, route.factory.address, "adminOf", [asset.token.address])
   );
   if (!issuerSame(admin, control.admin)) throw new Error("Issuer proxy control changed");
-  const pool = route.pool;
+  const [name, symbol, decimals] = await Promise.all(
+    ["name", "symbol", "decimals"].map((fn) =>
+      issuerRead(chain, asset.token.address, fn, [], TokenABI as Abi)
+    )
+  );
+  if (name !== asset.name || symbol !== asset.symbol || decimals !== asset.decimals)
+    throw new Error("Issuer token metadata changed");
+}
+/** Pool curation and dependencies are checked only for exchange, never to recover a service. */
+export async function verifyIssuerPool(
+  route: ServiceIssuerRoute,
+  pool: ServiceIssuerPool,
+  chain: ServiceIssuerChain
+) {
+  await codePin(chain, route.factory);
+  await Promise.all(
+    [
+      pool.deployment,
+      pool.registry,
+      pool.limiter,
+      pool.quoter,
+      pool.feePolicy,
+      pool.protocolFee,
+    ].map((pin) => verifyIssuerProxyDeployment(pin, route.factory, chain))
+  );
   for (const pin of [
     pool.deployment,
     pool.registry,
@@ -195,19 +212,13 @@ export async function verifyIssuerRoute(
   }
   if (!serviceFlag(await issuerRead(chain, pool.deployment.address, "feesDecoupled")))
     throw new Error("Curated pool fee mode changed");
-  const [name, symbol, decimals] = await Promise.all(
-    ["name", "symbol", "decimals"].map((fn) =>
-      issuerRead(chain, asset.token.address, fn, [], TokenABI as Abi)
-    )
-  );
-  if (name !== asset.name || symbol !== asset.symbol || decimals !== asset.decimals)
-    throw new Error("Issuer token metadata changed");
 }
 export async function issuerAssetState(
   chain: ServiceIssuerChain,
   route: ServiceIssuerRoute,
   asset: ServiceIssuerAsset,
-  actor: Address
+  actor: Address,
+  pool?: ServiceIssuerPool
 ) {
   const token = (fn: string, args: readonly unknown[] = []) =>
     issuerRead(chain, asset.token.address, fn, args, TokenABI as Abi);
@@ -226,7 +237,7 @@ export async function issuerAssetState(
     issuerRead(chain, asset.token.address, "expired"),
     token("balanceOf", [actor]),
     token("allowance", [actor, route.adapter.address]),
-    token("allowance", [actor, route.pool.deployment.address]),
+    pool ? token("allowance", [actor, pool.deployment.address]) : Promise.resolve(0n),
     issuerRead(
       chain,
       route.adapter.address,
@@ -262,34 +273,42 @@ export async function issuerAssetState(
  * review's state, so a trade in the pool never invalidates the member's own review.
  */
 export async function issuerPoolListing(
-  chain: ServiceIssuerChain,
-  route: ServiceIssuerRoute,
+  chain: ServiceLiveChain,
+  poolConfig: ServiceIssuerPool,
   asset: ServiceIssuerAsset
 ): Promise<ServiceIssuerPoolListing> {
-  const pool = route.pool.deployment.address;
+  const policy = issuerPoolPolicy(poolConfig, asset.id, true);
+  const pool = poolConfig.deployment.address;
   const [admitted, limit, holding] = await Promise.all([
-    issuerRead(chain, route.pool.registry.address, "have", [asset.token.address]),
-    issuerRead(chain, route.pool.limiter.address, "limitOf", [asset.token.address, pool]),
+    issuerRead(chain, poolConfig.registry.address, "have", [asset.token.address]),
+    issuerRead(chain, poolConfig.limiter.address, "limitOf", [asset.token.address, pool]),
     issuerRead(chain, asset.token.address, "balanceOf", [pool], TokenABI as Abi),
   ]);
   return {
     admitted: serviceFlag(admitted),
     limit: serviceUint(limit),
     holding: serviceUint(holding),
+    delisting: policy.delisting,
   };
 }
 export async function issuerPoolState(
   chain: ServiceIssuerChain,
   route: ServiceIssuerRoute,
+  poolConfig: ServiceIssuerPool,
   input: ServiceIssuerAsset,
   output: ServiceIssuerAsset,
   amount: bigint
 ) {
-  const pool = route.pool.deployment.address;
-  await verifyIssuerRoute(route, output, chain);
+  const pool = poolConfig.deployment.address;
+  const inputPolicy = issuerPoolPolicy(poolConfig, input.id);
+  issuerPoolPolicy(poolConfig, output.id);
+  await Promise.all([
+    verifyIssuerRoute(route, output, chain),
+    verifyIssuerPool(route, poolConfig, chain),
+  ]);
   const listed = await Promise.all(
     [input, output].map((asset) =>
-      issuerRead(chain, route.pool.registry.address, "have", [asset.token.address])
+      issuerRead(chain, poolConfig.registry.address, "have", [asset.token.address])
     )
   );
   if (listed.some((v) => !serviceFlag(v))) throw new Error("Pool asset admission unavailable");
@@ -306,7 +325,7 @@ export async function issuerPoolState(
     outputFees,
     outputExpired,
   ] = await Promise.all([
-    issuerRead(chain, route.pool.limiter.address, "limitOf", [input.token.address, pool]),
+    issuerRead(chain, poolConfig.limiter.address, "limitOf", [input.token.address, pool]),
     issuerRead(
       chain,
       pool,
@@ -317,17 +336,17 @@ export async function issuerPoolState(
     issuerRead(chain, pool, "getQuote", [output.token.address, input.token.address, amount]),
     issuerRead(chain, output.token.address, "balanceOf", [pool], TokenABI as Abi),
     issuerRead(chain, input.token.address, "balanceOf", [pool], TokenABI as Abi),
-    issuerRead(chain, route.pool.feePolicy.address, "getFee", [
+    issuerRead(chain, poolConfig.feePolicy.address, "getFee", [
       input.token.address,
       output.token.address,
     ]),
-    issuerRead(chain, route.pool.protocolFee.address, "getProtocolFee"),
-    issuerRead(chain, route.pool.protocolFee.address, "getProtocolFeeRecipient"),
-    issuerRead(chain, route.pool.protocolFee.address, "isActive"),
+    issuerRead(chain, poolConfig.protocolFee.address, "getProtocolFee"),
+    issuerRead(chain, poolConfig.protocolFee.address, "getProtocolFeeRecipient"),
+    issuerRead(chain, poolConfig.protocolFee.address, "isActive"),
     issuerRead(chain, pool, "fees", [output.token.address]),
     issuerRead(chain, output.token.address, "expired"),
   ]);
-  if (serviceUint(cap) !== input.poolHoldingCap)
+  if (serviceUint(cap) !== inputPolicy.poolHoldingCap)
     throw new Error("Reviewed pool holding cap changed");
   if (serviceUint(outputFees) > serviceUint(inventory))
     throw new Error("Curated output fee reserve exceeds its balance");

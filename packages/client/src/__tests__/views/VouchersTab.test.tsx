@@ -15,6 +15,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const navigate = vi.fn();
+const awards = vi.hoisted(() => ({
+  records: [] as unknown[],
+  load: { mutate: vi.fn(), isPending: false, isError: false, isSuccess: false },
+}));
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal()),
   useNavigate: () => navigate,
@@ -23,6 +27,7 @@ vi.mock("react-router-dom", async (importOriginal) => ({
 // A booking row reads its offer's title; the title read has its own coverage.
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal()),
+  useVoucherAwards: () => awards,
   useCommitment: () => ({ commitment: { metadataCID: "bafy-hub-day" } }),
   useCommitmentMetadataFor: () => ({ version: 1, title: "Hub day, up to 4 hours" }),
 }));
@@ -87,6 +92,13 @@ function wallet(overrides: Partial<VoucherWalletSnapshot> = {}): VoucherWalletSn
 }
 
 describe("VouchersTab", () => {
+  it("loads award receipts only after an explicit action, separately from current holdings", async () => {
+    render(<VouchersTab wallet={wallet()} onClose={vi.fn()} />);
+    expect(awards.load.mutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Load My Award Receipts" }));
+    expect(awards.load.mutate).toHaveBeenCalledOnce();
+    expect(screen.getByText("Awards for Past Contributions")).toBeInTheDocument();
+  });
   beforeEach(() => vi.clearAllMocks());
 
   it.each([

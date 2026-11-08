@@ -10,7 +10,7 @@ import { VoucherEndpoint } from "../../src/modules/VoucherEndpoint.sol";
 import { VoucherEntitlementModule } from "../../src/modules/VoucherEntitlementModule.sol";
 import { GnosisVoucherAdapter } from "../../src/modules/GnosisVoucherAdapter.sol";
 import { VoucherServiceCodec as Codec } from "../../src/libraries/VoucherServiceCodec.sol";
-import { ICLCPurchaseIndex, ICLCPurchaseLimiter, ICLCPurchaseQuoter } from "./CLCPurchaseInterfaces.sol";
+import { ICLCPurchaseIndex, ICLCPurchaseLimiter, ICLCPurchaseQuoter, ICLCPurchasePool } from "./CLCPurchaseInterfaces.sol";
 
 /// @notice FICTIONAL TAS project and separately budgeted peer services on published dependencies.
 /// @dev Three synthetic EOA senders are distinct; vm.prank is not real member/passkey signing.
@@ -42,6 +42,7 @@ abstract contract CLCMemberProjectFixture is CLCVoucherJourneyFixture {
     ICLCGiftableToken internal analystHelp;
     ICLCGiftableToken internal engineerHelp;
     ProjectMilestone[3] internal projectMilestones;
+    PoolBundle internal memberLocalPool;
 
     function _setUpMemberProject() internal {
         _setUpJourney();
@@ -54,10 +55,37 @@ abstract contract CLCMemberProjectFixture is CLCVoucherJourneyFixture {
         IHats(JOURNEY_HATS).mintHat(gardenerHat, projectAnalyst);
         IHats(JOURNEY_HATS).mintHat(gardenerHat, projectEngineer);
         vm.selectFork(journeyGnosisFork);
+        memberLocalPool = _createJourneyExchange(journeyIssuerB, "Fictional TAS local exchange", "TASLOCAL");
+        _safeExec(
+            journeyIssuerB, address(memberLocalPool.index), abi.encodeCall(ICLCPurchaseIndex.register, (address(journeyB)))
+        );
+        _safeExec(
+            journeyIssuerB,
+            address(memberLocalPool.limiter),
+            abi.encodeCall(
+                ICLCPurchaseLimiter.setLimitFor, (address(journeyB), address(memberLocalPool.pool), uint256(6e6))
+            )
+        );
+        _safeExec(
+            journeyIssuerB,
+            address(memberLocalPool.quoter),
+            abi.encodeCall(ICLCPurchaseQuoter.setPriceIndexValue, (address(journeyB), uint256(1e6)))
+        );
+        _safeExec(
+            journeyIssuerB,
+            address(journeyB),
+            abi.encodeWithSignature("approve(address,uint256)", address(memberLocalPool.pool), uint256(2e6))
+        );
+        _safeExec(
+            journeyIssuerB,
+            address(memberLocalPool.pool),
+            abi.encodeCall(ICLCPurchasePool.deposit, (address(journeyB), uint256(2e6)))
+        );
         analystHelp = _memberToken(projectAnalyst, "Fictional analyst coaching", "MACH");
         engineerHelp = _memberToken(projectEngineer, "Fictional engineer integration lesson", "MEIH");
         _admitMemberAsset(analystHelp, projectAnalyst, 1e6);
         _admitMemberAsset(engineerHelp, projectEngineer, 2e6);
+        _safeExec(journeyIssuerB, address(memberLocalPool.pool), abi.encodeCall(ICLCPurchasePool.seal, (uint8(31))));
         _configureProjectRewards();
         projectMilestones[0] =
             ProjectMilestone(projectDesigner, projectEngineer, address(engineerHelp), ENGINEER_HELP_TERMS, 0, 0);
@@ -99,26 +127,26 @@ abstract contract CLCMemberProjectFixture is CLCVoucherJourneyFixture {
 
     function _admitMemberAsset(ICLCGiftableToken token, address member, uint256 price) private {
         _safeExec(
-            journeyCommunity, address(journeyPool.index), abi.encodeCall(ICLCPurchaseIndex.register, (address(token)))
+            journeyIssuerB, address(memberLocalPool.index), abi.encodeCall(ICLCPurchaseIndex.register, (address(token)))
         );
         _safeExec(
-            journeyCommunity,
-            address(journeyPool.limiter),
-            abi.encodeCall(ICLCPurchaseLimiter.setLimitFor, (address(token), address(journeyPool.pool), MEMBER_SUPPLY))
+            journeyIssuerB,
+            address(memberLocalPool.limiter),
+            abi.encodeCall(ICLCPurchaseLimiter.setLimitFor, (address(token), address(memberLocalPool.pool), MEMBER_SUPPLY))
         );
         _safeExec(
-            journeyCommunity,
-            address(journeyPool.quoter),
+            journeyIssuerB,
+            address(memberLocalPool.quoter),
             abi.encodeCall(ICLCPurchaseQuoter.setPriceIndexValue, (address(token), price))
         );
         vm.startPrank(member);
         token.mintTo(member, MEMBER_SUPPLY);
-        token.approve(address(journeyPool.pool), MEMBER_POOL_STOCK);
-        journeyPool.pool.deposit(address(token), MEMBER_POOL_STOCK);
+        token.approve(address(memberLocalPool.pool), MEMBER_POOL_STOCK);
+        memberLocalPool.pool.deposit(address(token), MEMBER_POOL_STOCK);
         vm.stopPrank();
         assertEq(token.balanceOf(member), 4e6);
-        assertEq(token.balanceOf(address(journeyPool.pool)), MEMBER_POOL_STOCK);
-        assertEq(token.allowance(member, address(journeyPool.pool)), 0);
+        assertEq(token.balanceOf(address(memberLocalPool.pool)), MEMBER_POOL_STOCK);
+        assertEq(token.allowance(member, address(memberLocalPool.pool)), 0);
     }
 
     function _configureProjectRewards() private {

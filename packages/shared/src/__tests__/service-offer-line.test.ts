@@ -56,6 +56,13 @@ const wallet = (
 });
 
 describe("serviceOfferLine", () => {
+  it("keeps direct redemption available when exchange cannot be read", () => {
+    const unavailable = issuer({ standing: { bookings: "open", exchange: "unavailable" } });
+    expect(
+      serviceOfferLine(hubDay(ONE), wallet(ONE, { issuers: [unavailable] }))?.booking.kind
+    ).toBe("hold");
+    expect(serviceOfferLine(hubDay(ONE), wallet(0n, { issuers: [unavailable] }))).toBeNull();
+  });
   it("says the reader holds enough of the issuer's vouchers, and names the issuer", () => {
     expect(serviceOfferLine(hubDay(ONE), wallet(9n * ONE))).toEqual({
       promisedBy: "Tech and Sun",

@@ -5,11 +5,33 @@
 **Linear Project**: Cosmo-Local Integration
 **Linear Source**: source:plans
 **Stage**: `backlog`
-**Status**: `CONTROLLED LIVE PILOT PREPARATION; LOCAL MEMBER PROOF; ONBOARDING INPUTS DEFERRED`
+**Status**: `LOCAL TWO-POOL IMPLEMENTATION PREPARED; WORKING-TREE PROOF RECORDED; LIVE ACTIVATION PENDING`
 **Created**: 2026-08-25
-**Last Updated**: `2026-10-29 Pacific`
+**Last Updated**: `2026-11-07 Pacific`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
+
+## Garden exchange pools — selected 7 November 2026 Pacific
+
+The [selected amendment](garden-exchange-pools.md) replaces the single shared-pool topology below.
+Reuse the existing GG exchange, add one TAS local exchange, and preserve existing tokens and
+redemption. The user subsequently authorized implementation of all three flows and retrospective
+awards. The [implementation handoff](handoffs/two-pool-implementation.md) owns current work and
+proof. This does not dispatch live changes or certify earlier member proof for two pools.
+Existing lane states and historical checkboxes remain intact.
+Local implementation is prepared. Proof-gated checkpoints remain open where they require
+commit-attributed or live evidence; the handoff distinguishes completed local work from those gates.
+
+- [ ] P1–P4: prepare adoption/deployment, explicit local admission and two-pool fork proof.
+- [ ] P5: register and verify indexing for both pools without duplicating issuer/reward records.
+- [ ] P6–P10: separate issuers from listings; bind quotes, execution, batches and recovery to exact pools.
+- [ ] P11–P12: deliver the three member journeys and clarify holdings versus services offered.
+- [ ] P13: separate steward pool curation and authorized retrospective awards; resolve the award persistence gate.
+- [ ] P14: complete connected proof, exact rollout preparation and separately authorized activation.
+
+The amendment gives each checkpoint's owning files and completion evidence. Its acceptance matrix
+is the completion boundary for this topology. Real issuer terms, inventory allocations, source
+authority, pool policy and career-call availability remain operating inputs, not assumed approvals.
 
 ## PRD-1317 bounded source recovery (accepted 29 October Pacific)
 

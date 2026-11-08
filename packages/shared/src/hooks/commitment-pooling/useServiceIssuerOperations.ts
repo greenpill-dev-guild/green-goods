@@ -16,7 +16,7 @@ export function useServiceIssuerOperations(actor: ServiceIssuerActor | null) {
   const user = useUser();
   const sender = useTransactionSender();
   const online = useOnlineStatus();
-  const identity = `${user.authMode}:${user.primaryAddress}:${user.passkeyAccountProfile}:${actor?.routeId}:${actor?.assetId}:${actor?.address}`;
+  const identity = `${user.authMode}:${user.primaryAddress}:${user.passkeyAccountProfile}:${actor?.routeId}:${actor?.assetId}:${actor?.poolId}:${actor?.address}`;
   const current = useRef({ identity, generation: 0, user, sender, online });
   if (current.current.identity !== identity || current.current.sender !== sender)
     current.current.generation++;
@@ -39,7 +39,8 @@ export function useServiceIssuerOperations(actor: ServiceIssuerActor | null) {
   const key = commitmentPoolingKeys.issuerOperations(
     actor?.address,
     actor?.routeId,
-    actor?.assetId
+    actor?.assetId,
+    actor?.poolId
   );
   const refresh = () => client.invalidateQueries({ queryKey: key });
   const requiredActor = () => {
@@ -51,6 +52,24 @@ export function useServiceIssuerOperations(actor: ServiceIssuerActor | null) {
     retry: false,
     enabled: actor !== null,
     queryFn: () => operations.read(requiredActor()),
+  });
+  const lastExchange = useQuery({
+    queryKey: [...key, "last-exchange", identity],
+    enabled: actor !== null,
+    retry: false,
+    queryFn: () => operations.lastExchange(requiredActor()),
+  });
+  const quoteContinuation = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationFn: (input: { outputAssetId: string; amount: bigint }) =>
+      operations.quoteContinuation(requiredActor(), input.outputAssetId, input.amount),
+  });
+  const reviewContinuation = useMutation({
+    retry: false,
+    networkMode: "always",
+    mutationFn: (action: Extract<ServiceIssuerAction, { kind: "exchange" }>) =>
+      operations.reviewContinuation(requiredActor(), action),
   });
   const review = useMutation({
     retry: false,
@@ -71,7 +90,8 @@ export function useServiceIssuerOperations(actor: ServiceIssuerActor | null) {
       if (
         selected.address.toLowerCase() !== value.actor.address.toLowerCase() ||
         selected.routeId !== value.actor.routeId ||
-        selected.assetId !== value.actor.assetId
+        selected.assetId !== value.actor.assetId ||
+        selected.poolId !== value.actor.poolId
       )
         throw new Error("Selected issuer context changed; review again");
       return operations.execute(value);
@@ -84,5 +104,14 @@ export function useServiceIssuerOperations(actor: ServiceIssuerActor | null) {
     mutationFn: () => operations.reconcile(requiredActor()),
     onSettled: refresh,
   });
-  return { snapshot, quote, review, execute, reconcile };
+  return {
+    snapshot,
+    quote,
+    review,
+    execute,
+    reconcile,
+    lastExchange,
+    quoteContinuation,
+    reviewContinuation,
+  };
 }

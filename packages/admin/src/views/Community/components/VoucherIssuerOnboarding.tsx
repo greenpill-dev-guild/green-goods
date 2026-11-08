@@ -4,12 +4,17 @@ import {
   type ServiceIssuerDraftRecord,
   type ServiceIssuerListings,
   type ServiceIssuerRoute,
-  useServiceIssuerDrafts,
+  type ServiceIssuerDeskRecord,
+  useServiceIssuerDesk,
   useServiceIssuerListings,
 } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { AdminSelect } from "@/components/AdminTextField";
+import { VoucherIssuerDraftEditor } from "./VoucherIssuerDraftEditor";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { VoucherIssuerDialog, type VoucherIssuerDialogKind } from "./VoucherIssuerDialogs";
@@ -25,10 +30,12 @@ interface Props {
   rehearsal?: boolean;
   /** Member drafts from the stewards' draft desk; none exists before the first onboarding. */
   drafts?: readonly ServiceIssuerDraftRecord[];
-  /** Each reviewed token's admission and holding limit in the shared pool. */
+  /** Each reviewed token's admission and holding limit in its selected pool. */
   listings?: ServiceIssuerListings;
   onSend?: (draft: ServiceIssuerDraft) => void;
   onRemind?: (draft: ServiceIssuerDraft) => void;
+  onEdit?: (draft: ServiceIssuerDraft) => void;
+  toolbar?: ReactNode;
 }
 
 const PILL: Record<VoucherIssuerStatus, "success" | "warning" | "info" | "neutral"> = {
@@ -45,14 +52,112 @@ const PILL: Record<VoucherIssuerStatus, "success" | "warning" | "info" | "neutra
 
 /** The card in the protocol garden's Community, Coordination, on the live reads. */
 export function VoucherIssuerOnboarding({ canPrepare }: { canPrepare: boolean }) {
-  const drafts = useServiceIssuerDrafts();
+  const intl = useIntl();
+  const t = (key: string) => intl.formatMessage({ id: `cockpit.community.voucherDesk.${key}` });
+  const choices = SERVICE_ISSUER_ROUTES.flatMap((route) =>
+    route.pools.map((pool) => ({ route, pool, key: `${route.service.id}:${pool.id}` }))
+  );
+  const [selected, setSelected] = useState(choices[0]?.key ?? "");
+  const active = choices.find((choice) => choice.key === selected);
+  const desk = useServiceIssuerDesk(
+    active ? { routeId: active.route.service.id, poolId: active.pool.id } : null
+  );
+  const [editing, setEditing] = useState<ServiceIssuerDeskRecord | "new" | null>(null);
   const listings = useServiceIssuerListings();
+  const failed = desk.save.isError || desk.send.isError;
+  const edit = (draft: ServiceIssuerDraft) => {
+    const record = desk.records.find((r) => r.draft.id === draft.id);
+    if (record) setEditing(record);
+  };
+  const send = async (draft: ServiceIssuerDraft) => {
+    const record = desk.records.find((r) => r.draft.id === draft.id);
+    if (!canPrepare || desk.send.isPending || !record || record.draft.sentAt !== null) return;
+    try {
+      await desk.send.mutateAsync(record);
+      toastService.success({ title: t("sent") });
+    } catch {
+      toastService.error({ title: t("failed") });
+    }
+  };
   return (
-    <VoucherIssuerCard
-      canPrepare={canPrepare}
-      drafts={drafts.data?.status === "observed" ? drafts.data.records : []}
-      listings={listings.data}
-    />
+    <>
+      <VoucherIssuerCard
+        canPrepare={canPrepare}
+        routes={active ? [{ ...active.route, pools: [active.pool] }] : []}
+        drafts={desk.records}
+        listings={listings.data}
+        onEdit={edit}
+        onSend={(draft) => void send(draft)}
+        toolbar={
+          <div className="space-y-3">
+            <AdminSelect
+              label={t("pool")}
+              value={selected}
+              disabled={desk.save.isPending || desk.send.isPending}
+              onChange={(event) => {
+                setSelected(event.target.value);
+                setEditing(null);
+              }}
+            >
+              {choices.map((choice) => (
+                <option key={choice.key} value={choice.key}>
+                  {choice.pool.name}
+                </option>
+              ))}
+            </AdminSelect>
+            <p className="type-meta text-text-soft">{t("help")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                emphasis="secondary"
+                disabled={!canPrepare || !active || desk.load.isPending}
+                onClick={() => void desk.load.mutateAsync().catch(() => {})}
+              >
+                {t("load")}
+              </Button>
+              <Button
+                type="button"
+                disabled={!canPrepare || !active}
+                onClick={() => setEditing("new")}
+              >
+                {t("create")}
+              </Button>
+            </div>
+            {desk.load.isError || failed ? (
+              <Alert variant="error">{t(desk.load.isError ? "loadFailed" : "failed")}</Alert>
+            ) : null}
+            {desk.isLimited ? (
+              <p role="status" className="type-meta text-text-soft">
+                {t("limit")}
+              </p>
+            ) : null}
+          </div>
+        }
+      />
+      {editing && active ? (
+        <VoucherIssuerDraftEditor
+          key={`${active.key}:${editing === "new" ? "new" : `${editing.draft.id}:${editing.revision}`}`}
+          route={active.route}
+          pool={active.pool}
+          record={editing === "new" ? undefined : editing}
+          pending={desk.save.isPending}
+          onClose={() => setEditing(null)}
+          onSave={async (draft) => {
+            if (!canPrepare) throw new Error("Steward permission required");
+            try {
+              await desk.save.mutateAsync({
+                draft,
+                expectedRevision: editing === "new" ? null : editing.revision,
+              });
+              toastService.success({ title: t("saved") });
+            } catch (error) {
+              toastService.error({ title: t("failed") });
+              throw error;
+            }
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -69,6 +174,8 @@ export function VoucherIssuerCard({
   listings,
   onSend,
   onRemind,
+  onEdit,
+  toolbar,
 }: Props) {
   const intl = useIntl();
   const text = (key: string, values?: Record<string, string | number>) =>
@@ -85,6 +192,8 @@ export function VoucherIssuerCard({
         row.key === open.row.key &&
         row.route === open.row.route &&
         row.asset === open.row.asset &&
+        row.pool === open.row.pool &&
+        row.policy === open.row.policy &&
         row.record === open.row.record
     );
   const date = (seconds: bigint | null) =>
@@ -155,6 +264,7 @@ export function VoucherIssuerCard({
     >
       <h3 className="type-title-sm text-text-strong">{text("title")}</h3>
       <p className="type-meta text-text-soft">{text("help")}</p>
+      {toolbar}
       {rehearsal ? (
         <p role="status" className="type-meta text-text-soft">
           {text("fictional")}
@@ -179,6 +289,7 @@ export function VoucherIssuerCard({
                     {view.title}
                   </p>
                   <p className="type-meta text-text-soft">
+                    {row.pool ? `${row.pool.name} · ` : ""}
                     {text(row.kind)} · {view.meta}
                   </p>
                   <StatusBadge size="sm" variant={PILL[row.status]} showIcon={false}>
@@ -200,6 +311,17 @@ export function VoucherIssuerCard({
                       {label}
                     </Button>
                   ))}
+                  {onEdit && row.record ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      emphasis="tertiary"
+                      disabled={!canPrepare}
+                      onClick={() => onEdit(row.record!.draft)}
+                    >
+                      {intl.formatMessage({ id: "cockpit.community.voucherDesk.edit" })}
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             );

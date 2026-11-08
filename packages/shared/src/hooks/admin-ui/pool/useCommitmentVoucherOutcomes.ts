@@ -62,7 +62,8 @@ export function useCommitmentVoucherOutcomes(input: {
     () =>
       selectCommitmentVoucherOutcomes(access.data, issuers, {
         routes: SERVICE_ISSUER_ROUTES,
-        listing: (routeId, assetId) => listings?.get(serviceIssuerListingKey(routeId, assetId)),
+        listing: (routeId, poolId, assetId) =>
+          listings?.get(serviceIssuerListingKey(routeId, poolId, assetId)),
       }),
     [access.data, issuers, listings]
   );

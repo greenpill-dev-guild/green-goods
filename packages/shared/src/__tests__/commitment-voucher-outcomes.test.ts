@@ -113,9 +113,30 @@ describe("a promise's voucher outcomes for its stewards", () => {
       reviewed = asset("individual")
     ) =>
       selectCommitmentVoucherOutcomes(hubDay, [], {
-        routes: [{ service: { id: "member-route" }, assets: [reviewed] }],
-        listing: (routeId, assetId) =>
-          routeId === "member-route" && assetId === "lesson" ? listing : undefined,
+        routes: [
+          {
+            service: { id: "member-route" },
+            assets: [reviewed],
+            pools: [
+              {
+                id: "local",
+                garden: hubDay.offer!.providerGarden,
+                listings: [
+                  {
+                    assetId: reviewed.id,
+                    poolHoldingCap: 6_000_000n,
+                    priceIndex: 1n,
+                    delisting: reviewed.delisting,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        listing: (routeId, poolId, assetId) =>
+          routeId === "member-route" && poolId === "local" && assetId === "lesson"
+            ? listing
+            : undefined,
       })!.payment!.admission;
 
     expect(admission({ admitted: true, limit: 6_000_000n, holding: 2_000_000n })).toEqual({

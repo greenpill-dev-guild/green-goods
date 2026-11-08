@@ -958,6 +958,126 @@
       "safe_claims": []
     },
     {
+      "ref": "entity:service-voucher",
+      "id": "service-voucher",
+      "kind": "entity",
+      "canonical": "Service Voucher",
+      "definition": "An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "aliases": [],
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "offered-in"
+        },
+        {
+          "to": "commitment",
+          "kind": "can-reward-or-access"
+        }
+      ],
+      "maturity": {
+        "ref": "entity:service-voucher",
+        "implementation": "implemented",
+        "deployment": "deployed",
+        "activation": "inactive",
+        "integration": "partial",
+        "availability": "in-build",
+        "evidence": [
+          {
+            "file": "packages/contracts/deployments/100-pilot-downstream.json",
+            "note": "Existing Green Goods and Tech and Sun vouchers and reserve/redemption endpoints are deployed. Broader two-pool service use remains subject to reviewed inventory, service capacity, and activation."
+          },
+          {
+            "file": "packages/contracts/test/fork/GnosisVoucherPilot.t.sol",
+            "note": "Focused real-runtime fork proof passed 24 tests on 2026-11-08, including request reward, redemption, member vouchers, and separate local/Green Goods exchanges. This is implementation proof, not live activation."
+          }
+        ],
+        "verified_at": "2026-11-08"
+      },
+      "safe_claims": []
+    },
+    {
+      "ref": "entity:voucher-exchange-pool",
+      "id": "voucher-exchange-pool",
+      "kind": "entity",
+      "canonical": "Voucher Exchange Pool",
+      "definition": "A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "aliases": [],
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "serves"
+        },
+        {
+          "to": "service-voucher",
+          "kind": "lists-and-exchanges"
+        }
+      ],
+      "maturity": {
+        "ref": "entity:voucher-exchange-pool",
+        "implementation": "implemented",
+        "deployment": "deployed",
+        "activation": "inactive",
+        "integration": "partial",
+        "availability": "in-build",
+        "evidence": [
+          {
+            "file": "packages/contracts/config/clc-garden-exchanges.json",
+            "note": "The two-pool configuration adopts the existing live Green Goods pool; the additional Tech and Sun pool has no approved production address. Deployer, nonce, financial policy, inventory, and one-approval Safe policy remain activation prerequisites."
+          },
+          {
+            "file": "packages/contracts/script/utils/clc-garden-execution.test.ts",
+            "note": "Focused tests cover plan and receipt binding, exact replacement recovery, immutable deployment evidence, and rejection of simulated registration evidence."
+          }
+        ],
+        "verified_at": "2026-11-08"
+      },
+      "safe_claims": []
+    },
+    {
+      "ref": "entity:voucher-award",
+      "id": "voucher-award",
+      "kind": "entity",
+      "canonical": "Voucher Award",
+      "definition": "A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "aliases": [],
+      "relationships": [
+        {
+          "to": "service-voucher",
+          "kind": "transfers"
+        },
+        {
+          "to": "garden",
+          "kind": "recognizes-contribution-to"
+        }
+      ],
+      "maturity": {
+        "ref": "entity:voucher-award",
+        "implementation": "implemented",
+        "deployment": "not-deployed",
+        "activation": "inactive",
+        "integration": "partial",
+        "availability": "in-build",
+        "evidence": [
+          {
+            "file": "packages/agent/src/__tests__/voucher-awards.test.ts",
+            "note": "Service tests cover durable award identity, authorization, replay conflicts, and reconciliation. The new award service has not been promoted by this implementation task."
+          },
+          {
+            "file": "packages/agent/src/__tests__/voucher-awards-chain.test.ts",
+            "note": "Chain verification tests cover the exact reserve transfer and Safe execution; prepared records are not payments."
+          }
+        ],
+        "verified_at": "2026-11-08"
+      },
+      "safe_claims": []
+    },
+    {
       "ref": "persona:gardener",
       "id": "gardener",
       "kind": "persona",

@@ -37,7 +37,7 @@ const OPEN_PHASES = new Set(["authorized", "deposited", "active"]);
 const bookingOpen = (b: ServiceIssuerBooking) =>
   !b.finalAllocation && OPEN_PHASES.has(b.result.phase) && b.result.decision !== "abort";
 
-export interface IssuerCapacity {
+interface IssuerCapacity {
   promised: bigint | null;
   booked: bigint | null;
   delivered: bigint | null;
@@ -98,25 +98,26 @@ export function issuerEscrowed(snapshot: Onchain): bigint | null {
   );
 }
 
-export type IssuerListing = "setup" | "listed" | "paused" | "delisted";
+type IssuerListing = "setup" | "listed" | "paused" | "delisted" | "unavailable";
 
 /**
  * The pool takes the token in: admitted under a holding limit, so Green Goods' side of setup is
  * done. A registered token whose cap hasn't landed is still being admitted, not delisted.
  */
 export const issuerAdmitted = (snapshot: Onchain) =>
-  issuerPoolStatus(snapshot.pool, snapshot.asset) === "listed";
+  snapshot.pool !== null && issuerPoolStatus(snapshot.pool) === "listed";
 
 /** The pill: where the token stands in the pool, and whether the member has paused it. */
 export function issuerListing(snapshot: Onchain): IssuerListing {
-  const pool = issuerPoolStatus(snapshot.pool, snapshot.asset);
+  if (!snapshot.pool) return "unavailable";
+  const pool = issuerPoolStatus(snapshot.pool);
   if (pool !== "listed") return pool;
   if (snapshot.reserveEnabled) return "listed";
   // Before the member's own setup nothing is in the pool and nobody has booked.
   return snapshot.pool.holding > 0n || snapshot.bookings.records.length > 0 ? "paused" : "setup";
 }
 
-export type IssuerStage =
+type IssuerStage =
   | "pending"
   | "approve"
   | "admitting"
@@ -138,6 +139,14 @@ export function issuerStage(
     : undefined;
   if (booking) return { stage: "approve", booking };
   const listing = issuerListing(snapshot);
+  if (listing === "unavailable")
+    return {
+      stage: snapshot.reserveEnabled
+        ? snapshot.reserveAllowance === 0n
+          ? "short"
+          : "ok"
+        : "paused",
+    };
   if (listing === "setup") return { stage: issuerAdmitted(snapshot) ? "setup" : "admitting" };
   if (listing === "delisted" || listing === "paused") return { stage: listing };
   return { stage: snapshot.reserveAllowance === 0n ? "short" : "ok" };

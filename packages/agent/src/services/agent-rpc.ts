@@ -4,7 +4,7 @@ import {
   type LocalForkEnv,
   shouldUseLocalArbitrumForkRpc,
 } from "@green-goods/shared/config/local-fork";
-import { arbitrum, celo, mainnet, optimism, sepolia } from "viem/chains";
+import { arbitrum, celo, gnosis, mainnet, optimism, sepolia } from "viem/chains";
 
 export type AgentRpcEnv = Pick<
   NodeJS.ProcessEnv,
@@ -16,8 +16,7 @@ export type AgentRpcEnv = Pick<
   | "VITE_RPC_URL_11155111"
   | "ALCHEMY_API_KEY"
   | "ALCHEMY_KEY"
-> &
-  LocalForkEnv;
+> & { GNOSIS_RPC_URL?: string } & LocalForkEnv;
 
 const CHAIN_RPC_ENV: Record<number, keyof AgentRpcEnv> = {
   1: "ETHEREUM_RPC_URL",
@@ -25,11 +24,12 @@ const CHAIN_RPC_ENV: Record<number, keyof AgentRpcEnv> = {
   42161: "ARBITRUM_RPC_URL",
   42220: "CELO_RPC_URL",
   10: "OPTIMISM_RPC_URL",
+  100: "GNOSIS_RPC_URL",
 };
 
 /** Each chain's own public endpoint: rate limited, but it answers without a key. */
 const PUBLIC_RPC: Record<number, string | undefined> = Object.fromEntries(
-  [mainnet, sepolia, arbitrum, celo, optimism].map((chain) => [
+  [mainnet, sepolia, arbitrum, celo, optimism, gnosis].map((chain) => [
     chain.id,
     chain.rpcUrls.default.http[0],
   ])
@@ -63,6 +63,8 @@ export function resolveAgentRpc(chainId: number, env: AgentRpcEnv = process.env)
     return { url: getLocalArbitrumForkRpcUrl(env), source: "fork" };
   }
   const alchemyKey = env.ALCHEMY_API_KEY || env.ALCHEMY_KEY;
+  // Voucher reserves live on Gnosis, outside the source-garden deployment map.
+  if (chainId === gnosis.id) return { url: gnosis.rpcUrls.default.http[0], source: "public" };
   if (alchemyKey) return { url: getNetworkConfig(chainId, alchemyKey).rpcUrl, source: "alchemy" };
   // A chain with no public endpoint listed here is a local one, whose address carries no key.
   return { url: PUBLIC_RPC[chainId] ?? getNetworkConfig(chainId).rpcUrl, source: "public" };

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import { ServiceIssuerOnboarding } from "./ServiceIssuerOnboarding";
 import { issuerStoryDraftRecord } from "./serviceIssuerStoryFixtures";
 
@@ -13,6 +13,10 @@ const meta: Meta<typeof ServiceIssuerOnboarding> = {
   component: ServiceIssuerOnboarding,
   tags: ["autodocs"],
   parameters: { layout: "padded" },
+  beforeEach: ({ args }) => {
+    mocked(args.onApprove).mockReset().mockResolvedValue(undefined);
+  },
+  argTypes: { record: { control: false } },
   decorators: [
     (Story) => (
       <div className="mx-auto max-w-lg space-y-4">
@@ -27,7 +31,7 @@ const meta: Meta<typeof ServiceIssuerOnboarding> = {
     record: issuerStoryDraftRecord("review"),
     canSign: true,
     approving: false,
-    onApprove: fn().mockResolvedValue(undefined),
+    onApprove: fn(),
     onAskForChanges: fn(),
     onDecline: fn(),
   },
@@ -49,3 +53,8 @@ export const ApprovedSetupPending: Story = { args: { record: issuerStoryDraftRec
 export const DraftChanged: Story = { args: { record: issuerStoryDraftRecord("changed") } };
 export const Declined: Story = { args: { record: issuerStoryDraftRecord("declined") } };
 export const SigningNotAvailable: Story = { args: { canSign: false } };
+
+/** Editing a durable sent draft removes the old approval; the new terms still need consent. */
+export const EditedAwaitingApproval: Story = {
+  args: { record: { ...issuerStoryDraftRecord("changed"), approval: null } },
+};

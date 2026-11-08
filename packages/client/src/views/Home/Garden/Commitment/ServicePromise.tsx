@@ -1,26 +1,25 @@
+import type { ServicePromiseProps } from "./servicePromiseTypes";
 import {
-  type CommitmentDerivedState,
-  type CommitmentReadModel,
   isCommitmentCreator,
   isDemoPoolingActive,
   type ServiceAccessAction,
-  type ServiceAccessKey,
-  type ServiceAccessSnapshot,
   serviceVoucherHolder,
+  serviceIssuerExchangeChoices,
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
 } from "@green-goods/shared/commitment-pooling";
+import type { Address } from "@green-goods/shared/types/domain";
 import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import type { Hex } from "viem";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { CommitmentActionBar } from "./CommitmentActionBar";
-import type { CommitmentIdentityProps } from "./CommitmentIdentity";
 import { type EarnedAgreeOutcome, EarnedRewardAgreeSheet } from "./EarnedRewardAgreeSheet";
 import { JoinToActDoor } from "./JoinToAct";
+import { ServiceLiveExchange } from "./ServiceLiveExchange";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
@@ -49,7 +48,7 @@ import {
   ownServiceOfferView,
   serviceBookingView,
 } from "./serviceBooking";
-import type { ServiceActKind, ServiceBookingView } from "./serviceBookingTypes";
+import type { ServiceActKind } from "./serviceBookingTypes";
 import {
   exchangeAvailable,
   exchangeQuoteFromPilot,
@@ -58,53 +57,6 @@ import {
 } from "./serviceExchange";
 import { serviceRewardsView } from "./serviceRewards";
 import { VoucherPilotJourney } from "./VoucherPilotJourney";
-
-/** What a voucher booking or a request's rewards hand the promise page. */
-export interface ServicePromiseParts {
-  band: CommitmentIdentityProps["serviceBand"];
-  /** What a booking of the reader's own voucher offer takes, for What was promised. */
-  takes: string | null;
-  /** The door under the band and the service's section card, in the page's order. */
-  body: ReactNode;
-  /** The service's own bar, or null when the promise's act leads. */
-  bar: ReactNode | null;
-  delivery: ServiceBookingView["delivery"];
-  bookingLines: ServiceBookingView["events"];
-  /** Promise kept? after a booking's split: the strip, the split and its note. */
-  confirm: ServiceBookingView["confirm"];
-  /** A request's rewards draw in their own section, which leads with the vouchers. */
-  rewards: boolean;
-  sheets: ReactNode;
-}
-
-export interface ServicePromiseProps {
-  serviceKey: ServiceAccessKey | null;
-  /** The page's read of the service, which also settles its own acts. */
-  access: {
-    data?: ServiceAccessSnapshot | null;
-    refetch: () => unknown;
-    isFetching?: boolean;
-    isError?: boolean;
-    dataUpdatedAt?: number;
-  };
-  coreState: CommitmentDerivedState;
-  /** Who made the promise: the chain refuses their own take-up, so they read no buyer's path. */
-  creator: CommitmentReadModel["creator"];
-  /** The request's garden, whose pool pays any G$. */
-  gardenName: string;
-  heading: string;
-  /** The promise has its own act (Confirm It Was Kept), which leads where the booking has none. */
-  hasCoreAct: boolean;
-  isOnline: boolean;
-  /** Report a Problem raises a dispute, which the chain takes only from some readers. */
-  onReport: (() => void) | null;
-  /**
-   * The reader's take-up of a request, when the page offers one: at once (open) or by asking its
-   * stewards. A request's voucher reward is agreed to first, from the reward's own bar.
-   */
-  takeUp: { mode: "open" | "reviewed"; run: () => void } | null;
-  children: (parts: ServicePromiseParts) => ReactNode;
-}
 
 /**
  * A voucher booking, or a request's rewards, on the promise page. It reads the voucher wallet
@@ -139,10 +91,20 @@ export function ServicePromise({
         : null,
     [walletChain, walletModule, walletAccount]
   );
-  const wallet = useVoucherWallet(walletScope).data;
+  const walletQuery = useVoucherWallet(walletScope);
+  const wallet = walletQuery.data;
+  const liveExchangeChoices = serviceIssuerExchangeChoices(snapshot, wallet);
+  const canExchange = Boolean(
+    snapshot && (exchangeAvailable(snapshot) || liveExchangeChoices.length)
+  );
   const issuer = bookingVoucherIssuer(snapshot, wallet?.issuers);
   const approval = useVoucherIssuerApproval(issuer).data ?? null;
   const [sheet, setSheet] = useState<ServiceSheet>(null);
+  // Keep the chosen checkout visible through wallet refresh so its receipt is not lost on success.
+  const [liveCheckout, setLiveCheckout] = useState<{
+    choices: ReturnType<typeof serviceIssuerExchangeChoices>;
+    account: Address;
+  } | null>(null);
   const [outcome, setOutcome] = useState<ServiceRedeemOutcome>(null);
   const [reviewed, setReviewed] = useState<{ revision: bigint; units: bigint } | null>(null);
   const [running, setRunning] = useState(false);
@@ -152,7 +114,11 @@ export function ServicePromise({
   const [agreeOutcome, setAgreeOutcome] = useState<EarnedAgreeOutcome>(null);
 
   const held = issuer
-    ? (wallet?.holdings.find((entry) => entry.issuer.account === issuer.account)?.available ?? null)
+    ? (wallet?.holdings.find(
+        (entry) =>
+          entry.issuer.asset.chainId === issuer.asset.chainId &&
+          entry.issuer.asset.token.toLowerCase() === issuer.asset.token.toLowerCase()
+      )?.available ?? null)
     : null;
   // A paused contract stops every new booking; a paused issuer, its own.
   const paused =
@@ -215,6 +181,11 @@ export function ServicePromise({
   const runOnce = (action: ServiceAccessAction) =>
     act((current) => (current === snapshot ? action : null));
   const openExchange = () => {
+    setLiveCheckout(
+      liveExchangeChoices.length && walletAccount
+        ? { choices: liveExchangeChoices, account: walletAccount }
+        : null
+    );
     setReviewingExchange(false);
     setSheet("exchange");
     if (snapshot?.pilot && !snapshot.pilot.exchange.quote)
@@ -259,6 +230,7 @@ export function ServicePromise({
   // The bar offers an act only when the shared selector offers its first write. Deposit's sheet
   // and a paused or offline offer say why an act can't run; any other refusal hides the act.
   const shown = (kind: ServiceActKind) =>
+    (kind === "exchange" && canExchange) ||
     kind === "deposit" ||
     (kind === "redeem" && blocked !== null) ||
     (snapshot !== null && serviceActOffered(kind, snapshot, booking?.split ?? null));
@@ -358,7 +330,7 @@ export function ServicePromise({
                 title={booking.door.title}
                 line={booking.door.body}
                 door={
-                  booking.door.act && snapshot && exchangeAvailable(snapshot)
+                  booking.door.act && snapshot && canExchange
                     ? {
                         label: booking.door.act.label,
                         icon: <RiExchangeLine className="h-4 w-4" aria-hidden="true" />,
@@ -414,6 +386,17 @@ export function ServicePromise({
     rewards: rewards !== null,
     sheets: (
       <>
+        {sheet === "exchange" && liveCheckout && liveCheckout.account === walletAccount ? (
+          <ServiceLiveExchange
+            choices={liveCheckout.choices}
+            account={liveCheckout.account}
+            onClose={() => setSheet(null)}
+            onRefresh={async () => {
+              await walletQuery.refetch();
+              await access.refetch();
+            }}
+          />
+        ) : null}
         {booking && snapshot ? (
           <ServiceBookingSheets
             booking={booking}
@@ -445,6 +428,7 @@ export function ServicePromise({
             }}
             onReport={report}
             exchange={{
+              available: canExchange,
               quote: wallet ? exchangeQuoteFromPilot(snapshot, wallet) : null,
               reviewing: reviewingExchange,
               onOpen: openExchange,

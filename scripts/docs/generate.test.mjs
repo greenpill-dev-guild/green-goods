@@ -351,6 +351,12 @@ test("API index lists every public path the Agent API and its route contracts wr
     rendered,
     /^\| `\/public\/saved-offers\/:savedOfferId` \| `DELETE`, `GET`, `OPTIONS`, `PUT` \| none \| `routes\/saved-offer-records\.ts` \|$/m,
   );
+  for (const [route, constant, source] of [
+    ["service-issuer-desk", "SERVICE_ISSUER_DESK_ROUTE", "service-issuer-desk"],
+    ["voucher-awards", "VOUCHER_AWARDS_ROUTE", "voucher-awards"],
+  ]) {
+    assert.ok(rendered.includes(`| \`/public/${route}\` | \`OPTIONS\`, \`POST\` | \`${constant}\` | \`routes/${source}.ts\` |`));
+  }
 });
 
 test("a field recorded on another network counts for the network that depends on it", () => {
@@ -769,7 +775,7 @@ test("data model projects layered diagrams, every relationship, and all lifecycl
   const ontology = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
   const flowcharts = blocks.filter((block) => block.startsWith("flowchart"));
   const machines = blocks.filter((block) => block.startsWith("stateDiagram-v2"));
-  assert.equal(flowcharts.length, 3);
+  assert.equal(flowcharts.length, 4);
   assert.equal(machines.length, ontology.state_machines.length);
   assert.match(rendered, /## Lifecycles/);
   const memberCount = (blocks.join("\n").match(/\]:::member/g) ?? []).length;
@@ -782,7 +788,8 @@ test("data model projects layered diagrams, every relationship, and all lifecycl
   assert.equal(renderedEdges, expectedEdges);
   assert.match(flowcharts[0], /garden\[[^\]]*\]:::member/);
   assert.doesNotMatch(flowcharts[0], /commitment_pool\[[^\]]*\]:::member/);
-  assert.match(flowcharts[2], /commitment_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[2], /voucher_exchange_pool\[[^\]]*\]:::member/);
+  assert.match(flowcharts[3], /commitment_pool\[[^\]]*\]:::member/);
   // Mermaid ends a state-diagram label at `;` or `:`; a long label is unreadable on the arrow.
   const arrowLines = machines.flatMap((block) => block.split("\n").filter((line) => line.includes("-->")));
   const expectedArrows = ontology.state_machines.reduce(

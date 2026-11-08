@@ -336,6 +336,17 @@ test('live pilot packaging requires four component plans and has no compound sim
   }
 });
 
+test('garden downstream extension binds plan and manifest and separates receipt verification from signing', () => {
+  const inputs = '--manifest config/clc-garden-exchanges.json --plan .generated/clc-release/garden.plan.json';
+  const verified = resolve(`release downstream --mode verify ${inputs}`);
+  assert.ok(verified.args.includes('--verify'));
+  assert.ok(verified.args.includes('--manifest'));
+  assert.ok(!verified.capabilities.includes('authorized signer'));
+  assert.ok(resolve(`release downstream --mode broadcast ${inputs}`).args.includes('--broadcast'));
+  for (const suffix of ['--mode verify', '--mode simulate --manifest config/garden.json', '--mode broadcast --plan plan.json', '--mode simulate --receipts receipts.json'])
+    assert.throws(() => resolve(`release downstream ${suffix}`));
+});
+
 test('CLC and pilot handlers reject unsafe paths and modes before compilation', () => {
   for (const [handler, args, expected] of [
     ['clc-release.ts', ['--preflight', '--plan', 'unexpected.json'], /exactly one CLC release mode/],

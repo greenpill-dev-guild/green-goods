@@ -7,7 +7,11 @@ import type { ServiceAccessSnapshot } from "./service-access-types";
 import type { ServiceVoucherSetup } from "./service-access-voucher-types";
 import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import { discoverWalletVoucherSetups } from "./data-voucher-service";
-import { issuerPoolStatus } from "./service-issuer-pool";
+import {
+  readVoucherExchangeListings,
+  voucherExchangeStanding,
+} from "./service-issuer-wallet-pools";
+import { verifyServiceDeploymentState } from "./service-access-live-route";
 import { SERVICE_ISSUER_ROUTES } from "./service-issuer-metadata";
 import type { ServiceIssuerRoute } from "./service-issuer-types";
 import { SERVICE_LIVE_ROUTES, type ServiceLiveRoute } from "./service-access-live-config";
@@ -117,7 +121,16 @@ export function voucherWalletFromSetups(input: {
 }): VoucherWalletSnapshot {
   const holder = input.scope.account.toLowerCase();
   const own = input.setups.filter((setup) => setup.authorization.holder.toLowerCase() === holder);
-  const holdings: VoucherHolding[] = input.issuers.map((issuer) => ({
+  const unique = new Map<string, VoucherIssuer>();
+  for (const issuer of input.issuers) {
+    const key = `${issuer.asset.chainId}:${issuer.asset.token.toLowerCase()}`;
+    const existing = unique.get(key);
+    if (existing && existing.account.toLowerCase() !== issuer.account.toLowerCase())
+      throw new Error("Conflicting voucher issuer identity");
+    if (!existing) unique.set(key, issuer);
+  }
+  const issuers = [...unique.values()];
+  const holdings: VoucherHolding[] = issuers.map((issuer) => ({
     issuer,
     available:
       input.balances.find(
@@ -129,7 +142,7 @@ export function voucherWalletFromSetups(input: {
     evidence: input.evidence,
     complete: input.complete,
     reason: null,
-    issuers: input.issuers,
+    issuers,
     holdings,
     bookings: own.map(voucherBookingEscrow).filter((escrow) => escrow.stage !== "closed"),
     returns: own.flatMap((setup) => voucherPendingReturn(setup) ?? []),
@@ -172,11 +185,11 @@ export function serviceVoucherHolder(
 type VoucherWalletRouteScope = Pick<VoucherWalletScope, "sourceChainId" | "coreModule">;
 
 /** The reviewed route that serves a wallet scope's chain and core module, if the build has one. */
-function voucherWalletRoute(
+function voucherWalletRoutes(
   scope: VoucherWalletRouteScope,
   routes: readonly ServiceLiveRoute[]
-): ServiceLiveRoute | undefined {
-  return routes.find(
+): ServiceLiveRoute[] {
+  return routes.filter(
     (r) =>
       r.sourceChainId === scope.sourceChainId &&
       r.core.address.toLowerCase() === scope.coreModule.toLowerCase()
@@ -189,7 +202,7 @@ function voucherWalletRoute(
  * needs no read, so a surface can list the wallet's Vouchers tab at once and let the read fill it.
  */
 export function hasVoucherWalletRoute(scope: VoucherWalletRouteScope): boolean {
-  return Boolean(voucherWalletRoute(scope, SERVICE_LIVE_ROUTES)?.walletState);
+  return Boolean(voucherWalletRoutes(scope, SERVICE_LIVE_ROUTES)[0]?.walletState);
 }
 
 /** Index discovery never replaces canonical balances, authorization or escrow results. */
@@ -204,50 +217,62 @@ export async function readLiveVoucherWallet(
   } = {}
 ): Promise<VoucherWalletSnapshot> {
   try {
-    const route = voucherWalletRoute(scope, dependencies.routes ?? SERVICE_LIVE_ROUTES);
+    const routes = voucherWalletRoutes(scope, dependencies.routes ?? SERVICE_LIVE_ROUTES);
+    const route = routes[0];
     if (!route?.walletState) return unavailableVoucherWallet(scope, "routes-unconfigured");
     const chain = dependencies.chain ?? serviceLiveChain;
     const reader = dependencies.reader ?? greenGoodsIndexer;
-    await verifyServiceLiveRoute(route, chain);
-    const state = route.walletState;
+    await Promise.all(routes.map((entry) => verifyServiceLiveRoute(entry, chain)));
+    const assets = new Map<
+      string,
+      { asset: ServiceLiveRoute["assets"][number]; adapter: Address }
+    >();
+    for (const entry of routes) {
+      if (!entry.walletState) throw new Error("Voucher reserve route unavailable");
+      await verifyServiceDeploymentState(entry.walletState.adapter, 100, chain);
+      for (const asset of entry.assets) {
+        const key = asset.token.toLowerCase();
+        const previous = assets.get(key);
+        if (
+          previous &&
+          (previous.asset.issuer.toLowerCase() !== asset.issuer.toLowerCase() ||
+            previous.adapter.toLowerCase() !== entry.walletState.adapter.address.toLowerCase())
+        )
+          throw new Error("Conflicting voucher issuer or reserve adapter identity");
+        if (!previous) assets.set(key, { asset, adapter: entry.walletState.adapter.address });
+      }
+    }
+    const catalog = (dependencies.issuerRoutes ?? SERVICE_ISSUER_ROUTES).filter(
+      (entry) =>
+        entry.service.sourceChainId === scope.sourceChainId &&
+        entry.service.core.address.toLowerCase() === scope.coreModule.toLowerCase()
+    );
     const stateAbi = parseAbi([
       "function assetAuthorizations(address issuer,address token) view returns(address issuerAuthority,bool enabled)",
       "function have(address token) view returns(bool)",
       "function limitOf(address token,address pool) view returns(uint256)",
     ]);
     const issuers: VoucherIssuer[] = await Promise.all(
-      route.assets.map(async (asset) => {
+      [...assets.values()].map(async ({ asset, adapter }) => {
         const read = (address: Address, functionName: string, args: readonly unknown[]) =>
           chain.read({ chainId: 100, address, abi: stateAbi, functionName, args });
-        const [authorization, admitted, cap, poolHolding] = await Promise.all([
-          read(state.adapter.address, "assetAuthorizations", [asset.issuer, asset.token]),
-          read(state.registry.address, "have", [asset.token]),
-          read(state.limiter.address, "limitOf", [asset.token, state.pool.address]),
-          chain.read({
-            chainId: 100,
-            address: asset.token,
-            abi: erc20Abi,
-            functionName: "balanceOf",
-            args: [state.pool.address],
-          }),
+        const authorization = await read(adapter, "assetAuthorizations", [
+          asset.issuer,
+          asset.token,
         ]);
         const reserve = serviceTuple(authorization, ["issuerAuthority", "enabled"]);
-        const reviewedAsset = (dependencies.issuerRoutes ?? SERVICE_ISSUER_ROUTES)
-          .filter(
-            (issuerRoute) =>
-              issuerRoute.service.sourceChainId === scope.sourceChainId &&
-              issuerRoute.service.core.address.toLowerCase() === scope.coreModule.toLowerCase()
-          )
-          .flatMap((issuerRoute) => issuerRoute.assets)
+        const reviewedAsset = catalog
+          .flatMap((entry) => entry.assets)
           .find(
             (candidate) =>
               candidate.token.address.toLowerCase() === asset.token.toLowerCase() &&
               candidate.ownerReserve.toLowerCase() === asset.issuer.toLowerCase()
           );
+        const exchanges = await readVoucherExchangeListings(catalog, asset.token, chain);
         const services = reviewedAsset?.service.offers;
         return {
           account: asset.issuer,
-          kind: "collective" as const,
+          kind: reviewedAsset?.kind ?? ("collective" as const),
           name: asset.issuerName ?? asset.symbol,
           gender: null,
           services:
@@ -274,23 +299,17 @@ export async function readLiveVoucherWallet(
             symbol: asset.symbol,
             decimals: asset.decimals,
           },
-          // The member-row PR consumes these canonical states; delisting does not remove holdings.
+          exchanges,
+          // Delisting in an exchange does not remove holdings or booked service obligations.
           standing: {
             bookings: serviceFlag(reserve.enabled) ? ("open" as const) : ("paused" as const),
-            exchange: issuerPoolStatus(
-              {
-                admitted: serviceFlag(admitted),
-                limit: serviceUint(cap),
-                holding: serviceUint(poolHolding),
-              },
-              { delisting: reviewedAsset?.delisting ?? null }
-            ),
+            exchange: voucherExchangeStanding(exchanges),
           },
         };
       })
     );
     const balances = await Promise.all(
-      route.assets.map(async (asset) => ({
+      [...assets.values()].map(async ({ asset }) => ({
         token: asset.token,
         amount: serviceUint(
           await chain.read({

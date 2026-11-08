@@ -1,3 +1,4 @@
+import { ServiceIssuerReceipt } from "./ServiceIssuerReceipt";
 import type {
   ServiceIssuerAction,
   ServiceIssuerAsset,
@@ -15,9 +16,13 @@ import { ServiceIssuerBookings } from "./ServiceIssuerBookings";
 import { ServiceIssuerForm } from "./ServiceIssuerForm";
 import { ServiceIssuerOverview } from "./ServiceIssuerOverview";
 import { type IssuerIntent, ServiceIssuerReview } from "./ServiceIssuerReview";
-import { issuerAmount, issuerListing, issuerStage } from "./serviceIssuerPresentation";
+import { ServiceIssuerActions } from "./ServiceIssuerActions";
+import { issuerAmount, issuerListing } from "./serviceIssuerPresentation";
 
 interface Props {
+  /** Checkout spends held vouchers without displaying issuer administration. */
+  holderOnly?: boolean;
+  poolName?: string;
   snapshot?: ServiceIssuerSnapshot;
   assets: readonly ServiceIssuerAsset[];
   isLoading?: boolean;
@@ -32,12 +37,6 @@ interface Props {
   }) => Promise<ServiceIssuerExchangeQuote>;
 }
 
-interface SectionAct {
-  id: string;
-  label: string;
-  run: () => void;
-}
-
 /**
  * Command Surface: balances are observations; signing always follows a separate exact review.
  * The issuer's acts are named (approve a booking, propose a return, issue more, approve for
@@ -45,6 +44,8 @@ interface SectionAct {
  * minutes, and only one transaction is ever pending at a time.
  */
 export function ServiceIssuerPanel({
+  holderOnly = false,
+  poolName,
   snapshot,
   assets,
   isLoading,
@@ -70,6 +71,7 @@ export function ServiceIssuerPanel({
   const inFlight = useRef(false);
   const [outcome, setOutcome] = useState<ServiceIssuerOutcome | null>(null);
   const [sentAction, setSentAction] = useState<ServiceIssuerAction | null>(null);
+  const [sentPool, setSentPool] = useState<{ name: string; address: string } | null>(null);
   const [uncertain, setUncertain] = useState(false);
   const [error, setError] = useState(false);
   const scope =
@@ -133,15 +135,29 @@ export function ServiceIssuerPanel({
     );
   const asset = snapshot.asset;
   const ownsReserve =
+    !holderOnly &&
     asset.kind === "individual" &&
-    snapshot.actor.address.toLowerCase() === asset.ownerReserve.toLowerCase() &&
-    snapshot.actor.address.toLowerCase() === asset.sourceAuthority.toLowerCase();
+    snapshot.actor.address.toLowerCase() === asset.ownerReserve.toLowerCase();
   const pendingReview =
     snapshot.pending?.review ?? (outcome?.status === "pending" ? outcome.pending.review : null);
   const pending = Boolean(snapshot.pending || outcome?.status === "pending" || uncertain);
+  const poolContext = (value: Review) => {
+    if (!["exchange", "approveExchange", "revokeExchange"].includes(value.action.kind)) return null;
+    const address = value.action.kind === "exchange" ? value.call.address : value.call.args[0];
+    return {
+      name:
+        value.actor.poolId === snapshot.actor.poolId
+          ? (poolName ?? value.actor.poolId ?? text("unknown"))
+          : (value.actor.poolId ?? text("unknown")),
+      address: typeof address === "string" ? address : text("unknown"),
+    };
+  };
   const checkStatus = () =>
     void run(async () => {
-      if (pendingReview) setSentAction(pendingReview.action);
+      if (pendingReview) {
+        setSentAction(pendingReview.action);
+        setSentPool(poolContext(pendingReview));
+      }
       const result = await onReconcile();
       setOutcome(result);
       setUncertain(false);
@@ -153,119 +169,52 @@ export function ServiceIssuerPanel({
     sentAction?.kind === "exchange"
       ? assets.find((a) => a.id === sentAction.outputAssetId)
       : undefined;
-  const allowance = snapshot.reserveAllowance ?? 0n;
-  const stage = issuerStage(snapshot, pending).stage;
   const listing = issuerListing(snapshot);
-  const issue: SectionAct = {
-    id: "issue",
-    label: ms("a.issue"),
-    run: () => setEntry({ kind: "issue" }),
-  };
-  const forRewards: SectionAct = {
-    id: "allow",
-    label: ms("a.allow"),
-    run: () => setEntry({ kind: "allowance" }),
-  };
-  const pause: SectionAct = {
-    id: "pause",
-    label: ms("a.pause"),
-    run: () => prepare({ kind: "configureReserve", enabled: false }, "pause"),
-  };
-  const enable = (intent: IssuerIntent): SectionAct => ({
-    id: intent,
-    label: ms(intent === "resume" ? "a.resume" : "a.enable"),
-    run: () => prepare({ kind: "configureReserve", enabled: true }, intent),
-  });
-  // The section's own acts; a booking's acts sit in its row.
-  const acts: SectionAct[] = !ownsReserve
-    ? []
-    : pending
-      ? [{ id: "check", label: ms("a.check"), run: checkStatus }]
-      : stage === "setup"
-        ? allowance === 0n && asset.adapterAllowance !== null
-          ? [
-              {
-                id: "allow",
-                label: ms("a.allowN", { count: amount(asset.adapterAllowance) }),
-                run: () =>
-                  prepare(
-                    { kind: "approveReserve", amount: asset.adapterAllowance! },
-                    "approveReserve"
-                  ),
-              },
-            ]
-          : [enable("enable")]
-        : stage === "paused"
-          ? [allowance === 0n ? forRewards : enable("resume")]
-          : stage === "short"
-            ? [forRewards, pause]
-            : stage === "ok"
-              ? [issue, pause]
-              : [];
-  const status =
-    outcome?.status === "confirmed" ? (
-      <p role="status" className="text-sm">
-        {outcome.currentStateMatchesReceipt === false ? (
-          <span className="block">{text("stateChangedAfterReceipt")}</span>
-        ) : null}
-        {outcome.deliveredOutput !== undefined ? (
-          <span className="block">
-            {text("actualOutput")}:{" "}
-            {deliveredAsset
-              ? issuerAmount(outcome.deliveredOutput, deliveredAsset, locale)
-              : `${outcome.deliveredOutput} ${text("baseUnits")}`}
-          </span>
-        ) : null}
-        <a
-          className="underline underline-offset-4"
-          href={`https://gnosisscan.io/tx/${outcome.transactionHash}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {text("confirmed")}
-        </a>
-      </p>
-    ) : outcome?.status === "reverted" ? (
-      <p role="status" className="text-sm">
-        {text("reverted")}
-      </p>
-    ) : null;
   return (
     <div className="space-y-4" data-component="ServiceIssuerPanel" data-listing={listing}>
       <h3 className="text-sm font-semibold leading-5 text-text-strong-950">{asset.name}</h3>
       {ownsReserve ? (
-        <ServiceIssuerOverview snapshot={snapshot} pending={pending} />
-      ) : (
-        <>
-          <FactList frame="inset">
-            <FactRow label={text("held")} value={amount(snapshot.holdingBalance)} />
-            <FactRow label={text("exchangeAllowance")} value={amount(snapshot.poolAllowance)} />
-          </FactList>
-          <div className="space-y-1 text-xs text-text-sub-600">
-            <p>{text("owedUnknown")}</p>
-            <p>{text("returnedCapacity")}</p>
+        <section className="space-y-3">
+          <h4 className="text-sm font-semibold">
+            {formatMessage({ id: "app.voucher.exchange.servicesOffered" })}
+          </h4>
+          <ServiceIssuerOverview snapshot={snapshot} pending={pending} />
+        </section>
+      ) : null}
+      <details open={ownsReserve ? undefined : true} className="space-y-3">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
+          {formatMessage({ id: "app.voucher.exchange.heldVouchers" })}
+        </summary>
+        <FactList frame="inset">
+          <FactRow label={text("held")} value={amount(snapshot.holdingBalance)} />
+          <FactRow label={text("exchangeAllowance")} value={amount(snapshot.poolAllowance)} />
+        </FactList>
+        {snapshot.poolStatus === "unavailable" ? (
+          <p role="status" className="text-sm text-text-sub-600">
+            {formatMessage({ id: "app.voucher.exchange.unavailable" })}
+          </p>
+        ) : null}
+        {pending ? (
+          <div className="space-y-3">
+            <p role="status" className="text-sm">
+              {text("pending")}
+            </p>
+            <Button type="button" emphasis="secondary" loading={busy} onClick={checkStatus}>
+              {text("checkStatus")}
+            </Button>
           </div>
-          {pending ? (
-            <div className="space-y-3">
-              <p role="status" className="text-sm">
-                {text("pending")}
-              </p>
-              <Button type="button" emphasis="secondary" loading={busy} onClick={checkStatus}>
-                {text("checkStatus")}
-              </Button>
-            </div>
-          ) : (
-            <ServiceIssuerForm
-              key={`${snapshot.actor.address}:${asset.id}`}
-              asset={asset}
-              assets={assets}
-              disabled={busy}
-              onQuote={onQuote}
-              onReview={(action) => prepare(action)}
-            />
-          )}
-        </>
-      )}
+        ) : (
+          <ServiceIssuerForm
+            key={`${snapshot.actor.address}:${asset.id}:${snapshot.actor.poolId}`}
+            asset={asset}
+            assets={assets}
+            poolId={snapshot.actor.poolId}
+            disabled={busy || !snapshot.actor.poolId}
+            onQuote={onQuote}
+            onReview={(action) => prepare(action)}
+          />
+        )}
+      </details>
       {ownsReserve ? (
         <ServiceIssuerBookings
           bookings={snapshot.bookings}
@@ -286,24 +235,17 @@ export function ServiceIssuerPanel({
           onPropose={(booking) => setEntry({ kind: "return", booking })}
         />
       ) : null}
-      {acts.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {acts.map((act, index) => (
-            <Button
-              key={act.id}
-              data-act={act.id}
-              type="button"
-              emphasis={index === 0 ? "primary" : "secondary"}
-              loading={busy && index === 0}
-              disabled={busy}
-              onClick={act.run}
-            >
-              {act.label}
-            </Button>
-          ))}
-        </div>
+      {ownsReserve ? (
+        <ServiceIssuerActions
+          snapshot={snapshot}
+          pending={pending}
+          busy={busy}
+          onCheck={checkStatus}
+          onEntry={setEntry}
+          onReview={prepare}
+        />
       ) : null}
-      {status}
+      <ServiceIssuerReceipt outcome={outcome} deliveredAsset={deliveredAsset} pool={sentPool} />
       {error ? (
         <p role="alert" className="text-sm text-error-base">
           {text(uncertain ? "unconfirmed" : "actionFailed")}
@@ -355,6 +297,7 @@ export function ServiceIssuerPanel({
         <ServiceIssuerReview
           key={review.fingerprint}
           review={review}
+          poolName={poolName}
           asset={asset}
           assets={assets}
           busy={busy}
@@ -374,6 +317,7 @@ export function ServiceIssuerPanel({
             void run(async () => {
               if (current.current.generation !== reviewed?.generation) return;
               setSentAction(value.action);
+              setSentPool(poolContext(value));
               try {
                 setOutcome(await onExecute(value));
               } catch (failure) {

@@ -1,10 +1,65 @@
 import { describe, expect, it, vi } from "vitest";
-import { serializeErc6492Signature } from "viem";
+import {
+  encodeDeployData,
+  erc6492SignatureValidatorAbi,
+  erc6492SignatureValidatorByteCode,
+  serializeErc6492Signature,
+  type Hex,
+} from "viem";
 import { arbitrum } from "viem/chains";
-import { createViemAccountSignatureVerifier } from "../services/account-signatures";
+import {
+  createViemAccountSignatureVerifier,
+  createViemAccountHashVerifier,
+} from "../services/account-signatures";
 
 // TEST-QUALITY: allow-small-test-file - Verifier mechanics are shared across features; avatar route behavior stays in profile-avatars.test.ts.
 describe("account signature verification", () => {
+  it("verifies the exact typed-data hash for smart accounts without personal-message hashing it", async () => {
+    const client = { call: vi.fn(async (_input: { data: Hex }) => ({ data: "0x01" as const })) };
+    const verify = createViemAccountHashVerifier({
+      chain: arbitrum,
+      rpcUrl: "https://unused.invalid",
+      client,
+    });
+    const input = {
+      chainId: arbitrum.id,
+      address: "0x2222222222222222222222222222222222222222" as const,
+      hash: `0x${"ab".repeat(32)}` as Hex,
+      signature: serializeErc6492Signature({
+        address: "0x1111111111111111111111111111111111111111",
+        data: "0x1234",
+        signature: "0x5678",
+      }),
+    };
+    expect(await verify(input)).toBe(true);
+    expect(client.call.mock.calls[0][0].data).toBe(
+      encodeDeployData({
+        abi: erc6492SignatureValidatorAbi,
+        args: [input.address, input.hash, input.signature],
+        bytecode: erc6492SignatureValidatorByteCode,
+      })
+    );
+  });
+  it("preserves provider outages as unavailable rather than invalid signatures", async () => {
+    const client = {
+      call: vi.fn(async () => {
+        throw new Error("RPC unavailable");
+      }),
+    };
+    const verify = createViemAccountHashVerifier({
+      chain: arbitrum,
+      rpcUrl: "https://unused.invalid",
+      client,
+    });
+    await expect(
+      verify({
+        chainId: arbitrum.id,
+        address: "0x2222222222222222222222222222222222222222",
+        hash: `0x${"ab".repeat(32)}`,
+        signature: "0x1234",
+      })
+    ).rejects.toThrow("RPC unavailable");
+  });
   it("passes an already wrapped ERC-6492 signature through when factory data is also supplied", async () => {
     const client = { call: vi.fn(async () => ({ data: "0x1" as const })) };
     const verify = createViemAccountSignatureVerifier({

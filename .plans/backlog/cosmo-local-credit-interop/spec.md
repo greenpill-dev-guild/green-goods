@@ -1,5 +1,23 @@
 # Cosmo-Local Integration — architecture
 
+## Current topology — selected 7 November 2026 Pacific
+
+The [garden exchange amendment](garden-exchange-pools.md) is authoritative for pool topology and
+its migration: **two pilot exchanges total**, reusing the existing Green Goods Network Exchange
+Pool and adding one TAS local pool. TAS admits approved local member vouchers; Green Goods
+independently admits TSV and GGV. One issuer/token can have several pool listings without
+duplicating its reserve, service capacity or obligations.
+
+This supersedes references below to one shared pool, member admission to that shared pool, and
+zero additional pools. Earlier dated decisions and proof retain their original scope; their
+single-pool topology is not the current target. Issuer ownership, exact consent, existing reward
+and escrow rules remain. The recorded TAS one-approval decision differs from the live two-signature,
+locked Safe and requires explicit reconciliation before activation. The amendment owns the
+three-flow mapping, two-hop execution boundary, retrospective awards and new proof requirements.
+Local implementation and working-tree proof are recorded in the
+[implementation handoff](handoffs/two-pool-implementation.md). Deployment and live activation
+remain pending; the existing Green Goods pool and its 24-hour governance delay are preserved.
+
 ## Accepted pilot amendment — member and garden issuers, 23 October Pacific
 
 Individual issuance is required in the pilot. Members and garden/collective issuers share **one

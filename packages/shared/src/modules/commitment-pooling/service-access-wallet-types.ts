@@ -13,7 +13,17 @@ import type { ServiceAsset } from "./service-access-types";
  */
 export interface VoucherIssuerStanding {
   bookings: "open" | "paused";
-  exchange: IssuerPoolStatus;
+  exchange: IssuerPoolStatus | "unavailable";
+}
+
+export interface VoucherIssuerExchange {
+  poolId: string;
+  poolAddress: Address;
+  name: string;
+  garden: Address;
+  status: IssuerPoolStatus | "unavailable";
+  limit: bigint | null;
+  holding: bigint | null;
 }
 
 /** A reviewed booking quantity. A fraction of its price does not promise a smaller booking. */
@@ -38,6 +48,8 @@ export interface VoucherIssuer {
   /** The garden whose promises list this issuer's services. */
   garden: Address;
   standing: VoucherIssuerStanding;
+  /** Independent exchange listings; the wallet balance still belongs to the token only once. */
+  exchanges?: readonly VoucherIssuerExchange[];
   /** Absent or null until this issuer token has reviewed service terms. */
   services?: readonly VoucherServiceTerms[] | null;
 }

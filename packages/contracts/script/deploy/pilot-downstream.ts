@@ -44,6 +44,7 @@ import { SOURCE_UPGRADE_TARGETS, type SourceUpgradePlan, type SourceTarget } fro
 import type { SourceExecutionJournal } from "../utils/source-upgrade-execution-types";
 import { sourceUpgradeStateReaders } from "../utils/source-upgrade-readback";
 import { assertSourceBatchOuter, assertSourceBatchSuccess } from "../utils/source-upgrade-batch";
+import { runGardenDownstream } from "../utils/clc-garden-downstream";
 
 const GG = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
   SENDER = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
@@ -485,17 +486,29 @@ export function assertDownstreamReceipt(
 }
 async function main() {
   const { values } = parseArgs({
-    options: { broadcast: { type: "boolean" }, help: { type: "boolean" } },
+    options: {
+      broadcast: { type: "boolean" },
+      help: { type: "boolean" },
+      verify: { type: "boolean" },
+      manifest: { type: "string" },
+      plan: { type: "string" },
+      receipts: { type: "string" },
+      "recover-lock": { type: "boolean" },
+    },
   });
   if (values.help) {
     console.log(
-      "bun run contracts -- release downstream --mode <simulate|broadcast>\nRehearses before prompting once. Deployments, observer registration and approved CCIP fuel only; no Safe owner calls broadcast.",
+      "bun run contracts -- release downstream --mode <simulate|broadcast|verify> [--manifest config/clc-garden-exchanges.json --plan .generated/clc-release/<release>.plan.json] [--receipts .generated/clc-release/<release>.receipts.json]\nThe garden extension deploys only its reviewed factory calls and persists verified live registration. Verify recovers canonical receipts without signing; --recover-lock requires verify and a dead lock owner. Without extension inputs, the historical pilot operation is unchanged. No Safe owner calls are broadcast.",
     );
     return;
   }
   loadEnvironment({ path: path.resolve(CONTRACTS_ROOT, "../../.env"), quiet: true });
   process.env.PINATA_JWT = "";
   process.env.PINATA_GATEWAY = "";
+  if (values.manifest || values.plan || values.receipts || values.verify || values["recover-lock"]) {
+    await runGardenDownstream(values);
+    return;
+  }
   const self = path.resolve(import.meta.filename);
   if (
     execFileSync("git", ["status", "--porcelain=v1", "--", self], {

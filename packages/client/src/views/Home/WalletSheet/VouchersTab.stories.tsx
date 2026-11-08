@@ -54,6 +54,7 @@ const meta: Meta<typeof VouchersTab> = {
   component: VouchersTab,
   tags: ["autodocs", "storybook-ci"],
   parameters: { layout: "fullscreen" },
+  argTypes: { wallet: { control: false } },
   globals: { viewport: { value: "mobile" } },
   args: { wallet: voucherWalletStory("vouchers"), onClose: fn() },
   decorators: [

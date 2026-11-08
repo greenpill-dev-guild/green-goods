@@ -1,4 +1,3 @@
-import { SERVICE_ISSUER_ROUTES } from "../modules/commitment-pooling/service-issuer-metadata";
 import { liveVoucherFixture } from "./fixtures/live-voucher";
 import { decodeFunctionData, encodeFunctionResult, type Hex, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
@@ -15,6 +14,7 @@ import {
   readVoucherIssuerApproval,
   requestRewardDeliveries,
   readLiveVoucherWallet,
+  voucherWalletFromSetups,
   serviceVoucherHolder,
 } from "../modules/commitment-pooling/service-access-wallet";
 import type { VoucherWalletScope } from "../modules/commitment-pooling/service-access-wallet-types";
@@ -45,10 +45,44 @@ const observe = (
 ) => ({ action: "observePilotRole" as const, observation });
 
 describe("receipt-backed live voucher wallet", () => {
+  it("keeps one holding for a token shared by routes and independently reports unavailable exchange", async () => {
+    const f = liveVoucherFixture();
+    const read = f.chain.read;
+    f.chain.read = async (input) => {
+      if (input.functionName === "have") throw new Error("exchange registry unavailable");
+      return read(input);
+    };
+    const result = await readLiveVoucherWallet(f.wallet, {
+      routes: [f.route, { ...f.route, id: "another-catalog-view" }],
+      issuerRoutes: f.issuerRoutes,
+      chain: f.chain,
+      reader: f.reader,
+    });
+    expect(result.evidence).toBe("onchain");
+    expect(result.holdings.map((holding) => holding.available)).toEqual([17n, 3n]);
+    expect(result.issuers.every((issuer) => issuer.standing.exchange === "unavailable")).toBe(true);
+    expect(result.issuers[0]!.exchanges).toMatchObject([
+      { poolId: "green-goods", status: "unavailable" },
+    ]);
+  });
+  it("does not double count one token across local and network catalog entries", () => {
+    const issuer = REHEARSAL_VOUCHER_ISSUERS.techAndSun;
+    const result = voucherWalletFromSetups({
+      scope,
+      evidence: "local-rehearsal",
+      complete: false,
+      issuers: [issuer, { ...issuer }],
+      balances: [{ token: issuer.asset.token, amount: 3_000_000n }],
+      setups: [],
+    });
+    expect(result.holdings).toHaveLength(1);
+    expect(result.holdings[0]!.available).toBe(3_000_000n);
+  });
   it("carries the reviewed service names, quantities and terms into voucher holdings", async () => {
     const f = liveVoucherFixture();
     const result = await readLiveVoucherWallet(f.wallet, {
       routes: [f.route],
+      issuerRoutes: f.issuerRoutes,
       chain: f.chain,
       reader: f.reader,
     });
@@ -73,7 +107,7 @@ describe("receipt-backed live voucher wallet", () => {
     "zero-quantity",
   ] as const)("keeps holdings when reviewed service terms are incomplete: %s", async (failure) => {
     const f = liveVoucherFixture();
-    const configured = structuredClone(SERVICE_ISSUER_ROUTES[0]!);
+    const configured = structuredClone(f.issuerRoutes[0]!);
     const offer = configured.assets[0]!.service.offers![0]!;
     if (failure === "missing-name") delete offer.name;
     else offer.voucherUnits = 0n;
@@ -88,7 +122,7 @@ describe("receipt-backed live voucher wallet", () => {
   });
   it("does not borrow service terms from a different issuer route", async () => {
     const f = liveVoucherFixture();
-    const configured = SERVICE_ISSUER_ROUTES[0]!;
+    const configured = f.issuerRoutes[0]!;
     const issuerRoutes = [
       {
         ...configured,
@@ -111,6 +145,7 @@ describe("receipt-backed live voucher wallet", () => {
     const f = liveVoucherFixture();
     const result = await readLiveVoucherWallet(f.wallet, {
       routes: [f.route],
+      issuerRoutes: f.issuerRoutes,
       chain: f.chain,
       reader: f.reader,
     });
@@ -135,6 +170,7 @@ describe("receipt-backed live voucher wallet", () => {
           : read(input);
     const result = await readLiveVoucherWallet(f.wallet, {
       routes: [f.route],
+      issuerRoutes: f.issuerRoutes,
       chain: f.chain,
       reader: f.reader,
     });
@@ -162,15 +198,18 @@ describe("receipt-backed live voucher wallet", () => {
               input.args?.[0] === f.route.walletState!.pool.address
             ? poolHolding
             : read(input);
-    const configured = SERVICE_ISSUER_ROUTES[0]!;
+    const configured = f.issuerRoutes[0]!;
     const issuerRoutes = [
       {
         ...configured,
-        assets: configured.assets.map((asset) => ({
-          ...asset,
-          delisting: delisted
-            ? { reference: "approved-test-delisting", digest: `0x${"1".repeat(64)}` as Hex }
-            : null,
+        pools: configured.pools.map((pool) => ({
+          ...pool,
+          listings: pool.listings.map((policy) => ({
+            ...policy,
+            delisting: delisted
+              ? { reference: "approved-test-delisting", digest: `0x${"1".repeat(64)}` as Hex }
+              : null,
+          })),
         })),
       },
     ];
@@ -191,7 +230,12 @@ describe("receipt-backed live voucher wallet", () => {
       return read(input);
     };
     expect(
-      await readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+      await readLiveVoucherWallet(f.wallet, {
+        routes: [f.route],
+        issuerRoutes: f.issuerRoutes,
+        chain: f.chain,
+        reader: f.reader,
+      })
     ).toMatchObject({
       evidence: "unavailable",
       reason: "canonical-read-unavailable",
@@ -206,6 +250,7 @@ describe("receipt-backed live voucher wallet", () => {
     f.reader.query = async () => ({ error: new Error("VoucherServiceSetup not found") });
     const result = await readLiveVoucherWallet(f.wallet, {
       routes: [f.route],
+      issuerRoutes: f.issuerRoutes,
       chain: f.chain,
       reader: f.reader,
     });
@@ -227,6 +272,7 @@ describe("receipt-backed live voucher wallet", () => {
     ]);
     const result = await readLiveVoucherWallet(f.wallet, {
       routes: [f.route],
+      issuerRoutes: f.issuerRoutes,
       chain: f.chain,
       reader: f.reader,
     });
@@ -236,7 +282,12 @@ describe("receipt-backed live voucher wallet", () => {
     const f = liveVoucherFixture();
     f.chain.code = async () => "0x00";
     expect(
-      await readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+      await readLiveVoucherWallet(f.wallet, {
+        routes: [f.route],
+        issuerRoutes: f.issuerRoutes,
+        chain: f.chain,
+        reader: f.reader,
+      })
     ).toMatchObject({
       evidence: "unavailable",
       reason: "canonical-read-unavailable",
@@ -260,7 +311,12 @@ describe("receipt-backed live voucher wallet", () => {
         ? Promise.resolve(f.wallet.account)
         : read(input);
     expect(
-      await readLiveVoucherWallet(f.wallet, { routes: [f.route], chain: f.chain, reader: f.reader })
+      await readLiveVoucherWallet(f.wallet, {
+        routes: [f.route],
+        issuerRoutes: f.issuerRoutes,
+        chain: f.chain,
+        reader: f.reader,
+      })
     ).toMatchObject({
       evidence: "unavailable",
       reason: "canonical-read-unavailable",

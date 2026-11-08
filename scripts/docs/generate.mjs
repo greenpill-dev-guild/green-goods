@@ -48,6 +48,8 @@ const PUBLIC_ROUTE_CONTRACTS = [
   "packages/shared/src/public-contracts/profile-avatar.ts",
   "packages/shared/src/public-contracts/routes.ts",
   "packages/shared/src/public-contracts/saved-offers/types.ts",
+  "packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts",
+  "packages/shared/src/public-contracts/voucher-awards.ts",
 ];
 const PACKAGE_MANIFESTS = [
   "packages/admin/package.json",

@@ -26,6 +26,7 @@ export interface ServiceBookingSheetsProps {
   onApproveSplit: () => void;
   onReport: (() => void) | null;
   exchange: {
+    available?: boolean;
     quote: ServiceExchangeQuote | null;
     reviewing: boolean;
     onOpen: () => void;
@@ -80,9 +81,7 @@ export function ServiceBookingSheets({
         onDeposit={redeem.onDeposit}
         onCheck={redeem.onCheck}
         onExchange={exchange.onOpen}
-        // Only the rehearsal's pool quotes until the live one is configured, and only for
-        // vouchers the reader can spend.
-        canExchange={exchangeAvailable(snapshot)}
+        canExchange={exchange.available ?? exchangeAvailable(snapshot)}
       />
       <ServiceSplitSheet
         open={sheet === "split"}

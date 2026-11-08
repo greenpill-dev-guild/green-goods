@@ -288,54 +288,7 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
     function _setUpJourneyCLC() private {
         journeyA = _journeyVoucher(journeyIssuerA, "Synthetic Green Goods Voucher", "JGGV");
         journeyB = _journeyVoucher(journeyIssuerB, "Synthetic Partner Voucher", "JTSV");
-        address admin = _journeyTimelock(journeyCommunity);
-        journeyPool.index = ICLCPurchaseIndex(
-            _clcProxy(
-                INDEX_IMPLEMENTATION,
-                admin,
-                abi.encodeCall(ICLCPurchaseIndex.initialize, (journeyCommunity, new address[](0), new bytes32[](0)))
-            )
-        );
-        journeyPool.limiter = ICLCPurchaseLimiter(
-            _clcProxy(LIMITER_IMPLEMENTATION, admin, abi.encodeCall(ICLCPurchaseLimiter.initialize, (journeyCommunity)))
-        );
-        journeyPool.quoter = ICLCPurchaseQuoter(
-            _clcProxy(QUOTER_IMPLEMENTATION, admin, abi.encodeCall(ICLCPurchaseQuoter.initialize, (journeyCommunity)))
-        );
-        journeyPool.feePolicy = ICLCPurchaseFeePolicy(
-            _clcProxy(
-                FEE_IMPLEMENTATION, admin, abi.encodeCall(ICLCPurchaseFeePolicy.initialize, (journeyCommunity, uint256(0)))
-            )
-        );
-        journeyPool.protocolFee = ICLCPurchaseProtocolFee(
-            _clcProxy(
-                PROTOCOL_FEE_IMPLEMENTATION,
-                admin,
-                abi.encodeCall(ICLCPurchaseProtocolFee.initialize, (journeyCommunity, uint256(0), journeyCommunity))
-            )
-        );
-        journeyPool.pool = ICLCPurchasePool(
-            _clcProxy(
-                POOL_IMPLEMENTATION,
-                admin,
-                abi.encodeCall(
-                    ICLCPurchasePool.initialize,
-                    (
-                        "Synthetic final-candidate exchange",
-                        "JPOOL",
-                        uint8(6),
-                        journeyCommunity,
-                        address(journeyPool.feePolicy),
-                        journeyCommunity,
-                        address(journeyPool.index),
-                        address(journeyPool.limiter),
-                        address(journeyPool.quoter),
-                        true,
-                        address(journeyPool.protocolFee)
-                    )
-                )
-            )
-        );
+        journeyPool = _createJourneyExchange(journeyCommunity, "Synthetic final-candidate exchange", "JPOOL");
         ICLCGiftableToken[2] memory tokens = [journeyA, journeyB];
         address[2] memory issuers = [journeyIssuerA, journeyIssuerB];
         for (uint256 i; i < 2; ++i) {
@@ -372,6 +325,62 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
             assertEq(tokens[i].allowance(issuers[i], address(journeyPool.pool)), 0);
         }
         _safeExec(journeyCommunity, address(journeyPool.pool), abi.encodeCall(ICLCPurchasePool.seal, (uint8(31))));
+    }
+
+    function _createJourneyExchange(
+        address owner,
+        string memory name,
+        string memory symbol
+    )
+        internal
+        returns (PoolBundle memory bundle)
+    {
+        address admin = _journeyTimelock(owner);
+        bundle.index = ICLCPurchaseIndex(
+            _clcProxy(
+                INDEX_IMPLEMENTATION,
+                admin,
+                abi.encodeCall(ICLCPurchaseIndex.initialize, (owner, new address[](0), new bytes32[](0)))
+            )
+        );
+        bundle.limiter = ICLCPurchaseLimiter(
+            _clcProxy(LIMITER_IMPLEMENTATION, admin, abi.encodeCall(ICLCPurchaseLimiter.initialize, (owner)))
+        );
+        bundle.quoter = ICLCPurchaseQuoter(
+            _clcProxy(QUOTER_IMPLEMENTATION, admin, abi.encodeCall(ICLCPurchaseQuoter.initialize, (owner)))
+        );
+        bundle.feePolicy = ICLCPurchaseFeePolicy(
+            _clcProxy(FEE_IMPLEMENTATION, admin, abi.encodeCall(ICLCPurchaseFeePolicy.initialize, (owner, uint256(0))))
+        );
+        bundle.protocolFee = ICLCPurchaseProtocolFee(
+            _clcProxy(
+                PROTOCOL_FEE_IMPLEMENTATION,
+                admin,
+                abi.encodeCall(ICLCPurchaseProtocolFee.initialize, (owner, uint256(0), owner))
+            )
+        );
+        bundle.pool = ICLCPurchasePool(
+            _clcProxy(
+                POOL_IMPLEMENTATION,
+                admin,
+                abi.encodeCall(
+                    ICLCPurchasePool.initialize,
+                    (
+                        name,
+                        symbol,
+                        uint8(6),
+                        owner,
+                        address(bundle.feePolicy),
+                        owner,
+                        address(bundle.index),
+                        address(bundle.limiter),
+                        address(bundle.quoter),
+                        true,
+                        address(bundle.protocolFee)
+                    )
+                )
+            )
+        );
     }
 
     function _journeyVoucher(address issuer, string memory name, string memory symbol) private returns (ICLCGiftableToken) {

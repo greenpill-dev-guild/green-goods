@@ -198,11 +198,39 @@ function fixture(active = false) {
   const input = { chainId: 42161, garden };
   const deps = {
     routes: [f.route],
+    issuerRoutes: f.issuerRoutes,
     chain: f.chain,
     reader: f.reader,
     readSnapshot: async () => structuredClone(snapshot),
   };
   return { ...f, a, setup, snapshot, raw, row, input, deps };
+}
+
+function expectPoolUnavailable(
+  wallet: Awaited<ReturnType<typeof readLiveVoucherWallet>>,
+  previous: Awaited<ReturnType<typeof readLiveVoucherWallet>>
+) {
+  expect(wallet).toMatchObject({
+    evidence: "onchain",
+    reason: null,
+    complete: false,
+    bookings: previous.bookings,
+    returns: previous.returns,
+  });
+  expect(
+    wallet.holdings.map(({ available, issuer }) => ({ available, asset: issuer.asset }))
+  ).toEqual(previous.holdings.map(({ available, issuer }) => ({ available, asset: issuer.asset })));
+  for (const [index, issuer] of wallet.issuers.entries()) {
+    expect(issuer.standing).toEqual({ bookings: "open", exchange: "unavailable" });
+    expect(issuer.exchanges).toEqual(
+      previous.issuers[index]!.exchanges!.map((listing) => ({
+        ...listing,
+        status: "unavailable",
+        holding: null,
+        limit: null,
+      }))
+    );
+  }
 }
 
 describe("live voucher steward integration", () => {
@@ -417,13 +445,33 @@ describe("live voucher steward integration", () => {
   });
   it.each([
     "adapter",
+    "token",
+    "escrow",
     "registry",
     "limiter",
     "pool",
-  ] as const)("rejects changed %s proxy state before returning canonical wallet data", async (name) => {
+  ] as const)("invalidates only observations depending on changed %s proxy state", async (name) => {
     for (const failure of ["code", "implementation", "implementation-code", "owner"] as const) {
-      const f = fixture();
-      const pin = f.route.walletState![name];
+      const f = fixture(true);
+      const previous = await readLiveVoucherWallet(f.wallet, f.deps);
+      const pool = f.issuerRoutes[0]!.pools[0]!;
+      expect(previous.bookings).toHaveLength(1);
+      expect(previous.holdings.map((holding) => holding.available)).toEqual([17n, 3n]);
+      expect(previous.issuers[0]!.exchanges).toMatchObject([
+        {
+          poolId: pool.id,
+          poolAddress: pool.deployment.address,
+          status: "listed",
+          holding: 17n,
+          limit: 20_000_000n,
+        },
+      ]);
+      const pin =
+        name === "token"
+          ? { ...f.route.assets[0]!, address: f.route.assets[0]!.token }
+          : name === "escrow"
+            ? f.route.destination
+            : f.route.walletState![name];
       const code = f.chain.code;
       const storage = f.chain.storage;
       const read = f.chain.read;
@@ -443,13 +491,17 @@ describe("live voucher steward integration", () => {
         input.address.toLowerCase() === pin.address.toLowerCase()
           ? f.wallet.account
           : read(input);
-      expect(await readLiveVoucherWallet(f.wallet, f.deps)).toMatchObject({
-        evidence: "unavailable",
-        reason: "canonical-read-unavailable",
-        holdings: [],
-        bookings: [],
-        returns: [],
-      });
+      const wallet = await readLiveVoucherWallet(f.wallet, f.deps);
+      if (name === "adapter" || name === "token" || name === "escrow") {
+        expect(wallet).toMatchObject({
+          evidence: "unavailable",
+          reason: "canonical-read-unavailable",
+          issuers: [],
+          holdings: [],
+          bookings: [],
+          returns: [],
+        });
+      } else expectPoolUnavailable(wallet, previous);
     }
   });
   it.each([
@@ -457,21 +509,31 @@ describe("live voucher steward integration", () => {
     "have",
     "limitOf",
     "balanceOf",
-  ])("clears prior wallet observations when %s fails", async (functionName) => {
+  ])("invalidates only observations depending on %s when its read fails", async (functionName) => {
     const f = fixture(true);
-    expect((await readLiveVoucherWallet(f.wallet, f.deps)).bookings).toHaveLength(1);
+    const previous = await readLiveVoucherWallet(f.wallet, f.deps);
+    expect(previous.bookings).toHaveLength(1);
+    expect(previous.holdings.map((holding) => holding.available)).toEqual([17n, 3n]);
+    expect(previous.issuers[0]!.exchanges).toMatchObject([
+      { status: "listed", holding: 17n, limit: 20_000_000n },
+    ]);
     const read = f.chain.read;
     f.chain.read = async (input) => {
       if (input.functionName === functionName) throw new Error("RPC unavailable");
       return read(input);
     };
-    expect(await readLiveVoucherWallet(f.wallet, f.deps)).toMatchObject({
-      evidence: "unavailable",
-      reason: "canonical-read-unavailable",
-      holdings: [],
-      bookings: [],
-      returns: [],
-    });
+    const wallet = await readLiveVoucherWallet(f.wallet, f.deps);
+    if (functionName === "have" || functionName === "limitOf")
+      expectPoolUnavailable(wallet, previous);
+    else
+      expect(wallet).toMatchObject({
+        evidence: "unavailable",
+        reason: "canonical-read-unavailable",
+        issuers: [],
+        holdings: [],
+        bookings: [],
+        returns: [],
+      });
   });
   it.each([
     "core",

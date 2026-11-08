@@ -114,11 +114,8 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
       capacity: 1000n as bigint | null,
       approval: { reference: "ipfs://test-consent", digest: H },
     },
-    delisting: null,
     initialSupply: 1000n,
     adapterAllowance: 400n,
-    poolHoldingCap: 2000n,
-    priceIndex: 1n,
     upgradeControl: { kind: "member" as const, admin: issuer },
   });
   const assets = [
@@ -174,31 +171,44 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
       sourcePeer: account(34),
       sourceSelector: 14n,
     },
-    pool: {
-      proxyAdmin: account(9),
-      deployment: clcPin(account(41)),
-      registry: clcPin(account(42)),
-      limiter: clcPin(account(43)),
-      quoter: clcPin(account(44)),
-      feePolicy: clcPin(account(45)),
-      protocolFee: clcPin(account(46)),
-      feeAddress: account(9),
-      feesDecoupled: true,
-    },
+    pools: [
+      {
+        id: "local",
+        name: "Local test exchange",
+        chainId: 100,
+        garden: account(4),
+        listings: assets.map((asset) => ({
+          assetId: asset.id,
+          poolHoldingCap: 2000n,
+          priceIndex: 1n,
+          delisting: null,
+        })),
+        proxyAdmin: account(9),
+        deployment: clcPin(account(41)),
+        registry: clcPin(account(42)),
+        limiter: clcPin(account(43)),
+        quoter: clcPin(account(44)),
+        feePolicy: clcPin(account(45)),
+        protocolFee: clcPin(account(46)),
+        feeAddress: account(9),
+        feesDecoupled: true,
+      },
+    ],
   };
   const proxies = [
     ...assets.map((a) => a.token),
-    route.pool.deployment,
-    route.pool.registry,
-    route.pool.limiter,
-    route.pool.quoter,
-    route.pool.feePolicy,
-    route.pool.protocolFee,
+    route.pools[0]!.deployment,
+    route.pools[0]!.registry,
+    route.pools[0]!.limiter,
+    route.pools[0]!.quoter,
+    route.pools[0]!.feePolicy,
+    route.pools[0]!.protocolFee,
   ];
   const actor: ServiceIssuerActor = {
     address: owner,
     routeId: route.service.id,
     assetId: assets[0]!.id,
+    poolId: "local",
   };
   const session: ServiceLiveSession = {
     address: owner,
@@ -358,6 +368,17 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
     },
     read: async ({ chainId, address, functionName, args = [] }) => {
       const selected = assets.find((a) => a.token.address === address);
+      const pool =
+        route.pools.find((entry) =>
+          [
+            entry.deployment,
+            entry.registry,
+            entry.limiter,
+            entry.quoter,
+            entry.feePolicy,
+            entry.protocolFee,
+          ].some((pin) => pin.address === address)
+        ) ?? route.pools[0]!;
       switch (functionName) {
         case "initCodeHash":
           return INIT;
@@ -399,18 +420,18 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
                 ? route.service.source.address
                 : route.service.destination.address;
         case "feePolicy":
-          return route.pool.feePolicy.address;
+          return pool.feePolicy.address;
         case "feeAddress":
         case "getProtocolFeeRecipient":
           return account(9);
         case "tokenRegistry":
-          return route.pool.registry.address;
+          return pool.registry.address;
         case "tokenLimiter":
-          return route.pool.limiter.address;
+          return pool.limiter.address;
         case "quoter":
-          return route.pool.quoter.address;
+          return pool.quoter.address;
         case "protocolFeeController":
-          return route.pool.protocolFee.address;
+          return pool.protocolFee.address;
         case "feesDecoupled":
         case "have":
         case "isActive":
@@ -420,7 +441,9 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
         case "expired":
           return state.expired;
         case "balanceOf":
-          return args[0] === route.pool.deployment.address ? state.inventory : state.balance;
+          return route.pools.some((entry) => args[0] === entry.deployment.address)
+            ? state.inventory
+            : state.balance;
         case "allowance":
           return args[1] === route.adapter.address ? state.reserve : state.pool;
         case "assetAuthorizations":
@@ -438,7 +461,11 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
         case "paused":
           return state.paused;
         case "limitOf":
-          return assets[0]!.poolHoldingCap;
+          return (
+            pool.listings.find(
+              (listing) => assets.find((a) => a.id === listing.assetId)?.token.address === args[0]
+            )?.poolHoldingCap ?? 0n
+          );
         case "getQuote":
           return state.gross;
         case "getAmountOut":
@@ -611,15 +638,15 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
           state.pool = 0n;
           logs = [
             {
-              address: route.pool.deployment.address,
+              address: call.address,
               topics: exactTopics(
                 encodeEventTopics({
                   abi: PoolABI,
                   eventName: "SwapSettlement",
                   args: {
                     initiator: actor.address,
-                    tokenIn: assets[0]!.token.address,
-                    tokenOut: assets[1]!.token.address,
+                    tokenIn: call.args[1] as `0x${string}`,
+                    tokenOut: call.args[0] as `0x${string}`,
                   },
                 })
               ),
@@ -643,13 +670,13 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
               ),
             },
             {
-              address: assets[1]!.token.address,
+              address: call.args[0] as Address,
               topics: exactTopics(
                 encodeEventTopics({
                   abi: erc20Abi,
                   eventName: "Transfer",
                   args: {
-                    from: route.pool.deployment.address,
+                    from: call.address,
                     to: (state.eventRecipient ?? actor.address) as `0x${string}`,
                   },
                 })
@@ -697,6 +724,30 @@ function fixture(authMode: "wallet" | "passkey" = "wallet") {
     });
   return {
     route,
+    addPool: (id: string, offset: number) => {
+      const pool = {
+        ...route.pools[0]!,
+        id,
+        name: `${id} test exchange`,
+        listings: structuredClone(route.pools[0]!.listings),
+        deployment: clcPin(account(offset)),
+        registry: clcPin(account(offset + 1)),
+        limiter: clcPin(account(offset + 2)),
+        quoter: clcPin(account(offset + 3)),
+        feePolicy: clcPin(account(offset + 4)),
+        protocolFee: clcPin(account(offset + 5)),
+      };
+      route.pools = [...route.pools, pool];
+      proxies.push(
+        pool.deployment,
+        pool.registry,
+        pool.limiter,
+        pool.quoter,
+        pool.feePolicy,
+        pool.protocolFee
+      );
+      return pool;
+    },
     assets,
     actor,
     session,
@@ -751,6 +802,153 @@ const exchange: ServiceIssuerAction = {
 };
 
 describe("member-owned service operations", () => {
+  it("requires confirmed individual capacity for onboarding drafts while retaining delisting recovery", () => {
+    const f = fixture();
+    f.assets[0]!.service.capacity = null;
+    expect(() => serviceIssuerGovernanceDrafts(f.route, f.actor.assetId, "local")).toThrow(
+      "capacity"
+    );
+    expect(serviceIssuerDelistingDraft(f.route, f.actor.assetId, "local").call.functionName).toBe(
+      "setLimitFor"
+    );
+  });
+  it("persists a confirmed first hop and bounds a separately reviewed continuation to its delivered output", async () => {
+    const f = fixture();
+    const second = f.addPool("green-goods", 200);
+    f.state.pool = 10n;
+    const ops = f.create();
+    await ops.execute(await ops.review(f.actor, exchange));
+    expect(f.create().lastExchange(f.actor)).toMatchObject({
+      deliveredOutput: 9n,
+      transactionHash: TX,
+    });
+    const nextActor = { ...f.actor, assetId: "analysis", poolId: second.id };
+    await expect(ops.quoteContinuation(nextActor, "engineering", 10n)).rejects.toThrow("received");
+    // A continuation may deliberately exchange part of the received amount, leaving visible residue.
+    f.state.pool = 8n;
+    expect(await ops.quoteContinuation(nextActor, "engineering", 8n)).toMatchObject({
+      poolId: second.id,
+      amount: 8n,
+      intermediateResidue: 1n,
+      firstTransactionHash: TX,
+    });
+    const review = await ops.reviewContinuation(nextActor, {
+      ...exchange,
+      outputAssetId: "engineering",
+      amount: 8n,
+    });
+    expect(review.continuation).toMatchObject({
+      transactionHash: TX,
+      deliveredOutput: 9n,
+      intermediateResidue: 1n,
+    });
+    f.state.inventory = 0n;
+    await expect(ops.execute(review)).rejects.toThrow("inventory");
+    expect(f.state.broadcast).toBe(1);
+    expect(f.create().lastExchange(f.actor)).toMatchObject({
+      deliveredOutput: 9n,
+      transactionHash: TX,
+    });
+    f.state.inventory = 100n;
+    const refreshed = await ops.reviewContinuation(nextActor, {
+      ...exchange,
+      outputAssetId: "engineering",
+      amount: 8n,
+    });
+    expect(await ops.execute(refreshed)).toMatchObject({
+      status: "confirmed",
+      deliveredOutput: 9n,
+    });
+    expect(f.state.broadcast).toBe(2);
+    await expect(f.create().quoteContinuation(f.actor, "analysis", 1n)).rejects.toThrow(
+      "confirmed first hop"
+    );
+    await expect(ops.execute(refreshed)).rejects.toThrow("confirmed first hop");
+    expect(f.state.broadcast).toBe(2);
+  });
+  it("retains the first pending checkpoint if durable exchange receipt persistence fails", async () => {
+    const f = fixture();
+    f.state.pool = 10n;
+    const original = f.storage.setItem;
+    f.storage.setItem = (key, value) => {
+      if (key.includes("issuer-exchange")) throw new Error("Storage full");
+      original(key, value);
+    };
+    const ops = f.create();
+    await expect(ops.execute(await ops.review(f.actor, exchange))).rejects.toThrow("Storage full");
+    expect(ops.pending(f.actor)?.submission?.hash).toBe(TX);
+    f.storage.setItem = original;
+    expect(await f.create().reconcile(f.actor)).toMatchObject({
+      status: "confirmed",
+      deliveredOutput: 9n,
+    });
+    expect(f.create().lastExchange(f.actor)?.transactionHash).toBe(TX);
+    expect(f.state.broadcast).toBe(1);
+  });
+
+  it("exchanges the same held token in the explicitly selected second pool and binds its receipt", async () => {
+    const f = fixture();
+    const second = f.addPool("green-goods", 200);
+    const actor = { ...f.actor, poolId: second.id };
+    f.state.pool = 10n;
+    const operations = f.create();
+    const quote = await operations.quote(actor, "analysis", 10n);
+    expect(quote.poolAddress).toBe(second.deployment.address);
+    const review = await operations.review(actor, exchange);
+    expect(review.call.address).toBe(second.deployment.address);
+    f.route.pools[0]!.listings[0]!.poolHoldingCap = 3000n;
+    expect(await operations.execute(review)).toMatchObject({
+      status: "confirmed",
+      deliveredOutput: 9n,
+    });
+    expect(f.route.assets).toHaveLength(2);
+    expect(f.state.broadcast).toBe(1);
+  });
+  it("requires independent admission and headroom in each pool", async () => {
+    const f = fixture();
+    const second = f.addPool("green-goods", 200);
+    second.listings = second.listings.filter((policy) => policy.assetId !== f.actor.assetId);
+    await expect(
+      f.create().quote({ ...f.actor, poolId: second.id }, "analysis", 10n)
+    ).rejects.toThrow("not configured");
+    await expect(f.create().quote(f.actor, "analysis", 10n)).resolves.toMatchObject({
+      poolId: "local",
+    });
+    second.listings = structuredClone(f.route.pools[0]!.listings);
+    second.listings[0]!.poolHoldingCap = 100n;
+    await expect(
+      f.create().quote({ ...f.actor, poolId: second.id }, "analysis", 10n)
+    ).rejects.toThrow("liquidity");
+    expect(f.state.broadcast).toBe(0);
+  });
+  it("retains holdings and issuer recovery when the selected pool is unavailable", async () => {
+    const f = fixture();
+    const read = f.chain.read;
+    f.chain.read = async (call) => (call.functionName === "feePolicy" ? account(99) : read(call));
+    const snapshot = await f.create().read(f.actor);
+    expect(snapshot).toMatchObject({
+      evidence: "onchain",
+      holdingBalance: 100n,
+      pool: null,
+      poolStatus: "unavailable",
+    });
+    await expect(f.create().quote(f.actor, "analysis", 10n)).rejects.toThrow("dependency");
+  });
+  it("rejects an unreviewed pool selection before quoting a holder exchange", async () => {
+    const f = fixture();
+    await expect(
+      f.create().quote({ ...f.actor, poolId: "unreviewed-pool" }, "analysis", 10n)
+    ).rejects.toThrow("pool");
+    expect(f.state.broadcast).toBe(0);
+  });
+  it("keeps issuer recovery independent of a changed exchange dependency", async () => {
+    const f = fixture();
+    const read = f.chain.read;
+    f.chain.read = async (call) => (call.functionName === "feePolicy" ? account(99) : read(call));
+    const review = await f.create().review(f.actor, { kind: "revokeReserve" });
+    expect(review.call.functionName).toBe("approve");
+    expect(review.call.args).toEqual([f.route.adapter.address, 0n]);
+  });
   it("retains wallet fallback checks when mutable auth mode is temporarily changed during ownership", async () => {
     const f = fixture();
     const original = f.sender.assertOwnership!;
@@ -1066,7 +1264,7 @@ describe("member-owned service operations", () => {
       poolFeeAmount: 1_000_000n,
       protocolFeeAmount: 100_000n,
     });
-    f.assets[0]!.poolHoldingCap = 200_000_000n;
+    f.route.pools[0]!.listings[0]!.poolHoldingCap = 200_000_000n;
     const ops = f.create();
     const quote = await ops.quote(f.actor, "analysis", 10_000_000n);
     expect(quote).toMatchObject({ grossOutput: 10_000_000n, quotedOutput: 8_900_000n });
@@ -1156,6 +1354,8 @@ describe("member-owned service operations", () => {
     const f = fixture();
     const quote = await f.create().quote(f.actor, "analysis", 10n);
     expect(quote).toEqual({
+      poolId: "local",
+      poolAddress: f.route.pools[0]!.deployment.address,
       outputAssetId: "analysis",
       amount: 10n,
       quotedOutput: 9n,
@@ -1297,7 +1497,7 @@ describe("member-owned service operations", () => {
   it("reads the token's pool listing apart from any review, including a delisted zero limit", async () => {
     const f = fixture();
     expect(await f.create().read(f.actor)).toMatchObject({
-      pool: { admitted: true, limit: f.assets[0]!.poolHoldingCap, holding: 100n },
+      pool: { admitted: true, limit: f.route.pools[0]!.listings[0]!.poolHoldingCap, holding: 100n },
     });
     const ops = f.create();
     const review = await ops.review(f.actor, { kind: "issue", amount: 1n });
@@ -1431,7 +1631,8 @@ describe("member-owned service operations", () => {
     const review = await ops.review(f.actor, { kind: "issue", amount: 1n });
     f.state.rpcFailure = true;
     expect((await ops.execute(review)).status).toBe("pending");
-    const { service, adapter, pool } = f.route;
+    const { service, adapter } = f.route;
+    const pool = f.route.pools[0]!;
     for (const pin of [service.core, service.destination, adapter, pool.deployment, pool.limiter])
       pin.accessManager = account(70);
     f.state.minted++;
@@ -1609,7 +1810,7 @@ describe("member-owned service operations", () => {
   });
   it("prepares owner Safe governance drafts without granting the steward or member admission authority", () => {
     const f = fixture();
-    const drafts = serviceIssuerGovernanceDrafts(f.route, f.actor.assetId);
+    const drafts = serviceIssuerGovernanceDrafts(f.route, f.actor.assetId, "local");
     expect(drafts.map((d) => [d.kind, d.call.functionName, d.owner])).toEqual([
       ["owner-safe-draft", "setIssuerAuthority", account(9)],
       ["owner-safe-draft", "register", account(9)],
@@ -1622,24 +1823,24 @@ describe("member-owned service operations", () => {
     const f = fixture();
     // Delisting must stay possible when the reviewed terms no longer pass for new issuance.
     f.route.assets[0]!.service.capacity = null;
-    const draft = serviceIssuerDelistingDraft(f.route, f.actor.assetId);
+    const draft = serviceIssuerDelistingDraft(f.route, f.actor.assetId, "local");
     expect(draft).toMatchObject({
       kind: "owner-safe-draft",
       purpose: "pool-delist",
-      owner: f.route.pool.limiter.owner,
+      owner: f.route.pools[0]!.limiter.owner,
     });
     expect(draft.call).toMatchObject({
-      address: f.route.pool.limiter.address,
-      account: f.route.pool.limiter.owner,
+      address: f.route.pools[0]!.limiter.address,
+      account: f.route.pools[0]!.limiter.owner,
       chainId: 100,
       value: 0n,
       functionName: "setLimitFor",
-      args: [f.route.assets[0]!.token.address, f.route.pool.deployment.address, 0n],
+      args: [f.route.assets[0]!.token.address, f.route.pools[0]!.deployment.address, 0n],
     });
     const untouched = [
       f.route.assets[0]!.token.address,
-      f.route.pool.registry.address,
-      f.route.pool.deployment.address,
+      f.route.pools[0]!.registry.address,
+      f.route.pools[0]!.deployment.address,
       f.route.service.destination.address,
       f.route.adapter.address,
       f.route.adapterSource.address,
@@ -1648,13 +1849,15 @@ describe("member-owned service operations", () => {
     expect(f.sender.sendContractCall).not.toHaveBeenCalled();
     // The record that makes the zero limit read as a delisting binds its reason and exact call.
     const reason = "Can't deliver this month";
-    const record = serviceIssuerDelistingRecord(f.route, f.actor.assetId, reason);
+    const record = serviceIssuerDelistingRecord(f.route, f.actor.assetId, reason, "local");
     expect(record.reference).toBe(
-      `issuer-delisting:100:${f.route.assets[0]!.token.address.toLowerCase()}`
+      `issuer-delisting:100:${f.route.pools[0]!.deployment.address.toLowerCase()}:${f.route.assets[0]!.token.address.toLowerCase()}`
     );
-    expect(serviceIssuerDelistingRecord(f.route, f.actor.assetId, ` ${reason} `)).toEqual(record);
-    expect(serviceIssuerDelistingRecord(f.route, f.actor.assetId, "Paused").digest).not.toBe(
-      record.digest
+    expect(serviceIssuerDelistingRecord(f.route, f.actor.assetId, ` ${reason} `, "local")).toEqual(
+      record
     );
+    expect(
+      serviceIssuerDelistingRecord(f.route, f.actor.assetId, "Paused", "local").digest
+    ).not.toBe(record.digest);
   });
 });

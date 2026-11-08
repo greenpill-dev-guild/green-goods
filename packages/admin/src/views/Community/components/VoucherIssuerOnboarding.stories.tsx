@@ -10,7 +10,7 @@ import {
 } from "./voucherIssuerStoryFixtures";
 
 const catalog = voucherIssuerStory("issuers").routes[0]!;
-const ownerSafe = catalog.pool.limiter.owner;
+const ownerSafe = catalog.pools[0]!.limiter.owner;
 const sourceSafe = catalog.adapterSource.owner;
 
 /**

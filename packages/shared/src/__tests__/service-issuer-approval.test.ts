@@ -46,6 +46,7 @@ function draft(member: Address = MEMBER): ServiceIssuerDraft {
       poolHoldingCap: 6_000_000n,
       priceIndex: 2_000_000n,
       poolFee: 0n,
+      exchangePool: { chainId: 100, id: "fictional-local", address: STEWARD },
       replyBusinessDays: 2,
       acceptanceDays: 7,
       document: { reference: "https://example.org/fictional-lesson", digest: DOCUMENT },
@@ -88,6 +89,22 @@ function harness(signedIn: Address = MEMBER, authMode: "passkey" | "wallet" = "p
 }
 
 describe("a member's signed draft approval", () => {
+  it("binds the exact pool and rejects new signing of a legacy unscoped draft", async () => {
+    const original = draft();
+    const changed = draft();
+    changed.terms.exchangePool!.id = "another-garden";
+    expect(serviceIssuerTermsDigest(changed)).not.toBe(serviceIssuerTermsDigest(original));
+    changed.terms.exchangePool = { chainId: 100, id: "fictional-local", address: MEMBER };
+    expect(serviceIssuerTermsDigest(changed)).not.toBe(serviceIssuerTermsDigest(original));
+    delete changed.terms.exchangePool;
+    const legacyDigest = serviceIssuerTermsDigest(changed);
+    expect(serviceIssuerTermsDigest(structuredClone(changed))).toBe(legacyDigest);
+    const h = harness();
+    await expect(signServiceIssuerApproval(h.deps, changed)).rejects.toThrow(
+      "exact intended exchange pool"
+    );
+    expect(h.sender.signTypedData).not.toHaveBeenCalled();
+  });
   it("binds the exact terms: any changed setting changes the digest it signs", () => {
     const base = draft();
     const digest = serviceIssuerTermsDigest(base);

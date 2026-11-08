@@ -18,6 +18,8 @@ export type PublicRouteClass =
   | "saved_offers_session"
   | "saved_offers_read"
   | "saved_offers_mutation"
+  | "voucher_awards"
+  | "service_issuer_desk"
   | "join_request_create"
   | "join_request_create_ip"
   | "join_request_create_account"
@@ -74,6 +76,8 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   saved_offers_session: { limit: 10, windowMs: 10 * 60 * 1000 },
   saved_offers_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   saved_offers_mutation: { limit: 30, windowMs: 10 * 60 * 1000 },
+  voucher_awards: { limit: 60, windowMs: 10 * 60 * 1000 },
+  service_issuer_desk: { limit: 60, windowMs: 10 * 60 * 1000 },
   join_request_create: { limit: 10, windowMs: 10 * 60 * 1000 },
   join_request_create_ip: { limit: 30, windowMs: 10 * 60 * 1000 },
   join_request_create_account: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },

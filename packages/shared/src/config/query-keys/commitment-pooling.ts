@@ -25,6 +25,23 @@ function stableFilters(filters: CommitmentFilters = {}): string {
 }
 
 export const commitmentPoolingKeys = {
+  issuerDesk: (account?: Address | null, selection?: { routeId: string; poolId: string } | null) =>
+    [
+      "greengoods",
+      "service-issuer-desk",
+      100,
+      account?.toLowerCase(),
+      selection?.routeId ?? "member",
+      selection?.poolId ?? "own",
+    ] as const,
+  voucherAwards: (account?: Address | null, reserve?: Address | null) =>
+    [
+      "greengoods",
+      "voucher-awards",
+      100,
+      account?.toLowerCase(),
+      reserve?.toLowerCase() ?? "received",
+    ] as const,
   all: (chainId: number) => ["greengoods", "commitment-pooling", chainId] as const,
   availability: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "availability"] as const,
@@ -106,13 +123,19 @@ export const commitmentPoolingKeys = {
   /** A garden pool's voucher bookings, its voucher issuer and that issuer's reserve. */
   voucherConsole: (chainId: number, garden: Address | string) =>
     [...commitmentPoolingKeys.all(chainId), "voucher-console", normalizeAddress(garden)] as const,
-  issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
+  issuerOperations: (
+    account?: Address | null,
+    routeId?: string,
+    assetId?: string,
+    poolId?: string
+  ) =>
     [
       ...commitmentPoolingKeys.all(100),
       "issuer-operations",
       normalizeAddress(account ?? undefined),
       routeId,
       assetId,
+      poolId,
     ] as const,
   /** Member issuer drafts, every member's for the stewards' card or one member's own. */
   issuerDrafts: (member?: Address | null) =>
