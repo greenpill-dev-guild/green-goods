@@ -252,18 +252,26 @@ export async function sendReviewBatch(
     for (const group of groups) {
       const refusal = await chain.refusal(reviewCall(group, scope.chainId), scope.account);
       if (!refusal) continue;
-      const alone = await Promise.all(
-        group.map(async (decision) => ({
-          workUID: decision.draft.workUID,
-          reason: await chain.refusal(reviewCall([decision], scope.chainId), scope.account),
-        }))
+      const alone = await Promise.allSettled(
+        group.map((decision) => chain.refusal(reviewCall([decision], scope.chainId), scope.account))
       );
-      const refused = alone.flatMap(({ workUID, reason }) => (reason ? [{ workUID, reason }] : []));
+      const refused = group.flatMap(({ draft }, index) => {
+        const check = alone[index];
+        return check.status === "fulfilled" && check.value
+          ? [{ workUID: draft.workUID, reason: check.value }]
+          : [];
+      });
+      outcome.refused.push(...refused);
+      // A decision whose own check could not run is not refused: the send stops there, and the
+      // refusals the other checks proved stay named.
+      const unchecked = alone.find(
+        (check): check is PromiseRejectedResult => check.status === "rejected"
+      );
+      if (unchecked) return { ...outcome, notSent: unrefused(), failure: unchecked.reason };
       // The call is refused but no single decision is: nothing is sent blind.
       if (refused.length === 0) {
         return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
       }
-      outcome.refused.push(...refused);
     }
   } catch (failure) {
     // A check that could not run refuses nothing, and nothing is signed on a guess.

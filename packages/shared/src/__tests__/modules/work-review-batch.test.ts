@@ -326,6 +326,27 @@ describe("sendReviewBatch", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("keeps a refusal it proved when another decision's own check cannot run", async () => {
+    const { sender, decide, chain, send } = setup();
+    const [bad, unread, good] = [decide(), decide(), decide()];
+    const failure = new Error("Transaction failed with error code: 0xf17325e7");
+    chain.refusal.mockImplementation(async ({ args }) => {
+      const call = JSON.stringify(args, (_key, value) =>
+        typeof value === "bigint" ? String(value) : value
+      );
+      if (call.includes(encodeWorkApprovalData(bad.draft, chainId))) return "ActionExpired";
+      if (call.includes(encodeWorkApprovalData(unread.draft, chainId))) throw failure;
+      return null;
+    });
+
+    const outcome = await send([bad, unread, good]);
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.refused).toEqual([{ workUID: bad.draft.workUID, reason: "ActionExpired" }]);
+    expect(outcome.notSent).toEqual([unread.draft.workUID, good.draft.workUID]);
+    expect(outcome.failure).toBe(failure);
+  });
+
   it("checks again right before signing, since a role or an action's end can pass", async () => {
     const { sender, decide, chain, send } = setup();
     const decision = decide();

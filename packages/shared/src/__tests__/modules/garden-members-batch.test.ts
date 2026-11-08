@@ -273,6 +273,23 @@ describe("addGardenMembersBatch", () => {
     expect(outcome.failure).toBe(failure);
   });
 
+  it("keeps a refusal it proved when another row's own check cannot run", async () => {
+    const [bad, unread, good] = [row(), row(), row()];
+    const failure = new Error("Transaction failed with error code: 0x3868e7e5");
+    const { input, sender } = setup(CONFIRMED, (args, fn) => {
+      if (fn === "grantRoles") return "The whole call reverts";
+      if (args[1] === unread.address) throw failure;
+      return args[1] === bad.address ? "All hats worn" : null;
+    });
+
+    const outcome = await add(input, [bad, unread, good]);
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.refused).toEqual([{ ...bad, reason: "All hats worn" }]);
+    expect(outcome.notSent).toEqual([unread, good]);
+    expect(outcome.failure).toBe(failure);
+  });
+
   it("stops before signing when the sender has lost the role, with the reason", async () => {
     const rows = [row(), row()];
     let reads = 0;

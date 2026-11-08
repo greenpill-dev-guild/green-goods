@@ -235,25 +235,33 @@ export async function addGardenMembersBatch(
       const groupCall = grantRolesCall(moduleAddress, gardenAddress, group);
       const refusal = await chain.refusal(groupCall, scope.account);
       if (!refusal) continue;
-      const alone = await Promise.all(
-        group.map(async (row) => ({
-          row,
-          reason: await chain.refusal(
+      const alone = await Promise.allSettled(
+        group.map((row) =>
+          chain.refusal(
             {
               address: moduleAddress,
               functionName: "grantRole",
               args: [gardenAddress, row.address, GARDEN_ROLE_IDS[row.role]],
             },
             scope.account
-          ),
-        }))
+          )
+        )
       );
-      const refused = alone.flatMap(({ row, reason }) => (reason ? [{ ...row, reason }] : []));
+      const refused = group.flatMap((row, index) => {
+        const check = alone[index];
+        return check.status === "fulfilled" && check.value ? [{ ...row, reason: check.value }] : [];
+      });
+      outcome.refused.push(...refused);
+      // A row whose own check could not run is not refused: the add stops there, and the refusals
+      // the other checks proved stay named.
+      const unchecked = alone.find(
+        (check): check is PromiseRejectedResult => check.status === "rejected"
+      );
+      if (unchecked) return { ...outcome, notSent: unrefused(), failure: unchecked.reason };
       // The call is refused but no single row is: nothing is sent blind.
       if (refused.length === 0) {
         return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
       }
-      outcome.refused.push(...refused);
     }
   } catch (failure) {
     // A check that could not run refuses nothing, and nothing is signed on a guess.
