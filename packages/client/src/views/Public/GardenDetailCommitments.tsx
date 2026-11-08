@@ -7,6 +7,7 @@ import {
 } from "@green-goods/shared/commitment-pooling/public";
 import { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
+import { EditorialHeading } from "@/components/Public/atoms";
 import { formatKeptRate } from "@/components/Public/keptRate";
 import {
   ListSkeleton,
@@ -31,11 +32,9 @@ import { Section } from "./GardenDetailSections";
  * grammar — headers on linen, hairline dividers, § 01-style stat rows — the
  * 2026-08-25 supersession of the PR-748 `EditorialPanel` choice (§ 02 was the
  * only card-wrapped section on either page). The record reads top to bottom:
- * the pool-state sentence beside the lifetime record (commitments made, kept,
- * and the one sanctioned percentage when `selectPublicPromiseKeptRate`
- * publishes it); then the open Season and Campaigns beside the pool-wide
- * exact-label units; then the finished cycles newest first; then the line
- * that ties fulfilled commitments to § 03. A Garden without a published pool record omits this section.
+ * the pool-state sentence beside the all-time counts and exact-label units,
+ * then each season and campaign's own record, finished periods newest first,
+ * and the link to § 03. A garden without a published pool record omits this section.
  *
  * What it never shows: pause reasons, metadata CIDs, provider rows, wallet
  * addresses, cancelled or disputed counts, cancelled cycles, rankings, or any
@@ -228,6 +227,12 @@ function PoolRecord({
   return (
     <>
       <PanelLead lede={stateSentence(formatMessage, data)}>
+        <EditorialHeading as="h3" size="sub" className="mb-5">
+          {formatMessage({
+            id: "public.pool.garden.record.scope",
+            defaultMessage: "Garden totals · all time",
+          })}
+        </EditorialHeading>
         {nothingYet ? (
           <PanelNote
             kicker={formatMessage({
@@ -263,24 +268,19 @@ function PoolRecord({
             </p>
           </>
         )}
+        {hasUnits ? <PoolUnits units={poolUnitSummaries} /> : null}
       </PanelLead>
 
-      {hasOpen || hasUnits ? (
-        <div className="mt-8 grid gap-x-12 gap-y-8 border-t border-stroke-soft-200 pt-8 lg:grid-cols-2">
-          {hasOpen ? (
-            <OpenCycles
-              cycles={openCycles}
-              units={cycleUnitSummaries}
-              className={hasUnits ? undefined : "lg:col-span-2"}
-            />
-          ) : null}
-          {hasUnits ? (
-            <PoolUnits
-              units={poolUnitSummaries}
-              className={hasOpen ? undefined : "lg:col-span-2"}
-            />
-          ) : null}
-        </div>
+      {hasOpen ? (
+        <OpenCycles
+          cycles={openCycles}
+          units={cycleUnitSummaries}
+          gardenTotals={{
+            made: pool.commitmentsAccepted,
+            kept: pool.commitmentsFulfilled,
+            units: poolUnitSummaries,
+          }}
+        />
       ) : null}
 
       {finishedCycles.length > 0 ? (
