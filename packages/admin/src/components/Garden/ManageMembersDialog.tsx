@@ -1,334 +1,489 @@
-import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
-import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
-import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import type { RoleRemovalApi } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
-import {
-  GARDEN_ROLE_ORDER,
-  type GardenRole,
-} from "@green-goods/shared/utils/blockchain/garden-roles";
-import { RiCloseLine, RiUserAddLine, RiUserLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { RiUserAddLine, RiUserLine } from "@remixicon/react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { isAddress } from "viem";
-import { AdminConfirmDialog, AdminDialog, type AdminDialogProps } from "../AdminDialog";
-import { AdminFilterChip } from "../AdminFilterChip";
-import { AdminSearchToolbar } from "../AdminSearchToolbar";
-import { getRoleLabel } from "./gardenUtils";
-import { RoleChip } from "./RoleChip";
+import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
+import { DiscardChangesDialog } from "../DiscardChangesDialog";
+import { FlowStatusRow } from "../Layout/FlowStatusRow";
+import { ManageRolesFilters } from "./ManageRolesFilters";
+import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
+import { MemberNameReaders, withMemberName } from "./MemberNames";
+import {
+  blockedRoles,
+  chooseView,
+  type MemberPerson,
+  peopleFromRoster,
+  type RoleFilter,
+  type RolePair,
+  withPicks,
+} from "./manageRoles";
+import {
+  type ReviewMomentAction,
+  type ReviewState,
+  reviewFromPicks,
+  reviewMoment,
+  settledPairs,
+  startRun,
+  withCheckAgainAnswers,
+  withCheckAnswers,
+  withPairsStatus,
+  withUnsettledUnknown,
+} from "./manageRolesReview";
+import { type ReviewPairStatus, RoleRemovalReview } from "./RoleRemovalReview";
 
 export interface ManageMembersDialogProps {
   open: boolean;
-  initialSearch?: string;
+  /** The person a directory row opened it for: the list starts with just them. */
+  initialMember?: Address;
   onClose: () => void;
   roleMembers: Record<GardenRole, Address[]>;
+  /** Owners and stewards change roles; everyone else reads them. */
   canManage: boolean;
-  /** True while a membership write is in flight — disables row actions. */
+  /** An owner removes any role; a steward never changes an owner or another steward's Steward role. */
+  viewerIsOwner: boolean;
+  /** The account the cockpit signs with, so its own Owner and Steward roles stay out of reach. */
+  viewerAddress?: Address | null;
+  /** The garden every change applies to, named under the title (Interface Principles 4, 9). */
+  gardenName: string;
+  chainId?: number;
+  /** True while a membership write from elsewhere (Add Members) is in flight. */
   isLoading: boolean;
-  onRemoveMember: (address: Address, role: GardenRole) => Promise<{ success: boolean }>;
-  /**
-   * Opens the Add Members dialog (the single add path). When the roster is
-   * searched by one exact address, as the Manage Roles link does, that address
-   * is passed along so Add Members starts with the person already filled in.
-   */
+  /** Reads and removes person-and-role pairs on chain. */
+  removal: RoleRemovalApi;
+  /** A run or a check ended somewhere other than a clean removal, so the roster may be behind. */
+  onRosterStale?: () => void;
+  /** Opens Add Members, with the person this dialog is showing when it shows one. */
   onAddMembers: (prefill?: Address) => void;
+  /** A route item opened it, so the router guards a selection: browser Back asks first. */
+  closesByRoute?: boolean;
   tone?: AdminDialogProps["tone"];
 }
 
-/** One role one person holds: what a remove takes away. */
-interface MemberRole {
-  address: Address;
-  role: GardenRole;
-}
-
-/** A person in the garden, with every role they hold in role order. */
-interface MemberPerson {
-  address: Address;
-  roles: GardenRole[];
-}
+const NOTHING_PICKED: ReadonlySet<GardenRole> = new Set();
 
 /**
- * Manage Members — the single membership surface: one row per person across
- * all roles, a chip for each role they hold with its own remove, role filter
- * chips, plus the "Add members" action. Counts mean people, never role seats
- * (DL-049). Replaces the retired Manage Roles / per-role Members / per-role
- * Add modal stack ("keep it simple": add members and manage members).
+ * Manage Roles: the one place a steward changes who holds which role in the garden.
+ *
+ * One row per person with a check chip for each role they hold (DL-049); a checked chip picks
+ * that person-and-role pair for removal. Search and filters change what shows, never what is
+ * picked, and the footer counts the picks in roles and people and says how many are out of
+ * view. Review opens in the same shell at the same size, names the garden under the title,
+ * reads every pair on chain again, and lists what each person loses and keeps. Its confirm is
+ * the flow's one destructive button. Each pair takes its own signature; the run shows each
+ * landing in place and ends on a result that says what landed before it offers anything again.
+ * What each step shows and offers lives in `manageRoles` and `manageRolesReview`.
  */
 export function ManageMembersDialog({
   open,
-  initialSearch = "",
+  initialMember,
   onClose,
   roleMembers,
   canManage,
+  viewerIsOwner,
+  viewerAddress,
+  gardenName,
+  chainId = DEFAULT_CHAIN_ID,
   isLoading,
-  onRemoveMember,
+  removal,
+  onRosterStale,
   onAddMembers,
+  closesByRoute = false,
   tone,
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
-  const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
-  const [memberSearch, setMemberSearch] = useState(initialSearch);
-  const [pendingRemoval, setPendingRemoval] = useState<MemberRole | null>(null);
-  const [removing, setRemoving] = useState(false);
-  const [removeErrorRole, setRemoveErrorRole] = useState<GardenRole | null>(null);
-  const [shownFor, setShownFor] = useState({ open, initialSearch });
+  const [filter, setFilter] = useState<RoleFilter>("all");
+  const [search, setSearch] = useState("");
+  const [scopedTo, setScopedTo] = useState<Address | null>(initialMember ?? null);
+  const [selected, setSelected] = useState<ReadonlyMap<string, RolePair>>(() => new Map());
+  const [review, setReview] = useState<ReviewState | null>(null);
+  const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
+  // Who signs, with what rights: a review is never signed by an account that did not make it.
+  const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}`;
+  const [shownFor, setShownFor] = useState({ open, initialMember, signer });
+  // Async answers belong to the review that asked; a newer opening or review drops them.
+  const reviewToken = useRef(0);
+  const reviewRegionRef = useRef<HTMLDivElement | null>(null);
 
-  // Each opening, and each change of the member it shows (browser history can
-  // swap it while the dialog stays open), starts from `initialSearch`; a search
-  // typed since is kept until then. Resetting here, rather than remounting
-  // through a key, keeps the closing dialog mounted so its exit motion plays.
-  if (open !== shownFor.open || initialSearch !== shownFor.initialSearch) {
-    setShownFor({ open, initialSearch });
+  // Each opening, each change of the person it opens for, and each change of signer starts
+  // over. Resetting here, rather than remounting through a key, keeps the closing dialog
+  // mounted for its exit motion.
+  if (
+    open !== shownFor.open ||
+    initialMember !== shownFor.initialMember ||
+    signer !== shownFor.signer
+  ) {
+    setShownFor({ open, initialMember, signer });
     if (open) {
-      setRoleFilter("all");
-      setMemberSearch(initialSearch);
-      setPendingRemoval(null);
-      setRemoveErrorRole(null);
+      setFilter("all");
+      setSearch("");
+      setScopedTo(initialMember ?? null);
+      setSelected(new Map());
+      setReview(null);
     }
   }
+  useEffect(() => {
+    reviewToken.current += 1;
+  }, [open, initialMember, signer]);
 
-  const people = useMemo<MemberPerson[]>(() => {
-    const byAddress = new Map<string, MemberPerson>();
-    for (const role of GARDEN_ROLE_ORDER) {
-      for (const address of roleMembers[role] ?? []) {
-        const key = address.toLowerCase();
-        const person = byAddress.get(key);
-        if (person) person.roles.push(role);
-        else byAddress.set(key, { address, roles: [role] });
-      }
-    }
-    return [...byAddress.values()];
-  }, [roleMembers]);
-  const ensNames = useEnsNames(
-    people.map((person) => person.address),
-    { enabled: open }
+  const onName = useCallback(
+    (address: Address, name: string | null) =>
+      setNames((current) => withMemberName(current, address, name)),
+    []
   );
-  const normalizedSearch = memberSearch.trim().toLowerCase();
-  const visiblePeople = useMemo(() => {
-    const roleScoped =
-      roleFilter === "all" ? people : people.filter((person) => person.roles.includes(roleFilter));
 
-    if (!normalizedSearch) return roleScoped;
+  const { people, blocked } = useMemo(() => {
+    const roster = peopleFromRoster(roleMembers);
+    const viewer = { address: viewerAddress, isOwner: viewerIsOwner, canManage };
+    const ownerCount = roleMembers.owner?.length ?? 0;
+    return {
+      people: roster,
+      blocked: new Map(
+        roster.map((person) => [
+          person.address.toLowerCase(),
+          blockedRoles(person, viewer, ownerCount),
+        ])
+      ),
+    };
+  }, [canManage, roleMembers, viewerAddress, viewerIsOwner]);
+  const view = chooseView({
+    people,
+    blocked,
+    selected,
+    filter,
+    scopedTo,
+    search,
+    names,
+    formatMessage,
+  });
+  const { picks } = view;
+  // A filter that lost its people lets go for good, so a later pick cannot bring it back.
+  if (view.activeFilter !== filter) setFilter(view.activeFilter);
+  const readOnly = !canManage;
+  const running = review?.phase === "running";
+  const busy = isLoading || running;
 
-    return roleScoped.filter((person) =>
-      [
-        person.address,
-        formatAddress(person.address),
-        // The short form each row prints when the member has no ENS name.
-        formatAddress(person.address, { variant: "card" }),
-        ensNames.get(person.address.toLowerCase()) ?? "",
-        ...person.roles.flatMap((role) => {
-          const label = getRoleLabel(role, formatMessage);
-          return [label.singular, label.plural];
-        }),
-      ].some((value) => value.toLowerCase().includes(normalizedSearch))
-    );
-  }, [ensNames, formatMessage, normalizedSearch, roleFilter, people]);
-  const busy = isLoading || removing;
-  const searchedAddress = memberSearch.trim();
-  const addMembersPrefill = isAddress(searchedAddress) ? searchedAddress : undefined;
-  const pendingRemovalLabel = pendingRemoval
-    ? getRoleLabel(pendingRemoval.role, formatMessage)
-    : null;
+  const toggle = (person: MemberPerson, role: GardenRole, checked: boolean) =>
+    setSelected((current) => withPicks(current, [{ address: person.address, role }], checked));
 
-  const handleConfirmRemoval = async () => {
-    if (!pendingRemoval) return;
-
-    setRemoving(true);
-    setRemoveErrorRole(null);
-    try {
-      const result = await onRemoveMember(pendingRemoval.address, pendingRemoval.role);
-      if (!result.success) {
-        setRemoveErrorRole(pendingRemoval.role);
-      }
-      setPendingRemoval(null);
-    } catch {
-      setRemoveErrorRole(pendingRemoval.role);
-      setPendingRemoval(null);
-    } finally {
-      setRemoving(false);
-    }
+  const chooseFilter = (next: RoleFilter) => {
+    setScopedTo(null);
+    setFilter(next);
   };
+
+  const showPicked = () => {
+    setSearch("");
+    chooseFilter("selected");
+  };
+
+  const openReview = () => {
+    const { review: next, rows } = reviewFromPicks(picks, people);
+    reviewToken.current += 1;
+    const token = reviewToken.current;
+    const settle = (held: (boolean | null)[]) => {
+      if (token !== reviewToken.current) return;
+      setReview((current) => current && withCheckAnswers(current, rows, held));
+    };
+    setReview(next);
+    // A failed read leaves every pair to the read before its own signature.
+    removal.check(rows).then(settle, (error) => {
+      logger.warn("Manage Roles could not read the picked roles", { error, pairs: rows.length });
+      settle([]);
+    });
+  };
+
+  const backToChoose = () => {
+    reviewToken.current += 1;
+    setReview(null);
+  };
+
+  const send = async (pairs: RolePair[]) => {
+    if (pairs.length === 0) return;
+    reviewToken.current += 1;
+    const token = reviewToken.current;
+    const live = () => token === reviewToken.current;
+    const update = (row: RolePair, status: ReviewPairStatus, reason?: string) => {
+      if (!live()) return;
+      setReview((current) => current && withPairsStatus(current, [row], status, reason));
+    };
+    setReview((current) => current && startRun(current, pairs));
+    let clean = false;
+    let settled: RolePair[] = [];
+    try {
+      const outcomes = await removal.remove(pairs, {
+        onSending: (row) => update(row, "sending"),
+        onSettled: (row, outcome) =>
+          update(
+            row,
+            outcome.status,
+            outcome.status === "refused" || outcome.status === "failed" ? outcome.reason : undefined
+          ),
+      });
+      clean = outcomes.every((outcome) => outcome.status === "removed");
+      settled = settledPairs(pairs, outcomes);
+    } catch (error) {
+      // The run itself broke: whatever had not settled may or may not have landed.
+      logger.error("Manage Roles stopped a removal run", { error, pairs: pairs.length });
+      if (live()) setReview((current) => current && withUnsettledUnknown(current, pairs));
+    }
+    if (!live()) return;
+    setReview((current) => current && { ...current, phase: "done" });
+    // Settled pairs leave the picks; a declined or unsent one stays picked for Back.
+    setSelected((current) => withPicks(current, settled, false));
+    if (!clean) onRosterStale?.();
+  };
+
+  const checkAgain = async (pairs: RolePair[]) => {
+    if (pairs.length === 0) return;
+    reviewToken.current += 1;
+    const token = reviewToken.current;
+    setReview((current) => current && withPairsStatus(current, pairs, "checking"));
+    const held = await removal.check(pairs).catch((error): (boolean | null)[] => {
+      logger.warn("Manage Roles could not read the unconfirmed roles", {
+        error,
+        pairs: pairs.length,
+      });
+      return [];
+    });
+    if (token !== reviewToken.current) return;
+    setReview((current) => current && withCheckAgainAnswers(current, pairs, held));
+    onRosterStale?.();
+  };
+
+  // Entering review, and finishing a run, put focus on the review: the steward reads where
+  // things stand before the next button, and a second press never lands on the confirm.
+  const phase = review?.phase;
+  useEffect(() => {
+    if (phase === "checking" || phase === "done") reviewRegionRef.current?.focus();
+  }, [phase]);
+
+  const resetDraft = () => {
+    reviewToken.current += 1;
+    setSelected(new Map());
+    setReview(null);
+  };
+  const dirtyClose = useDirtyClose({
+    isDirty: open && canManage && picks.length > 0 && review?.phase !== "done",
+    onClose,
+    blockRouteChange: closesByRoute,
+    preventRouteChange: closesByRoute && running,
+    onDiscard: resetDraft,
+  });
+  const handleOpenChange = (next: boolean) => {
+    if (next || running) return;
+    dirtyClose.onOpenChange(false);
+  };
+
+  const moment = review ? reviewMoment(review, formatMessage, isLoading) : null;
+  const act = (action: ReviewMomentAction) => {
+    if (action.act === "back") backToChoose();
+    else if (action.act === "done") onClose();
+    else if (action.act === "checkAgain") void checkAgain(action.pairs ?? []);
+    else void send(action.pairs ?? []);
+  };
+  const actionButton = (slot: "primary" | "secondary", action: ReviewMomentAction | null) =>
+    action ? (
+      <Button
+        key={slot}
+        type="button"
+        emphasis={slot}
+        tone={action.danger ? "danger" : "default"}
+        size="sm"
+        onClick={() => act(action)}
+        disabled={action.disabled}
+        loading={action.loading}
+      >
+        {action.label}
+      </Button>
+    ) : null;
+
+  // Two fixed slots, end-aligned: a secondary and one primary per moment (RUI pp. 60–62).
+  let secondary: ReactNode = null;
+  let primary: ReactNode;
+  if (moment) {
+    secondary = actionButton("secondary", moment.secondary);
+    primary = actionButton("primary", moment.primary);
+  } else if (canManage) {
+    secondary = (
+      <Button
+        key="secondary"
+        type="button"
+        emphasis="secondary"
+        size="sm"
+        leadingIcon={<RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
+        onClick={() => onAddMembers(scopedTo ?? undefined)}
+        disabled={busy}
+      >
+        {formatMessage({ id: "admin.addMember.openAction" })}
+      </Button>
+    );
+    primary = (
+      <Button
+        key="primary"
+        type="button"
+        emphasis="primary"
+        size="sm"
+        onClick={openReview}
+        disabled={busy || picks.length === 0}
+      >
+        {formatMessage({ id: "admin.manageRoles.review" })}
+      </Button>
+    );
+  } else {
+    primary = (
+      <Button key="primary" type="button" emphasis="tertiary" size="sm" onClick={onClose}>
+        {formatMessage({ id: "admin.common.close" })}
+      </Button>
+    );
+  }
+
+  let summary: ReactNode = moment?.note ?? null;
+  if (!review && canManage) {
+    summary =
+      picks.length === 0 ? (
+        formatMessage({ id: "admin.manageRoles.selectHint" })
+      ) : (
+        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-text-strong">
+            {formatMessage(
+              { id: "admin.manageRoles.selection" },
+              { roles: picks.length, people: view.pickedRoles.size }
+            )}
+          </span>
+          {view.hiddenPicks > 0 ? (
+            <>
+              <span>
+                {formatMessage(
+                  { id: "admin.manageRoles.selectionHidden" },
+                  { count: view.hiddenPicks }
+                )}
+              </span>
+              <Button type="button" emphasis="tertiary" size="compact" onClick={showPicked}>
+                {formatMessage({ id: "admin.manageRoles.showSelected" })}
+              </Button>
+            </>
+          ) : null}
+          <Button
+            type="button"
+            emphasis="tertiary"
+            size="compact"
+            onClick={() => setSelected(new Map())}
+          >
+            {formatMessage({ id: "admin.manageRoles.clearSelection" })}
+          </Button>
+        </span>
+      );
+  }
+
+  const viewerKey = viewerAddress?.toLowerCase();
 
   return (
     <>
       <AdminDialog
         open={open}
-        onOpenChange={(next) => {
-          if (!next && !busy) onClose();
-        }}
-        preventClose={busy}
+        onOpenChange={handleOpenChange}
+        preventClose={running}
         size="lg"
+        height="stable"
         tone={tone}
         title={formatMessage({
-          id: "app.garden.roles.modal.title",
-          defaultMessage: "Manage Members",
+          id: review ? "admin.manageRoles.reviewTitle" : "cockpit.community.members.manageRoles",
         })}
-        description={formatMessage(
-          {
-            id: "app.garden.roles.modal.description",
-            defaultMessage: "{count, plural, one {# member} other {# members}}",
-          },
-          { count: people.length }
-        )}
+        target={gardenName}
+        description={
+          review
+            ? undefined
+            : formatMessage({ id: "app.garden.roles.modal.description" }, { count: people.length })
+        }
         actions={
-          <>
-            <Button type="button" emphasis="tertiary" size="sm" onClick={onClose} disabled={busy}>
-              {formatMessage({ id: "admin.common.close", defaultMessage: "Close" })}
-            </Button>
-            {canManage ? (
-              <Button
-                type="button"
-                emphasis="primary"
-                size="sm"
-                leadingIcon={<RiUserAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-                onClick={() => onAddMembers(addMembersPrefill)}
-                disabled={busy}
-              >
-                {formatMessage({ id: "admin.addMember.openAction", defaultMessage: "Add Members" })}
-              </Button>
-            ) : null}
-          </>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            <div
+              className="mr-auto min-w-0 type-meta text-text-sub empty:hidden"
+              aria-live="polite"
+            >
+              {summary}
+            </div>
+            {secondary}
+            {primary}
+          </div>
         }
       >
-        <div className="space-y-4">
-          {removeErrorRole ? (
-            <Alert variant="error">
-              {formatMessage(
-                { id: "app.admin.roles.removeFailed" },
-                { role: getRoleLabel(removeErrorRole, formatMessage).singular }
-              )}
-            </Alert>
-          ) : null}
-
-          <AdminSearchToolbar
-            search={memberSearch}
-            onSearchChange={setMemberSearch}
-            placeholder={formatMessage({
-              id: "app.admin.roles.searchPlaceholder",
-              defaultMessage: "Search members by address, ENS name, or role",
-            })}
-          />
-
+        {review && moment ? (
           <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label={formatMessage({
-              id: "app.admin.roles.filterLabel",
-              defaultMessage: "Filter by role",
-            })}
+            ref={reviewRegionRef}
+            tabIndex={-1}
+            className="space-y-3 outline-none"
+            aria-label={formatMessage({ id: "admin.manageRoles.reviewTitle" })}
           >
-            <AdminFilterChip
-              label={formatMessage({ id: "app.common.all", defaultMessage: "All" })}
-              selected={roleFilter === "all"}
-              onToggle={() => setRoleFilter("all")}
-            />
-            {GARDEN_ROLE_ORDER.map((role) => {
-              const label = getRoleLabel(role, formatMessage);
-              const count = roleMembers[role]?.length ?? 0;
-              return (
-                <AdminFilterChip
-                  key={role}
-                  label={`${label.plural} · ${count}`}
-                  selected={roleFilter === role}
-                  onToggle={() => setRoleFilter(roleFilter === role ? "all" : role)}
-                />
-              );
-            })}
+            <FlowStatusRow {...moment.status} />
+            <RoleRemovalReview people={review.people} chainId={chainId} viewer={viewerAddress} />
           </div>
-
-          {/* Reserved-geometry roster: min/max height so filter changes and
-              loading never resize the dialog; the list scrolls inside. */}
-          <div className="min-h-[16rem] max-h-[24rem] overflow-y-auto pr-1">
-            {visiblePeople.length === 0 ? (
-              <div className="flex min-h-[16rem] items-center justify-center">
-                <EmptyState
-                  icon={<RiUserLine className="h-6 w-6" />}
-                  title={formatMessage({
-                    id: normalizedSearch
-                      ? "app.garden.detail.community.membersEmpty"
-                      : "app.admin.garden.members.empty",
-                  })}
-                />
-              </div>
+        ) : (
+          <div className="@container space-y-3">
+            <ManageRolesFilters
+              search={search}
+              onSearchChange={(value) => {
+                setScopedTo(null);
+                setSearch(value);
+              }}
+              scopedTo={scopedTo}
+              scopedName={scopedTo ? names.get(scopedTo.toLowerCase()) : undefined}
+              onShowEveryone={() => setScopedTo(null)}
+              roles={view.roles}
+              hasPicks={picks.length > 0}
+              activeFilter={view.activeFilter}
+              onFilterChange={chooseFilter}
+              onShowPicked={showPicked}
+            />
+            {readOnly ? (
+              <p className="type-body text-text-sub">
+                {formatMessage({ id: "admin.manageRoles.readOnly" })}
+              </p>
+            ) : null}
+            {view.visiblePeople.length === 0 ? (
+              <EmptyState
+                icon={<RiUserLine className="h-6 w-6" />}
+                title={formatMessage({
+                  id:
+                    people.length === 0
+                      ? "app.admin.garden.members.empty"
+                      : "app.garden.detail.community.membersEmpty",
+                })}
+              />
             ) : (
-              <ul className="space-y-2">
-                {visiblePeople.map(({ address, roles }) => (
-                  <li
-                    key={address}
-                    className="space-y-2 rounded-[var(--m3-shape-md)] bg-bg-weak px-3 py-2.5"
-                  >
-                    {/* The person, then their roles beneath, as the directory rows read,
-                        so a long address and three roles never crowd one line. */}
-                    <AddressDisplay address={address} className="min-w-0" />
-                    {/* Each role keeps its own remove, named for the role it takes away. */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {roles.map((role) => {
-                        const isRemovingRole =
-                          removing &&
-                          pendingRemoval?.role === role &&
-                          pendingRemoval.address.toLowerCase() === address.toLowerCase();
-                        return (
-                          <span key={role} className="inline-flex items-center gap-0.5">
-                            <RoleChip role={role} />
-                            {canManage ? (
-                              <IconButton
-                                emphasis="tertiary"
-                                tone="danger"
-                                size="compact"
-                                onClick={() => {
-                                  setRemoveErrorRole(null);
-                                  setPendingRemoval({ address, role });
-                                }}
-                                disabled={busy}
-                                loading={isRemovingRole}
-                                aria-label={formatMessage(
-                                  { id: "app.admin.roles.remove" },
-                                  { role: getRoleLabel(role, formatMessage).singular }
-                                )}
-                                title={formatMessage(
-                                  { id: "app.admin.roles.remove" },
-                                  { role: getRoleLabel(role, formatMessage).singular }
-                                )}
-                                icon={<RiCloseLine />}
-                              />
-                            ) : null}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </li>
-                ))}
+              <ul className="flex flex-col gap-(--gg-list-gap)">
+                {view.visiblePeople.map((person) => {
+                  const key = person.address.toLowerCase();
+                  return (
+                    <ManageRolesPersonRow
+                      key={key}
+                      person={person}
+                      chainId={chainId}
+                      isViewer={viewerKey === key}
+                      blocked={blocked.get(key) ?? new Map()}
+                      selected={view.pickedRoles.get(key) ?? NOTHING_PICKED}
+                      onToggle={(role, checked) => toggle(person, role, checked)}
+                      readOnly={readOnly}
+                      disabled={busy}
+                    />
+                  );
+                })}
               </ul>
             )}
+            <MemberNameReaders addresses={people.map((person) => person.address)} onName={onName} />
           </div>
-        </div>
+        )}
       </AdminDialog>
-      <AdminConfirmDialog
-        isOpen={Boolean(pendingRemoval)}
-        onClose={() => {
-          if (!removing) setPendingRemoval(null);
-        }}
-        onConfirm={handleConfirmRemoval}
-        title={formatMessage({ id: "app.admin.roles.confirmRemoveTitle" })}
-        description={
-          pendingRemoval && pendingRemovalLabel
-            ? formatMessage(
-                { id: "app.admin.roles.confirmRemoveDescription" },
-                {
-                  address: formatAddress(pendingRemoval.address),
-                  role: pendingRemovalLabel.singular,
-                }
-              )
-            : undefined
-        }
-        confirmLabel={formatMessage({ id: "app.admin.roles.confirmRemoveAction" })}
-        cancelLabel={formatMessage({ id: "app.common.cancel" })}
-        variant="danger"
-        isLoading={removing}
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
         tone={tone}
       />
     </>

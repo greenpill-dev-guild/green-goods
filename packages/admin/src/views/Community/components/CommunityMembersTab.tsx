@@ -1,13 +1,15 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiGroupLine, RiUserSettingsLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { isAddress } from "viem";
@@ -16,6 +18,8 @@ import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSelect } from "@/components/AdminTextField";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { MemberNameReaders, withMemberName } from "@/components/Garden/MemberNames";
+import { memberMatchesSearch } from "@/components/Garden/manageRoles";
 import { CommunityJoinRequests } from "./CommunityJoinRequests";
 import { communityRoleIcons } from "./communityRoleIcons";
 
@@ -46,17 +50,32 @@ export function CommunityMembersTab({
 }: CommunityMembersTabProps) {
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
+  const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const onName = useCallback(
+    (address: Address, name: string | null) =>
+      setNames((current) => withMemberName(current, address, name)),
+    []
+  );
   const gardenAddress = garden.id;
   const hasValidGardenAddress = isAddress(gardenAddress);
   const gardenRouteContext = { gardenId: garden.id };
   const availableRoles = roleSummary.filter((entry) => entry.count > 0);
   const activeRole = availableRoles.some((entry) => entry.role === roleFilter) ? roleFilter : "all";
+  // Search matches the names the rows show, as Manage Roles does, so a person found here is
+  // found there.
   const filteredDirectory = useMemo(
     () =>
-      activeRole === "all"
-        ? visibleDirectory
-        : visibleDirectory.filter((entry) => entry.roles.includes(activeRole)),
-    [activeRole, visibleDirectory]
+      visibleDirectory.filter(
+        (entry) =>
+          (activeRole === "all" || entry.roles.includes(activeRole)) &&
+          memberMatchesSearch(
+            entry,
+            memberSearch,
+            names.get(entry.address.toLowerCase()),
+            formatMessage
+          )
+      ),
+    [activeRole, formatMessage, memberSearch, names, visibleDirectory]
   );
   const missingCriticalRoles = useMemo(
     () =>
@@ -73,13 +92,29 @@ export function CommunityMembersTab({
       <div className="garden-tab-layout">
         <div className="garden-tab-main min-w-0">
           <AdminCard variant="elevated" className="@container space-y-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <AdminCardTitle>
-                {formatMessage({ id: "cockpit.community.members.directory" })}
-              </AdminCardTitle>
-              <span className="type-meta text-text-sub">
-                {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <AdminCardTitle>
+                  {formatMessage({ id: "cockpit.community.members.directory" })}
+                </AdminCardTitle>
+                <span className="type-meta text-text-sub">
+                  {formatMessage({ id: "app.admin.garden.members.count" }, { count: memberCount })}
+                </span>
+              </div>
+              {/* Manage Roles for everyone; a row's button opens it for that person (DL-112). */}
+              {canManage ? (
+                <Button asChild emphasis="secondary" size="sm">
+                  <Link
+                    to={adminRoutes.communityMembers({
+                      ...gardenRouteContext,
+                      item: "manage-members",
+                    })}
+                  >
+                    <RiUserSettingsLine className="h-[18px] w-[18px]" aria-hidden="true" />
+                    {formatMessage({ id: "cockpit.community.members.manageRoles" })}
+                  </Link>
+                </Button>
+              ) : null}
             </div>
 
             <AdminSearchToolbar
@@ -191,6 +226,10 @@ export function CommunityMembersTab({
                 ))}
               </ul>
             )}
+            <MemberNameReaders
+              addresses={visibleDirectory.map((entry) => entry.address)}
+              onName={onName}
+            />
           </AdminCard>
         </div>
 

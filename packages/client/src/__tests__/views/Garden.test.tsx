@@ -295,7 +295,7 @@ const messages = {
   "app.garden.draft.failed": "Could not save or restore this work.",
   "app.garden.draft.retry": "Retry",
   "app.garden.submit.gardenLine": "Logging work in {garden}",
-  "app.proof.media.gallery": "Choose from Your Photos",
+  "app.proof.media.gallery": "Choose Photos or Files",
   "app.proof.media.camera": "Take a Photo",
   "app.proof.media.record": "Record a voice note",
 };
@@ -424,7 +424,7 @@ describe("Garden (Work) View", () => {
     mockActiveTab = "Media";
     renderWithProviders();
 
-    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+    for (const tool of ["Choose Photos or Files", "Take a Photo", "Record a voice note"]) {
       expect(screen.getByRole("button", { name: tool })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));

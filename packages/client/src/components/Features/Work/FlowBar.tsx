@@ -3,8 +3,8 @@ import { IconButton } from "@green-goods/shared/components/IconButton";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowRightSLine,
+  RiAttachment2,
   RiCameraFill,
-  RiImageFill,
   RiMicLine,
   RiStopFill,
 } from "@remixicon/react";
@@ -117,8 +117,8 @@ export function FlowForward({
 }
 
 /**
- * The media step's tools: your photos, the camera, and a voice note, which
- * fills with the error colour while it records.
+ * The media step's tools: your photos, videos and documents from one picker,
+ * the camera, and a voice note, which fills with the error colour while it records.
  */
 export function MediaTools({
   onGallery,
@@ -143,7 +143,7 @@ export function MediaTools({
         aria-label={formatMessage({ id: "app.proof.media.gallery" })}
         emphasis="secondary"
         size="lg"
-        icon={<RiImageFill className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
+        icon={<RiAttachment2 className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
       />
       <IconButton
         onClick={onCamera}

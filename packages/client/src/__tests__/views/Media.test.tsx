@@ -48,6 +48,10 @@ vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   validateWorkVideo: async () => true,
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
+  // Mirrors the real rule: a PDF, Markdown, text or Word file, by type or extension.
+  isWorkDocument: (file: File) =>
+    file.type === "application/pdf" || /\.(pdf|md|markdown|txt|docx?)$/i.test(file.name),
+  WORK_DOCUMENT_ACCEPT: "application/pdf,.pdf,text/markdown,.md",
   getSafeMediaBatchMetadata: (files: File[]) => ({
     file_count: files.length,
     mime_types: files.map((file) => file.type || "unknown"),
@@ -452,6 +456,32 @@ describe("WorkMedia", () => {
     await waitFor(() => {
       expect(setImages).toHaveBeenCalled();
     });
+  });
+
+  it("keeps a document from a pick that brings more photos than the action takes", async () => {
+    const setImages = vi.fn();
+    const held = new File(["one"], "panels.jpg", { type: "image/jpeg" });
+    const extra = new File(["two"], "roof.jpg", { type: "image/jpeg" });
+    const certificate = new File(["%PDF-1.7"], "certificate.pdf", { type: "application/pdf" });
+
+    renderWithIntl(
+      <WorkMedia
+        config={{ title: "Evidence", required: false, maxImageCount: 1 }}
+        images={[held]}
+        setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+      />
+    );
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([extra, certificate]) } });
+
+    // Documents have their own allowance, so only the extra photo is left out.
+    await waitFor(() => expect(setImages).toHaveBeenCalledTimes(1));
+    const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
+    expect(update([held])).toEqual([held, certificate]);
+    expect(toastService.error).not.toHaveBeenCalled();
   });
 
   it("shows converted HEIC media as a JPEG preview", async () => {

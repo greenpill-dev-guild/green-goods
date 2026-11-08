@@ -120,7 +120,14 @@ describe("a proof on its way", () => {
   });
 
   it("counts what the proof carries", () => {
-    expect(contents).toEqual({ photos: 1, videos: 0, voiceNotes: 1, links: 1, words: false });
+    expect(contents).toEqual({
+      photos: 1,
+      videos: 0,
+      documents: 0,
+      voiceNotes: 1,
+      links: 1,
+      words: false,
+    });
   });
 
   it("tells the promise while the send runs, and clears when it ends without landing", () => {

@@ -359,6 +359,24 @@ describe("useProofComposerController", () => {
     });
   });
 
+  it("adds nothing from a pick that would take the proof past five documents", async () => {
+    const pdf = (name: string) => new File(["%PDF-1.7"], name, { type: "application/pdf" });
+    const five = ["a", "b", "c", "d", "e"].map((name) => pdf(`${name}.pdf`));
+    const { result } = renderController();
+
+    await act(async () => {
+      await expect(result.current.pick(five)).resolves.toEqual({ rejectedCount: 0 });
+    });
+    // Whatever is queued is uploaded, so a sixth is refused rather than published and dropped.
+    await act(async () => {
+      await expect(result.current.pick([pdf("f.pdf")])).resolves.toEqual({
+        rejectedCount: 0,
+        overLimit: true,
+      });
+    });
+    expect(result.current.media).toEqual(five);
+  });
+
   it("keeps the draft and queues neither act if upload consent is canceled", async () => {
     const { result } = renderController();
     act(() => {

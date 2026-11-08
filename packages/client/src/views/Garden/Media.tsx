@@ -9,8 +9,10 @@ import {
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
   validateWorkAttachments,
   validateWorkVideo,
+  WORK_DOCUMENT_ACCEPT,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
@@ -151,7 +153,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const photoOnlyData = useMemo(() => {
     const entries: Array<{ url: string; originalIndex: number }> = [];
     images.forEach((file, index) => {
-      if (!isVideoFile(file) && !isHeicFile(file)) {
+      if (!isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file)) {
         entries.push({ url: mediaUrls[index], originalIndex: index });
       }
     });
@@ -299,7 +301,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             {
               id: "app.garden.upload.unsupportedMediaMessage",
               defaultMessage:
-                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
+                "{count, plural, one {That file is not a supported photo, video or document.} other {# files are not supported photos, videos or documents.}}",
             },
             { count: unsupportedCount }
           ),
@@ -335,6 +337,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       const newFiles: File[] = [];
       const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       for (const file of normalizedFiles) {
+        // A document is kept as it was picked; it is published that way too.
+        if (isWorkDocument(file)) {
+          newFiles.push(file);
+          continue;
+        }
         if (isVideoFile(file)) {
           if (!(await validateWorkVideo(file))) {
             setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
@@ -370,31 +377,32 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         newFiles.push(processed);
       }
 
+      // The action's limit and the ten-file cap are on photos and videos; documents have
+      // their own allowance, so a pick past them keeps its documents and drops extra visuals.
+      const maxCount =
+        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
+      const visualLimit = Math.min(maxCount, 10);
+      let visual = images.filter((file) => !isWorkDocument(file)).length;
+      const keptFiles = newFiles.filter((file) => {
+        if (isWorkDocument(file)) return true;
+        visual += 1;
+        return visual <= visualLimit;
+      });
+      const droppedCount = newFiles.length - keptFiles.length;
       if (
-        validateWorkAttachments([...images, ...newFiles], audioNotes, 0, { pendingHeic: "accept" })
+        validateWorkAttachments([...images, ...keptFiles], audioNotes, 0, { pendingHeic: "accept" })
           .length
       ) {
         toastService.error({
           title: intl.formatMessage({
             id: "app.garden.attachments.invalid",
             defaultMessage:
-              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
+              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",
           }),
         });
         return;
       }
-      const maxCount =
-        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
-
-      let droppedCount = 0;
-      setImages((prev) => {
-        const combined = [...prev, ...newFiles];
-        if (combined.length > maxCount) {
-          droppedCount = combined.length - maxCount;
-          return combined.slice(0, maxCount);
-        }
-        return combined;
-      });
+      setImages((prev) => [...prev, ...keptFiles]);
 
       if (droppedCount > 0) {
         toastService.info({
@@ -410,7 +418,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               id: "app.garden.upload.truncatedMessage",
               defaultMessage: "You can add up to {max} for this action.",
             },
-            { max: maxCount }
+            { max: visualLimit }
           ),
           context: "mediaUpload",
         });
@@ -422,6 +430,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           count: newFiles.length,
           imageCount: processedImages.length,
           videoCount: validVideos.length,
+          documentCount: newFiles.filter((file) => isWorkDocument(file)).length,
           conversionCount: normalized.converted.length,
           rejectedCount: normalized.rejected.length,
           droppedCount,
@@ -490,7 +499,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     });
   const neededItems = useMemo(() => config?.needed?.filter(Boolean) ?? [], [config?.needed]);
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
-  const photoCount = images.filter((file) => !isVideoFile(file)).length;
+  const photoCount = images.filter((file) => !isVideoFile(file) && !isWorkDocument(file)).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -517,13 +526,13 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         items={optionalItems}
       />
 
-      {/* Hidden file inputs (2: media + camera) */}
+      {/* Hidden file inputs (2: photos, videos and documents + camera) */}
       <div className="hidden">
         <input
           ref={mediaInputRef}
           id="work-media-upload"
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm"
+          accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm,${WORK_DOCUMENT_ACCEPT}`}
           onChange={handleMediaUpload}
           multiple
           disabled={isProcessingMedia}

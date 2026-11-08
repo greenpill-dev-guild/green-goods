@@ -3,8 +3,10 @@ import {
   type CommitmentMetadataLink,
   type ResolvedEvidence,
 } from "@green-goods/shared/commitment-pooling";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { RiLink, RiMicLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { WorkDocumentRow } from "@/components/Features/Work/WorkDocumentRow";
 
 /**
  * The proof's own words, as body text. A note keeps the paragraphs it was
@@ -135,6 +137,15 @@ export function EvidencePreview({ evidence, isLoading, recordedCount = 0 }: Evid
                     )}
                   />
                 </div>
+              ))}
+              {item.document.documents?.map((document, index) => (
+                <WorkDocumentRow
+                  key={`${index}:${document.cid}`}
+                  name={document.name}
+                  type={document.mime}
+                  size={document.size}
+                  href={resolveIPFSUrl(document.cid)}
+                />
               ))}
               {item.document.links?.length ? <EvidenceLinks links={item.document.links} /> : null}
             </>

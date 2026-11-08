@@ -12,7 +12,10 @@ export interface WorkMetadataPayloadInput {
   tags?: string[];
   audioNoteCids: string[];
   submittedAt: string;
+  /** The photos and videos, one per CID in the attestation's media list, in its order. */
   attachments: Array<{ cid: string; type: string }>;
+  /** The documents, which publish beside the media list rather than in it. */
+  documents?: Array<{ cid: string; type: string; name: string; size: number }>;
   clientWorkId?: string;
   /** Identity carried on a legacy draft; v2 metadata falls back to it. */
   draftClientWorkId?: string;
@@ -67,6 +70,8 @@ export function buildWorkMetadataPayload(input: WorkMetadataPayloadInput): {
     actionUID: input.actionUID,
     submittedAt: input.submittedAt,
     attachments: input.attachments,
+    // Last and only when present, so work without documents keeps its earlier payload and hash.
+    ...(input.documents && input.documents.length > 0 ? { documents: input.documents } : {}),
   });
   return { payload, version: isV2 ? "work_metadata_v2" : "work_metadata" };
 }

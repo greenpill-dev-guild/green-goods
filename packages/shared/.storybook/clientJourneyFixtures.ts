@@ -531,7 +531,7 @@ export function promisePageFixture(stage: PromiseStage): {
         : null,
     proofSending: stage === "sending",
     proofOnItsWay:
-      stage === "sending" ? { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true } : null,
+      stage === "sending" ? { photos: 2, videos: 0, documents: 0, voiceNotes: 1, links: 1, words: true } : null,
   };
 
   const taken = [

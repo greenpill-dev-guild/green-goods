@@ -22,7 +22,7 @@ import type { CommitmentReadModel } from "../../../modules/commitment-pooling/ty
 import { jobQueueDB } from "../../../modules/job-queue/db";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
-import { isHeicFile, isVideoFile } from "../../../modules/work/media-processing";
+import { isHeicFile, isVideoFile, isWorkDocument } from "../../../modules/work/media-processing";
 import {
   commitmentProofDraftPrefix,
   proofDraftHasContent,
@@ -159,7 +159,10 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
         failed: failed?.jobId === job.id,
         sending: isSending(payload.commitmentId),
         discardable: !isSending(payload.commitmentId) && (own?.discardable ?? false),
-        firstPhoto: payload.media?.find((file) => !isVideoFile(file) && !isHeicFile(file)) ?? null,
+        firstPhoto:
+          payload.media?.find(
+            (file) => !isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file)
+          ) ?? null,
       });
     }
     const prefix = viewer ? commitmentProofDraftPrefix(chainId, viewer) : null;
@@ -169,6 +172,7 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
       if (commitmentId === null) continue;
       if (!proofDraftHasContent(draft)) continue;
       const contents: ProofContents = {
+        documents: 0,
         ...(draft.files ?? { photos: 0, videos: 0, voiceNotes: 0 }),
         links: draft.links.length,
         words: draft.note.trim().length > 0,

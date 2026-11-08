@@ -1,7 +1,14 @@
-import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
+import {
+  PUBLIC_AGENT_ROUTES,
+  validatePublicUploadSignRequest,
+} from "@green-goods/shared/public-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "../api/server";
 import { InMemoryPublicRateLimiter, resolveAllowedOrigins } from "../api/public-protection";
+import {
+  DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+  DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+} from "../services/pinata-upload-signer";
 
 const ORIGIN = "https://greengoods.app";
 const LOCAL_ADMIN_ORIGIN = "https://127.0.0.1:3002";
@@ -222,6 +229,30 @@ describe("upload signing API", () => {
     });
   });
 
+  it("signs the documents work and proof carry by default, and still refuses a web page", () => {
+    const config = {
+      allowedMimeTypes: DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+      maxFileSize: DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+      isAddress: (value: unknown) => typeof value === "string" && /^0x[0-9a-f]{40}$/i.test(value),
+    };
+    for (const [filename, mimeType] of [
+      ["certificate.pdf", "application/pdf"],
+      ["report.md", "text/markdown"],
+      ["notes.txt", "text/plain"],
+      ["permit.doc", "application/msword"],
+      ["permit.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ]) {
+      expect(validatePublicUploadSignRequest(validRequest({ filename, mimeType }), config).ok).toBe(
+        true
+      );
+    }
+    expect(
+      validatePublicUploadSignRequest(
+        validRequest({ filename: "page.html", mimeType: "text/html" }),
+        config
+      ).ok
+    ).toBe(false);
+  });
   it("rejects invalid upload contract fields before signing", async () => {
     const fetchMock = vi.fn<typeof fetch>();
     const app = createServer(
