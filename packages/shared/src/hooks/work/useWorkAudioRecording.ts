@@ -14,8 +14,17 @@ export function useWorkAudioRecording() {
       if (
         validateWorkAttachments(images, [...current, file], 0, { pendingHeic: "accept" }).length
       ) {
+        // The limits are the message: without one the toast adds "Try again", which this
+        // note cannot pass.
         toastService.error({
-          title: intl.formatMessage({
+          title: intl.formatMessage(
+            {
+              id: "app.garden.upload.truncatedTitle",
+              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
+            },
+            { dropped: 1 }
+          ),
+          message: intl.formatMessage({
             id: "app.garden.attachments.invalid",
             defaultMessage:
               "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",

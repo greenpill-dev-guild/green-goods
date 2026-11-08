@@ -4,7 +4,7 @@
  * Tests for the media upload component used in work submission.
  */
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -52,6 +52,7 @@ vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   isWorkDocument: (file: File) =>
     file.type === "application/pdf" || /\.(pdf|md|markdown|txt|docx?)$/i.test(file.name),
   WORK_DOCUMENT_ACCEPT: "application/pdf,.pdf,text/markdown,.md",
+  WORK_DOCUMENT_MAX_COUNT: 5,
   getSafeMediaBatchMetadata: (files: File[]) => ({
     file_count: files.length,
     mime_types: files.map((file) => file.type || "unknown"),
@@ -204,7 +205,9 @@ vi.mock("@/components/Features", () => ({
 // Import after mocks
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { track } from "@green-goods/shared/modules/app/posthog";
 import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
+import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import { WorkMedia } from "../../views/Garden/Media";
 
 const messages = {
@@ -482,6 +485,123 @@ describe("WorkMedia", () => {
     const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
     expect(update([held])).toEqual([held, certificate]);
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  it("keeps a photo from a pick that brings more documents than a work carries", async () => {
+    const setImages = vi.fn();
+    const pdf = (name: string) => new File(["%PDF-1.7"], name, { type: "application/pdf" });
+    const held = ["a", "b", "c", "d", "e"].map((name) => pdf(`${name}.pdf`));
+    const photo = new File(["photo"], "panels.jpg", { type: "image/jpeg" });
+
+    renderWithIntl(
+      <WorkMedia
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
+        images={held}
+        setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+      />
+    );
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([photo, pdf("f.pdf")]) } });
+
+    // Photos have their own allowance, so only the sixth document is left out.
+    await waitFor(() => expect(setImages).toHaveBeenCalledTimes(1));
+    const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
+    expect(update(held)).toEqual([...held, photo]);
+    expect(toastService.info).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "A work can carry up to 5 documents." })
+    );
+    // The upload counts what was added; the dropped document counts only as dropped.
+    expect(track).toHaveBeenCalledWith(
+      "media_upload_complete",
+      expect.objectContaining({ count: 1, imageCount: 1, documentCount: 0, droppedCount: 1 }),
+      expect.anything()
+    );
+  });
+
+  it("explains each limit a pick runs past", async () => {
+    const pdf = (name: string) => new File(["%PDF-1.7"], name, { type: "application/pdf" });
+    const photo = (name: string) => new File(["photo"], name, { type: "image/jpeg" });
+    const held = ["a", "b", "c", "d", "e"].flatMap((name) => [
+      pdf(`${name}.pdf`),
+      photo(`${name}.jpg`),
+    ]);
+
+    renderWithIntl(
+      <WorkMedia
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
+        images={held}
+        setImages={vi.fn()}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+      />
+    );
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, {
+      target: { files: fileListFrom([photo("f.jpg"), pdf("f.pdf")]) },
+    });
+
+    await waitFor(() => expect(toastService.info).toHaveBeenCalledTimes(1));
+    const [{ message }] = vi.mocked(toastService.info).mock.calls[0];
+    expect(message).toMatch(/up to 5 for this action/);
+    expect(message).toMatch(/up to 5 documents/);
+  });
+
+  it("counts documents against what is attached once the pick is processed", async () => {
+    const setImages = vi.fn();
+    const pdf = (name: string) => new File(["%PDF-1.7"], name, { type: "application/pdf" });
+    const held = ["a", "b", "c", "d", "e"].map((name) => pdf(`${name}.pdf`));
+    const replacement = pdf("f.pdf");
+    let finish = () => {};
+    vi.mocked(prepareWorkSubmission).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = () =>
+            resolve({
+              accepted: [
+                {
+                  file: replacement,
+                  originalFile: replacement,
+                  converted: false,
+                  metadata: {
+                    extension: "pdf",
+                    mime_type: "application/pdf",
+                    size_bucket: "0-1mb",
+                    media_kind: "document",
+                  },
+                },
+              ],
+              rejected: [],
+              converted: [],
+            });
+        })
+    );
+    const media = (images: File[]) => (
+      <IntlProvider messages={messages} locale="en" defaultLocale="en">
+        <WorkMedia
+          config={{ title: "Evidence", required: false }}
+          images={images}
+          setImages={setImages}
+          audioNotes={[]}
+          setAudioNotes={mockSetAudioNotes}
+        />
+      </IntlProvider>
+    );
+    const { rerender } = render(media(held));
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([replacement]) } });
+    // The gardener removes a document while the new one is still being processed.
+    rerender(media(held.slice(1)));
+    await act(async () => finish());
+
+    await waitFor(() => expect(setImages).toHaveBeenCalledTimes(1));
+    const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
+    expect(update(held.slice(1))).toEqual([...held.slice(1), replacement]);
+    expect(toastService.info).not.toHaveBeenCalled();
   });
 
   it("shows converted HEIC media as a JPEG preview", async () => {
