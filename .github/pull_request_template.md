@@ -5,8 +5,9 @@
 ## Linear
 
 <!--
-Every PR names exactly one Linear issue on its own reference line here. If the work has no issue
-yet, find or file one before opening the PR, as .claude/context/linear-routing-rules.md
+Every PR names exactly one Linear issue on its own reference line here, by the identifier Linear
+gave it (PRD-, RESR- or COM-, whichever team owns the issue). If the work has no issue yet, find
+or file one before opening the PR, as .claude/context/linear-routing-rules.md
 (Every pull request names an issue) says.
 - Fixes PRD-NNN: this PR completes the issue; the target after the merge is In Review, and Done follows a person's review
 - Refs PRD-NNN: partial or stacked work; Linear's integration is not expected to move the issue forward at the merge, though the closeout can still move it to In Review when this PR completes the issue

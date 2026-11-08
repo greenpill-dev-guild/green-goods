@@ -250,12 +250,14 @@ record to move. Before opening a PR, find the issue the work belongs to: the one
 it, its Plan Hub's tracker, or an open issue whose outcome matches. When none exists, file one
 with the [issue structure](#issue-structure-accepted-product-work--accepted-research-task) in the
 team [rule 2](#invariant-rules) routes the work to, in the current cycle and the project rule 4
-selects, assigned to the person who asked for the PR, estimated on the team's scale, and
-`In Progress`. Small related PRs from one body of work, such as a run of dependency patches or
-the fixes from one review, share one issue whose body lists them rather than one issue each.
+selects, assigned to the person who asked for the PR (or to the reviewing maintainer when that
+person is not a workspace member), estimated on the team's scale, and `In Progress`. Small
+related PRs from one body of work, such as a run of dependency patches or the fixes from one
+review, share one issue whose body lists them rather than one issue each.
 
 Write the line as [Issue-dispatched implementation](#issue-dispatched-implementation) describes,
-and keep it whenever the PR description is edited later. A PR opened by a bot, such as Dependabot
+with the identifier Linear gave the issue, whatever its team prefix (`PRD`, `RESR`, `COM`), and
+keep it whenever the PR description is edited later. A PR opened by a bot, such as Dependabot
 or PostHog, is exempt. For a PR from an outside contributor, the maintainer who reviews it adds
 the line.
 
@@ -307,15 +309,18 @@ one line or several, is outside this closeout: report it and ask.
    again: the history cannot show whether the integration or a person changed it, so report the
    change and ask. Report the issue, its last observed state, and whether your write set it. A
    PR that names no issue in any of these forms missed
-   [Every pull request names an issue](#every-pull-request-names-an-issue): find its issue as that
-   section says, attach the PR, and run steps 1 to 3 on it. When no issue exists, file one in
-   `In Review` if the PR completed the work, or `In Progress` if it did not, and add the step 3
-   comment. Report that the record was linked or filed after the merge.
+   [Every pull request names an issue](#every-pull-request-names-an-issue). First look for an
+   issue that already records the PR as an attachment or in its description, closed issues
+   included, and use it when one does. Otherwise find its issue as that section says, attach the
+   PR, and run steps 1 to 3 on it; when no issue exists, file one in `In Review` if the PR
+   completed the work, or `In Progress` if it did not, and add the step 3 comment. Then add
+   `Relates to <ID>` to the merged PR's description, so a repeated closeout finds the issue there
+   instead of filing another. Report that the record was linked or filed after the merge.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
 named issue forward to `In Review` when nothing has changed its state since the merge, posting
 that one comment, and, for a PR that named no issue, linking or filing the one issue step 4
-describes. `Done`, moving an issue backward, editing a description, and any write
+describes and adding its `Relates to` line to the merged PR. `Done`, moving an issue backward, editing a description, and any write
 to another issue, a parent or sibling included, are outside it and need their own authorization.
 If the issue moved to `Done` after the merge, leave it and report it: the team's merge setting
 may no longer match this rule. Cloud routines keep the limits in their own specs.

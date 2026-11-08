@@ -61,8 +61,9 @@ files; a staged file larger than 5 MB without confirmation; unrelated working-tr
 overlap the publication scope; or no actual change to publish.
 
 For PR creation, never infer Linear linkage from the branch. Every PR names exactly one Linear
-issue with an explicit reference line in its body: `Fixes PRD-NNN`, `Refs PRD-NNN`, or
-`Relates to PRD-NNN`. When the work has no issue yet, find or file one before opening the PR, as
+issue with an explicit reference line in its body: `Fixes <ID>`, `Refs <ID>`, or
+`Relates to <ID>`, with the identifier Linear gave the issue, such as `PRD-123` or `RESR-45`.
+When the work has no issue yet, find or file one before opening the PR, as
 [Every pull request names an issue](../../context/linear-routing-rules.md#every-pull-request-names-an-issue)
 says.
 
