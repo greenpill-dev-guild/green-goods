@@ -20,7 +20,7 @@ import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiImageFill, RiLoader4Line } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+import { defineMessages, useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { ImagePreviewDialog } from "@/components/Display";
 import {
@@ -30,6 +30,27 @@ import {
 } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
+
+/** What a pick's toasts say when it leaves files out: how many, and which limit did it. */
+const limitMessages = defineMessages({
+  notAdded: {
+    id: "app.garden.upload.truncatedTitle",
+    defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
+  },
+  limits: {
+    id: "app.garden.attachments.invalid",
+    defaultMessage:
+      "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",
+  },
+  actionLimit: {
+    id: "app.garden.upload.truncatedMessage",
+    defaultMessage: "You can add up to {max} for this action.",
+  },
+  documentLimit: {
+    id: "app.garden.upload.documentLimitMessage",
+    defaultMessage: "A work can carry up to {max} documents.",
+  },
+});
 
 interface WorkMediaProps {
   config?: Action["mediaInfo"];
@@ -143,6 +164,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadSourceRef = useRef<"gallery" | "camera" | null>(null);
   const isProcessingMedia = processingPhase !== "idle";
+  // A pick is processed across awaits while attachments can still be removed, so its limits
+  // are checked against what is attached when processing ends, not when it began.
+  const attachedRef = useRef({ images, audioNotes });
+  useEffect(() => {
+    attachedRef.current = { images, audioNotes };
+  }, [images, audioNotes]);
   const brokenCount = useMemo(
     () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
     [brokenMediaIds, images]
@@ -330,7 +357,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       // A video over the size limit is refused before it is read; it gets the size line.
       if (normalized.rejected.some((item) => item.reason === "too_large"))
-        setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
+        setVideoError(intl.formatMessage(limitMessages.limits));
 
       const normalizedFiles = normalized.accepted.map((item) => item.file);
       const newFiles: File[] = [];
@@ -343,7 +370,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         }
         if (isVideoFile(file)) {
           if (!(await validateWorkVideo(file))) {
-            setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
+            setVideoError(intl.formatMessage(limitMessages.limits));
             continue;
           }
           newFiles.push(file);
@@ -378,8 +405,9 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       const maxCount =
         config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
       const visualLimit = Math.min(maxCount, 10);
-      let visual = images.filter((file) => !isWorkDocument(file)).length;
-      let documents = images.length - visual;
+      const attached = attachedRef.current;
+      let visual = attached.images.filter((file) => !isWorkDocument(file)).length;
+      let documents = attached.images.length - visual;
       let droppedDocuments = 0;
       const keptFiles = newFiles.filter((file) => {
         if (!isWorkDocument(file)) {
@@ -393,53 +421,30 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       });
       const droppedCount = newFiles.length - keptFiles.length;
       if (
-        validateWorkAttachments([...images, ...keptFiles], audioNotes, 0, { pendingHeic: "accept" })
-          .length
+        validateWorkAttachments([...attached.images, ...keptFiles], attached.audioNotes, 0, {
+          pendingHeic: "accept",
+        }).length
       ) {
         // Nothing from this pick is added, and the limits say why; trying again cannot help.
         toastService.error({
-          title: intl.formatMessage(
-            {
-              id: "app.garden.upload.truncatedTitle",
-              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
-            },
-            { dropped: newFiles.length }
-          ),
-          message: intl.formatMessage({
-            id: "app.garden.attachments.invalid",
-            defaultMessage:
-              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",
-          }),
+          title: intl.formatMessage(limitMessages.notAdded, { dropped: newFiles.length }),
+          message: intl.formatMessage(limitMessages.limits),
         });
         return;
       }
       setImages((prev) => [...prev, ...keptFiles]);
 
       if (droppedCount > 0) {
+        // Each limit the pick ran past gets its own sentence, so no dropped file goes unexplained.
+        const limits = [
+          droppedCount > droppedDocuments &&
+            intl.formatMessage(limitMessages.actionLimit, { max: visualLimit }),
+          droppedDocuments > 0 &&
+            intl.formatMessage(limitMessages.documentLimit, { max: WORK_DOCUMENT_MAX_COUNT }),
+        ];
         toastService.info({
-          title: intl.formatMessage(
-            {
-              id: "app.garden.upload.truncatedTitle",
-              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
-            },
-            { dropped: droppedCount }
-          ),
-          message:
-            droppedDocuments > 0
-              ? intl.formatMessage(
-                  {
-                    id: "app.garden.upload.documentLimitMessage",
-                    defaultMessage: "A work can carry up to {max} documents.",
-                  },
-                  { max: WORK_DOCUMENT_MAX_COUNT }
-                )
-              : intl.formatMessage(
-                  {
-                    id: "app.garden.upload.truncatedMessage",
-                    defaultMessage: "You can add up to {max} for this action.",
-                  },
-                  { max: visualLimit }
-                ),
+          title: intl.formatMessage(limitMessages.notAdded, { dropped: droppedCount }),
+          message: limits.filter(Boolean).join(" "),
           context: "mediaUpload",
         });
       }
