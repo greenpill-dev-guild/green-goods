@@ -339,7 +339,7 @@ describe("GardenPool", () => {
 
     const row = screen.getByRole("button", { name: /A group of 10 separate promises/ });
     // What is still available is the row's one pill; the rest of the counts are a detail.
-    expect(row).toHaveTextContent(/4 available.*3 in progress, 3 kept/);
+    expect(row).toHaveTextContent(/4 available.*10 promises, 3 in progress, 3 kept/);
     expect(screen.queryAllByRole("progressbar")).toHaveLength(0);
     await user.click(row);
     // The link names its first copy, so a reload still finds this group if its id ever splits.

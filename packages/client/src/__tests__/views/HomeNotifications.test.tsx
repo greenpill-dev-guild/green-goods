@@ -215,6 +215,7 @@ const EVENTS: GardenNotification[] = [
 
 const markSeen = vi.fn();
 const clearAll = vi.fn();
+const readAgain = vi.fn();
 const onClose = vi.fn();
 
 function setBell(overrides: Partial<GardenNotifications> = {}) {
@@ -229,6 +230,8 @@ function setBell(overrides: Partial<GardenNotifications> = {}) {
     isIncomplete: false,
     markSeen,
     clearAll,
+    refresh: readAgain,
+    isFetching: false,
     ...overrides,
   };
 }
@@ -418,6 +421,51 @@ describe("the sheet", () => {
 
     fireEvent.click(within(sheet).getByRole("button", { name: "Clear All" }));
     expect(clearAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads the events again as it opens and on Refresh, starting each list under its count (DL-168)", () => {
+    renderBell();
+    const sheet = openSheet();
+
+    expect(readAgain).toHaveBeenCalledTimes(1);
+    // Your Work's header row: 16px under the rail, the count in words, Refresh, then the period.
+    const header = within(within(sheet).getByRole("tabpanel")).getByTestId("sheet-list-header");
+    expect(header).toHaveClass("pt-4");
+    expect(within(header).getByRole("status")).toHaveTextContent(/^5 notifications$/);
+    // Only the spans its sources answer in full: its work activity reaches back a week.
+    const period = within(header).getByRole("combobox", { name: "Time period" });
+    expect(period).toHaveValue("any");
+    expect(
+      within(period)
+        .getAllByRole("option")
+        .map((o) => o.textContent)
+    ).toEqual(["Any time", "Day", "Week"]);
+    fireEvent.click(within(header).getByRole("button", { name: "Refresh" }));
+    expect(readAgain).toHaveBeenCalledTimes(2);
+  });
+
+  it("narrows the list to a period, marks seen only what it shows, and says when the period hides all", () => {
+    const view = renderBell();
+    const sheet = openSheet();
+
+    fireEvent.change(within(sheet).getByRole("combobox", { name: "Time period" }), {
+      target: { value: "day" },
+    });
+    // Seed Swap was approved 26 hours ago.
+    expect(rowsOf(sheet).map(titleOf)).not.toContain("Seed Swap");
+    expect(markedIds()).toEqual(idsOf(EVENTS.slice(0, 4)));
+    expect(within(sheet).getByTestId("sheet-list-header")).toHaveTextContent("4 notifications");
+
+    setBell({ notifications: [{ ...EVENTS[4], isNew: true }] });
+    view.refresh();
+    expect(within(sheet).getByText("Nothing in This Period")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Nothing New")).toBeNull();
+
+    // A read that answered only in part cannot promise the period is empty.
+    setBell({ notifications: [{ ...EVENTS[4], isNew: true }], isError: true });
+    view.refresh();
+    expect(within(sheet).getByText("Nothing in This Period")).toBeInTheDocument();
+    expect(within(sheet).getByText(en["app.home.notifications.partial"])).toBeInTheDocument();
   });
 
   it("opens the work from a work event and the promise from a promise event, closing first", () => {

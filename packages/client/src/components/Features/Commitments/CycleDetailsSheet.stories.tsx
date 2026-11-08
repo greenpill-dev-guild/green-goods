@@ -8,6 +8,7 @@ import { expect, fn, screen, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
+  LIVE_PROMISES,
   SEED_SWAP,
 } from "../../../../../shared/.storybook/clientJourneyFixtures";
 import {
@@ -37,6 +38,53 @@ const BRIEF_NOTE =
   "one promise finishing doesn't finish the others.\nAde confirms each prerequisite before the " +
   "next work is booked.";
 
+/**
+ * Autumn Planting's own promises (DL-169): the journey's two offered and three underway, one
+ * waiting to be confirmed and one lapsed. Its record says 3 of 7 kept.
+ */
+const autumnPromise = LIVE_PROMISES[0].row.commitment;
+const AUTUMN_PROMISES = [
+  ...LIVE_PROMISES.map(({ row }) => row.commitment).filter(({ cycleId }) => cycleId === 3n),
+  { ...autumnPromise, id: "42161-91", commitmentId: 91n, derivedState: "READY_FOR_CONFIRMATION" },
+  { ...autumnPromise, id: "42161-92", commitmentId: 92n, derivedState: "EXPIRED" },
+];
+/** What Autumn Planting adds up to: each unit label on its own row. */
+const autumnUnits = (unitLabel: string, fulfilledUnits: bigint, expectedUnits: bigint) => ({
+  id: `42161-cycle-3-${unitLabel}`,
+  chainId: 42161,
+  scope: "CYCLE" as const,
+  scopeId: 3n,
+  poolId: 7n,
+  cycleId: 3n,
+  unitLabel,
+  unitLabelHash: "0x00" as const,
+  expectedUnits,
+  approvedUnits: fulfilledUnits,
+  fulfilledUnits,
+  openUnits: expectedUnits - fulfilledUnits,
+  updatedAt: 1_790_000_000,
+});
+/** The cycle reads the details make, seeded so no story reaches the indexer. */
+const CYCLE_READ_SEEDS: [readonly unknown[], unknown][] = [
+  [
+    queryKeys.commitmentPooling.commitments(42161, { chainId: 42161, cycleId: 3n }),
+    AUTUMN_PROMISES,
+  ],
+  [
+    queryKeys.commitmentPooling.cycle(42161, 3n),
+    {
+      cycle: AUTUMN_PLANTING,
+      unitSummaries: [autumnUnits("mornings", 5n, 7n), autumnUnits("sessions", 1n, 2n)],
+      seriesSummaries: [],
+    },
+  ],
+  [queryKeys.commitmentPooling.commitments(42161, { chainId: 42161, cycleId: 9n }), []],
+  [
+    queryKeys.commitmentPooling.cycle(42161, 9n),
+    { cycle: IMPACT_WEBSITE, unitSummaries: [], seriesSummaries: [] },
+  ],
+];
+
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
@@ -60,6 +108,7 @@ const meta: Meta<typeof CycleDetailsSheet> = {
     withLocale,
     withSeededQueryClient([
       ...JOURNEY_CYCLE_NAMES,
+      ...CYCLE_READ_SEEDS,
       [
         queryKeys.commitmentPooling.cycleMetadata("bafyimpactwebsite"),
         { status: "resolved", name: "Impact website", brief: BRIEF_NOTE },
@@ -97,6 +146,40 @@ export const CampaignBriefPortuguese: Story = {
   play: async () => {
     const sheet = within(await screen.findByRole("dialog", { name: "Impact website" }));
     await expect(sheet.getByRole("heading", { name: "Como o brief funciona" })).toBeVisible();
+  },
+};
+
+/** A fact list's rows as label and value, as the reader sees them. */
+function factsOf(component: string) {
+  return [
+    ...document.querySelectorAll(`[data-component="${component}"] [data-component="FactRow"]`),
+  ].map((row) => [
+    row.querySelector(".gg-fact-label")?.textContent,
+    row.querySelector(".gg-fact-value")?.textContent,
+  ]);
+}
+
+/**
+ * Where a season's promises stand, counted from its own promise list, with Kept so far from its
+ * record, then what they add up to, one unit label a row (DL-169).
+ */
+export const SeasonStanding: Story = {
+  args: { cycle: AUTUMN_PLANTING },
+  play: async () => {
+    const sheet = within(await screen.findByRole("dialog", { name: "Autumn Planting 2026" }));
+    await expect(sheet.getByRole("heading", { name: "Where its promises stand" })).toBeVisible();
+    await expect(factsOf("CyclePromiseStanding")).toEqual([
+      ["Open to take up", "2"],
+      ["In progress", "3"],
+      ["Waiting to be confirmed", "1"],
+      ["Kept so far", "3 of 7 kept"],
+      ["Withdrawn or lapsed", "1"],
+    ]);
+    await expect(sheet.getByRole("heading", { name: "What it adds up to" })).toBeVisible();
+    await expect(factsOf("CycleUnits")).toEqual([
+      ["mornings", "5 of 7"],
+      ["sessions", "1 of 2"],
+    ]);
   },
 };
 

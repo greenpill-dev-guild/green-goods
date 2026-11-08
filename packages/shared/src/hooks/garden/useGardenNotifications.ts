@@ -59,6 +59,14 @@ export interface GardenNotifications {
    * A later event is new and listed as before.
    */
   clearAll: () => void;
+  /**
+   * Read every source of the events again, as the sheet does when it opens and from its Refresh
+   * (DL-168). A source that is off (no pool yet, no grant, no steward role) stays off, and a read
+   * already running is joined rather than started over.
+   */
+  refresh: () => void;
+  /** A read is running, the first one or a refresh. */
+  isFetching: boolean;
 }
 
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
@@ -253,6 +261,27 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     if (scope) clearMarks(scope, notifications, at);
   }, [clearMarks, notifications, scope]);
 
+  // The work page's read decides for itself whether it can run (online, or its offline copy), and
+  // the join-request count needs a grant; the query reads answer whether they are on.
+  const { refetch: refetchWorkPage } = workRead;
+  const { refetch: readJoinRequestsAgain } = joinRequestRead;
+  const refresh = useCallback(() => {
+    refreshNow();
+    refetchWorkPage();
+    readJoinRequestsAgain();
+    for (const read of [activityRead, poolsRead, commitmentsRead, takeUpsRead]) {
+      if (read.isEnabled) void read.refetch({ cancelRefetch: false });
+    }
+  }, [
+    refreshNow,
+    refetchWorkPage,
+    readJoinRequestsAgain,
+    activityRead,
+    poolsRead,
+    commitmentsRead,
+    takeUpsRead,
+  ]);
+
   return {
     notifications,
     newCount,
@@ -281,5 +310,14 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       weekIncomplete,
     markSeen,
     clearAll,
+    refresh,
+    // Every source a refresh reads again, so Refresh shows progress until the last has answered.
+    isFetching:
+      workRead.isFetching ||
+      activityRead.isFetching ||
+      poolsRead.isFetching ||
+      commitmentsRead.isFetching ||
+      takeUpsRead.isFetching ||
+      joinRequestRead.isFetching,
   };
 }

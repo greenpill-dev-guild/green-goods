@@ -15,16 +15,19 @@ const TEST_TOKEN = "0x3333333333333333333333333333333333333333" as const;
 
 const mockUseAccessibleCookieJars = vi.fn();
 const mockUseVoucherWallet = vi.fn();
+const mockHasVoucherWalletRoute = vi.fn();
 const ACCOUNT = "0x6666666666666666666666666666666666666666" as const;
 
-/** A voucher wallet read: what the voucher pilot answers for the account. */
-function voucherWallet(evidence: "onchain" | "unavailable") {
+/** A voucher wallet read: still running, or what the voucher pilot answered for the account. */
+function voucherWallet(answer: "reading" | "onchain" | "unavailable") {
+  if (answer === "reading") return { data: undefined, isError: false };
   return {
+    isError: false,
     data: {
       account: ACCOUNT,
-      evidence,
-      complete: evidence === "onchain",
-      reason: evidence === "onchain" ? null : "routes-unconfigured",
+      evidence: answer,
+      complete: answer === "onchain",
+      reason: answer === "onchain" ? null : "canonical-read-unavailable",
       issuers: [],
       holdings: [],
       bookings: [],
@@ -122,6 +125,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
   return {
     ...(await importOriginal()),
     useVoucherWallet: (...args: unknown[]) => mockUseVoucherWallet(...args),
+    hasVoucherWalletRoute: () => mockHasVoucherWalletRoute(),
   };
 });
 
@@ -131,18 +135,10 @@ describe("WalletSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([baseJar]));
-    mockUseVoucherWallet.mockReturnValue(voucherWallet("unavailable"));
+    mockHasVoucherWalletRoute.mockReturnValue(true);
+    mockUseVoucherWallet.mockReturnValue(voucherWallet("reading"));
   });
 
-  it("keeps Vouchers available when a configured route's canonical reads fail", () => {
-    const state = voucherWallet("unavailable");
-    mockUseVoucherWallet.mockReturnValue({
-      ...state,
-      data: { ...state.data, reason: "canonical-read-unavailable" },
-    });
-    render(<WalletSheet isOpen onClose={() => {}} />);
-    expect(screen.getByRole("tab", { name: /Vouchers/ })).toBeInTheDocument();
-  });
   it("counts only jars that can actually be claimed in the Cookies badge", () => {
     // One claimable, one drained (balance 0), one paused → badge shows 1.
     mockUseAccessibleCookieJars.mockReturnValue(jarsState([baseJar, emptyJar, pausedJar]));
@@ -170,29 +166,50 @@ describe("WalletSheet", () => {
     expect(screen.queryByTestId("tab-pools")).not.toBeInTheDocument();
   });
 
-  it("adds Vouchers third once the voucher wallet reads, and leaves it out while it can't", () => {
-    const view = render(<WalletSheet isOpen onClose={() => {}} />);
-    expect(screen.queryByTestId("tab-vouchers")).not.toBeInTheDocument();
-
-    mockUseVoucherWallet.mockReturnValue(voucherWallet("onchain"));
-    view.rerender(<WalletSheet isOpen onClose={() => {}} />);
-
-    const tabs = screen.getAllByRole("tab").map((tab) => tab.getAttribute("data-testid"));
-    expect(tabs).toEqual(["tab-cookie-jar", "tab-send", "tab-vouchers"]);
-    expect(screen.getByTestId("tab-vouchers")).toHaveTextContent("Vouchers");
-  });
-
-  it("opens on Vouchers when a link asks, and on Cookies while the voucher wallet can't read", () => {
+  // The tab is the build's, so the rail is whole before the read answers (DL-167).
+  it("lists Vouchers third from the first frame and lets the read fill it, or say it failed", () => {
     const sheet = () => (
       <MemoryRouter>
         <WalletSheet isOpen onClose={() => {}} startTab="vouchers" />
       </MemoryRouter>
     );
     const view = render(sheet());
-    expect(screen.getByTestId("tab-cookie-jar")).toHaveAttribute("aria-selected", "true");
+
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.getAttribute("data-testid"));
+    expect(tabs).toEqual(["tab-cookie-jar", "tab-send", "tab-vouchers"]);
+    expect(screen.getByTestId("tab-vouchers")).toHaveAttribute("aria-selected", "true");
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getByRole("list")).toHaveAttribute("aria-busy", "true");
+
+    // Paused offline with nothing cached, the read says so instead of holding its frames.
+    mockUseVoucherWallet.mockReturnValue({
+      data: undefined,
+      isError: false,
+      fetchStatus: "paused",
+    });
+    view.rerender(sheet());
+    expect(within(panel).getByText(/could not be read/)).toBeInTheDocument();
 
     mockUseVoucherWallet.mockReturnValue(voucherWallet("onchain"));
     view.rerender(sheet());
-    expect(screen.getByTestId("tab-vouchers")).toHaveAttribute("aria-selected", "true");
+    expect(within(panel).getByText("No vouchers yet")).toBeInTheDocument();
+
+    mockUseVoucherWallet.mockReturnValue(voucherWallet("unavailable"));
+    view.rerender(sheet());
+    expect(screen.getByTestId("tab-vouchers")).toBeInTheDocument();
+    expect(within(panel).getByText(/could not be read/)).toBeInTheDocument();
+  });
+
+  it("keeps to Cookies and Tokens where this build reads no vouchers, even when a link asks", () => {
+    mockHasVoucherWalletRoute.mockReturnValue(false);
+    render(
+      <MemoryRouter>
+        <WalletSheet isOpen onClose={() => {}} startTab="vouchers" />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByTestId("tab-vouchers")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tab-cookie-jar")).toHaveAttribute("aria-selected", "true");
+    expect(mockUseVoucherWallet).toHaveBeenLastCalledWith(null);
   });
 });
