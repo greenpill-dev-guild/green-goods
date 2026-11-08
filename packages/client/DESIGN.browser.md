@@ -98,19 +98,19 @@ Composed of eight sections in this exact order (pinned by the section-order test
 5. **`PublicWhoTendsAGarden`**: five persona portraits walking outward from the field (Gardener → Steward → Evaluator → Funder → Community Member), mirroring the canonical user-archetypes doc (personas themselves are canon in `v1-0.mdx` § 3.1). Gardener CTA is the install path; steward and evaluator CTAs route to docs because those roles are invited by an existing garden, not open sign-ups.
 6. **`PublicFundingBridge`**: cardless trust section explaining the two public support paths, `Donate` through a garden cookie jar for direct support and `Endow` through a garden vault designed so yield supports the garden over time. One primary CTA routes to `/fund`; no wallet connect, amount form, or per-garden funding selector lives on Home.
 7. **`PublicGetInTouch`**: the closing module, with email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
-8. **`PublicFooter`**: compact provenance row with restored living-public-record message and links to Twitter, LinkedIn, GitHub, and Docs. Footer links are neutral by default; green is a hover/focus affordance only.
+8. **`PublicFooter`**: compact provenance footer with the living-public-record message, links to Twitter, LinkedIn, GitHub, and Docs, and a second row for Privacy, Contact, and Terms of Use. Footer links are neutral by default; green is a hover/focus affordance only.
 
 No final sitemap-style "choose your path" route grid.
 
 ### Compact utility footer
 
-Every public-browser page ends with `PublicFooter`, a single quiet row containing:
+Every public-browser page ends with `PublicFooter`, a quiet footer containing:
 
 - Small wordmark (`Green Goods`, regular Fraunces, base size, **not** the oversized italic display treatment).
-- Twitter, LinkedIn, GitHub, and Docs, each opening in a new tab, and nothing else: no site routes, Glossary, or Admin (Afo, 2026-10-12; LinkedIn added 2026-10-13; `PublicFooter.test.tsx` pins the list).
+- Two right-aligned rows of links (Afo, 2026-11-07). The first holds Twitter, LinkedIn, GitHub, and Docs, each opening in a new tab. The second holds the site's own Privacy, Contact, and Terms of Use pages. No other site routes, Glossary, or Admin (Afo, 2026-10-12; LinkedIn added 2026-10-13; `PublicFooter.test.tsx` pins both rows).
 - Copyright/provenance (`© <year> Green Goods. A living public record, rooted in regenerative work.`).
 
-Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
+On mobile everything stacks: wordmark, the outside links, the site's pages, and the copyright line last, so it always ends the page (Afo, 2026-11-07). Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
 
 ## Banner Hero
 

@@ -8,9 +8,10 @@ interface FooterLink {
   defaultLabel: string;
 }
 
-// Site navigation belongs in the header. Privacy and human contact stay
-// discoverable here alongside the project's outside homes.
-const FOOTER_LINKS: readonly FooterLink[] = [
+// Site navigation belongs in the header. The footer keeps the project's outside
+// homes, each in a new tab, and below them the site's own privacy, contact and
+// terms pages.
+const OUTSIDE_LINKS: readonly FooterLink[] = [
   {
     href: "https://x.com/greengoodsapp",
     labelId: "public.footer.twitter",
@@ -27,10 +28,15 @@ const FOOTER_LINKS: readonly FooterLink[] = [
     defaultLabel: "GitHub",
   },
   { href: "https://docs.greengoods.app", labelId: "public.footer.docs", defaultLabel: "Docs" },
+];
+
+const SITE_LINKS: readonly FooterLink[] = [
   { href: "/privacy", labelId: "public.footer.privacy", defaultLabel: "Privacy" },
-  { href: "/terms", labelId: "public.footer.terms", defaultLabel: "Terms of Use" },
   { href: "/contact", labelId: "public.footer.contact", defaultLabel: "Contact" },
-] as const;
+  { href: "/terms", labelId: "public.footer.terms", defaultLabel: "Terms of Use" },
+];
+
+const LINK_ROW_CLASS_NAME = "flex flex-wrap items-center gap-x-5 gap-y-1 sm:justify-end";
 
 export type PublicFooterVariant = "default" | "soil";
 
@@ -41,10 +47,11 @@ interface PublicFooterProps {
 /**
  * PublicFooter — compact utility footer for every public-browser page.
  *
- * Single row at desktop with a small wordmark, restored provenance line, and
- * right-aligned social, documentation, privacy and contact links. Stacks gracefully on
- * mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the
- * footer stays quiet.
+ * A small wordmark, the provenance line, and two right-aligned rows of links:
+ * Twitter, LinkedIn, GitHub and Docs, then Privacy, Contact and Terms of Use.
+ * On a phone everything stacks, and the provenance line comes last so it
+ * always ends the page. Schedule-a-Call lives in `PublicGetInTouch` above the
+ * footer; the footer stays quiet.
  *
  * Variants:
  * - `default` — light surface, used on Home.
@@ -62,6 +69,23 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
       ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
       : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
   );
+
+  const renderLink = ({ href, labelId, defaultLabel }: FooterLink) => {
+    const label = formatMessage({ id: labelId, defaultMessage: defaultLabel });
+    return (
+      <li key={href}>
+        {href.startsWith("/") ? (
+          <Link to={href} viewTransition className={linkClassName}>
+            {label}
+          </Link>
+        ) : (
+          <a href={href} target="_blank" rel="noreferrer noopener" className={linkClassName}>
+            {label}
+          </a>
+        )}
+      </li>
+    );
+  };
 
   return (
     <footer
@@ -85,6 +109,22 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
           })}
         </Link>
 
+        <nav
+          className={cn(
+            "flex flex-col gap-y-2 text-xs tracking-[0.02em] sm:col-start-2 sm:row-start-1 sm:items-end sm:justify-self-end @min-[70rem]:col-start-3",
+            isSoil ? "text-static-white/72" : "text-text-sub-600"
+          )}
+          aria-label={formatMessage({
+            id: "public.footer.navLabel",
+            defaultMessage: "Footer links",
+          })}
+        >
+          <ul className={LINK_ROW_CLASS_NAME}>{OUTSIDE_LINKS.map(renderLink)}</ul>
+          <ul className={LINK_ROW_CLASS_NAME}>{SITE_LINKS.map(renderLink)}</ul>
+        </nav>
+
+        {/* Last in the page order, so on a phone the provenance line ends the footer. Wider
+            footers place it in the grid. */}
         <p
           className={cn(
             "text-xs tracking-[0.02em] sm:col-span-2 sm:row-start-2 @min-[70rem]:col-span-1 @min-[70rem]:col-start-2 @min-[70rem]:row-start-1 @min-[70rem]:justify-self-center @min-[70rem]:text-center",
@@ -100,35 +140,6 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
             { year: currentYear }
           )}
         </p>
-
-        <nav
-          className={cn(
-            "flex flex-wrap items-center gap-x-5 gap-y-1 text-xs tracking-[0.02em] sm:col-start-2 sm:row-start-1 sm:justify-self-end sm:text-right @min-[70rem]:col-start-3",
-            isSoil ? "text-static-white/72" : "text-text-sub-600"
-          )}
-          aria-label={formatMessage({
-            id: "public.footer.navLabel",
-            defaultMessage: "Footer links",
-          })}
-        >
-          {FOOTER_LINKS.map(({ href, labelId, defaultLabel }) =>
-            href.startsWith("/") ? (
-              <Link key={href} to={href} viewTransition className={linkClassName}>
-                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-              </Link>
-            ) : (
-              <a
-                key={href}
-                href={href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className={linkClassName}
-              >
-                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-              </a>
-            )
-          )}
-        </nav>
       </div>
     </footer>
   );

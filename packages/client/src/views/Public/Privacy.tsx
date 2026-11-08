@@ -57,6 +57,11 @@ const SECTIONS = [
   },
 ] as const;
 
+// The subject is for the support mailbox's triage, so it stays in English like the Contact page's.
+const PRIVACY_REQUEST_MAILTO = `mailto:contact@greengoods.app?subject=${encodeURIComponent(
+  "Green Goods privacy request"
+)}`;
+
 export default function Privacy() {
   const { formatMessage, formatDate } = useIntl();
   return (
@@ -120,20 +125,15 @@ export default function Privacy() {
               </EditorialLede>
             </section>
           ))}
-          <div className="mt-8 flex flex-wrap gap-x-8 gap-y-4">
+          {/* One act ends the policy; Contact sits just below in the footer's legal row. */}
+          <div className="mt-8">
             <EditorialLinkArrow
               className="border-primary-on-surface/35 text-primary-on-surface hover:border-primary-on-surface hover:text-primary-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-on-surface"
-              to="mailto:contact@greengoods.app"
-            >
-              contact@greengoods.app
-            </EditorialLinkArrow>
-            <EditorialLinkArrow
-              className="border-primary-on-surface/35 text-primary-on-surface hover:border-primary-on-surface hover:text-primary-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-on-surface"
-              to="/contact"
+              to={PRIVACY_REQUEST_MAILTO}
             >
               {formatMessage({
-                id: "public.privacy.contact",
-                defaultMessage: "Contact Green Goods",
+                id: "public.privacy.request",
+                defaultMessage: "Email a Privacy Request",
               })}
             </EditorialLinkArrow>
           </div>
