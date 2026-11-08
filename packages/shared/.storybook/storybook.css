@@ -43,6 +43,11 @@
  * untouched. Its hero photographs are served by prepare-design-assets.mjs. */
 @import "../../client/src/styles/editorial.css";
 
+/* The logo screens' loading motion (the breathing logo on sign-in and the
+ * update screen), the same file client/src/index.css imports. One class and its
+ * keyframes; no document-level rule. */
+@import "../../client/src/styles/logo-screens.css";
+
 /* Per-surface tokens (admin type scale + font + colour aliases, client button
  * corner scopes), keyed to the `data-surface` root attribute the `withSurface`
  * decorator sets. See surfaces.css for the parity contract. */

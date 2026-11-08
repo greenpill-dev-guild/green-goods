@@ -572,8 +572,11 @@ export const LayoutStability: Story = {
     const canvas = within(canvasElement);
     const scope = (id: string) => within(canvas.getByTestId(id));
     const panelTop = (id: string) => canvas.getByTestId(id).getBoundingClientRect().top;
+    // The logo's slot, not the image: a busy screen's logo breathes (it scales),
+    // and this pins where the logo is laid out, not where a breath has it.
     const logoOffset = (id: string) =>
-      scope(id).getByRole("img").getBoundingClientRect().top - panelTop(id);
+      (scope(id).getByRole("img").parentElement as HTMLElement).getBoundingClientRect().top -
+      panelTop(id);
     const slotOneOffset = (id: string) =>
       scope(id).getByTestId("splash-slot-one").getBoundingClientRect().top - panelTop(id);
     const slotTwoOffset = (id: string) =>
