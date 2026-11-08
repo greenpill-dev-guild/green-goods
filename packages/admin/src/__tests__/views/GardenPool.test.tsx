@@ -879,10 +879,17 @@ describe("GardenPoolTab (W7)", () => {
           createdAt: 1,
         },
       ],
+      // The Send Now that found the refusal reported a failure; the row still says why.
+      queuedPhase: (jobId: string) => ({ status: "failed", key: jobId }),
     });
     renderTab();
     const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
     expect(row).toHaveTextContent("Its season or campaign ended before it was sent");
+    expect(row).not.toHaveTextContent("You can try again");
+    // The send's live line now announces why, so a screen reader hears the refusal too.
+    const line = row.querySelector('[data-component="ActPhaseLine"]');
+    expect(line).toHaveAttribute("role", "status");
+    expect(line).toHaveTextContent("Its season or campaign ended before it was sent");
     // Sending it again cannot help, so nothing offers to.
     expect(within(row).queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
     expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
