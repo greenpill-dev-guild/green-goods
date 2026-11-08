@@ -156,7 +156,14 @@ export function ProofComposer() {
         : { kind: "needed" };
 
   const pick = async (files: FileList | null) => {
-    const { rejectedCount } = await controller.pick(files);
+    const { rejectedCount, overLimit } = await controller.pick(files);
+    if (overLimit) {
+      toastService.error({
+        title: formatMessage({ id: "app.garden.attachments.invalid" }),
+        context: "mediaUpload",
+      });
+      return;
+    }
     if (rejectedCount === 0) return;
     toastService.info({
       title: formatMessage({ id: "app.garden.upload.unsupportedMediaTitle" }),

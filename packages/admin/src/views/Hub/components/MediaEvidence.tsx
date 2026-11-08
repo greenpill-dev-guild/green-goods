@@ -76,7 +76,8 @@ export function MediaEvidence({
             </Button>
           ))}
         </div>
-      ) : (
+      ) : !documents?.length && !audioNoteCids?.length ? (
+        // Only when the work holds nothing at all: documents and voice notes are evidence too.
         <EmptyState
           icon={<RiImageLine className="h-6 w-6" />}
           title={formatMessage({
@@ -84,7 +85,7 @@ export function MediaEvidence({
             defaultMessage: "No media attached",
           })}
         />
-      )}
+      ) : null}
 
       {/* Audio notes from gardener */}
       {audioNoteCids && audioNoteCids.length > 0 && (

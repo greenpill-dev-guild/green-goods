@@ -25,6 +25,7 @@ import {
   isVideoFile,
   isWorkDocument,
   prepareMediaForUpload,
+  validateWorkAttachments,
 } from "../../../modules/work/media-processing";
 import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 import type { Address, WorkUploadConsent } from "../../../types/domain";
@@ -113,6 +114,11 @@ export function useProofComposerController(
 
   const [media, setMedia] = useState<File[]>([]);
   const [audioNotes, setAudioNotes] = useState<File[]>([]);
+  // What the proof holds when a pick finishes, for the limit check after its await.
+  const attachments = useRef({ media, audioNotes });
+  useEffect(() => {
+    attachments.current = { media, audioNotes };
+  }, [media, audioNotes]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [note, setNote] = useState(() => draft.saved?.note ?? "");
   const [links, setLinks] = useState<string[]>(() => draft.saved?.links ?? []);
@@ -245,6 +251,13 @@ export function useProofComposerController(
       try {
         const prepared = await prepareMediaForUpload(Array.from(files), imageCompressor);
         if (composerScope.current !== scope || scope.cancelled) return { rejectedCount: 0 };
+        // The whole proof keeps to the document and size limits, so a pick past them adds
+        // nothing: whatever is queued is uploaded, and the published proof lists all of it.
+        const { media: held, audioNotes: voiceNotes } = attachments.current;
+        const overLimit = validateWorkAttachments([...held, ...prepared.files], voiceNotes, 0, {
+          pendingHeic: "accept",
+        }).some((error) => error === "document-count" || error === "total-size");
+        if (overLimit) return { rejectedCount: prepared.rejectedCount, overLimit: true };
         setMedia((current) => [...current, ...prepared.files]);
         return { rejectedCount: prepared.rejectedCount };
       } finally {

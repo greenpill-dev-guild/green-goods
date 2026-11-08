@@ -171,7 +171,7 @@ export const Media: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+    for (const tool of ["Choose Photos or Files", "Take a Photo", "Record a voice note"]) {
       await expect(canvas.getByRole("button", { name: tool })).toBeVisible();
     }
     await expect(canvas.getByRole("button", { name: "Details" })).toBeEnabled();

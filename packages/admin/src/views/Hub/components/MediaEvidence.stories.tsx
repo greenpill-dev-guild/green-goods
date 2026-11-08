@@ -54,6 +54,30 @@ export const WithAudioNotes: Story = {
 };
 
 /**
+ * Work whose action needs no photo, sent with a certificate alone. The document is the
+ * evidence, so no "No media attached" line contradicts it.
+ */
+export const DocumentsOnly: Story = {
+  args: {
+    media: [],
+    documents: [
+      {
+        cid: "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy",
+        type: "application/pdf",
+        name: "Installation certificate.pdf",
+        size: 1_258_291,
+      },
+    ],
+    actionTitle: "Solar installation",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("link", { name: /Installation certificate\.pdf/ })).toBeVisible();
+    await expect(canvas.queryByText("No media attached")).not.toBeInTheDocument();
+  },
+};
+
+/**
  * As the Hub's review dialog holds it. The viewer opens from inside a dialog, so
  * its scrim has to cover that dialog, and closing it has to hand focus back to
  * the photo that opened it.
