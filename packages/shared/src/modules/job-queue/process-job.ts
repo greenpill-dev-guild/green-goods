@@ -280,6 +280,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       if (error instanceof WorkTransactionReverted) {
         await deps.store.markJobTerminalFailed(jobId, errorMessage);
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
+        deps.analytics.jobPermanentlyFailed({ ...job, lastError: errorMessage });
         return { success: false, error: errorMessage };
       }
       // Read again: the executor updates the checkpoint while it sends.

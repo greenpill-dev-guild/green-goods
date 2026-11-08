@@ -24,7 +24,10 @@ import {
 } from "../../modules/work/draft-lifecycle";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
-import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+} from "../../modules/work/work-confirmation";
 import { dependentWorkLinkPayload } from "../../modules/commitment-pooling/work-link-intent";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 
@@ -33,6 +36,11 @@ const heic = vi.hoisted(() => ({
   convertHeicPhoto: vi.fn(async (): Promise<unknown> => ({ status: "unavailable" })),
 }));
 vi.mock("../../modules/work/heic-conversion", () => heic);
+const telemetry = vi.hoisted(() => ({ track: vi.fn() }));
+vi.mock("../../modules/app/posthog", async (original) => ({
+  ...(await original<typeof import("../../modules/app/posthog")>()),
+  track: telemetry.track,
+}));
 const hash = `0x${"12".repeat(32)}` as const;
 const LINK: DraftWorkLink = {
   commitmentId: "14",
@@ -1136,6 +1144,29 @@ describe("PWA durable submission boundary", () => {
       )
     ).toMatchObject({ kind: "direct", txHash: hash });
     expect(send).toHaveBeenCalledTimes(1);
+  });
+  it("reports the queued work a wallet sends as processed once, and a reverted one as permanently failed", async () => {
+    const tracked = (event: string) =>
+      telemetry.track.mock.calls.filter(([name]) => name === event).map(([, props]) => props);
+    telemetry.track.mockClear();
+    const sent = fixture();
+    await submitWork(sent.command, sent.ports);
+    await submitWork({ ...sent.command }, sent.ports);
+    expect(tracked("offline_job_processed")).toEqual([
+      expect.objectContaining({ job_kind: "work", attempts: 1 }),
+    ]);
+
+    const reverted = fixture();
+    reverted.ports.direct.submitWork = vi.fn(async () => {
+      throw new WorkTransactionReverted(hash);
+    });
+    await expect(submitWork(reverted.command, reverted.ports)).rejects.toBeInstanceOf(
+      WorkTransactionReverted
+    );
+    expect(tracked("offline_job_permanently_failed")).toEqual([
+      expect.objectContaining({ job_kind: "work" }),
+    ]);
+    expect(tracked("offline_job_processed")).toHaveLength(1);
   });
   it("allows only one immediate sender for two simultaneous submissions", async () => {
     const { command, ports, send } = fixture();
