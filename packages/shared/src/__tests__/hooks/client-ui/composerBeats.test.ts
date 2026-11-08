@@ -4,6 +4,7 @@ import {
   COMPOSER_BEATS,
   selectBeatValidity,
   selectClosedActionUIDs,
+  selectUncheckedActionUIDs,
 } from "../../../hooks/client-ui/commitment/composerBeats";
 import { COMMITMENT_COMPOSER_DEFAULTS } from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
 import type { CommitmentComposerValues } from "../../../hooks/commitment-pooling/useCommitmentComposerForm";
@@ -74,6 +75,27 @@ describe("selectBeatValidity", () => {
       reason: null,
     });
   });
+
+  it("holds the same beats while a chosen action's window isn't known, saying a closed one first", () => {
+    const values = {
+      ...valid,
+      kind: "GARDEN_WORK",
+      requirements: ["4", "7"].map((actionUID) => ({ actionUID, requiredCount: 1 })),
+    } as CommitmentComposerValues;
+    const unchecked = { canAdvance: false, reason: "uncheckedAction" };
+
+    expect(selectBeatValidity("howMuch", values, [], ["7"])).toEqual(unchecked);
+    expect(selectBeatValidity("review", values, [], ["7"])).toEqual(unchecked);
+    expect(selectBeatValidity("details", values, [], ["7"])).toEqual({
+      canAdvance: true,
+      reason: null,
+    });
+    // Only removing a closed one helps, so it is said before one still being checked.
+    expect(selectBeatValidity("howMuch", values, ["4"], ["7"])).toEqual({
+      canAdvance: false,
+      reason: "closedAction",
+    });
+  });
 });
 
 describe("selectClosedActionUIDs", () => {
@@ -93,5 +115,8 @@ describe("selectClosedActionUIDs", () => {
 
     expect(selectClosedActionUIDs(values, actions, 42161, now)).toEqual(["5", "4"]);
     expect(selectClosedActionUIDs({ ...values, kind: "SERVICE" }, actions, 42161, now)).toEqual([]);
+    // What the list doesn't hold isn't known to be open either.
+    expect(selectUncheckedActionUIDs(values, actions, 42161)).toEqual(["7"]);
+    expect(selectUncheckedActionUIDs({ ...values, kind: "SERVICE" }, actions, 42161)).toEqual([]);
   });
 });

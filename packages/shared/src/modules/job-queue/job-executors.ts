@@ -3,6 +3,7 @@ import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { logger } from "../app/logger";
+import { readCreationStanding } from "../commitment-pooling/creation-standing";
 import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
 import { EarnedRewardWaiting } from "../commitment-pooling/earned-agreement-error";
 import {
@@ -83,6 +84,16 @@ function goesAfter(sender: TransactionSender, earlier: string, jobId: string): b
 
 // ICommitmentPoolingModule.ClaimType.Individual; the payload carries the Solidity ordinal.
 const CLAIM_TYPE_INDIVIDUAL = 1;
+
+/** A creation whose words wait in the job, unpublished, with no send of it on record. */
+function carriesUnpublishedWords(job: Job): boolean {
+  const payload = job.payload as Partial<CommitmentCreationPayload>;
+  return (
+    Boolean(payload.metadata) &&
+    !payload.metadataCID &&
+    typeof job.meta?.submittedTxHash !== "string"
+  );
+}
 
 /**
  * Publish a commitment's words, if it was composed before they could be.
@@ -179,6 +190,18 @@ export async function executeCommitmentQueueJob(
   if (proofJobId && job.kind !== "workLink" && !ridesWithProof) {
     const proof = await store.getJob(proofJobId);
     if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
+  }
+  // Words composed offline ride the job and are published only when the promise sends, and no send
+  // can go before they are, so nothing of such a promise is on the chain yet. One the chain can no
+  // longer keep is refused before its words are published; one whose standing can't be read waits
+  // with them unpublished.
+  if (job.kind === "commitment" && carriesUnpublishedWords(job)) {
+    const standing = await readCreationStanding(
+      job.payload as CommitmentCreationPayload,
+      chainReads
+    );
+    if (standing === "unreadable") return { status: "waiting", reason: "windows-unavailable" };
+    if (standing !== "open") return { status: "unavailable", reason: standing };
   }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
@@ -307,6 +330,9 @@ export async function executeCommitmentQueueJob(
     throw error;
   }
 
+  // A promise the chain can no longer keep is given up on, as on anything outside the queue:
+  // nothing about it conflicts with the chain, and sending it again cannot help.
+  if (result.status === "refused") return { status: "unavailable", reason: result.reason };
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {
       await store.storeClientSeriesIdMapping(

@@ -70,6 +70,8 @@ const HOLDER = "0x1111111111111111111111111111111111111111" as const;
 const GARDEN = "0x2222222222222222222222222222222222222222" as const;
 const OTHER = "0x3333333333333333333333333333333333333333" as const;
 const ZERO_HASH = `0x${"00".repeat(32)}` as const;
+/** The chain's time in the fixtures, Unix seconds. */
+const CHAIN_NOW = 1_900_000_000n;
 
 function dependencies(
   overrides: Partial<CommitmentJobExecutionDependencies> = {}
@@ -82,6 +84,10 @@ function dependencies(
     readCommitment: vi.fn(),
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(ZERO_HASH),
     readSettlementAccountActive: vi.fn().mockResolvedValue(true),
+    // Unless a test says otherwise, the chain still holds every action and season open.
+    readActionWindow: vi.fn().mockResolvedValue({ startTime: 1n, endTime: CHAIN_NOW + 86_400n }),
+    readCycleWindow: vi.fn().mockResolvedValue({ state: "OPEN", endTime: CHAIN_NOW + 86_400n }),
+    readChainHead: vi.fn().mockResolvedValue({ number: 1n, timestamp: Number(CHAIN_NOW) }),
     send: vi.fn().mockResolvedValue(`0x${"12".repeat(32)}`),
     ...overrides,
   };
@@ -354,6 +360,118 @@ describe("display-group creation deadline", () => {
   });
 });
 
+describe("a promise the chain can no longer keep", () => {
+  const creationJob = (
+    overrides: Partial<CommitmentCreationPayload> = {}
+  ): CommitmentJob<"commitment"> => ({
+    id: "queued-promise",
+    kind: "commitment",
+    payload: commitmentPayload(overrides),
+    chainId: 42161,
+    moduleAddress: MODULE,
+    userAddress: HOLDER,
+  });
+  const actionWindow = (startTime: bigint, endTime: bigint) =>
+    vi.fn().mockResolvedValue({ startTime, endTime });
+  const cycleWindow = (state: string, endTime: bigint | null) =>
+    vi.fn().mockResolvedValue({ state, endTime });
+  const actionClosed = { status: "refused", reason: "action-closed" };
+  const cycleEnded = { status: "refused", reason: "cycle-ended" };
+  const unreadable = { status: "waiting", reason: "windows-unavailable" };
+
+  it.each([
+    [
+      "its action ended a second before the chain's time",
+      { readActionWindow: actionWindow(1n, CHAIN_NOW - 1n) },
+      actionClosed,
+    ],
+    [
+      "the registry doesn't hold its action",
+      { readActionWindow: actionWindow(0n, 0n) },
+      actionClosed,
+    ],
+    [
+      "its season is still Open past its end",
+      { readCycleWindow: cycleWindow("OPEN", CHAIN_NOW - 1n) },
+      cycleEnded,
+    ],
+    [
+      "a steward closed its season",
+      { readCycleWindow: cycleWindow("RECONCILED", CHAIN_NOW + 1n) },
+      cycleEnded,
+    ],
+    [
+      "it would otherwise wait for membership",
+      {
+        readActionWindow: actionWindow(1n, CHAIN_NOW - 1n),
+        hasMembership: vi.fn().mockResolvedValue(null),
+      },
+      actionClosed,
+    ],
+    [
+      "an action's window can't be read",
+      { readActionWindow: vi.fn().mockRejectedValue(new Error("rpc down")) },
+      unreadable,
+    ],
+    ["the chain's time can't be read", { readChainHead: undefined }, unreadable],
+  ] as const)("holds back a promise when %s, and sends nothing", async (_label, overrides, expected) => {
+    const deps = dependencies(overrides);
+    await expect(executeCommitmentJob(creationJob(), deps)).resolves.toEqual(expected);
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "its action takes work until the chain's time itself",
+      {},
+      { readActionWindow: actionWindow(1n, CHAIN_NOW) },
+    ],
+    [
+      "its action hasn't opened yet",
+      {},
+      { readActionWindow: actionWindow(CHAIN_NOW + 60n, CHAIN_NOW + 120n) },
+    ],
+    ["its season has no end", {}, { readCycleWindow: cycleWindow("OPEN", null) }],
+    // A season that can't be read would hold it, so one that belongs to none never reads one.
+    [
+      "it belongs to no season",
+      { cycleId: 0n },
+      { readCycleWindow: vi.fn().mockRejectedValue(new Error("no cycle 0")) },
+    ],
+  ] as const)("sends a promise when %s", async (_label, payload, overrides) => {
+    const deps = dependencies(overrides);
+    await expect(executeCommitmentJob(creationJob(payload), deps)).resolves.toMatchObject({
+      status: "sent",
+    });
+    expect(deps.send).toHaveBeenCalledOnce();
+  });
+
+  it("still recognises a promise that reached the chain before its action closed", async () => {
+    const job = creationJob();
+    const deps = dependencies({
+      readCommitmentId: vi.fn().mockResolvedValue(77n),
+      readCommitment: vi.fn().mockResolvedValue({
+        poolId: job.payload.poolId,
+        creator: HOLDER,
+        creationPayloadHash: hashCommitmentCreationPayload(job.payload),
+      }),
+      readActionWindow: actionWindow(1n, CHAIN_NOW - 1n),
+    });
+
+    await expect(executeCommitmentJob(job, deps)).resolves.toEqual({
+      status: "recovered",
+      entityId: 77n,
+    });
+    // A send already on record waits for its answer, however its windows read now.
+    const pending = dependencies({ readActionWindow: actionWindow(1n, CHAIN_NOW - 1n) });
+    await expect(
+      executeCommitmentJob({ ...job, submittedTxHash: ZERO_HASH }, pending)
+    ).resolves.toEqual({ status: "waiting", reason: "pending-first-send" });
+    expect(pending.readActionWindow).not.toHaveBeenCalled();
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+});
+
 describe("commitment offline job vocabulary", () => {
   it("contains the six frozen kinds and no online settlement/transfer kind", () => {
     expect(COMMITMENT_JOB_KINDS).toEqual([
@@ -508,6 +626,8 @@ describe("commitment series recovery", () => {
       readCommitmentId: vi.fn(),
       readCommitment: vi.fn(),
       readWorkLinkPayloadHash: vi.fn(),
+      readActionWindow: vi.fn(),
+      readCycleWindow: vi.fn(),
       send,
     });
     expect(result).toEqual({ status: "recovered", entityId: 33n });
@@ -527,6 +647,8 @@ describe("commitment series recovery", () => {
       readCommitmentId: vi.fn(),
       readCommitment: vi.fn(),
       readWorkLinkPayloadHash: vi.fn(),
+      readActionWindow: vi.fn(),
+      readCycleWindow: vi.fn(),
       send: vi.fn(),
     });
     expect(result).toEqual({ status: "identity-conflict", reason: "series-payload-mismatch" });
@@ -656,6 +778,8 @@ describe("work-link recovery", () => {
           state: 4,
           contributorsFrozen: true,
         }),
+        readActionWindow: vi.fn(),
+        readCycleWindow: vi.fn(),
         send: vi.fn(),
       }
     );

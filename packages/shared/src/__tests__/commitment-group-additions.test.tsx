@@ -420,6 +420,26 @@ describe("useFinishCreating", () => {
     expect(input?.clearable?.("group-00000001")).toBe(false);
   });
 
+  it("leaves a copy the queue refused out of Finish Creating, so it lists on its own to discard", async () => {
+    // Its action closed before it was sent; sending it again would only be refused again.
+    const refused = {
+      ...job("5", "group-00000001"),
+      attempts: 5,
+      lastError: "unavailable:action-closed",
+    };
+    const jobs = [job("1", "group-00000001"), refused] as never;
+    vi.mocked(jobQueue.getJobs).mockResolvedValueOnce(jobs).mockResolvedValueOnce(jobs);
+    const view = renderHookWithProviders(() =>
+      useFinishCreating({ chainId: 42161, owner: STEWARD })
+    );
+    await waitFor(() => expect(view.result.current.waiting.get("group-00000001")).toEqual(["1"]));
+
+    await act(async () => {
+      await view.result.current.finish("group-00000001");
+    });
+    expect(send.inputs[0]?.copies.map((copy) => copy.clientCommitmentId)).toEqual(["copy-1"]);
+  });
+
   it("sends nothing once the group's deadline has passed", async () => {
     const lapsed = job("1", "group-00000001");
     const lapsedJobs = [{ ...lapsed, payload: { ...lapsed.payload, dueDate: 1n } }] as never;
