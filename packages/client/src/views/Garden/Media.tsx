@@ -13,6 +13,7 @@ import {
   validateWorkAttachments,
   validateWorkVideo,
   WORK_DOCUMENT_ACCEPT,
+  WORK_DOCUMENT_MAX_COUNT,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
@@ -377,16 +378,23 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         newFiles.push(processed);
       }
 
-      // The action's limit and the ten-file cap are on photos and videos; documents have
-      // their own allowance, so a pick past them keeps its documents and drops extra visuals.
+      // The action's limit and the ten-file cap are on photos and videos, and documents have
+      // their own five, so a pick past either keeps what still fits and drops only the extras.
       const maxCount =
         config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
       const visualLimit = Math.min(maxCount, 10);
       let visual = images.filter((file) => !isWorkDocument(file)).length;
+      let documents = images.length - visual;
+      let droppedDocuments = 0;
       const keptFiles = newFiles.filter((file) => {
-        if (isWorkDocument(file)) return true;
-        visual += 1;
-        return visual <= visualLimit;
+        if (!isWorkDocument(file)) {
+          visual += 1;
+          return visual <= visualLimit;
+        }
+        documents += 1;
+        if (documents <= WORK_DOCUMENT_MAX_COUNT) return true;
+        droppedDocuments += 1;
+        return false;
       });
       const droppedCount = newFiles.length - keptFiles.length;
       if (
@@ -413,13 +421,22 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             },
             { dropped: droppedCount }
           ),
-          message: intl.formatMessage(
-            {
-              id: "app.garden.upload.truncatedMessage",
-              defaultMessage: "You can add up to {max} for this action.",
-            },
-            { max: visualLimit }
-          ),
+          message:
+            droppedDocuments > 0
+              ? intl.formatMessage(
+                  {
+                    id: "app.garden.upload.documentLimitMessage",
+                    defaultMessage: "A work can carry up to {max} documents.",
+                  },
+                  { max: WORK_DOCUMENT_MAX_COUNT }
+                )
+              : intl.formatMessage(
+                  {
+                    id: "app.garden.upload.truncatedMessage",
+                    defaultMessage: "You can add up to {max} for this action.",
+                  },
+                  { max: visualLimit }
+                ),
           context: "mediaUpload",
         });
       }

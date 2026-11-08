@@ -52,6 +52,7 @@ vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   isWorkDocument: (file: File) =>
     file.type === "application/pdf" || /\.(pdf|md|markdown|txt|docx?)$/i.test(file.name),
   WORK_DOCUMENT_ACCEPT: "application/pdf,.pdf,text/markdown,.md",
+  WORK_DOCUMENT_MAX_COUNT: 5,
   getSafeMediaBatchMetadata: (files: File[]) => ({
     file_count: files.length,
     mime_types: files.map((file) => file.type || "unknown"),
@@ -482,6 +483,34 @@ describe("WorkMedia", () => {
     const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
     expect(update([held])).toEqual([held, certificate]);
     expect(toastService.error).not.toHaveBeenCalled();
+  });
+
+  it("keeps a photo from a pick that brings more documents than a work carries", async () => {
+    const setImages = vi.fn();
+    const pdf = (name: string) => new File(["%PDF-1.7"], name, { type: "application/pdf" });
+    const held = ["a", "b", "c", "d", "e"].map((name) => pdf(`${name}.pdf`));
+    const photo = new File(["photo"], "panels.jpg", { type: "image/jpeg" });
+
+    renderWithIntl(
+      <WorkMedia
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
+        images={held}
+        setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+      />
+    );
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([photo, pdf("f.pdf")]) } });
+
+    // Photos have their own allowance, so only the sixth document is left out.
+    await waitFor(() => expect(setImages).toHaveBeenCalledTimes(1));
+    const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
+    expect(update(held)).toEqual([...held, photo]);
+    expect(toastService.info).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "A work can carry up to 5 documents." })
+    );
   });
 
   it("shows converted HEIC media as a JPEG preview", async () => {

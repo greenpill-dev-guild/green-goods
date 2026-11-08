@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { Button } from "@green-goods/shared/components/Button";
 import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
@@ -17,6 +18,12 @@ interface MediaEvidenceProps {
   audioNoteCids?: string[];
   /** Documents the work's metadata lists, such as a certificate; each opens in a new tab */
   documents?: PublishedWorkDocument[];
+  /**
+   * The metadata file, which names the voice notes and documents, is still being read or
+   * could not be read. The photos show either way; the rest waits, or offers another try.
+   */
+  evidenceState?: "loading" | "failed";
+  onRetryEvidence?: () => void;
   /** Action title for alt text context */
   actionTitle?: string;
 }
@@ -29,6 +36,8 @@ export function MediaEvidence({
   media,
   audioNoteCids,
   documents,
+  evidenceState,
+  onRetryEvidence,
   actionTitle,
 }: MediaEvidenceProps) {
   const { formatMessage, formatNumber } = useIntl();
@@ -76,7 +85,7 @@ export function MediaEvidence({
             </Button>
           ))}
         </div>
-      ) : !documents?.length && !audioNoteCids?.length ? (
+      ) : !documents?.length && !audioNoteCids?.length && !evidenceState ? (
         // Only when the work holds nothing at all: documents and voice notes are evidence too.
         <EmptyState
           icon={<RiImageLine className="h-6 w-6" />}
@@ -85,6 +94,31 @@ export function MediaEvidence({
             defaultMessage: "No media attached",
           })}
         />
+      ) : null}
+
+      {evidenceState === "loading" ? (
+        <p role="status" className="type-meta text-text-sub">
+          {formatMessage({
+            id: "admin.work.evidence.loading",
+            defaultMessage: "Loading voice notes and documents…",
+          })}
+        </p>
+      ) : evidenceState === "failed" ? (
+        <Alert
+          variant="warning"
+          action={
+            onRetryEvidence ? (
+              <Button type="button" emphasis="secondary" size="sm" onClick={onRetryEvidence}>
+                {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+              </Button>
+            ) : undefined
+          }
+        >
+          {formatMessage({
+            id: "admin.work.evidence.failed",
+            defaultMessage: "Voice notes and documents couldn't load.",
+          })}
+        </Alert>
       ) : null}
 
       {/* Audio notes from gardener */}

@@ -377,6 +377,25 @@ describe("useProofComposerController", () => {
     expect(result.current.media).toEqual(five);
   });
 
+  it("leaves out a voice note that would take the proof past 50 MB", async () => {
+    const sized = (name: string, type: string, size: number) => {
+      const file = new File(["x"], name, { type });
+      Object.defineProperty(file, "size", { value: size });
+      return file;
+    };
+    const mib = 1024 * 1024;
+    const full = ["a", "b", "c", "d", "e"].map((name) =>
+      sized(`${name}.pdf`, "application/pdf", 10 * mib)
+    );
+    const { result } = renderController();
+
+    await act(async () => {
+      await expect(result.current.pick(full)).resolves.toEqual({ rejectedCount: 0 });
+    });
+    act(() => mocks.recordingComplete?.(sized("note.webm", "audio/webm", mib)));
+    expect(result.current.audioNotes).toEqual([]);
+  });
+
   it("keeps the draft and queues neither act if upload consent is canceled", async () => {
     const { result } = renderController();
     act(() => {

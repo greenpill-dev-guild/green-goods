@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { AdminDialog } from "@/components/AdminDialog";
 import { MediaEvidence } from "./MediaEvidence";
@@ -74,6 +74,24 @@ export const DocumentsOnly: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("link", { name: /Installation certificate\.pdf/ })).toBeVisible();
     await expect(canvas.queryByText("No media attached")).not.toBeInTheDocument();
+  },
+};
+
+/**
+ * The work's metadata file could not be read, so its voice notes and documents are not known
+ * yet. The photos still show, and the rest offers another try instead of "No media attached".
+ */
+export const EvidenceUnavailable: Story = {
+  args: {
+    media: FIXTURE_WORK_MEDIA.slice(0, 1),
+    evidenceState: "failed",
+    onRetryEvidence: fn(),
+    actionTitle: "Solar installation",
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Try Again" }));
+    await expect(args.onRetryEvidence).toHaveBeenCalledTimes(1);
   },
 };
 

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { createProofToasts } from "../../../components/Toast/presets/proof";
+import { toastService } from "../../../components/Toast/toast.service";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
 import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/jobs";
 import {
@@ -169,7 +170,21 @@ export function useProofComposerController(
   });
 
   const recording = useAudioRecording({
-    onRecordingComplete: (file) => setAudioNotes((current) => [...current, file]),
+    onRecordingComplete: (file) => {
+      // A voice note counts toward the proof's 50 MB too, the way Submit Work's does.
+      const { media: held, audioNotes: voiceNotes } = attachments.current;
+      const errors = validateWorkAttachments(held, [...voiceNotes, file], 0, {
+        pendingHeic: "accept",
+      });
+      if (errors.includes("total-size")) {
+        toastService.error({
+          title: intl.formatMessage({ id: "app.garden.attachments.invalid" }),
+          context: "mediaUpload",
+        });
+        return;
+      }
+      setAudioNotes((current) => [...current, file]);
+    },
   });
   useEffect(() => () => draftRepository.revoke("proof"), [draftRepository]);
 

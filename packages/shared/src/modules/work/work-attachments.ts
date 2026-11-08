@@ -3,6 +3,7 @@ import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
 import { withoutPhotoMetadata } from "../media/image-metadata";
 import { withoutVideoMetadata } from "../media/video-metadata";
+import { isWordCompoundFile, isWordZip } from "./document-containers";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -217,26 +218,13 @@ export function isWorkDocument(file: Pick<File, "name" | "type">): boolean {
   return workDocumentType(file) !== null;
 }
 
-/** Whether `bytes` holds `pattern` anywhere. */
-function containsBytes(bytes: Uint8Array, pattern: Uint8Array): boolean {
-  for (let at = bytes.indexOf(pattern[0]); at !== -1; at = bytes.indexOf(pattern[0], at + 1)) {
-    if (at + pattern.length > bytes.length) return false;
-    if (pattern.every((byte, offset) => bytes[at + offset] === byte)) return true;
-  }
-  return false;
-}
-const DOCX_PARTS = ["[Content_Types].xml", "word/document.xml"].map((part) =>
-  new TextEncoder().encode(part)
-);
-/** The stream every Word 97-2003 file holds, named in UTF-16 as compound files name them. */
-const DOC_STREAM = Uint8Array.from(Array.from("WordDocument").flatMap((c) => [c.charCodeAt(0), 0]));
-
 /**
  * Whether a document's bytes are what its type says. A document publishes as it
  * was picked, so a file renamed to look like one (an app or a web page called
  * `.pdf`) is refused rather than pinned under a type it is not. Every zip and
- * every compound file starts the same way, so a Word file is told by the parts
- * it holds. Text must be UTF-8. `bytes` is the whole file.
+ * every compound file starts the same way, so a Word file is told by the entries
+ * its container's directory names (`document-containers`). Text must be UTF-8.
+ * `bytes` is the whole file.
  */
 export function documentMatchesType(type: string, bytes: Uint8Array): boolean {
   const startsWith = (...head: number[]) => head.every((byte, index) => bytes[index] === byte);
@@ -244,14 +232,9 @@ export function documentMatchesType(type: string, bytes: Uint8Array): boolean {
     case "application/pdf":
       return startsWith(0x25, 0x50, 0x44, 0x46, 0x2d); // %PDF-
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-      return (
-        startsWith(0x50, 0x4b, 0x03, 0x04) && DOCX_PARTS.every((part) => containsBytes(bytes, part))
-      );
+      return startsWith(0x50, 0x4b, 0x03, 0x04) && isWordZip(bytes);
     case "application/msword":
-      return (
-        startsWith(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1) &&
-        containsBytes(bytes, DOC_STREAM)
-      );
+      return isWordCompoundFile(bytes);
     case "text/plain":
     case "text/markdown":
       if (bytes.includes(0)) return false;
