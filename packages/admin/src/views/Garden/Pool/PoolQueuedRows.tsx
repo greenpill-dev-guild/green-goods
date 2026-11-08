@@ -67,30 +67,37 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
           id: "cockpit.garden.pool.queued.sent",
           defaultMessage: "Sent. This row leaves once the index shows the promise.",
         });
+        // A refusal outlasts the send that found it: the row says why it can't go rather
+        // than that a send failed and could be tried again. Only an act in flight speaks over it.
+        const refusal =
+          row.refusal && phase.status !== "signing" && phase.status !== "confirming"
+            ? formatMessage({ id: REFUSAL_NOTE_IDS[row.refusal] })
+            : null;
         // What the row says first: the act in flight, then why it cannot go, else how
         // much it promises, since a promise not created yet has no dialog to tell it.
         const said =
+          refusal ??
           actPhaseText(intl, { phase, chainId: pool.chainId, confirmed: sentLine }) ??
-          (row.refusal
-            ? formatMessage({ id: REFUSAL_NOTE_IDS[row.refusal] })
-            : expired
-              ? formatMessage({
-                  id: "cockpit.garden.pool.add.expired",
-                  defaultMessage:
-                    "This group's deadline has passed, so nothing can join it. Start a new group instead.",
-                })
-              : row.settlementDeferred
-                ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
-                : row.waitingForSettlementAccount
-                  ? formatMessage({
-                      id: "cockpit.garden.pool.reward.needsSettlement",
-                      defaultMessage:
-                        "A reward is paid through this garden's settlement account, which isn't active.",
-                    })
-                  : null);
+          (expired
+            ? formatMessage({
+                id: "cockpit.garden.pool.add.expired",
+                defaultMessage:
+                  "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+              })
+            : row.settlementDeferred
+              ? formatMessage({ id: "app.pool.queued.settlementDeferredNote" })
+              : row.waitingForSettlementAccount
+                ? formatMessage({
+                    id: "cockpit.garden.pool.reward.needsSettlement",
+                    defaultMessage:
+                      "A reward is paid through this garden's settlement account, which isn't active.",
+                  })
+                : null);
         // A failed act says so in the error color, as its phase line did.
         const note =
-          said && phase.status === "failed" ? { text: said, tone: "error" as const } : said;
+          said && !refusal && phase.status === "failed"
+            ? { text: said, tone: "error" as const }
+            : said;
         const units = note ? null : `${row.targetUnits} ${row.unitLabel}`.trim() || null;
         const sendLabel = row.failed
           ? formatMessage({
@@ -153,13 +160,16 @@ export function PoolQueuedRows({ console: pool, rows, now }: PoolQueuedRowsProps
               }
             />
             {/* The row leads with the phase's words; the line stays for screen
-                readers, so each change is still announced. */}
-            <ActPhaseLine
-              className="sr-only"
-              phase={phase}
-              chainId={pool.chainId}
-              confirmed={sentLine}
-            />
+                readers, so each change is still announced. Once a refusal speaks, a
+                stale send's line would offer a try the row no longer has. */}
+            {refusal ? null : (
+              <ActPhaseLine
+                className="sr-only"
+                phase={phase}
+                chainId={pool.chainId}
+                confirmed={sentLine}
+              />
+            )}
           </li>
         );
       })}
