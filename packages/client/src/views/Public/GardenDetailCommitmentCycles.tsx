@@ -49,6 +49,11 @@ function toDate(seconds: bigint): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/** A date that holds together on one line: its spaces become same-width no-break spaces. */
+function unbroken(date: string): string {
+  return date.replace(/ /g, "\u00A0").replace(/\u2009/g, "\u202F");
+}
+
 /**
  * A group of the record (the current periods, the finished ones): it opens on
  * the hairline that closes the group above, under an h3 a step above the
@@ -59,18 +64,20 @@ const GROUP_CLASS = "mt-10 flex flex-col gap-5 border-t border-stroke-soft-200 p
 
 /**
  * A period's record line in the section's mono voice: type, status, dates.
- * Each part wraps whole, so a date never splits across lines, and a wrapped
- * line never starts or ends on a dot: each dot sits in a gutter before its
- * part, and the line starts one gutter left of a clipping box, as
- * `EditorialMetaRow` does. The dots stay text, so the line still reads
- * "Season · Open now · Runs through …".
+ * Each part moves to the next line whole. A part wider than the whole line,
+ * as Portuguese "Terminou em 13 de jan. de 2026" is on a 320px phone, breaks
+ * between its words, and its date holds together (`unbroken`), so a date
+ * never splits. A wrapped line never starts or ends on a dot: each dot sits
+ * in a gutter before its part, and the line starts one gutter left of a
+ * clipping box, as `EditorialMetaRow` does. The dots stay text, so the line
+ * still reads "Season · Open now · Runs through …".
  */
 function RecordMeta({ parts, className }: { parts: string[]; className?: string }) {
   return (
     <div className={cn("overflow-clip", className)}>
       <p className={`${META_CLASS} -ml-6 flex flex-wrap`}>
         {parts.map((part, index) => (
-          <span key={`${index}-${part}`} className="relative min-w-0 pl-6">
+          <span key={`${index}-${part}`} className="relative pl-6">
             {index > 0 ? <span className="absolute left-0 w-6 text-center">{" · "}</span> : null}
             {part}
           </span>
@@ -182,7 +189,7 @@ function OpenCycle({
   const intl = useIntl();
   const { formatMessage, formatNumber } = intl;
   const end = cycle.endTime === null ? null : toDate(cycle.endTime);
-  const endDate = end ? intl.formatDate(end, { dateStyle: "medium" }) : null;
+  const endDate = end ? unbroken(intl.formatDate(end, { dateStyle: "medium" })) : null;
   const meta = [
     cycleTypeLabel(formatMessage, cycle.cycleType),
     ...(ended && endDate
@@ -481,10 +488,10 @@ function cycleWindow(intl: IntlShape, cycle: PublicCommitmentCycleRecord): strin
   const format = { month: "short", year: "numeric" } as const;
   const start = cycle.startTime === null ? null : toDate(cycle.startTime);
   const end = cycle.endTime === null ? null : toDate(cycle.endTime);
-  if (start && end) return intl.formatDateTimeRange(start, end, format);
+  if (start && end) return unbroken(intl.formatDateTimeRange(start, end, format));
   const single = end ?? start;
   return single
-    ? intl.formatDate(single, format)
+    ? unbroken(intl.formatDate(single, format))
     : intl.formatMessage({
         id: "public.pool.garden.history.datesUnavailable",
         defaultMessage: "Dates not available",
