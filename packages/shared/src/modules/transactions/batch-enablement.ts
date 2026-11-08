@@ -58,7 +58,6 @@ export const ENABLED_BATCHES: readonly BatchEnablement[] = [
     profile: "kernel-0.3.1-legacy",
     chainId: 42161,
   },
-  { action: "proof-and-send", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "proof-and-send", rail: "passkey", profile: "kernel-0.3.3", chainId: 42161 },
   {
     action: "vault-deposit",

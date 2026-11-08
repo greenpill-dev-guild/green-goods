@@ -58,6 +58,7 @@ export function prepareActionEditBatch(input: {
   chainId: number;
   actionUID: bigint;
   rail: BatchRail;
+  atomic?: boolean;
   changes: readonly ActionEditChange[];
   /** What the registry holds for the window now, which sets the order. */
   window: ActionWindow;
@@ -70,7 +71,7 @@ export function prepareActionEditBatch(input: {
     account: input.account,
     chainId: input.chainId,
     domain: actionEditDomain(input.chainId, input.actionUID),
-    mode: "atomic",
+    mode: input.atomic === false ? "sequential" : "atomic",
     budget,
     items: orderActionEdit(input.changes, input.window).map((change) => ({
       id: change.field,
@@ -120,9 +121,14 @@ function verifyActionEdit(
  * one's value and cannot be simulated alone, so the window writes are checked in order against
  * the window the chain holds now.
  */
-async function checkActionEdit(prepared: PreparedBatch, chain: ActionEditChain) {
+async function checkActionEdit(
+  prepared: PreparedBatch,
+  chain: ActionEditChain,
+  itemIds: readonly string[]
+) {
   const { registry, actionUID } = targetOf(prepared);
-  const [first] = prepared.items;
+  const items = prepared.items.filter((item) => itemIds.includes(item.id));
+  const [first] = items;
   const [action] = await Promise.all([
     readAction(registry, actionUID, chain),
     chain.simulate({
@@ -134,7 +140,7 @@ async function checkActionEdit(prepared: PreparedBatch, chain: ActionEditChain) 
       account: prepared.account,
     }),
   ]);
-  const refused = refusedWindowWrite(action, changesOf(prepared.items));
+  const refused = refusedWindowWrite(action, changesOf(items));
   if (refused) throw new Error(refused);
 }
 
@@ -149,7 +155,7 @@ interface ActionEditBatchInput {
 
 export type ActionEditBatchOutcome =
   | { status: "saved"; transactionHash: Hex }
-  /** Nothing landed, so the whole edit can be sent again. */
+  /** No further writes will land; proven fields were reported before stopping. */
   | { status: "not-saved" }
   /** It may have landed: the edit is held until someone reads it or moves on. */
   | { status: "unknown" }
@@ -158,9 +164,15 @@ export type ActionEditBatchOutcome =
 
 const NOT_BATCHABLE = new Set(["batch-budget-exceeded", "batch-atomic-unavailable"]);
 
-/** Rejects only for a failure before anything was sent. */
+/** Sequential sends report proven progress before a later field can fail. */
 export async function sendActionEditBatch(
-  input: ActionEditBatchInput & { rail: BatchRail; changes: readonly ActionEditChange[] }
+  input: ActionEditBatchInput & {
+    rail: BatchRail;
+    atomic?: boolean;
+    changes: readonly ActionEditChange[];
+    /** Persist each proven field before the next wallet prompt can open. */
+    onSaved?: (changes: ActionEditChange[]) => void;
+  }
 ): Promise<ActionEditBatchOutcome> {
   const { batches, scope, actionUID, chain } = input;
   try {
@@ -170,18 +182,25 @@ export async function sendActionEditBatch(
       id: crypto.randomUUID(),
       actionUID,
       rail: input.rail,
+      atomic: input.atomic,
       changes: input.changes,
       window: await readAction(registry, actionUID, chain),
     });
+    const verify = verifyActionEdit(prepared, input);
     const record = await batches.execute(prepared, {
-      preflight: (reviewed) => checkActionEdit(reviewed, chain),
-      verify: verifyActionEdit(prepared, input),
+      preflight: (reviewed, itemIds) => checkActionEdit(reviewed, chain, itemIds),
+      verify: async (execution) => {
+        const confirmed = await verify(execution);
+        if (confirmed.length)
+          input.onSaved?.(changesOf(prepared.items.filter((item) => confirmed.includes(item.id))));
+        return confirmed;
+      },
     });
     if (record.status === "confirmed")
-      return { status: "saved", transactionHash: record.receipts[0].transactionHash };
+      return { status: "saved", transactionHash: record.receipts.at(-1)!.transactionHash };
     return { status: UNKNOWN_BATCH_STATES.has(record.status) ? "unknown" : "not-saved" };
   } catch (error) {
-    if (error instanceof Error && NOT_BATCHABLE.has(error.message))
+    if (input.atomic !== false && error instanceof Error && NOT_BATCHABLE.has(error.message))
       return { status: "not-batchable" };
     throw error;
   }

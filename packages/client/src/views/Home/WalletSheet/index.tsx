@@ -1,4 +1,4 @@
-import { useVoucherWallet } from "@green-goods/shared/commitment-pooling";
+import { hasVoucherWalletRoute, useVoucherWallet } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
@@ -11,12 +11,11 @@ import { AppSheet, type AppSheetTab } from "@/components/Sheets/AppSheet";
 import { CookieJarTab } from "./CookieJarTab";
 import { SendTab } from "./SendTab";
 import { VouchersTab } from "./VouchersTab";
-import { hasVoucherWallet } from "./voucherWallet";
 
 interface WalletSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  /** The tab it opens on, when a link asked for one; it falls back to Cookies while unread. */
+  /** The tab it opens on, when a link asked for one; Cookies where this build reads no vouchers. */
   startTab?: "vouchers";
 }
 
@@ -42,22 +41,21 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
     [jars]
   );
 
-  // The account's vouchers across gardens, read while the sheet is open. Until the voucher
-  // pilot's deployment is adopted the read is unavailable and the tab stays out.
+  // Vouchers is the voucher pilot's tab wherever this build reads vouchers, a fact of the build:
+  // the rail lists it from the first frame and the read fills it, so the rail never grows under
+  // the reader (DL-167). Elsewhere the wallet keeps to Cookies and Tokens.
+  const coreModule = getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule;
+  const showVouchers = hasVoucherWalletRoute({ sourceChainId: DEFAULT_CHAIN_ID, coreModule });
+  // The account's vouchers across gardens, read while the sheet is open.
   const { primaryAddress } = useUser();
   const voucherScope = useMemo(
     () =>
-      isOpen && primaryAddress
-        ? {
-            sourceChainId: DEFAULT_CHAIN_ID,
-            coreModule: getNetworkContracts(DEFAULT_CHAIN_ID).commitmentPoolingModule,
-            account: primaryAddress as Address,
-          }
+      isOpen && showVouchers && primaryAddress
+        ? { sourceChainId: DEFAULT_CHAIN_ID, coreModule, account: primaryAddress as Address }
         : null,
-    [isOpen, primaryAddress]
+    [isOpen, showVouchers, primaryAddress, coreModule]
   );
-  const voucherWallet = useVoucherWallet(voucherScope).data;
-  const showVouchers = hasVoucherWallet(voucherWallet);
+  const voucherRead = useVoucherWallet(voucherScope);
   const tab = activeTab === "vouchers" && !showVouchers ? "cookie-jar" : activeTab;
 
   const tabs: AppSheetTab[] = [
@@ -102,8 +100,13 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
     >
       {tab === "cookie-jar" && <CookieJarTab />}
       {tab === "send" && <SendTab resetNonce={sendResetNonce} />}
-      {tab === "vouchers" && showVouchers && (
-        <VouchersTab wallet={voucherWallet} onClose={onClose} />
+      {tab === "vouchers" && (
+        <VouchersTab
+          wallet={voucherRead.data}
+          // A read paused offline with nothing cached would otherwise hold its frames for good.
+          failed={voucherRead.isError || voucherRead.fetchStatus === "paused"}
+          onClose={onClose}
+        />
       )}
     </AppSheet>
   );

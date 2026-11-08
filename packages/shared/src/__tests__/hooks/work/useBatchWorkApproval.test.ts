@@ -264,7 +264,12 @@ describe("useBatchWorkApproval", () => {
     await act(() => result.current.send([decision]));
 
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
-    expect(onLanded).toHaveBeenCalledWith([decision.draft.workUID]);
+    expect(onLanded).toHaveBeenCalledWith([
+      expect.objectContaining({
+        workUID: decision.draft.workUID,
+        approved: decision.draft.approved,
+      }),
+    ]);
   });
 
   it("passes on a list that takes a signature per review", async () => {

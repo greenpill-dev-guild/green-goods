@@ -22,7 +22,9 @@ import {
 } from "../../modules/work/review-chain";
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { Confidence, VerificationMethod } from "../../types/domain";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { createMockWorkApproval } from "../test-utils/mock-factories";
 import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
 
@@ -32,6 +34,7 @@ vi.mock("@wagmi/core", async (importOriginal) => ({
   readContract: vi.fn(),
 }));
 vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: vi.fn() }));
 vi.mock("../../modules/data/eas", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getWorkApprovalsForWork: vi.fn(),
@@ -457,6 +460,35 @@ describe("reading who has decided", () => {
   beforeEach(() => {
     vi.mocked(readContract).mockReset();
     vi.mocked(getWorkApprovalsForWork).mockReset().mockResolvedValue([]);
+  });
+
+  it("keeps a whole-group refusal recognizable through simulation, batching and display", async () => {
+    const { sender, decide, input } = setup();
+    const decisions = [decide(), decide()];
+    chainHolds();
+    vi.mocked(simulateTransaction)
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          name: "ActionExpired",
+          message: "This action has ended.",
+          raw: "ActionExpired",
+        },
+      })
+      .mockResolvedValue({ success: true });
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      chain: createReviewChain(chainId),
+      rail: "passkey",
+      decisions,
+    });
+
+    expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    const { parsed } = parseAndFormatError(outcome.failure);
+    expect(parsed.isKnown).toBe(true);
+    expect(parsed.name).toBe("ActionExpired");
   });
 
   it("stops a send at a decision the resolver counted, without asking EAS", async () => {

@@ -243,6 +243,8 @@ describe("CommitmentsSheet", () => {
       const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
       expect(fold).toHaveTextContent(HUB_DAY);
       expect(fold).toHaveTextContent("Offered");
+      // The tile's number is said in the line too, not only to screen readers (DL-166).
+      expect(fold.querySelector(".gg-item-row-details")).toHaveTextContent("10 promises");
       expect(screen.getAllByRole("button", { name: new RegExp(HUB_DAY) })).toHaveLength(1);
       await user.click(fold);
 

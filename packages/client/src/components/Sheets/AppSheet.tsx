@@ -4,7 +4,7 @@ import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/Sh
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type FC, type ReactNode, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { TAB_ICON, TAB_RAIL } from "@/components/Navigation/Tabs/tabRailStyles";
+import { TAB_ICON, TAB_RAIL, TAB_SIZING } from "@/components/Navigation/Tabs/tabRailStyles";
 import { pwaSheetStyles } from "@/components/Pwa/sheetStyles";
 
 export interface AppSheetTab {
@@ -130,6 +130,7 @@ export const AppSheet: FC<AppSheetProps> = ({
           aria-controls={tabPanelId}
           className={cn(
             pwaSheetStyles.tabTrigger,
+            TAB_SIZING,
             activeTab === tab.id ? pwaSheetStyles.tabActive : pwaSheetStyles.tabInactive
           )}
           data-testid={`tab-${tab.id}`}

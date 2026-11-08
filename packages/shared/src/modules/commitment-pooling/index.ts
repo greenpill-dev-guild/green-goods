@@ -30,6 +30,7 @@ export * from "./service-access-types";
 export * from "./service-access-voucher-types";
 export type { ServiceOfferLine } from "./service-offer-line";
 export {
+  hasVoucherWalletRoute,
   readIssuerSafeThreshold,
   requestRewardDeliveries,
   serviceVoucherHolder,

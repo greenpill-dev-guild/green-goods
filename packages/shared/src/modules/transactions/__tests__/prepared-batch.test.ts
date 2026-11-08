@@ -190,6 +190,8 @@ describe("isBatchEnabled", () => {
       chainId: 42161,
     } as const;
     expect(isBatchEnabled(proofAndSend)).toBe(true);
+    expect(isBatchEnabled({ ...proofAndSend, profile: "kernel-0.3.1-legacy" })).toBe(false);
+    expect(isBatchEnabled({ ...proofAndSend, rail: "wallet", profile: "eip-5792" })).toBe(false);
     expect(isBatchEnabled({ ...proofAndSend, chainId: 42220 })).toBe(false);
     expect(isBatchEnabled({ ...proofAndSend, profile: "kernel-0.3.3-pilot" })).toBe(false);
     expect(isBatchEnabled({ ...proofAndSend, action: "bulk-reviews" })).toBe(false);

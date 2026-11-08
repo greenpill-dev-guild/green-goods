@@ -34,6 +34,7 @@ export interface ProofReviewProps {
   /** "Send for confirmation too" (D19), offered only when this reader may send and the chain would take it. */
   canSendToo: boolean;
   sendToo: boolean;
+  sendsProofWithItsSend: boolean;
   onSendToo: (on: boolean) => void;
   heicStateOf?: (file: File) => PendingPhotoState | undefined;
 }
@@ -75,6 +76,7 @@ export function ProofReview({
   isOnline,
   canSendToo,
   sendToo,
+  sendsProofWithItsSend,
   onSendToo,
   heicStateOf,
 }: ProofReviewProps) {
@@ -135,7 +137,11 @@ export function ProofReview({
           }
         )
       : canSendToo && sendToo
-        ? formatMessage({ id: "app.proof.review.next.signTwice" })
+        ? formatMessage({
+            id: sendsProofWithItsSend
+              ? "app.proof.review.next.signOnce"
+              : "app.proof.review.next.signTwice",
+          })
         : formatMessage({ id: "app.proof.review.next.stays" });
 
   const heading = (text: string) => (

@@ -61,8 +61,9 @@ export interface PromiseGroupRowProps {
  * Many separate promises made alike, as one row (PRD-1029 c1), on the shared commitment
  * row: the direction's icon carries the number of promises, so "10" never reads as ten units
  * of one promise. The pill says what is still available, then the details give the shared
- * due date and the rest of the counts. There is no progress bar and no "Yours": the reader's
- * own copies are ordinary rows beside it.
+ * due date and the tile's number in words, followed by the rest of the counts ("10 promises,
+ * 3 kept", DL-166). There is no progress bar and no "Yours": the reader's own copies are
+ * ordinary rows beside it.
  */
 export function PromiseGroupRow({
   group,
@@ -92,7 +93,13 @@ export function PromiseGroupRow({
         tone: !availabilityUnknown && group.counts.available > 0 ? "info" : "neutral",
       }}
       due={promiseDueDetail(intl, sample?.dueDate)}
-      group={{ size: group.counts.published, counts: rest.join(", ") }}
+      group={{
+        size: group.counts.published,
+        counts: [
+          formatMessage({ id: "app.pool.group.row.size" }, { count: group.counts.published }),
+          ...rest,
+        ].join(", "),
+      }}
       onOpen={onOpen}
     />
   );

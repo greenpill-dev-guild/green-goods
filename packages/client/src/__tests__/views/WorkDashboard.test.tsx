@@ -774,7 +774,7 @@ describe("WorkDashboard", () => {
 
     const uploadAll = screen.getByTestId("upload-all");
     expect(uploadAll).toHaveTextContent("Upload all");
-    const actions = screen.getByTestId("work-list-actions");
+    const actions = screen.getByTestId("sheet-list-actions");
     expect(within(actions).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(within(actions).getByTestId("upload-all")).toBe(uploadAll);
     expect(within(actions).queryByRole("combobox", { name: "Pending work filter" })).toBeNull();

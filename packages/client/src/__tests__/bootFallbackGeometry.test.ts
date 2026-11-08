@@ -40,6 +40,10 @@ const LAUNCH_ERROR_SOURCE = readFileSync(
   resolve(process.cwd(), "src/components/Errors/AppLaunchError.tsx"),
   "utf8"
 );
+const LOGO_SCREENS_CSS = readFileSync(
+  resolve(process.cwd(), "src/styles/logo-screens.css"),
+  "utf8"
+);
 
 /** Hex for a theme.css `--name: R G B;` triple (the boot fallback format). */
 function themeRgbToHex(varName: string): string {
@@ -248,8 +252,11 @@ interface ScenePair {
 // Match Tailwind's rem units, not their 16px-default conversions: browser text settings must
 // scale the static scene and React by the same amount.
 const SCENE_PAIRS: ScenePair[] = [
+  // Both split the free space inside the safe area: Chrome on Android lays a reloading
+  // installed app out between the system bars and then under them, with insets to match.
   {
-    classLiteral: "min-h-screen flex flex-col items-center bg-bg-canvas px-4 py-2",
+    classLiteral:
+      "min-h-screen flex flex-col items-center bg-bg-canvas px-4 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-[calc(0.5rem+var(--safe-area-bottom))]",
     source: "scaffold",
     selector: ".boot-pwa-shell",
     boot: [
@@ -257,7 +264,9 @@ const SCENE_PAIRS: ScenePair[] = [
       "flex-direction: column; /* flex-col */",
       "align-items: center; /* items-center */",
       "min-height: 100vh; /* min-h-screen */",
-      "padding: 0.5rem 1rem; /* py-2 px-4 */",
+      "padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)); /* pt-[calc(0.5rem+env(safe-area-inset-top,0px))] */",
+      "padding-inline: 1rem; /* px-4 */",
+      "padding-bottom: calc(0.5rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))); /* pb-[calc(0.5rem+var(--safe-area-bottom))] */",
     ],
   },
   {
@@ -358,6 +367,60 @@ describe("installed app loading scene parity", () => {
     expect(INDEX_HTML).toMatch(
       /class="boot-pwa-content">\s*<div class="boot-pwa-logo-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-message-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-stack">\s*<div class="boot-pwa-action-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-note-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-zone"[^>]*><\/div>\s*<div class="boot-pwa-link"[^>]*><\/div>/
     );
+  });
+});
+
+/** The body of the block a header opens, with its whitespace removed for comparison. */
+function blockBody(css: string, header: string): string {
+  const start = css.indexOf(`${header} {`);
+  if (start === -1) throw new Error(`No ${header} block`);
+  const open = css.indexOf("{", start);
+  let depth = 1;
+  let index = open + 1;
+  while (index < css.length && depth > 0) {
+    if (css[index] === "{") depth += 1;
+    else if (css[index] === "}") depth -= 1;
+    index += 1;
+  }
+  return css.slice(open + 1, index - 1).replace(/\s+/g, "");
+}
+
+// The loading screen and the scaffold breathe as one, so moving from one to the other never
+// restarts or changes the breath (DL-170).
+describe("the logo screens' breath", () => {
+  it("runs the loading screen on the scaffold's keyframes and easing token, without reduced motion", () => {
+    expect(blockBody(BOOT_CSS, "@keyframes boot-breathe")).toBe(
+      blockBody(LOGO_SCREENS_CSS, "@keyframes logo-breathe")
+    );
+    // The static scene paints before the stylesheet, so its fallback is the token's own value.
+    const easing = THEME_SOURCE.match(/--spring-effects-easing:\s*([^;]+);/)?.[1];
+    expect(easing).toMatch(/^cubic-bezier\(/);
+    expect(ruleBody(BOOT_CSS, '.boot-pwa-shell[aria-busy="true"] .boot-pwa-content img')).toContain(
+      `animation: boot-breathe 2.4s var(--spring-effects-easing, ${easing}) infinite;`
+    );
+    expect(ruleBody(LOGO_SCREENS_CSS, ".logo-breathe")).toContain(
+      "animation: logo-breathe 2.4s var(--spring-effects-easing) infinite;"
+    );
+    // Under reduced motion the logo holds still, as animation.css holds every animation.
+    expect(BOOT_CSS).toMatch(
+      /@media \(prefers-reduced-motion: no-preference\) \{\s*\.boot-pwa-shell\[aria-busy="true"\] \.boot-pwa-content img \{/
+    );
+    expect(LOGO_SCREENS_CSS).toMatch(
+      /@media \(prefers-reduced-motion: no-preference\) \{\s*\.logo-breathe \{/
+    );
+  });
+
+  it("starts both on the page's clock, one breath apart at most", () => {
+    expect(INDEX_HTML).toContain("var BREATHE_MS = 2400;");
+    expect(INDEX_HTML).toContain('"--boot-breathe-delay", -(now % BREATHE_MS) + "ms"');
+    expect(SCAFFOLD_SOURCE).toContain("const BREATHE_MS = 2400;");
+    expect(SCAFFOLD_SOURCE).toContain("`${-(performance.now() % BREATHE_MS)}ms`");
+  });
+
+  it("is the motion every busy logo screen uses", () => {
+    expect(SCAFFOLD_SOURCE).toContain('breathe && "logo-breathe"');
+    expect(SCAFFOLD_SOURCE).not.toContain("animate-pulse");
+    expect(LAUNCH_ERROR_SOURCE).toContain("<SplashScaffold breathe");
   });
 });
 
