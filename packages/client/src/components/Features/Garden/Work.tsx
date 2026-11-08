@@ -186,16 +186,12 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
       if (readsHistory && !isLoadingOlder) loadOlderWork?.();
     }, [readsHistory, isLoadingOlder, loadOlderWork]);
     // While a saved copy stands in for live data, its line takes the count's place.
-    // The count is the bare number, so the filters beside it have room; screen
-    // readers still hear what it counts.
-    const countLine = intl.formatMessage(
-      { id: "app.garden.work.count" },
-      { count: view.works.length }
-    );
+    // The count names what it counts ("20 submissions"), as Your Work's does (DL-166);
+    // the filters beside it give way first.
     const status = readsHistory
       ? intl.formatMessage({ id: "app.garden.work.loading" })
-      : (context ?? intl.formatNumber(view.works.length));
-    const srStatus = readsHistory || context ? undefined : countLine;
+      : (context ??
+        intl.formatMessage({ id: "app.garden.work.count" }, { count: view.works.length }));
 
     // Loading keeps the loaded layout (D28): the header row with the loading line
     // where the count lands and a placeholder where each filter goes, then cards
@@ -265,9 +261,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
     // sheet placement), so switching tabs never moves the icon and title.
     return (
       <div>
-        {hasRows || context ? (
-          <GardenListHeader status={status} srStatus={srStatus} filters={filters} />
-        ) : null}
+        {hasRows || context ? <GardenListHeader status={status} filters={filters} /> : null}
         <ul
           ref={ref}
           onScroll={handleScroll}

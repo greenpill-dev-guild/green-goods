@@ -38,7 +38,7 @@ import {
 import { deleteWorkDraft, discardCopy, discardProof } from "./pendingDiscard";
 import { PendingRowCard } from "./PendingRowCard";
 import type { UploadAction } from "./uploadActions";
-import { WorkListHeader } from "./WorkListTab";
+import { SheetListHeader } from "@/components/Sheets/SheetListHeader";
 
 interface PendingTabProps {
   /** The active garden's scope (DL-129), which the tab's own drafts and proof follow too. */
@@ -239,7 +239,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
   return (
     <div className="flex min-h-full flex-col">
-      <WorkListHeader
+      <SheetListHeader
         statusText={statusText}
         onRefresh={showRefresh ? refresh : undefined}
         isFetching={isFetching}
@@ -284,7 +284,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
             </NativeSelect>
           </div>
         )}
-      </WorkListHeader>
+      </SheetListHeader>
 
       {isLoading ? (
         <EmptyState

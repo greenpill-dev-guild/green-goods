@@ -102,12 +102,12 @@ export const AllWork: Story = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // The count is the bare number; screen readers hear what it counts. Each row's
+    // The count says what it counts, the one text everyone reads (DL-166). Each row's
     // pill is a status too, so the count is found by what it says.
     const status = canvas.getByText("6 submissions").closest<HTMLElement>('[role="status"]');
     await expect(status).not.toBeNull();
-    await expect(within(status as HTMLElement).getByText("6")).toBeVisible();
-    await expect(within(status as HTMLElement).getByText("6 submissions")).toHaveClass("sr-only");
+    await expect(status).toBeVisible();
+    await expect(status).toHaveTextContent(/^6 submissions$/);
     const type = canvas.getByRole("combobox", { name: "Type of work" });
     // All work, then the actions that have work here, A to Z.
     await expect([...(type as HTMLSelectElement).options].map((option) => option.text)).toEqual([
@@ -129,7 +129,7 @@ export const OneType: Story = {
     const canvas = within(canvasElement);
     await userEvent.selectOptions(canvas.getByRole("combobox", { name: "Type of work" }), "1");
     const status = canvas.getByText("2 submissions").closest<HTMLElement>('[role="status"]');
-    await expect(within(status as HTMLElement).getByText("2")).toBeVisible();
+    await expect(status).toHaveTextContent(/^2 submissions$/);
   },
 };
 

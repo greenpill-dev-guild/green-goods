@@ -225,7 +225,7 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * The garden's sections as tall sheets over Home (PWA Home step 10, DL-128): the section's
+ * The garden's sections as full sheets over Home (PWA Home step 10, DL-128, DL-164): the section's
  * content under the one shared sheet header, the garden named beneath the title. Insights opens
  * with the garden's banner when it has one and keeps the assessments as read-only rows; the
  * Gardeners sheet puts a steward's join-request queue first, with Check Requests and no count;
@@ -259,7 +259,7 @@ export const InsightsWithBanner: Story = {
   play: async () => {
     const sheet = await findSheet("Insights");
     const dialog = screen.getByRole("dialog", { name: "Insights" });
-    await expect(dialog).toHaveAttribute("data-sheet-size", "tall");
+    await expect(dialog).toHaveAttribute("data-sheet-size", "full");
     await expect(dialog).toHaveAccessibleDescription("In Riverside Commons Garden");
     const banner = sheet.getByTestId("garden-sheet-banner");
     await expect(Math.round(banner.getBoundingClientRect().height)).toBe(144);

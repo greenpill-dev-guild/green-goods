@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useReviewBatch } from "../../../hooks/work/useReviewBatch";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewBatchOutcome } from "../../../modules/work/review-batch";
+import type { ProvenReview } from "../../../modules/work/review-hold";
 import {
   REVIEW_BATCH_STORAGE_KEY,
   reviewBatchScope,
@@ -31,7 +32,7 @@ const { auth, batch, toasts } = vi.hoisted(() => ({
     send: vi.fn(),
     checkAgain: vi.fn(async () => {}),
     moveOn: vi.fn(async () => {}),
-    onLanded: (_workUIDs: readonly string[]) => {},
+    onLanded: (_landed: readonly ProvenReview[]) => {},
   },
   toasts: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
@@ -41,7 +42,7 @@ vi.mock("../../../components/toast", () => ({ toastService: toasts }));
 vi.mock("../../../hooks/work/useBatchWorkApproval", () => ({
   useBatchWorkApproval: (
     _gardenId: string,
-    options: { onLanded: (workUIDs: readonly string[]) => void }
+    options: { onLanded: (landed: readonly ProvenReview[]) => void }
   ) => {
     batch.onLanded = options.onLanded;
     return {
@@ -149,12 +150,12 @@ describe("useReviewBatch", () => {
     await waitFor(() => expect(result.current.sendSize).toBe(2));
     expect(result.current.signatureStep).toBe(1);
 
-    act(() => batch.onLanded(ids.slice(0, 5)));
+    act(() => batch.onLanded(ids.slice(0, 5).map((workUID) => ({ workUID, approved: true }))));
     expect(stagedIds(result)).toEqual(["0x6", "0x7"]);
     expect(result.current.signatureStep).toBe(2);
 
     await act(async () => finish(outcomeOf({})));
-    act(() => batch.onLanded(ids.slice(5)));
+    act(() => batch.onLanded(ids.slice(5).map((workUID) => ({ workUID, approved: true }))));
     expect(result.current.reviews).toEqual([]);
   });
 
@@ -171,6 +172,40 @@ describe("useReviewBatch", () => {
     expect(stagedIds(result)).toEqual(["0x2"]);
     expect(toasts.info).toHaveBeenCalledOnce();
     expect(toasts.info.mock.calls[0][0].title).toContain("1 work");
+  });
+
+  it.each([
+    true,
+    false,
+  ])("keeps a proven decision (%s) visible until the work observer catches up", (approved) => {
+    const pending = { id: "0x1", status: "pending" } as OverlayWork;
+    const { result, rerender } = render([pending]);
+    act(() => result.current.stage(decide("0x1", !approved)));
+
+    act(() => batch.onLanded([{ workUID: "0x1", approved }]));
+
+    expect(stagedIds(result)).toEqual([]);
+    expect(useReviewBatchStore.getState().reviewsByScope[SCOPE()]).toBeUndefined();
+    expect(result.current.reviewFor("0x1")).toMatchObject({
+      confirmed: true,
+      draft: { approved },
+    });
+
+    rerender({
+      list: [{ ...pending, status: approved ? "approved" : "rejected", _isPending: false }],
+    });
+    expect(result.current.reviewFor("0x1")).toBeUndefined();
+    expect(toasts.info).not.toHaveBeenCalled();
+  });
+
+  it("does not infer an unreadable landed decision from the staged draft", () => {
+    const { result } = render([{ id: "0x1", status: "pending" } as OverlayWork]);
+    act(() => result.current.stage(decide("0x1")));
+
+    act(() => batch.onLanded([{ workUID: "0x1" }]));
+
+    expect(stagedIds(result)).toEqual([]);
+    expect(result.current.reviewFor("0x1")).toBeUndefined();
   });
 
   it("keeps a refused review with the contract's reason, in words, until it's taken out", async () => {
@@ -218,7 +253,7 @@ describe("useReviewBatch", () => {
     act(() => void result.current.send());
     expect(batch.send).toHaveBeenLastCalledWith(expect.any(Array), { perSignature: 1 });
     await waitFor(() => expect(result.current.sendSize).toBe(3));
-    act(() => batch.onLanded(["0x1"]));
+    act(() => batch.onLanded([{ workUID: "0x1", approved: true }]));
     expect(result.current.signatureStep).toBe(2);
 
     await act(async () => finish(outcomeOf({ notSent: ["0x2", "0x3"] })));

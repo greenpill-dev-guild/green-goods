@@ -445,6 +445,7 @@ export function useProofComposerController(
     landing: currentLanding,
     canSendToo,
     sendToo,
+    sendsProofWithItsSend: jobs.sendsProofWithItsSend,
     setSendToo: setSendTooChoice,
     linkInvalid,
     imageUrls,

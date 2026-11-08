@@ -270,6 +270,7 @@ export function ProofComposer() {
             isOnline={controller.isOnline}
             canSendToo={controller.canSendToo}
             sendToo={controller.sendToo}
+            sendsProofWithItsSend={controller.sendsProofWithItsSend}
             onSendToo={controller.setSendToo}
             heicStateOf={controller.heicStateOf}
           />

@@ -10,6 +10,8 @@ import { useActionEditorController } from "../../../hooks/admin-ui/actions/useAc
 
 const mocks = vi.hoisted(() => ({
   assertReady: vi.fn(),
+  actionInstructions: "",
+  registrationScope: "11155111:owner",
   pendingEdits: [] as unknown[],
   reconcileEdits: vi.fn(),
   clearCompletedEdits: vi.fn(),
@@ -30,6 +32,7 @@ const mocks = vi.hoisted(() => ({
 
 const batch = vi.hoisted(() => ({
   available: false,
+  journaled: false,
   hold: null as unknown,
   holdFeedback: null as unknown,
   saved: [] as unknown[],
@@ -79,7 +82,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
         slug: "original-action",
         startTime: originalStart.getTime(),
         endTime: originalEnd.getTime(),
-        instructions: "",
+        instructions: mocks.actionInstructions,
         translations: {},
       },
     ],
@@ -90,7 +93,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     isLoading: false,
-    registrationScope: "11155111:owner",
+    registrationScope: mocks.registrationScope,
     pendingEdits: mocks.pendingEdits,
     reconcileEdits: mocks.reconcileEdits,
     clearCompletedEdits: mocks.clearCompletedEdits,
@@ -173,6 +176,8 @@ describe("useActionEditorController", () => {
   });
 
   beforeEach(() => {
+    mocks.actionInstructions = "";
+    mocks.registrationScope = "11155111:owner";
     mocks.pendingEdits = [];
     mocks.reconcileEdits.mockReset();
     vi.clearAllMocks();
@@ -185,6 +190,7 @@ describe("useActionEditorController", () => {
     mocks.updateTitle.mockResolvedValue({ success: true });
     Object.assign(batch, {
       available: false,
+      journaled: false,
       hold: null,
       holdFeedback: null,
       saved: [],
@@ -419,10 +425,10 @@ describe("useActionEditorController", () => {
     await act(() => view.result.current.submit(UPDATED));
 
     expect(batch.send).toHaveBeenCalledOnce();
-    expect(batch.send).toHaveBeenCalledWith([
-      ...UPDATED_CHANGES,
-      { field: "instructions", value: "bafy-new" },
-    ]);
+    expect(batch.send).toHaveBeenCalledWith(
+      [...UPDATED_CHANGES, { field: "instructions", value: "bafy-new" }],
+      { onSaved: expect.any(Function) }
+    );
     for (const write of [...WRITES, mocks.updateInstructions]) expect(write).not.toHaveBeenCalled();
     expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42");
     expect(mocks.clearDraft).toHaveBeenCalledWith("/actions/action-42/edit");
@@ -464,8 +470,66 @@ describe("useActionEditorController", () => {
     expect(saved).toBeNull();
   });
 
+  it("keeps a plain wallet's proven fields across reload and journals only the remaining edit", async () => {
+    let saved: Record<string, unknown> | null = null;
+    mocks.setDraft.mockImplementation((_path, value) => {
+      saved = value;
+    });
+    mocks.restoreDraft.mockImplementation(() => (saved ? { formState: saved } : null));
+    batch.journaled = true;
+    batch.send.mockImplementationOnce(async (changes, { onSaved }) => {
+      onSaved([changes[0]]);
+      return { status: "not-saved" };
+    });
+    const first = await renderEditor();
+    act(() => first.result.current.form.reset(UPDATED));
+    await act(() => first.result.current.submit(UPDATED));
+    first.unmount();
+    const restored = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(restored.result.current.form.getValues("title")).toBe(UPDATED.title)
+    );
+    batch.send.mockResolvedValueOnce({ status: "saved", transactionHash: "0xab" });
+    await act(() => restored.result.current.submit(UPDATED));
+    expect(batch.send.mock.calls[1][0]).toEqual(UPDATED_CHANGES.slice(1));
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+  });
+
+  it("keeps remaining draft fields when a partial save refreshes the action metadata", async () => {
+    batch.journaled = true;
+    batch.send.mockImplementationOnce(async (changes, { onSaved }) => {
+      onSaved([changes[0]]);
+      return { status: "not-saved" };
+    });
+    const view = await renderEditor();
+    act(() => view.result.current.form.reset(UPDATED));
+    await act(() => view.result.current.submit(UPDATED));
+    mocks.actionInstructions = "bafy-refreshed";
+    view.rerender();
+    expect(view.result.current.form.getValues()).toEqual(UPDATED);
+    expect(mocks.getFileByHash).not.toHaveBeenCalled();
+
+    // A different account owns a different attempt and must initialize its editor.
+    mocks.registrationScope = "11155111:other-owner";
+    mocks.actionInstructions = "";
+    view.rerender();
+    await waitFor(() =>
+      expect(view.result.current.form.getValues("title")).toBe("Original action")
+    );
+  });
+
+  it("never bypasses wallet recovery when a sequential edit exceeds its ceilings", async () => {
+    batch.journaled = true;
+    batch.send.mockResolvedValue({ status: "not-batchable" });
+    const view = await renderEditor();
+    await act(() => view.result.current.submit(UPDATED));
+    for (const write of WRITES) expect(write).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+  });
+
   it.each([
-    ["a plain wallet", false],
+    ["a rail without journal support", false],
     ["an edit past its batch ceilings", true],
   ])("sends %s one write at a time, in the order the registry accepts", async (_case, available) => {
     batch.available = available;

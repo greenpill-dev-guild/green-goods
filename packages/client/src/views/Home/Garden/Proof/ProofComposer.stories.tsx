@@ -281,6 +281,20 @@ export const ReviewSend: Story = {
   },
 };
 
+/** The proof and confirmation can go together under one signature. */
+export const ReviewSendTogether: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("reviewSendTogether"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeEnabled();
+    await expect(
+      canvas.getByText("Sign once to add the proof and send it for confirmation.")
+    ).toBeVisible();
+  },
+};
+
 /** Dele's review: anyone on the team adds proof, only the lead sends, so no switch. */
 export const ReviewTeammate: Story = {
   tags: ["storybook-ci"],

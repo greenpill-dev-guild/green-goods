@@ -374,10 +374,12 @@ button.garden-stat-row:hover {
   }
 
   /* From 600px the canvas clears only the nav, and until 1024px the FAB floats
-   * above it. */
+   * above it. Reserve the same space after the bar so the final row can scroll
+   * above its raised position. */
   @media (min-width: 600px) and (max-width: 1023px) {
     .hub-review-batch-bar {
       bottom: 3.75rem;
+      margin-bottom: 3.75rem;
     }
   }
 }
