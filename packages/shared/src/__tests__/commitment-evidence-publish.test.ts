@@ -14,6 +14,7 @@ import { webcrypto } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { uploadConsent } from "./test-utils/upload-policy";
 import { bytesOf, cameraPhoto, cleanPhoto, photoFile } from "./test-utils/photo-fixtures";
+import { parseCommitmentEvidenceDocument } from "../modules/commitment-pooling/evidence";
 
 const store = new Map<string, Record<string, unknown>>();
 const images = new Map<string, Array<{ id: string; file: File; url: string }>>();
@@ -136,13 +137,18 @@ describe("publishing proof at sync", () => {
       "beds.jpg",
       "image/jpeg"
     );
+    const certificate = new File(["%PDF-1.7"], "Repair certificate.pdf", {
+      type: "application/pdf",
+    });
     images.set("job-evidence", [
       { id: "img-1", file: picked, url: "blob:photo" },
       { id: "img-2", file: voice, url: "blob:voice" },
+      { id: "img-3", file: certificate, url: "blob:certificate" },
     ]);
     mocks.uploadFileToIPFS
       .mockResolvedValueOnce({ cid: "bafy-photo" })
-      .mockResolvedValueOnce({ cid: "bafy-voice" });
+      .mockResolvedValueOnce({ cid: "bafy-voice" })
+      .mockResolvedValueOnce({ cid: "bafkreicertificate00000000000000000000" });
     mocks.uploadJSONToIPFS.mockResolvedValue({ cid: "bafy-proof" });
 
     const result = await executeCommitmentQueueJob("job-evidence", job(), 42161, {} as never);
@@ -162,6 +168,15 @@ describe("publishing proof at sync", () => {
         links: [{ url: "https://example.org/before" }],
         media: [{ cid: "bafy-photo", mime: "image/jpeg", kind: "photo" }],
         audio: [{ cid: "bafy-voice", mime: "audio/webm" }],
+        // A document is listed apart from the photos, which readers draw as pictures.
+        documents: [
+          {
+            cid: "bafkreicertificate00000000000000000000",
+            mime: "application/pdf",
+            name: "Repair certificate.pdf",
+            size: 8,
+          },
+        ],
       },
       expect.objectContaining({ gardenAddress: GARDEN })
     );
@@ -284,5 +299,25 @@ describe("publishing proof at sync", () => {
     expect(mocks.uploadFileToIPFS).not.toHaveBeenCalled();
     expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
     expect(store.get("job-evidence")).toBeUndefined();
+  });
+});
+
+// Anyone can pin an evidence document, so the documents it lists are read as untrusted input.
+describe("reading documents attached as proof", () => {
+  it("reads a proof that holds only a document, and drops one without a content identifier", () => {
+    const cid = "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy";
+    expect(
+      parseCommitmentEvidenceDocument({
+        version: 1,
+        documents: [
+          { cid, mime: "application/pdf", name: "  Repair   certificate.pdf ", size: 2048 },
+          { cid: "https://example.org/x.pdf", mime: "application/pdf", name: "x.pdf" },
+        ],
+      })
+    ).toEqual({
+      version: 1,
+      documents: [{ cid, mime: "application/pdf", name: "Repair certificate.pdf", size: 2048 }],
+    });
+    expect(parseCommitmentEvidenceDocument({ version: 1, documents: [{ cid: "x" }] })).toBeNull();
   });
 });

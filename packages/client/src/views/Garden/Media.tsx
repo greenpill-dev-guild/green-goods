@@ -9,8 +9,10 @@ import {
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
   validateWorkAttachments,
   validateWorkVideo,
+  WORK_DOCUMENT_ACCEPT,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
@@ -151,7 +153,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const photoOnlyData = useMemo(() => {
     const entries: Array<{ url: string; originalIndex: number }> = [];
     images.forEach((file, index) => {
-      if (!isVideoFile(file) && !isHeicFile(file)) {
+      if (!isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file)) {
         entries.push({ url: mediaUrls[index], originalIndex: index });
       }
     });
@@ -299,7 +301,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             {
               id: "app.garden.upload.unsupportedMediaMessage",
               defaultMessage:
-                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
+                "{count, plural, one {That file is not a supported photo, video or document.} other {# files are not supported photos, videos or documents.}}",
             },
             { count: unsupportedCount }
           ),
@@ -335,6 +337,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       const newFiles: File[] = [];
       const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       for (const file of normalizedFiles) {
+        // A document is kept as it was picked; it is published that way too.
+        if (isWorkDocument(file)) {
+          newFiles.push(file);
+          continue;
+        }
         if (isVideoFile(file)) {
           if (!(await validateWorkVideo(file))) {
             setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
@@ -378,7 +385,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           title: intl.formatMessage({
             id: "app.garden.attachments.invalid",
             defaultMessage:
-              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
+              "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; documents: 10 MB, up to 5; all files: 50 MB.",
           }),
         });
         return;
@@ -388,12 +395,16 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       let droppedCount = 0;
       setImages((prev) => {
+        // The action's limit is on photos and videos; documents have their own.
         const combined = [...prev, ...newFiles];
-        if (combined.length > maxCount) {
-          droppedCount = combined.length - maxCount;
-          return combined.slice(0, maxCount);
-        }
-        return combined;
+        let visual = 0;
+        const kept = combined.filter((file) => {
+          if (isWorkDocument(file)) return true;
+          visual += 1;
+          return visual <= maxCount;
+        });
+        droppedCount = combined.length - kept.length;
+        return droppedCount > 0 ? kept : combined;
       });
 
       if (droppedCount > 0) {
@@ -422,6 +433,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           count: newFiles.length,
           imageCount: processedImages.length,
           videoCount: validVideos.length,
+          documentCount: newFiles.filter((file) => isWorkDocument(file)).length,
           conversionCount: normalized.converted.length,
           rejectedCount: normalized.rejected.length,
           droppedCount,
@@ -490,7 +502,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     });
   const neededItems = useMemo(() => config?.needed?.filter(Boolean) ?? [], [config?.needed]);
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
-  const photoCount = images.filter((file) => !isVideoFile(file)).length;
+  const photoCount = images.filter((file) => !isVideoFile(file) && !isWorkDocument(file)).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -517,13 +529,13 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         items={optionalItems}
       />
 
-      {/* Hidden file inputs (2: media + camera) */}
+      {/* Hidden file inputs (2: photos, videos and documents + camera) */}
       <div className="hidden">
         <input
           ref={mediaInputRef}
           id="work-media-upload"
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm"
+          accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm,${WORK_DOCUMENT_ACCEPT}`}
           onChange={handleMediaUpload}
           multiple
           disabled={isProcessingMedia}

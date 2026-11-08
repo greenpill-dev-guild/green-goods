@@ -23,6 +23,7 @@ import {
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
   prepareMediaForUpload,
 } from "../../../modules/work/media-processing";
 import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
@@ -411,7 +412,7 @@ export function useProofComposerController(
   // A HEIC photo waiting to convert shows a placeholder, not a preview.
   const imageUrls = draftRepository.previewUrls(
     "proof",
-    media.filter((file) => !isVideoFile(file) && !isHeicFile(file))
+    media.filter((file) => !isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file))
   );
 
   return {

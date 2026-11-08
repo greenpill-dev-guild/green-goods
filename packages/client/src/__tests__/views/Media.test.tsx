@@ -48,6 +48,10 @@ vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   validateWorkVideo: async () => true,
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isVideoFile: (file: File) => file.type.startsWith("video/"),
+  // Mirrors the real rule: a PDF, Markdown, text or Word file, by type or extension.
+  isWorkDocument: (file: File) =>
+    file.type === "application/pdf" || /\.(pdf|md|markdown|txt|docx?)$/i.test(file.name),
+  WORK_DOCUMENT_ACCEPT: "application/pdf,.pdf,text/markdown,.md",
   getSafeMediaBatchMetadata: (files: File[]) => ({
     file_count: files.length,
     mime_types: files.map((file) => file.type || "unknown"),

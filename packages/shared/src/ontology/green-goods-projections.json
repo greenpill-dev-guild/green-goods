@@ -1126,7 +1126,7 @@
     {
       "id": "proof",
       "label": "Proof",
-      "meaning": "Photos, notes or links supplied toward a promise about help or a service. Garden-work promises use the required work submissions and approvals.",
+      "meaning": "Photos, documents, notes or links supplied toward a promise about help or a service. Garden-work promises use the required work submissions and approvals.",
       "example": "A repairer adds photos and a note about the completed repair.",
       "guide": "/community/gardener-guide/keep-a-promise",
       "source_of_truth": [

@@ -1628,7 +1628,14 @@ describe("GardenCommitment", () => {
             createdAt: Date.now(),
           },
           proofSending: true,
-          proofOnItsWay: { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true },
+          proofOnItsWay: {
+            photos: 2,
+            videos: 0,
+            documents: 0,
+            voiceNotes: 1,
+            links: 1,
+            words: true,
+          },
         },
       })
     );

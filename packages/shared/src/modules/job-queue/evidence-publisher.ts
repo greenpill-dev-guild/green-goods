@@ -17,7 +17,9 @@ import type { EvidenceJobPayload } from "../commitment-pooling/jobs";
 import { assertWorkUploadConsent, UploadPolicyRequiredError } from "../work/upload-policy";
 import {
   identifyWorkFile,
+  isWorkDocument,
   publishableWorkFile,
+  publishedDocumentName,
   UnpublishablePhotoError,
 } from "../work/work-attachments";
 import { jobQueueDB } from "./db";
@@ -74,7 +76,11 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
     const { uploadFileToIPFS, uploadJSONToIPFS } = await import("../data/ipfs/upload");
     const files = (await jobQueueDB.getImagesForJob(jobId)).map((image) => image.file);
     const audioFiles = files.filter((file) => file.type.startsWith("audio/"));
-    const mediaFiles = files.filter((file) => !file.type.startsWith("audio/"));
+    // Documents are listed apart from the photos and videos, which readers draw as pictures.
+    const documentFiles = files.filter((file) => isWorkDocument(file));
+    const mediaFiles = files.filter(
+      (file) => !file.type.startsWith("audio/") && !isWorkDocument(file)
+    );
     const context = { source: "commitment-evidence", gardenAddress: payload.gardenAddress };
     const uploads: EvidenceUploads = {
       files: { ...(job.meta?.evidenceUploads as EvidenceUploads | undefined)?.files },
@@ -105,12 +111,23 @@ export async function publishPendingEvidence(jobId: string, job: Job): Promise<P
       const cid = await pin(file, index, audioFiles.length);
       audio.push({ cid, mime: file.type });
     }
+    const documents = [];
+    for (const [index, file] of documentFiles.entries()) {
+      const cid = await pin(file, index, documentFiles.length);
+      documents.push({
+        cid,
+        mime: file.type,
+        name: publishedDocumentName(file.name),
+        size: file.size,
+      });
+    }
 
     const document = buildCommitmentEvidenceDocument({
       note: payload.note,
       links: (payload.links ?? []).map((url) => ({ url })),
       media,
       audio,
+      documents,
     });
     const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
       ...context,
