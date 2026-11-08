@@ -478,7 +478,7 @@ describe("commitment queue executor", () => {
     await expect(
       executeCommitmentQueueJob("job-commitment", queued, 42161, createMockTransactionSender(), {
         demoActive: () => false,
-        reads: reads(),
+        reads: reads(chainClock()),
         store: queueStore,
         uploadJson: vi.fn().mockRejectedValue(new Error("gateway down")),
       })
@@ -498,7 +498,7 @@ describe("commitment queue executor", () => {
     await expect(
       executeCommitmentQueueJob("job-commitment", queued, 42161, createMockTransactionSender(), {
         demoActive: () => false,
-        reads: reads(),
+        reads: reads(chainClock()),
         store: store(),
         uploadJson: vi.fn().mockRejectedValue(new Error("gateway down")),
       })
@@ -514,7 +514,7 @@ describe("commitment queue executor", () => {
     await expect(
       executeCommitmentQueueJob("job-commitment", queued, 42161, createMockTransactionSender(), {
         demoActive: () => false,
-        reads: reads(),
+        reads: reads(chainClock()),
         store: store(),
         uploadJson: vi.fn().mockRejectedValue("gateway down"),
       })
@@ -541,6 +541,37 @@ describe("commitment queue executor", () => {
     expect((queued.payload as CommitmentCreationPayload).metadataCID).toBe("bafy-published");
     expect(queueStore.updateJob).toHaveBeenCalledOnce();
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
+
+  it("never publishes the words of a promise composed offline that the chain can no longer keep", async () => {
+    // Its words are published only when it sends, and it never will.
+    const uploadJson = vi.fn().mockResolvedValue({ cid: "bafy-published" });
+    const offline = () =>
+      job(
+        "commitment",
+        commitmentPayload({
+          metadataCID: "",
+          metadata: { version: 1, title: "Compost" } as never,
+          requirements: [{ actionUID: 4n, requiredCount: 1 }],
+        })
+      );
+    const run = (overrides: Partial<CommitmentJobExecutionDependencies>) =>
+      executeCommitmentQueueJob("job-commitment", offline(), 42161, createMockTransactionSender(), {
+        demoActive: () => false,
+        reads: reads({ ...chainClock(), ...overrides }),
+        store: store(),
+        uploadJson,
+      });
+
+    await expect(
+      run({
+        readActionWindow: vi.fn().mockResolvedValue({ startTime: 1n, endTime: 1_899_999_999n }),
+      })
+    ).resolves.toEqual({ status: "unavailable", reason: "action-closed" });
+    await expect(
+      run({ readActionWindow: vi.fn().mockRejectedValue(new Error("rpc down")) })
+    ).resolves.toEqual({ status: "waiting", reason: "windows-unavailable" });
+    expect(uploadJson).not.toHaveBeenCalled();
   });
 
   it.each([

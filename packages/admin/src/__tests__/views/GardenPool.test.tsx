@@ -861,7 +861,7 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
-  it("says why the queue refused a promise, disables its send and keeps Discard", () => {
+  it("says why the queue refused a promise, and offers only Discard", () => {
     mocks.controller = controller({
       pendingCreates: [
         {
@@ -883,7 +883,8 @@ describe("GardenPoolTab (W7)", () => {
     renderTab();
     const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
     expect(row).toHaveTextContent("Its season or campaign ended before it was sent");
-    expect(within(row).getByRole("button", { name: "Try Again" })).toBeDisabled();
+    // Sending it again cannot help, so nothing offers to.
+    expect(within(row).queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
     expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
