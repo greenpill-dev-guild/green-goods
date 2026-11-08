@@ -11,7 +11,7 @@ import {
   type WorkApprovalDraft,
 } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, mocked, userEvent, within } from "storybook/test";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import { daysAgo, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
@@ -150,6 +150,85 @@ export const WithReviewBatch: Story = {
     await expect(canvas.getByText("To reject")).toBeVisible();
     await expect(canvas.getByText("1 approval, 1 rejection")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Send 2" })).toBeEnabled();
+  },
+};
+
+/** A failed refresh keeps already loaded work available, with the retry beside it. */
+export const LoadedWorkAfterReadFailure: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    items: PENDING_WORK,
+    worksLoading: false,
+    hasDataError: true,
+    older: { onShowOlder: fn(), isLoading: false },
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(PENDING_WORK[0].title)).toBeVisible();
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Hub data could not be loaded");
+    await userEvent.click(canvas.getByRole("button", { name: "Show Older Work" }));
+    await expect(args.older?.onShowOlder).toHaveBeenCalledTimes(1);
+  },
+};
+
+/** The staging store has advanced before the work-list query's observers. */
+export const JustConfirmedReviews: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    ...WithReviewBatch.args,
+    items: PENDING_WORK.slice(0, 2),
+    reviewBatch: {
+      ...reviewBatchWith({}),
+      reviewFor: (id) => ({
+        draft: draftFor(PENDING_WORK.find((item) => item.id === id)!, id === PENDING_WORK[0].id),
+        confirmed: true,
+      }),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Approved")).toBeVisible();
+    await expect(canvas.getByText("Rejected")).toBeVisible();
+    await expect(canvas.queryByText("Pending")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: /^Send/ })).toBeNull();
+  },
+};
+
+/** At the end of a long queue, the send bar leaves the final work entirely reachable. */
+export const BatchLastRowReachable: Story = {
+  tags: ["storybook-ci"],
+  args: WithReviewBatch.args,
+  render: (args) => (
+    <div style={{ height: 400, overflow: "auto" }} data-batch-scroll>
+      <div className="hub-results-pane">
+        <HubWorkQueue {...args} />
+      </div>
+    </div>
+  ),
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const scroll = canvasElement.querySelector<HTMLElement>("[data-batch-scroll]")!;
+    const afterLayout = () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      );
+    await afterLayout();
+    await waitFor(async () => {
+      scroll.scrollTop = scroll.scrollHeight;
+      await afterLayout();
+      const lastWork = canvas.getByText(PENDING_WORK.at(-1)!.title);
+      const row = lastWork.closest("li")!;
+      const bar = canvas.getByRole("region", { name: "Reviews waiting to send" });
+      await expect(row.isConnected).toBe(true);
+      await expect(scroll.scrollHeight).toBeGreaterThan(scroll.clientHeight);
+      await expect(row.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        bar.getBoundingClientRect().top
+      );
+      await expect(lastWork).toBeVisible();
+    });
+    const lastWork = canvas.getByText(PENDING_WORK.at(-1)!.title);
+    await userEvent.click(lastWork);
+    await expect(args.onOpenWorkDetail).toHaveBeenCalledWith(PENDING_WORK.at(-1)!.id);
   },
 };
 
