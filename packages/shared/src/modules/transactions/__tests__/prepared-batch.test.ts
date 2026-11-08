@@ -182,6 +182,19 @@ describe("isBatchEnabled", () => {
     expect(isBatchEnabled({ ...listed, chainId: 42220 }, list)).toBe(false);
   });
 
+  it("allows Add and Send for beta's Kernel 0.3.3 passkey on Arbitrum only", () => {
+    const proofAndSend = {
+      action: "proof-and-send",
+      rail: "passkey",
+      profile: "kernel-0.3.3",
+      chainId: 42161,
+    } as const;
+    expect(isBatchEnabled(proofAndSend)).toBe(true);
+    expect(isBatchEnabled({ ...proofAndSend, chainId: 42220 })).toBe(false);
+    expect(isBatchEnabled({ ...proofAndSend, profile: "kernel-0.3.3-pilot" })).toBe(false);
+    expect(isBatchEnabled({ ...proofAndSend, action: "bulk-reviews" })).toBe(false);
+  });
+
   it("lists a deposit for one asset only, and a listing that names none allows none", () => {
     const dai = "0xdA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
     const deposit: BatchEnablement = { ...listed, action: "vault-deposit", asset: dai };
