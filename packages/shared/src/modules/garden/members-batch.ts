@@ -33,7 +33,10 @@ export interface GardenMembersChain {
   hatsModule(): Promise<Address | undefined>;
   /** Whether this person wears the role's exact hat: what `grantRole` checks before it mints. */
   wearsRole(row: GardenMemberRow): Promise<boolean>;
-  /** Why the chain would refuse this call from `account`, or null when it would go through. */
+  /**
+   * Why the chain would refuse this call from `account`, or null when it would go through. Throws
+   * when it cannot tell, and nothing is signed on it.
+   */
   refusal(call: HatsCall, account: Address): Promise<string | null>;
 }
 
@@ -59,7 +62,11 @@ export function createGardenMembersChain(
         account,
         chainId
       );
-      return success ? null : (error?.message ?? "Transaction simulation failed");
+      if (success) return null;
+      // Only a revert is the chain refusing. Any other failure, such as an RPC's error page, says
+      // nothing about the call: the check fails, and nothing is signed on it.
+      if (!error?.reverted) throw new Error(error?.message ?? "Transaction simulation failed");
+      return error.message;
     },
   };
 }
@@ -179,8 +186,9 @@ const NOT_BATCHABLE = new Set(["batch-budget-exceeded", "batch-atomic-unavailabl
 
 /**
  * Add every row, one signature per group. Everything is checked before anything is signed, because
- * one row the chain refuses would revert its whole call. Earlier groups stay added when a later one
- * stops, since each is its own transaction.
+ * one row the chain refuses would revert its whole call, and a check that cannot run stops the add
+ * before the wallet. Earlier groups stay added when a later one stops, since each is its own
+ * transaction.
  */
 export async function addGardenMembersBatch(
   input: GardenMembersBatchInput & {
@@ -222,29 +230,34 @@ export async function addGardenMembersBatch(
     const refusedIds = new Set(outcome.refused.map(rowId));
     return toSend.filter((row) => !refusedIds.has(rowId(row)));
   };
-  for (const group of groups) {
-    const groupCall = grantRolesCall(moduleAddress, gardenAddress, group);
-    const refusal = await chain.refusal(groupCall, scope.account);
-    if (!refusal) continue;
-    const alone = await Promise.all(
-      group.map(async (row) => ({
-        row,
-        reason: await chain.refusal(
-          {
-            address: moduleAddress,
-            functionName: "grantRole",
-            args: [gardenAddress, row.address, GARDEN_ROLE_IDS[row.role]],
-          },
-          scope.account
-        ),
-      }))
-    );
-    const refused = alone.flatMap(({ row, reason }) => (reason ? [{ ...row, reason }] : []));
-    // The call is refused but no single row is: nothing is sent blind.
-    if (refused.length === 0) {
-      return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
+  try {
+    for (const group of groups) {
+      const groupCall = grantRolesCall(moduleAddress, gardenAddress, group);
+      const refusal = await chain.refusal(groupCall, scope.account);
+      if (!refusal) continue;
+      const alone = await Promise.all(
+        group.map(async (row) => ({
+          row,
+          reason: await chain.refusal(
+            {
+              address: moduleAddress,
+              functionName: "grantRole",
+              args: [gardenAddress, row.address, GARDEN_ROLE_IDS[row.role]],
+            },
+            scope.account
+          ),
+        }))
+      );
+      const refused = alone.flatMap(({ row, reason }) => (reason ? [{ ...row, reason }] : []));
+      // The call is refused but no single row is: nothing is sent blind.
+      if (refused.length === 0) {
+        return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
+      }
+      outcome.refused.push(...refused);
     }
-    outcome.refused.push(...refused);
+  } catch (failure) {
+    // A check that could not run refuses nothing, and nothing is signed on a guess.
+    return { ...outcome, notSent: unrefused(), failure };
   }
   if (outcome.refused.length > 0) return { ...outcome, notSent: unrefused() };
 

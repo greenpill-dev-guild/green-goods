@@ -460,6 +460,7 @@ describe("reading who has decided", () => {
   beforeEach(() => {
     vi.mocked(readContract).mockReset();
     vi.mocked(getWorkApprovalsForWork).mockReset().mockResolvedValue([]);
+    vi.mocked(simulateTransaction).mockReset();
   });
 
   it("keeps a whole-group refusal recognizable through simulation, batching and display", async () => {
@@ -473,6 +474,7 @@ describe("reading who has decided", () => {
           name: "ActionExpired",
           message: "This action has ended.",
           raw: "ActionExpired",
+          reverted: true,
         },
       })
       .mockResolvedValue({ success: true });
@@ -489,6 +491,36 @@ describe("reading who has decided", () => {
     const { parsed } = parseAndFormatError(outcome.failure);
     expect(parsed.isKnown).toBe(true);
     expect(parsed.name).toBe("ActionExpired");
+  });
+
+  it("refuses and signs nothing when a simulation fails without a revert", async () => {
+    const { sender, decide, input } = setup();
+    const decisions = [decide(), decide()];
+    chainHolds();
+    // What an RPC's 503 parses to: the code is multiAttest's own selector, read from the request.
+    vi.mocked(simulateTransaction).mockResolvedValue({
+      success: false,
+      error: {
+        name: "UnknownError",
+        message: "Transaction failed with error code: 0x44adc90e",
+        raw: "0x44adc90e",
+        reverted: false,
+      },
+    });
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      chain: createReviewChain(chainId),
+      rail: "passkey",
+      decisions,
+    });
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.refused).toEqual([]);
+    expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(outcome.failure).toEqual(
+      expect.objectContaining({ message: "Transaction failed with error code: 0x44adc90e" })
+    );
   });
 
   it("stops a send at a decision the resolver counted, without asking EAS", async () => {
