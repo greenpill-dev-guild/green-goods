@@ -48,16 +48,19 @@ function Toggle({ role }: { role: GardenRole }) {
   );
 }
 
+const LOCKED: GardenRole[] = ["owner", "steward"];
+const OPEN: GardenRole[] = ["evaluator", "gardener", "funder", "community"];
+
 /** Every role, with the lock beside them: Space toggles a focused chip. */
 export const AllRoles: Story = {
   render: () => (
     <div className="flex flex-wrap gap-1.5">
-      <LockedRoleChip role="owner" />
-      <LockedRoleChip role="steward" />
-      <Toggle role="evaluator" />
-      <Toggle role="gardener" />
-      <Toggle role="funder" />
-      <Toggle role="community" />
+      {LOCKED.map((role) => (
+        <LockedRoleChip key={role} role={role} />
+      ))}
+      {OPEN.map((role) => (
+        <Toggle key={role} role={role} />
+      ))}
     </div>
   ),
   play: async ({ canvasElement }) => {

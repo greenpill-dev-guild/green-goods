@@ -91,6 +91,16 @@ function simulatedRemoval({
 
 const body = () => within(document.body);
 
+/** Waits out the dialog's entrance, so a visibility check reads the dialog a steward sees. */
+async function dialogSettled() {
+  const dialog = await body().findByRole("dialog");
+  await Promise.all(
+    dialog
+      .getAnimations({ subtree: true })
+      .map((animation) => animation.finished.catch(() => undefined))
+  );
+}
+
 async function pick(role: string, name: string) {
   await userEvent.click(
     await body().findByRole("checkbox", { name: `Remove ${role} from ${name}` })
@@ -157,6 +167,7 @@ type Story = StoryObj<typeof ManageMembersDialog>;
 /** A steward's view: an owner's roles, another steward's Steward role and their own are locked, each with its reason. */
 export const StewardChoosing: Story = {
   play: async () => {
+    await dialogSettled();
     await expect(
       await body().findByText("Only an owner can change an owner's roles.")
     ).toBeVisible();
@@ -172,6 +183,7 @@ export const StewardChoosing: Story = {
 export const OwnerChoosing: Story = {
   args: { viewerIsOwner: true, viewerAddress: RIOLAB },
   play: async () => {
+    await dialogSettled();
     await expect(
       await body().findByRole("checkbox", { name: "Remove Steward from kwame-mensah.eth" })
     ).toBeInTheDocument();
