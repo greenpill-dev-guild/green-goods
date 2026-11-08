@@ -48,7 +48,10 @@ export interface RoleRemovalSendResult {
 export interface RoleRemovalChain {
   /** Whether the person wears the role's exact hat. Throws when the read fails. */
   wearsRole(row: GardenMemberRow): Promise<boolean>;
-  /** Why the chain would refuse removing this pair from the signer, or null when it would go. */
+  /**
+   * Why the chain would refuse removing this pair from the signer, or null when it would go.
+   * Throws when it cannot tell, and the run stops before the wallet.
+   */
   refusal(row: GardenMemberRow): Promise<string | null>;
   /** Sends the removal and waits for it. One signature. */
   removeRole(row: GardenMemberRow): Promise<RoleRemovalSendResult>;
@@ -102,8 +105,9 @@ export async function readHeldRoles(
  *
  * Right before each signature the pair is read again: a role someone else already removed is
  * left out, because the chain would accept the removal anyway and charge for it. A pair the chain
- * would refuse is left out too, and the run goes on, since nothing was asked of the wallet. A
- * declined prompt stops the run. A send that reports an error, or leaves a proposal that has not
+ * would refuse is left out too, and the run goes on, since nothing was asked of the wallet; a
+ * check that cannot run stops the run there, so nothing is signed on a guess. A declined prompt
+ * stops the run. A send that reports an error, or leaves a proposal that has not
  * run (a Safe's), is read once more: if the role is gone it counted, and the run goes on;
  * otherwise the rest wait for the steward to see what happened before anything else is signed.
  */
@@ -131,11 +135,16 @@ export async function removeGardenRolesOneByOne(
       continue;
     }
 
-    // A simulation that could not run is not a refusal: the send simulates again before the wallet.
-    const reason = await chain.refusal(row).catch((error) => {
-      logger.warn("Role removal simulation could not run", { error, role: row.role });
-      return null;
-    });
+    let reason: string | null;
+    try {
+      reason = await chain.refusal(row);
+    } catch (error) {
+      // The wallet never asks on a check that could not run: this pair and the rest wait, unsent.
+      logger.warn("Role removal check could not run", { error, role: row.role });
+      stopped = true;
+      settle(row, { status: "notSent" });
+      continue;
+    }
     if (reason) {
       settle(row, { status: "refused", reason });
       continue;
@@ -202,9 +211,9 @@ interface RoleRemovalChainInput {
 
 /**
  * How a garden's role removals read, simulate and send for the account that signs them. Before
- * each signature it reads Owner again, so only an owner changes an owner's roles even when the
- * roster behind a pick was late. A simulation that never reached the chain throws instead of
- * naming a refusal, so a dropped connection never settles a pair as refused.
+ * each signature it reads Owner afresh for the signer and the person, so only an owner changes an
+ * owner's roles even when the roster behind a pick was late. A read or simulation that cannot
+ * reach the chain throws rather than guessing, so the run stops before the wallet.
  */
 export function createRoleRemovalChain({
   gardenAddress,
@@ -214,18 +223,17 @@ export function createRoleRemovalChain({
   onGone,
 }: RoleRemovalChainInput): RoleRemovalChain {
   const members = createGardenMembersChain(gardenAddress, chainId);
-  let signerOwns: Promise<boolean> | undefined;
   return {
     wearsRole: (row) => members.wearsRole(row),
     refusal: async ({ address, role }) => {
       const hatsModule = await members.hatsModule();
       // Without a module or a signer the send itself says what is missing.
       if (!hatsModule || !account) return null;
-      // An unread signer is left to the chain; an unread target throws, and the send asks again.
-      signerOwns ??= members.wearsRole({ address: account, role: "owner" }).catch(() => true);
-      if (!(await signerOwns) && (await members.wearsRole({ address, role: "owner" }))) {
-        return OWNER_ONLY;
-      }
+      const [signerOwns, personOwns] = await Promise.all([
+        members.wearsRole({ address: account, role: "owner" }),
+        members.wearsRole({ address, role: "owner" }),
+      ]);
+      if (personOwns && !signerOwns) return OWNER_ONLY;
       const { success, error } = await simulateTransaction(
         hatsModule,
         HATS_MODULE_ABI as Abi,

@@ -133,6 +133,21 @@ describe("modules/garden/members-removal", () => {
     expect(chain.removeRole).toHaveBeenCalledTimes(2);
   });
 
+  it("stops before the wallet when a check before it cannot run", async () => {
+    const chain = fakeChain();
+    chain.refusal.mockImplementation(async ({ address }) => {
+      if (address === BEN) throw new Error("rpc down");
+      return null;
+    });
+    const outcomes = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA), evaluatorOf(BEN), evaluatorOf(CY)],
+      chain
+    );
+
+    expect(statuses(outcomes)).toEqual(["removed", "notSent", "notSent"]);
+    expect(chain.removeRole).toHaveBeenCalledTimes(1);
+  });
+
   it("reads the chain after an unclear send: gone counts, held or unread stops the run", async () => {
     const landed = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
@@ -206,11 +221,18 @@ describe("modules/garden/members-removal", () => {
 
   it("keeps an owner's roles from a steward's signature, even when the roster missed Owner", async () => {
     vi.mocked(simulateTransaction).mockClear();
-    // The signer (ADA) is no owner; BEN holds Owner, CY does not.
-    wearsOwner
-      .mockImplementationOnce(async () => false)
-      .mockImplementationOnce(async () => true)
-      .mockImplementationOnce(async () => false);
+    // Owner is read afresh for the signer (ADA, no owner) and the person before every pair:
+    // BEN holds Owner, CY does not, and a third read of the signer fails.
+    const owners = new Map<Address, (boolean | Error)[]>([
+      [ADA, [false, false, new Error("rpc down")]],
+      [BEN, [true]],
+      [CY, [false, false]],
+    ]);
+    wearsOwner.mockImplementation(async ({ address }) => {
+      const answer = owners.get(address)?.shift();
+      if (answer instanceof Error) throw answer;
+      return answer ?? false;
+    });
     vi.mocked(simulateTransaction).mockResolvedValueOnce({ success: true });
     const chain = createRoleRemovalChain({
       gardenAddress: CY,
@@ -221,7 +243,10 @@ describe("modules/garden/members-removal", () => {
 
     await expect(chain.refusal(evaluatorOf(BEN))).resolves.toBe("owner-only");
     await expect(chain.refusal(evaluatorOf(CY))).resolves.toBeNull();
+    // An Owner it cannot read is no answer: the check fails, and the run stops before the wallet.
+    await expect(chain.refusal(evaluatorOf(CY))).rejects.toThrow("rpc down");
     expect(simulateTransaction).toHaveBeenCalledTimes(1);
+    wearsOwner.mockImplementation(async () => true);
   });
 
   it("answers a check per pair, with null where the read failed", async () => {

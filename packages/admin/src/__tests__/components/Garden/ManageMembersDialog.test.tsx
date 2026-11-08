@@ -323,6 +323,8 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
     await user.click(await screen.findByRole("button", { name: "Remove 1 Role" }));
 
     expect(await screen.findByText("We couldn't confirm a removal")).toBeInTheDocument();
+    // Until a read proves it gone, the role still counts as theirs.
+    expect(screen.getByText("Keeps Evaluator and Gardener")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Check Again" }));
     await waitFor(() => expect(screen.getByText("1 role removed")).toBeInTheDocument());

@@ -16,12 +16,13 @@ import { PersonAvatar, YouTag } from "./ManageRolesPersonRow";
 /** Where one picked pair stands: read at review, then sent or left out. */
 export type ReviewPairStatus = "checking" | "ready" | "sending" | RoleRemovalStatus;
 
-/** A pair the run settled without removing: the person still holds that role. */
+/** A pair the run has not proven removed: the person holds that role until a read says otherwise. */
 const STILL_HELD: ReadonlySet<ReviewPairStatus> = new Set([
   "refused",
   "declined",
   "failed",
   "notSent",
+  "unknown",
 ]);
 
 export interface ReviewPair {
@@ -108,7 +109,7 @@ export function RoleRemovalReview({ people, chainId, viewer }: RoleRemovalReview
       className="divide-y divide-stroke-soft rounded-(--gg-row-radius) border border-stroke-soft bg-bg-white px-3"
     >
       {people.map(({ person, pairs }) => {
-        // What they keep counts each picked role as going until its outcome says it stayed.
+        // What they keep counts a picked role as going until the run proves otherwise.
         const going = pairs.filter((pair) => !STILL_HELD.has(pair.status)).map((pair) => pair.role);
         const kept = rolesKept(person, going);
         const covering = going
