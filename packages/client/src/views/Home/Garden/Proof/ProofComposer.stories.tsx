@@ -152,7 +152,7 @@ const recoveryInLocale =
     }
   };
 
-/** Nothing added yet: no tap box; the bar's photo, camera and voice tools add proof (O1). */
+/** Nothing added yet: no tap box; the bar's photo, camera, voice and document tools add proof (O1). */
 export const Media: Story = {
   tags: ["storybook-ci"],
   beforeEach: atStage("media"),
@@ -171,7 +171,13 @@ export const Media: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    for (const tool of ["Choose Photos or Files", "Take a Photo", "Record a voice note"]) {
+    const tools = [
+      "Choose from Your Photos",
+      "Take a Photo",
+      "Record a voice note",
+      "Choose Documents",
+    ];
+    for (const tool of tools) {
       await expect(canvas.getByRole("button", { name: tool })).toBeVisible();
     }
     await expect(canvas.getByRole("button", { name: "Details" })).toBeEnabled();

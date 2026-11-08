@@ -74,7 +74,7 @@ export function ProofMedia({
         <input
           id="proof-media-upload"
           type="file"
-          accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/*,${WORK_DOCUMENT_ACCEPT}`}
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/*"
           multiple
           disabled={isProcessing}
           onChange={(event) => {
@@ -87,6 +87,18 @@ export function ProofMedia({
           type="file"
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           capture="environment"
+          disabled={isProcessing}
+          onChange={(event) => {
+            onPick(event.target.files);
+            event.target.value = "";
+          }}
+        />
+        {/* Documents have a picker of their own, so the photo picker keeps the photo grid. */}
+        <input
+          id="proof-document-upload"
+          type="file"
+          accept={WORK_DOCUMENT_ACCEPT}
+          multiple
           disabled={isProcessing}
           onChange={(event) => {
             onPick(event.target.files);
