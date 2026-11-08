@@ -151,6 +151,23 @@ describe("modules/garden/members-removal", () => {
     expect(chain.removeRole).toHaveBeenCalledTimes(1);
   });
 
+  it("stops before the wallet when the read just before a signature fails", async () => {
+    const chain = fakeChain();
+    chain.wearsRole.mockImplementation(async ({ address }) => {
+      if (address === BEN) throw new Error("rpc down");
+      return true;
+    });
+    const outcomes = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA), evaluatorOf(BEN), evaluatorOf(CY)],
+      chain
+    );
+
+    // Nothing shows BEN still holds the role, so nothing is simulated or signed for it.
+    expect(statuses(outcomes)).toEqual(["removed", "notSent", "notSent"]);
+    expect(chain.refusal).toHaveBeenCalledTimes(1);
+    expect(chain.removeRole).toHaveBeenCalledTimes(1);
+  });
+
   it("reads the chain after an unclear send: gone counts, held or unread stops the run", async () => {
     const landed = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
@@ -214,7 +231,7 @@ describe("modules/garden/members-removal", () => {
     expect(ran).toEqual([{ status: "removed", transactionHash: hash }]);
   });
 
-  it("names a refusal only when the simulation reached the chain", async () => {
+  it("names a refusal only when the simulation reverted", async () => {
     const chain = createRoleRemovalChain({
       gardenAddress: CY,
       chainId: 42161,
@@ -224,16 +241,40 @@ describe("modules/garden/members-removal", () => {
     vi.mocked(simulateTransaction)
       .mockResolvedValueOnce({
         success: false,
-        error: { name: "NotGardenAdmin", message: "Not a garden admin", raw: "NotGardenAdmin" },
+        error: {
+          name: "NotGardenAdmin",
+          message: "Not a garden admin",
+          raw: "NotGardenAdmin",
+          reverted: true,
+        },
       })
       .mockResolvedValueOnce({
         success: false,
-        error: { name: "NetworkError", message: "Network error.", raw: "failed to fetch" },
+        error: {
+          name: "NetworkError",
+          message: "Network error.",
+          raw: "failed to fetch",
+          reverted: false,
+        },
+      })
+      // What an RPC's 503 parses to: the code is revokeRole's own selector, read from the request.
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          name: "UnknownError",
+          message: "Transaction failed with error code: 0xf13e5d09",
+          raw: "0xf13e5d09",
+          reverted: false,
+        },
       });
 
     await expect(chain.refusal(evaluatorOf(BEN))).resolves.toBe("Not a garden admin");
-    // A dropped connection refuses nothing: the run sends, and the send simulates again.
+    // A simulation that failed without a revert refuses nothing: the check fails, and the run
+    // stops before the wallet.
     await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow("Network error.");
+    await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow(
+      "Transaction failed with error code: 0xf13e5d09"
+    );
   });
 
   it("keeps owner-only removals from a steward's signature, even when the roster was late", async () => {
