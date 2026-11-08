@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import { SETTLEMENT_ENABLED } from "../../config/app";
+import { readCreationStanding } from "./creation-standing";
 import {
   hashCommitmentCreationPayload,
   hashSeriesCreationPayload,
@@ -68,6 +69,11 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
         : { status: "identity-conflict", reason: "commitment-payload-mismatch" };
     }
     if (job.submittedTxHash) return { status: "waiting", reason: "pending-first-send" };
+    // Only now, with nothing of it on the chain or on record: a promise already made stays made,
+    // whatever has closed since. One the chain can no longer keep is refused before any wait.
+    const standing = await readCreationStanding(payload, dependencies);
+    if (standing === "unreadable") return { status: "waiting", reason: "windows-unavailable" };
+    if (standing !== "open") return { status: "refused", reason: standing };
   }
 
   // Reconcile submitted work above first; retain unsent reward jobs without a new signature.

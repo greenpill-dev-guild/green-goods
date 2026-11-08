@@ -1465,3 +1465,24 @@ now live and the generated ontology and entity-matrix docs were regenerated.
 fork because both `HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER` and
 `HATS_MODULE_UPGRADE_GARDEN_COUNT` require fresh reviewed positive integers. No values were
 invented, and the environment-only blocker is not attributed to the payer change.
+
+## 2026-11-07 — Identifier re-home: walkthrough videos PRD-728 → MAR-46
+
+The walkthrough-video lane issue moved from the Product team to the Marketing team, and its
+identifier changed **PRD-728 → MAR-46**; connector lookups of PRD-728 still return MAR-46. On
+2026-11-07 Afo reorganized the demo-video work into four Marketing parents: MAR-38 (app),
+MAR-16 (website donate and endow) and MAR-47 (admin) hold quick, unedited recordings, and MAR-48
+holds the later packaging pass (editing, intro and outro, music, captions, docs embedding).
+MAR-46 now sits under MAR-48 instead of PRD-650, in Backlog with its 2026-12-04 due date cleared
+(read back 2026-11-08T02:54Z). Its title, body, project and milestone are unchanged.
+
+Reconciled per the canonical historical mapping convention: active references now use MAR-46 in
+`handoffs/claude-walkthrough-videos.md`, `handoffs/claude-ui.md`, `handoffs/README.md`,
+`plan.todo.md` (mapping note, obligations line, deliverables table, completion item and lane
+checklist), `contract-spec.md` §10 and `status.json` (`walkthrough_videos.linear`,
+`linear_issues`, `blocked_reason`, the mapping note and a history entry). The lane's Linear sync
+is off because its parent now sits outside this hub's tree; under `preserve_existing`,
+`linear-sync` only verifies the MAR-46 identifier. The lane is `manual_blocked` behind the
+packaging pass. Dated handoff notes
+(`handoffs/release-essential-docs.md` and its local snapshot) keep PRD-728 as history. Hub gates
+and the lane's acceptance text are unchanged, and this change writes nothing to Linear.

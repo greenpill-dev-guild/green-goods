@@ -41,6 +41,7 @@ import type { AtomicBatchAction } from "../transactions/batch-enablement";
 import type { BatchBudget } from "../transactions/batch-types";
 import { type BundleOutcome, createBundlingSender } from "../transactions/bundling-sender";
 import type { TransactionSender } from "../transactions/types";
+import { creationRefusalOf } from "./creation-standing";
 import type { CommitmentCreationPayload } from "./job-types";
 import {
   CREATION_BUNDLE_SIZE,
@@ -218,7 +219,9 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
   const ended = (id: string, result: ProcessJobResult, miss: () => SeedCopyMiss) => {
     if (result.success) tell(id, { status: "created", txHash: result.txHash ?? null });
     else if (result.skipped) tell(id, { status: "later", txHash: result.txHash ?? null });
-    else tell(id, { status: "not-sent", miss: miss() });
+    // One the queue refused before sending (a closed action, an ended season) never went out.
+    else
+      tell(id, { status: "not-sent", miss: creationRefusalOf(result.error) ? "refused" : miss() });
   };
 
   // A copy tried before keeps its job, and the retry is that same job: a second
