@@ -19,9 +19,10 @@ import { createGardenMembersChain, type GardenMemberRow } from "./members-batch"
  * - `refused`: the chain would refuse it, or the signer is not an owner and the person holds
  *   Owner (reason `owner-only`) or the role is Steward (`owner-steward`), so nothing was sent.
  * - `declined`: the wallet's prompt was declined. Nothing was sent.
- * - `failed`: something went wrong and a read shows they still hold the role.
- * - `unknown`: a proposal (a Safe's) has not run yet, or something went wrong and the read that
- *   would say whether it landed failed too.
+ * - `failed`: the send proved it cannot land (nothing went out, or the chain reverted or
+ *   replaced it), and a read shows they still hold the role.
+ * - `unknown`: a proposal (a Safe's) has not run yet, a send that went out may still land, or
+ *   the read that would say whether it landed failed.
  * - `notSent`: the run stopped before this pair's signature.
  */
 export type RoleRemovalOutcome =
@@ -39,7 +40,12 @@ export type RoleRemovalStatus = RoleRemovalOutcome["status"];
 export interface RoleRemovalSendResult {
   success: boolean;
   hash?: Hex;
-  error?: { name: string; message: string };
+  error?: {
+    name: string;
+    message: string;
+    /** The send cannot land. Without it, a failed send may still be on its way. */
+    cannotLand?: true;
+  };
   /** The wallet returned a proposal (a Safe's, say) that has not run on chain yet. */
   confirmation?: "pending";
 }
@@ -87,12 +93,6 @@ async function readHeld(chain: RoleRemovalChain, row: GardenMemberRow): Promise<
   }
 }
 
-/**
- * What `parseContractError` names the error of a send that lost the chain. A send's result
- * carries that parse rather than viem's error, so its name is the only sign that the send may
- * still land.
- */
-const SEND_LOST_CHAIN = new Set(["NetworkError", "TimeoutError", "Offline"]);
 const OWNER_ONLY: GardenRoleRemovalBlock = "owner-only";
 const OWNER_STEWARD: GardenRoleRemovalBlock = "owner-steward";
 
@@ -201,13 +201,12 @@ export async function removeGardenRolesOneByOne(
       continue;
     }
     stopped = true;
-    // A send that lost the chain may already be on its way, so a role still held after it is
-    // unconfirmed, not failed: nothing offers to send it a second time.
-    const unconfirmed =
-      held !== true || result.success || SEND_LOST_CHAIN.has(result.error?.name ?? "");
+    // A role still held is failed only after a send that proved it cannot land. Any other send
+    // may already be on its way, so the pair is unconfirmed and nothing offers to send it again.
+    const failed = held === true && !result.success && result.error?.cannotLand === true;
     settle(
       row,
-      unconfirmed ? { status: "unknown" } : { status: "failed", reason: result.error?.message }
+      failed ? { status: "failed", reason: result.error?.message } : { status: "unknown" }
     );
   }
 

@@ -178,29 +178,34 @@ describe("modules/garden/members-removal", () => {
     );
     expect(statuses(landed)).toEqual(["removed", "removed"]);
 
+    // A send that proved it cannot land, here a receipt that showed a revert, leaves a role still
+    // held failed.
     const held = await removeGardenRolesOneByOne(
-      [evaluatorOf(ADA), evaluatorOf(BEN)],
-      fakeChain({
-        sends: {
-          [ADA.toLowerCase()]: { success: false, error: { name: "Error", message: "reverted" } },
-        },
-      })
-    );
-    expect(held).toEqual([{ status: "failed", reason: "reverted" }, { status: "notSent" }]);
-
-    // A send that lost the chain may still land, so a role held after it is unconfirmed.
-    const timedOut = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
       fakeChain({
         sends: {
           [ADA.toLowerCase()]: {
             success: false,
-            error: { name: "TimeoutError", message: "Request timed out." },
+            error: { name: "TransactionRevertedError", message: "reverted", cannotLand: true },
           },
         },
       })
     );
-    expect(timedOut).toEqual([{ status: "unknown" }, { status: "notSent" }]);
+    expect(held).toEqual([{ status: "failed", reason: "reverted" }, { status: "notSent" }]);
+
+    // Any other failed send may still land, so a role held after it is unconfirmed: a wallet that
+    // timed out, or a sent removal whose receipt poll an RPC answered with a 503. That one parses
+    // to an unknown error named by the first hex in its request body, the hash's.
+    for (const error of [
+      { name: "TimeoutError", message: "Request timed out." },
+      { name: "UnknownError", message: "Transaction failed with error code: 0xabababab" },
+    ]) {
+      const unconfirmed = await removeGardenRolesOneByOne(
+        [evaluatorOf(ADA), evaluatorOf(BEN)],
+        fakeChain({ sends: { [ADA.toLowerCase()]: { success: false, error } } })
+      );
+      expect(unconfirmed).toEqual([{ status: "unknown" }, { status: "notSent" }]);
+    }
 
     const unread = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
