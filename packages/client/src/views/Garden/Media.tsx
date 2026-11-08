@@ -333,8 +333,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
 
       const normalizedFiles = normalized.accepted.map((item) => item.file);
-      const processedImages: File[] = [];
-      const validVideos: File[] = [];
       const newFiles: File[] = [];
       const { imageCompressor } = await import("@green-goods/shared/utils/work/image-compression");
       for (const file of normalizedFiles) {
@@ -348,13 +346,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             setVideoError(intl.formatMessage({ id: "app.garden.attachments.invalid" }));
             continue;
           }
-          validVideos.push(file);
           newFiles.push(file);
           continue;
         }
         // A photo waiting for the decoder is kept as picked; compressing it needs that decoder.
         if (isHeicFile(file)) {
-          processedImages.push(file);
           newFiles.push(file);
           continue;
         }
@@ -374,7 +370,6 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             processed = file;
           }
         }
-        processedImages.push(processed);
         newFiles.push(processed);
       }
 
@@ -444,10 +439,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       track(
         "media_upload_complete",
         {
-          count: newFiles.length,
-          imageCount: processedImages.length,
-          videoCount: validVideos.length,
-          documentCount: newFiles.filter((file) => isWorkDocument(file)).length,
+          // What the pick added; files past a limit count only in droppedCount.
+          count: keptFiles.length,
+          imageCount: keptFiles.filter((file) => !isVideoFile(file) && !isWorkDocument(file))
+            .length,
+          videoCount: keptFiles.filter((file) => isVideoFile(file)).length,
+          documentCount: keptFiles.filter((file) => isWorkDocument(file)).length,
           conversionCount: normalized.converted.length,
           rejectedCount: normalized.rejected.length,
           droppedCount,

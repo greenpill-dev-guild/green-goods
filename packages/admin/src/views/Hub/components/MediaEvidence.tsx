@@ -19,10 +19,11 @@ interface MediaEvidenceProps {
   /** Documents the work's metadata lists, such as a certificate; each opens in a new tab */
   documents?: PublishedWorkDocument[];
   /**
-   * The metadata file, which names the voice notes and documents, is still being read or
-   * could not be read. The photos show either way; the rest waits, or offers another try.
+   * The metadata file, which names the voice notes and documents, is still being read, waits
+   * for the device to come back online, or could not be read. The photos show either way;
+   * the rest waits, or offers another try once a try can run.
    */
-  evidenceState?: "loading" | "failed";
+  evidenceState?: "loading" | "offline" | "failed";
   onRetryEvidence?: () => void;
   /** Action title for alt text context */
   actionTitle?: string;
@@ -101,6 +102,14 @@ export function MediaEvidence({
           {formatMessage({
             id: "admin.work.evidence.loading",
             defaultMessage: "Loading voice notes and documents…",
+          })}
+        </p>
+      ) : evidenceState === "offline" ? (
+        // The read resumes by itself on reconnect, so there is nothing to try yet.
+        <p role="status" className="type-meta text-text-sub">
+          {formatMessage({
+            id: "admin.work.evidence.offline",
+            defaultMessage: "Voice notes and documents will load when you're back online.",
           })}
         </p>
       ) : evidenceState === "failed" ? (

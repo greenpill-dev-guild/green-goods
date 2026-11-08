@@ -205,6 +205,7 @@ vi.mock("@/components/Features", () => ({
 // Import after mocks
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { track } from "@green-goods/shared/modules/app/posthog";
 import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkMedia } from "../../views/Garden/Media";
 
@@ -510,6 +511,12 @@ describe("WorkMedia", () => {
     expect(update(held)).toEqual([...held, photo]);
     expect(toastService.info).toHaveBeenCalledWith(
       expect.objectContaining({ message: "A work can carry up to 5 documents." })
+    );
+    // The upload counts what was added; the dropped document counts only as dropped.
+    expect(track).toHaveBeenCalledWith(
+      "media_upload_complete",
+      expect.objectContaining({ count: 1, imageCount: 1, documentCount: 0, droppedCount: 1 }),
+      expect.anything()
     );
   });
 

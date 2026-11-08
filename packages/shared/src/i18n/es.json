@@ -677,6 +677,7 @@
   "admin.work.documents": "Documentos",
   "admin.work.evidence.loading": "Cargando notas de voz y documentos…",
   "admin.work.evidence.failed": "No se pudieron cargar las notas de voz ni los documentos.",
+  "admin.work.evidence.offline": "Las notas de voz y los documentos se cargarán cuando vuelvas a estar en línea.",
   "admin.work.media.empty": "No hay medios adjuntos",
   "admin.work.mediaEvidence": "Evidencia multimedia",
   "app.account.address": "Dirección",

@@ -13,13 +13,16 @@ import {
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-/** A zip whose central directory lists `names`, each stored empty, with `comment` after its end. */
-function zipArchive(names: string[], comment = ""): Uint8Array {
+/**
+ * A zip whose central directory lists `names`, each stored empty, with `comment` after its end.
+ * Its local records carry `localNames`, which a well-formed zip keeps the same as `names`.
+ */
+function zipArchive(names: string[], comment = "", localNames = names): Uint8Array {
   const encoder = new TextEncoder();
   const out: number[] = [];
   const le16 = (value: number) => [value & 0xff, (value >> 8) & 0xff];
   const le32 = (value: number) => [...le16(value & 0xffff), ...le16(value >>> 16)];
-  const offsets = names.map((name) => {
+  const offsets = localNames.map((name) => {
     const offset = out.length;
     const bytes = [...encoder.encode(name)];
     out.push(...le32(0x04034b50), ...le16(20), ...le16(0), ...le16(0), ...le16(0), ...le16(0));
@@ -184,6 +187,13 @@ describe("work attachment boundaries", () => {
     expect(
       documentMatchesType(DOCX, zipArchive(["notes.txt"], "[Content_Types].xml word/document.xml"))
     ).toBe(false);
+    // A comment may hold bytes that look like the end record; the real one is still found.
+    const wordParts = ["[Content_Types].xml", "word/document.xml"];
+    expect(documentMatchesType(DOCX, zipArchive(wordParts, `PK\x05\x06${"x".repeat(40)}`))).toBe(
+      true
+    );
+    // A directory that lists the parts without their local records holds no Word document.
+    expect(documentMatchesType(DOCX, zipArchive(wordParts, "", ["a.txt", "b.txt"]))).toBe(false);
     expect(documentMatchesType(WORD, compoundFile([{ name: "WordDocument", type: 2 }]))).toBe(true);
     expect(documentMatchesType(WORD, compoundFile([{ name: "Workbook", type: 2 }]))).toBe(false);
     expect(documentMatchesType(WORD, compoundFile([{ name: "WordDocument", type: 1 }]))).toBe(

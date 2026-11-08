@@ -95,6 +95,21 @@ export const EvidenceUnavailable: Story = {
   },
 };
 
+/** Offline, the read waits for the connection, so the review offers no retry that cannot run. */
+export const EvidenceOffline: Story = {
+  args: {
+    media: FIXTURE_WORK_MEDIA.slice(0, 1),
+    evidenceState: "offline",
+    onRetryEvidence: fn(),
+    actionTitle: "Solar installation",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(/load when you're back online/)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
+  },
+};
+
 /**
  * As the Hub's review dialog holds it. The viewer opens from inside a dialog, so
  * its scrim has to cover that dialog, and closing it has to hand focus back to
