@@ -69,6 +69,15 @@ export function selectNextDueBoundary<
   return next;
 }
 
+/** Take-up removes the lead without emitting a new ConfirmerRuleSet event. */
+export function withEffectiveConfirmers(commitment: CommitmentReadModel): CommitmentReadModel {
+  const { confirmers, leadProvider } = commitment;
+  const effective = confirmers.filter((confirmer) => !isSameAccount(leadProvider, confirmer));
+  return effective.length === confirmers.length
+    ? commitment
+    : { ...commitment, confirmers: effective };
+}
+
 /**
  * Whether the ordinary confirmation path can still reach threshold, the way
  * the contract decides before it allows a fallback

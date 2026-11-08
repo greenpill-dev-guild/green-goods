@@ -7,12 +7,9 @@
  * allow. The admin dialog renders from this and never asks the chain or the
  * indexer itself.
  *
- * Eligibility follows the contract: ordinary confirmation through the reader's
- * seat; a garden fallback only while the ordinary path is unreachable and the
- * reader currently stewards the commitment's own garden; a protocol fallback
- * only when the commitment opted in and the reader currently stewards the
- * registered protocol garden; never for anyone on the roster. Local authority
- * is tested first, so a dual-role steward renders the garden path.
+ * Ordinary confirmation uses the reader's seat. Fallback requires an unreachable
+ * ordinary path and excludes contributors. Local garden authority takes precedence
+ * over an opted-in protocol fallback.
  *
  * @module hooks/admin-ui/pool/useCommitmentDialogController
  */
@@ -37,6 +34,7 @@ import {
   selectCommitmentSubmissionReadiness,
   selectDueLiveCommitments,
   selectOrdinaryConfirmationReachable,
+  withEffectiveConfirmers,
 } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { selectWorkDecisionReadback } from "../../../modules/commitment-pooling/work-decision-readback";
@@ -101,7 +99,11 @@ export function useCommitmentDialogController(input: {
   const isOnline = useOnlineStatus();
 
   const detailQuery = useCommitment({ chainId, commitmentId }, { refreshWhileOpen: true });
-  const commitment = detailQuery.commitment;
+  const indexedCommitment = detailQuery.commitment;
+  const commitment = useMemo(
+    () => (indexedCommitment ? withEffectiveConfirmers(indexedCommitment) : indexedCommitment),
+    [indexedCommitment]
+  );
   const detail = detailQuery.detail;
   const activity = useCommitmentActivity(
     { chainId, commitmentId, limit: 50 },
