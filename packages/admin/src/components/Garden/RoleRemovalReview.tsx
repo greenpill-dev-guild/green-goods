@@ -16,6 +16,12 @@ import { PersonAvatar, YouTag } from "./ManageRolesPersonRow";
 /** Where one picked pair stands: read at review, then sent or left out. */
 export type ReviewPairStatus = "checking" | "ready" | "sending" | RoleRemovalStatus;
 
+/** The locks the run's own rank check names, and the words for each. */
+const RANK_LOCKS: Record<string, string> = {
+  "owner-only": "admin.manageRoles.lock.ownerOnly",
+  "owner-steward": "admin.manageRoles.lock.ownerSteward",
+};
+
 /** A pair the run has not proven removed: the person holds that role until a read says otherwise. */
 const STILL_HELD: ReadonlySet<ReviewPairStatus> = new Set([
   "refused",
@@ -101,7 +107,7 @@ export function RoleRemovalReview({ people, chainId, viewer }: RoleRemovalReview
     intl.formatList(roles.map(roleName), { type: "conjunction" });
   // The run's own rank check names its lock; any other reason is the chain's words.
   const reasonText = (reason: string) =>
-    reason === "owner-only" ? formatMessage({ id: "admin.manageRoles.lock.ownerOnly" }) : reason;
+    reason in RANK_LOCKS ? formatMessage({ id: RANK_LOCKS[reason] }) : reason;
 
   return (
     <ul

@@ -17,7 +17,7 @@ import { createGardenMembersChain, type GardenMemberRow } from "./members-batch"
  *   after a send that reported an error or left a proposal waiting.
  * - `alreadyRemoved`: a read just before the wallet found the role gone, so nothing was sent.
  * - `refused`: the chain would refuse it, or the signer is not an owner and the person holds
- *   Owner (reason `owner-only`), so nothing was sent.
+ *   Owner (reason `owner-only`) or the role is Steward (`owner-steward`), so nothing was sent.
  * - `declined`: the wallet's prompt was declined. Nothing was sent.
  * - `failed`: something went wrong and a read shows they still hold the role.
  * - `unknown`: a proposal (a Safe's) has not run yet, or something went wrong and the read that
@@ -86,6 +86,11 @@ async function readHeld(chain: RoleRemovalChain, row: GardenMemberRow): Promise<
     return null;
   }
 }
+
+/** What an error is named when the chain could not be reached (`parseContractError`). */
+const UNREACHED = new Set(["NetworkError", "TimeoutError", "Offline"]);
+const OWNER_ONLY: GardenRoleRemovalBlock = "owner-only";
+const OWNER_STEWARD: GardenRoleRemovalBlock = "owner-steward";
 
 /** Reads every pair at once. A failed read is null, never a guess. */
 export async function readHeldRoles(
@@ -184,20 +189,17 @@ export async function removeGardenRolesOneByOne(
       continue;
     }
     stopped = true;
+    // A send that lost the chain may already be on its way, so a role still held after it is
+    // unconfirmed, not failed: nothing offers to send it a second time.
+    const unconfirmed = held !== true || result.success || UNREACHED.has(result.error?.name ?? "");
     settle(
       row,
-      held === true && !result.success
-        ? { status: "failed", reason: result.error?.message }
-        : { status: "unknown" }
+      unconfirmed ? { status: "unknown" } : { status: "failed", reason: result.error?.message }
     );
   }
 
   return outcomes;
 }
-
-/** What a simulation's error is named when it never reached the chain (`parseContractError`). */
-const UNREACHED = new Set(["NetworkError", "TimeoutError", "Offline"]);
-const OWNER_ONLY: GardenRoleRemovalBlock = "owner-only";
 
 interface RoleRemovalChainInput {
   gardenAddress: Address;
@@ -212,7 +214,7 @@ interface RoleRemovalChainInput {
 /**
  * How a garden's role removals read, simulate and send for the account that signs them. Before
  * each signature it reads Owner afresh for the signer and the person, so only an owner changes an
- * owner's roles even when the roster behind a pick was late. A read or simulation that cannot
+ * owner's roles or removes a Steward role, even when the roster behind a pick was late. A read or simulation that cannot
  * reach the chain throws rather than guessing, so the run stops before the wallet.
  */
 export function createRoleRemovalChain({
@@ -233,7 +235,9 @@ export function createRoleRemovalChain({
         members.wearsRole({ address: account, role: "owner" }),
         members.wearsRole({ address, role: "owner" }),
       ]);
-      if (personOwns && !signerOwns) return OWNER_ONLY;
+      if (!signerOwns && (personOwns || role === "steward")) {
+        return personOwns ? OWNER_ONLY : OWNER_STEWARD;
+      }
       const { success, error } = await simulateTransaction(
         hatsModule,
         HATS_MODULE_ABI as Abi,

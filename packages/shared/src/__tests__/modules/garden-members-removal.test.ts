@@ -171,6 +171,20 @@ describe("modules/garden/members-removal", () => {
     );
     expect(held).toEqual([{ status: "failed", reason: "reverted" }, { status: "notSent" }]);
 
+    // A send that lost the chain may still land, so a role held after it is unconfirmed.
+    const timedOut = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA), evaluatorOf(BEN)],
+      fakeChain({
+        sends: {
+          [ADA.toLowerCase()]: {
+            success: false,
+            error: { name: "TimeoutError", message: "Request timed out." },
+          },
+        },
+      })
+    );
+    expect(timedOut).toEqual([{ status: "unknown" }, { status: "notSent" }]);
+
     const unread = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
       fakeChain({
@@ -222,14 +236,14 @@ describe("modules/garden/members-removal", () => {
     await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow("Network error.");
   });
 
-  it("keeps an owner's roles from a steward's signature, even when the roster missed Owner", async () => {
+  it("keeps owner-only removals from a steward's signature, even when the roster was late", async () => {
     vi.mocked(simulateTransaction).mockClear();
     // Owner is read afresh for the signer (ADA, no owner) and the person before every pair:
     // BEN holds Owner, CY does not, and a third read of the signer fails.
     const owners = new Map<Address, (boolean | Error)[]>([
-      [ADA, [false, false, new Error("rpc down")]],
+      [ADA, [false, false, false, new Error("rpc down")]],
       [BEN, [true]],
-      [CY, [false, false]],
+      [CY, [false, false, false]],
     ]);
     wearsOwner.mockImplementation(async ({ address }) => {
       const answer = owners.get(address)?.shift();
@@ -245,6 +259,8 @@ describe("modules/garden/members-removal", () => {
     });
 
     await expect(chain.refusal(evaluatorOf(BEN))).resolves.toBe("owner-only");
+    // A Steward role is an owner's to remove, whoever wears it.
+    await expect(chain.refusal({ address: CY, role: "steward" })).resolves.toBe("owner-steward");
     await expect(chain.refusal(evaluatorOf(CY))).resolves.toBeNull();
     // An Owner it cannot read is no answer: the check fails, and the run stops before the wallet.
     await expect(chain.refusal(evaluatorOf(CY))).rejects.toThrow("rpc down");
