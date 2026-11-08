@@ -13,7 +13,9 @@ routine limits; this file owns interactive routing and issue execution.
    authorizes the write. An explicit request to create or update records is authorization;
    if it is absent, present the concrete records and ask before writing. A request to merge, or
    a reported merge, also authorizes the forward-only closeout in [After a merge](#after-a-merge)
-   and nothing beyond it.
+   and nothing beyond it. A request to open a pull request likewise authorizes finding or filing
+   the one issue it names, as [Every pull request names an issue](#every-pull-request-names-an-issue)
+   describes, and nothing beyond it.
 2. **Team routing.**
    - Accepted implementation, refactor, QA, maintenance, regression, bug-fix,
      or cleanup work (an accepted delivery outcome) → Linear **Issue**,
@@ -241,6 +243,22 @@ check before publication. An inherited nonconforming branch requires the user's 
 before renaming; never change it underneath concurrent sessions. Stay on the current branch
 otherwise, per [repository safety](../../AGENTS.md#multi-agent-repo-safety).
 
+## Every pull request names an issue
+
+Every pull request names exactly one Linear issue on its reference line, so every merge has a
+record to move. Before opening a PR, find the issue the work belongs to: the one that dispatched
+it, its Plan Hub's tracker, or an open issue whose outcome matches. When none exists, file one
+with the [issue structure](#issue-structure-accepted-product-work--accepted-research-task) in the
+team [rule 2](#invariant-rules) routes the work to, in the current cycle and the project rule 4
+selects, assigned to the person who asked for the PR, estimated on the team's scale, and
+`In Progress`. Small related PRs from one body of work, such as a run of dependency patches or
+the fixes from one review, share one issue whose body lists them rather than one issue each.
+
+Write the line as [Issue-dispatched implementation](#issue-dispatched-implementation) describes,
+and keep it whenever the PR description is edited later. A PR opened by a bot, such as Dependabot
+or PostHog, is exempt. For a PR from an outside contributor, the maintainer who reviews it adds
+the line.
+
 ## After a merge
 
 A merge does not finish the Linear record. Work that a pull request completes belongs in
@@ -265,8 +283,8 @@ nothing. Treat the table as what to expect, not as proof: the issue's state hist
 evidence of what happened.
 
 **Closeout.** After a merge the user asked for or reported, for the issue the reference line
-names and no other. A PR that names more than one issue, on one line or several, is outside this
-closeout: report it and ask.
+names and no other; step 4 covers a PR that names none. A PR that names more than one issue, on
+one line or several, is outside this closeout: report it and ask.
 
 1. Read the issue's `stateHistory`, not only its current status. The history records each state
    and its time but not who set it, and the integration can land after this first read, so treat
@@ -287,12 +305,17 @@ closeout: report it and ask.
    that PR, so a retried or repeated closeout never comments twice.
 4. Read the issue again before reporting. If the state is no longer what step 2 left, do not write
    again: the history cannot show whether the integration or a person changed it, so report the
-   change and ask. Report the issue, its last observed state, and whether your write set it. For
-   a PR that names no issue in any of these forms, report `no Linear issue linked`.
+   change and ask. Report the issue, its last observed state, and whether your write set it. A
+   PR that names no issue in any of these forms missed
+   [Every pull request names an issue](#every-pull-request-names-an-issue): find its issue as that
+   section says, attach the PR, and run steps 1 to 3 on it. When no issue exists, file one in
+   `In Review` if the PR completed the work, or `In Progress` if it did not, and add the step 3
+   comment. Report that the record was linked or filed after the merge.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
-named issue forward to `In Review` when nothing has changed its state since the merge, and
-posting that one comment. `Done`, moving an issue backward, editing a description, and any write
+named issue forward to `In Review` when nothing has changed its state since the merge, posting
+that one comment, and, for a PR that named no issue, linking or filing the one issue step 4
+describes. `Done`, moving an issue backward, editing a description, and any write
 to another issue, a parent or sibling included, are outside it and need their own authorization.
 If the issue moved to `Done` after the merge, leave it and report it: the team's merge setting
 may no longer match this rule. Cloud routines keep the limits in their own specs.

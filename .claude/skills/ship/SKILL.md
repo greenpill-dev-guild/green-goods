@@ -60,8 +60,11 @@ Stop on a detached HEAD, `main`, `master`, or `develop`; an invalid branch name;
 files; a staged file larger than 5 MB without confirmation; unrelated working-tree changes that
 overlap the publication scope; or no actual change to publish.
 
-For PR creation, never infer Linear linkage from the branch. Use exactly one explicit reference in
-the PR body when an issue exists: `Fixes PRD-NNN`, `Refs PRD-NNN`, or `Relates to PRD-NNN`.
+For PR creation, never infer Linear linkage from the branch. Every PR names exactly one Linear
+issue with an explicit reference line in its body: `Fixes PRD-NNN`, `Refs PRD-NNN`, or
+`Relates to PRD-NNN`. When the work has no issue yet, find or file one before opening the PR, as
+[Every pull request names an issue](../../context/linear-routing-rules.md#every-pull-request-names-an-issue)
+says.
 
 ## 2. Prove the changed behavior
 
@@ -116,7 +119,7 @@ exactly. The pre-push hook calls the same command and may reuse that exact pass.
 
 Push normally to the verified branch and remote. Never force-push or publish directly to a
 protected branch. Create the PR only when requested, using the repository PR template, draft label,
-automation label, validation evidence, and Linear reference when applicable.
+automation label, validation evidence, and its Linear reference line.
 
 After publication, fetch the live PR metadata again and record its current head SHA. A local commit
 or successful push message alone is not proof that the PR contains the change.
@@ -141,8 +144,9 @@ their conditions, and what the closeout may write; `Done` waits for a person's r
 
 Report the resolved base, branch and head SHA, targeted proof, Push Gate status and elapsed time,
 whether the full local gate was required, commit and push result, PR URL, current-head CI state,
-and the Linear line: the issue the PR names with its observed state, `no Linear issue linked`, or
-`not checked`. The Linear line reports; it does not change the outcome. Use one of these outcomes:
+and the Linear line: the issue the PR names with its observed state (saying when the closeout
+linked or filed it after the merge), `bot PR` for an exempt bot PR, or `not checked`. The Linear
+line reports; it does not change the outcome. Use one of these outcomes:
 
 - `READY`: current-head required CI is green and every applicable local contract passed.
 - `BLOCKED`: local proof, push budget, publication, or current-head CI is pending/unavailable.
