@@ -16,6 +16,7 @@ import {
   createFakeWagmiDeps,
   createMockBatchBudget,
   createMockContractCall,
+  type FakeWagmiDeps,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { TransactionRevertedError, type ContractCall } from "../types";
@@ -36,7 +37,7 @@ describe("WalletSender", () => {
   let mockWriteContractAsync: ReturnType<
     typeof vi.fn<ConstructorParameters<typeof WalletSender>[1]>
   >;
-  let mockDeps: WalletSenderDeps;
+  let mockDeps: FakeWagmiDeps;
 
   beforeEach(() => {
     vi.clearAllMocks();
