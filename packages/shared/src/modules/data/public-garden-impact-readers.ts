@@ -40,7 +40,7 @@ export {
 interface ReaderDependencies {
   indexerReader?: GraphQLReader;
   createEasReader?: (chainId: number) => GraphQLReader;
-  createChainReader?: (chainId: number) => PublicGardenImpactChainReader;
+  createChainReader?: (chainId: number, signal?: AbortSignal) => PublicGardenImpactChainReader;
 }
 
 interface PublicGardenImpactChainReader {
@@ -109,10 +109,10 @@ const TOKENBOUND_REGISTRY_ABI = [
 const GARDEN_ACCOUNT_SALT =
   "0x6551655165516551655165516551655165516551655165516551655165516551" as const;
 
-function defaultChainReader(chainId: number): PublicGardenImpactChainReader {
+function defaultChainReader(chainId: number, signal?: AbortSignal): PublicGardenImpactChainReader {
   return createPublicClient({
     chain: getChain(chainId),
-    transport: http(getRpcUrl(chainId)),
+    transport: http(getRpcUrl(chainId), { fetchOptions: { signal } }),
   }) as unknown as PublicGardenImpactChainReader;
 }
 
@@ -140,14 +140,20 @@ export function createPublicGardenImpactReaders(
   return {
     ...easReaders,
 
-    async readGarden(chainId, gardenAddress): Promise<PublicGardenImpactGardenRecord | null> {
+    async readGarden(
+      chainId,
+      gardenAddress,
+      signal
+    ): Promise<PublicGardenImpactGardenRecord | null> {
       assertPublicGardenImpactChain(chainId, "works");
       const config = getPublicGardenImpactChainConfig(chainId);
       if (!config || !isPublicGardenImpactChainSupported(chainId)) {
         throw new PublicGardenImpactSourceError("works", "unsupported_chain");
       }
       try {
-        const chainReader = deps.createChainReader?.(chainId) ?? defaultChainReader(chainId);
+        signal?.throwIfAborted();
+        const chainReader =
+          deps.createChainReader?.(chainId, signal) ?? defaultChainReader(chainId, signal);
         let token: unknown;
         try {
           token = await chainReader.readContract({
@@ -220,7 +226,7 @@ export function createPublicGardenImpactReaders(
       }
     },
 
-    async readActions(chainId): Promise<PublicGardenImpactActionRecord[]> {
+    async readActions(chainId, signal): Promise<PublicGardenImpactActionRecord[]> {
       assertPublicGardenImpactChain(chainId, "actions");
       const query = /* GraphQL */ `
         query PublicGardenImpactActions($chainId: Int!, $limit: Int!, $offset: Int!) {
@@ -242,6 +248,7 @@ export function createPublicGardenImpactReaders(
           (limit, offset) =>
             queryPublicGardenImpactRows({
               reader: indexer,
+              signal,
               document: query,
               variables: { chainId, limit, offset },
               operationName: "readPublicGardenImpactActions",
@@ -259,7 +266,11 @@ export function createPublicGardenImpactReaders(
       }
     },
 
-    async readCertificates(chainId, gardenAddress): Promise<PublicGardenImpactCertificateRecord[]> {
+    async readCertificates(
+      chainId,
+      gardenAddress,
+      signal
+    ): Promise<PublicGardenImpactCertificateRecord[]> {
       assertPublicGardenImpactChain(chainId, "certificates");
       const query = /* GraphQL */ `
         query PublicGardenImpactCertificates(
@@ -290,6 +301,7 @@ export function createPublicGardenImpactReaders(
           (limit, offset) =>
             queryPublicGardenImpactRows({
               reader: indexer,
+              signal,
               document: query,
               variables: { chainId, gardenAddress, limit, offset },
               operationName: "readPublicGardenImpactCertificates",

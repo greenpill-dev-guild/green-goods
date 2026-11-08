@@ -78,6 +78,7 @@ export interface ProofComposerController {
   canSendToo: boolean;
   /** Whether Add This Proof also sends it; on by default for someone working alone. */
   sendToo: boolean;
+  sendsProofWithItsSend: boolean;
   setSendToo: (on: boolean) => void;
   linkInvalid: boolean;
   /** Photos only, without any HEIC photo still waiting to convert. */

@@ -8,7 +8,13 @@
  * toast notifications, and job queue integration.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  dehydrate,
+  hydrate,
+  QueryClient,
+  QueryClientProvider,
+  QueryObserver,
+} from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -94,6 +100,7 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 
 import { toastService } from "../../components/toast";
 import { queryKeys } from "../../config/query-keys";
+import { restoreDurableWorkQuery } from "../../config/query-persistence-work";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
 import en from "../../i18n/en.json";
 import {
@@ -103,7 +110,7 @@ import {
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { connectivityStore } from "../../stores/connectivity";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
-import type { OverlayWork } from "../../modules/work/local-status-overlay";
+import { type OverlayWork, resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
 import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
@@ -112,6 +119,7 @@ import {
   MOCK_TX_HASH,
 } from "../test-utils/mock-factories";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
+import { createTestQueryClient } from "../test-utils/query-client";
 
 const MOCK_CONFIRMED_APPROVAL_RESULT = {
   hash: MOCK_TX_HASH,
@@ -191,24 +199,39 @@ describe("hooks/work/useWorkApproval", () => {
       expect(beforeUnloadCalls).toBe(0);
     });
 
-    it("invokes the shared completion callback after direct wallet confirmation", async () => {
+    it("presents wallet confirmation while the indexer is still reading", async () => {
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+      const work = createMockWork();
       const onApprovalComplete = vi.fn();
-      const { result } = renderHook(() => useWorkApproval({ onApprovalComplete } as any), {
+      const activityKey = queryKeys.works.activity(work.gardenAddress, 11155111);
+      queryClient.setQueryData(activityKey, []);
+      let finishRead!: (rows: []) => void;
+      const pendingRead = new Promise<[]>((resolve) => {
+        finishRead = resolve;
+      });
+      const unsubscribe = new QueryObserver(queryClient, {
+        queryKey: activityKey,
+        queryFn: () => pendingRead,
+        staleTime: Infinity,
+      }).subscribe(() => {});
+      const { result } = renderHook(() => useWorkApproval({ onApprovalComplete }), {
         wrapper: createWrapper(),
       });
-      const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: true, workUID: work.id });
-
-      await act(async () => {
-        await result.current.mutateAsync({ draft, work });
-      });
-
-      expect(onApprovalComplete).toHaveBeenCalledWith({
-        approved: true,
-        gardenId: work.gardenAddress,
-        workUID: work.id,
-      });
+      try {
+        act(() => result.current.mutate({ draft, work }));
+        await waitFor(() =>
+          expect(onApprovalComplete).toHaveBeenCalledWith({
+            approved: true,
+            gardenId: work.gardenAddress,
+            workUID: work.id,
+          })
+        );
+        expect(queryClient.getQueryState(activityKey)?.fetchStatus).toBe("fetching");
+      } finally {
+        finishRead([]);
+        unsubscribe();
+      }
     });
 
     it("calls submitApprovalDirectly for wallet users", async () => {
@@ -495,6 +518,37 @@ describe("hooks/work/useWorkApproval", () => {
       }
     });
 
+    it("restores an approved work when the review began with only a local garden list", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+      const work = createMockWork({ id: `0x${"b".repeat(64)}`, status: "pending" });
+      const staleRow = { ...work, approval: null };
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const localKey = queryKeys.works.local(work.gardenAddress, 11155111);
+      queryClient.setQueryData(localKey, [work]);
+      queryClient.setQueryData(queryKeys.works.online(work.gardenAddress, 11155111), [staleRow]);
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkApprovalDraft({ workUID: work.id, approved: true }),
+          work,
+        });
+      });
+
+      const restored = createTestQueryClient();
+      const snapshot = dehydrate(queryClient);
+      hydrate(restored, { ...snapshot, queries: snapshot.queries.map(restoreDurableWorkQuery) });
+      try {
+        const { rows } = resolveGardenWorkRows({
+          remote: [staleRow],
+          saved: restored.getQueryData(localKey),
+          overlay: restored.getQueryData(mergedKey),
+        });
+        expect(rows[0]).toMatchObject({ id: work.id, status: "approved", _txHash: MOCK_TX_HASH });
+      } finally {
+        restored.clear();
+      }
+    });
+
     it("leaves persisted work state unchanged when the wallet rejects the request", async () => {
       const walletError = new Error("User rejected the request");
       (submitApprovalDirectly as any).mockRejectedValue(walletError);
@@ -545,7 +599,10 @@ describe("hooks/work/useWorkApproval", () => {
         await result.current.mutateAsync({ draft, work });
       });
 
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.approvals.all });
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        { queryKey: queryKeys.approvals.all },
+        { cancelRefetch: false }
+      );
     });
   });
 
@@ -594,7 +651,7 @@ describe("hooks/work/useWorkApproval", () => {
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
     });
 
-    it("refreshes the garden's week of activity after a decision and in each follow-up", async () => {
+    it("continues refreshing the garden's activity after the approval screen unmounts", async () => {
       // Home's bell lists an off-page submission from the week's read, and Home stays mounted
       // under the work page, so the decision must refresh that read or the row stays new.
       vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -616,7 +673,7 @@ describe("hooks/work/useWorkApproval", () => {
             ([filters]) => JSON.stringify(filters?.queryKey) === activityKey
           ).length;
 
-        const { result } = renderHook(
+        const { result, unmount } = renderHook(
           () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
           { wrapper: createWrapper() }
         );
@@ -627,6 +684,7 @@ describe("hooks/work/useWorkApproval", () => {
           });
         });
         expect(activityRefreshes()).toBe(1);
+        unmount();
 
         // The indexer lags, so the follow-ups read the week again at 2, 5 and 15 seconds.
         await act(() => vi.advanceTimersByTimeAsync(15_000));

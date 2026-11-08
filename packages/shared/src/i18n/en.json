@@ -3612,6 +3612,7 @@
   "app.proof.next.review": "Review Proof",
   "app.proof.review.info": "{who, select, named {Check what {name} will see before you add it.} other {Check what the confirmer will see before you add it.}}",
   "app.proof.review.next.teammate": "{who, select, named {{lead} leads this one and sends it to {name} when the team is done.} other {{lead} leads this one and sends it for confirmation when the team is done.}}",
+  "app.proof.review.next.signOnce": "Sign once to add the proof and send it for confirmation.",
   "app.proof.review.next.signTwice": "You'll be asked to sign twice: once for the proof, once to send it.",
   "app.proof.review.next.stays": "It stays on this phone until it lands. If it can't send, it waits in Your Work › Pending.",
   "app.proof.review.offline": "You're offline. It waits on this phone, photos and all, and sends when you're back.",

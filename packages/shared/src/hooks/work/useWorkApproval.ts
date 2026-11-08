@@ -9,8 +9,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { createApprovalToasts, toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
-import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
+import { worksKeys } from "../../config/query-keys/work";
 import {
   trackWorkApprovalFailed,
   trackWorkApprovalLifecycle,
@@ -19,6 +18,7 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import type { JobQueueHandle } from "../../modules/job-queue/ports";
+import { refreshApprovalReads } from "../../modules/work/approval-read-refresh";
 import {
   clearLapsedOverlay,
   LOCAL_OVERLAY_GRACE_MS,
@@ -40,7 +40,7 @@ import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
-import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
+import { useTimeout } from "../utils/useTimeout";
 import {
   useWorkApprovalLifecycle,
   type PendingWorkApproval,
@@ -68,7 +68,7 @@ export { type ReviewBatch, useReviewBatch } from "./useReviewBatch";
 const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
 type PendingWork = OverlayWork;
 interface WorkDecisionCacheSnapshot {
-  gardenId: string;
+  work: Work;
   merged?: PendingWork[];
   online?: PendingWork[];
 }
@@ -81,29 +81,10 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const { set: scheduleAutoClear } = useTimeout();
-  const lastGardenRef = useRef<string>("");
   // Decided once, before the wallet is involved, and handed to the command so the
   // two never disagree about whether this decision goes to the wallet or the queue.
   const walletSendsNowRef = useRef(true);
   const decisionCacheRef = useRef<WorkDecisionCacheSnapshot | null>(null);
-  const { start: scheduleFollowUp } = useProgressiveInvalidation(
-    useCallback(() => {
-      if (lastGardenRef.current) {
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.online(lastGardenRef.current, chainId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.merged(lastGardenRef.current, chainId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.activity(lastGardenRef.current, chainId),
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
-    }, [queryClient, chainId]),
-    INDEXER_LAG_SCHEDULE_MS
-  );
-
   const recordDecision = useCallback(
     (
       completion: WorkApprovalCompletion,
@@ -117,60 +98,59 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       // decision still waiting on its receipt gets a deadline, so a dropped
       // transaction cannot leave the work looking resolved forever.
       const holdsUntilIndexed = isOfflineHash || !awaitingConfirmation;
+      const isConfirmed = !isOfflineHash && !awaitingConfirmation;
       const cacheSnapshot =
-        decisionCacheRef.current?.gardenId.toLowerCase() === completion.gardenId.toLowerCase()
+        decisionCacheRef.current?.work.gardenAddress.toLowerCase() ===
+        completion.gardenId.toLowerCase()
           ? decisionCacheRef.current
           : null;
+      const matchesWork = (work: Work) => work.id === completion.workUID;
+      const withDecision = (work: PendingWork): PendingWork => ({
+        ...work,
+        status,
+        _isPending: awaitingConfirmation,
+        _txHash: isOfflineHash ? undefined : txHash,
+        _pendingUntilMs: holdsUntilIndexed ? undefined : overlayDeadline(),
+        reviewFeedback,
+      });
+      const confirmedWork = isConfirmed
+        ? [
+            cacheSnapshot?.work,
+            queryClient.getQueryData<Work>(worksKeys.byUID(completion.workUID, chainId)),
+            queryClient
+              .getQueryData<Work[]>(
+                worksKeys.local(completion.gardenId, chainId, primaryAddress ?? undefined)
+              )
+              ?.find(matchesWork),
+            queryClient
+              .getQueryData<Work[]>(worksKeys.online(completion.gardenId, chainId))
+              ?.find(matchesWork),
+          ].find(
+            (work) =>
+              work &&
+              matchesWork(work) &&
+              work.gardenAddress.toLowerCase() === completion.gardenId.toLowerCase()
+          )
+        : undefined;
       const update =
-        (fallback: PendingWork[] | undefined) =>
-        (old: PendingWork[] = []): PendingWork[] =>
-          (old.length > 0 ? old : (fallback ?? old)).map((work) =>
-            work.id === completion.workUID
-              ? {
-                  ...work,
-                  status,
-                  _isPending: awaitingConfirmation,
-                  _txHash: isOfflineHash ? undefined : txHash,
-                  _pendingUntilMs: holdsUntilIndexed ? undefined : overlayDeadline(),
-                  // This decision's feedback shows before the indexer reports
-                  // it, and replaces a cached one even when it has none.
-                  reviewFeedback,
-                }
-              : work
-          );
+        (fallback: PendingWork[] | undefined, insert?: Work) =>
+        (old: PendingWork[] = []): PendingWork[] => {
+          const rows = old.length > 0 ? old : (fallback ?? old);
+          if (insert && !rows.some(matchesWork)) return [...rows, withDecision(insert)];
+          return rows.map((work) => (matchesWork(work) ? withDecision(work) : work));
+        };
+      // The client projects a separate local list. Persist the decision in the
+      // shared overlay even when no garden list has been opened on this device.
       queryClient.setQueryData(
         worksKeys.merged(completion.gardenId, chainId),
-        update(cacheSnapshot?.merged)
+        update(cacheSnapshot?.merged, confirmedWork)
       );
       queryClient.setQueryData(
         worksKeys.online(completion.gardenId, chainId),
         update(cacheSnapshot?.online?.length ? cacheSnapshot.online : cacheSnapshot?.merged)
       );
     },
-    [chainId, queryClient]
-  );
-
-  const invalidateApprovalQueries = useCallback(
-    async (completion: WorkApprovalCompletion) => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.online(completion.gardenId, chainId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.merged(completion.gardenId, chainId),
-        }),
-        // The bell's week of activity lists works outside the garden's page, and Home stays
-        // mounted under the work page, so a decided submission would otherwise stay new there.
-        queryClient.invalidateQueries({
-          queryKey: worksKeys.activity(completion.gardenId, chainId),
-        }),
-        queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all }),
-        queryClient.invalidateQueries({ queryKey: approvalsKeys.all }),
-      ]);
-      lastGardenRef.current = completion.gardenId;
-      scheduleFollowUp();
-    },
-    [chainId, queryClient, scheduleFollowUp]
+    [chainId, primaryAddress, queryClient]
   );
 
   const reportApprovalError = useCallback(
@@ -234,10 +214,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
   );
 
   const onLifecycleConfirmed = useCallback(
-    async (approval: PendingWorkApproval) => {
+    (approval: PendingWorkApproval) => {
       if (!approval.txHash) return;
       recordDecision(approval, approval.txHash, false);
-      await invalidateApprovalQueries(approval);
       decisionCacheRef.current = null;
       hapticSuccess();
       if (approval.approved) {
@@ -262,8 +241,9 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         context: "wallet confirmation",
         suppressLogging: true,
       });
+      refreshApprovalReads(queryClient, chainId, approval, true);
     },
-    [authMode, formatMessage, invalidateApprovalQueries, recordDecision]
+    [authMode, chainId, formatMessage, queryClient, recordDecision]
   );
 
   const lifecycle = useWorkApprovalLifecycle({
@@ -344,7 +324,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
         worksKeys.online(work.gardenAddress, chainId)
       );
       decisionCacheRef.current = {
-        gardenId: work.gardenAddress,
+        work,
         merged: previousMerged,
         online: previousOnline,
       };
@@ -407,7 +387,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
             context: "wallet confirmation",
             suppressLogging: true,
           });
-          await invalidateApprovalQueries(completion);
+          refreshApprovalReads(queryClient, chainId, completion, false);
           decisionCacheRef.current = null;
           return;
         }
@@ -436,7 +416,7 @@ export function useWorkApproval(dependencies: UseWorkApprovalDependencies = {}) 
       // The decision waits on this device for Upload all: nothing sends it on its own.
       if (isOfflineHash) approvalToasts.savedOffline(completion.approved);
       else approvalToasts.success(completion.approved);
-      await invalidateApprovalQueries(completion);
+      refreshApprovalReads(queryClient, chainId, completion, !isOfflineHash);
       decisionCacheRef.current = null;
     },
     onError: (error: unknown, variables, context) => {
