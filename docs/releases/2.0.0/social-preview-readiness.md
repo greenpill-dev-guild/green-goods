@@ -4,6 +4,7 @@ owner: docs
 status: prepared
 source_of_truth:
   - packages/client/index.html
+  - packages/client/src/content/publicSocialPreviews.ts
   - packages/admin/index.html
   - docs/docusaurus.config.ts
   - docs/releases/2.0.0/announcement.md
