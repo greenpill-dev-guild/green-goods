@@ -9,6 +9,7 @@ import {
 } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
+import { daysAgo } from "../../../../shared/.storybook/fixtures";
 import { CommitmentsSection } from "./GardenDetailCommitments";
 
 const CHAIN_ID = 42161;
@@ -248,10 +249,11 @@ const meta: Meta<typeof CommitmentsSection> = {
       description: {
         component:
           "`/gardens/:id` § 02 — the Garden's commitment record across seasons and campaigns, " +
-          "as one editorial panel under a canvas header. The pool-state sentence sits beside " +
-          "lifetime made and kept (the kept rate only above the public threshold); the open " +
-          "Season and every open Campaign sit beside the pool-wide exact-label unit rows; " +
-          "finished cycles follow newest first, then the line that ties fulfilled commitments " +
+          "under a canvas header. All-time made, kept, kept rate (when published), and unit " +
+          "totals share a heading. Each current season and campaign has its own dates, status, " +
+          "counts, and units, including periods that ended with promises still live; a lone " +
+          "period whose numbers match the garden totals says so in one line instead. Finished " +
+          "periods follow newest first, then the line that ties fulfilled commitments " +
           "to the certificates. Readiness copy before launch keeps the same panel. A failed " +
           "read renders em dashes with a section-scoped retry; canceled cycles, pause reasons, " +
           "provider rows, and addresses never appear.",
@@ -273,6 +275,65 @@ export const Record: Story = {
         finishedCycles: FINISHED,
         cycleUnitSummaries: CYCLE_UNITS,
         poolUnitSummaries: POOL_UNITS,
+      })
+    ),
+  ],
+};
+
+/** The season's date has passed, but its live promises still count there. */
+export const EndedSeasonWithLivePromises: Story = {
+  decorators: [
+    seeded(
+      data({
+        openSeason: {
+          ...OPEN_SEASON,
+          startTime: BigInt(daysAgo(40)),
+          endTime: BigInt(daysAgo(2)),
+          openCommitmentCount: 2n,
+        },
+        openCampaigns: [{ ...OPEN_CAMPAIGN, endTime: null }],
+        finishedCycles: FINISHED,
+        cycleUnitSummaries: CYCLE_UNITS,
+        poolUnitSummaries: POOL_UNITS,
+      })
+    ),
+  ],
+};
+
+/** One season holds the garden's whole record, so it points to the totals instead of repeating them. */
+export const LoneSeason: Story = {
+  decorators: [
+    seeded(
+      data({
+        pool: pool({
+          commitmentsOffered: 13n,
+          commitmentsAccepted: 9n,
+          commitmentsFulfilled: 7n,
+          commitmentsDue: 8n,
+          openCommitmentCount: 2n,
+          distinctProviderCount: 4n,
+        }),
+        openSeason: OPEN_SEASON,
+        cycleUnitSummaries: CYCLE_UNITS.slice(0, 2),
+        poolUnitSummaries: [
+          unit({
+            id: "p1-hours",
+            scope: "POOL",
+            cycleId: null,
+            unitLabel: "hours",
+            expectedUnits: 52n,
+            fulfilledUnits: 25n,
+          }),
+          unit({
+            id: "p1-rides",
+            scope: "POOL",
+            cycleId: null,
+            unitLabel: "rides",
+            expectedUnits: 16n,
+            fulfilledUnits: 9n,
+          }),
+        ],
+        hasCommitmentCertificates: false,
       })
     ),
   ],
