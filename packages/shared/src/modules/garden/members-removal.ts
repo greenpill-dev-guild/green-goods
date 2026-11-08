@@ -1,17 +1,22 @@
-import type { Hex } from "viem";
+import type { Abi, Hex } from "viem";
 import type { Address } from "../../types/domain";
-import type { GardenMemberRow } from "./members-batch";
+import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
+import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
+import { logger } from "../app/logger";
+import { createGardenMembersChain, type GardenMemberRow } from "./members-batch";
 
 /**
  * What became of one person-and-role pair a steward asked to remove.
  *
  * - `removed`: the chain no longer gives them the role, from a confirmed send or from a read
- *   after a send that reported an error.
+ *   after a send that reported an error or left a proposal waiting.
  * - `alreadyRemoved`: a read just before the wallet found the role gone, so nothing was sent.
  * - `refused`: a simulation found the chain would refuse it, so nothing was sent.
  * - `declined`: the wallet's prompt was declined. Nothing was sent.
  * - `failed`: something went wrong and a read shows they still hold the role.
- * - `unknown`: something went wrong and the read that would say whether it landed failed too.
+ * - `unknown`: a proposal (a Safe's) has not run yet, or something went wrong and the read that
+ *   would say whether it landed failed too.
  * - `notSent`: the run stopped before this pair.
  */
 export type RoleRemovalOutcome =
@@ -30,6 +35,8 @@ export interface RoleRemovalSendResult {
   success: boolean;
   hash?: Hex;
   error?: { name: string; message: string };
+  /** The wallet returned a proposal (a Safe's, say) that has not run on chain yet. */
+  confirmation?: "pending";
 }
 
 /** How a removal run reads and writes the chain. */
@@ -66,7 +73,8 @@ export interface RoleRemovalApi {
 async function readHeld(chain: RoleRemovalChain, row: GardenMemberRow): Promise<boolean | null> {
   try {
     return await chain.wearsRole(row);
-  } catch {
+  } catch (error) {
+    logger.warn("Role removal read failed", { error, role: row.role });
     return null;
   }
 }
@@ -85,9 +93,9 @@ export function readHeldRoles(
  * Right before each signature the pair is read again: a role someone else already removed is
  * left out, because the chain would accept the removal anyway and charge for it. A pair the chain
  * would refuse is left out too, and the run goes on, since nothing was asked of the wallet. A
- * declined prompt stops the run. A send that reports an error is read once more: if the role is
- * gone it counted, and the run goes on; otherwise the rest wait for the steward to see what
- * happened before anything else is signed.
+ * declined prompt stops the run. A send that reports an error, or leaves a proposal that has not
+ * run (a Safe's), is read once more: if the role is gone it counted, and the run goes on;
+ * otherwise the rest wait for the steward to see what happened before anything else is signed.
  */
 export async function removeGardenRolesOneByOne(
   rows: readonly GardenMemberRow[],
@@ -113,8 +121,11 @@ export async function removeGardenRolesOneByOne(
       continue;
     }
 
-    // A failed simulation read is not a refusal: the send simulates again before the wallet.
-    const reason = await chain.refusal(row).catch(() => null);
+    // A simulation that could not run is not a refusal: the send simulates again before the wallet.
+    const reason = await chain.refusal(row).catch((error) => {
+      logger.warn("Role removal simulation could not run", { error, role: row.role });
+      return null;
+    });
     if (reason) {
       settle(row, { status: "refused", reason });
       continue;
@@ -134,7 +145,7 @@ export async function removeGardenRolesOneByOne(
       };
     }
 
-    if (result.success) {
+    if (result.success && result.confirmation !== "pending") {
       settle(row, { status: "removed", transactionHash: result.hash });
       continue;
     }
@@ -145,19 +156,71 @@ export async function removeGardenRolesOneByOne(
       continue;
     }
 
-    // The send may still have landed: the chain says which. Only a proven removal lets the run go on.
+    // An unclear send may have landed, and a proposal may already have run: the chain says
+    // which. Only a proven removal lets the run go on.
     const held = await readHeld(chain, row);
     if (held === false) {
       chain.onGone?.(row);
-      settle(row, { status: "removed" });
+      settle(row, { status: "removed", transactionHash: result.hash });
       continue;
     }
     stopped = true;
     settle(
       row,
-      held === true ? { status: "failed", reason: result.error?.message } : { status: "unknown" }
+      held === true && !result.success
+        ? { status: "failed", reason: result.error?.message }
+        : { status: "unknown" }
     );
   }
 
   return outcomes;
+}
+
+/** What a simulation's error is named when it never reached the chain (`parseContractError`). */
+const UNREACHED = new Set(["NetworkError", "TimeoutError", "Offline"]);
+
+interface RoleRemovalChainInput {
+  gardenAddress: Address;
+  chainId: number;
+  /** The account that signs. Without one, the send says what is missing. */
+  account?: Address | null;
+  /** The garden's own removal for each role: one signature each. */
+  removeByRole: Record<GardenRole, (address: Address) => Promise<RoleRemovalSendResult>>;
+  onGone?: RoleRemovalChain["onGone"];
+}
+
+/**
+ * How a garden's role removals read, simulate and send for the account that signs them. A
+ * simulation that never reached the chain throws instead of naming a refusal, so a dropped
+ * connection never settles a pair as refused.
+ */
+export function createRoleRemovalChain({
+  gardenAddress,
+  chainId,
+  account,
+  removeByRole,
+  onGone,
+}: RoleRemovalChainInput): RoleRemovalChain {
+  const members = createGardenMembersChain(gardenAddress, chainId);
+  return {
+    wearsRole: (row) => members.wearsRole(row),
+    refusal: async ({ address, role }) => {
+      const hatsModule = await members.hatsModule();
+      // Without a module or a signer the send itself says what is missing.
+      if (!hatsModule || !account) return null;
+      const { success, error } = await simulateTransaction(
+        hatsModule,
+        HATS_MODULE_ABI as Abi,
+        "revokeRole",
+        [gardenAddress, address, GARDEN_ROLE_IDS[role]],
+        account,
+        chainId
+      );
+      if (success) return null;
+      if (error && UNREACHED.has(error.name)) throw new Error(error.message);
+      return error?.message ?? "Transaction simulation failed";
+    },
+    removeRole: ({ address, role }) => removeByRole[role](address),
+    onGone,
+  };
 }

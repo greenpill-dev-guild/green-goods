@@ -82,7 +82,12 @@ export function ManageRolesFilters({
         className="@[480px]:hidden"
         label={label}
         value={activeFilter}
-        onChange={(event) => onFilterChange(event.target.value as RoleFilter)}
+        onChange={(event) => {
+          const next = event.target.value as RoleFilter;
+          // Selected shows every pick, from the select as from its chip.
+          if (next === "selected") onShowPicked();
+          else onFilterChange(next);
+        }}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

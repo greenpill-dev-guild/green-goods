@@ -98,10 +98,11 @@ export function rolesKept(person: MemberPerson, removing: readonly GardenRole[])
 
 /**
  * The kept role that still gives this access on chain, if any. A garden account counts an owner
- * or a steward as an evaluator and a gardener, so taking those from them changes the list, not
- * what they can do.
+ * as a steward, and an owner or a steward as an evaluator and a gardener, so taking those from
+ * them changes the list, not what they can do.
  */
 export function coveringRole(removed: GardenRole, kept: readonly GardenRole[]): GardenRole | null {
+  if (removed === "steward") return kept.includes("owner") ? "owner" : null;
   if (removed !== "evaluator" && removed !== "gardener") return null;
   if (kept.includes("owner")) return "owner";
   if (kept.includes("steward")) return "steward";
@@ -110,6 +111,20 @@ export function coveringRole(removed: GardenRole, kept: readonly GardenRole[]): 
 
 /** One pair's identity in a selection or a review. */
 export const rolePairKey = ({ address, role }: RolePair) => `${address.toLowerCase()}:${role}`;
+
+/** The selection with these pairs picked, or with them let go. */
+export function withPicks(
+  selected: ReadonlyMap<string, RolePair>,
+  pairs: readonly RolePair[],
+  picked: boolean
+): ReadonlyMap<string, RolePair> {
+  const next = new Map(selected);
+  for (const pair of pairs) {
+    if (picked) next.set(rolePairKey(pair), pair);
+    else next.delete(rolePairKey(pair));
+  }
+  return next;
+}
 
 /** What the Manage Roles list narrows to: everyone, one role, or the people with picks. */
 export type RoleFilter = GardenRole | "all" | "selected";

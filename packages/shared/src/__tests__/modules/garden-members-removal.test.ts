@@ -1,12 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GardenMemberRow } from "../../modules/garden/members-batch";
 import {
+  createRoleRemovalChain,
   readHeldRoles,
   type RoleRemovalChain,
   type RoleRemovalSendResult,
   removeGardenRolesOneByOne,
 } from "../../modules/garden/members-removal";
 import type { Address } from "../../types/domain";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
+
+vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: vi.fn() }));
+vi.mock("../../modules/garden/members-batch", () => ({
+  createGardenMembersChain: () => ({
+    hatsModule: async () => "0x9999999999999999999999999999999999999999",
+    wearsRole: async () => true,
+  }),
+}));
 
 const ADA = "0x1111111111111111111111111111111111111111" as Address;
 const BEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -17,7 +27,8 @@ const evaluatorOf = (address: Address): GardenMemberRow => ({ address, role: "ev
 
 /**
  * A chain where every pair is held until a send for it goes through. `sends` scripts each
- * pair's send; `reads` scripts what a read returns after a send that did not end cleanly.
+ * pair's send; `readsAfterError` scripts what a read returns after a send that did not end
+ * cleanly, or that left a proposal waiting.
  */
 function fakeChain({
   gone = [],
@@ -50,7 +61,7 @@ function fakeChain({
         errored.add(key);
         throw scripted;
       }
-      if (scripted.success) removed.add(key);
+      if (scripted.success && scripted.confirmation !== "pending") removed.add(key);
       else errored.add(key);
       return scripted;
     }),
@@ -138,6 +149,54 @@ describe("modules/garden/members-removal", () => {
       })
     );
     expect(statuses(unread)).toEqual(["unknown", "notSent"]);
+  });
+
+  it("counts a proposal that has not run as unconfirmed, and signs nothing after it", async () => {
+    const proposal = { success: true, hash, confirmation: "pending" } as const;
+    const waiting = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA), evaluatorOf(BEN)],
+      fakeChain({ sends: { [ADA.toLowerCase()]: proposal } })
+    );
+    expect(statuses(waiting)).toEqual(["unknown", "notSent"]);
+
+    // A proposal that already ran shows on chain, so it counts.
+    const ran = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA)],
+      fakeChain({
+        sends: { [ADA.toLowerCase()]: proposal },
+        readsAfterError: { [ADA.toLowerCase()]: false },
+      })
+    );
+    expect(ran).toEqual([{ status: "removed", transactionHash: hash }]);
+  });
+
+  it("names a refusal only when the simulation reached the chain", async () => {
+    const chain = createRoleRemovalChain({
+      gardenAddress: CY,
+      chainId: 42161,
+      account: ADA,
+      removeByRole: {
+        gardener: vi.fn(),
+        steward: vi.fn(),
+        evaluator: vi.fn(),
+        owner: vi.fn(),
+        funder: vi.fn(),
+        community: vi.fn(),
+      },
+    });
+    vi.mocked(simulateTransaction)
+      .mockResolvedValueOnce({
+        success: false,
+        error: { name: "NotGardenAdmin", message: "Not a garden admin", raw: "NotGardenAdmin" },
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        error: { name: "NetworkError", message: "Network error.", raw: "failed to fetch" },
+      });
+
+    await expect(chain.refusal(evaluatorOf(BEN))).resolves.toBe("Not a garden admin");
+    // A dropped connection refuses nothing: the run sends, and the send simulates again.
+    await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow("Network error.");
   });
 
   it("answers a check per pair, with null where the read failed", async () => {

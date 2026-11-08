@@ -16,6 +16,14 @@ import { PersonAvatar, YouTag } from "./ManageRolesPersonRow";
 /** Where one picked pair stands: read at review, then sent or left out. */
 export type ReviewPairStatus = "checking" | "ready" | "sending" | RoleRemovalStatus;
 
+/** A pair the run settled without removing: the person still holds that role. */
+const STILL_HELD: ReadonlySet<ReviewPairStatus> = new Set([
+  "refused",
+  "declined",
+  "failed",
+  "notSent",
+]);
+
 export interface ReviewPair {
   role: GardenRole;
   status: ReviewPairStatus;
@@ -97,12 +105,11 @@ export function RoleRemovalReview({ people, chainId, viewer }: RoleRemovalReview
       className="divide-y divide-stroke-soft rounded-(--gg-row-radius) border border-stroke-soft bg-bg-white px-3"
     >
       {people.map(({ person, pairs }) => {
-        const kept = rolesKept(
-          person,
-          pairs.map((pair) => pair.role)
-        );
-        const covering = pairs
-          .map((pair) => coveringRole(pair.role, kept))
+        // What they keep counts each picked role as going until its outcome says it stayed.
+        const going = pairs.filter((pair) => !STILL_HELD.has(pair.status)).map((pair) => pair.role);
+        const kept = rolesKept(person, going);
+        const covering = going
+          .map((role) => coveringRole(role, kept))
           .find((role): role is GardenRole => role !== null);
         return (
           <li key={person.address} className="flex items-start gap-3 py-2.5">

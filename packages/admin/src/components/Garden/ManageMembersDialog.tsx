@@ -3,6 +3,7 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import type { RoleRemovalApi } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiUserAddLine, RiUserLine } from "@remixicon/react";
@@ -21,7 +22,7 @@ import {
   peopleFromRoster,
   type RoleFilter,
   type RolePair,
-  rolePairKey,
+  withPicks,
 } from "./manageRoles";
 import {
   type ReviewMomentAction,
@@ -103,17 +104,23 @@ export function ManageMembersDialog({
   const [selected, setSelected] = useState<ReadonlyMap<string, RolePair>>(() => new Map());
   const [review, setReview] = useState<ReviewState | null>(null);
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
-  const [shownFor, setShownFor] = useState({ open, initialMember });
+  // Who signs, with what rights: a review is never signed by an account that did not make it.
+  const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}`;
+  const [shownFor, setShownFor] = useState({ open, initialMember, signer });
   // Async answers belong to the review that asked; a newer opening or review drops them.
   const reviewToken = useRef(0);
   const reviewRegionRef = useRef<HTMLDivElement | null>(null);
 
-  // Each opening, and each change of the person it opens for, starts over. Resetting here,
-  // rather than remounting through a key, keeps the closing dialog mounted for its exit motion.
-  if (open !== shownFor.open || initialMember !== shownFor.initialMember) {
-    setShownFor({ open, initialMember });
+  // Each opening, each change of the person it opens for, and each change of signer starts
+  // over. Resetting here, rather than remounting through a key, keeps the closing dialog
+  // mounted for its exit motion.
+  if (
+    open !== shownFor.open ||
+    initialMember !== shownFor.initialMember ||
+    signer !== shownFor.signer
+  ) {
+    setShownFor({ open, initialMember, signer });
     if (open) {
-      reviewToken.current += 1;
       setFilter("all");
       setSearch("");
       setScopedTo(initialMember ?? null);
@@ -121,6 +128,9 @@ export function ManageMembersDialog({
       setReview(null);
     }
   }
+  useEffect(() => {
+    reviewToken.current += 1;
+  }, [open, initialMember, signer]);
 
   const onName = useCallback(
     (address: Address, name: string | null) =>
@@ -153,19 +163,14 @@ export function ManageMembersDialog({
     formatMessage,
   });
   const { picks } = view;
+  // A filter that lost its people lets go for good, so a later pick cannot bring it back.
+  if (view.activeFilter !== filter) setFilter(view.activeFilter);
   const readOnly = !canManage;
   const running = review?.phase === "running";
   const busy = isLoading || running;
 
-  const toggle = (person: MemberPerson, role: GardenRole, checked: boolean) => {
-    const pair = { address: person.address, role };
-    setSelected((current) => {
-      const next = new Map(current);
-      if (checked) next.set(rolePairKey(pair), pair);
-      else next.delete(rolePairKey(pair));
-      return next;
-    });
-  };
+  const toggle = (person: MemberPerson, role: GardenRole, checked: boolean) =>
+    setSelected((current) => withPicks(current, [{ address: person.address, role }], checked));
 
   const chooseFilter = (next: RoleFilter) => {
     setScopedTo(null);
@@ -186,11 +191,11 @@ export function ManageMembersDialog({
       setReview((current) => current && withCheckAnswers(current, rows, held));
     };
     setReview(next);
-    removal
-      .check(rows)
-      .then(settle)
-      // A failed read leaves every pair to the read before its own signature.
-      .catch(() => settle([]));
+    // A failed read leaves every pair to the read before its own signature.
+    removal.check(rows).then(settle, (error) => {
+      logger.warn("Manage Roles could not read the picked roles", { error, pairs: rows.length });
+      settle([]);
+    });
   };
 
   const backToChoose = () => {
@@ -222,18 +227,15 @@ export function ManageMembersDialog({
       });
       clean = outcomes.every((outcome) => outcome.status === "removed");
       settled = settledPairs(pairs, outcomes);
-    } catch {
+    } catch (error) {
       // The run itself broke: whatever had not settled may or may not have landed.
+      logger.error("Manage Roles stopped a removal run", { error, pairs: pairs.length });
       if (live()) setReview((current) => current && withUnsettledUnknown(current, pairs));
     }
     if (!live()) return;
     setReview((current) => current && { ...current, phase: "done" });
     // Settled pairs leave the picks; a declined or unsent one stays picked for Back.
-    setSelected((current) => {
-      const next = new Map(current);
-      for (const pair of settled) next.delete(rolePairKey(pair));
-      return next;
-    });
+    setSelected((current) => withPicks(current, settled, false));
     if (!clean) onRosterStale?.();
   };
 
@@ -242,7 +244,13 @@ export function ManageMembersDialog({
     reviewToken.current += 1;
     const token = reviewToken.current;
     setReview((current) => current && withPairsStatus(current, pairs, "checking"));
-    const held = await removal.check(pairs).catch((): (boolean | null)[] => []);
+    const held = await removal.check(pairs).catch((error): (boolean | null)[] => {
+      logger.warn("Manage Roles could not read the unconfirmed roles", {
+        error,
+        pairs: pairs.length,
+      });
+      return [];
+    });
     if (token !== reviewToken.current) return;
     setReview((current) => current && withCheckAgainAnswers(current, pairs, held));
     onRosterStale?.();

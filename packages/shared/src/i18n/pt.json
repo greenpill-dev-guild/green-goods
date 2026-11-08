@@ -567,7 +567,7 @@
   "admin.manageRoles.declined.title": "Nada foi removido",
   "admin.manageRoles.declined.body": "A assinatura foi recusada. O que você escolheu continua aqui.",
   "admin.manageRoles.noneRemoved.body": "Nenhuma das funções que você escolheu pôde ser removida.",
-  "admin.manageRoles.partial.title": "{removed} removidas · {left} não removidas",
+  "admin.manageRoles.partial.title": "{removed, plural, one {# removida} other {# removidas}} · {left, plural, one {# não removida} other {# não removidas}}",
   "admin.manageRoles.partial.body": "{action} envia só as funções que ainda estão ativas.",
   "admin.manageRoles.done.title": "{count, plural, one {# função removida} other {# funções removidas}}",
   "admin.manageRoles.done.body": "A lista de membros já mostra a mudança.",

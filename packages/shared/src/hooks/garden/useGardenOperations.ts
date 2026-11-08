@@ -10,16 +10,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { createGardenMembersChain } from "../../modules/garden/members-batch";
 import {
+  createRoleRemovalChain,
   readHeldRoles,
   type RoleRemovalApi,
-  type RoleRemovalChain,
   removeGardenRolesOneByOne,
 } from "../../modules/garden/members-removal";
 import type { Address, Garden } from "../../types/domain";
 import { formatAddress } from "../../utils/app/text";
-import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
+import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
 import { gardensKeys } from "../../config/query-keys/garden";
 import {
@@ -438,31 +437,18 @@ export function useRemoveMemberRoles(gardenId: string): RoleRemovalApi {
   } = useGardenOperations(gardenId);
 
   return useMemo(() => {
-    const removeByRole: Record<GardenRole, GardenOperation> = {
-      gardener: removeGardener,
-      steward: removeSteward,
-      evaluator: removeEvaluator,
-      owner: removeOwner,
-      funder: removeFunder,
-      community: removeCommunity,
-    };
-    const members = createGardenMembersChain(gardenAddress, chainId);
-    const chain: RoleRemovalChain = {
-      wearsRole: (row) => members.wearsRole(row),
-      refusal: async ({ address, role }) => {
-        const hatsModule = await members.hatsModule();
-        // Without a module or a signer the send itself says what is missing.
-        if (!hatsModule || !account) return null;
-        return members.refusal(
-          {
-            address: hatsModule,
-            functionName: "revokeRole",
-            args: [gardenAddress, address, GARDEN_ROLE_IDS[role]],
-          },
-          account
-        );
+    const chain = createRoleRemovalChain({
+      gardenAddress,
+      chainId,
+      account,
+      removeByRole: {
+        gardener: removeGardener,
+        steward: removeSteward,
+        evaluator: removeEvaluator,
+        owner: removeOwner,
+        funder: removeFunder,
+        community: removeCommunity,
       },
-      removeRole: ({ address, role }) => removeByRole[role](address),
       // The roster lags the chain, so a role a read proved gone leaves it now.
       onGone: ({ address, role }) => {
         const key = gardensKeys.byChain(chainId);
@@ -475,7 +461,7 @@ export function useRemoveMemberRoles(gardenId: string): RoleRemovalApi {
         }
         void resetRoleHatAnswers(queryClient, gardenId, address);
       },
-    };
+    });
     return {
       account,
       check: (rows) => readHeldRoles(rows, chain),

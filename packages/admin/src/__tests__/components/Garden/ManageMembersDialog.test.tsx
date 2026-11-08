@@ -124,8 +124,12 @@ function renderDialog(props: Partial<Parameters<typeof ManageMembersDialog>[0]> 
     onAddMembers: vi.fn(),
   };
   const merged = { ...defaults, ...props };
-  render(createElement(ManageMembersDialog, merged));
-  return merged;
+  const { rerender } = render(createElement(ManageMembersDialog, merged));
+  return {
+    ...merged,
+    rerender: (next: Partial<Parameters<typeof ManageMembersDialog>[0]>) =>
+      rerender(createElement(ManageMembersDialog, { ...merged, ...next })),
+  };
 }
 
 const rowOf = (name: string) =>
@@ -218,6 +222,18 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
     expect(screen.getByRole("button", { name: "Review Removal" })).toBeDisabled();
   });
 
+  it("lets go of Selected once its picks are cleared, so the next pick shows everyone", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await pick(user, "Evaluator", "chidinma");
+    await user.click(screen.getByRole("button", { name: "Selected" }));
+    expect(screen.queryByText("tomi.eth")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+    await pick(user, "Evaluator", "tomi.eth");
+    expect(screen.getByText("chidinma")).toBeInTheDocument();
+  });
+
   it("finds people by the name their row shows, and opens on one person until Show Everyone", async () => {
     const user = userEvent.setup();
     renderDialog({ initialMember: TOMI });
@@ -281,6 +297,8 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
 
     expect(await screen.findByText("Nothing was removed")).toBeInTheDocument();
     expect(screen.getByText("Not sent")).toBeInTheDocument();
+    // A role still held after the run is still theirs.
+    expect(screen.getByText("Keeps Evaluator and Gardener")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove 1 Role" }));
     expect(removal.remove).toHaveBeenCalledTimes(2);
 
@@ -308,6 +326,20 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Check Again" }));
     await waitFor(() => expect(screen.getByText("1 role removed")).toBeInTheDocument());
+  });
+
+  it("starts over when the signing account changes, so no account signs a review it did not make", async () => {
+    const user = userEvent.setup();
+    const dialog = renderDialog();
+
+    await pick(user, "Evaluator", "chidinma");
+    await user.click(screen.getByRole("button", { name: "Review Removal" }));
+    expect(await screen.findByRole("dialog", { name: "Review Removal" })).toBeInTheDocument();
+
+    dialog.rerender({ viewerAddress: PEER });
+    expect(await screen.findByRole("dialog", { name: "Manage Roles" })).toBeInTheDocument();
+    expect(screen.getByText("Check the roles to remove.")).toBeInTheDocument();
+    expect(dialog.removal.remove).not.toHaveBeenCalled();
   });
 
   it("shows roles without checkboxes to someone who cannot change them", () => {

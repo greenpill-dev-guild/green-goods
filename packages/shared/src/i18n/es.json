@@ -567,7 +567,7 @@
   "admin.manageRoles.declined.title": "No se quitó nada",
   "admin.manageRoles.declined.body": "Se rechazó la firma. Lo que elegiste sigue aquí.",
   "admin.manageRoles.noneRemoved.body": "No se pudo quitar ninguno de los roles que elegiste.",
-  "admin.manageRoles.partial.title": "{removed} quitados · {left} sin quitar",
+  "admin.manageRoles.partial.title": "{removed, plural, one {# quitado} other {# quitados}} · {left} sin quitar",
   "admin.manageRoles.partial.body": "{action} envía solo los roles que aún se conservan.",
   "admin.manageRoles.done.title": "{count, plural, one {# rol quitado} other {# roles quitados}}",
   "admin.manageRoles.done.body": "La lista de miembros ya muestra el cambio.",
