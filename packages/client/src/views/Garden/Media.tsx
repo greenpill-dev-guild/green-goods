@@ -377,8 +377,20 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         newFiles.push(processed);
       }
 
+      // The action's limit and the ten-file cap are on photos and videos; documents have
+      // their own allowance, so a pick past them keeps its documents and drops extra visuals.
+      const maxCount =
+        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
+      const visualLimit = Math.min(maxCount, 10);
+      let visual = images.filter((file) => !isWorkDocument(file)).length;
+      const keptFiles = newFiles.filter((file) => {
+        if (isWorkDocument(file)) return true;
+        visual += 1;
+        return visual <= visualLimit;
+      });
+      const droppedCount = newFiles.length - keptFiles.length;
       if (
-        validateWorkAttachments([...images, ...newFiles], audioNotes, 0, { pendingHeic: "accept" })
+        validateWorkAttachments([...images, ...keptFiles], audioNotes, 0, { pendingHeic: "accept" })
           .length
       ) {
         toastService.error({
@@ -390,22 +402,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         });
         return;
       }
-      const maxCount =
-        config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
-
-      let droppedCount = 0;
-      setImages((prev) => {
-        // The action's limit is on photos and videos; documents have their own.
-        const combined = [...prev, ...newFiles];
-        let visual = 0;
-        const kept = combined.filter((file) => {
-          if (isWorkDocument(file)) return true;
-          visual += 1;
-          return visual <= maxCount;
-        });
-        droppedCount = combined.length - kept.length;
-        return droppedCount > 0 ? kept : combined;
-      });
+      setImages((prev) => [...prev, ...keptFiles]);
 
       if (droppedCount > 0) {
         toastService.info({
@@ -421,7 +418,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
               id: "app.garden.upload.truncatedMessage",
               defaultMessage: "You can add up to {max} for this action.",
             },
-            { max: maxCount }
+            { max: visualLimit }
           ),
           context: "mediaUpload",
         });

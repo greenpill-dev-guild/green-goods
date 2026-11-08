@@ -109,26 +109,32 @@ describe("work attachment boundaries", () => {
     expect(workDocumentType(file("page.txt", "text/html"))).toBeNull();
     expect(workDocumentType(file("sheet.xlsx", ""))).toBeNull();
   });
-  it("keeps a document only when its first bytes match its type", () => {
+  it("keeps a document only when its bytes are what its type says", () => {
     const text = (value: string) => new TextEncoder().encode(value);
     const bytes = (...values: number[]) => new Uint8Array(values);
+    const zip = (...names: string[]) =>
+      new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...text(names.join("\0"))]);
+    const ole = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
+    const utf16 = (value: string) => Array.from(value).flatMap((c) => [c.charCodeAt(0), 0]);
     expect(documentMatchesType("application/pdf", text("%PDF-1.7"))).toBe(true);
     expect(documentMatchesType("application/pdf", text("<html><script>"))).toBe(false);
-    expect(documentMatchesType(DOCX, bytes(0x50, 0x4b, 0x03, 0x04, 0x14))).toBe(true);
-    expect(
-      documentMatchesType(
-        "application/msword",
-        bytes(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1)
-      )
-    ).toBe(true);
-    expect(documentMatchesType("application/msword", bytes(0x50, 0x4b, 0x03, 0x04))).toBe(false);
+    expect(documentMatchesType(DOCX, zip("[Content_Types].xml", "word/document.xml"))).toBe(true);
+    // Every zip and every compound file starts the same way, so a Word file needs its parts.
+    expect(documentMatchesType(DOCX, zip("[Content_Types].xml", "data/yields.csv"))).toBe(false);
+    expect(documentMatchesType("application/msword", bytes(...ole, ...utf16("WordDocument")))).toBe(
+      true
+    );
+    expect(documentMatchesType("application/msword", bytes(...ole, ...utf16("Workbook")))).toBe(
+      false
+    );
+    expect(documentMatchesType("application/msword", zip("word/document.xml"))).toBe(false);
     expect(documentMatchesType("text/markdown", text("# Site report\n\nPanels: 12, all ✓"))).toBe(
       true
     );
     expect(documentMatchesType("text/plain", bytes(0x68, 0x00, 0x69))).toBe(false);
     expect(documentMatchesType("text/plain", bytes(0xff, 0xfe, 0x41, 0x00))).toBe(false);
-    // A character cut off where the sample ends is not a fault in the file.
-    expect(documentMatchesType("text/plain", text("café").slice(0, 4))).toBe(true);
+    // The whole file is read, so a character cut off at its end is a fault.
+    expect(documentMatchesType("text/plain", text("café").slice(0, 4))).toBe(false);
   });
   it("counts documents apart from photos and videos: five at most, 10 MB each", () => {
     const sized = (name: string, type: string, size: number) => {

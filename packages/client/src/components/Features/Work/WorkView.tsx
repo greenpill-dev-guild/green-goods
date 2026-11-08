@@ -138,7 +138,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
     /^(blob:|data:|https?:)/.test(url) ? url : resolveIPFSUrl(url)
   );
   const audioUrls = (audioNoteCids ?? []).map((cid) => resolveIPFSUrl(cid));
-  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls]);
+  const documentUrls = documents.map((document) => resolveIPFSUrl(document.cid));
+  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls, ...documentUrls]);
   const missingOriginals =
     !isOnline && [...mediaUrls, ...audioUrls].some((url) => !offlineAssets[url]);
 
@@ -257,15 +258,28 @@ export const WorkView: React.FC<WorkViewProps> = ({
             {intl.formatMessage({ id: "app.work.documents" })}
           </h6>
           <div className="flex flex-col gap-2">
-            {documents.map((document, index) => (
-              <WorkDocumentRow
-                key={`${index}:${document.cid}`}
-                name={document.name}
-                type={document.type}
-                size={document.size}
-                href={resolveIPFSUrl(document.cid)}
-              />
-            ))}
+            {documents.map((document, index) => {
+              // Offline, a document opens only from a copy kept on this device, as a voice note plays.
+              const available = isOnline || offlineAssets[documentUrls[index]];
+              return (
+                <div key={`${index}:${document.cid}`} className="flex flex-col gap-1">
+                  <WorkDocumentRow
+                    name={document.name}
+                    type={document.type}
+                    size={document.size}
+                    href={available ? documentUrls[index] : undefined}
+                  />
+                  {available ? null : (
+                    <p className="text-sm text-text-sub-600">
+                      {intl.formatMessage({
+                        id: "app.offline.attachmentUnavailable",
+                        defaultMessage: "Not downloaded for offline use",
+                      })}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

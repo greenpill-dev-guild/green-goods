@@ -171,8 +171,9 @@ export async function normalizeWorkMediaFiles(
     if (documentType) {
       // A document publishes as it was picked, so it is kept only when its bytes
       // are what its type says, and under that type: the upload is signed for it.
-      const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
-      if (!documentMatchesType(documentType, head)) {
+      // The whole file is read (10 MB at most): a Word file is told by the parts it holds.
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (!documentMatchesType(documentType, bytes)) {
         rejected.push({ file, reason: "unsupported", metadata: getSafeMediaMetadata(file) });
         continue;
       }

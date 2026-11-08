@@ -458,6 +458,32 @@ describe("WorkMedia", () => {
     });
   });
 
+  it("keeps a document from a pick that brings more photos than the action takes", async () => {
+    const setImages = vi.fn();
+    const held = new File(["one"], "panels.jpg", { type: "image/jpeg" });
+    const extra = new File(["two"], "roof.jpg", { type: "image/jpeg" });
+    const certificate = new File(["%PDF-1.7"], "certificate.pdf", { type: "application/pdf" });
+
+    renderWithIntl(
+      <WorkMedia
+        config={{ title: "Evidence", required: false, maxImageCount: 1 }}
+        images={[held]}
+        setImages={setImages}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+      />
+    );
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([extra, certificate]) } });
+
+    // Documents have their own allowance, so only the extra photo is left out.
+    await waitFor(() => expect(setImages).toHaveBeenCalledTimes(1));
+    const update = setImages.mock.calls[0][0] as (previous: File[]) => File[];
+    expect(update([held])).toEqual([held, certificate]);
+    expect(toastService.error).not.toHaveBeenCalled();
+  });
+
   it("shows converted HEIC media as a JPEG preview", async () => {
     heicToMocks.isHeic.mockResolvedValue(true);
     const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
