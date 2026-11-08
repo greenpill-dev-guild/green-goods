@@ -10,13 +10,25 @@ import {
 import type { Address } from "../../types/domain";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
+const { wearsOwner } = vi.hoisted(() => ({
+  wearsOwner: vi.fn(async (_row: GardenMemberRow) => true),
+}));
 vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: vi.fn() }));
 vi.mock("../../modules/garden/members-batch", () => ({
   createGardenMembersChain: () => ({
     hatsModule: async () => "0x9999999999999999999999999999999999999999",
-    wearsRole: async () => true,
+    wearsRole: wearsOwner,
   }),
 }));
+
+const removeByRole = {
+  gardener: vi.fn(),
+  steward: vi.fn(),
+  evaluator: vi.fn(),
+  owner: vi.fn(),
+  funder: vi.fn(),
+  community: vi.fn(),
+};
 
 const ADA = "0x1111111111111111111111111111111111111111" as Address;
 const BEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -175,14 +187,7 @@ describe("modules/garden/members-removal", () => {
       gardenAddress: CY,
       chainId: 42161,
       account: ADA,
-      removeByRole: {
-        gardener: vi.fn(),
-        steward: vi.fn(),
-        evaluator: vi.fn(),
-        owner: vi.fn(),
-        funder: vi.fn(),
-        community: vi.fn(),
-      },
+      removeByRole,
     });
     vi.mocked(simulateTransaction)
       .mockResolvedValueOnce({
@@ -199,6 +204,26 @@ describe("modules/garden/members-removal", () => {
     await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow("Network error.");
   });
 
+  it("keeps an owner's roles from a steward's signature, even when the roster missed Owner", async () => {
+    vi.mocked(simulateTransaction).mockClear();
+    // The signer (ADA) is no owner; BEN holds Owner, CY does not.
+    wearsOwner
+      .mockImplementationOnce(async () => false)
+      .mockImplementationOnce(async () => true)
+      .mockImplementationOnce(async () => false);
+    vi.mocked(simulateTransaction).mockResolvedValueOnce({ success: true });
+    const chain = createRoleRemovalChain({
+      gardenAddress: CY,
+      chainId: 42161,
+      account: ADA,
+      removeByRole,
+    });
+
+    await expect(chain.refusal(evaluatorOf(BEN))).resolves.toBe("owner-only");
+    await expect(chain.refusal(evaluatorOf(CY))).resolves.toBeNull();
+    expect(simulateTransaction).toHaveBeenCalledTimes(1);
+  });
+
   it("answers a check per pair, with null where the read failed", async () => {
     const chain = fakeChain({ gone: [BEN] });
     chain.wearsRole.mockImplementationOnce(async () => {
@@ -207,5 +232,7 @@ describe("modules/garden/members-removal", () => {
     const held = await readHeldRoles([evaluatorOf(ADA), evaluatorOf(BEN), evaluatorOf(CY)], chain);
 
     expect(held).toEqual([null, false, true]);
+    // A pair a check finds gone leaves the roster, so Back does not offer it again.
+    expect(chain.onGone).toHaveBeenCalledExactlyOnceWith(evaluatorOf(BEN));
   });
 });

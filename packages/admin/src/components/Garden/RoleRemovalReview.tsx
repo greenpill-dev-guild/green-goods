@@ -98,6 +98,9 @@ export function RoleRemovalReview({ people, chainId, viewer }: RoleRemovalReview
   const roleName = (role: GardenRole) => getRoleLabel(role, formatMessage).singular;
   const listRoles = (roles: GardenRole[]) =>
     intl.formatList(roles.map(roleName), { type: "conjunction" });
+  // The run's own rank check names its lock; any other reason is the chain's words.
+  const reasonText = (reason: string) =>
+    reason === "owner-only" ? formatMessage({ id: "admin.manageRoles.lock.ownerOnly" }) : reason;
 
   return (
     <ul
@@ -147,9 +150,9 @@ export function RoleRemovalReview({ people, chainId, viewer }: RoleRemovalReview
                           (pair.status === "refused" || pair.status === "failed") ? (
                             <p
                               className="line-clamp-2 type-meta text-error-dark"
-                              title={pair.reason}
+                              title={reasonText(pair.reason)}
                             >
-                              {pair.reason}
+                              {reasonText(pair.reason)}
                             </p>
                           ) : null}
                         </div>

@@ -1,7 +1,11 @@
 import type { Abi, Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
-import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
+import {
+  GARDEN_ROLE_IDS,
+  type GardenRole,
+  type GardenRoleRemovalBlock,
+} from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
 import { createGardenMembersChain, type GardenMemberRow } from "./members-batch";
@@ -12,7 +16,8 @@ import { createGardenMembersChain, type GardenMemberRow } from "./members-batch"
  * - `removed`: the chain no longer gives them the role, from a confirmed send or from a read
  *   after a send that reported an error or left a proposal waiting.
  * - `alreadyRemoved`: a read just before the wallet found the role gone, so nothing was sent.
- * - `refused`: a simulation found the chain would refuse it, so nothing was sent.
+ * - `refused`: the chain would refuse it, or the signer is not an owner and the person holds
+ *   Owner (reason `owner-only`), so nothing was sent.
  * - `declined`: the wallet's prompt was declined. Nothing was sent.
  * - `failed`: something went wrong and a read shows they still hold the role.
  * - `unknown`: a proposal (a Safe's) has not run yet, or something went wrong and the read that
@@ -80,11 +85,16 @@ async function readHeld(chain: RoleRemovalChain, row: GardenMemberRow): Promise<
 }
 
 /** Reads every pair at once. A failed read is null, never a guess. */
-export function readHeldRoles(
+export async function readHeldRoles(
   rows: readonly GardenMemberRow[],
   chain: RoleRemovalChain
 ): Promise<(boolean | null)[]> {
-  return Promise.all(rows.map((row) => readHeld(chain, row)));
+  const held = await Promise.all(rows.map((row) => readHeld(chain, row)));
+  // A pair a read proves gone leaves the roster now, as it does during a run.
+  for (const [index, row] of rows.entries()) {
+    if (held[index] === false) chain.onGone?.(row);
+  }
+  return held;
 }
 
 /**
@@ -178,6 +188,7 @@ export async function removeGardenRolesOneByOne(
 
 /** What a simulation's error is named when it never reached the chain (`parseContractError`). */
 const UNREACHED = new Set(["NetworkError", "TimeoutError", "Offline"]);
+const OWNER_ONLY: GardenRoleRemovalBlock = "owner-only";
 
 interface RoleRemovalChainInput {
   gardenAddress: Address;
@@ -190,9 +201,10 @@ interface RoleRemovalChainInput {
 }
 
 /**
- * How a garden's role removals read, simulate and send for the account that signs them. A
- * simulation that never reached the chain throws instead of naming a refusal, so a dropped
- * connection never settles a pair as refused.
+ * How a garden's role removals read, simulate and send for the account that signs them. Before
+ * each signature it reads Owner again, so only an owner changes an owner's roles even when the
+ * roster behind a pick was late. A simulation that never reached the chain throws instead of
+ * naming a refusal, so a dropped connection never settles a pair as refused.
  */
 export function createRoleRemovalChain({
   gardenAddress,
@@ -202,12 +214,18 @@ export function createRoleRemovalChain({
   onGone,
 }: RoleRemovalChainInput): RoleRemovalChain {
   const members = createGardenMembersChain(gardenAddress, chainId);
+  let signerOwns: Promise<boolean> | undefined;
   return {
     wearsRole: (row) => members.wearsRole(row),
     refusal: async ({ address, role }) => {
       const hatsModule = await members.hatsModule();
       // Without a module or a signer the send itself says what is missing.
       if (!hatsModule || !account) return null;
+      // An unread signer is left to the chain; an unread target throws, and the send asks again.
+      signerOwns ??= members.wearsRole({ address: account, role: "owner" }).catch(() => true);
+      if (!(await signerOwns) && (await members.wearsRole({ address, role: "owner" }))) {
+        return OWNER_ONLY;
+      }
       const { success, error } = await simulateTransaction(
         hatsModule,
         HATS_MODULE_ABI as Abi,
