@@ -293,6 +293,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkMediaLifecycle", () => ({
   useWorkMediaLifecycle: () => ({
     brokenMediaIds: new Set(),
     cameraClickRef: { current: null },
+    documentClickRef: { current: null },
     markMediaPreviewFailed: vi.fn(),
     mediaClickRef: { current: null },
     removeBrokenMedia: vi.fn(),

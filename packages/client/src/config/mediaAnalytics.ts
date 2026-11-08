@@ -15,7 +15,7 @@ type WorkMediaEventName =
 
 type WorkMediaEventMetadata = {
   work_submission_journey_id?: string | null;
-  source?: "camera" | "gallery" | "media" | "review";
+  source?: "camera" | "gallery" | "documents" | "media" | "review";
   file_count?: number;
   mime_type?: string;
   mime_types?: string[];

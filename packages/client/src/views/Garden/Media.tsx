@@ -14,6 +14,7 @@ import {
   validateWorkVideo,
   WORK_DOCUMENT_ACCEPT,
   WORK_DOCUMENT_MAX_COUNT,
+  type WorkMediaSource,
 } from "@green-goods/shared/modules/work/media-processing";
 import { prepareWorkSubmission } from "@green-goods/shared/modules/work/submission-flow";
 import type { Action } from "@green-goods/shared/types/domain";
@@ -30,6 +31,9 @@ import {
 } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
+
+const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif";
+const PHOTO_AND_VIDEO_ACCEPT = `${PHOTO_ACCEPT},video/mp4,video/webm`;
 
 /** What a pick's toasts say when it leaves files out: how many, and which limit did it. */
 const limitMessages = defineMessages({
@@ -61,6 +65,7 @@ interface WorkMediaProps {
   minRequired?: number;
   onMediaClickRef?: React.MutableRefObject<(() => void) | null>;
   onCameraClickRef?: React.MutableRefObject<(() => void) | null>;
+  onDocumentClickRef?: React.MutableRefObject<(() => void) | null>;
   isRecording?: boolean;
   recordingElapsed?: number;
   brokenMediaIds?: ReadonlySet<string>;
@@ -138,6 +143,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   minRequired = 0,
   onMediaClickRef,
   onCameraClickRef,
+  onDocumentClickRef,
   isRecording = false,
   recordingElapsed = 0,
   brokenMediaIds,
@@ -162,7 +168,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const uploadSourceRef = useRef<"gallery" | "camera" | null>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const uploadSourceRef = useRef<WorkMediaSource | null>(null);
   const isProcessingMedia = processingPhase !== "idle";
   // A pick is processed across awaits while attachments can still be removed, so its limits
   // are checked against what is attached when processing ends, not when it began.
@@ -188,20 +195,23 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     return entries;
   }, [images, mediaUrls]);
 
-  const handleUploadClick = useCallback((source: "gallery" | "camera") => {
+  const handleUploadClick = useCallback((source: WorkMediaSource) => {
     uploadSourceRef.current = source;
     track("media_upload_clicked", { source, ...getPlatformContext() }, { includeSessionId: false });
-    (source === "gallery" ? mediaInputRef : cameraInputRef).current?.click();
+    ({ gallery: mediaInputRef, camera: cameraInputRef, documents: documentInputRef })[
+      source
+    ].current?.click();
   }, []);
 
   // Expose handlers to parent
   useEffect(() => {
     if (onMediaClickRef) onMediaClickRef.current = () => handleUploadClick("gallery");
     if (onCameraClickRef) onCameraClickRef.current = () => handleUploadClick("camera");
-  }, [handleUploadClick, onMediaClickRef, onCameraClickRef]);
+    if (onDocumentClickRef) onDocumentClickRef.current = () => handleUploadClick("documents");
+  }, [handleUploadClick, onMediaClickRef, onCameraClickRef, onDocumentClickRef]);
 
   /**
-   * Unified media upload handler for both the media picker and camera.
+   * Unified media upload handler for the photo picker, the camera and the documents picker.
    * Handles mixed image+video selections: validates videos, compresses images,
    * and appends everything to the existing images[] array.
    */
@@ -221,14 +231,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     const fileArray = Array.from(files);
     const safeBatchMetadata = getSafeMediaBatchMetadata(fileArray);
 
-    trackWorkMediaJourneyEvent("work_media_selected", {
+    // Every journey event from this pick carries the same facts about where it came from.
+    const journey = {
       work_submission_journey_id: journeyId,
       source,
       auth_mode: authMode,
       action_uid: actionUID,
       submission_phase: "media",
-      ...safeBatchMetadata,
-    });
+    } as const;
+    trackWorkMediaJourneyEvent("work_media_selected", { ...journey, ...safeBatchMetadata });
 
     track(
       "media_upload_started",
@@ -250,31 +261,19 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         onHeicConversionDeferred: (file) => {
           deferredCount += 1;
           trackWorkMediaJourneyEvent("work_media_heic_conversion_deferred", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             ...getSafeMediaMetadata(file),
           });
         },
         onHeicConversionStarted: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_started", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             ...getSafeMediaMetadata(file),
           });
         },
         onHeicConversionSucceeded: (originalFile, convertedFile) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_succeeded", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             conversion_count: 1,
             ...getSafeMediaMetadata(convertedFile),
             extension: getSafeMediaMetadata(originalFile).extension,
@@ -282,11 +281,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         },
         onHeicConversionFailed: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_failed", {
-            work_submission_journey_id: journeyId,
-            source,
-            auth_mode: authMode,
-            action_uid: actionUID,
-            submission_phase: "media",
+            ...journey,
             rejected_count: 1,
             parsed_error_family: "heic_conversion_failed",
             ...getSafeMediaMetadata(file),
@@ -553,26 +548,28 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         items={optionalItems}
       />
 
-      {/* Hidden file inputs (2: photos, videos and documents + camera) */}
+      {/* Hidden file inputs: photos and videos, the camera, and documents */}
       <div className="hidden">
-        <input
-          ref={mediaInputRef}
-          id="work-media-upload"
-          type="file"
-          accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm,${WORK_DOCUMENT_ACCEPT}`}
-          onChange={handleMediaUpload}
-          multiple
-          disabled={isProcessingMedia}
-        />
-        <input
-          ref={cameraInputRef}
-          id="work-media-camera"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-          capture="environment"
-          onChange={handleMediaUpload}
-          disabled={isProcessingMedia}
-        />
+        {(
+          [
+            [mediaInputRef, "work-media-upload", PHOTO_AND_VIDEO_ACCEPT],
+            [cameraInputRef, "work-media-camera", PHOTO_ACCEPT],
+            // Documents have a picker of their own, so the photo picker keeps the photo grid.
+            [documentInputRef, "work-document-upload", WORK_DOCUMENT_ACCEPT],
+          ] as const
+        ).map(([ref, id, accept]) => (
+          <input
+            key={id}
+            ref={ref}
+            id={id}
+            type="file"
+            accept={accept}
+            capture={ref === cameraInputRef ? "environment" : undefined}
+            multiple={ref !== cameraInputRef}
+            onChange={handleMediaUpload}
+            disabled={isProcessingMedia}
+          />
+        ))}
       </div>
 
       {/* Compression progress */}

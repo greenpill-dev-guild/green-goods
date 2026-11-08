@@ -334,6 +334,11 @@ describe("WorkMedia", () => {
     expect(galleryInput).toBeTruthy();
     expect(galleryInput.type).toBe("file");
     expect(galleryInput.accept).toContain("image/");
+    // Documents have a picker of their own, so the photo picker keeps the phone's photo grid.
+    expect(galleryInput.accept).not.toContain("pdf");
+    const documentInput = document.getElementById("work-document-upload") as HTMLInputElement;
+    expect(documentInput.accept).toBe("application/pdf,.pdf,text/markdown,.md");
+    expect(documentInput.multiple).toBe(true);
   });
 
   it("renders camera input for capture", () => {
@@ -395,9 +400,10 @@ describe("WorkMedia", () => {
     expect(screen.getByText("0 of 2 photos")).toHaveAttribute("role", "status");
   });
 
-  it("exposes gallery click handler via ref", () => {
+  it("exposes the photo and document pickers via refs, each opening its own input", () => {
     const setImages = vi.fn();
     const galleryClickRef = { current: null as (() => void) | null };
+    const documentClickRef = { current: null as (() => void) | null };
 
     renderWithIntl(
       <WorkMedia
@@ -408,11 +414,19 @@ describe("WorkMedia", () => {
         setAudioNotes={mockSetAudioNotes}
         minRequired={1}
         onMediaClickRef={galleryClickRef}
+        onDocumentClickRef={documentClickRef}
       />
     );
 
-    // The ref should be populated with a function
-    expect(galleryClickRef.current).toBeInstanceOf(Function);
+    const gallery = document.getElementById("work-media-upload") as HTMLInputElement;
+    const documents = document.getElementById("work-document-upload") as HTMLInputElement;
+    const galleryClick = vi.spyOn(gallery, "click");
+    const documentsClick = vi.spyOn(documents, "click");
+    documentClickRef.current?.();
+    expect(documentsClick).toHaveBeenCalledTimes(1);
+    expect(galleryClick).not.toHaveBeenCalled();
+    galleryClickRef.current?.();
+    expect(galleryClick).toHaveBeenCalledTimes(1);
   });
 
   it("exposes camera click handler via ref", () => {
