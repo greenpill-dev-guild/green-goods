@@ -1,0 +1,28 @@
+/* The logo screens' loading motion (SplashScaffold, DL-170). While a logo screen
+ * is busy (signing in, updating) its logo breathes: it grows 4% and eases back
+ * every 2.4s. MOTION SYNC: the static loading screen in index.html runs the same
+ * keyframes and easing token as boot-breathe, and both start on the page's clock,
+ * so a hand-over between the two never restarts the breath;
+ * bootFallbackGeometry.test.ts holds them together. With reduced motion the logo
+ * holds still, as every animation does under the app's reduced-motion rule
+ * (animation.css).
+ *
+ * Storybook imports this file as client/src/index.css does, so the sign-in
+ * stories breathe as the app does. It carries no document-level rule. */
+@keyframes logo-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-breathe {
+    animation: logo-breathe 2.4s var(--spring-effects-easing) infinite;
+  }
+}

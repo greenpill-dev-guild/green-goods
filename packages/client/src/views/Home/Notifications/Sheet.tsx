@@ -10,11 +10,19 @@ import type {
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiHammerLine, RiHandHeartLine, RiNotificationLine } from "@remixicon/react";
-import { useEffect, useMemo, useState } from "react";
+import { getTimeCutoff, normalizeTimestamp } from "@green-goods/shared/utils/time";
+import {
+  RiFilterOffLine,
+  RiHammerLine,
+  RiHandHeartLine,
+  RiNotificationLine,
+} from "@remixicon/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { type TimePeriod, TimeFilterControl } from "@/components/Inputs/TimeFilterControl";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AppSheet } from "@/components/Sheets/AppSheet";
+import { SheetListHeader } from "@/components/Sheets/SheetListHeader";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { NotificationRow } from "./NotificationRow";
 
@@ -34,6 +42,10 @@ export interface NotificationsSheetProps {
   markSeen: GardenNotifications["markSeen"];
   /** Hides every listed event on this device: the sheet's Clear All (DL-133). */
   clearAll: () => void;
+  /** Reads the garden's events again: as the sheet opens, and from its Refresh (DL-168). */
+  refresh: GardenNotifications["refresh"];
+  /** A read is running, which the Refresh shows. */
+  isFetching: boolean;
 }
 
 type NotificationsTab = "all" | "work" | "promises";
@@ -62,6 +74,13 @@ const inTab = (notification: GardenNotification, tab: NotificationsTab) =>
 /** How many empty frames hold the list's place while the first read runs (DL-056). */
 const LOADING_ROWS = 3;
 
+type NotificationsPeriod = Extract<TimePeriod, "any" | "day" | "week">;
+/**
+ * The periods the bell's sources answer in full, in order (DL-168). Its work activity reaches back
+ * a week, so a longer span would list only part of it. It opens on any time: everything it lists.
+ */
+const PERIODS: readonly NotificationsPeriod[] = ["any", "day", "week"];
+
 /**
  * The bell's sheet (DL-130, DL-133): a `full` sheet over Home with the garden named beneath its
  * title, listing the garden's events for the member, one item row each, newest first, under All,
@@ -71,11 +90,15 @@ const LOADING_ROWS = 3;
  * Gardeners sheet, closing this sheet first so what it opens is not under it. Join requests are
  * about neither work nor a promise, so only All lists them. Opening the sheet marks the open
  * tab's events seen on this device, as does switching to a tab, while an event under another tab
- * stays new; Clear All in the shared bar hides every listed event here for good. With nothing to
- * list it shows the shared state block, and a read that failed or answered only in part says so
- * in one quiet line while the rows it did find stay. Offline the reads pause rather than fail: a
- * tab with nothing cached says the events cannot be checked instead of reporting an empty inbox,
- * and the rows that were cached keep the partial-read line above them.
+ * stays new; Clear All in the shared bar hides every listed event here for good. Each tab's list
+ * starts under the header row Your Work's tabs share (DL-168): how many events it shows, a
+ * compact Refresh, and a period filter that narrows the list to the past day or week, as far
+ * back as its sources answer in full. Opening the sheet reads the events again. With nothing to
+ * list it shows the shared state block, which says so when the period hides every event, and a
+ * read that failed or answered only in part says so in one quiet line while the rows it did find
+ * stay, the period's state included. Offline the reads pause
+ * rather than fail: a tab with nothing cached says the events cannot be checked instead of
+ * reporting an empty inbox, and the rows that were cached keep the partial-read line above them.
  */
 export function NotificationsSheet({
   open,
@@ -88,23 +111,39 @@ export function NotificationsSheet({
   isIncomplete,
   markSeen,
   clearAll,
+  refresh,
+  isFetching,
 }: NotificationsSheetProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigateToTop();
   const openGardenSheet = useUIStore((state) => state.openGardenSheet);
   const isOnline = useOnlineStatus();
   const [tab, setTab] = useState<NotificationsTab>("all");
-  const shown = useMemo(
-    () => notifications.filter((notification) => inTab(notification, tab)),
-    [notifications, tab]
-  );
+  const [period, setPeriod] = useState<NotificationsPeriod>("any");
+  // The open tab's events, then those of them inside the period: the rows the sheet shows.
+  const { inTabCount, shown } = useMemo(() => {
+    const listed = notifications.filter((notification) => inTab(notification, tab));
+    if (period === "any") return { inTabCount: listed.length, shown: listed };
+    const cutoff = getTimeCutoff(period);
+    return {
+      inTabCount: listed.length,
+      shown: listed.filter((notification) => normalizeTimestamp(notification.at) >= cutoff),
+    };
+  }, [notifications, tab, period]);
 
   // Opening shows the member the open tab's events, so the sheet marks those seen as it opens,
-  // and again as the tab or the list changes. An event that lands under another tab is not
-  // shown, so it stays new until that tab is opened.
+  // and again as the tab, the period or the list changes. An event that lands under another tab
+  // or outside the period is not shown, so it stays new until it is.
   useEffect(() => {
     if (open) markSeen(shown);
   }, [open, markSeen, shown]);
+
+  // Each opening reads the events again, once, so the sheet never opens on an old answer.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) refresh();
+    wasOpen.current = open;
+  }, [open, refresh]);
 
   // A promise's words live at its metadata CID; one read names every promise row.
   const commitments = useMemo(
@@ -157,11 +196,13 @@ export function NotificationsSheet({
   const partialNotice = formatMessage({ id: "app.home.notifications.partial" });
   // An open tab with no cached rows cannot tell an empty inbox from a paused read, so it says the
   // events cannot be checked, whatever the other tab holds.
-  const unavailableOffline = !isOnline && shown.length === 0 && !isLoading && !isError;
+  const unavailableOffline = !isOnline && inTabCount === 0 && !isLoading && !isError;
   // A read still running speaks only while the open tab has nothing to show. The work and
   // promise reads answer apart, so an empty tab stays busy until every read has settled instead
   // of reporting an empty inbox its own read has not answered yet.
-  const holdsFrame = isLoading && shown.length === 0;
+  const holdsFrame = isLoading && inTabCount === 0;
+  // The tab has events, none of them inside the period.
+  const periodHidesAll = shown.length === 0 && inTabCount > 0;
 
   let body: React.ReactNode;
   if (holdsFrame) {
@@ -182,6 +223,21 @@ export function NotificationsSheet({
         icon={<RiNotificationLine />}
         title={formatMessage({ id: "app.home.notifications.offline.title" })}
         description={formatMessage({ id: "app.home.notifications.offline.description" })}
+      />
+    );
+  } else if (periodHidesAll) {
+    // A partial read cannot promise the period is empty, so it says what it could not read.
+    body = (
+      <EmptyState
+        placement="sheet"
+        tone={partial ? "warning" : "neutral"}
+        icon={<RiFilterOffLine />}
+        title={formatMessage({ id: "app.home.notifications.periodEmpty.title" })}
+        description={
+          partial
+            ? partialNotice
+            : formatMessage({ id: "app.home.notifications.periodEmpty.description" })
+        }
       />
     );
   } else if (shown.length === 0) {
@@ -251,13 +307,26 @@ export function NotificationsSheet({
       }}
     >
       {/* Keyed by tab, so a tab change mounts a fresh scroller at its top. It keeps the body's
-          padding, its scroll containment and both edge hairlines, so nothing else moves. */}
+          scroll containment and both edge hairlines, so nothing else moves; the header row
+          starts the list 16px under the rail, as Your Work's does. */}
       <div
         key={tab}
-        className={cn(PWA_SHEET_SCROLL_CLASSNAME, "overscroll-contain px-4 pb-4")}
+        className={cn(PWA_SHEET_SCROLL_CLASSNAME, "overscroll-contain")}
         data-scroll-edge="both"
       >
-        {body}
+        <SheetListHeader
+          statusText={
+            shown.length > 0
+              ? formatMessage({ id: "app.home.notifications.count" }, { count: shown.length })
+              : null
+          }
+          // Offline the reads are paused, and during the first read there is nothing to redo.
+          onRefresh={isOnline && !holdsFrame ? refresh : undefined}
+          isFetching={isFetching}
+        >
+          <TimeFilterControl value={period} onChange={setPeriod} periods={PERIODS} />
+        </SheetListHeader>
+        <div className="px-4 pb-4">{body}</div>
       </div>
     </AppSheet>
   );

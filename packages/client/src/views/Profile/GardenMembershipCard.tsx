@@ -87,7 +87,9 @@ export function GardenMembershipCard({
           type="button"
           emphasis="tertiary"
           tone={recovering ? "default" : "danger"}
-          size="md"
+          // Compact beside the role (DESIGN.pwa.md: 32px, a 14px label under the 15px garden name,
+          // still a 48px tap area). The md size's 16px label outweighed the garden it leaves.
+          size="compact"
           className="ml-auto"
           aria-label={intl.formatMessage(
             { id: recovering ? "app.garden.leave.recoverFor" : "app.garden.leave.actionFor" },

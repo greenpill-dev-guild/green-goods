@@ -35,12 +35,50 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
   const stageIn = useReviewBatchStore((state) => state.stage);
   const unstageIn = useReviewBatchStore((state) => state.unstage);
   const noteIn = useReviewBatchStore((state) => state.note);
+  const [landedReviews, setLandedReviews] = useState({ scope, reviews: NO_REVIEWS });
 
   const batch = useBatchWorkApproval(gardenId, {
-    onLanded: (workUIDs) => unstageIn(scope, workUIDs),
+    onLanded: (landed) => {
+      // Cache observers update after the staging store. Keep only a display snapshot of proven
+      // decisions until the list catches up; these are never staged or sent a second time.
+      if (works) {
+        setLandedReviews((previous) => ({
+          scope,
+          reviews: {
+            ...(previous.scope === scope ? previous.reviews : NO_REVIEWS),
+            ...Object.fromEntries(
+              landed.flatMap(({ workUID, approved, feedback }) => {
+                const key = workUID.toLowerCase();
+                const staged = stored[key];
+                return staged && approved !== undefined
+                  ? [[key, { ...staged, draft: { ...staged.draft, approved, feedback } }]]
+                  : [];
+              })
+            ),
+          },
+        }));
+      }
+      unstageIn(
+        scope,
+        landed.map(({ workUID }) => workUID)
+      );
+    },
   });
   const { available, hold, isSending } = batch;
   const [sendSize, setSendSize] = useState(0);
+
+  useEffect(() => {
+    setLandedReviews((previous) => {
+      if (previous.scope !== scope) return { scope, reviews: NO_REVIEWS };
+      const waiting = new Set(
+        works?.filter(({ status }) => status === "pending").map(({ id }) => id.toLowerCase())
+      );
+      const entries = Object.entries(previous.reviews).filter(([key]) => waiting.has(key));
+      return entries.length === Object.keys(previous.reviews).length
+        ? previous
+        : { scope, reviews: Object.fromEntries(entries) };
+    });
+  }, [works, scope]);
 
   // Another tab's list, so this tab's next write doesn't overwrite it.
   useWindowEvent("storage", (event) => {
@@ -137,8 +175,12 @@ export function useReviewBatch(gardenId: string, options: { works?: readonly Wor
     oneSignatureEach,
     isSending,
     isSettlingHold: batch.isSettlingHold,
-    reviewFor: (workId: string): StagedReview | undefined =>
-      heldIds.has(workId.toLowerCase()) ? undefined : stored[workId.toLowerCase()],
+    reviewFor: (workId: string): (StagedReview & { confirmed?: boolean }) | undefined => {
+      const key = workId.toLowerCase();
+      if (heldIds.has(key)) return undefined;
+      const landed = landedReviews.scope === scope ? landedReviews.reviews[key] : undefined;
+      return stored[key] ?? (landed ? { ...landed, confirmed: true } : undefined);
+    },
     /** Its last send is unknown, so nothing may go for this work until that settles. */
     isHeld: (workId: string) => heldIds.has(workId.toLowerCase()),
     stage: (draft: WorkApprovalDraft) => stageIn(scope, draft),

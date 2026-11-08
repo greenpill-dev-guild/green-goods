@@ -47,7 +47,7 @@ type ReviewSend = { decisions: readonly ReviewDecision[]; perSignature?: number 
 export function useBatchWorkApproval(
   gardenId: string,
   /** `onLanded` hears every decision proven on chain, from a send or from a later read. */
-  options: { onLanded?: (workUIDs: readonly string[]) => void } = {}
+  options: { onLanded?: (landed: readonly ProvenReview[]) => void } = {}
 ) {
   const gardenAddress = gardenId as Address;
   const chainId = DEFAULT_CHAIN_ID;
@@ -127,7 +127,7 @@ export function useBatchWorkApproval(
         _txHash: item.transactionHash,
       };
     });
-    options.onLanded?.(landed.map(({ workUID }) => workUID));
+    options.onLanded?.(landed);
   };
 
   /**

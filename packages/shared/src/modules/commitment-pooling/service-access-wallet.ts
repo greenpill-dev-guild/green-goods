@@ -169,6 +169,29 @@ export function serviceVoucherHolder(
   return booking?.authorization.holder ?? snapshot.capabilities.gnosisHolder ?? snapshot.key.buyer;
 }
 
+type VoucherWalletRouteScope = Pick<VoucherWalletScope, "sourceChainId" | "coreModule">;
+
+/** The reviewed route that serves a wallet scope's chain and core module, if the build has one. */
+function voucherWalletRoute(
+  scope: VoucherWalletRouteScope,
+  routes: readonly ServiceLiveRoute[]
+): ServiceLiveRoute | undefined {
+  return routes.find(
+    (r) =>
+      r.sourceChainId === scope.sourceChainId &&
+      r.core.address.toLowerCase() === scope.coreModule.toLowerCase()
+  );
+}
+
+/**
+ * Whether this build reads vouchers for a chain and core module: a reviewed route with its wallet
+ * state, the rule `readLiveVoucherWallet` checks first. It is the one answer of a wallet read that
+ * needs no read, so a surface can list the wallet's Vouchers tab at once and let the read fill it.
+ */
+export function hasVoucherWalletRoute(scope: VoucherWalletRouteScope): boolean {
+  return Boolean(voucherWalletRoute(scope, SERVICE_LIVE_ROUTES)?.walletState);
+}
+
 /** Index discovery never replaces canonical balances, authorization or escrow results. */
 export async function readLiveVoucherWallet(
   scope: VoucherWalletScope,
@@ -181,11 +204,7 @@ export async function readLiveVoucherWallet(
   } = {}
 ): Promise<VoucherWalletSnapshot> {
   try {
-    const route = (dependencies.routes ?? SERVICE_LIVE_ROUTES).find(
-      (r) =>
-        r.sourceChainId === scope.sourceChainId &&
-        r.core.address.toLowerCase() === scope.coreModule.toLowerCase()
-    );
+    const route = voucherWalletRoute(scope, dependencies.routes ?? SERVICE_LIVE_ROUTES);
     if (!route?.walletState) return unavailableVoucherWallet(scope, "routes-unconfigured");
     const chain = dependencies.chain ?? serviceLiveChain;
     const reader = dependencies.reader ?? greenGoodsIndexer;

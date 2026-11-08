@@ -6,7 +6,7 @@ import { RiCheckLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import type { WorkCardPresentation } from "@/components/Cards/Work/MinimalWorkCard";
-import { TimeFilterControl } from "./TimeFilterControl";
+import { TimeFilterControl } from "@/components/Inputs/TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
 
 interface CompletedTabProps {

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -14,21 +14,56 @@ describe("ProfileHelp", () => {
     cleanup();
   });
 
-  it("renders journey categories, the docs guide link, and surfaced/new topics", () => {
+  it("keeps guides and socials apart from policies and requests, above the questions", () => {
     render(wrap(createElement(ProfileHelp)));
 
-    expect(screen.getByRole("link", { name: /Request Account Deletion/ })).toHaveAttribute(
-      "href",
-      "/contact#account-deletion"
+    // Headings and links in page order: each section's rows sit under its own heading.
+    const page = [...document.querySelectorAll("h5, a")].map((element) =>
+      element.tagName === "H5" ? `# ${element.textContent}` : element.getAttribute("href")
     );
-    expect(screen.getByRole("link", { name: /Report a Concern/ })).toHaveAttribute(
-      "href",
-      "/contact#report-a-concern"
-    );
-    expect(screen.getByRole("link", { name: /Privacy & Data/ })).toHaveAttribute(
+    expect(page.slice(0, 11)).toEqual([
+      "# Learn & Connect",
+      "https://docs.greengoods.app/community/gardener-guide",
+      "https://docs.greengoods.app/community/steward-guide",
+      "https://x.com/greengoodsapp",
+      "https://www.linkedin.com/company/greengoodsapp/",
+      "# Privacy & Safety",
+      "/privacy",
+      "/terms",
+      "/contact#account-deletion",
+      "/contact#report-a-concern",
+      "# Getting Started",
+    ]);
+    expect(screen.getByRole("link", { name: /Privacy Policy/ })).toHaveAttribute(
       "href",
       "/privacy"
     );
+    expect(screen.getByRole("link", { name: /Steward Guide/ })).toHaveAttribute("target", "_blank");
+  });
+
+  it("links a question to the guide that walks through it, and only those questions", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileHelp)));
+
+    await user.click(screen.getByRole("button", { name: "How do I join a garden?" }));
+    const guide = within(screen.getByTestId("faq-content-howToGetInvolved")).getByRole("link", {
+      name: "Step-by-Step Guide (opens in a new tab)",
+    });
+    expect(guide).toHaveAttribute(
+      "href",
+      "https://docs.greengoods.app/community/gardener-guide/joining-a-garden"
+    );
+    expect(guide).toHaveAttribute("target", "_blank");
+    expect(guide).toHaveAttribute("hreflang", "en");
+
+    await user.click(screen.getByRole("button", { name: "What is Green Goods?" }));
+    expect(
+      within(screen.getByTestId("faq-content-whatIsGreenGoods")).queryByRole("link")
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders journey categories, the docs guide link, and surfaced/new topics", () => {
+    render(wrap(createElement(ProfileHelp)));
 
     // Category headers (Title Case; "How it works" dissolved into Funds & Wallet / Privacy & Data)
     expect(screen.getByText("Getting Started")).toBeInTheDocument();
@@ -59,7 +94,7 @@ describe("ProfileHelp", () => {
     expect(screen.getByTestId("faq-content-workDeclined")).toBeInTheDocument();
 
     // Docs guide link in the hub points at the public gardener guide
-    const docsLink = screen.getByRole("link", { name: /Gardener guide/i });
+    const docsLink = screen.getByRole("link", { name: /Gardener Guide/ });
     expect(docsLink).toHaveAttribute(
       "href",
       "https://docs.greengoods.app/community/gardener-guide"

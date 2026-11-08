@@ -268,6 +268,23 @@ describe("ProofComposer", () => {
     expect(controller.submit).toHaveBeenCalledTimes(1);
   });
 
+  it("says one signature when the proof and confirmation send together", async () => {
+    const user = userEvent.setup();
+    controller = {
+      ...controller,
+      canSendToo: true,
+      sendToo: true,
+      sendsProofWithItsSend: true,
+    };
+    render();
+    await reachReview(user);
+
+    expect(
+      screen.getByText("Sign once to add the proof and send it for confirmation.")
+    ).toBeVisible();
+    expect(screen.queryByText(/sign twice/)).not.toBeInTheDocument();
+  });
+
   it("tells a teammate who sends it, with no switch", async () => {
     const user = userEvent.setup();
     controller = {

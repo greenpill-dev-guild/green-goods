@@ -51,6 +51,8 @@ export function NotificationsLauncher({
           isIncomplete={bell.isIncomplete}
           markSeen={bell.markSeen}
           clearAll={bell.clearAll}
+          refresh={bell.refresh}
+          isFetching={bell.isFetching}
         />
       ) : null}
     </>

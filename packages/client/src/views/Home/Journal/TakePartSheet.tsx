@@ -34,7 +34,7 @@ interface Narrowed {
 }
 
 /**
- * Every promise in the garden the reader could take up, in one tall sheet over Home: Take Part's
+ * Every promise in the garden the reader could take up, in one full sheet over Home (DL-164): Take Part's
  * whole list, of which the section shows the first rows, as the Pool tab's commitment rows, each
  * opening its promise's page. See All opens it whole, and a season's or campaign's Show Its
  * Promises opens it at that cycle, which the rail above the list widens again. It is not the
@@ -86,7 +86,7 @@ export function TakePartSheet({ garden }: TakePartSheetProps) {
     <AppSheet
       isOpen={opening !== null}
       onClose={close}
-      size="tall"
+      size="full"
       header={{
         title: formatMessage({ id: "app.home.journal.takePart" }),
         description: formatMessage({ id: "app.common.inGarden" }, { garden: garden.name }),

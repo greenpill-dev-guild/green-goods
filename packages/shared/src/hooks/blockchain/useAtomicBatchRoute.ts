@@ -1,6 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
-import { batchKeys } from "../../config/query-keys/garden";
+import { useBatchCapability } from "./useBatchCapability";
 import type { PasskeyAccountProfileId } from "../../modules/auth/account-profile";
 import {
   type BatchEnablement,
@@ -33,16 +31,15 @@ export function useAtomicBatchRoute(input: {
   unread: boolean;
 } {
   const { action, sender, account, passkeyProfile, chainId, budgeted, enabled = true } = input;
-  const { connector } = useAccount();
   const rail =
     sender?.authMode === "passkey" || sender?.authMode === "wallet" ? sender.authMode : null;
   const walletListed =
     rail === "wallet" && isBatchEnabled({ action, rail, profile: "eip-5792", chainId });
-  const { data: walletAtomic } = useQuery({
-    queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
-    queryFn: async () => (await sender!.getBatchCapability!({ account: account!, chainId })).atomic,
+  const { data: walletAtomic } = useBatchCapability({
+    sender,
+    account,
+    chainId,
     enabled: enabled && walletListed && Boolean(account && sender?.getBatchCapability),
-    retry: false,
   });
   const profile =
     rail === "passkey" ? passkeyProfile : walletAtomic === "supported" ? "eip-5792" : null;
