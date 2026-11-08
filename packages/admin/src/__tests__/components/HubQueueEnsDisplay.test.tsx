@@ -323,15 +323,23 @@ describe("Hub lists with older records", () => {
     expect(screen.queryByRole("button", { name: "Show Older Work" })).not.toBeInTheDocument();
   });
 
-  // A failed read replaces the whole list, so the page that failed is asked
-  // for again from the failure itself.
-  it("asks for older work again from a failed read", () => {
+  it("keeps loaded work and offers to retry a failed read", () => {
     const older = olderPage();
     renderQueue([TEST_WORK], older, { failed: true });
 
     expect(screen.getByText("Hub data could not be loaded")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Compost setup/ })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show Older Work" }));
     expect(older.onShowOlder).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the empty error state when no work has loaded", () => {
+    renderQueue([], olderPage(), { failed: true });
+
+    expect(screen.getByText("Hub data could not be loaded")).toBeInTheDocument();
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Older Work" })).toBeInTheDocument();
   });
 
   // "All caught up" would be false: the pending work may be older than the page.

@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBatchCapability } from "../blockchain/useBatchCapability";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import type { Hex } from "viem";
-import { useAccount } from "wagmi";
 import { toastService } from "../../components/toast";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { batchKeys } from "../../config/query-keys/garden";
@@ -77,7 +77,6 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
-  const { connector } = useAccount();
   const handleError = createMutationErrorHandler({
     source: "useCampaignCookieJarSync",
     toastContext: "campaign cookie jar sync",
@@ -91,14 +90,11 @@ export function useCampaignCookieJarSync(jarAddress: Address | undefined) {
     rail === "wallet" &&
     isBatchEnabled({ action: "campaign-jar-sync", rail, profile: "eip-5792", chainId });
   // Asked only once a wallet is listed: until then no wallet hears from this hook.
-  const { data: capability } = useQuery({
-    queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
-    queryFn: async () => {
-      const { atomic } = await sender!.getBatchCapability!({ account: account!, chainId });
-      return atomic;
-    },
+  const { data: capability } = useBatchCapability({
+    sender,
+    account,
+    chainId,
     enabled: walletListed && Boolean(jarAddress && account && sender?.getBatchCapability),
-    retry: false,
   });
   const routeFor = (walletAtomic: boolean) =>
     batches

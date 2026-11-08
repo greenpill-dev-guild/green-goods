@@ -1,8 +1,8 @@
+import { useBatchCapability } from "../blockchain/useBatchCapability";
 import { type QueryKey, useIsMutating, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
-import { useAccount } from "wagmi";
 import { toastService } from "../../components/toast";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { batchKeys } from "../../config/query-keys/garden";
@@ -48,7 +48,6 @@ export function useDepositPlan(input: {
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
-  const { connector } = useAccount();
   const handleError = createMutationErrorHandler({
     source: "useDepositPlan",
     toastContext: "deposit",
@@ -66,14 +65,11 @@ export function useDepositPlan(input: {
     walletRouteListed({ action, chainId, asset: target.asset });
 
   // Asked only when it can change the route: until then no wallet hears from this hook.
-  const { data: capability, isLoading: isAskingWallet } = useQuery({
-    queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
-    queryFn: async () => {
-      const { atomic } = await sender!.getBatchCapability!({ account: account!, chainId });
-      return atomic;
-    },
+  const { data: capability, isLoading: isAskingWallet } = useBatchCapability({
+    sender,
+    account,
+    chainId,
     enabled: canAskWallet,
-    retry: false,
   });
   const walletAtomic = capability === "supported";
   const route = target
@@ -180,7 +176,12 @@ export function useDepositPlan(input: {
         : null,
     isHeld: hold !== null,
     /** The next deposit waits on a hold, a check, or how many signatures it takes. */
-    isPaused: hold !== null || held.isSettlingHold || isAskingWallet || isReadingAllowance,
+    isPaused:
+      hold !== null ||
+      held.isSettlingHold ||
+      isAskingWallet ||
+      capabilityUnread ||
+      isReadingAllowance,
     /** On this route an unknown outcome is held, so the hold notice says it, not an error line. */
     unconfirmedIsHeld: route !== null,
     /** What a form shows while held. Spread it onto `TxHoldFeedback`. */
