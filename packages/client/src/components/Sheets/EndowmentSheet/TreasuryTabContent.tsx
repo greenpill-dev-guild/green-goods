@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import {
   TxHoldFeedback,
   type TxHoldFeedbackProps,
@@ -81,6 +82,11 @@ export function TreasuryTabContent({
 
   return (
     <div className="space-y-5 p-4 pb-4">
+      {!ENDOWMENT_DEPOSITS_ENABLED && (
+        <p className="text-sm text-text-sub-600">
+          {formatMessage({ id: "public.fund.endowmentPause.status" })}
+        </p>
+      )}
       {!isOnline && (
         <p
           role="status"
@@ -207,78 +213,79 @@ export function TreasuryTabContent({
         )}
       </section>
 
-      <section>
-        <SheetHeading>{formatMessage({ id: "app.treasury.deposit" })}</SheetHeading>
+      {holdFeedback && <TxHoldFeedback {...holdFeedback} isBusy={isDepositing} className="mt-2" />}
 
-        {!primaryAddress ? (
-          <p className="mt-2 text-sm text-text-soft-400">
-            {formatMessage({ id: "app.treasury.connectToDeposit" })}
-          </p>
-        ) : (
-          <>
-            {holdFeedback ? (
-              <TxHoldFeedback {...holdFeedback} isBusy={isDepositing} className="mt-2" />
-            ) : null}
-            {vaults.length > 0 && (
-              <div className="mt-2">
-                <AssetSelector
-                  vaults={vaults}
-                  selectedAsset={selectedAsset}
-                  onSelect={onSelectAsset}
-                  ariaLabel={formatMessage({ id: "app.treasury.asset" })}
-                  size="xs"
-                />
-              </div>
-            )}
+      {ENDOWMENT_DEPOSITS_ENABLED && (
+        <section>
+          <SheetHeading>{formatMessage({ id: "app.treasury.deposit" })}</SheetHeading>
 
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <TextInput
-                  type="text"
-                  inputMode="decimal"
-                  value={amountInput}
-                  onChange={(event) => onAmountChange(event.target.value)}
-                  placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
-                  aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
-                  aria-invalid={Boolean(inputError)}
-                  invalid={Boolean(inputError)}
-                />
-                <Button
-                  type="button"
-                  emphasis="secondary"
-                  onClick={() => {
-                    if (!balance) return;
-                    onAmountChange(formatUnits(balance.value, balance.decimals));
-                  }}
-                >
-                  {formatMessage({ id: "app.treasury.max" })}
-                </Button>
-              </div>
-
-              {inputError && (
-                <p className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: inputError })}
-                </p>
+          {!primaryAddress ? (
+            <p className="mt-2 text-sm text-text-soft-400">
+              {formatMessage({ id: "app.treasury.connectToDeposit" })}
+            </p>
+          ) : (
+            <>
+              {vaults.length > 0 && (
+                <div className="mt-2">
+                  <AssetSelector
+                    vaults={vaults}
+                    selectedAsset={selectedAsset}
+                    onSelect={onSelectAsset}
+                    ariaLabel={formatMessage({ id: "app.treasury.asset" })}
+                    size="xs"
+                  />
+                </div>
               )}
-              <p className="text-xs text-text-soft-400">
-                {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
-                {balance
-                  ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
-                  : "--"}
-              </p>
-              <p className="text-xs text-text-soft-400">
-                {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
-                {previewShares !== undefined ? formatTokenAmount(previewShares, 18) : "--"}
-              </p>
-              {signatureLine ? (
-                <p className="text-xs text-text-soft-400" aria-live="polite">
-                  {signatureLine}
+
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <TextInput
+                    type="text"
+                    inputMode="decimal"
+                    value={amountInput}
+                    onChange={(event) => onAmountChange(event.target.value)}
+                    placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
+                    aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
+                    aria-invalid={Boolean(inputError)}
+                    invalid={Boolean(inputError)}
+                  />
+                  <Button
+                    type="button"
+                    emphasis="secondary"
+                    onClick={() => {
+                      if (!balance) return;
+                      onAmountChange(formatUnits(balance.value, balance.decimals));
+                    }}
+                  >
+                    {formatMessage({ id: "app.treasury.max" })}
+                  </Button>
+                </div>
+
+                {inputError && (
+                  <p className="text-xs text-error-dark" role="alert">
+                    {formatMessage({ id: inputError })}
+                  </p>
+                )}
+                <p className="text-xs text-text-soft-400">
+                  {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
+                  {balance
+                    ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                    : "--"}
                 </p>
-              ) : null}
-            </div>
-          </>
-        )}
-      </section>
+                <p className="text-xs text-text-soft-400">
+                  {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
+                  {previewShares !== undefined ? formatTokenAmount(previewShares, 18) : "--"}
+                </p>
+                {signatureLine ? (
+                  <p className="text-xs text-text-soft-400" aria-live="polite">
+                    {signatureLine}
+                  </p>
+                ) : null}
+              </div>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type {
@@ -120,14 +121,16 @@ export function PublicGardenRow({
           >
             {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
           </EditorialPrimaryButton>
-          <EditorialGhostButton
-            variant="warm"
-            size="sm"
-            className="flex-1 @[28rem]:flex-none"
-            onClick={() => onSupport(garden, "endow")}
-          >
-            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-          </EditorialGhostButton>
+          {ENDOWMENT_DEPOSITS_ENABLED && (
+            <EditorialGhostButton
+              variant="warm"
+              size="sm"
+              className="flex-1 @[28rem]:flex-none"
+              onClick={() => onSupport(garden, "endow")}
+            >
+              {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+            </EditorialGhostButton>
+          )}
         </div>
       </div>
     </div>

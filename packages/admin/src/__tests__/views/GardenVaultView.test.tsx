@@ -92,6 +92,11 @@ vi.mock("@/components/Vault", () => ({
 
 import GardenVaultView from "@/views/Garden/Vault";
 
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("GardenVaultView", () => {
   beforeEach(() => {
     vi.clearAllMocks();

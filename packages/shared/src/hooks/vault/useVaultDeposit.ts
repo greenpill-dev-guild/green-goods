@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "../../config/app";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useCallback, useRef } from "react";
@@ -90,6 +91,9 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const mutation = useMutation({
     mutationKey: batchKeys.depositSend(primaryAddress ?? "", chainId),
     mutationFn: async (params: DepositParams) => {
+      if (!ENDOWMENT_DEPOSITS_ENABLED) {
+        throw new Error(formatMessage({ id: "public.fund.endowmentPause.title" }));
+      }
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
       if (!primaryAddress) {
         throw new Error("Connected account required");
@@ -322,6 +326,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       }
     },
     onMutate: async (params) => {
+      if (!ENDOWMENT_DEPOSITS_ENABLED) return;
       await queryClient.cancelQueries({ queryKey: holdKeyFor(params) });
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.deposit" }),

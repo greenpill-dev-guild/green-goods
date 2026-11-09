@@ -354,6 +354,11 @@ beforeEach(() => {
   });
 });
 
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("/vaults browse (no management)", () => {
   it("renders without a wallet runtime and shows a Manage Endowments entry point", () => {
     renderPage("/vaults");
