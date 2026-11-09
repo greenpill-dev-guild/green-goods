@@ -131,7 +131,10 @@ import {
   useDeploymentRegistry,
   useGardenCreators,
 } from "../../../hooks/blockchain/useDeploymentRegistry";
-import { TransactionConfirmationPendingError } from "../../../modules/transactions/types";
+import {
+  TransactionConfirmationPendingError,
+  TransactionRevertedError,
+} from "../../../modules/transactions/types";
 
 // ============================================
 // Tests
@@ -426,9 +429,12 @@ describe("useDeploymentRegistry", () => {
       expect(mockSendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
           address: mockDeploymentRegistryAddress,
+          // Bound to the account the simulation and the permission read were for.
+          account: MOCK_ADDRESSES.deployer,
           functionName: "addToAllowlist",
           args: [creator],
-        })
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
       );
       expect(mockSimulateTransaction.mock.invocationCallOrder[0]).toBeLessThan(
         mockSendContractCall.mock.invocationCallOrder[0]
@@ -463,10 +469,41 @@ describe("useDeploymentRegistry", () => {
       expect(mockToastError).toHaveBeenCalledWith(expect.objectContaining({ message: says }));
     });
 
-    it("counts a send still waiting for its confirmation as sent, so it is not offered again", async () => {
+    /** The sender reaches the point where the call could leave, then ends as `outcome` does. */
+    const afterBroadcast =
+      (outcome: () => Promise<unknown>) =>
+      async (_call: unknown, options?: { onBeforeBroadcast?: () => Promise<void> }) => {
+        await options?.onBeforeBroadcast?.();
+        return outcome();
+      };
+
+    it.each([
+      {
+        when: "the sender is still waiting for a confirmation",
+        send: async () => {
+          throw new TransactionConfirmationPendingError();
+        },
+      },
+      {
+        when: "a wallet queues the call, as a Safe does",
+        send: async () => ({
+          hash: `0x${"2".repeat(64)}`,
+          sponsored: false,
+          confirmation: "pending",
+        }),
+      },
+      {
+        when: "the receipt cannot be read after the call went out",
+        send: afterBroadcast(async () => {
+          throw new Error("HTTP request failed. Status: 503");
+        }),
+      },
+    ])("counts a change that may still land as sent, never offering it again, when $when", async ({
+      send,
+    }) => {
       registryAnswers({ canManage: true, allowlist: [] });
       mockSimulateTransaction.mockResolvedValue({ success: true });
-      mockSendContractCall.mockRejectedValue(new TransactionConfirmationPendingError());
+      mockSendContractCall.mockImplementation(send);
 
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));
@@ -474,10 +511,20 @@ describe("useDeploymentRegistry", () => {
       await expect(result.current.addCreator(creator)).resolves.toBe(true);
     });
 
-    it("reports a declined signature as not sent", async () => {
+    it.each([
+      { when: "the person declines the signature", error: new Error("User rejected the request") },
+      {
+        when: "the receipt shows a revert",
+        error: new TransactionRevertedError(`0x${"3".repeat(64)}`),
+      },
+    ])("reports the change as not sent when $when", async ({ error }) => {
       registryAnswers({ canManage: true, allowlist: [] });
       mockSimulateTransaction.mockResolvedValue({ success: true });
-      mockSendContractCall.mockRejectedValue(new Error("User rejected the request"));
+      mockSendContractCall.mockImplementation(
+        afterBroadcast(async () => {
+          throw error;
+        })
+      );
 
       const { result } = renderHookWithQueryClient(() => useGardenCreators());
       await waitFor(() => expect(result.current.canManage).toBe(true));

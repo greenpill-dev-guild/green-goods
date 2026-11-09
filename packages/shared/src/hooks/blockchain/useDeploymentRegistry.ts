@@ -11,12 +11,18 @@ import { getNetworkConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
-import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { requireConfirmed } from "../../modules/transactions/confirmation";
+import {
+  TransactionConfirmationPendingError,
+  TransactionReplacementError,
+  TransactionRevertedError,
+} from "../../modules/transactions/types";
 import { useAuthContext } from "../../providers/Auth";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { roleKeys } from "../../config/query-keys/identity";
@@ -163,6 +169,20 @@ export function useDeploymentAllowlist(enabled: boolean): DeploymentAllowlistRes
 
 // --- Garden creators: the allowlist as its managers see and change it ---
 
+/**
+ * Once the call could reach the network, only a revert, a replacement or a declined signature
+ * proves it did not land. Anything else, a receipt read that failed say, may still land.
+ */
+function mayStillLand(error: unknown, couldReachNetwork: boolean): boolean {
+  return (
+    couldReachNetwork &&
+    !(error instanceof TransactionConfirmationPendingError) &&
+    !(error instanceof TransactionRevertedError) &&
+    !(error instanceof TransactionReplacementError) &&
+    !isCancelledTxError(error)
+  );
+}
+
 async function fetchCanManageAllowlist(address: string, chainId: number): Promise<boolean> {
   const contracts = getNetworkContracts(chainId);
   if (isZeroAddress(contracts.deploymentRegistry)) return false;
@@ -237,7 +257,15 @@ export function useGardenCreators(): GardenCreators {
       creator: Address,
       messages: { loadingMessage: string; successMessage: string; errorMessage: string }
     ): Promise<boolean> => {
-      if (!sender || !address) return false;
+      if (!sender || !address) {
+        // The sender is still being set up, a passkey account initializing say: nothing can go.
+        toastService.error({
+          title: messages.errorMessage,
+          message: formatMessage({ id: "cockpit.community.gardenCreators.checkFailed" }),
+          context: "garden creators",
+        });
+        return false;
+      }
       const registry = getNetworkContracts(chainId).deploymentRegistry;
       const abi = DEPLOYMENT_REGISTRY_ABI as Abi;
 
@@ -264,21 +292,42 @@ export function useGardenCreators(): GardenCreators {
           return false;
         }
 
+        let couldReachNetwork = false;
         try {
           await executeWithToast(
-            () =>
-              sender.sendContractCall({
-                address: registry,
-                abi,
-                functionName,
-                args: [creator],
-                chainId,
-              }),
+            async () => {
+              try {
+                const result = await sender.sendContractCall(
+                  {
+                    address: registry,
+                    // The account the simulation and the permission read were for, and no other.
+                    account: address,
+                    abi,
+                    functionName,
+                    args: [creator],
+                    chainId,
+                  },
+                  {
+                    assertOwnership: () => sender.assertOwnership?.(address, chainId),
+                    onBeforeBroadcast: async () => {
+                      couldReachNetwork = true;
+                    },
+                  }
+                );
+                // A wallet that queues the call, a Safe say, answers before it runs.
+                return requireConfirmed(result);
+              } catch (error) {
+                if (mayStillLand(error, couldReachNetwork)) {
+                  throw new TransactionConfirmationPendingError();
+                }
+                throw error;
+              }
+            },
             { ...messages, context: "garden creators" }
           );
           return true;
         } catch (error) {
-          // Sent without a confirmation yet: offering it again would ask for a second signature.
+          // Sent and not confirmed yet: offering it again would ask for a second signature.
           if (error instanceof TransactionConfirmationPendingError) return true;
           logger.warn("Garden creator change was not sent", {
             source: "useGardenCreators",

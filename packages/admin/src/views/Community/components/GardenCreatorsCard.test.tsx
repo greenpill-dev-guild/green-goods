@@ -101,6 +101,18 @@ describe("GardenCreatorsCard", () => {
     await waitFor(() => expect(creators.removeCreator).toHaveBeenCalledWith(CREATOR));
   });
 
+  it("keeps the confirmation open to try again when the removal was not sent", async () => {
+    const creators = creatorsWith({ removeCreator: vi.fn(async () => false) });
+    const user = userEvent.setup();
+    renderWithProviders(<GardenCreatorsCard creators={creators} />);
+
+    await user.click(screen.getByRole("button", { name: /^Remove / }));
+    await user.click(screen.getByRole("button", { name: "Remove Creator" }));
+
+    await waitFor(() => expect(creators.removeCreator).toHaveBeenCalledWith(CREATOR));
+    expect(screen.getByRole("button", { name: "Remove Creator" })).toBeInTheDocument();
+  });
+
   it("says when the list cannot be read instead of showing it as empty", () => {
     renderWithProviders(
       <GardenCreatorsCard creators={creatorsWith({ creators: [], error: "read failed" })} />

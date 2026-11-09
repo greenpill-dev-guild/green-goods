@@ -131,8 +131,8 @@ export function GardenCreatorsCard({ creators }: { creators: GardenCreators }) {
         isLoading={creators.isWriting}
         onConfirm={async () => {
           if (!removing) return;
-          await creators.removeCreator(removing);
-          setRemoving(null);
+          // A change that was not sent keeps the dialog and its target, so trying again is one tap.
+          if (await creators.removeCreator(removing)) setRemoving(null);
         }}
       />
     </AdminCard>
