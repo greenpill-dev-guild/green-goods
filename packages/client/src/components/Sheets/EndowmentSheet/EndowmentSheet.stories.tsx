@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
@@ -183,6 +184,11 @@ export const Treasury: Story = {
   beforeEach: withEndowment(),
   play: async () => {
     const endowment = await sheet();
+    if (!ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.getByText("New deposits paused")).toBeVisible();
+      await expect(endowment.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+      return;
+    }
     await expect(endowment.getByRole("button", { name: "Deposit" })).toBeDisabled();
     await waitFor(() =>
       expect(endowment.getByRole("textbox", { name: "Amount to deposit" })).toBeVisible()
@@ -194,6 +200,10 @@ export const Depositing: Story = {
   beforeEach: withEndowment({ depositing: true }),
   play: async () => {
     const endowment = await sheet();
+    if (!ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+      return;
+    }
     await expect(endowment.getByRole("button", { name: "Deposit" })).toHaveAttribute(
       "aria-busy",
       "true"
@@ -212,7 +222,9 @@ export const HeldDeposit: Story = {
     await expect(endowment.getByText(/You have 41 DAI in this vault now/)).toBeVisible();
     await expect(endowment.getByRole("button", { name: "Check Again" })).toBeEnabled();
     await expect(endowment.getByRole("button", { name: "Move On" })).toBeEnabled();
-    await expect(endowment.getByText("2 signatures")).toBeVisible();
+    if (ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.getByText("2 signatures")).toBeVisible();
+    }
   },
 };
 
@@ -221,6 +233,11 @@ export const Offline: Story = {
   play: async () => {
     const endowment = await sheet();
     await waitFor(() => expect(endowment.getByRole("status")).toBeVisible());
+    if (!ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(endowment.getByText("New deposits paused")).toBeVisible();
+      await expect(endowment.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+      return;
+    }
     await expect(endowment.getByRole("button", { name: "Deposit" })).toBeDisabled();
   },
 };

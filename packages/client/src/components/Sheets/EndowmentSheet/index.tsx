@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   getVaultAssetDecimals,
@@ -163,7 +164,7 @@ export function EndowmentSheet({
   ];
 
   const depositActions: SheetActionsProps | undefined =
-    activeTab === "treasury" && primaryAddress
+    ENDOWMENT_DEPOSITS_ENABLED && activeTab === "treasury" && primaryAddress
       ? {
           primary: {
             label: formatMessage({ id: "app.treasury.deposit" }),

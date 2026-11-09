@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "../../config/app";
 import { useMutation } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { useRef } from "react";
@@ -41,6 +42,9 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
 
   const mutation = useMutation({
     mutationFn: async (transaction: OctantVaultWalletEndowPreparedTransaction) => {
+      if (!ENDOWMENT_DEPOSITS_ENABLED) {
+        throw new Error(formatMessage({ id: "public.fund.endowmentPause.title" }));
+      }
       if (transaction.chainId !== OCTANT_V2_ETHEREUM_CHAIN_ID) {
         throw new Error("Octant Wallet Endow requires Ethereum mainnet chain ID 1");
       }
@@ -282,6 +286,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       }
     },
     onMutate: () => {
+      if (!ENDOWMENT_DEPOSITS_ENABLED) return;
       if (!showLifecycleToast) {
         activeToastId.current = undefined;
         return { toastId: undefined };

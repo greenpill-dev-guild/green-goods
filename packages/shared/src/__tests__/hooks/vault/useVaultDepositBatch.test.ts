@@ -120,6 +120,11 @@ function setup(
   return { account, vault, asset, sender, queryClient, target, deposit, renderDeposit, renderPlan };
 }
 
+vi.mock("../../../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("useVaultDeposit on a listed rail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
