@@ -59,12 +59,14 @@ The code keeps the name `deployer` for a garden creator; copy, docs, and these g
 **Garden Creators** card on the Community Garden's Community → Coordination tab, by whoever the
 registry lets manage it: its owner and the Community Garden's owners and stewards. The card
 asks the registry (`useGardenCreators`, which reads `canManageAllowlist`) instead of reading
-`isProtocolTeam`, so it shows exactly when the contract would accept the change. Being a garden
-creator never makes an account part of the protocol team.
+`isProtocolTeam`. On a registry that answers that read, the card shows exactly when the contract
+would accept the change; on an older one the read fails and the card stays hidden, even from the
+registry's owner. Being a garden creator never makes an account part of the protocol team.
 
-Evaluators reach the cockpit through `useEligibleAdminGardens`, not `useRole`: it lists the
-gardens an account owns, stewards, or evaluates, plus the Community Garden for the protocol
-team. No role sees every garden.
+Evaluators reach the cockpit through `useEligibleAdminGardens`, not `useRole`. It lists the
+gardens the account owns, stewards, or evaluates from the base list, which holds a chain's newest
+50 gardens; adds owned and stewarded gardens the role query finds beyond it; and adds the
+Community Garden for the protocol team. No role sees every garden.
 
 ### useRole Hook
 
@@ -173,9 +175,13 @@ together, never the garden-creator allowlist:
 ```typescript
 import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import type { Address } from "@green-goods/shared/types/domain";
 
 const { isProtocolTeam } = useRole();
-const { isProtocolGarden } = useIsProtocolGarden({ chainId: garden.chainId, gardenId: garden.id });
+const { isProtocolGarden } = useIsProtocolGarden({
+  chainId: garden.chainId,
+  gardenId: garden.id as Address,
+});
 const showCampaignJars = isProtocolTeam && isProtocolGarden;
 ```
 
@@ -199,9 +205,10 @@ if (address === '0x123...') {
   return <CampaignCookieJarPanel />;
 }
 
-// ✅ Correct
+// ✅ Correct: the team, in the protocol garden (see Conditional Rendering by Role)
 const { isProtocolTeam } = useRole();
-if (isProtocolTeam) {
+const { isProtocolGarden } = useIsProtocolGarden({ chainId, gardenId });
+if (isProtocolTeam && isProtocolGarden) {
   return <CampaignCookieJarPanel />;
 }
 ```
@@ -269,6 +276,15 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
   useIsProtocolGarden: () => ({ isProtocolGarden: access.isProtocolGarden }),
 }));
 
+const campaignJars = () => screen.queryByRole("region", { name: "Campaign Cookie Jars" });
+
+it("holds the campaign cookie jars for the team in the protocol garden", () => {
+  Object.assign(access, { isProtocolTeam: true, isProtocolGarden: true });
+  renderPayouts();
+
+  expect(campaignJars()).toBeInTheDocument();
+});
+
 it.each([
   { isProtocolTeam: true, isProtocolGarden: false },
   { isProtocolTeam: false, isProtocolGarden: true },
@@ -276,7 +292,7 @@ it.each([
   Object.assign(access, who);
   renderPayouts();
 
-  expect(screen.queryByTestId("campaign-jars")).not.toBeInTheDocument();
+  expect(campaignJars()).not.toBeInTheDocument();
 });
 ```
 
