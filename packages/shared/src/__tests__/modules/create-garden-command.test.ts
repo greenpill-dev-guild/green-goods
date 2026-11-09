@@ -7,7 +7,9 @@ import {
   type CreateGardenPorts,
 } from "../../modules/garden/create-garden-command";
 import { beforeEach } from "vitest";
+import { withGasHeadroom } from "../../modules/transactions/gas-headroom";
 import type { TransactionSender, TxResult } from "../../modules/transactions/types";
+import { WalletCannotFundTransactionError } from "../../modules/transactions/wallet-funding";
 import { WeightScheme } from "../../types/gardens-community";
 
 const mocks = vi.hoisted(() => ({
@@ -15,15 +17,22 @@ const mocks = vi.hoisted(() => ({
   readContract: vi.fn(),
   waitReceipt: vi.fn(),
   receipt: vi.fn(),
+  estimateGas: vi.fn(async () => 1n),
 }));
 vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: mocks.simulate }));
-vi.mock("@wagmi/core", () => ({ waitForTransactionReceipt: mocks.waitReceipt }));
+vi.mock("../../modules/transactions/receipt-wait", () => ({ waitForReceipt: mocks.waitReceipt }));
 vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
 vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ gardenToken, greenGoodsENS }),
   createClients: () => ({
-    publicClient: { readContract: mocks.readContract, getTransactionReceipt: mocks.receipt },
+    publicClient: {
+      readContract: mocks.readContract,
+      getTransactionReceipt: mocks.receipt,
+      getBalance: async () => 10n ** 18n,
+      estimateGas: mocks.estimateGas,
+      estimateFeesPerGas: async () => ({ maxFeePerGas: 1n }),
+    },
   }),
 }));
 
@@ -58,6 +67,8 @@ function createPorts(events: string[] = []): CreateGardenPorts {
         events.push("fee");
         return 5n;
       }),
+      gardenNameReserve: vi.fn(async () => 0n),
+      balanceOf: vi.fn(async () => 100n),
       simulate: vi.fn(async () => {
         events.push("simulate");
         return { success: true };
@@ -65,7 +76,7 @@ function createPorts(events: string[] = []): CreateGardenPorts {
       waitForReceipt: vi.fn(async () => {
         events.push("receipt");
       }),
-      estimateTransaction: vi.fn(async () => ({ gasEstimate: 10n, gasPrice: 3n })),
+      estimateTransaction: vi.fn(async () => ({ gasEstimate: 1000n, gasPrice: 3n })),
     },
     sender: {
       reconcile: vi.fn(async () => ({ status: "unresolved" as const })),
@@ -106,6 +117,27 @@ describe("createGarden", () => {
     expect(ports.reader.waitForReceipt).toHaveBeenCalledWith(txHash, 11155111);
   });
 
+  it("sends nothing for the name when the reserve covers it, whatever the creator's balance", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.reader.gardenNameReserve).mockResolvedValue(5n);
+    vi.mocked(ports.reader.balanceOf).mockRejectedValue(new Error("balance unavailable"));
+
+    await createGarden(command, ports);
+
+    expect(ports.sender.send).toHaveBeenCalledWith(expect.objectContaining({ ccipFee: 0n }));
+    expect(ports.reader.balanceOf).not.toHaveBeenCalled();
+  });
+
+  it("still creates the garden when neither the reserve nor the creator can pay for the name", async () => {
+    const ports = createPorts();
+    vi.mocked(ports.reader.gardenNameReserve).mockResolvedValue(4n);
+    vi.mocked(ports.reader.balanceOf).mockResolvedValue(4n);
+
+    await createGarden(command, ports);
+
+    expect(ports.sender.send).toHaveBeenCalledWith(expect.objectContaining({ ccipFee: 0n }));
+  });
+
   it("stops before sending when simulation fails", async () => {
     const ports = createPorts();
     vi.mocked(ports.reader.simulate).mockResolvedValue({
@@ -121,19 +153,21 @@ describe("createGarden", () => {
 });
 
 describe("estimateGardenCreation", () => {
-  it("returns the complete transaction and CCIP fee estimate", async () => {
+  it("prices the network fee at the gas the mint is sent with, plus the CCIP fee", async () => {
     const ports = createPorts();
 
+    // 1,000 gas estimated goes out at 1,050 with the mint's headroom, at 3 wei a gas.
     await expect(estimateGardenCreation(command, { reader: ports.reader })).resolves.toEqual({
-      gasEstimate: 10n,
+      gasEstimate: 1000n,
       gasPrice: 3n,
-      txFee: 30n,
+      txFee: 3150n,
       ccipFee: 5n,
-      totalEstimatedFee: 35n,
+      nameFunding: "creator",
+      totalEstimatedFee: 3155n,
       formatted: {
-        txFeeEth: "0.00000000000000003",
+        txFeeEth: "0.00000000000000315",
         ccipFeeEth: "0.000000000000000005",
-        totalEth: "0.000000000000000035",
+        totalEth: "0.000000000000003155",
       },
     });
     expect(ports.reader.estimateTransaction).toHaveBeenCalledWith(
@@ -146,7 +180,9 @@ describe("garden writes through the shared account sender", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.simulate.mockResolvedValue({ success: true });
-    mocks.readContract.mockResolvedValue(5n);
+    mocks.readContract.mockImplementation(async ({ functionName }: { functionName: string }) =>
+      functionName === "gardenNameReserve" ? 0n : 5n
+    );
     mocks.waitReceipt.mockResolvedValue({ status: "success" });
   });
   function adapter(authMode: "wallet" | "passkey") {
@@ -193,6 +229,26 @@ describe("garden writes through the shared account sender", () => {
       expect.objectContaining({ assertOwnership: expect.any(Function) })
     );
     expect(mocks.waitReceipt).not.toHaveBeenCalled(); // The shared sender has already confirmed it.
+  });
+  it("sends the mint with enough gas over the estimate for its last cross-chain step", async () => {
+    const { sender, ports } = adapter("wallet");
+    await createGarden(command, ports);
+    const [mint] = vi.mocked(sender.sendContractCall).mock.calls[0];
+
+    // On forks of Arbitrum an unnamed garden's mint succeeds at its 24,835,549 estimate, but its
+    // last step needs 25,271,190. A named garden's 25,536,980 mint must stay under the 32M cap.
+    expect(withGasHeadroom(24_835_549n, [mint])).toBeGreaterThanOrEqual(25_271_190n);
+    expect(withGasHeadroom(25_536_980n, [mint])).toBeLessThanOrEqual(32_000_000n);
+  });
+  it("checks that a wallet can pay for the gas the mint is sent with", async () => {
+    const { sender, ports } = adapter("wallet");
+    // At 1 wei a gas, the 1 ETH balance covers this estimate but not the mint's headroom over it.
+    mocks.estimateGas.mockResolvedValueOnce(970_000_000_000_000_000n);
+
+    await expect(createGarden(command, ports)).rejects.toBeInstanceOf(
+      WalletCannotFundTransactionError
+    );
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
   it("checkpoints a garden UserOperation before receipt failure and recovers without minting twice", async () => {
     const { sender } = adapter("passkey");

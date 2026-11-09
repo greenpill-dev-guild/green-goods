@@ -27,7 +27,8 @@ import type {
 } from "@green-goods/shared/hooks/client-ui/commitment/controller.types";
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { fireEvent } from "@testing-library/react";
+import { MemoryRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -312,9 +313,12 @@ function controller(
   });
 }
 
-function render(commitmentId = "9") {
+function render(commitmentId = "9", state?: unknown) {
   return renderWithProviders(
     <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/${commitmentId}`]}>
+      {state ? (
+        <Navigate to={`/home/${GARDEN}/commitments/${commitmentId}`} state={state} replace />
+      ) : null}
       <Routes>
         <Route path="/home/:id/commitments/new" element={<ComposerRoute />} />
         <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
@@ -746,6 +750,40 @@ describe("GardenCommitment", () => {
     expect(screen.getByText("Promise not found")).toBeInTheDocument();
   });
 
+  it("shows the notification's saved promise offline without offering acts", () => {
+    mockUseController.mockReturnValue(
+      controller({ isOnline: false, status: "loading", detail: null })
+    );
+    render("9", { commitmentGarden: GARDEN, commitment: commitment() });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
+    expect(
+      screen.getByText(
+        "You are offline. Showing saved promise details; reconnect to see the full record and act."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Add Proof|Take Up|Confirm|Withdraw/i })
+    ).not.toBeInTheDocument();
+    for (const act of Object.values(mockActs)) expect(act).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { isOnline: true, garden: GARDEN, chainId: 42161, commitmentId: 9n },
+    { isOnline: false, garden: OTHER, chainId: 42161, commitmentId: 9n },
+    { isOnline: false, garden: GARDEN, chainId: 1, commitmentId: 9n },
+    { isOnline: false, garden: GARDEN, chainId: 42161, commitmentId: 8n },
+  ])("ignores a saved promise outside the offline route scope: $isOnline/$garden/$chainId/$commitmentId", ({
+    isOnline,
+    garden,
+    chainId,
+    commitmentId,
+  }) => {
+    mockUseController.mockReturnValue(controller({ isOnline, status: "loading", detail: null }));
+    render("9", { commitmentGarden: garden, commitment: commitment({ chainId, commitmentId }) });
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
   it("renders unavailable and retryable error states from the controller", async () => {
     mockUseController.mockReturnValue(controller({ status: "unavailable", detail: null }));
     const view = render();
@@ -876,6 +914,50 @@ describe("GardenCommitment", () => {
     await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
     await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
     expect(mockActs.claim).toHaveBeenCalledWith({ kind: "personal", garden: GARDEN });
+  });
+
+  it.each([
+    true,
+    false,
+  ])("reviews personal take-up before queuing (sendsFromTap=%s)", async (sendsFromTap) => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({
+          commitment: {
+            derivedState: "OFFERED",
+            onchainState: "OFFERED",
+            creator: OTHER,
+            leadProvider: null,
+            counterparty: null,
+          },
+        }),
+        seat: "bystander",
+        actKind: "takeUp",
+        claimNeedsContext: false,
+        queue: { ...controller().queue, sendsFromTap },
+      })
+    );
+    render();
+    const opener = screen.getByRole("button", { name: "Take This Up" });
+    // A Safari pointer click does not focus the button for a state-driven dialog.
+    fireEvent.click(opener);
+    const review = await screen.findByRole("dialog", { name: "Review This Promise" });
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    await userEvent.click(within(review).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Review This Promise" })).not.toBeInTheDocument();
+    await waitFor(() => expect(opener).toHaveFocus());
+    expect(mockActs.claimPersonal).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Take This Up" }));
+    await userEvent.click(
+      within(await screen.findByRole("dialog", { name: "Review This Promise" })).getByRole(
+        "button",
+        { name: "Confirm" }
+      )
+    );
+    await waitFor(() => expect(mockActs.claimPersonal).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Review This Promise" })).not.toBeInTheDocument()
+    );
   });
 
   it("renders pending steward decisions and delegates accept and decline", async () => {
@@ -1546,7 +1628,14 @@ describe("GardenCommitment", () => {
             createdAt: Date.now(),
           },
           proofSending: true,
-          proofOnItsWay: { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true },
+          proofOnItsWay: {
+            photos: 2,
+            videos: 0,
+            documents: 0,
+            voiceNotes: 1,
+            links: 1,
+            words: true,
+          },
         },
       })
     );

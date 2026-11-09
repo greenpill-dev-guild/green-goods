@@ -8,6 +8,7 @@ import { act, waitFor } from "@testing-library/react";
 import { toHex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { gardensKeys } from "../../../config/query-keys/garden";
+import { runGardenRoleWrites } from "../../../hooks/garden/gardenRoleWriteQueue";
 import type { GardenMemberRow } from "../../../modules/garden/members-batch";
 import {
   type BatchExecution,
@@ -282,8 +283,29 @@ describe("useAddMembersBatch", () => {
 
     sender.reconcileBatch = vi.fn(async () => CONFIRMED as BatchExecution);
     for (const { address, role } of list) wearing.add(`${address.toLowerCase()}:${role}`);
+    let finishEarlierWrite!: () => void;
+    const earlierWrite = runGardenRoleWrites(
+      queryClient,
+      42161,
+      gardenAddress,
+      list,
+      () =>
+        new Promise<void>((resolve) => {
+          finishEarlierWrite = resolve;
+        })
+    );
+    let checking!: Promise<void>;
     await act(async () => {
-      await result.current.checkAgain();
+      checking = result.current.checkAgain();
+    });
+    await waitFor(() => expect(sender.reconcileBatch).toHaveBeenCalled());
+    expect(result.current.isSettlingHold).toBe(true);
+    expect(result.current.hold).not.toBeNull();
+    expect(toasts.success).not.toHaveBeenCalled();
+    await act(async () => {
+      finishEarlierWrite();
+      await earlierWrite;
+      await checking;
     });
 
     await waitFor(() => expect(result.current.saved).toHaveLength(2));

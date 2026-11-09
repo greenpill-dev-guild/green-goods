@@ -1,3 +1,4 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
@@ -18,12 +19,19 @@ import {
   useUpdateGardenName,
 } from "@green-goods/shared/hooks/garden/useUpdateGarden";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
-import { type Address, DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
+import { type Address, type Domain } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  type ReactNode,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
-import { AdminSelectableCard } from "@/components/AdminSelectableCard";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import {
   adoptRefreshedGarden,
@@ -40,7 +48,11 @@ import {
   landedValuesOf,
   withoutReportedValues,
 } from "./gardenSettingsDraft";
-import { createBannerUploader, runGardenSettingsSave } from "./gardenSettingsRun";
+import {
+  bannerUploadFailure,
+  createBannerUploader,
+  runGardenSettingsSave,
+} from "./gardenSettingsRun";
 import { type GardenSettingsSaveRun, settleGardenSettingsRun } from "./gardenSettingsSave";
 
 /** What the hosting surface should show as the banner right now. */
@@ -94,6 +106,8 @@ export interface GardenSettingsEditorHandle {
 }
 
 interface GardenSettingsEditorProps {
+  /** Place the uploader beside the fields without moving ownership of its draft. */
+  renderAside?: (bannerUpload: ReactNode) => ReactNode;
   gardenAddress: Address;
   garden: GardenSettingsValues;
   canManage: boolean;
@@ -114,26 +128,27 @@ interface GardenSettingsEditorProps {
 }
 
 /**
- * Explicit-save garden settings form.
- *
- * Every field edits a local draft; nothing reaches IPFS or the chain until
- * Save. Save sends only the dirty fields: under one signature where the rail
- * can, otherwise through their per-field mutations (each keeps its own
- * loading/success toast). The banner file shows a local object-URL preview
- * until Save uploads it. The hosting dialog's
- * footer drives Save through the imperative handle, and its identity preview
- * card drives banner Remove/Undo through the same handle, so those controls
- * never scroll away with the form.
+ * Edits stay local until Save. Dirty fields share one signature where supported;
+ * otherwise per-field mutations report progress. The host owns the footer and
+ * close guard; this editor owns the draft, writes and banner object-URL cleanup.
  */
 export const GardenSettingsEditor = forwardRef<
   GardenSettingsEditorHandle,
   GardenSettingsEditorProps
 >(function GardenSettingsEditor(
-  { gardenAddress, garden, canManage, isOwner, onBannerPreviewChange, onDirtyStateChange },
+  {
+    gardenAddress,
+    garden,
+    canManage,
+    isOwner,
+    onBannerPreviewChange,
+    onDirtyStateChange,
+    renderAside,
+  },
   ref
 ) {
   const { formatMessage } = useIntl();
-
+  const authorizeUpload = useAdminUploadPolicy();
   const updateName = useUpdateGardenName();
   const updateDescription = useUpdateGardenDescription();
   const updateLocation = useUpdateGardenLocation();
@@ -330,7 +345,6 @@ export const GardenSettingsEditor = forwardRef<
   };
 
   const handleSave = async () => {
-    // A read still running could yet hold one of these fields.
     if (dirtyFields.length === 0 || hasValidationError || isSaving || isSettlingHold) return;
     setIsSaving(true);
     await runGardenSettingsSave({
@@ -338,6 +352,7 @@ export const GardenSettingsEditor = forwardRef<
       values: draft,
       sendBatch: settingsBatch.available ? settingsBatch.send : undefined,
       uploadBanner: bannerUploader.upload,
+      authorizeBanner: authorizeUpload,
       writeField,
       onRun: setRun,
       onLanded: landField,
@@ -347,10 +362,7 @@ export const GardenSettingsEditor = forwardRef<
             id: "app.garden.create.uploadFailed",
             defaultMessage: "Upload failed",
           }),
-          message: formatMessage({
-            id: "app.garden.settings.saveFailedMessage",
-            defaultMessage: "Your edits are still here. Review the error and save again.",
-          }),
+          message: formatMessage(bannerUploadFailure(error)),
           context: "garden settings save",
           error,
         }),
@@ -388,42 +400,99 @@ export const GardenSettingsEditor = forwardRef<
     });
   };
 
-  return (
-    // Form sections render directly — the hosting dialog's header owns the
-    // title, so the editor carries no Card chrome of its own (no double
-    // header inside a dialog).
-    <section data-component="GardenSettingsEditor">
-      <div className="space-y-5">
-        {/* Counted in UTF-8 bytes, as `updateName` counts it: past 72 the
-            field says why, and Save waits. */}
-        <AdminTextField
-          id="garden-settings-name"
-          label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
-          required={canEditName}
-          error={
-            nameInvalid
-              ? formatMessage({
-                  id: "app.garden.settings.nameRequired",
-                  defaultMessage: "Garden name is required",
-                })
-              : undefined
-          }
-          value={draft.name}
-          onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
-          disabled={locked("name")}
-          helperText={
-            canEditName
-              ? undefined
-              : formatMessage({
-                  id: "app.garden.settings.nameOwnerOnly",
-                  defaultMessage: "Only the garden owner can rename the garden.",
-                })
-          }
-          showCount={canEditName}
-          countBytes
-          inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
-        />
+  const bannerUpload = (
+    <>
+      {/* The host places this uploader beside the single banner preview. */}
+      <AdminFieldGroup
+        as="div"
+        label={formatMessage({
+          id: "app.garden.create.bannerImageLabel",
+          defaultMessage: "Banner image",
+        })}
+      >
+        {draft.bannerFile ? (
+          <p className="truncate type-meta text-text-sub-600" title={draft.bannerFile.name}>
+            {draft.bannerFile.name} ·{" "}
+            {formatMessage({
+              id: "app.garden.settings.bannerDraft",
+              defaultMessage: "Preview · uploads on save",
+            })}
+          </p>
+        ) : null}
 
+        {canEditProfile ? (
+          <FileUploadField
+            surface="admin"
+            accept="image/*"
+            showPreview={false}
+            disabled={locked("banner")}
+            helpText={formatMessage({
+              id: "app.garden.create.bannerImageHelp",
+              defaultMessage: "Upload a banner image showcasing the garden (optional)",
+            })}
+            onFilesChange={(files) => {
+              const file = files[0];
+              if (!file) return;
+              setDraft((current) => ({ ...current, bannerFile: file, bannerRemoved: false }));
+            }}
+          />
+        ) : null}
+      </AdminFieldGroup>
+    </>
+  );
+
+  return (
+    <section
+      data-component="GardenSettingsEditor"
+      className={
+        renderAside
+          ? "grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]"
+          : undefined
+      }
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+          {/* Counted in UTF-8 bytes, as `updateName` counts it: past 72 the
+            field says why, and Save waits. */}
+          <AdminTextField
+            id="garden-settings-name"
+            label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
+            required={canEditName}
+            error={
+              nameInvalid
+                ? formatMessage({
+                    id: "app.garden.settings.nameRequired",
+                    defaultMessage: "Garden name is required",
+                  })
+                : undefined
+            }
+            value={draft.name}
+            onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+            disabled={locked("name")}
+            helperText={
+              canEditName
+                ? undefined
+                : formatMessage({
+                    id: "app.garden.settings.nameOwnerOnly",
+                    defaultMessage: "Only the garden owner can rename the garden.",
+                  })
+            }
+            showCount={canEditName}
+            countBytes
+            inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
+          />
+
+          <AdminTextField
+            id="garden-settings-location"
+            label={formatMessage({
+              id: "app.garden.settings.location",
+              defaultMessage: "Location",
+            })}
+            value={draft.location}
+            onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
+            disabled={locked("location")}
+          />
+        </div>
         <AdminTextArea
           id="garden-settings-description"
           label={formatMessage({
@@ -432,59 +501,9 @@ export const GardenSettingsEditor = forwardRef<
           })}
           value={draft.description}
           onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
-          rows={5}
+          rows={3}
           disabled={locked("description")}
         />
-
-        <AdminTextField
-          id="garden-settings-location"
-          label={formatMessage({ id: "app.garden.settings.location", defaultMessage: "Location" })}
-          value={draft.location}
-          onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
-          disabled={locked("location")}
-        />
-
-        <div className="border-t border-stroke-soft" />
-
-        {/* Banner image — the uploader only. The image itself renders once, on
-            the hosting dialog's identity preview card (via onBannerPreviewChange),
-            where its Remove/Undo controls also live; a staged file shows here as
-            a filename. */}
-        <AdminFieldGroup
-          as="div"
-          label={formatMessage({
-            id: "app.garden.create.bannerImageLabel",
-            defaultMessage: "Banner image",
-          })}
-        >
-          {draft.bannerFile ? (
-            <p className="truncate type-meta text-text-sub-600" title={draft.bannerFile.name}>
-              {draft.bannerFile.name} ·{" "}
-              {formatMessage({
-                id: "app.garden.settings.bannerDraft",
-                defaultMessage: "Preview · uploads on save",
-              })}
-            </p>
-          ) : null}
-
-          {canEditProfile ? (
-            <FileUploadField
-              surface="admin"
-              accept="image/*"
-              showPreview={false}
-              disabled={locked("banner")}
-              helpText={formatMessage({
-                id: "app.garden.create.bannerImageHelp",
-                defaultMessage: "Upload a banner image showcasing the garden (optional)",
-              })}
-              onFilesChange={(files) => {
-                const file = files[0];
-                if (!file) return;
-                setDraft((current) => ({ ...current, bannerFile: file, bannerRemoved: false }));
-              }}
-            />
-          ) : null}
-        </AdminFieldGroup>
 
         <div className="border-t border-stroke-soft" />
 
@@ -513,65 +532,53 @@ export const GardenSettingsEditor = forwardRef<
               />
             }
           />
+          {/* Off saves 0 (unlimited); the current cap stays explicit. */}
+          <FactRow
+            labelId="garden-settings-limit-gardeners-label"
+            label={formatMessage({
+              id: "app.garden.settings.limitGardeners",
+              defaultMessage: "Limit gardeners",
+            })}
+            description={
+              draft.capRead
+                ? formatMessage({
+                    id: "app.garden.settings.maxGardenersDescription",
+                    defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
+                  })
+                : formatMessage({
+                    id: "app.garden.settings.maxGardenersUnread",
+                    defaultMessage: "The current limit hasn't loaded yet, so it can't be changed.",
+                  })
+            }
+            action={
+              <Switch
+                disabled={capLocked}
+                checked={draft.limitGardeners}
+                onCheckedChange={(checked) =>
+                  setDraft((current) => ({ ...current, limitGardeners: checked === true }))
+                }
+                surface="admin"
+                aria-labelledby="garden-settings-limit-gardeners-label"
+                className={cn(capLocked && "cursor-not-allowed opacity-50")}
+              />
+            }
+          />
         </FactList>
-
-        <div className="border-t border-stroke-soft" />
-
-        {/* Limit gardeners — a toggle that reveals the cap field. Off saves 0
-            (unlimited); no magic number in the input. */}
-        <div className="space-y-3">
-          <FactList frame="inset">
-            <FactRow
-              labelId="garden-settings-limit-gardeners-label"
-              label={formatMessage({
-                id: "app.garden.settings.limitGardeners",
-                defaultMessage: "Limit gardeners",
-              })}
-              description={
-                draft.capRead
-                  ? formatMessage({
-                      id: "app.garden.settings.maxGardenersDescription",
-                      defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
-                    })
-                  : formatMessage({
-                      id: "app.garden.settings.maxGardenersUnread",
-                      defaultMessage:
-                        "The current limit hasn't loaded yet, so it can't be changed.",
-                    })
-              }
-              action={
-                <Switch
-                  disabled={capLocked}
-                  checked={draft.limitGardeners}
-                  onCheckedChange={(checked) =>
-                    setDraft((current) => ({ ...current, limitGardeners: checked === true }))
-                  }
-                  surface="admin"
-                  aria-labelledby="garden-settings-limit-gardeners-label"
-                  className={cn(capLocked && "cursor-not-allowed opacity-50")}
-                />
-              }
-            />
-          </FactList>
-
-          {draft.limitGardeners ? (
-            <AdminTextField
-              id="garden-settings-max-gardeners"
-              type="number"
-              label={formatMessage({
-                id: "app.garden.settings.maxGardeners",
-                defaultMessage: "Maximum gardeners",
-              })}
-              value={draft.maxGardeners}
-              onChange={(e) =>
-                setDraft((current) => ({ ...current, maxGardeners: e.target.value }))
-              }
-              disabled={locked("maxGardeners")}
-              inputProps={{ min: 1, step: 1, "aria-invalid": maxGardenersInvalid || undefined }}
-              className="w-44"
-            />
-          ) : null}
-        </div>
+        {draft.limitGardeners ? (
+          <AdminTextField
+            id="garden-settings-max-gardeners"
+            type="number"
+            label={formatMessage({
+              id: "app.garden.settings.maxGardeners",
+              defaultMessage: "Maximum gardeners",
+            })}
+            value={draft.maxGardeners}
+            onChange={(e) => setDraft((current) => ({ ...current, maxGardeners: e.target.value }))}
+            disabled={locked("maxGardeners")}
+            inputProps={{ min: 1, step: 1, "aria-invalid": maxGardenersInvalid || undefined }}
+            className="w-44"
+          />
+        ) : null}
 
         <div className="border-t border-stroke-soft" />
 
@@ -593,31 +600,25 @@ export const GardenSettingsEditor = forwardRef<
               : undefined
           }
         >
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {DOMAIN_OPTIONS.map(
-              ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => (
-                <AdminSelectableCard
-                  key={value}
-                  disabled={locked("domains")}
-                  onClick={() => toggleDomain(value)}
-                  selected={draft.domains.includes(value)}
-                  title={formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-                  description={formatMessage({
-                    id: descriptionId,
-                    defaultMessage: defaultDescription,
-                  })}
-                  leadingVisual={
-                    <span
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: DOMAIN_COLORS[value] }}
-                    />
-                  }
-                />
-              )
-            )}
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label={formatMessage({ id: "app.garden.detail.domains" })}
+          >
+            {DOMAIN_OPTIONS.map(({ value, labelId, defaultLabel }) => (
+              <AdminFilterChip
+                key={value}
+                disabled={locked("domains")}
+                onToggle={() => toggleDomain(value)}
+                selected={draft.domains.includes(value)}
+                label={formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+              />
+            ))}
           </div>
         </AdminFieldGroup>
+        {!renderAside ? bannerUpload : null}
       </div>
+      {renderAside?.(bannerUpload)}
     </section>
   );
 });

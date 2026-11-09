@@ -162,7 +162,7 @@ export function useSettlementOperationsCapabilities(input: {
   account?: Address;
   protocolGarden?: Address | null;
   executorGarden?: Address | null;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
 }) {
   const settlementModule = getNetworkContracts(input.chainId).settlementModule;
   const availability = selectCommitmentPoolingAvailability(
@@ -208,7 +208,7 @@ export function useSettlementOperationsCapabilities(input: {
       isExecutorSteward: role(executorRoles.roles),
       isDispatcher:
         typeof dispatcher.data === "string" && dispatcher.data.toLowerCase() === normalized,
-      isDeployer: input.isDeployer,
+      isProtocolTeam: input.isProtocolTeam,
     }),
     isLoading:
       owner.isLoading || dispatcher.isLoading || protocolRoles.isLoading || executorRoles.isLoading,

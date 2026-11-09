@@ -240,7 +240,7 @@ export const StateCatalog: Story = {
     // Profile opens on mount.
     const profileSheet = await body.findByRole("dialog");
     await expect(within(profileSheet).getByRole("heading", { name: "Profile" })).toBeVisible();
-    await expect(within(profileSheet).getByRole("heading", { name: "Your gardens" })).toBeVisible();
+    await expect(within(profileSheet).getByRole("heading", { name: "Your Gardens" })).toBeVisible();
     await expect(within(profileSheet).queryByRole("tab")).not.toBeInTheDocument();
     await closeOpenSheet();
     await expect(canvas.getByTestId("right-sheet-current")).toHaveTextContent("none");

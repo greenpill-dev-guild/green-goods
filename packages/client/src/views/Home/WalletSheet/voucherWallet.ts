@@ -10,20 +10,6 @@ import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 const VOUCHER_DECIMALS = 6;
 
 /**
- * Whether the voucher pilot answered for this account. Until its deployment is adopted the read
- * is unavailable, and the wallet keeps to Cookies and Tokens.
- */
-export function hasVoucherWallet(
-  wallet: VoucherWalletSnapshot | null | undefined
-): wallet is VoucherWalletSnapshot {
-  return (
-    wallet !== null &&
-    wallet !== undefined &&
-    (wallet.evidence !== "unavailable" || wallet.reason === "canonical-read-unavailable")
-  );
-}
-
-/**
  * What the Vouchers tab draws, in the lab's order (`SWallet`): a voucher a booking holds, as its
  * own row (decision 11); a return on its way, pending until it arrives; then what the account
  * holds of each issuer. A booking that is settling or returning shows through its return

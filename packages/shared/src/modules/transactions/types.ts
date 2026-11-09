@@ -9,7 +9,6 @@
 
 import type { Abi, Hex, TypedDataDefinition } from "viem";
 import type { Address } from "../../types/domain";
-import type { AtomicBatchAction } from "./batch-enablement";
 import type {
   BatchBudget,
   BatchQuote,
@@ -20,6 +19,14 @@ import type {
   BatchScope,
   BatchSendOptions,
 } from "./batch-types";
+
+/** What a caller names when it asks a sender whether it may group its own writes. */
+export type AtomicBatchAction =
+  | "pool-setup"
+  | "commitment-creations"
+  | "reward-edits"
+  | "marketplace-approvals"
+  | "proof-and-send";
 
 /** A single contract call to execute */
 export interface ContractCall {
@@ -36,6 +43,13 @@ export interface ContractCall {
   /** Authoritative execution chain; omitted calls use the primary application account. */
   chainId?: number;
   value?: bigint;
+  /**
+   * Gas to send over the estimate, in whole percent, for a call whose contract runs best-effort
+   * work inside try/catch. An estimate stops at the first limit where the call succeeds, and the
+   * call succeeds when that work runs out of gas and is caught, so a bare estimate can drop it.
+   * A sender that sets the limit applies it; a wallet's own batch request (EIP-5792) cannot.
+   */
+  gasHeadroomPercent?: number;
 }
 
 export type BroadcastReference =
@@ -122,9 +136,6 @@ export interface TransactionSender {
   /** Send a single contract call */
   sendContractCall(call: ContractCall, options?: TransactionSendOptions): Promise<TxResult>;
 
-  /** Send multiple calls in a batch (optional — check supportsBatching first) */
-  sendBatch?(calls: ContractCall[]): Promise<TxResult>;
-
   /**
    * Whether this account can run several calls as one transaction on this chain
    * for `action`. Asking never prompts the person. A wallet answers for itself
@@ -135,11 +146,17 @@ export interface TransactionSender {
 
   /**
    * Several calls, one approval, one transaction: all of them land or none do.
-   * Only call it after `canSendAtomicBatch` said yes for the chain. Unlike
-   * `sendBatch`, which may send one call after another, a later call here can
-   * rely on an earlier one having run.
+   * Only call it after `canSendAtomicBatch` said yes for the chain. A later
+   * call here can rely on an earlier one having run.
    */
   sendAtomicBatch?(calls: ContractCall[], options?: AtomicBatchOptions): Promise<TxResult>;
+
+  /**
+   * Set on the sender a bundling sender hands one participant: every participant
+   * whose call goes out in the same atomic request, in the order the calls go. A
+   * call there lands with every earlier one or not at all, so it may rely on them.
+   */
+  readonly bundledWith?: readonly string[];
 
   /** Whether this sender supports gas sponsorship (paymaster) */
   readonly supportsSponsorship: boolean;

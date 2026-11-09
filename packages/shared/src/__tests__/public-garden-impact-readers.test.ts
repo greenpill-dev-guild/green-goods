@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { ContractFunctionExecutionError, ContractFunctionZeroDataError } from "viem";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../public-contracts";
 import {
   getPublicGardenImpactChainConfig,
@@ -9,7 +10,7 @@ import {
   PublicGardenImpactSourceError,
   createPublicGardenImpactReaders,
 } from "../modules/data/public-garden-impact-readers";
-import type { GraphQLReader } from "../modules/data/graphql-client";
+import { GQLClient, type GraphQLReader } from "../modules/data/graphql-client";
 
 const gardenAddress: Address = "0x1111111111111111111111111111111111111111";
 
@@ -18,6 +19,137 @@ function reader(query: GraphQLReader["query"]): GraphQLReader {
 }
 
 describe("public garden impact source readers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("cancels garden RPC transport without treating the garden as missing", async () => {
+    let transportSignal: AbortSignal | null | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: unknown, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            transportSignal = init?.signal;
+            transportSignal?.addEventListener("abort", () => reject(transportSignal?.reason), {
+              once: true,
+            });
+          })
+      )
+    );
+    const controller = new AbortController();
+    const pending = createPublicGardenImpactReaders().readGarden(
+      42161,
+      gardenAddress,
+      controller.signal
+    );
+    const rejected = expect(pending).rejects.toMatchObject({ reason: "provider_failed" });
+    await vi.waitFor(() => expect(transportSignal).toBeDefined());
+    controller.abort(new DOMException("snapshot deadline", "AbortError"));
+    await rejected;
+    expect(transportSignal?.aborted).toBe(true);
+  });
+
+  it("limits EAS requests across gardens and removes cancelled queued and active reads", async () => {
+    let active = 0;
+    let peak = 0;
+    const finish: Array<() => void> = [];
+    const fetch = vi.fn(
+      (_url: unknown, init?: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          active += 1;
+          peak = Math.max(peak, active);
+          const abort = () => {
+            active -= 1;
+            reject(init?.signal?.reason);
+          };
+          init?.signal?.addEventListener("abort", abort, { once: true });
+          finish.push(() => {
+            active -= 1;
+            init?.signal?.removeEventListener("abort", abort);
+            resolve(
+              new Response(JSON.stringify({ data: { attestations: [] } }), {
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          });
+        })
+    );
+    vi.stubGlobal("fetch", fetch);
+    const readers = createPublicGardenImpactReaders({
+      createEasReader: () => new GQLClient("https://example.test/graphql"),
+    });
+    const activeController = new AbortController();
+    const queuedController = new AbortController();
+    const pending = [
+      readers.readWorks(42161, gardenAddress, activeController.signal),
+      readers.readAssessments(42161, gardenAddress),
+      readers.readWorks(
+        42161,
+        "0x2222222222222222222222222222222222222222",
+        queuedController.signal
+      ),
+      readers.readWorks(42161, "0x3333333333333333333333333333333333333333"),
+    ].map((promise) => promise.catch((error) => error));
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    queuedController.abort(new Error("queued deadline"));
+    activeController.abort(new Error("active deadline"));
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+    finish[1]();
+    finish[2]();
+    const results = await Promise.all(pending);
+    expect(results[0]).toBeInstanceOf(PublicGardenImpactSourceError);
+    expect(results[2]).toBeInstanceOf(PublicGardenImpactSourceError);
+    expect(results[1]).toEqual([]);
+    expect(results[3]).toEqual([]);
+    expect(peak).toBe(2);
+    expect(active).toBe(0);
+  });
+
+  it("coalesces chain approvals without letting one cancelled garden abort another", async () => {
+    let resolveRead!: (value: { data: { attestations: unknown[] } }) => void;
+    let transportSignal: AbortSignal | undefined;
+    const query = vi.fn((_document, _variables, _operation, signal) => {
+      transportSignal = signal;
+      return new Promise((resolve) => {
+        resolveRead = resolve;
+      });
+    });
+    const readers = createPublicGardenImpactReaders({
+      createEasReader: () => reader(query as GraphQLReader["query"]),
+    });
+    const controller = new AbortController();
+    const first = readers.readApprovals(42161, controller.signal).catch((error) => error);
+    const second = readers.readApprovals(42161);
+    controller.abort(new Error("garden deadline"));
+    expect(await first).toBeInstanceOf(PublicGardenImpactSourceError);
+    expect(transportSignal?.aborted).toBe(false);
+    expect(query).toHaveBeenCalledTimes(1);
+    resolveRead({ data: { attestations: [] } });
+    expect(await second).toEqual([]);
+    const fresh = readers.readApprovals(42161);
+    expect(query).toHaveBeenCalledTimes(2);
+    resolveRead({ data: { attestations: [] } });
+    expect(await fresh).toEqual([]);
+  });
+
+  it("releases a failed shared approval read so the next request can recover", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ error: new Error("pool exhausted") })
+      .mockResolvedValue({ data: { attestations: [] } });
+    const readers = createPublicGardenImpactReaders({ createEasReader: () => reader(query) });
+    const first = readers.readApprovals(42161);
+    const second = readers.readApprovals(42161);
+    expect((await Promise.allSettled([first, second])).map((result) => result.status)).toEqual([
+      "rejected",
+      "rejected",
+    ]);
+    expect(query).toHaveBeenCalledTimes(1);
+    await expect(readers.readApprovals(42161)).resolves.toEqual([]);
+    expect(query).toHaveBeenCalledTimes(2);
+  });
   it("supports only chains covered by the Garden, EAS, and indexer sources", () => {
     expect([42161, 11155111].map(isPublicGardenImpactChainSupported)).toEqual([true, true]);
     expect([1, 42220, 31337, 10, Number.NaN].map(isPublicGardenImpactChainSupported)).toEqual([
@@ -63,7 +195,7 @@ describe("public garden impact source readers", () => {
       if (input.functionName === "token") {
         return [11155111n, config?.gardenToken, 7n];
       }
-      if (input.functionName === "account") return gardenAddress;
+      if (input.functionName === "isGardenAccount") return true;
       if (input.functionName === "name" || input.functionName === "location") return "";
       throw new Error(`Unexpected function ${input.functionName}`);
     });
@@ -83,10 +215,51 @@ describe("public garden impact source readers", () => {
     });
     expect(readContract.mock.calls.map(([input]) => input.functionName)).toEqual([
       "token",
-      "account",
+      "isGardenAccount",
       "name",
       "location",
     ]);
+  });
+
+  it("derives the account on a token from before upgradeable accounts", async () => {
+    const sepolia = getPublicGardenImpactChainConfig(11155111);
+    const readContract = vi.fn(async (input: { functionName: string }) => {
+      if (input.functionName === "token") return [11155111n, sepolia?.gardenToken, 7n];
+      if (input.functionName === "isGardenAccount") {
+        throw new ContractFunctionExecutionError(
+          new ContractFunctionZeroDataError({ functionName: "isGardenAccount" }),
+          { abi: [], functionName: "isGardenAccount" }
+        );
+      }
+      if (input.functionName === "account") return gardenAddress;
+      if (input.functionName === "name" || input.functionName === "location") return "";
+      throw new Error(`Unexpected function ${input.functionName}`);
+    });
+    const impactReaders = createPublicGardenImpactReaders({
+      indexerReader: reader(vi.fn()),
+      createEasReader: () => reader(vi.fn()),
+      createChainReader: () => ({ readContract }),
+    });
+
+    await expect(impactReaders.readGarden(11155111, gardenAddress)).resolves.toMatchObject({
+      id: gardenAddress,
+    });
+  });
+
+  it("rejects an account the token does not count as a garden", async () => {
+    const sepolia = getPublicGardenImpactChainConfig(11155111);
+    const readContract = vi.fn(async (input: { functionName: string }) => {
+      if (input.functionName === "token") return [11155111n, sepolia?.gardenToken, 7n];
+      if (input.functionName === "isGardenAccount") return false;
+      throw new Error(`Unexpected function ${input.functionName}`);
+    });
+    const impactReaders = createPublicGardenImpactReaders({
+      indexerReader: reader(vi.fn()),
+      createEasReader: () => reader(vi.fn()),
+      createChainReader: () => ({ readContract }),
+    });
+
+    await expect(impactReaders.readGarden(11155111, gardenAddress)).resolves.toBeNull();
   });
 
   it("rejects an account whose token binding belongs to another chain", async () => {

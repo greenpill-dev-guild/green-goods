@@ -54,7 +54,11 @@ function NoteMediaMosaic({
       key={src}
       type="button"
       data-pressable="media"
-      onClick={() => onOpen(media.indexOf(src))}
+      onClick={(event) => {
+        // Safari leaves a clicked button unfocused; the viewer must remember this photo.
+        event.currentTarget.focus();
+        onOpen(media.indexOf(src));
+      }}
       aria-label={formatMessage(
         { id: "public.gardenDetail.notes.viewPhoto", defaultMessage: "View photo {n}" },
         { n: index + 1 }

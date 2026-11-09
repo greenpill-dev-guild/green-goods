@@ -2,11 +2,10 @@ import { useCallback } from "react";
 import { useIntl } from "react-intl";
 import type { Address, Garden } from "../../../types/domain";
 import type { AuthMode } from "../../../types/auth";
-import { formatAddress } from "../../../utils/app/text";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { useAuthActions, useAuthState } from "../../../providers/Auth";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { useEnsName } from "../../blockchain/useEnsName";
+import { useAddressDisplayName } from "../../ens/useAddressDisplayName";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useEligibleAdminGardens } from "../../garden/useEligibleAdminGardens";
 import { useRole, type UserRole } from "../../gardener/useRole";
@@ -14,7 +13,7 @@ import { useGardenUrlSync } from "../../navigation/useGardenUrlSync";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
-  deployer: { id: "cockpit.role.deployer", defaultMessage: "deployer" },
+  deployer: { id: "cockpit.role.deployer", defaultMessage: "garden creator" },
   steward: { id: "cockpit.role.steward", defaultMessage: "steward" },
   user: { id: "cockpit.role.user", defaultMessage: "user" },
 };
@@ -65,7 +64,7 @@ export function useAccountProfileController(): AccountProfileController {
   const { signOut } = useAuthActions();
   const { role } = useRole();
   const address = usePrimaryAddress() as Address | null;
-  const { data: ensName } = useEnsName(address);
+  const { display } = useAddressDisplayName(address, { variant: "default" });
   const { eligibleGardens } = useEligibleAdminGardens();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { setGarden } = useGardenUrlSync();
@@ -73,7 +72,7 @@ export function useAccountProfileController(): AccountProfileController {
 
   const roleLabel = formatMessage(ROLE_LABEL_MESSAGES[role]);
   const authMethodLabel = authMode ? formatMessage(AUTH_METHOD_MESSAGES[authMode]) : null;
-  const headline = address ? formatAddress(address, { ensName }) : roleLabel;
+  const headline = address ? display : roleLabel;
   const selectedGardenChoiceId =
     selectedGarden && eligibleGardens.length > 0
       ? (eligibleGardens.find((garden) => compareAddresses(garden.id, selectedGarden.id))?.id ??

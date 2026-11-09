@@ -14,7 +14,9 @@ import { arbitrum } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
+  createMockBatchBudget,
   createMockContractCall,
+  type FakeWagmiDeps,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import { TransactionRevertedError, type ContractCall } from "../types";
@@ -35,7 +37,7 @@ describe("WalletSender", () => {
   let mockWriteContractAsync: ReturnType<
     typeof vi.fn<ConstructorParameters<typeof WalletSender>[1]>
   >;
-  let mockDeps: WalletSenderDeps;
+  let mockDeps: FakeWagmiDeps;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,6 +80,46 @@ describe("WalletSender", () => {
   });
 
   describe("sendContractCall", () => {
+    it("gives a call that asks for headroom that much gas over the node's estimate", async () => {
+      const estimateGas = vi.fn(async () => 100_000n);
+      mockDeps.estimateGas = estimateGas;
+
+      await sender.sendContractCall(createMockContractCall({ gasHeadroomPercent: 50 }));
+      expect(estimateGas).toHaveBeenCalledWith(
+        expect.objectContaining({ account: MOCK_ADDRESSES.deployer, chainId: 42161 })
+      );
+      expect(mockWriteContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ gas: 150_000n })
+      );
+
+      // Any other call is still sized by the wallet.
+      estimateGas.mockClear();
+      mockWriteContractAsync.mockClear();
+      await sender.sendContractCall(TEST_CALL);
+      expect(estimateGas).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync.mock.calls[0][0]).not.toHaveProperty("gas");
+    });
+
+    it("sends a batch call at the gas its budget was checked at", async () => {
+      const estimateGas = vi.fn(async () => 100_000n);
+      mockDeps.estimateGas = estimateGas;
+      mockDeps.preflightBatch = vi.fn(async () => ({
+        gas: "140000",
+        maxFeePerGas: "1",
+        maxFee: "140000",
+        sponsored: false,
+        authority: "wallet" as const,
+      }));
+
+      await sender.sendContractCall(createMockContractCall({ gasHeadroomPercent: 50 }), {
+        batchBudget: createMockBatchBudget(),
+      });
+      expect(estimateGas).not.toHaveBeenCalled();
+      expect(mockWriteContractAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ gas: 140_000n })
+      );
+    });
+
     it("sends transaction via writeContractAsync", async () => {
       const result = await sender.sendContractCall(TEST_CALL);
 
@@ -283,12 +325,6 @@ describe("WalletSender", () => {
 
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("wrong wallet RPC");
       expect(mockWriteContractAsync).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("sendBatch (unsupported)", () => {
-    it("does not expose sendBatch", () => {
-      expect("sendBatch" in sender).toBe(false);
     });
   });
 

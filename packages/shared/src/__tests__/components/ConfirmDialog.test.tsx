@@ -1,6 +1,8 @@
 /** @vitest-environment happy-dom */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfirmDialog } from "../../components/Dialog/ConfirmDialog";
@@ -38,11 +40,51 @@ function wrap(node: React.ReactElement) {
   );
 }
 
+function JoinConfirmation() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Join Garden
+      </button>
+      <ConfirmDialog
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={vi.fn()}
+        title="Join Garden"
+      />
+    </>
+  );
+}
+
 afterEach(() => {
   stubViewportWidth(1024);
 });
 
 describe("ConfirmDialog", () => {
+  it.each([
+    [375, "Escape"],
+    [375, "Close"],
+    [375, "Cancel"],
+    [1280, "Escape"],
+    [1280, "Close"],
+    [1280, "Cancel"],
+  ] as const)("restores its opener at %ipx after %s", async (width, dismiss) => {
+    stubViewportWidth(width);
+    render(wrap(<JoinConfirmation />));
+    const user = userEvent.setup();
+    const opener = screen.getByRole("button", { name: "Join Garden" });
+    await user.tab();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    if (dismiss === "Escape") await user.keyboard("{Escape}");
+    else await user.click(screen.getByRole("button", { name: dismiss }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    });
+  });
+
   it("keeps the centered Radix surface at 640px and wider", () => {
     stubViewportWidth(1024);
     render(

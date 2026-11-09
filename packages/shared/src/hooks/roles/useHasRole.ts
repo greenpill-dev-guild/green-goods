@@ -17,6 +17,8 @@ export interface UseHasRoleResult {
   isLoading: boolean;
   /** Set when the read failed: then `hasRole` is false because the answer is unknown. */
   error?: Error | null;
+  /** The chain is being asked, the first time or again. */
+  isFetching: boolean;
   /** Ask the chain again, as a retry after a failed read does. */
   refetch: () => Promise<unknown>;
 }
@@ -42,6 +44,7 @@ export function useHasRole(
     hasRole: query.data ?? false,
     isLoading: query.isLoading,
     error: query.error as Error | null,
+    isFetching: query.isFetching,
     refetch: query.refetch,
   };
 }

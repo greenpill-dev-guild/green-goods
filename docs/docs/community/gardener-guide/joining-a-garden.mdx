@@ -5,7 +5,7 @@ slug: /community/gardener-guide/joining-a-garden
 description: "Find the garden you work with and join it, ask to join, or get a steward to add you, so you can start submitting work."
 audience: gardener
 owner: docs
-last_verified: 2026-10-31
+last_verified: "2026-11-04"
 feature_status: Live
 goal: "Get a signed-in gardener into the right garden by the path that garden offers."
 difficulty: "quickstart"
@@ -26,6 +26,8 @@ source_of_truth:
   - packages/client/src/views/Profile/AccountInfo.tsx
   - packages/client/src/views/Profile/GardensList.tsx
   - packages/shared/src/hooks/garden/useJoinGarden.ts
+  - packages/shared/src/hooks/garden/useLeaveGarden.ts
+  - packages/client/src/components/Features/Garden/LeaveGardenAction.tsx
   - packages/agent/src/config.ts
   - packages/shared/src/i18n/en.json
 keywords:
@@ -36,17 +38,15 @@ keywords:
   - gardener
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Join a Garden
 
 A garden is a community doing regenerative work together, such as a solar team, a clean-up crew, a tree-planting group, or a class. Joining tells the app which community your work belongs to, so the right steward can review it.
 
-<figure className="gg-figure gg-overview-photo">
-  <img src="/img/community/editorial-garden.webp" alt="A person holds a tray of seedlings beside growing beds and a wooden fence." width="1857" height="847" decoding="async" />
-</figure>
+<GuideImage src="/img/community/editorial-garden.webp" alt="A person holds a tray of seedlings beside growing beds and a wooden fence." width="1857" height="847" decoding="async" className="gg-figure gg-overview-photo" />
 
 Every garden decides how people get in. Some are open to anyone. Others let a steward approve each person. This page covers both.
+
+The navigation below follows the current beta. Use the version your steward asked you to use; [Install and Update](/community/gardener-guide/installing-and-updating) explains choosing the beta.
 
 ## Before you start
 
@@ -55,19 +55,13 @@ Every garden decides how people get in. Some are open to anyone. Others let a st
 - **Be online.** Joining needs a connection.
 - **Use one account.** Your membership belongs to the account that joined. If you sign in a different way later, the app treats you as someone new.
 
-
 ## Steps
 
 ### 1. Find the garden
 
-1. Open Green Goods and go to **Explore Gardens**. It lists every garden. Until you pick a garden, it is on **Home**: the button under **Find Your Garden**, or the last row under **Choose a Garden**. Once **Home** shows a garden, tap that garden's name at the top of **Home**, then **Explore Gardens**.
-2. To see only gardens anyone can join, tap the filter button at the top of the list, then choose **Open gardens** in the **Filter Gardens** sheet.
-3. Tap the garden to open it. Check the name and location before you go on.
-
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-garden-filters.webp" alt="Filter Gardens with All gardens selected, My gardens and Open gardens below it, followed by domains and sorting choices." loading="lazy" width="780" height="1448" />
-  <figcaption>Choose <strong className="gg-inline-label">Open gardens</strong> to find gardens anyone can join.</figcaption>
-</figure>
+1. Open **Home**. If you have no garden yet, tap **Explore Gardens**. If Home already names a garden, tap its name, then choose **Explore Gardens** in **Your Gardens**.
+2. In **Explore Gardens**, tap the filter button. Choose **Open gardens** in **Filter Gardens** to find gardens anyone can join.
+3. Tap a garden to visit it. Check its name and location before you go on. Visiting a garden does not change the one selected on Home.
 
 If a steward sent you a link, open it and tap **Open This Garden in the App**.
 
@@ -75,9 +69,11 @@ If a steward sent you a link, open it and tap **Open This Garden in the App**.
 
 What you see on the garden's page tells you which path to take.
 
-:::note Using your own wallet
+<Callout kind="note" title="Using your own wallet">
+
 If you signed in with a passkey, Green Goods covers the network fee for joining an open garden. If you signed in with your own wallet, joining is a transaction you pay for, on the Arbitrum network, so keep a little ETH there. Sending a request to join has no fee.
-:::
+
+</Callout>
 
 **If you see Join Garden.** The garden is open.
 
@@ -85,10 +81,11 @@ If you signed in with a passkey, Green Goods covers the network fee for joining 
 2. Read the message: you will join as a gardener and can submit work right away.
 3. Tap **Join**, then confirm when your phone asks.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-join-garden.webp" alt="The Join Garden sheet: the message You'll join Green Goods Community Garden as a gardener and can submit work right away, above a Join button and a Cancel button" loading="lazy" width="780" height="588" />
-  <figcaption>Check the garden’s name before choosing <strong className="gg-inline-label">Join</strong>.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/client-join-garden.webp" alt="The Join Garden sheet: the message You'll join Green Goods Community Garden as a gardener and can submit work right away, above a Join button and a Cancel button" loading="lazy" width="780" height="588" className="gg-figure gg-guide-product">
+
+Check the garden’s name before choosing <InlineLabel>Join</InlineLabel>.
+
+</GuideImage>
 
 **If you see Request to Join.** A steward approves each person.
 
@@ -108,13 +105,15 @@ If you signed in with a passkey, Green Goods covers the network fee for joining 
 - **Request to Join:** your request reads **Request waiting for approval**. Tap **Request to Join** again at any time to see it.
 - **Added by a steward:** the garden appears under **Profile**, in **My gardens**.
 
-In every case, a garden you belong to shows up in **My gardens** on your Profile, and in the list of gardens when you start to submit work.
+In every case, a garden you belong to shows up in **My gardens** on your Profile and in **Your Gardens**, opened from the garden name on Home. Select it there before starting to submit work.
 
 ## What happens next
 
 - **You joined an open garden.** Nobody else needs to act. You can submit work now.
 - **You sent a request.** A steward of that garden reviews it. Green Goods does not send you an alert, so come back to the garden's page and tap **Check Request Status**. It will read **Welcome to the garden** once you are in, or **This request was declined** with the steward's reason. You can **Withdraw Request** at any time and send a new one later.
 - **You asked a steward to add you.** The steward adds your Account ID from their side. Check **My gardens** after they tell you it is done.
+
+Once you are a member, return to **Home** and select the garden you joined. If the app asks you to choose a garden, choose it there. The name at the top tells you where new work will go.
 
 ## If something goes wrong
 
@@ -134,9 +133,29 @@ If you only see the public website, tap **Open This Garden in the App**, or open
 
 If the steward cannot find you, send the **Account ID** shown in the app again. It is easy to send a different address by mistake.
 
-If you joined the wrong garden, tell that garden's steward, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
+If you joined the wrong garden, follow **Leave a garden** below, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
 
-If you joined but the garden is missing when you submit work, wait a few seconds, then leave the **Garden** tab and open it again. Your membership shows at once, and the list of gardens catches up shortly after.
+If you joined but cannot select the garden yet, allow the membership read to catch up, then reopen **Your Gardens** from Home. Check the account you signed in with before asking the steward to add you again.
+
+## Leave a garden
+
+Leaving gives up every role you hold in that garden. An owner must hand over their owner role first. Work you already sent stays on record and can still be reviewed.
+
+:::note Availability
+If leaving from the app is not available yet, ask a steward to remove you.
+:::
+
+Before leaving, review any work still on your phone, open promises, and loan requests. Saved work stays on your phone but cannot upload to this garden until you become a member again. Your work cannot be linked to an open promise after leaving, and pending loan requests cannot be approved. You can still repay a loan.
+
+1. Open **Profile**, then **Account**.
+2. Find the garden under **My gardens**.
+3. Choose **Leave Garden** on its card and read the confirmation.
+4. Choose **Cancel** to stay, or **Leave Garden** and confirm when your phone or wallet asks.
+5. Wait for **You left the garden**. The garden leaves **My gardens**, and your member and steward actions disappear. Other people's lists may take a little longer to update. If this was your active garden, the sheet closes and Home opens: choose a garden when several remain, continue in the only remaining garden, or find a garden when none remain. Leaving another garden keeps you in Profile.
+
+To return, join again or ask a steward to add you. In a garden with a member limit, each self-join uses another place even if you left before. Leaving does not promise to remove voting power or return a voting stake the garden paid.
+
+If the app cannot confirm your departure, open **Profile → Account** and choose **Check Previous Departure** on the garden's card. A saved departure stays under **Previous Departures** after membership disappears. This checks the transaction you already sent and does not send another departure. A delayed confirmation can still arrive. If you have since rejoined, confirming that earlier transaction does not leave the garden again.
 
 Still stuck? Ask the community in [Discord](https://discord.gg/greenpill).
 

@@ -4,11 +4,13 @@ import {
   type ResolvedEvidence,
   useCommitmentEvidence,
 } from "@green-goods/shared/commitment-pooling";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { RiMicLine, RiPauseFill } from "@remixicon/react";
 import { useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 
 import { ImagePreviewDialog } from "@/components/Display";
+import { WorkDocumentRow } from "@/components/Features/Work/WorkDocumentRow";
 import { EvidenceLinks, EvidenceNote } from "./EvidencePreview";
 
 export interface CommitmentEvidenceProps {
@@ -100,8 +102,9 @@ function VoiceTile({ url, index, seconds }: { url: string; index: number; second
 
 /**
  * The proof on the promise, under its progress: for each proof, its photos,
- * videos and voice notes as squares, its note and its links as the
- * confirmation sheet draws them, then who added it and when. A photo opens
+ * videos and voice notes as squares, its documents as rows that open them, its
+ * note and its links as the confirmation sheet draws them, then who added it
+ * and when. A photo opens
  * large; a voice note plays where it is; a link opens in a new tab. Absent
  * proof renders nothing, since the progress line above already says none was
  * added.
@@ -175,6 +178,19 @@ export function CommitmentEvidence({ attributions, recordedCount }: CommitmentEv
                   </li>
                 ))}
               </ul>
+            ) : null}
+            {contents?.documents?.length ? (
+              <div className="flex flex-col gap-2">
+                {contents.documents.map((document, index) => (
+                  <WorkDocumentRow
+                    key={`${index}:${document.cid}`}
+                    name={document.name}
+                    type={document.mime}
+                    size={document.size}
+                    href={resolveIPFSUrl(document.cid)}
+                  />
+                ))}
+              </div>
             ) : null}
             {contents?.note ? <EvidenceNote note={contents.note} /> : null}
             {contents?.links?.length ? <EvidenceLinks links={contents.links} /> : null}

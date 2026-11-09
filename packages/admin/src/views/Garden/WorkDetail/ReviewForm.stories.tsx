@@ -1,10 +1,15 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { type ReviewBatch, useReviewBatch } from "@green-goods/shared/hooks/work/useWorkApproval";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, userEvent, within } from "storybook/test";
-import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
+import {
+  withAdminIdentity,
+  withSeededQueryClient,
+} from "../../../../../shared/.storybook/decorators";
 import { daysAgo, FIXTURE_IMAGE_AGROFORESTRY } from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { ReviewForm } from "./ReviewForm";
@@ -152,15 +157,21 @@ export const HeldAfterAnUnknownSend: Story = {
 };
 
 export const PublishedSubmitterName: Story = {
+  tags: ["storybook-ci"],
+  decorators: [
+    withSeededQueryClient([[queryKeys.ens.passkeyName(DEFAULT_CHAIN_ID, GARDENER), "river"]]),
+  ],
   beforeEach: () => {
-    mocked(useEnsName).mockReturnValue({ data: "ordinary.eth" } as ReturnType<typeof useEnsName>);
-    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
+    mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: null } as ReturnType<
       typeof useGreenGoodsEnsName
     >);
     return resetHookMocks(useEnsName, useGreenGoodsEnsName);
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/river will see this decision/)).toBeVisible();
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("river")).toBeVisible();
+    await expect(canvas.getByText(GARDENER)).toBeVisible();
   },
 };
 

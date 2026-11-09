@@ -26,6 +26,7 @@ import {
   leakedCameraDetails,
   photoFile,
 } from "../../test-utils/photo-fixtures";
+import { leakedRecorderDetails, videoFile, videoVariants } from "../../test-utils/video-fixtures";
 import {
   QUEUED_JOB_GARDEN,
   QUEUED_JOB_USER,
@@ -479,6 +480,23 @@ describe("Upload all", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("retains unsent work as blocked after garden departure without asking the signer", async () => {
+    const saved = work();
+    const { ports, store } = harness([saved], {
+      simulate: vi.fn(async () => {
+        throw new SimulationRejected("Not a garden member", "NotGardenMember", true);
+      }),
+    });
+    const sender = createMockTransactionSender();
+    await expect(upload(ports, sender)).resolves.toEqual({ status: "nothing-sent", flagged: 1 });
+    expect(store.get(saved.id)?.meta?.preparation).toMatchObject({
+      status: "blocked",
+      reason: "NotGardenMember",
+    });
+    expect(store.get(saved.id)?.payload).toEqual(saved.payload);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("says nothing was sent, and what needs attention, when the only ready item is refused at the tap", async () => {
     const ended = work();
     const { ports, store } = harness([ended], {
@@ -846,6 +864,21 @@ describe("Upload all publishing a photo", () => {
       "beds.jpg",
       "metadata.json",
     ]);
+  });
+
+  it("pins a phone's video without its location, device or capture time, and attests exactly those bytes", async () => {
+    const { pinned } = await pinningService();
+    const { recorded, published } = videoVariants()[0];
+    const { ports } = queuedWithPhoto(videoFile(recorded, "beds.mp4", "video/mp4"));
+    const sender = createMockTransactionSender();
+
+    await expect(upload(ports, sender)).resolves.toMatchObject({ status: "uploaded", sent: 1 });
+
+    const [, , , , media] = attested(sender);
+    const video = pinned.get(media[0])!;
+    expect([video.name, video.type]).toEqual(["beds.mp4", "video/mp4"]);
+    expect(leakedRecorderDetails(await bytesOf(video))).toEqual([]);
+    expect(await bytesOf(video)).toEqual(published);
   });
 
   it("pins a photo prepared before stripping again, and attests the stripped bytes", async () => {

@@ -23,7 +23,7 @@ import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPane
 
 export type CommunityPayoutsTabProps = Pick<
   CommunityWorkspace,
-  "allocations" | "allocationsAtLimit" | "selectedItem"
+  "allocations" | "allocationsAtLimit" | "allocationsUnread" | "selectedItem"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
@@ -32,19 +32,20 @@ export function CommunityPayoutsTab({
   garden,
   allocations,
   allocationsAtLimit,
+  allocationsUnread,
   selectedItem,
 }: CommunityPayoutsTabProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const allocationSplits = selectAllocationSplits(allocations);
-  const { isDeployer } = useRole();
+  const { isProtocolTeam } = useRole();
   const { isProtocolGarden } = useIsProtocolGarden({
     chainId: garden.chainId,
     gardenId: garden.id as Address,
   });
   // Campaign cookie jars are a protocol-level surface: deployers only, in the
   // Green Goods Community Garden (DL-046).
-  const showCampaignJars = isDeployer && isProtocolGarden;
+  const showCampaignJars = isProtocolTeam && isProtocolGarden;
   const campaignJarsRef = useRef<HTMLElement>(null);
   const campaignJarsRoute = (item: string) =>
     adminRoutes.communityPayouts({ gardenId: garden.id, item });
@@ -71,6 +72,7 @@ export function CommunityPayoutsTab({
             }
             allocationCount={allocations.length}
             allocationCountAtLeast={allocationsAtLimit}
+            allocationCountUnread={allocationsUnread}
           />
           {showCampaignJars ? (
             <section

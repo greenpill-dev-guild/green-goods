@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { WorkUploadConsentDialog } from "@green-goods/shared/components/Dialog/WorkUploadConsentDialog";
 import {
   type SubmissionStage,
   useSubmissionFlowController,
@@ -50,6 +51,7 @@ const Work: React.FC = () => {
     control,
     detailsConfig,
     detailInputs,
+    documentClickRef,
     draft,
     ensureWorkSubmissionJourneyId,
     feedback,
@@ -149,6 +151,7 @@ const Work: React.FC = () => {
             minRequired={minRequired}
             onMediaClickRef={mediaClickRef}
             onCameraClickRef={cameraClickRef}
+            onDocumentClickRef={documentClickRef}
             isRecording={isRecording}
             recordingElapsed={recordingElapsed}
             brokenMediaIds={brokenMediaIds}
@@ -203,6 +206,7 @@ const Work: React.FC = () => {
 
   return (
     <>
+      <WorkUploadConsentDialog prompt={controller.uploadPolicy} />
       {linkIntent ? (
         <WorkForSheet
           open={flow.promise.open}

@@ -365,6 +365,8 @@ export const ProfileBadges: React.FC = () => {
             <BadgeTile
               key={`${badge.profileStatus}-${badge.badgeId}`}
               slug={badge.slug}
+              chainId={badge.chainId}
+              unlockLock={badge.unlockLock}
               title={title}
               earned={badge.profileStatus === "earned"}
               statusLabel={statusLabel}

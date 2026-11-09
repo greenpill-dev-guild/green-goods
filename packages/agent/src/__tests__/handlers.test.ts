@@ -4,6 +4,7 @@
  * Tests for the core message handlers (start, join, submit).
  */
 
+import { WORK_UPLOAD_POLICY_VERSION } from "@green-goods/shared/modules/work/upload-policy";
 import fs from "fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { handleApprove } from "../handlers/approve";
@@ -103,24 +104,40 @@ function createPendingWork(overrides: Partial<PendingWork> = {}): PendingWork {
       plantCount: 5,
       feedback: "planted 5 oak trees",
       media: [],
+      uploadConsent: {
+        policyVersion: WORK_UPLOAD_POLICY_VERSION,
+        uploaderAddress: `0x${"2".repeat(40)}`,
+        termsAcceptedAt: "2026-11-05T00:00:00.000Z",
+        publicSharingAcceptedAt: "2026-11-05T00:00:00.000Z",
+        locale: "en",
+        permissionsConfirmed: true,
+      },
     },
     createdAt: Date.now(),
     ...overrides,
   };
 }
 
-function createSubmissionSession(overrides: Partial<Session> = {}): Session {
+const CONFIRM_CALLBACK = "confirm_submission:fixture-review";
+
+function createSubmissionSession(gardenAddress = "0x" + "3".repeat(40)): Session {
   return {
     platform: "telegram",
     platformId: "user-123",
     step: "confirming_work",
     draft: {
-      tasks: [{ type: "planting", species: "oak", count: 5 }],
-      notes: "planted 5 oak trees",
-      date: "2026-05-04",
+      work: {
+        tasks: [{ type: "planting", species: "oak", count: 5 }],
+        notes: "planted 5 oak trees",
+        date: "2026-05-04",
+      },
+      token: "fixture-review",
+      policyVersion: WORK_UPLOAD_POLICY_VERSION,
+      uploaderAddress: "0x" + "1".repeat(40),
+      gardenAddress,
+      locale: "es",
     },
     updatedAt: Date.now(),
-    ...overrides,
   };
 }
 
@@ -318,7 +335,11 @@ describe("handleTextSubmission", () => {
     const result = await handleTextSubmission(message, user, deps);
 
     expect(result.response.text).toContain("Confirm");
-    expect(result.response.buttons).toBeDefined();
+    expect(result.response.text).toContain("https://www.greengoods.app/terms");
+    expect(result.response.buttons).toContainEqual({
+      label: "Agree and Submit",
+      callbackData: "confirm_submission:test-id-123",
+    });
     expect(result.updateSession).toBeDefined();
     expect(result.updateSession?.step).toBe("confirming_work");
   });
@@ -387,10 +408,27 @@ describe("handleTextSubmission", () => {
 });
 
 describe("handleConfirmSubmission", () => {
+  it("does not treat a pre-policy button as a fresh agreement", async () => {
+    const message = createMockMessage({
+      id: "confirm-old-button",
+      content: { type: "callback", data: "confirm_submission" },
+    });
+    const gardener = createMockUser({ currentGarden: "0x" + "3".repeat(40) });
+    const addPendingWork = vi.spyOn(db, "addPendingWork");
+
+    const result = await handleConfirmSubmission(message, gardener, createSubmissionSession(), {
+      generateId: () => "must-not-create",
+    });
+
+    expect(result.response.text).toContain("submit your work again");
+    expect(result.clearSession).toBeUndefined();
+    expect(addPendingWork).not.toHaveBeenCalled();
+  });
+
   it("blocks operator accounts from confirming gardener work submissions", async () => {
     const message = createMockMessage({
       id: "confirm-operator-1",
-      content: { type: "callback", data: "confirm_submission" },
+      content: { type: "callback", data: CONFIRM_CALLBACK },
     });
     const operator = createMockUser({
       role: "steward",
@@ -410,7 +448,7 @@ describe("handleConfirmSubmission", () => {
   it("deduplicates repeated confirm callbacks by external message id", async () => {
     const message = createMockMessage({
       id: "confirm-duplicate-1",
-      content: { type: "callback", data: "confirm_submission" },
+      content: { type: "callback", data: CONFIRM_CALLBACK },
     });
     const gardener = createMockUser({
       currentGarden: "0x" + "3".repeat(40),
@@ -443,13 +481,13 @@ describe("handleConfirmSubmission", () => {
 
     const message = createMockMessage({
       id: "confirm-recipient-locale-1",
-      content: { type: "callback", data: "confirm_submission" },
+      content: { type: "callback", data: CONFIRM_CALLBACK },
       locale: "es-MX",
     });
     const gardener = createMockUser({
       currentGarden: gardenAddress,
     });
-    const session = createSubmissionSession();
+    const session = createSubmissionSession(gardenAddress);
     const notifyOperator = vi.fn<(operatorPlatformId: string, message: string) => Promise<void>>(
       async () => undefined
     );
@@ -464,6 +502,12 @@ describe("handleConfirmSubmission", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           title: "Submission",
+          uploadConsent: expect.objectContaining({
+            policyVersion: WORK_UPLOAD_POLICY_VERSION,
+            uploaderAddress: gardener.address,
+            locale: "es",
+            permissionsConfirmed: true,
+          }),
         }),
       })
     );
@@ -477,7 +521,7 @@ describe("handleConfirmSubmission", () => {
   it("returns in-progress for duplicate confirm callbacks before session lookup", async () => {
     const message = createMockMessage({
       id: "confirm-in-progress-1",
-      content: { type: "callback", data: "confirm_submission" },
+      content: { type: "callback", data: CONFIRM_CALLBACK },
     });
     const gardener = createMockUser({
       currentGarden: "0x" + "3".repeat(40),
@@ -504,7 +548,7 @@ describe("handleConfirmSubmission", () => {
     const internalError = new Error("sqlite leaked detail: disk path /secret/agent.db");
     const message = createMockMessage({
       id: "confirm-error-1",
-      content: { type: "callback", data: "confirm_submission" },
+      content: { type: "callback", data: CONFIRM_CALLBACK },
     });
     const gardener = createMockUser({
       currentGarden: "0x" + "3".repeat(40),
@@ -555,6 +599,29 @@ describe("handleCancelSubmission", () => {
 // ============================================================================
 
 describe("handleApprove", () => {
+  it("preserves older pending work and asks for resubmission before any publication", async () => {
+    const pendingWork = createPendingWork();
+    delete pendingWork.data.uploadConsent;
+    const message = createMockMessage({
+      id: "approve-old-work",
+      content: { type: "command", name: "approve", args: [pendingWork.id] },
+    });
+    const steward = createMockUser({ role: "steward", currentGarden: pendingWork.gardenAddress });
+    vi.spyOn(db, "getPendingWork").mockResolvedValueOnce(pendingWork);
+    vi.spyOn(blockchain, "isOperator").mockResolvedValueOnce({ verified: true });
+    const submitWork = vi.spyOn(blockchain, "submitWork");
+    const submitApproval = vi.spyOn(blockchain, "submitApproval");
+    const removePendingWork = vi.spyOn(db, "removePendingWork");
+
+    const result = await handleApprove(message, steward, {});
+
+    expect(result.response.text).toContain("This report is still saved");
+    expect(result.response.text).toContain("submit the work again");
+    expect(submitWork).not.toHaveBeenCalled();
+    expect(submitApproval).not.toHaveBeenCalled();
+    expect(removePendingWork).not.toHaveBeenCalled();
+  });
+
   it("blocks non-operator accounts before approval side effects", async () => {
     const pendingWork = createPendingWork();
     const message = createMockMessage({
@@ -716,7 +783,10 @@ describe("handleApprove", () => {
 
     expect(result.response.text).toContain("Trabajo aprobado y atestiguado");
     expect(submitWork).toHaveBeenCalledWith(
-      expect.objectContaining({ actionTitle: "Work Submission" })
+      expect.objectContaining({
+        actionTitle: "Work Submission",
+        workData: expect.objectContaining({ uploadConsent: pendingWork.data.uploadConsent }),
+      })
     );
     // The approval must reference the on-chain work UID (not the local queue id) and
     // attest to the garden as EAS recipient (matching work attestations + PWA paths).

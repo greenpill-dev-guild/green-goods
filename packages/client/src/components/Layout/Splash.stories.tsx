@@ -78,7 +78,7 @@ const meta: Meta<typeof Splash> = {
     },
     tertiaryAction: {
       control: "object",
-      description: "Tertiary text link — 'Recover with username' on entry, 'Back' on forms",
+      description: "Tertiary text link — 'Use Different Username' on entry, 'Back' on forms",
     },
   },
 };
@@ -277,30 +277,26 @@ export const Mobile: Story = {
 // the trimmed production copy from `@green-goods/shared` i18n `app.login.*`.
 //
 // Slot model recap: two control slots on one scaffold. ENTRY screens put the
-// primary in slot 1 and the wallet secondary in slot 2; FORM screens (create /
-// recover) put the input in slot 1 and the primary in slot 2. The message zone
-// shows error XOR info; the tertiary is "Recover with Username" on entry and
-// "Back" on forms. Recovery is flat — no separate-account fork.
+// primary in slot 1 and the wallet secondary in slot 2; the username form puts
+// the input in slot 1 and the primary in slot 2. The message zone shows error
+// XOR info; the tertiary is "Use Different Username" on returning entry and
+// "Back" on the shared username form.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SplashStoryArgs = NonNullable<Story["args"]>;
 
 /** Mirrors the trimmed English strings in packages/shared/src/i18n/en.json. */
 const COPY = {
-  createButton: "Create Account",
+  createButton: "Continue",
   signInButton: "Sign in with Passkey",
   continueAs: "Continue as gardener.eth",
   wallet: "Sign in with a Wallet",
-  recoverWithUsername: "Recover with Username",
-  haveAccount: "Already have an account?",
-  newAccountLabel: "Display name for new account",
-  newAccountPlaceholder: "e.g. alice or alice.eth",
+  recoverWithUsername: "Use Different Username",
   back: "Back",
-  usernameHint: "Keep this name somewhere safe. You'll use it to sign in on another device.",
+  usernameHint: "Enter your username to sign in, or choose a new one to create an account.",
   recoveryLabel: "Username or ENS handle",
   recoveryPlaceholder: "Enter your username or ENS handle",
-  recoveryInfo:
-    "Your passkey needs to be on this device or on a phone nearby. It usually arrives with your Apple or Google account.",
+  recoveryInfo: "Enter your username to sign in, or choose a new one to create an account.",
   loadingAuth: "Signing you in...",
   err: {
     noPasskey: "No passkey found for that username.",
@@ -336,15 +332,14 @@ const OVERFLOW_ERROR =
 const LONGEST_INFO =
   "Mantiene el acceso en el mismo dispositivo. Puede requerir reinscripción si se borra el almacenamiento del navegador.";
 
-/** Entry, first install: Create account (slot 1) · wallet (slot 2) · existing-account link. */
+/** New-device entry opens the shared username flow. */
 const entryNewArgs: SplashStoryArgs = {
   login: () => {},
-  buttonLabel: COPY.createButton,
+  buttonLabel: "Continue with Passkey",
   secondaryAction: { label: COPY.wallet, onSelect: () => {} },
-  tertiaryAction: { label: COPY.haveAccount, onClick: () => {} },
 };
 
-/** Entry, returning: personalized one-tap (slot 1) · wallet (slot 2) · Recover link. */
+/** Remembered accounts keep one-tap sign-in and one different-username action. */
 const entryReturningArgs: SplashStoryArgs = {
   login: () => {},
   buttonLabel: COPY.continueAs,
@@ -353,25 +348,25 @@ const entryReturningArgs: SplashStoryArgs = {
   tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
 };
 
-/** Create form: input (slot 1) · Create account (slot 2) · Back link. */
+/** Shared username form before a name is entered. */
 const createFormArgs: SplashStoryArgs = {
   login: () => {},
   buttonLabel: COPY.createButton,
   usernameInput: {
     value: "",
     onChange: () => {},
-    label: COPY.newAccountLabel,
-    placeholder: COPY.newAccountPlaceholder,
+    label: COPY.recoveryLabel,
+    placeholder: COPY.recoveryPlaceholder,
     minLength: 3,
   },
   infoMessage: COPY.usernameHint,
   tertiaryAction: { label: COPY.back, onClick: () => {} },
 };
 
-/** Recover form: input (slot 1) · Sign in with passkey (slot 2) · Back link. */
+/** The same username form with an existing name entered. */
 const recoverFormArgs: SplashStoryArgs = {
   login: () => {},
-  buttonLabel: COPY.signInButton,
+  buttonLabel: COPY.createButton,
   usernameInput: {
     value: "gardener.eth",
     onChange: () => {},
@@ -382,7 +377,7 @@ const recoverFormArgs: SplashStoryArgs = {
   tertiaryAction: { label: COPY.back, onClick: () => {} },
 };
 
-/** First install — entry screen; Create account navigates to the create form. */
+/** New-device entry opens username sign-in or registration. */
 export const EntryFirstInstall: Story = {
   name: "Auth · Entry (first install)",
   args: entryNewArgs,
@@ -394,15 +389,15 @@ export const EntryReturning: Story = {
   args: entryReturningArgs,
 };
 
-/** Create form — reached from the entry screen's Create account. */
+/** Shared username form with an available name. */
 export const CreateAccountForm: Story = {
-  name: "Auth · Create account form",
+  name: "Auth · Username (new name)",
   args: createFormArgs,
 };
 
-/** Recover form — flat flow: recover, or Back to entry. */
+/** The same username form with an existing name. */
 export const RecoverForm: Story = {
-  name: "Auth · Recover with username",
+  name: "Auth · Username (existing name)",
   args: recoverFormArgs,
 };
 
@@ -451,8 +446,8 @@ export const WalletFallback: Story = {
 const CATALOG: ReadonlyArray<{ label: string; args: SplashStoryArgs }> = [
   { label: "Entry · first install", args: entryNewArgs },
   { label: "Entry · returning", args: entryReturningArgs },
-  { label: "Create account form", args: createFormArgs },
-  { label: "Recover with Username", args: recoverFormArgs },
+  { label: "Username · new name", args: createFormArgs },
+  { label: "Username · existing name", args: recoverFormArgs },
   { label: "Error · not found", args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey } },
   {
     label: "Error · server unavailable",
@@ -492,9 +487,9 @@ export const FlowDiagram: Story = {
     <div className="mx-auto max-w-4xl p-4">
       <h2 className="text-lg font-semibold text-text-strong-950">Passkey login flow</h2>
       <p className="mt-1 mb-4 text-sm text-text-sub-600">
-        Two-step create (entry → form), personalized one-tap for returning users, flat recovery
-        (recover or go Back — no separate-account fork), wallet on the entry screens. Errors and
-        helper copy share one reserved (fixed-height) message zone per screen.
+        A shared username form for sign-in and creation, with one-tap sign-in for remembered
+        accounts and wallet sign-in on the entry screens. Errors and helper copy share one reserved
+        (fixed-height) message zone per screen.
       </p>
       <pre
         data-testid="login-flow-mermaid"
@@ -509,7 +504,7 @@ export const FlowDiagram: Story = {
 /**
  * Layout-stability proof (CI-enforced via the storybook-ci tag). Renders the REAL
  * component in every screen shape that must agree — both entry variants, the
- * create form, the recover form (with the worst-case localized info), the
+ * username form with new and existing names (with the longest localized info), the
  * longest real error, a deliberately over-long (~4-line) error, an in-flight
  * form attempt (spinner INSIDE the primary) — each pinned to a real 375px
  * phone width. The play function asserts, with real
@@ -577,8 +572,11 @@ export const LayoutStability: Story = {
     const canvas = within(canvasElement);
     const scope = (id: string) => within(canvas.getByTestId(id));
     const panelTop = (id: string) => canvas.getByTestId(id).getBoundingClientRect().top;
+    // The logo's slot, not the image: a busy screen's logo breathes (it scales),
+    // and this pins where the logo is laid out, not where a breath has it.
     const logoOffset = (id: string) =>
-      scope(id).getByRole("img").getBoundingClientRect().top - panelTop(id);
+      (scope(id).getByRole("img").parentElement as HTMLElement).getBoundingClientRect().top -
+      panelTop(id);
     const slotOneOffset = (id: string) =>
       scope(id).getByTestId("splash-slot-one").getBoundingClientRect().top - panelTop(id);
     const slotTwoOffset = (id: string) =>

@@ -8,6 +8,7 @@ import type {
 } from "../../../modules/commitment-pooling/types";
 import type { CommitmentPoolingAvailability } from "../../../modules/commitment-pooling/types-core";
 import type { Address } from "../../../types/domain";
+import type { UploadPolicyPrompt } from "../../work/useUploadPolicy";
 import type { ProofBeat, ProofReadiness } from "./proofReadiness";
 import type { ProofContents } from "./proofContents";
 
@@ -77,6 +78,7 @@ export interface ProofComposerController {
   canSendToo: boolean;
   /** Whether Add This Proof also sends it; on by default for someone working alone. */
   sendToo: boolean;
+  sendsProofWithItsSend: boolean;
   setSendToo: (on: boolean) => void;
   linkInvalid: boolean;
   /** Photos only, without any HEIC photo still waiting to convert. */
@@ -87,9 +89,13 @@ export interface ProofComposerController {
   readiness: (beat: ProofBeat) => ProofReadiness;
   toggleCredit: (address: Address) => void;
   toggleRecording: () => void;
-  pick: (files: FileList | File[] | null) => Promise<{ rejectedCount: number }>;
+  /** `overLimit`: the pick would take the proof past its document or size limit, so none of it was added. */
+  pick: (
+    files: FileList | File[] | null
+  ) => Promise<{ rejectedCount: number; overLimit?: boolean }>;
   removeMedia: (index: number) => void;
   removeAudio: (index: number) => void;
   submit: () => Promise<boolean>;
+  uploadPolicy?: UploadPolicyPrompt | null;
   refetch: () => Promise<unknown>;
 }

@@ -49,8 +49,13 @@ describe("where a queued item stands for Upload all", () => {
       reason: "action-ended",
     });
   });
+  it("offers consent recovery when an executor finds a legacy draft, even before preparation", () => {
+    expect(
+      queuedUploadStatus(queued("work", { meta: { waitingReason: "upload-policy-required" } }))
+    ).toEqual({ state: "blocked", reason: "upload-policy-required" });
+  });
 
-  it("reports photos that wait for the decoder or could not convert", () => {
+  it("reports photos that wait for the decoder or could not convert, and a video it could not read", () => {
     expect(
       queuedUploadStatus(
         queued("work", {
@@ -69,6 +74,10 @@ describe("where a queued item stands for Upload all", () => {
         })
       ).state
     ).toBe("photo-needs-attention");
+    // The queue's own send says a held file is a video, so the person is told it is one.
+    expect(
+      queuedUploadStatus(queued("work", { meta: { waitingReason: "video-needs-attention" } }))
+    ).toEqual({ state: "photo-needs-attention", video: true });
   });
 
   it("never offers a sent, reverted, or retired item for upload", () => {

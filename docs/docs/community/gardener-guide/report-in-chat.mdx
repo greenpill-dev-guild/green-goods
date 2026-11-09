@@ -1,0 +1,228 @@
+---
+title: Report Work in Chat
+sidebar_label: Report in Chat
+slug: /community/gardener-guide/report-in-chat
+description: "Report your work to the Green Goods bot in Telegram: link your account, send photos or a voice note, check the summary, and sign to publish."
+audience: gardener
+owner: docs
+last_verified: "2026-11-02"
+feature_status: In progress
+goal: "Publish one work report from a Telegram chat, from the first message to the signed record, and know how to change or cancel it on the way."
+difficulty: "standard"
+estimated_time: "5 to 10 minutes for a first report."
+prereqs: "Telegram, a Green Goods account with a gardener, steward or owner role in the garden, and your photos."
+next_steps: "/community/gardener-guide/track-status-and-attestations"
+persona_context: "Gardeners who would rather message than open the app, often on a shared phone with weak signal."
+source_of_truth:
+  - packages/agent/src/services/reporting/copy/en.ts
+  - packages/agent/src/services/reporting/channels.ts
+  - packages/agent/src/services/reporting/controls.ts
+  - packages/agent/src/runtime/reporting-startup.ts
+  - packages/agent/src/platforms/telegram-reporting.ts
+  - packages/agent/src/platforms/telegram-commands.ts
+  - packages/agent/src/services/reporting/runtime.ts
+  - packages/agent/src/services/reporting/coordinator/commands.ts
+  - packages/agent/src/services/reporting/coordinator/context.ts
+  - packages/agent/src/services/reporting/coordinator/account-steps.ts
+  - packages/agent/src/services/reporting/coordinator/report-commands.ts
+  - packages/agent/src/services/reporting/media-intake.ts
+  - packages/agent/src/services/reporting/media/process.ts
+  - packages/agent/src/services/reporting/media/image.ts
+  - packages/agent/src/services/reporting/media/audio.ts
+  - packages/agent/src/services/reporting/authority.ts
+  - packages/agent/src/services/reporting/preparation.ts
+  - packages/agent/src/services/reporting/retention.ts
+  - packages/agent/src/services/reporting/continuations.ts
+  - packages/agent/src/services/reporting/live-delegation.ts
+  - packages/contracts/src/accounts/Garden.sol
+  - packages/shared/src/workflows/agent-reporting/reportLifecycle.ts
+  - packages/shared/src/hooks/agent-reporting/community-offer.ts
+  - packages/client/src/views/Public/AgentReporting/CeremonyView.tsx
+  - packages/shared/src/modules/agent-reporting/grants.ts
+  - packages/client/src/views/Public/AgentReporting/messages.ts
+  - packages/shared/src/i18n/en.json
+  - fly.toml
+keywords:
+  - telegram
+  - chat
+  - bot
+  - report work
+  - voice note
+  - photos
+---
+
+# Report Work in Chat
+
+<StatusBadge status="In progress" />
+
+If messaging is easier than opening the app, you can report your work to the Green Goods bot in Telegram. Tell it what you did in your own words and send your photos. The bot asks a few quick questions, shows you a summary to check, and sends you a Green Goods page where you sign to publish it. What you publish is the same work record the app makes, and your garden's stewards review it the same way.
+
+<Callout kind="note" title="Still being tested">
+
+Chat reporting is new, and these limits apply today:
+
+- **Telegram only.** WhatsApp isn't available yet.
+- **The bot's pages open on beta.greengoods.app,** the site where Green Goods tests new features before they reach the main app. A report you publish there is real and permanent.
+- **Voice notes may be off.** The Green Goods team switches them on separately. While they're off, the bot asks you to type instead.
+
+</Callout>
+
+## Before you start
+
+- **Telegram.** Report in a private chat with the Green Goods bot. It doesn't take reports in group chats. If you don't have the bot's link, ask your garden's steward.
+- **A Green Goods account,** with a passkey or a wallet. Use the one you have in the app. If you have none yet, you can create a passkey account on the page the bot sends when you link the chat.
+- **A role in the garden.** To publish, your account must be a gardener, steward or owner in the garden. You can start a report before a steward adds you; the bot saves it so you can publish once you're added.
+- **Your photos.** Some activities need a set number of them.
+
+## Steps
+
+### Step 1: Start the chat
+
+1. Open the chat with the Green Goods bot and send any message.
+2. The bot asks for your agreement first. It stores and reads what you send, may use AI to understand it, and makes nothing public until you confirm a report. Tap **I agree** to go on. **No thanks** stops here, and the bot removes what you sent.
+3. To use Spanish or Portuguese, send **LANGUAGE** and pick one.
+
+Tap **Menu**, next to where you type, to see the bot's main commands.
+
+### Step 2: Link your account
+
+Linking tells the bot which Green Goods account your reports come from. You can link it now, so the bot shows your own gardens, or start your report and link it when you publish.
+
+1. Send **CONNECT**, or tap **Connect account** when the bot offers it.
+2. Tap **Verify account**. The link works for 10 minutes. The page needs your own browser, so open it in Safari or Chrome. If it opens inside Telegram, use that page's menu to open it in your browser, or tap **Copy link** in the chat.
+3. On the page, tap **Continue**. If this browser doesn't know you yet, the page asks **New to Green Goods?** Tap **I Have an Account** to use yours, or **Create Account** to make a passkey account.
+4. Choose **Use Passkey** or **Use Wallet**, then tap **Sign to Continue**. This shows the account is yours. It is a signed message, not a payment.
+5. If your account isn't in the Community Garden yet, the page offers to join it. Tap **Join Garden**, or **Not Now**. Joining with a passkey costs nothing; with a wallet, your wallet pays a small network fee.
+6. The page shows a six-digit code under **Send This Code**. Send those six digits on their own in the chat.
+7. The bot replies that your account is linked and names your gardens. The page says **Account linked**, and you can close it.
+
+The page starts with the account your browser used last. To link another one, tap **Use a different account** there. If the link expires before you finish, send **CONNECT** for a new one.
+
+### Step 3: Tell the bot what you did
+
+1. Describe the work in your own words, for example "Planted 40 seedlings along the east bed this morning."
+2. Send your photos. To send several at once, send them as an album: the bot reads the whole album as one message.
+3. The bot asks which garden the work is for. If your linked account is in only one garden, it uses that one. Send **GARDEN** to change it.
+4. The bot works out which activity matches your work, or asks you to pick the closest one.
+
+What you can send:
+
+- **Photos:** JPEG, PNG or WebP, up to 10 MB each. Each activity sets how many photos a report can hold. If you send more, the report keeps the first ones you sent and the bot tells you so. The bot strips location and device details from every photo before it uses it.
+- **Files:** a PDF of up to 20 pages, a Word or Excel file, or a CSV. The bot reads it to fill in details. The file itself stays private and is never published.
+- **Voice notes:** up to 2 minutes, while voice notes are switched on. The first time, the bot asks whether it may send your recordings to an AI service to turn them into text. It then shows you what it heard, so you can send a correction. The recording itself is never published.
+- **Videos** aren't accepted in chat. Use the app if a video helps.
+
+### Step 4: Answer the quick questions
+
+The bot says how many questions are left, for example "Got it: Seedling Transplant at Community Garden. 3 quick questions, then a summary to check." Answer each one with a tap or a short reply. For numbers, send just the number, for example 12.
+
+If something you said and something the bot found in a photo or file disagree, it asks which one is right. A few activities need a list the chat can't collect yet. The bot says so, and you can choose another activity or use the app.
+
+### Step 5: Check the summary and confirm
+
+The bot shows a summary: the garden, the activity, the title, the time spent, the description, the details and the photos. Once your account is linked, it also names the account that will publish it.
+
+Read it carefully. Once published, everything in the summary is public and can't be deleted, and your account address is published with it. Your chat messages and any files that aren't in the report stay private.
+
+<Callout kind="warning" title="Confirming puts your photos in public storage">
+
+After you confirm, the bot prepares the record by putting your photos and the report's words in public storage, before you sign. If you cancel after that, the report never reaches your garden's record, but those copies stay public. Only confirm what you are comfortable sharing.
+
+</Callout>
+
+1. Tap **Confirm** to publish, **Edit** to change something, or **Cancel**.
+2. If you linked your account after confirming, the bot asks once more whether to publish from that account. Tap **Publish**.
+
+### Step 6: Sign on the reporting page
+
+Publishing needs your own signature. What the bot sends depends on your account.
+
+**With a wallet,** the bot sends **Review and publish**.
+
+1. Open the page and tap **Continue**.
+2. If the page asks, show it's your account the same way you did when you linked it. This signature costs nothing.
+3. Under **Check and Publish**, check every detail. If something looks wrong, don't sign: go back to the chat and fix it there.
+4. Tap **Publish** and approve in your wallet. Your wallet shows the network fee before you approve.
+
+**With a passkey,** you follow the same steps and sign with your passkey. Green Goods covers the network fee.
+
+Where Green Goods has switched on chat permissions, a passkey account gets one more choice first:
+
+- **Publish this report only:** the bot sends **Review and publish**, and you sign as above.
+- **Allow reporting in chat:** on the **Allow Bounded Reporting** page, one signature publishes this report and lets Green Goods publish your next reports to this garden after you confirm each one in chat. The permission covers reports only, up to 5 in 24 hours counting this one, and you can remove it at any time with **Manage Permissions**.
+
+While the permission lasts, your next reports to that garden publish as soon as you confirm them in chat, with no page to sign. If it is paused or used up, the bot asks you to sign with your passkey instead. Once it ends or you remove it, the bot offers the choice again.
+
+Each signing link works for 10 minutes. If one expires, change something in your report and confirm it again, and the bot sends a new link.
+
+## Change or cancel a report
+
+You can change your mind until the report starts to publish.
+
+- **Before you confirm,** send a correction at any time, such as "time was 3 hours", or send **EDIT** and pick what to change.
+- **After you confirm, until you tap Publish on the page,** you can still change or cancel it. A correction or a new photo takes back your confirmation, and the bot shows you the summary again. Send **CANCEL** to throw the report away. It never reaches your garden's record and the bot removes its private copies, but anything already put in public storage stays there.
+- **If you decline the signature** in your wallet or passkey prompt, nothing reaches your garden's record, and the bot shows you the report again.
+- **While it is publishing,** it can't change. If publishing fails, the bot shows you the report again, and you can make your change then. With reporting in chat allowed, publishing starts as soon as you confirm.
+- **Once it is published,** it can't be edited or removed. Ask your steward to reject it so you can send a corrected report.
+
+A report you leave unfinished for 7 days expires, and the bot removes its private content.
+
+## How you know it worked
+
+- **In the chat:** the bot says **Your report is published ✅**, with a link to view the record.
+- **On the page:** it says **Published**.
+- **In the app:** signed in with the same account, the work appears in **Your Work** like work you sent from the app.
+
+## What happens next
+
+A steward of your garden reviews the work in the dashboard, the app or the chat, the same way as work sent from the app. The bot doesn't tell you when they decide. [Track Your Work](/community/gardener-guide/track-status-and-attestations) explains what each status means.
+
+## Words the bot understands
+
+Send any of these on its own. Most are also in the **Menu**.
+
+| Send | What it does |
+|---|---|
+| **NEW** | Start a new report |
+| **STATUS** | See where your report is |
+| **EDIT** | Change something in your report |
+| **GARDEN** | Change your report's garden |
+| **JOIN** | See how to join another garden |
+| **CANCEL** | Throw away the current report |
+| **CONNECT** | Link your Green Goods account |
+| **ACCOUNT** | See which account this chat uses |
+| **SWITCH** | Link a different account |
+| **DISCONNECT** | Unlink your account from this chat |
+| **RECOVER** | Move your account to this chat if you lost the old one |
+| **LANGUAGE** | Choose English, Spanish or Portuguese |
+| **HELP** | See help and support |
+| **STOP** | Stop the assistant and throw away the current report. Send **START** to turn it back on |
+| **DELETE** | Remove every unpublished report, review and file, and stop the assistant |
+
+**STOP** and **DELETE** remove only private copies. What you published, and anything already put in public storage, stays public.
+
+## If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| **Voice notes aren't supported yet** | Voice notes are switched off. Type your update instead |
+| **I can't use that kind of file** | Send photos, a PDF, a Word or Excel file, or a CSV, or type the details |
+| **That file is larger than 10 MB** | Send a smaller photo or file. Your report is saved |
+| **This activity accepts up to** a number of photos | The report keeps the first photos you sent, up to that number |
+| **Your account isn't a gardener in** a garden | Ask a steward of that garden to add you, then reply **RETRY** |
+| **I don't see your account in this garden yet** | Join the Community Garden from the link, then tap **I've joined** |
+| **That code doesn't match an open verification** | Check the six digits on the page and send them again |
+| **That account is already linked to another chat** | If it's yours, send **RECOVER** from the chat you want to use |
+| **This link can't be used here** on the page | The link expired, was already used, or was opened in another browser. For a new **Verify account** link, send **CONNECT**. For a new signing link, change something in your report and confirm it again |
+| **Reporting is paused for maintenance** | Your message is saved. The bot replies when reporting resumes |
+
+To reach a person, ask in the [Green Goods community on Discord](https://discord.gg/greenpill).
+
+## Next step
+
+<NextBestAction
+  title="Track your work"
+  why="See whether a steward has reviewed your report and what to do if it comes back."
+  actionLabel="Track Your Work"
+  actionHref="/community/gardener-guide/track-status-and-attestations"
+/>

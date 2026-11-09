@@ -72,6 +72,13 @@ describe("owner publication", () => {
     ).toEqual([]);
     // Evidence and metadata go to public storage only after confirmation and consent.
     expect(harness.uploader.uploads.map((upload) => upload.name)).toEqual(["metadata.json"]);
+    const metadata = JSON.parse(new TextDecoder().decode(harness.uploader.uploads[0].bytes));
+    expect(metadata.uploadConsent).toMatchObject({
+      policyVersion: "2026-11-05",
+      uploaderAddress: adaAccount.address.toLowerCase(),
+      permissionsConfirmed: true,
+      locale: "en",
+    });
 
     const attempt = await reserve(browser, view, envelope);
     expect(attempt.status).toBe(200);
@@ -84,6 +91,8 @@ describe("owner publication", () => {
       kind: "broadcast",
       transactionHash: hash,
     });
+    // A policy update must not prevent reconciliation of a transaction already sent.
+    harness.core.db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
     expect(outcome.body).toEqual({
       ok: true,
       operationState: "reconciling",
@@ -129,6 +138,54 @@ describe("owner publication", () => {
       gardenerAddress: adaAccount.address.toLowerCase(),
       title: envelope.kind === "work" ? envelope.fields.title : "",
     });
+  });
+
+  it("reopens a saved report for fresh confirmation when the upload terms change", async () => {
+    setControl(harness.core, "publication", false, { actor: "operator", reason: "test pause" });
+    await confirmLinkAndPublish(harness);
+    expect(harness.uploader.uploads).toHaveLength(0);
+    const db = harness.core.db;
+    db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
+    setControl(harness.core, "publication", true, { actor: "operator", reason: "test resume" });
+    harness.clock.advance(5 * 60_000);
+    await harness.drain();
+    expect(row("SELECT state, failure_code FROM execution_operations")).toEqual({
+      state: "preparation_failed",
+      failure_code: "policy_changed",
+    });
+    expect(harness.uploader.uploads).toHaveLength(0);
+
+    await harness.say(ADA, "RETRY");
+    const accepted = await harness.press(ADA, "I agree");
+    const summary = accepted.some((text) => /CONFIRM \d{4}/.test(text))
+      ? accepted
+      : await harness.say(ADA, "RETRY");
+    expect(summary.join("\n")).toContain("baobab");
+    expect(harness.uploader.uploads).toHaveLength(0);
+    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    expect(harness.uploader.uploads.map(({ name }) => name)).toEqual(["metadata.json"]);
+    expect(row("SELECT state FROM execution_operations")).toEqual({ state: "prepared" });
+  });
+
+  it("renews a prepared report before letting the owner reserve a send", async () => {
+    await confirmLinkAndPublish(harness);
+    const previous = await openSigningPage(harness);
+    expect(harness.uploader.uploads).toHaveLength(1);
+    harness.core.db.query("UPDATE consent_records SET notice_version = 'previous-policy'").run();
+    expect((await reserve(previous.browser, previous.view, previous.envelope)).status).toBe(403);
+
+    await harness.say(ADA, "RETRY");
+    const accepted = await harness.press(ADA, "I agree");
+    const summary = accepted.some((text) => /CONFIRM \d{4}/.test(text))
+      ? accepted
+      : await harness.say(ADA, "RETRY");
+    expect(harness.uploader.uploads).toHaveLength(1);
+    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+
+    const updated = await openSigningPage(harness);
+    expect(updated.envelope.payloadDigest).not.toBe(previous.envelope.payloadDigest);
+    expect(harness.uploader.uploads).toHaveLength(2);
+    expect((await reserve(updated.browser, updated.view, updated.envelope)).status).toBe(200);
   });
 
   it("returns a rejected signature for explicit reconfirmation without another publication", async () => {

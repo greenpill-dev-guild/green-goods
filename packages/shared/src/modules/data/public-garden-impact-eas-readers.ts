@@ -1,7 +1,8 @@
 import { getEASConfig } from "../../config/blockchain";
 import type { PublicGardenImpactSource } from "../../public-contracts/garden-impact";
 import { getAssessmentSchemas } from "../assessment/schemas";
-import type { GraphQLReader } from "./graphql-client";
+import { withTimeout, type GraphQLReader } from "./graphql-client";
+import { PublicGardenImpactEasQueue } from "./public-garden-impact-eas-queue";
 import { resolveIPFSUrl } from "./ipfs/resolve";
 import {
   assertPublicGardenImpactChain,
@@ -88,6 +89,7 @@ async function readAttestations(input: {
   source: PublicGardenImpactSource;
   where: Record<string, unknown>;
   operationName: string;
+  signal?: AbortSignal;
 }): Promise<PublicAttestationRow[]> {
   return readPublicGardenImpactPages(input.source, (take, skip) =>
     queryPublicGardenImpactRows<PublicAttestationRow>({
@@ -106,21 +108,26 @@ function addressFilter(address: string): { in: string[] } {
 export function createPublicGardenImpactEasReaders(
   createReader: (chainId: number) => GraphQLReader
 ): Pick<PublicGardenImpactReaders, "readWorks" | "readApprovals" | "readAssessments"> {
+  const queue = new PublicGardenImpactEasQueue();
+  const approvals = new Map<number, Promise<PublicAttestationRow[]>>();
   return {
-    async readWorks(chainId, gardenAddress): Promise<PublicGardenImpactWorkRecord[]> {
+    async readWorks(chainId, gardenAddress, signal): Promise<PublicGardenImpactWorkRecord[]> {
       assertPublicGardenImpactChain(chainId, "works");
       const schema = requirePublicGardenImpactSchema("works", getEASConfig(chainId).WORK.uid);
       try {
-        const rows = await readAttestations({
-          reader: createReader(chainId),
-          source: "works",
-          where: {
-            schemaId: { equals: schema },
-            recipient: addressFilter(gardenAddress),
-            revoked: { equals: false },
-          },
-          operationName: "readPublicGardenImpactWorks",
-        });
+        const rows = await queue.run(chainId, signal, () =>
+          readAttestations({
+            reader: createReader(chainId),
+            signal,
+            source: "works",
+            where: {
+              schemaId: { equals: schema },
+              recipient: addressFilter(gardenAddress),
+              revoked: { equals: false },
+            },
+            operationName: "readPublicGardenImpactWorks",
+          })
+        );
         return rows.map((row) => {
           const fields = decodedFields(row.decodedDataJson);
           const mediaValue = fieldValue(fields, "media");
@@ -142,19 +149,40 @@ export function createPublicGardenImpactEasReaders(
       }
     },
 
-    async readApprovals(chainId): Promise<PublicGardenImpactApprovalRecord[]> {
+    async readApprovals(chainId, signal): Promise<PublicGardenImpactApprovalRecord[]> {
       assertPublicGardenImpactChain(chainId, "approvals");
       const schema = requirePublicGardenImpactSchema(
         "approvals",
         getEASConfig(chainId).WORK_APPROVAL.uid
       );
       try {
-        const rows = await readAttestations({
-          reader: createReader(chainId),
-          source: "approvals",
-          where: { schemaId: { equals: schema }, revoked: { equals: false } },
-          operationName: "readPublicGardenImpactApprovals",
-        });
+        signal?.throwIfAborted();
+        let pending = approvals.get(chainId);
+        if (!pending) {
+          // This chain-wide read belongs to all its callers. One garden timing out must not
+          // cancel another garden's read; its own deadline bounds both queue and network time.
+          const controller = new AbortController();
+          const timer = setTimeout(
+            () => controller.abort(new Error("Approval read timed out")),
+            20_000
+          );
+          pending = queue
+            .run(chainId, controller.signal, () =>
+              readAttestations({
+                reader: createReader(chainId),
+                signal: controller.signal,
+                source: "approvals",
+                where: { schemaId: { equals: schema }, revoked: { equals: false } },
+                operationName: "readPublicGardenImpactApprovals",
+              })
+            )
+            .finally(() => {
+              clearTimeout(timer);
+              approvals.delete(chainId);
+            });
+          approvals.set(chainId, pending);
+        }
+        const rows = await withTimeout(pending, 20_000, "readPublicGardenImpactApprovals", signal);
         return rows.map((row) => {
           const fields = decodedFields(row.decodedDataJson);
           return {
@@ -169,7 +197,11 @@ export function createPublicGardenImpactEasReaders(
       }
     },
 
-    async readAssessments(chainId, gardenAddress): Promise<PublicGardenImpactAssessmentRecord[]> {
+    async readAssessments(
+      chainId,
+      gardenAddress,
+      signal
+    ): Promise<PublicGardenImpactAssessmentRecord[]> {
       assertPublicGardenImpactChain(chainId, "assessments");
       const config = getEASConfig(chainId);
       const schemas = getAssessmentSchemas(config).map((schema) => schema.uid);
@@ -177,16 +209,19 @@ export function createPublicGardenImpactEasReaders(
         throw new PublicGardenImpactSourceError("assessments", "missing_schema");
       }
       try {
-        const rows = await readAttestations({
-          reader: createReader(chainId),
-          source: "assessments",
-          where: {
-            schemaId: { in: schemas },
-            recipient: addressFilter(gardenAddress),
-            revoked: { equals: false },
-          },
-          operationName: "readPublicGardenImpactAssessments",
-        });
+        const rows = await queue.run(chainId, signal, () =>
+          readAttestations({
+            reader: createReader(chainId),
+            signal,
+            source: "assessments",
+            where: {
+              schemaId: { in: schemas },
+              recipient: addressFilter(gardenAddress),
+              revoked: { equals: false },
+            },
+            operationName: "readPublicGardenImpactAssessments",
+          })
+        );
         return rows.map((row) => ({ id: row.id, createdAt: Number(row.timeCreated) }));
       } catch (error) {
         throw wrapPublicGardenImpactSourceError("assessments", error);

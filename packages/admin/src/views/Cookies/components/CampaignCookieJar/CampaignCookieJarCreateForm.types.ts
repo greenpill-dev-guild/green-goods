@@ -9,7 +9,7 @@ import type { IntlShape } from "react-intl";
 export interface CampaignCookieJarCreateFormProps {
   formatMessage: IntlShape["formatMessage"];
   moduleConfigured: boolean;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
   roleLoading: boolean;
   createPending: boolean;
   gardensLoading: boolean;

@@ -117,7 +117,10 @@ async function startAndSettle(
 // ============================================================================
 
 describe("workflows/authMachine", () => {
-  it("carries original-account intent only for the explicit sign-in attempt", async () => {
+  it.each([
+    "originalAccount",
+    "createIfMissing",
+  ] as const)("carries %s only for the explicit sign-in attempt", async (intent) => {
     const attempts: unknown[] = [];
     const machine = createTestMachine().provide({
       actors: {
@@ -128,13 +131,13 @@ describe("workflows/authMachine", () => {
       },
     });
     const actor = await startAndSettle(machine);
-    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME, originalAccount: true });
+    actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME, [intent]: true });
     await flushPromises();
-    expect(attempts[0]).toMatchObject({ userName: MOCK_USERNAME, originalAccount: true });
+    expect(attempts[0]).toMatchObject({ userName: MOCK_USERNAME, [intent]: true });
     actor.send({ type: "SIGN_OUT" });
     actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
     await flushPromises();
-    expect(attempts[1]).toMatchObject({ userName: MOCK_USERNAME, originalAccount: false });
+    expect(attempts[1]).toMatchObject({ userName: MOCK_USERNAME, [intent]: false });
     actor.stop();
   });
 

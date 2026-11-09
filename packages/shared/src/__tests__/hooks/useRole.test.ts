@@ -32,6 +32,9 @@ vi.mock("../../hooks/blockchain/useDeploymentRegistry", () => ({
 vi.mock("../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => mocks.chainId,
 }));
+vi.mock("../../config/blockchain", () => ({
+  getNetworkConfig: () => ({ rootGarden: { address: "garden-2", tokenId: 0 } }),
+}));
 vi.mock("../../modules/data/graphql-client", () => ({
   greenGoodsIndexer: { query: (...args: unknown[]) => mocks.query(...args) },
 }));
@@ -74,6 +77,26 @@ describe("useRole", () => {
     });
   });
 
+  it("removes a cached steward hint immediately when another tab records a departure", async () => {
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.stewardGardens).toEqual(gardens));
+    const key = "greengoods:garden-departures";
+    const fence = JSON.stringify({
+      [`${CHAIN_ID}:${gardens[1].id}:${SMART_ACCOUNT.toLowerCase()}`]: "50",
+    });
+    try {
+      act(() => {
+        localStorage.setItem(key, fence);
+        window.dispatchEvent(Object.assign(new Event("storage"), { key }));
+      });
+      expect(result.current.stewardGardens).toEqual([gardens[0]]);
+      expect(result.current.isProtocolTeam).toBe(false);
+      expect(mocks.query).toHaveBeenCalledOnce();
+    } finally {
+      localStorage.removeItem(key);
+    }
+  });
+
   it.each([false, true])("keeps deployer rights when stewardship is %s", async (isSteward) => {
     mocks.registry = { canDeploy: true, isOwner: true, isInAllowlist: true, loading: false };
     mocks.query.mockResolvedValueOnce({ data: { Garden: isSteward ? [gardens[0]] : [] } });
@@ -86,6 +109,38 @@ describe("useRole", () => {
       stewardGardens: isSteward ? [gardens[0]] : [],
       deploymentPermissions: { canDeploy: true, isOwner: true, isInAllowlist: true },
     });
+  });
+
+  it.each([
+    {
+      who: "an allowlisted creator with no role in the Community Garden",
+      registry: { canDeploy: true, isOwner: false, isInAllowlist: true },
+      steward: [gardens[0]],
+      isProtocolTeam: false,
+    },
+    {
+      who: "a Community Garden steward who is not allowlisted",
+      registry: { canDeploy: false, isOwner: false, isInAllowlist: false },
+      steward: [gardens[1]],
+      isProtocolTeam: true,
+    },
+    {
+      who: "the registry owner with no role in the Community Garden",
+      registry: { canDeploy: true, isOwner: true, isInAllowlist: false },
+      steward: [],
+      isProtocolTeam: true,
+    },
+  ])("treats $who as protocol team: $isProtocolTeam", async ({
+    registry,
+    steward,
+    isProtocolTeam,
+  }) => {
+    mocks.registry = { ...registry, loading: false };
+    mocks.query.mockResolvedValueOnce({ data: { Garden: steward } });
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isProtocolTeam).toBe(isProtocolTeam);
+    expect(result.current.isDeployer).toBe(registry.canDeploy);
   });
 
   it("does not reuse another identity's or chain's cached stewardship", async () => {

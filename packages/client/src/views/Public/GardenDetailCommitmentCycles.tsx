@@ -2,11 +2,12 @@ import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type CommitmentUnitSummaryRecord,
+  cycleStanding,
   type PublicCommitmentCycleRecord,
 } from "@green-goods/shared/commitment-pooling/public";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
+import { EditorialHeading } from "@/components/Public/atoms";
 
 /**
  * The blocks inside the public Garden page's `§ 02 Commitments` panel: the
@@ -48,85 +49,231 @@ function toDate(seconds: bigint): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/** A date that holds together on one line: its spaces become same-width no-break spaces. */
+function unbroken(date: string): string {
+  return date.replace(/ /g, "\u00A0").replace(/\u2009/g, "\u202F");
+}
+
 /**
- * The open Season and every open Campaign. The block sizes itself to the
- * panel cell it lands in: one column beside the pool units, two across when
- * it has the whole width.
+ * A group of the record (the current periods, the finished ones): it opens on
+ * the hairline that closes the group above, under an h3 a step above the
+ * names of the periods it lists. The garden's own totals head the record
+ * without a rule, beside the pool-state sentence.
+ */
+const GROUP_CLASS = "mt-10 flex flex-col gap-5 border-t border-stroke-soft-200 pt-10";
+
+/**
+ * A period's record line in the section's mono voice: type, status, dates.
+ * Each part moves to the next line whole. A part wider than the whole line,
+ * as Portuguese "Terminou em 13 de jan. de 2026" is on a 320px phone, breaks
+ * between its words, and its date holds together (`unbroken`), so a date
+ * never splits. A wrapped line never starts or ends on a dot: each dot sits
+ * in a gutter before its part, and the line starts one gutter left of a
+ * clipping box, as `EditorialMetaRow` does. The dots stay text, so the line
+ * still reads "Season · Open now · Runs through …".
+ */
+function RecordMeta({ parts, className }: { parts: string[]; className?: string }) {
+  return (
+    <div className={cn("overflow-clip", className)}>
+      <p className={`${META_CLASS} -ml-6 flex flex-wrap`}>
+        {parts.map((part, index) => (
+          <span key={`${index}-${part}`} className="relative pl-6">
+            {index > 0 ? <span className="absolute left-0 w-6 text-center">{" · "}</span> : null}
+            {part}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
+/** The numbers the record's garden totals print above the periods. */
+type GardenTotals = {
+  made: bigint;
+  kept: bigint;
+  units: CommitmentUnitSummaryRecord[];
+};
+
+/**
+ * The current season and campaigns, including periods past their end date
+ * that have yet to close. Their units stay with the recorded period. A lone
+ * period whose numbers are the garden totals names itself and says so in one
+ * line, rather than printing every number a second time (DL-171).
  */
 export function OpenCycles({
   cycles,
   units,
-  className,
+  gardenTotals,
 }: {
   cycles: PublicCommitmentCycleRecord[];
   units: CommitmentUnitSummaryRecord[];
-  className?: string;
+  gardenTotals: GardenTotals;
 }) {
   const { formatMessage } = useIntl();
+  // The website has no wallet runtime to read the chain's time from, so the device's clock
+  // stands in, as it does for `useExpiryClock` there; it is read as the record opens.
+  const [now] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
   return (
-    <div className={cn("@container flex flex-col gap-4", className)}>
-      <EditorialKicker>
-        {formatMessage({ id: "public.pool.garden.openKicker", defaultMessage: "In progress" })}
-      </EditorialKicker>
-      <ul className="grid gap-8 @[40rem]:grid-cols-2">
-        {cycles.map((cycle) => (
-          <OpenCycle
-            key={cycle.id}
-            cycle={cycle}
-            units={units.filter((unit) => unit.cycleId === cycle.cycleId)}
-          />
-        ))}
+    <div className={`@container ${GROUP_CLASS}`}>
+      <EditorialHeading as="h3" size="sub">
+        {formatMessage({
+          id: "public.pool.garden.cycles.heading",
+          defaultMessage: "Seasons and campaigns",
+        })}
+      </EditorialHeading>
+      <ul className="grid gap-x-12 gap-y-8 @[40rem]:grid-cols-2">
+        {cycles.map((cycle) => {
+          const cycleUnits = units.filter((unit) => unit.cycleId === cycle.cycleId);
+          return (
+            <OpenCycle
+              key={cycle.id}
+              cycle={cycle}
+              ended={cycleStanding(cycle, now) === "ended"}
+              units={cycleUnits}
+              holdsEveryPromise={
+                cycles.length === 1 && repeatsGardenTotals(cycle, cycleUnits, gardenTotals)
+              }
+            />
+          );
+        })}
       </ul>
     </div>
   );
 }
 
-/** One open cycle: name, type, calm end date, counts, exact-label units. */
+/**
+ * Whether a period's own numbers are exactly the garden totals printed above
+ * it: the same made and kept counts and the same unit rows. Comparing the
+ * numbers, not counting periods, keeps the short form honest: one promise or
+ * unit outside the period brings the period's own numbers back.
+ */
+function repeatsGardenTotals(
+  cycle: PublicCommitmentCycleRecord,
+  units: CommitmentUnitSummaryRecord[],
+  totals: GardenTotals
+): boolean {
+  return (
+    cycle.commitmentsAccepted > 0n &&
+    cycle.commitmentsAccepted === totals.made &&
+    cycle.commitmentsFulfilled === totals.kept &&
+    units.length === totals.units.length &&
+    units.every((unit) =>
+      totals.units.some(
+        (total) =>
+          total.unitLabel === unit.unitLabel &&
+          total.expectedUnits === unit.expectedUnits &&
+          total.fulfilledUnits === unit.fulfilledUnits
+      )
+    )
+  );
+}
+
+/**
+ * One open cycle: name, type, calm end date, counts, exact-label units. Past its
+ * end it reads ended, not open, until a steward closes it (DL-162). Each opens
+ * on its own hairline, like a finished row, so its numbers read as its own and
+ * never as the garden's totals above. When it holds every promise the garden
+ * has made, one line says so in place of its counts and units.
+ */
 function OpenCycle({
   cycle,
+  ended,
   units,
+  holdsEveryPromise,
 }: {
   cycle: PublicCommitmentCycleRecord;
+  ended: boolean;
   units: CommitmentUnitSummaryRecord[];
+  holdsEveryPromise: boolean;
 }) {
   const intl = useIntl();
   const { formatMessage, formatNumber } = intl;
   const end = cycle.endTime === null ? null : toDate(cycle.endTime);
+  const endDate = end ? unbroken(intl.formatDate(end, { dateStyle: "medium" })) : null;
   const meta = [
     cycleTypeLabel(formatMessage, cycle.cycleType),
-    formatMessage({ id: "public.pool.garden.cycle.openNow", defaultMessage: "Open now" }),
-    ...(end
+    ...(ended && endDate
       ? [
           formatMessage(
-            { id: "public.pool.garden.cycle.runsThrough", defaultMessage: "Runs through {date}" },
-            { date: intl.formatDate(end, { dateStyle: "medium" }) }
+            { id: "public.pool.garden.cycle.endedOn", defaultMessage: "Ended {date}" },
+            { date: endDate }
           ),
         ]
-      : []),
+      : [
+          formatMessage({ id: "public.pool.garden.cycle.openNow", defaultMessage: "Open now" }),
+          ...(endDate
+            ? [
+                formatMessage(
+                  {
+                    id: "public.pool.garden.cycle.runsThrough",
+                    defaultMessage: "Runs through {date}",
+                  },
+                  { date: endDate }
+                ),
+              ]
+            : []),
+        ]),
   ];
   return (
-    <li className="@container flex flex-col gap-3">
-      <EditorialHeading as="h3" size="sub">
-        {cycleName(intl, cycle)}
-      </EditorialHeading>
-      <p className={META_CLASS}>{meta.join(" · ")}</p>
-      {cycle.commitmentsAccepted > 0n ? (
+    <li className="@container flex flex-col gap-3 border-t border-stroke-soft-200 pt-5">
+      <div className="flex flex-col gap-1.5">
+        {/* The size step is restated with the heading's own leading: a later
+            text size drops the size class's leading in `cn`. */}
+        <EditorialHeading as="h4" size="sub" className="text-lg leading-[1.18] md:text-xl">
+          {cycleName(intl, cycle)}
+        </EditorialHeading>
+        <RecordMeta parts={meta} />
+      </div>
+      {holdsEveryPromise ? (
         <p className="text-sm leading-relaxed text-text-sub-600 md:text-base">
-          {formatMessage(
-            {
-              id: "public.pool.garden.cycle.progress",
-              defaultMessage: "{made} made · {kept} kept so far",
-            },
-            {
-              made: formatNumber(cycle.commitmentsAccepted),
-              kept: formatNumber(cycle.commitmentsFulfilled),
-            }
-          )}
+          {wholeRecordLine(intl, cycle)}
         </p>
-      ) : null}
-      {units.length > 0 ? <UnitRows units={units} /> : null}
+      ) : (
+        <>
+          {cycle.commitmentsAccepted > 0n ? (
+            <p className="text-sm leading-relaxed text-text-sub-600 md:text-base">
+              {formatMessage(
+                {
+                  id: "public.pool.garden.cycle.progress",
+                  defaultMessage: "{made} made · {kept} kept so far",
+                },
+                {
+                  made: formatNumber(cycle.commitmentsAccepted),
+                  kept: formatNumber(cycle.commitmentsFulfilled),
+                }
+              )}
+            </p>
+          ) : null}
+          {units.length > 0 ? <UnitRows units={units} /> : null}
+        </>
+      )}
     </li>
   );
+}
+
+/** The line a period that holds every promise prints in place of its numbers. */
+function wholeRecordLine(intl: IntlShape, cycle: PublicCommitmentCycleRecord): string {
+  const values = {
+    count: Number(cycle.commitmentsAccepted),
+    made: intl.formatNumber(cycle.commitmentsAccepted),
+  };
+  return cycle.cycleType === "CAMPAIGN"
+    ? intl.formatMessage(
+        {
+          id: "public.pool.garden.cycle.holdsEveryPromise.campaign",
+          defaultMessage:
+            "{count, plural, one {The only promise made so far is part of this campaign.} other {All {made} promises so far are part of this campaign.}}",
+        },
+        values
+      )
+    : intl.formatMessage(
+        {
+          id: "public.pool.garden.cycle.holdsEveryPromise.season",
+          defaultMessage:
+            "{count, plural, one {The only promise made so far is part of this season.} other {All {made} promises so far are part of this season.}}",
+        },
+        values
+      );
 }
 
 /**
@@ -172,22 +319,9 @@ function UnitRows({ units }: { units: CommitmentUnitSummaryRecord[] }) {
 }
 
 /** Pool-wide exact-label totals, one row per label. */
-export function PoolUnits({
-  units,
-  className,
-}: {
-  units: CommitmentUnitSummaryRecord[];
-  className?: string;
-}) {
-  const { formatMessage } = useIntl();
+export function PoolUnits({ units }: { units: CommitmentUnitSummaryRecord[] }) {
   return (
-    <div className={cn("@container flex flex-col gap-4", className)}>
-      <EditorialKicker>
-        {formatMessage({
-          id: "public.pool.garden.units.pool",
-          defaultMessage: "Across the whole pool",
-        })}
-      </EditorialKicker>
+    <div className="@container mt-5">
       <UnitRows units={units} />
     </div>
   );
@@ -227,18 +361,22 @@ export function FinishedCycles({
   }, [visible.length, total, loadingMore]);
 
   return (
-    <div className="mt-8 flex flex-col gap-4 border-t border-stroke-soft-200 pt-8">
-      <EditorialKicker>
+    <div className={`@container ${GROUP_CLASS}`}>
+      <EditorialHeading as="h3" size="sub">
         {formatMessage({
           id: "public.pool.garden.history.kicker",
           defaultMessage: "Finished seasons and campaigns",
         })}
-      </EditorialKicker>
-      <ul className="flex flex-col divide-y divide-stroke-soft-200 border-y border-stroke-soft-200">
+      </EditorialHeading>
+      {/* Rows share the list's columns (subgrid), so every row's dates and
+          counts start on the same line. Narrow, the record line drops under
+          the name; wide, it sits beside its counts with the name taking the
+          slack. */}
+      <ul className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 divide-y divide-stroke-soft-200 border-y border-stroke-soft-200 @[48rem]:grid-cols-[minmax(0,1fr)_auto_auto] @[48rem]:gap-x-10">
         {visible.map((cycle) => (
           <li
             key={cycle.id}
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 py-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] md:gap-x-10"
+            className="col-span-full grid grid-cols-subgrid items-baseline gap-y-1 py-3"
           >
             <p
               className="truncate font-serif text-base text-text-strong-950 md:text-lg"
@@ -246,10 +384,23 @@ export function FinishedCycles({
             >
               {cycleName(intl, cycle)}
             </p>
-            <p className={`${META_CLASS} order-last col-span-2 md:order-none md:col-span-1`}>
-              {cycleTypeLabel(formatMessage, cycle.cycleType)} · {cycleWindow(intl, cycle)}
-            </p>
-            <p className="shrink-0 justify-self-end font-mono text-xs tabular-nums text-text-sub-600">
+            <RecordMeta
+              className="order-last col-span-full @[48rem]:order-none @[48rem]:col-span-1"
+              parts={[
+                cycleTypeLabel(formatMessage, cycle.cycleType),
+                cycle.state === "COMPOSTED"
+                  ? formatMessage({
+                      id: "public.pool.garden.cycle.archived",
+                      defaultMessage: "Archived",
+                    })
+                  : formatMessage({
+                      id: "public.pool.garden.cycle.closed",
+                      defaultMessage: "Closed",
+                    }),
+                cycleWindow(intl, cycle),
+              ]}
+            />
+            <p className="justify-self-end font-mono text-xs tabular-nums text-text-sub-600">
               {formatMessage(
                 {
                   id: "public.pool.garden.history.keptOfMade",
@@ -309,7 +460,7 @@ export function FinishedCycles({
 export function CertificatesTieIn() {
   const { formatMessage } = useIntl();
   return (
-    <div className="mt-8 flex flex-col gap-4 border-t border-stroke-soft-200 pt-6 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8">
+    <div className="mt-10 flex flex-col gap-4 border-t border-stroke-soft-200 pt-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8">
       <p className="font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
         {formatMessage({
           id: "public.pool.garden.certificatesTieIn",
@@ -337,10 +488,10 @@ function cycleWindow(intl: IntlShape, cycle: PublicCommitmentCycleRecord): strin
   const format = { month: "short", year: "numeric" } as const;
   const start = cycle.startTime === null ? null : toDate(cycle.startTime);
   const end = cycle.endTime === null ? null : toDate(cycle.endTime);
-  if (start && end) return intl.formatDateTimeRange(start, end, format);
+  if (start && end) return unbroken(intl.formatDateTimeRange(start, end, format));
   const single = end ?? start;
   return single
-    ? intl.formatDate(single, format)
+    ? unbroken(intl.formatDate(single, format))
     : intl.formatMessage({
         id: "public.pool.garden.history.datesUnavailable",
         defaultMessage: "Dates not available",

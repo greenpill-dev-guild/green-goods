@@ -14,6 +14,7 @@ import type {
   GardenNotifications,
 } from "@green-goods/shared/hooks/garden/useGardenNotifications";
 import en from "@green-goods/shared/i18n/en.json";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
@@ -214,6 +215,7 @@ const EVENTS: GardenNotification[] = [
 
 const markSeen = vi.fn();
 const clearAll = vi.fn();
+const readAgain = vi.fn();
 const onClose = vi.fn();
 
 function setBell(overrides: Partial<GardenNotifications> = {}) {
@@ -228,6 +230,8 @@ function setBell(overrides: Partial<GardenNotifications> = {}) {
     isIncomplete: false,
     markSeen,
     clearAll,
+    refresh: readAgain,
+    isFetching: false,
     ...overrides,
   };
 }
@@ -273,6 +277,13 @@ const openSheet = () => {
   return screen.getByRole("dialog", { name: "Notifications" });
 };
 const rowsOf = (sheet: HTMLElement) => within(sheet).getAllByRole("listitem");
+/** The record a promise event carries into its offline destination. */
+const commitmentOfEvent = (index: number) => {
+  const event = EVENTS[index];
+  if (!("commitment" in event)) throw new Error("Fixture is not a promise event");
+  return event.commitment;
+};
+
 /** The record a work event carries, which its row hands on to the work page. */
 const workOfEvent = (index: number) => {
   const event = EVENTS[index];
@@ -412,6 +423,78 @@ describe("the sheet", () => {
     expect(clearAll).toHaveBeenCalledTimes(1);
   });
 
+  it("reads the events again as it opens and on Refresh, starting each list under its count (DL-168)", () => {
+    renderBell();
+    const sheet = openSheet();
+
+    expect(readAgain).toHaveBeenCalledTimes(1);
+    // Your Work's header row: 16px under the rail, the count in words, Refresh, then the period.
+    const header = within(within(sheet).getByRole("tabpanel")).getByTestId("sheet-list-header");
+    expect(header).toHaveClass("pt-4");
+    expect(within(header).getByRole("status")).toHaveTextContent(/^5 notifications$/);
+    // Only the spans its sources answer in full: its work activity reaches back a week.
+    const period = within(header).getByRole("combobox", { name: "Time period" });
+    expect(period).toHaveValue("any");
+    expect(
+      within(period)
+        .getAllByRole("option")
+        .map((o) => o.textContent)
+    ).toEqual(["Any time", "Day", "Week"]);
+    fireEvent.click(within(header).getByRole("button", { name: "Refresh" }));
+    expect(readAgain).toHaveBeenCalledTimes(2);
+  });
+
+  it("narrows the list to a period, marks seen only what it shows, and says when the period hides all", () => {
+    const view = renderBell();
+    const sheet = openSheet();
+
+    fireEvent.change(within(sheet).getByRole("combobox", { name: "Time period" }), {
+      target: { value: "day" },
+    });
+    // Seed Swap was approved 26 hours ago.
+    expect(rowsOf(sheet).map(titleOf)).not.toContain("Seed Swap");
+    expect(markedIds()).toEqual(idsOf(EVENTS.slice(0, 4)));
+    expect(within(sheet).getByTestId("sheet-list-header")).toHaveTextContent("4 notifications");
+
+    setBell({ notifications: [{ ...EVENTS[4], isNew: true }] });
+    view.refresh();
+    expect(within(sheet).getByText("Nothing in This Period")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Nothing New")).toBeNull();
+
+    // A read that answered only in part cannot promise the period is empty.
+    setBell({ notifications: [{ ...EVENTS[4], isNew: true }], isError: true });
+    view.refresh();
+    expect(within(sheet).getByText("Nothing in This Period")).toBeInTheDocument();
+    expect(within(sheet).getByText(en["app.home.notifications.partial"])).toBeInTheDocument();
+  });
+
+  it("drops a row from the period as it ages past the cutoff, while the sheet stays open", () => {
+    // The cutoff reads Temporal where the runtime has it; fake timers move only Date.
+    vi.stubGlobal("Temporal", undefined);
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      vi.setSystemTime(NOW * 1000);
+      // Seed Swap's approval, in the past day for one more minute.
+      const ageing = { ...EVENTS[4], at: NOW - 24 * HOUR + 60, isNew: false };
+      setBell({ notifications: [{ ...EVENTS[0], isNew: false }, ageing] });
+      renderBell();
+      const sheet = openSheet();
+      fireEvent.change(within(sheet).getByRole("combobox", { name: "Time period" }), {
+        target: { value: "day" },
+      });
+      expect(rowsOf(sheet).map(titleOf)).toContain("Seed Swap");
+
+      act(() => vi.advanceTimersByTime(61_000));
+      expect(rowsOf(sheet).map(titleOf)).not.toContain("Seed Swap");
+      expect(
+        within(within(sheet).getByTestId("sheet-list-header")).getByRole("status")
+      ).toHaveTextContent(/^1 notification$/);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("opens the work from a work event and the promise from a promise event, closing first", () => {
     renderBell();
     const rows = rowsOf(openSheet());
@@ -426,14 +509,14 @@ describe("the sheet", () => {
 
     fireEvent.click(within(rows[2]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/11`, {
-      state: { from: "home" },
+      state: { from: "home", commitmentGarden: GARDEN, commitment: commitmentOfEvent(2) },
       viewTransition: true,
     });
 
     // A take-up request is decided on its promise's page.
     fireEvent.click(within(rows[0]).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/21`, {
-      state: { from: "home" },
+      state: { from: "home", commitmentGarden: GARDEN, commitment: commitmentOfEvent(0) },
       viewTransition: true,
     });
     fireEvent.click(within(rows[4]).getByRole("button"));
@@ -441,6 +524,42 @@ describe("the sheet", () => {
       state: { from: "home", returnTo: "/home", work: workOfEvent(4) },
       viewTransition: true,
     });
+  });
+
+  it("lists waiting join requests under All alone, and opens the Gardeners sheet over Home from them", () => {
+    const openGardenSheet = vi.fn();
+    const real = useUIStore.getState().openGardenSheet;
+    useUIStore.setState({ openGardenSheet });
+    try {
+      // The count names nobody: the row says how many asked, dated when this device saw them.
+      const joinRequests: GardenNotification = {
+        kind: "joinRequested",
+        id: `joinRequests:${NOW - 4 * HOUR}`,
+        at: NOW - 4 * HOUR,
+        waiting: 3,
+      };
+      const listed = [...EVENTS.slice(0, 3), joinRequests, ...EVENTS.slice(3)];
+      setBell({ notifications: listed.map((event) => ({ ...event, isNew: true })) });
+      renderBell();
+      const sheet = openSheet();
+
+      const row = rowsOf(sheet)[3];
+      expect(titleOf(row)).toBe("3 people asked to join");
+      expect(within(row).getByRole("status").textContent).toBe("Join request");
+      expect(detailsOf(row)).toEqual(["4 hr. ago"]);
+      for (const tab of ["Work", "Promises"]) {
+        fireEvent.click(within(sheet).getByRole("tab", { name: tab }));
+        expect(rowsOf(sheet).map(titleOf)).not.toContain("3 people asked to join");
+      }
+
+      fireEvent.click(within(sheet).getByRole("tab", { name: "All" }));
+      fireEvent.click(within(rowsOf(sheet)[3]).getByRole("button"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(openGardenSheet).toHaveBeenCalledWith("gardeners");
+      expect(mockNavigate).not.toHaveBeenCalled();
+    } finally {
+      useUIStore.setState({ openGardenSheet: real });
+    }
   });
 
   it("shows the state block when nothing is new, and holds a row's frame while the events load", () => {

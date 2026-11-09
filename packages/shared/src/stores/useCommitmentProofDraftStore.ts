@@ -43,7 +43,7 @@ export interface CommitmentProofDraft {
    * What the draft's files hold, counted when they are saved, so Your Work can
    * list the draft and say what is in it without reading the files back.
    */
-  files?: { photos: number; videos: number; voiceNotes: number };
+  files?: { photos: number; videos: number; voiceNotes: number; documents?: number };
   updatedAt: number;
 }
 
@@ -95,7 +95,7 @@ export function proofDraftHasContent(
   return (
     draft.note.trim().length > 0 ||
     draft.links.length > 0 ||
-    Boolean(files && files.photos + files.videos + files.voiceNotes > 0)
+    Boolean(files && files.photos + files.videos + files.voiceNotes + (files.documents ?? 0) > 0)
   );
 }
 
@@ -139,7 +139,8 @@ export const useCommitmentProofDraftStore = create<CommitmentProofDraftStore>()(
           if (
             before.photos === files.photos &&
             before.videos === files.videos &&
-            before.voiceNotes === files.voiceNotes
+            before.voiceNotes === files.voiceNotes &&
+            (before.documents ?? 0) === (files.documents ?? 0)
           )
             return state;
           return { drafts: { ...state.drafts, [key]: { ...current, files, updatedAt } } };

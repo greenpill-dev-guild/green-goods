@@ -11,6 +11,7 @@ const ADDRESS_B = "0x2222222222222222222222222222222222222222" as Address;
 
 const mocks = vi.hoisted(() => ({
   address: "0x1111111111111111111111111111111111111111",
+  consent: vi.fn(),
   clearDraft: vi.fn(),
   loadDraft: vi.fn(),
   getAvatar: vi.fn(),
@@ -23,7 +24,13 @@ const mocks = vi.hoisted(() => ({
   ensAvatars: {} as Record<string, string>,
   ensAvatarCalls: [] as Array<{ address: string | null | undefined; enabled: boolean | undefined }>,
 }));
+vi.mock("react-intl", () => ({ useIntl: () => ({ locale: "en" }) }));
 
+vi.mock("../../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: () => ({ request: mocks.consent, prompt: null }),
+}));
+import { uploadConsent } from "../../test-utils/upload-policy";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
 vi.mock("wagmi", () => ({
   useSignMessage: () => ({ signMessageAsync: mocks.signMessage }),
 }));
@@ -98,6 +105,7 @@ function createDeferred<T>() {
 describe("useProfileAvatarEditor", () => {
   beforeEach(() => {
     mocks.address = ADDRESS_A;
+    mocks.consent.mockReset().mockResolvedValue(uploadConsent(ADDRESS_A));
     mocks.clearDraft.mockReset();
     mocks.loadDraft.mockReset();
     mocks.getAvatar.mockReset();
@@ -113,6 +121,37 @@ describe("useProfileAvatarEditor", () => {
     });
   });
 
+  it("does not publish a profile photo until the sharing rules are accepted", async () => {
+    const waiting = createDeferred<ReturnType<typeof uploadConsent>>();
+    mocks.consent.mockReturnValue(waiting.promise);
+    const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+    await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalled());
+    let publishing!: Promise<unknown>;
+    act(() => {
+      publishing = result.current.save(new File(["photo"], "photo.jpg", { type: "image/jpeg" }));
+    });
+    await waitFor(() => expect(mocks.consent).toHaveBeenCalledOnce());
+    expect(mocks.publishAvatar).not.toHaveBeenCalled();
+    await act(async () => {
+      waiting.resolve(uploadConsent(ADDRESS_A));
+      await publishing;
+    });
+    expect(mocks.publishAvatar).toHaveBeenCalledOnce();
+  });
+  it("cancels consent without publishing, signing or showing a photo failure", async () => {
+    mocks.consent.mockRejectedValue(new UploadPolicyCancelledError());
+    const { result } = renderHookWithQueryClient(() => useProfileAvatarEditor(CHAIN_ID));
+    await waitFor(() => expect(mocks.loadDraft).toHaveBeenCalled());
+    await act(async () => {
+      await expect(result.current.save(new File(["photo"], "photo.jpg"))).rejects.toThrow(
+        "User cancelled upload"
+      );
+    });
+    expect(mocks.publishAvatar).not.toHaveBeenCalled();
+    expect(mocks.signMessage).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    expect(result.current.isSaving).toBe(false);
+  });
   it("ignores an IndexedDB draft that resolves after the account changes", async () => {
     const firstLoad = createDeferred<ReturnType<typeof createDraft>>();
     mocks.loadDraft.mockImplementation((_chainId: number, address: Address) =>

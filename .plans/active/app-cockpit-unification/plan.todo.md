@@ -138,6 +138,13 @@ direction to those journeys and is tracked separately.
   changes (tabs, the work card, the cockpit's phone sheet, empty states).
 - Create lane handoffs when the hub moves to active. Keep branches null until work is authorized.
 
+## Deferred follow-up DL-145
+
+[Garden jar claims and funding](handoffs/jar-data-follow-up.md) records the data work
+identified in PRD-1375. Before assigning implementation, accept the claim-source
+investigation, the jar-scoped read, and the cockpit integration as separate delivery units.
+Keep the existing cockpit presentation lanes in their recorded states until that decision.
+
 ## Planning validation
 
 The hub-only check is `node scripts/harness/plan-hub.mjs validate`. The results of that check, the

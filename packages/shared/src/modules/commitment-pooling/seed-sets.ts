@@ -90,10 +90,14 @@ export type SeedCopyStatus =
 
 /**
  * Why a copy didn't send. Declined and refused are proof that nothing reached
- * the chain (the wallet said no, or the chain rejected it); failed is not,
- * because the answer may have been lost after the send.
+ * the chain (the wallet said no, or the chain rejected it), and so is
+ * over-ceilings: its bundle was past the ceilings one signature may carry, so
+ * it never went out, and it goes on its own next time. Failed is not, because
+ * the answer may have been lost after the send.
  */
-export type SeedCopyMiss = "declined" | "refused" | "failed";
+export type SeedCopyMiss = "declined" | "refused" | "over-ceilings" | "failed";
+
+const PROVABLY_UNSENT = new Set<SeedCopyMiss | undefined>(["declined", "refused", "over-ceilings"]);
 
 export interface SeedCopyProgress {
   clientCommitmentId: string;
@@ -115,8 +119,7 @@ const ATTEMPTED = new Set<SeedCopyStatus>(["created", "later", "not-sent"]);
 export function seedSetLeftNothing(copies: readonly SeedCopyProgress[]): boolean {
   return copies.every(
     (copy) =>
-      !ATTEMPTED.has(copy.status) ||
-      (copy.status === "not-sent" && (copy.miss === "declined" || copy.miss === "refused"))
+      !ATTEMPTED.has(copy.status) || (copy.status === "not-sent" && PROVABLY_UNSENT.has(copy.miss))
   );
 }
 

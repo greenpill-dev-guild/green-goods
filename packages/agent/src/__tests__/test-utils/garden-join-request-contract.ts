@@ -141,7 +141,7 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
       ).toBe(true);
     });
 
-    it("counts pending requests of every kind, leaving out answered and lapsed ones", async () => {
+    it("counts pending requests of every kind or of one, leaving out answered and lapsed ones", async () => {
       const { store } = createStore();
       const request = {
         gardenAddress: garden,
@@ -162,6 +162,8 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
         accountAddress: "0x3333333333333333333333333333333333333333",
       });
       expect(await store.countPending(garden, readAt)).toBe(3);
+      expect(await store.countPending(garden, readAt, "garden_membership")).toBe(2);
+      expect(await store.countPending(garden, readAt, "steward_access")).toBe(1);
       if (answered.created !== true) {
         throw new Error("Expected the garden join request to be created");
       }
@@ -176,6 +178,7 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
       });
 
       expect(await store.countPending(garden, readAt)).toBe(2);
+      expect(await store.countPending(garden, readAt, "garden_membership")).toBe(1);
       expect(await store.countPending(garden, expiresAt)).toBe(0);
     });
 

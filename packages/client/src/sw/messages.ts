@@ -131,6 +131,33 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
       case SW_MESSAGE.REGISTER_SYNC:
         event.waitUntil(registerBackgroundSync(scope));
         return;
+      case SW_MESSAGE.ACTIVATE_BOOT_UPDATE: {
+        const source = event.source;
+        const appScope = scope.registration.scope;
+        event.waitUntil(
+          (async () => {
+            // Another app window may be saving or sending work. Only the regular
+            // app can consult its work guard, so boot recovery leaves it alone.
+            const windows = await scope.clients.matchAll({
+              type: "window",
+              includeUncontrolled: true,
+            });
+            const appWindows = windows.filter((client) => client.url.startsWith(appScope));
+            if (
+              !source ||
+              !("id" in source) ||
+              appWindows.length !== 1 ||
+              appWindows[0].id !== source.id
+            ) {
+              reply({ status: "blocked" });
+              return;
+            }
+            await scope.skipWaiting();
+            reply({ status: "requested" });
+          })().catch(() => reply({ status: "failed" }))
+        );
+        return;
+      }
       case SW_MESSAGE.SKIP_WAITING: {
         const ack = (status: UpdateAckStatus) =>
           reply({ type: SW_REPLY.UPDATE_ACK, status } satisfies UpdateAckReply);
@@ -142,19 +169,6 @@ export function createMessageHandler({ scope, shell, media, work }: MessageDepen
               () => ack("requested"),
               () => ack("rejected")
             )
-        );
-        return;
-      }
-      case SW_MESSAGE.ENS_REGISTRATION_COMPLETE: {
-        const slug = message.slug ?? "";
-        event.waitUntil(
-          scope.registration.showNotification("ENS Name Active", {
-            body: `Your name ${slug}.greengoods.eth is now active!`,
-            icon: "/icon-192.png",
-            badge: "/images/android-icon-72x72.png",
-            tag: `ens-complete-${slug}`,
-            data: { url: "/home/profile", slug },
-          })
         );
         return;
       }

@@ -77,5 +77,8 @@ export interface PublicGardenImpactResponseV1 {
     partialData: boolean;
     unavailableSources: PublicGardenImpactSource[];
     fetchedAt: string;
+    /** A retained complete snapshot; fetchedAt remains the original observation time. */
+    stale?: boolean;
+    refreshFailedAt?: string;
   };
 }

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { copyLiterals, readChatCopy } from "../../scripts/chat-copy.mjs";
+import { handleHelp } from "../handlers/help";
 import {
   agentMessage,
   agentRateLimitMessage,
@@ -48,6 +49,29 @@ describe("agent i18n", () => {
     expect(agentMessage("pt-BR", "common.startFirst")).toContain("Execute /start");
     expect(agentRateLimitMessage("es", "wallet")).toContain("billetera");
     expect(agentRateLimitMessage("pt", "wallet")).toContain("carteira");
+  });
+
+  it.each([
+    ["en", "Need help? Contact"],
+    ["es", "¿Necesitas ayuda? Contacta a"],
+    ["pt", "Precisa de ajuda? Contate"],
+  ])("includes the support mailbox in the real %s help reply", async (locale, contact) => {
+    const result = await handleHelp(
+      {
+        id: "help-test",
+        platform: "telegram",
+        chat: { id: "help-chat", type: "private" },
+        sender: { platformId: "help-user" },
+        content: { type: "command", name: "help", args: [] },
+        locale,
+        timestamp: 0,
+      },
+      undefined
+    );
+
+    expect(result.response?.text).toContain(`${contact} contact@greengoods.app`);
+    expect(result.response?.text).not.toContain("@GreenGoodsSupport");
+    expect(result.response?.text).not.toContain("{support}");
   });
 
   it("formats localized wait times", () => {

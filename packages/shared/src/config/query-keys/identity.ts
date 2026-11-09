@@ -24,9 +24,10 @@ export const ensKeys = {
   avatar: (address: Address | string) => ["greengoods", "ens", "avatar", address] as const,
   registrationStatus: (slug: string) => ["greengoods", "ens", "registration", slug] as const,
   availability: (slug: string) => ["greengoods", "ens", "availability", slug] as const,
-  releaseFee: (slug: string) => ["greengoods", "ens", "releaseFee", slug] as const,
   protocolName: (address: Address | string) =>
     ["greengoods", "ens", "protocolName", address] as const,
+  passkeyName: (chainId: number, address: Address | string) =>
+    ["greengoods", "ens", "passkeyName", chainId, address.toLowerCase()] as const,
   protocolMembership: (address: Address | string) =>
     ["greengoods", "ens", "protocolMembership", address] as const,
 } as const;
@@ -60,5 +61,5 @@ export const communityKeys = {
   garden: (gardenAddress: string, chainId: number) =>
     ["greengoods", "community", "garden", gardenAddress, chainId] as const,
   pools: (gardenAddress: string, chainId: number) =>
-    ["greengoods", "community", "pools", gardenAddress, chainId] as const,
+    ["greengoods", "community", "signal-pools", gardenAddress, chainId] as const,
 } as const;

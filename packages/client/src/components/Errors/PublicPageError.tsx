@@ -3,6 +3,7 @@ import { EditorialGhostLink, EditorialPrimaryButton } from "@/components/Public/
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { publicCuration } from "@/content/publicCuration";
+import { recoveryCopy } from "./recoveryCopy";
 
 export interface PublicPageErrorProps {
   /** The page's code could not be fetched without a connection; it returns on its own. */
@@ -55,11 +56,8 @@ export function PublicPageError({ offline = false, onReload }: PublicPageErrorPr
             <EditorialPrimaryButton onClick={onReload}>
               {formatMessage({ id: "public.pageError.reload", defaultMessage: "Reload" })}
             </EditorialPrimaryButton>
-            <EditorialGhostLink to="/gardens">
-              {formatMessage({
-                id: "public.gardenDetail.backToGardens",
-                defaultMessage: "Browse Gardens",
-              })}
+            <EditorialGhostLink to="/" reloadDocument>
+              {recoveryCopy().homepage}
             </EditorialGhostLink>
           </>
         }

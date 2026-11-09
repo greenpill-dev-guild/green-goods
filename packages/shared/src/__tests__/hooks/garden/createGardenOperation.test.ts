@@ -67,6 +67,7 @@ vi.mock("../../../modules/app/analytics-events", () => ({
 // Import after mocks
 // ============================================
 
+import { HttpRequestError } from "viem";
 import { toastService } from "../../../components/toast";
 import {
   createGardenOperation,
@@ -78,7 +79,10 @@ import {
   trackAdminMemberAddStarted,
   trackAdminMemberAddSuccess,
 } from "../../../modules/app/analytics-events";
+import { WalletSender } from "../../../modules/transactions/wallet-sender";
 import type { Address } from "../../../types/domain";
+import { MOCK_TX_HASH } from "../../test-utils/mock-factories";
+import { createFakeWagmiDeps } from "../../test-utils/transaction-fakes";
 
 // ============================================
 // Test Helpers
@@ -227,9 +231,31 @@ describe("createGardenOperation", () => {
       expect(sender.sendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
           chainId: CHAIN_ID,
+          account: USER_ADDRESS,
           functionName: "grantRole",
-        })
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
       );
+    });
+
+    it("refuses a queued role write after its account changes", async () => {
+      const sender = createMockSender();
+      sender.assertOwnership = vi.fn().mockRejectedValue(new Error("submission-ownership-changed"));
+      const optimistic = vi.fn();
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        sender,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading,
+        optimistic
+      );
+      expect((await operation(TARGET_ADDRESS)).success).toBe(false);
+      expect(sender.assertOwnership).toHaveBeenCalledWith(USER_ADDRESS, CHAIN_ID);
+      expect(optimistic).not.toHaveBeenCalled();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
     });
 
     it("manages loading state", async () => {
@@ -400,6 +426,8 @@ describe("createGardenOperation", () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.name).toBe("WalletNotConnected");
+      // Nothing was sent, so nothing can land.
+      expect(result.error?.cannotLand).toBe(true);
     });
 
     it("returns error when hats module not found", async () => {
@@ -419,6 +447,7 @@ describe("createGardenOperation", () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.name).toBe("HatsModuleNotConfigured");
+      expect(result.error?.cannotLand).toBe(true);
     });
 
     it("returns error when simulation fails", async () => {
@@ -441,6 +470,7 @@ describe("createGardenOperation", () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.name).toBe("SimulationFailed");
+      expect(result.error?.cannotLand).toBe(true);
     });
 
     it("returns parsed error when transaction throws", async () => {
@@ -496,6 +526,42 @@ describe("createGardenOperation", () => {
         operationType: "remove",
         targetAddress: TARGET_ADDRESS,
       });
+    });
+
+    it("marks only a failed send that cannot land: one that went out may still land", async () => {
+      // A real wallet sender, with only the wallet and the RPC behind its receipt wait stubbed.
+      const wallet = createFakeWagmiDeps();
+      wallet.getAccount = () => ({ address: USER_ADDRESS });
+      const remove = createGardenOperation(
+        GARDEN_ID,
+        createConfig({ operationType: "remove" }),
+        new WalletSender(wallet.config, wallet.writeContractAsync, undefined, wallet),
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading
+      );
+
+      // The removal went out, then the RPC answered its receipt poll with a 503.
+      wallet.waitForTransactionReceipt.mockRejectedValueOnce(
+        new HttpRequestError({
+          url: "https://rpc.test",
+          status: 503,
+          body: { method: "eth_getTransactionReceipt", params: [MOCK_TX_HASH] },
+        })
+      );
+      const lost = await remove(TARGET_ADDRESS);
+      expect(lost.success).toBe(false);
+      expect(lost.error).not.toHaveProperty("cannotLand");
+
+      // Its receipt showed a revert.
+      wallet.waitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted" });
+      expect((await remove(TARGET_ADDRESS)).error?.cannotLand).toBe(true);
+
+      // The wallet would not change network, so nothing reached it.
+      wallet.ensureWalletChain.mockRejectedValueOnce(new Error("Network switch rejected"));
+      expect((await remove(TARGET_ADDRESS)).error?.cannotLand).toBe(true);
+      expect(wallet.writeContractAsync).toHaveBeenCalledTimes(2);
     });
   });
 });

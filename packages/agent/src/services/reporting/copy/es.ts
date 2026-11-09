@@ -28,7 +28,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.fieldLead": "¿{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del jardín, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
+    "¡Hola! Soy el asistente de reportes de Green Goods. Para ayudarte a reportar el trabajo del jardín, guardo y leo los mensajes y archivos que envías aquí{processors}. Nada se hace público hasta que confirmes un reporte.\n\nAl aceptar, aceptas las reglas para compartir, versión {version}: https://www.greengoods.app/terms. Comparte solo material propio o que tengas permiso para publicar, con permiso de cada adulto identificable. No envíes menores identificables, información personal sensible, abuso, odio, amenazas, contenido sexual o ilegal, fraude ni spam. Los reportes confirmados se publican en Arbitrum e IPFS; las copias independientes pueden permanecer para siempre.\n\nEnvía STOP en cualquier momento para detenerme, DELETE para borrar tus datos no publicados o HELP para soporte ({support}).\n\n¿Estás de acuerdo?",
   "consent.processors": " y puedo usar IA para entenderlos",
   "consent.agree": "Acepto",
   "consent.decline": "No, gracias",
@@ -39,7 +39,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
   "consent.deleted":
     "Se están eliminando tus borradores y archivos sin publicar. Los reportes publicados siguen públicos en la cadena e IPFS y no se pueden borrar. Soporte: {support}",
-  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• GARDEN cambia el jardín de tu reporte, y JOIN muestra cómo unirte a otro jardín.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y envía aquí solo el código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• ACCOUNT muestra qué cuenta usa este chat, DISCONNECT la desvincula y SWITCH vincula otra.\n• LANGUAGE te deja elegir inglés, español o portugués.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.{menu}\nSoporte: {support}",
+  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• GARDEN cambia el jardín de tu reporte, y JOIN muestra cómo unirte a otro jardín.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y envía aquí solo el código de seis dígitos. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• ACCOUNT muestra qué cuenta usa este chat, DISCONNECT la desvincula y SWITCH vincula otra.\n• LANGUAGE te deja elegir inglés, español o portugués.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.{menu}\nSoporte: {support}",
   "menu.commands": "\n• Toca Menú, junto a donde escribes, para ver estos comandos.",
   "menu.account":
     " Los comandos de cuenta también están en el Menú: /account, /connect, /switch y /disconnect.",
@@ -172,7 +172,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.summaryCodeInstruction":
     "Responde CONFIRM {token} para registrarla, EDIT para cambiarla o CANCEL.",
   "report.summary":
-    "Revisa tu reporte para {garden}:\n• Actividad: {action}\n• Título: {title}\n• Tiempo dedicado: {time}\n• Descripción: {feedback}{details}\n• Fotos: {photos}\n\nAl publicarse, el título, la descripción, los detalles y las fotos se hacen públicos en Arbitrum e IPFS y no se pueden borrar.{account}\n\n{instruction}",
+    "Revisa tu reporte para {garden}:\n• Actividad: {action}\n• Título: {title}\n• Tiempo dedicado: {time}\n• Descripción: {feedback}{details}\n• Fotos: {photos}\n\nAl publicarse, el título, la descripción, los detalles y las fotos se hacen públicos en Arbitrum e IPFS y no se pueden borrar.{account}\n\nAl confirmar, aceptas hacer público este reporte exacto y confirmas que tienes permiso para compartir su contenido y cada adulto identificable. No contiene menores identificables ni información personal sensible.\n\n{instruction}",
   "report.summaryAccount": "\nLo publicará tu cuenta {account}.",
   "report.confirm": "Confirmar",
   "report.edit": "Editar",
@@ -187,8 +187,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.cancelHint": "Para cancelar este reporte, responde CANCEL.",
   "report.nothingToCancel": "No hay ningún reporte en curso.",
   "report.confirmToken": "Para publicar, responde CONFIRM {token}.",
-  "report.frozen":
-    "Este reporte se está publicando, así que no puedo cambiarlo ahora. Guardé tu mensaje y lo usaré si la publicación no se completa.",
+  "report.frozen": "Este reporte se está publicando, así que no puedo cambiarlo ahora.",
   "report.alreadyPublished": "Ese reporte ya está publicado. Envía NEW para empezar otro.",
   "report.newStarted": "Nuevo reporte iniciado. Cuéntame el trabajo que hiciste.",
   "report.resumeFirst":
@@ -240,7 +239,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.accountTaken":
     "Esa cuenta ya está vinculada a otro chat. Si es tuya, envía RECOVER desde el chat que quieres usar. Soporte: {support}",
   "publish.consent":
-    "¿Publicar tu reporte confirmado en {garden} desde {account}? El título, la descripción, los detalles y las fotos se hacen públicos y no se pueden borrar. {instruction}",
+    "¿Publicar tu reporte confirmado en {garden} desde {account}? El título, la descripción, los detalles y las fotos se hacen públicos y no se pueden borrar. Al publicar, aceptas hacer público este reporte exacto y confirmas que tienes permiso para compartir su contenido y cada adulto identificable. No contiene menores identificables ni información personal sensible. {instruction}",
   "publish.publish": "Publicar",
   "publish.signLink": "Abre esta página para revisar y firmar la publicación exacta con tu {kind}.",
   "publish.signLabel": "Revisar y publicar",

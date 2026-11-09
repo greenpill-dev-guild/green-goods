@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { createProofToasts } from "../../../components/Toast/presets/proof";
+import { toastService } from "../../../components/Toast/toast.service";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
 import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/jobs";
 import {
@@ -23,9 +24,12 @@ import {
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
   prepareMediaForUpload,
+  validateWorkAttachments,
 } from "../../../modules/work/media-processing";
-import type { Address } from "../../../types/domain";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
+import type { Address, WorkUploadConsent } from "../../../types/domain";
 import type { CommitmentProofDraft } from "../../../stores/useCommitmentProofDraftStore";
 import { imageCompressor } from "../../../utils/work/image-compression";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
@@ -45,6 +49,7 @@ import { useProtocolPool } from "../../commitment-pooling/useProtocolPool";
 import { useGardenRecord } from "../../garden/useGardenRecord";
 import { useAudioRecording } from "../../utils/useAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
+import { useUploadPolicy } from "../../work/useUploadPolicy";
 import type {
   ProofComposerController,
   ProofComposerStatus,
@@ -77,6 +82,10 @@ export function useProofComposerController(
   const isOnline = useOnlineStatus();
   const draftRepository = input.draftRepository ?? proofDraftRepository;
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
+  const { request: requestUploadPolicy, prompt: uploadPolicy } = useUploadPolicy(
+    viewer,
+    intl.locale
+  );
   const routeGarden = (input.routeGarden as Address | null | undefined) ?? null;
   const query = useCommitment(
     { chainId: input.chainId, commitmentId: input.commitmentId ?? 0n },
@@ -106,6 +115,11 @@ export function useProofComposerController(
 
   const [media, setMedia] = useState<File[]>([]);
   const [audioNotes, setAudioNotes] = useState<File[]>([]);
+  // What the proof holds when a pick finishes, for the limit check after its await.
+  const attachments = useRef({ media, audioNotes });
+  useEffect(() => {
+    attachments.current = { media, audioNotes };
+  }, [media, audioNotes]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [note, setNote] = useState(() => draft.saved?.note ?? "");
   const [links, setLinks] = useState<string[]>(() => draft.saved?.links ?? []);
@@ -156,7 +170,24 @@ export function useProofComposerController(
   });
 
   const recording = useAudioRecording({
-    onRecordingComplete: (file) => setAudioNotes((current) => [...current, file]),
+    onRecordingComplete: (file) => {
+      // A voice note counts toward the proof's 50 MB too, the way Submit Work's does.
+      const { media: held, audioNotes: voiceNotes } = attachments.current;
+      const errors = validateWorkAttachments(held, [...voiceNotes, file], 0, {
+        pendingHeic: "accept",
+      });
+      if (errors.includes("total-size")) {
+        // The limits are the message: without one the toast adds "Try again", which a
+        // note this size cannot pass.
+        toastService.error({
+          title: intl.formatMessage({ id: "app.garden.upload.truncatedTitle" }, { dropped: 1 }),
+          message: intl.formatMessage({ id: "app.garden.attachments.invalid" }),
+          context: "mediaUpload",
+        });
+        return;
+      }
+      setAudioNotes((current) => [...current, file]);
+    },
   });
   useEffect(() => () => draftRepository.revoke("proof"), [draftRepository]);
 
@@ -238,6 +269,13 @@ export function useProofComposerController(
       try {
         const prepared = await prepareMediaForUpload(Array.from(files), imageCompressor);
         if (composerScope.current !== scope || scope.cancelled) return { rejectedCount: 0 };
+        // The whole proof keeps to the document and size limits, so a pick past them adds
+        // nothing: whatever is queued is uploaded, and the published proof lists all of it.
+        const { media: held, audioNotes: voiceNotes } = attachments.current;
+        const overLimit = validateWorkAttachments([...held, ...prepared.files], voiceNotes, 0, {
+          pendingHeic: "accept",
+        }).some((error) => error === "document-count" || error === "total-size");
+        if (overLimit) return { rejectedCount: prepared.rejectedCount, overLimit: true };
         setMedia((current) => [...current, ...prepared.files]);
         return { rejectedCount: prepared.rejectedCount };
       } finally {
@@ -314,12 +352,22 @@ export function useProofComposerController(
     submitting.current = true;
     const scope = composerScope.current;
     const ownsForm = () => composerScope.current === scope && !scope.cancelled;
+    let uploadConsent: WorkUploadConsent;
+    try {
+      uploadConsent = await requestUploadPolicy();
+    } catch (error) {
+      if (ownsForm()) submitting.current = false;
+      if (!(error instanceof UploadPolicyCancelledError)) throw error;
+      return false;
+    }
+    if (!ownsForm()) return false;
     const record = detail.commitment;
     const gardenAddress = (record.providerGarden ?? routeGarden) as Address;
     const payload: EvidenceJobPayload = {
       clientEvidenceId,
       commitmentId: record.commitmentId,
       creditedContributors: credited,
+      uploadConsent,
       gardenAddress,
       ...(note.trim() ? { note: note.trim() } : {}),
       ...(links.length > 0 ? { links } : {}),
@@ -372,6 +420,7 @@ export function useProofComposerController(
     routeGarden,
     queued,
     readiness,
+    requestUploadPolicy,
     seat,
     sendToo,
     viewer,
@@ -394,7 +443,7 @@ export function useProofComposerController(
   // A HEIC photo waiting to convert shows a placeholder, not a preview.
   const imageUrls = draftRepository.previewUrls(
     "proof",
-    media.filter((file) => !isVideoFile(file) && !isHeicFile(file))
+    media.filter((file) => !isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file))
   );
 
   return {
@@ -428,6 +477,7 @@ export function useProofComposerController(
     landing: currentLanding,
     canSendToo,
     sendToo,
+    sendsProofWithItsSend: jobs.sendsProofWithItsSend,
     setSendToo: setSendTooChoice,
     linkInvalid,
     imageUrls,
@@ -440,6 +490,7 @@ export function useProofComposerController(
     removeMedia,
     removeAudio,
     submit,
+    uploadPolicy,
     refetch: query.refetch,
   };
 }

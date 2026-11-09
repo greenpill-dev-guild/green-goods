@@ -10,6 +10,7 @@ import {
   createCommitmentCreationRequestKey,
   createSeriesCreationRequestKey,
   createWorkLinkOperationKey,
+  cycleStanding,
   deriveCommitmentState,
   executeCommitmentJob,
   hashCommitmentCreationPayload,
@@ -29,6 +30,7 @@ import {
   selectSeenCommitments,
 } from "../modules/commitment-pooling";
 import { mapClaim } from "../modules/commitment-pooling/data-commitments";
+import { isPastDue } from "../modules/commitment-pooling/due-dates";
 import {
   mapCommitment,
   mapCycle,
@@ -76,6 +78,10 @@ function executionDependencies(
     readCommitmentId: vi.fn().mockResolvedValue(0n),
     readCommitment: vi.fn(),
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(ZERO_HASH),
+    // The chain holds every action and season open, on its own clock.
+    readActionWindow: vi.fn().mockResolvedValue({ startTime: 1n, endTime: 4_000_000_000n }),
+    readCycleWindow: vi.fn().mockResolvedValue({ state: "OPEN", endTime: 4_000_000_000n }),
+    readChainHead: vi.fn().mockResolvedValue({ number: 1n, timestamp: 1_900_000_000 }),
     send: vi.fn().mockResolvedValue(`0x${"12".repeat(32)}`),
     ...overrides,
   };
@@ -688,6 +694,28 @@ describe("commitment safety and lifecycle selectors", () => {
         readyCommitmentCount: 0n,
       })
     ).toBe("CLOSED");
+  });
+
+  // DL-162: the chain takes promises into an Open cycle past its end, each past due as it is
+  // made, so the cycle reads ended from that very second until a steward closes it.
+  it("reads an Open cycle past its end as ended, the second its undated promises fall due", () => {
+    const season = { state: "OPEN" as const, endTime: 10n };
+    const undated = { dueDate: null, cycleId: 7n };
+    const cycleEndTimes = new Map([["7", season.endTime]]);
+    for (const [now, standing] of [
+      [9n, "open"],
+      [10n, "open"],
+      [11n, "ended"],
+    ] as const) {
+      expect(cycleStanding(season, now)).toBe(standing);
+      expect(isPastDue(undated, { now, cycleEndTimes })).toBe(standing === "ended");
+    }
+    // A cycle without an end never ends; any other state reads as the chain holds it.
+    expect(cycleStanding({ state: "OPEN", endTime: null }, 11n)).toBe("open");
+    expect(cycleStanding({ state: "OPEN", endTime: 0n }, 11n)).toBe("open");
+    expect(cycleStanding({ state: "SEEDED", endTime: 10n }, 11n)).toBe("seeded");
+    expect(cycleStanding({ state: "RECONCILED", endTime: 10n }, 11n)).toBe("reconciled");
+    expect(cycleStanding({ state: null, endTime: null }, 11n)).toBe("unknown");
   });
 
   it("fails pool closure and Hypercert composition closed on incomplete lifecycle state", () => {

@@ -389,7 +389,7 @@ export interface SettlementOperationsController {
   sourcePaused: boolean | null;
   owner: Address | null;
   isSettlementOwner: boolean;
-  isDeployer: boolean;
+  isProtocolTeam: boolean;
   /** Only the module owner may flip the gate; the chain enforces the same rule. */
   canConfigureDelivery: boolean;
   /** Owners and deployers see the card; everyone else does not. */

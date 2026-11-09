@@ -29,7 +29,7 @@ const RefreshActionContext = createContext<RefreshActionContextValue>({
 
 /**
  * Wraps the admin canvas so a single view at a time can register a refresh
- * handler that bubbles up to the AppBar (mobile only). Sibling to FabProvider.
+ * handler that bubbles up to the AppBar (phone and tablet widths). Sibling to FabProvider.
  */
 export function RefreshActionProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<RefreshActionConfig | null>(null);
@@ -43,7 +43,7 @@ export function RefreshActionProvider({ children }: { children: ReactNode }) {
  *
  * @example
  * ```tsx
- * useRefreshAction({ onRefresh: hub.handleRefresh, isFetching: hub.worksFetching });
+ * useRefreshAction({ onRefresh: handleRefresh, isFetching: isRefreshing });
  * ```
  */
 export function useRefreshAction(config: RefreshActionConfig | null) {

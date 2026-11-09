@@ -3,6 +3,7 @@ import { toHex } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import {
   addGardenMembersBatch,
+  createGardenMembersChain,
   type GardenMemberRow,
   type GardenMembersChain,
   gardenMembersBudget,
@@ -15,7 +16,10 @@ import {
   BatchNotSubmittedError,
 } from "../../modules/transactions/batch-types";
 import type { Address } from "../../types/domain";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
+
+vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: vi.fn() }));
 
 const chainId = 42161;
 const hash = `0x${"ab".repeat(32)}` as const;
@@ -184,6 +188,23 @@ describe("addGardenMembersBatch", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("names a refused row once when a later signature's call is refused as a whole", async () => {
+    const bad = row();
+    // Ten people share the first signature, and the eleventh takes a second.
+    const rows = [bad, ...Array.from({ length: 10 }, () => row())];
+    const { input, sender } = setup(CONFIRMED, (args, fn) => {
+      if (fn === "grantRoles") return "The whole call reverts";
+      return args[1] === bad.address ? "All hats worn" : null;
+    });
+
+    const outcome = await add(input, rows);
+
+    expect(outcome.refused).toEqual([{ ...bad, reason: "All hats worn" }]);
+    expect(outcome.notSent).toEqual(rows.slice(1));
+    expect(outcome.failure).toEqual(new Error("The whole call reverts"));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("keeps earlier signatures when a later one is declined", async () => {
     const { input, sender, chain, wear } = setup(CONFIRMED);
     const rows = Array.from({ length: 11 }, () => row());
@@ -236,6 +257,39 @@ describe("addGardenMembersBatch", () => {
     expect(outcome.failure).toBe(failure);
   });
 
+  it("refuses and signs nothing when a check cannot run, and keeps what it read", async () => {
+    const { input, sender, chain, wear } = setup(CONFIRMED);
+    const [holder, ...rows] = [row(), row(), row()];
+    wear(holder);
+    const failure = new Error("Transaction failed with error code: 0x91e7d380");
+    chain.refusal.mockRejectedValue(failure);
+
+    const outcome = await add(input, [holder, ...rows]);
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.alreadyHeld).toEqual([holder]);
+    expect(outcome.refused).toEqual([]);
+    expect(outcome.notSent).toEqual(rows);
+    expect(outcome.failure).toBe(failure);
+  });
+
+  it("keeps a refusal it proved when another row's own check cannot run", async () => {
+    const [bad, unread, good] = [row(), row(), row()];
+    const failure = new Error("Transaction failed with error code: 0x3868e7e5");
+    const { input, sender } = setup(CONFIRMED, (args, fn) => {
+      if (fn === "grantRoles") return "The whole call reverts";
+      if (args[1] === unread.address) throw failure;
+      return args[1] === bad.address ? "All hats worn" : null;
+    });
+
+    const outcome = await add(input, [bad, unread, good]);
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.refused).toEqual([{ ...bad, reason: "All hats worn" }]);
+    expect(outcome.notSent).toEqual([unread, good]);
+    expect(outcome.failure).toBe(failure);
+  });
+
   it("stops before signing when the sender has lost the role, with the reason", async () => {
     const rows = [row(), row()];
     let reads = 0;
@@ -250,6 +304,40 @@ describe("addGardenMembersBatch", () => {
     expect(outcome.notSent).toEqual(rows);
     expect(outcome.failure).toEqual(new Error("Not a garden admin"));
     expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+});
+
+describe("createGardenMembersChain", () => {
+  it("names a refusal only when the simulation reverted", async () => {
+    const gardenAddress = address();
+    const chain = createGardenMembersChain(gardenAddress, chainId);
+    const call = { address: MODULE, functionName: "grantRoles", args: [gardenAddress, [], []] };
+    vi.mocked(simulateTransaction)
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          name: "NotGardenAdmin",
+          message: "Not a garden admin",
+          raw: "NotGardenAdmin",
+          reverted: true,
+        },
+      })
+      // What an RPC's 503 parses to: the code is grantRoles' own selector, read from the request.
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          name: "UnknownError",
+          message: "Transaction failed with error code: 0x91e7d380",
+          raw: "0x91e7d380",
+          reverted: false,
+        },
+      });
+
+    await expect(chain.refusal(call, address())).resolves.toBe("Not a garden admin");
+    // A simulation that failed without a revert refuses nothing: the check fails instead.
+    await expect(chain.refusal(call, address())).rejects.toThrow(
+      "Transaction failed with error code: 0x91e7d380"
+    );
   });
 });
 
@@ -272,6 +360,22 @@ describe("holding an add whose outcome is unknown", () => {
         ],
       },
       saved: [],
+    });
+  });
+
+  it("keeps its rows held while the wallet reconnects", async () => {
+    const { input, sender } = setup();
+    const rows = [row()];
+    await add(input, rows);
+    // A wallet that has not reconnected yet fails the signer check.
+    Object.assign(sender, {
+      assertOwnership: vi.fn(async () => {
+        throw new Error("Connector not connected.");
+      }),
+    });
+
+    await expect(readAddMembersHold(input)).resolves.toMatchObject({
+      hold: { rows: rows.map(lowercased) },
     });
   });
 

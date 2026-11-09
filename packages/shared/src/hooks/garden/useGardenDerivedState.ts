@@ -1,12 +1,9 @@
 import { useMemo } from "react";
+import { isAddress } from "viem";
 import type { CookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import { adminRoutes } from "../../utils/navigation/admin-routes";
-import {
-  type GardenRole,
-  GARDEN_ROLE_ORDER,
-  getRoleLabel,
-} from "../../utils/blockchain/garden-roles";
+import { type GardenRole, GARDEN_ROLE_ORDER } from "../../utils/blockchain/garden-roles";
 import { expandDomainMask } from "../../utils/domain";
 import { formatTokenAmount, getVaultAssetSymbol } from "../../utils/blockchain/vaults";
 import {
@@ -49,6 +46,8 @@ interface DerivedStateInput {
     status: string;
     createdAt: number;
     reviewedAt?: number;
+    gardenerAddress?: Address;
+    media?: string[];
   }>;
   /** False when `works` may miss a true status: only the newest page, or unread approvals. */
   worksComplete?: boolean;
@@ -58,12 +57,14 @@ interface DerivedStateInput {
     id: string;
     title?: string | null;
     assessmentType?: string | null;
+    authorAddress?: Address;
     createdAt: number;
   }>;
   hypercerts: Array<{
     id: string;
     title?: string | null;
     mintedAt?: number | null;
+    mintedBy?: Address;
   }>;
   allocations: Array<{
     txHash: string;
@@ -80,7 +81,6 @@ interface DerivedStateInput {
   roleMembers: Record<GardenRole, Address[]>;
   selectedRange: GardenRange;
   activityFilter: ActivityFilter;
-  memberSearch: string;
   section: string | undefined;
   canAccessCommunity?: boolean;
   formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
@@ -101,7 +101,6 @@ export function useGardenDerivedState({
   roleMembers,
   selectedRange,
   activityFilter,
-  memberSearch,
   section,
   canAccessCommunity = true,
   formatMessage,
@@ -283,11 +282,17 @@ export function useGardenDerivedState({
       id: `work-${work.id}`,
       category: "work" as const,
       title: toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
+      actorAddress: work.gardenerAddress,
+      photo: work.media?.[0],
+      statusLabel: formatMessage({ id: `app.admin.work.filter.${work.status}` }),
+      statusTone:
+        work.status === "approved"
+          ? ("success" as const)
+          : work.status === "rejected"
+            ? ("error" as const)
+            : ("neutral" as const),
       // Descriptions carry no date: each row shows its time once, beside the title.
-      description: formatMessage(
-        { id: "app.garden.detail.activity.workStatus" },
-        { status: formatMessage({ id: `app.admin.work.filter.${work.status}` }) }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.workSubmitted" }),
       timestamp: toMs(work.createdAt),
       href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
@@ -301,6 +306,7 @@ export function useGardenDerivedState({
         assessment.title ||
         assessment.assessmentType ||
         formatMessage({ id: "app.garden.admin.assessmentFallback" }),
+      actorAddress: assessment.authorAddress,
       description: formatMessage({ id: "app.garden.detail.activity.assessmentCreated" }),
       timestamp: toMs(assessment.createdAt),
       href: adminRoutes.gardenImpact({
@@ -314,6 +320,8 @@ export function useGardenDerivedState({
       id: `hypercert-${hypercert.id}`,
       category: "impact" as const,
       title: hypercert.title?.trim() || formatMessage({ id: "app.hypercerts.list.fallbackTitle" }),
+      actorAddress:
+        hypercert.mintedBy && isAddress(hypercert.mintedBy) ? hypercert.mintedBy : undefined,
       description: formatMessage({ id: "app.garden.detail.activity.hypercertMinted" }),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
       href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenId: gardenAddress }),
@@ -370,25 +378,8 @@ export function useGardenDerivedState({
     return Array.from(map.values());
   }, [roleMembers]);
 
-  const filteredDirectory = directoryEntries.filter((entry) => {
-    const normalizedSearch = memberSearch.trim().toLowerCase();
-    if (!normalizedSearch) return true;
-
-    if (entry.address.toLowerCase().includes(normalizedSearch)) {
-      return true;
-    }
-
-    return entry.roles.some((role) => {
-      const label = getRoleLabel(role, formatMessage);
-      return (
-        label.singular.toLowerCase().includes(normalizedSearch) ||
-        label.plural.toLowerCase().includes(normalizedSearch)
-      );
-    });
-  });
-
-  const visibleDirectory =
-    section === "members" ? filteredDirectory : filteredDirectory.slice(0, 8);
+  // The Members tab searches it by the names its rows show, so search lives with the rows.
+  const visibleDirectory = section === "members" ? directoryEntries : directoryEntries.slice(0, 8);
 
   return {
     pendingWorks,
@@ -415,7 +406,6 @@ export function useGardenDerivedState({
     directoryEntries,
     /** Distinct people across every role; a role seat is not a member (DL-049). */
     memberCount: directoryEntries.length,
-    filteredDirectory,
     visibleDirectory,
   };
 }

@@ -15,7 +15,6 @@ import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock
 
 vi.mock("@wagmi/core", () => ({
   writeContract: vi.fn().mockResolvedValue(MOCK_TX_HASH),
-  waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
 }));
 
 // ============================================

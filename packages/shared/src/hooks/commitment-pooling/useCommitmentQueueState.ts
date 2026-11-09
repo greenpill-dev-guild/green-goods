@@ -26,10 +26,12 @@ import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
+import { creationRefusalOf } from "../../modules/commitment-pooling/creation-standing";
 import {
   CONSIDERATION_RAIL_ORDINAL,
   type CommitmentJobKind,
   type ConfirmationJobPayload,
+  type CreationRefusal,
 } from "../../modules/commitment-pooling/job-types";
 import {
   COMMITMENT_JOB_KINDS,
@@ -73,6 +75,11 @@ export interface PendingCommitmentCreation {
   /** Gave up after its attempts; retry or discard are the member's call. */
   failed: boolean;
   /**
+   * Why the queue refused it before it was sent: an action it names had closed, or its season or
+   * campaign had ended. It is never sent, so Discard is the only way out. Set only on a failed one.
+   */
+  refusal?: CreationRefusal;
+  /**
    * Whether throwing it away is safe. A creation whose transaction was already
    * broadcast keeps its record so a retry can recover the commitment instead
    * of filing a second one.
@@ -112,7 +119,8 @@ export type CommitmentFailureReason =
   | "membershipLost"
   | "commitmentClosed"
   | "identityConflict"
-  | "unavailable";
+  | "unavailable"
+  | "uploadPolicyRequired";
 
 export interface FailedCommitmentJob {
   jobId: string;
@@ -193,6 +201,8 @@ function explainTerminalFailure(
   lastError?: string
 ): Pick<FailedCommitmentJob, "reason" | "retryable"> {
   if (!lastError) return { reason: null, retryable: true };
+  if (lastError === "unavailable:upload-policy-required")
+    return { reason: "uploadPolicyRequired", retryable: true };
   if (lastError.startsWith("unavailable:")) return { reason: "unavailable", retryable: true };
   if (!lastError.startsWith("identity_conflict:")) return { reason: null, retryable: true };
 
@@ -349,6 +359,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           targetUnits?: bigint | string;
           consideration?: { rail: number };
         };
+        const refusal = failed ? creationRefusalOf(job.lastError) : null;
         pendingCreates.push({
           jobId: job.id,
           chainId: job.chainId ?? 0,
@@ -365,6 +376,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           waitingForSettlementAccount:
             SETTLEMENT_ENABLED && !failed && job.meta?.waitingReason === "settlement-unavailable",
           failed,
+          ...(refusal ? { refusal } : {}),
           discardable: isDiscardableJob(job),
           ...(payload.metadata?.displayGroup && payload.dueDate
             ? { groupDueDate: String(payload.dueDate) }

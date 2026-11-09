@@ -1,9 +1,11 @@
 import type { Database } from "bun:sqlite";
+import type { PasskeyDirectoryAccountProfile } from "@green-goods/shared/public-contracts";
 
 /** Where a directory entry came from: a sign-up here, or an older account brought in. */
 export type PasskeySource = "registered" | "adopted";
 
 export type StoredPasskey = {
+  accountProfile: PasskeyDirectoryAccountProfile;
   userName: string;
   /** The exact ID string the account was made with. Kernel hashes it, so it is never re-encoded. */
   credentialId: string;
@@ -16,10 +18,16 @@ export type StoredPasskey = {
   createdAt: string;
 };
 
+export type PasskeyAddressRecord = Pick<
+  StoredPasskey,
+  "accountProfile" | "userName" | "credentialId" | "credentialKey" | "publicKey" | "rpId"
+> & { rowId: number };
+
 /** What a stored challenge answers, so a challenge of one kind can never complete the other. */
 export type PasskeyChallengePurpose = "registration" | "adoption";
 
 export type PendingPasskeyRegistration = {
+  accountProfile: PasskeyDirectoryAccountProfile;
   challenge: string;
   purpose: PasskeyChallengePurpose;
   userName: string;
@@ -49,6 +57,13 @@ export function storedPasskeyPublicKey(publicKey: string): `0x${string}` {
 export function passkeyDirectoryQueries(db: Database) {
   return {
     findByName: (userName: string) => getPasskeyByName(db, userName),
+    readAddressRecords: (after: number, limit: number) =>
+      db
+        .query(`
+        SELECT rowid AS rowId, userName, credentialId, credentialKey, publicKey, accountProfile, rpId
+        FROM passkey_credentials WHERE rowid > ? ORDER BY rowid LIMIT ?
+      `)
+        .all(after, limit) as PasskeyAddressRecord[],
     insert: (passkey: StoredPasskey) => insertPasskey(db, passkey),
     saveChallenge: (pending: PendingPasskeyRegistration, now: number) =>
       savePasskeyRegistrationChallenge(db, pending, now),
@@ -58,7 +73,7 @@ export function passkeyDirectoryQueries(db: Database) {
 }
 
 const PASSKEY_COLUMNS =
-  "userName, credentialId, credentialKey, publicKey, rpId, origin, source, createdAt";
+  "userName, credentialId, credentialKey, publicKey, rpId, origin, source, createdAt, accountProfile";
 
 function getPasskeyByName(db: Database, userName: string): StoredPasskey | undefined {
   const row = db
@@ -87,7 +102,7 @@ function insertPasskey(db: Database, passkey: StoredPasskey): PasskeyInsertResul
       return { ok: false, reason: "credential_exists" };
     }
     db.query(
-      `INSERT INTO passkey_credentials (${PASSKEY_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO passkey_credentials (${PASSKEY_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       passkey.userName,
       passkey.credentialId,
@@ -96,7 +111,8 @@ function insertPasskey(db: Database, passkey: StoredPasskey): PasskeyInsertResul
       passkey.rpId,
       passkey.origin,
       passkey.source,
-      passkey.createdAt
+      passkey.createdAt,
+      passkey.accountProfile
     );
     db.run("COMMIT");
     return { ok: true };
@@ -117,14 +133,15 @@ function savePasskeyRegistrationChallenge(
 ): void {
   db.query("DELETE FROM passkey_registration_challenges WHERE expiresAt <= ?").run(now);
   db.query(
-    "INSERT OR REPLACE INTO passkey_registration_challenges (challenge, purpose, userName, rpId, origin, expiresAt) VALUES (?, ?, ?, ?, ?, ?)"
+    "INSERT OR REPLACE INTO passkey_registration_challenges (challenge, purpose, userName, rpId, origin, expiresAt, accountProfile) VALUES (?, ?, ?, ?, ?, ?, ?)"
   ).run(
     pending.challenge,
     pending.purpose,
     pending.userName,
     pending.rpId,
     pending.origin,
-    pending.expiresAt
+    pending.expiresAt,
+    pending.accountProfile
   );
 }
 
@@ -143,7 +160,7 @@ function takePasskeyRegistrationChallenge(
     db.query("DELETE FROM passkey_registration_challenges WHERE expiresAt <= ?").run(now);
     const row = db
       .query(
-        "SELECT challenge, purpose, userName, rpId, origin, expiresAt FROM passkey_registration_challenges WHERE challenge = ?"
+        "SELECT challenge, purpose, userName, rpId, origin, expiresAt, accountProfile FROM passkey_registration_challenges WHERE challenge = ?"
       )
       .get(challenge) as PendingPasskeyRegistration | null;
     if (row) {

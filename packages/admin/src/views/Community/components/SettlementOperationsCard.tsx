@@ -82,11 +82,11 @@ export function SettlementOperationsCard({
             defaultMessage: "Settlement Operations",
           })}
         </AdminCardTitle>
-        <p className="mt-1 type-meta text-text-soft">
+        <p className="mt-1 type-body text-text-soft">
           {formatMessage({
             id: "cockpit.community.settlementOps.description",
             defaultMessage:
-              "Module-level switches for G$ settlement. Only the module owner can change them; deployers can see them.",
+              "Module-level switches for G$ settlement. Only the module owner can change them; the Green Goods team can see them.",
           })}
         </p>
       </div>

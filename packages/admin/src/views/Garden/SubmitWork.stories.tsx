@@ -501,6 +501,60 @@ export const DetailsStepChecked: Story = {
   },
 };
 
+export const RepeatingRows: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkRouteDecorators([
+    {
+      ...DETAILS_ACTION,
+      inputs: [
+        {
+          key: "breakdown",
+          title: "Category Breakdown",
+          placeholder: "",
+          type: "repeater",
+          required: true,
+          options: [],
+          repeaterFields: [
+            {
+              key: "category",
+              title: "Category",
+              placeholder: "",
+              type: "text",
+              required: true,
+              options: [],
+            },
+            {
+              key: "weight",
+              title: "Weight (kg)",
+              placeholder: "",
+              type: "number",
+              required: true,
+              options: [],
+            },
+          ],
+        },
+      ],
+    },
+  ]),
+  play: async ({ canvasElement }) => {
+    const flow = await openDetailsStep(canvasElement);
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await expect(await flow.findByText("This field is required")).toBeVisible();
+    await userEvent.click(flow.getByRole("button", { name: /^Add$/ }));
+    await userEvent.type(flow.getByLabelText(/Category \*/), "Plastic");
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await expect(flow.getByLabelText(/Weight \(kg\)/)).toHaveAttribute("aria-invalid", "true");
+    await userEvent.type(flow.getByLabelText(/Weight \(kg\)/), "12");
+    await userEvent.click(flow.getByRole("button", { name: /^Add$/ }));
+    await userEvent.click(flow.getByRole("button", { name: "Remove Category Breakdown 2" }));
+    await userEvent.click(flow.getByRole("button", { name: "Next" }));
+    await expect(await flow.findByText("Plastic")).toBeVisible();
+    await expect(flow.getByText("12")).toBeVisible();
+    await expect(flow.queryByText(/\[object Object\]/)).not.toBeInTheDocument();
+  },
+};
+
 export const NoDomainRecovery: Story = {
   tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,

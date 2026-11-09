@@ -28,7 +28,13 @@ const DEFAULT_INTEGRATION = {
   isReconciling: false,
   isPending: false,
   error: null,
-  reconcile: vi.fn(async () => "0x1" as const),
+  reconcile: vi.fn(async () => undefined),
+  signatures: 1,
+  progress: null,
+  hold: null,
+  isSettlingHold: false,
+  checkHoldAgain: vi.fn(async () => undefined),
+  moveOnFromHold: vi.fn(async () => undefined),
 } satisfies KarmaIntegrationController;
 
 function buildIntegration(
@@ -97,7 +103,7 @@ describe("KarmaIntegrationPanel", () => {
     "access-pending",
     "failed",
   ] as const)("lets an Owner or Steward reconcile the %s state", async (status) => {
-    const reconcile = vi.fn(async () => "0x1" as const);
+    const reconcile = vi.fn(async () => undefined);
     renderPanel({ status, canReconcile: true, reconcile });
 
     await userEvent.click(
@@ -130,6 +136,37 @@ describe("KarmaIntegrationPanel", () => {
     // Held but focusable while the repair runs: presses are ignored (DL-115).
     expect(button).toHaveAttribute("aria-disabled", "true");
     expect(button).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("says how many signatures a sync takes before the first, and counts them while they come", () => {
+    const { unmount } = renderPanel({ status: "access-pending", signatures: 3 });
+
+    expect(screen.getByText("3 signatures")).toBeVisible();
+    unmount();
+    renderPanel({
+      status: "retrying",
+      isPending: true,
+      progress: { signature: 2, signatures: 3 },
+    });
+    expect(screen.getByText("Signature 2 of 3")).toHaveAttribute("role", "status");
+  });
+
+  it("pauses the next sync behind one nobody can confirm, until it is checked or moved on from", async () => {
+    const checkHoldAgain = vi.fn(async () => undefined);
+    const moveOnFromHold = vi.fn(async () => undefined);
+    renderPanel({
+      status: "failed",
+      hold: { operationIds: ["held"], calls: 2 },
+      checkHoldAgain,
+      moveOnFromHold,
+    });
+
+    expect(screen.getByText("We couldn’t confirm your last Karma sync.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Retry Karma Sync" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move On" }));
+    expect(checkHoldAgain).toHaveBeenCalledTimes(1);
+    expect(moveOnFromHold).toHaveBeenCalledTimes(1);
   });
 
   it("keeps failed integration copy calm and does not expose a raw error", () => {

@@ -9,14 +9,13 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import {
   CommitmentRow,
   type CommitmentRowProps,
 } from "../../../components/Cards/CommitmentRow/CommitmentRow";
-import messages from "../../../i18n/en.json";
 import type { Address } from "../../../types/domain";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const MAKER = "0x1111111111111111111111111111111111111111" as Address;
 const TAKER = "0x2222222222222222222222222222222222222222" as Address;
@@ -48,11 +47,7 @@ const base: CommitmentRowProps = {
 };
 
 const renderRow = (props: Partial<CommitmentRowProps> = {}) =>
-  render(
-    <IntlProvider locale="en" messages={messages}>
-      <CommitmentRow {...base} {...props} />
-    </IntlProvider>
-  );
+  render(<CommitmentRow {...base} {...props} />, { wrapper: createTestWrapper() });
 
 describe("CommitmentRow", () => {
   it("leads with the direction, named, then the state, the due date and the other person", () => {
@@ -76,33 +71,29 @@ describe("CommitmentRow", () => {
     // Nobody has taken it up, whether the seat is empty or holds the chain's zero address.
     for (const counterparty of [null, NOBODY]) {
       rerender(
-        <IntlProvider locale="en" messages={messages}>
-          <CommitmentRow
-            {...base}
-            party={{ commitment: { ...commitment, counterparty }, seat: "provider" }}
-          />
-        </IntlProvider>
+        <CommitmentRow
+          {...base}
+          party={{ commitment: { ...commitment, counterparty }, seat: "provider" }}
+        />
       );
       expect(screen.getByRole("button")).toHaveAccessibleName(/due 24 Oct$/);
     }
 
     // The one who asked, on their own request nobody has taken up, never reads their own name.
     rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <CommitmentRow
-          {...base}
-          direction="REQUEST"
-          party={{
-            commitment: {
-              direction: "REQUEST",
-              creator: MAKER,
-              leadProvider: null,
-              counterparty: null,
-            },
-            seat: "confirmer",
-          }}
-        />
-      </IntlProvider>
+      <CommitmentRow
+        {...base}
+        direction="REQUEST"
+        party={{
+          commitment: {
+            direction: "REQUEST",
+            creator: MAKER,
+            leadProvider: null,
+            counterparty: null,
+          },
+          seat: "confirmer",
+        }}
+      />
     );
     expect(screen.getByRole("button")).toHaveAccessibleName(/due 24 Oct$/);
   });
@@ -127,24 +118,18 @@ describe("CommitmentRow", () => {
     expect(useEnsName.mock.calls.every(([address]) => address === null)).toBe(true);
 
     // A promise still on the device has no page to show its units, so they lead the line.
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <CommitmentRow {...base} {...queued} units="6 hours" />
-      </IntlProvider>
-    );
+    rerender(<CommitmentRow {...base} {...queued} units="6 hours" />);
     expect(details()).toHaveTextContent(/^6 hours\s*Saved on this phone\.$/);
 
     // While something stops the send, what stops it leads, so a phone keeps it in view.
     rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <CommitmentRow
-          {...base}
-          {...queued}
-          note="Your wallet needs to be on Arbitrum One."
-          units="6 hours"
-          blocked
-        />
-      </IntlProvider>
+      <CommitmentRow
+        {...base}
+        {...queued}
+        note="Your wallet needs to be on Arbitrum One."
+        units="6 hours"
+        blocked
+      />
     );
     expect(details()).toHaveTextContent(/^Your wallet needs to be on Arbitrum One\.\s*6 hours$/);
   });
@@ -158,11 +143,7 @@ describe("CommitmentRow", () => {
     const row = screen.getByRole("button");
     row.focus();
 
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <CommitmentRow {...base} party={{ commitment, seat: "provider" }} />
-      </IntlProvider>
-    );
+    rerender(<CommitmentRow {...base} party={{ commitment, seat: "provider" }} />);
     expect(screen.getByRole("button")).toBe(row);
     expect(row).toHaveFocus();
     expect(row).toHaveAccessibleName(/maria\.eth$/);

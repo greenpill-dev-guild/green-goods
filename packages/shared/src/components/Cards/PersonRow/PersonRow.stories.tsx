@@ -128,7 +128,7 @@ type Story = StoryObj<typeof PersonRow>;
 /**
  * A garden's people at the installed app's density and the cockpit's: the Green Goods name
  * reads as the username alone, someone with no name reads as a short address, and while a
- * photo is still being looked up the avatar stays empty.
+ * photo is still being looked up the avatar shows what someone without one shows.
  */
 export const Densities: Story = {
   render: () => (
@@ -155,7 +155,7 @@ export const Densities: Story = {
     await expect(rows[2]).toHaveTextContent(
       /^0x33\.\.\.333\s*Gardener\s*Gardener since Nov 14, 2023$/
     );
-    await expect(rows[4].querySelector(".gg-item-row-avatar")).toBeEmptyDOMElement();
+    await expect(rows[4].querySelector(".gg-item-row-avatar svg")).not.toBeNull();
     await expectItemRowsFit(canvasElement);
   },
 };

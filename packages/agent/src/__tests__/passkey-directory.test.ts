@@ -1,10 +1,25 @@
-import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
-import { describe, expect, it } from "vitest";
+import type { Database } from "bun:sqlite";
+import {
+  PASSKEY_DISPLAY_NAMES_BATCH_LIMIT,
+  PASSKEY_DISPLAY_NAMES_METHOD,
+  PUBLIC_AGENT_ROUTES,
+} from "@green-goods/shared/public-contracts";
+import { BaseError } from "viem";
+import { arbitrum } from "viem/chains";
+import { describe, expect, it, vi } from "vitest";
 import { InMemoryPublicRateLimiter, PUBLIC_RATE_LIMIT_POLICIES } from "../api/public-protection";
 import { createServer } from "../api/server";
-import { createPasskeyDirectory, type HostedPasskeyNameCheck } from "../services/passkey-directory";
+import { closeDB, initDB } from "../services/db";
+import { loggers } from "../services/logger";
 import {
-  createHostedPasskeyNameCheck,
+  createPasskeyDirectory,
+  type HostedPasskeyNameCheck,
+  type PasskeyDirectoryDeps,
+} from "../services/passkey-directory";
+import {
+  createHostedPasskeyLookup,
+  createSqlitePasskeyDirectoryStore,
+  createSqlitePasskeyDisplayNames,
   MemoryPasskeyDirectoryStore,
 } from "../services/passkey-directory-adapters";
 import { passkeyDirectoryStoreContract } from "./test-utils/passkey-directory-store-contract";
@@ -23,18 +38,31 @@ const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
 const NOW = 1_759_600_000_000;
 
 function createDirectoryApp(
-  options: { hostedNameTaken?: HostedPasskeyNameCheck; allowLocalDevelopment?: boolean } = {}
+  options: {
+    hostedNameTaken?: HostedPasskeyNameCheck;
+    allowLocalDevelopment?: boolean;
+    displayNames?: PasskeyDirectoryDeps["displayNames"];
+    store?: PasskeyDirectoryDeps["store"];
+  } = {}
 ) {
   let now = NOW;
-  const store = new MemoryPasskeyDirectoryStore();
+  const store = options.store ?? new MemoryPasskeyDirectoryStore();
   const app = createServer({
     isAIReady: () => true,
-    allowedOrigins: new Set([BETA, WWW, ADMIN, LOCALHOST, LOOPBACK_ADDRESS]),
+    allowedOrigins: new Set([
+      BETA,
+      "https://beta.admin.greengoods.app",
+      WWW,
+      ADMIN,
+      LOCALHOST,
+      LOOPBACK_ADDRESS,
+    ]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
     passkeyDirectory: createPasskeyDirectory({
       store,
       relyingParty: { id: DOMAIN, name: "Green Goods" },
       hostedNameTaken: options.hostedNameTaken,
+      displayNames: options.displayNames,
       allowLocalDevelopment: options.allowLocalDevelopment,
       now: () => now,
     }),
@@ -73,26 +101,181 @@ async function call(
 async function signUp(
   app: ReturnType<typeof createServer>,
   userName: string,
-  options: { origin?: string; passkey?: Partial<SoftwarePasskeyOptions> } = {}
+  options: {
+    origin?: string;
+    passkey?: Partial<SoftwarePasskeyOptions>;
+    accountProfileVersion?: number;
+  } = {}
 ) {
   const origin = options.origin ?? BETA;
-  const start = await call(app, "pks_startRegistration", [{ userName }], origin);
+  const context = {
+    userName,
+    ...(options.accountProfileVersion === undefined
+      ? {}
+      : { accountProfileVersion: options.accountProfileVersion }),
+  };
+  const start = await call(app, "pks_startRegistration", [context], origin);
   const passkey = createSoftwarePasskeyRegistration({
     rpId: DOMAIN,
     origin,
     challenge: start.result?.challenge,
     ...options.passkey,
   });
-  const verify = await call(
-    app,
-    "pks_verifyRegistration",
-    [passkey.credential, { userName }],
-    origin
-  );
+  const verify = await call(app, "pks_verifyRegistration", [passkey.credential, context], origin);
   return { start, passkey, verify };
 }
 
 describe("passkey directory", () => {
+  it("keeps hosted credential discovery read-only and ignores previously cached labels", async () => {
+    const address = "0x1111111111111111111111111111111111111111";
+    const sqlite = Reflect.get(initDB(":memory:"), "db") as Database;
+    try {
+      // An older Agent could have written this row from an unauthenticated lookup.
+      sqlite.run(`CREATE TABLE hosted_passkey_display_names (
+        chainId INTEGER NOT NULL, address TEXT NOT NULL, userName TEXT NOT NULL,
+        PRIMARY KEY (chainId, address, userName)
+      )`);
+      sqlite
+        .query("INSERT INTO hosted_passkey_display_names VALUES (?, ?, ?)")
+        .run(arbitrum.id, address, "maya");
+      const hostedNameTaken = vi.fn(async () => true);
+      const { app } = createDirectoryApp({
+        store: createSqlitePasskeyDirectoryStore(),
+        displayNames: createSqlitePasskeyDisplayNames(arbitrum, "http://127.0.0.1:1"),
+        hostedNameTaken,
+      });
+
+      await expect(
+        call(app, "pks_getCredentials", [{ userName: " @MAYA " }], WWW)
+      ).resolves.toMatchObject({ result: [] });
+      expect(hostedNameTaken).not.toHaveBeenCalled();
+      await expect(
+        call(
+          app,
+          PASSKEY_DISPLAY_NAMES_METHOD,
+          [{ chainId: arbitrum.id, addresses: [address] }],
+          WWW
+        )
+      ).resolves.toMatchObject({ result: [null] });
+      expect(sqlite.query("SELECT userName FROM hosted_passkey_display_names").all()).toEqual([
+        { userName: "maya" },
+      ]);
+    } finally {
+      await closeDB();
+    }
+  });
+
+  it("serves only labels for requested addresses and validates the lookup batch", async () => {
+    const maya = "0x1111111111111111111111111111111111111111";
+    const unknown = "0x2222222222222222222222222222222222222222";
+    const { app } = createDirectoryApp({
+      displayNames: {
+        chainId: 42161,
+        lookup: async (addresses) => addresses.map((address) => (address === maya ? "maya" : null)),
+      },
+    });
+    await expect(
+      call(app, PASSKEY_DISPLAY_NAMES_METHOD, [{ chainId: 42161, addresses: [unknown, maya] }], WWW)
+    ).resolves.toMatchObject({ result: [null, "maya"] });
+    await expect(
+      call(app, PASSKEY_DISPLAY_NAMES_METHOD, [{ chainId: 42220, addresses: [maya] }])
+    ).resolves.toMatchObject({ result: [null] });
+    for (const addresses of [
+      ["invalid"],
+      Array(PASSKEY_DISPLAY_NAMES_BATCH_LIMIT + 1).fill(maya),
+    ]) {
+      await expect(
+        call(app, PASSKEY_DISPLAY_NAMES_METHOD, [{ chainId: 42161, addresses }])
+      ).resolves.toMatchObject({ error: { code: -32602 } });
+    }
+  });
+
+  it("logs a safe display-name failure category without exposing provider details", async () => {
+    const warn = vi.spyOn(loggers.api, "warn").mockImplementation(() => undefined);
+    try {
+      const { app } = createDirectoryApp({
+        displayNames: {
+          chainId: 42161,
+          async lookup() {
+            throw new BaseError("https://rpc.example/private-token");
+          },
+        },
+      });
+      await expect(
+        call(app, PASSKEY_DISPLAY_NAMES_METHOD, [
+          { chainId: 42161, addresses: ["0x1111111111111111111111111111111111111111"] },
+        ])
+      ).resolves.toMatchObject({
+        error: { code: -32603, message: "Passkey sign-up is unavailable right now." },
+      });
+
+      expect(warn.mock.calls).toEqual([
+        [{ reason: "chain_client_error" }, "Could not look up passkey display names"],
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("rejects an attested empty credential ID even when the browser envelope supplies an ID", async () => {
+    const { app, store } = createDirectoryApp();
+    const { verify } = await signUp(app, "maya", {
+      accountProfileVersion: 1,
+      passkey: { emptyAttestedCredentialId: true },
+    });
+
+    expect(verify.error?.message).toBe("Passkey verification failed.");
+    expect(await store.findByName("maya")).toBeUndefined();
+  });
+
+  it.each([
+    [BETA, "kernel-0.3.3"],
+    ["https://beta.admin.greengoods.app", "kernel-0.3.3"],
+    [WWW, "kernel-0.3.1-legacy"],
+    [ADMIN, "kernel-0.3.1-legacy"],
+  ])("pins new account profiles at registration on %s", async (origin, accountProfile) => {
+    const { app, store } = createDirectoryApp();
+    const { start, verify } = await signUp(app, "ana", { origin, accountProfileVersion: 1 });
+    expect(start.result.accountProfile).toBe(accountProfile);
+    expect(verify.result.accountProfile).toBe(accountProfile);
+    expect(await store.findByName("ana")).toMatchObject({ accountProfile });
+    for (const otherOrigin of [BETA, WWW]) {
+      const found = await call(
+        app,
+        "pks_getCredentials",
+        [{ userName: "ana", accountProfileVersion: 1 }],
+        otherOrigin
+      );
+      expect(found.result[0].accountProfile).toBe(accountProfile);
+    }
+    if (accountProfile === "kernel-0.3.3") {
+      const oldClient = await call(app, "pks_getCredentials", [{ userName: "ana" }], WWW);
+      expect(oldClient.error?.message).toBe("Update Green Goods to sign in to this account.");
+    }
+  });
+
+  it("keeps older beta clients on their original recipe and binds the profile to the challenge", async () => {
+    const { app, store } = createDirectoryApp();
+    await signUp(app, "older-client");
+    expect(await store.findByName("older-client")).toMatchObject({
+      accountProfile: "kernel-0.3.1-legacy",
+    });
+    const start = await call(app, "pks_startRegistration", [
+      { userName: "ana", accountProfileVersion: 1 },
+    ]);
+    const passkey = createSoftwarePasskeyRegistration({
+      rpId: DOMAIN,
+      origin: BETA,
+      challenge: start.result.challenge,
+    });
+    const downgraded = await call(app, "pks_verifyRegistration", [
+      passkey.credential,
+      { userName: "ana" },
+    ]);
+    expect(downgraded.error).toBeDefined();
+    expect(await store.findByName("ana")).toBeUndefined();
+  });
+
   it("issues one domain to every site, so a passkey made on one is found from another", async () => {
     const { app } = createDirectoryApp();
 
@@ -105,6 +288,7 @@ describe("passkey directory", () => {
       userVerification: "required",
     });
     expect(verify.result).toEqual({
+      accountProfile: "kernel-0.3.1-legacy",
       success: true,
       id: passkey.credentialId,
       publicKey: passkey.publicKey,
@@ -118,6 +302,7 @@ describe("passkey directory", () => {
           signingId: passkey.credentialId,
           publicKey: passkey.publicKey,
           rpId: DOMAIN,
+          accountProfile: "kernel-0.3.1-legacy",
         },
       ]);
     }
@@ -137,6 +322,7 @@ describe("passkey directory", () => {
         signingId: first.passkey.credentialId,
         publicKey: first.passkey.publicKey,
         rpId: DOMAIN,
+        accountProfile: "kernel-0.3.1-legacy",
       },
     ]);
     expect((await call(app, "pks_startRegistration", [{ userName: "ab" }])).error?.code).toBe(
@@ -322,10 +508,10 @@ describe("passkey directory", () => {
   });
 });
 
-describe("hosted passkey name check", () => {
-  it("asks the hosted server by name and reports whether it holds one", async () => {
+describe("hosted passkey lookup", () => {
+  it("asks the hosted server by name and preserves its exact IDs", async () => {
     const requests: Array<{ url: string; origin: string | null; body: any }> = [];
-    const hosted = createHostedPasskeyNameCheck({
+    const hosted = createHostedPasskeyLookup({
       rpcUrl: "https://hosted.example/rpc?apikey=test",
       origin: "https://greengoods.app",
       fetch: (async (url: string, init: RequestInit) => {
@@ -336,8 +522,8 @@ describe("hosted passkey name check", () => {
       }) as unknown as typeof fetch,
     });
 
-    expect(await hosted("dida")).toBe(true);
-    expect(await hosted("novo")).toBe(false);
+    expect(await hosted("dida")).toEqual([{ id: "a" }]);
+    expect(await hosted("novo")).toEqual([]);
     expect(requests[0]).toEqual({
       url: "https://hosted.example/rpc?apikey=test",
       origin: "https://greengoods.app",
@@ -346,7 +532,7 @@ describe("hosted passkey name check", () => {
   });
 
   it("fails instead of guessing when the hosted server gives no answer", async () => {
-    const refusing = createHostedPasskeyNameCheck({
+    const refusing = createHostedPasskeyLookup({
       rpcUrl: "https://hosted.example/rpc",
       origin: "https://greengoods.app",
       fetch: (async () =>
@@ -356,14 +542,14 @@ describe("hosted passkey name check", () => {
           error: { message: "Origin header is missing" },
         })) as unknown as typeof fetch,
     });
-    const failing = createHostedPasskeyNameCheck({
+    const failing = createHostedPasskeyLookup({
       rpcUrl: "https://hosted.example/rpc",
       origin: "https://greengoods.app",
       fetch: (async () => new Response("bad gateway", { status: 502 })) as unknown as typeof fetch,
     });
 
     // A transport error can quote the address, which carries the API key.
-    const unreachable = createHostedPasskeyNameCheck({
+    const unreachable = createHostedPasskeyLookup({
       rpcUrl: "https://hosted.example/rpc?apikey=secret-key",
       origin: "https://greengoods.app",
       fetch: (async () => {

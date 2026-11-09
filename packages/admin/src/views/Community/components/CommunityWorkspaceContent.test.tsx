@@ -80,6 +80,9 @@ const baseWorkspace = {
   memberSearch: "",
   mode: "members",
   pools: [],
+  poolsRead: true,
+  poolsUnread: false,
+  rereadPools: noop,
   roleMembers: {
     gardener: [],
     operator: [],
@@ -185,5 +188,15 @@ describe("Coordination funding status with governance disabled", () => {
     expect(useGardenYieldWiringState).toHaveBeenLastCalledWith(baseWorkspace.gardenId, {
       enabled: false,
     });
+  });
+  it("keeps the yield wiring check while the pool list is unread, since it reads on its own", () => {
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: "missing-resolver-wiring",
+    } as ReturnType<typeof useGardenYieldWiringState>);
+    renderWorkspace({ mode: "coordination", pools: [], poolsRead: false, poolsUnread: true });
+    expect(useGardenYieldWiringState).toHaveBeenLastCalledWith(baseWorkspace.gardenId, {
+      enabled: true,
+    });
+    expect(screen.getByText(messages["app.community.yield.notConnected"])).toBeInTheDocument();
   });
 });

@@ -109,7 +109,7 @@ export function useCommitmentSettlementController(input: {
     account: viewer,
     protocolGarden: protocolPool.rootGarden,
     executorGarden: payerGarden,
-    isDeployer: false,
+    isProtocolTeam: false,
   });
   const fundingQuery = usePoolFunding(
     { chainId, garden: payerGarden ?? ZERO_ADDRESS },

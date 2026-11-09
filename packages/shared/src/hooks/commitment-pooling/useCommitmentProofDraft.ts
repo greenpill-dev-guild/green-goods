@@ -12,7 +12,7 @@ import {
   type ProofDraftRepository,
   proofDraftRepository,
 } from "../../modules/commitment-pooling/proof-draft-repository";
-import { isVideoFile } from "../../modules/work/media-processing";
+import { isVideoFile, isWorkDocument } from "../../modules/work/media-processing";
 import {
   type CommitmentProofDraft,
   commitmentProofDraftKey,
@@ -183,7 +183,13 @@ export function useCommitmentProofDraft(input: {
         }
         if (!latest()) return false;
         const videos = media.filter((file) => isVideoFile(file)).length;
-        const files = { photos: media.length - videos, videos, voiceNotes: audioNotes.length };
+        const documents = media.filter((file) => isWorkDocument(file)).length;
+        const files = {
+          photos: media.length - videos - documents,
+          videos,
+          voiceNotes: audioNotes.length,
+          documents,
+        };
         // A credit choice alone makes no draft and lists nowhere, but the member made it, so it
         // stays with the composer for their return.
         if (proofDraftHasContent({ ...snapshot.words, files }) || snapshot.words.credited) {

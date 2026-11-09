@@ -27,6 +27,7 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(resolve(__dirname, path), "utf-8");
 const tokens = read("../../styles/admin-m3-tokens.css");
 const theme = read("../../../../shared/src/styles/theme.css");
+const generated = read("../../../../shared/src/styles/design-md.generated.css");
 const app = read("../../index.css");
 const storybook = read("../../../../shared/.storybook/surfaces.css");
 const fabButton = read("../../components/Shell/FabButton.tsx");
@@ -76,6 +77,12 @@ function resolveRgb(property: string, scopes: string[]): Rgb {
   const triple = value.match(/^(\d+)\s+(\d+)\s+(\d+)/);
   if (!triple) throw new Error(`${property} has no RGB triple: ${value}`);
   return [Number(triple[1]), Number(triple[2]), Number(triple[3])];
+}
+
+/** A translucent token's `R G B` triple and its alpha, 1 when it declares none. */
+function resolveRgba(property: string, scopes: string[]): [Rgb, number] {
+  const percent = declared(property, scopes).match(/\/\s*([\d.]+)%/)?.[1];
+  return [resolveRgb(property, scopes), percent ? Number(percent) / 100 : 1];
 }
 
 function luminance([r, g, b]: Rgb): number {
@@ -185,6 +192,38 @@ describe("workspace tone fills", () => {
     }
   });
 
+  it("gives the link-hover step a dark value, so dialogs hover and select at AA", () => {
+    // Dialogs, sheets and the command palette portal to <body>, outside the
+    // .admin-m3 block that lifts the step on the canvas, so they read <body>'s.
+    const themes = {
+      light: [RAMP.body, blocks(tokens, ":root"), blocks(theme, ":root"), generated, theme],
+      dark: [
+        RAMP_DARK.body,
+        RAMP.body,
+        blocks(tokens, '[data-theme="dark"]'),
+        blocks(theme, '[data-theme="dark"]'),
+        blocks(tokens, ":root"),
+        blocks(theme, ":root"),
+        generated,
+        theme,
+      ],
+    };
+    for (const [name, scopes] of Object.entries(themes)) {
+      const ink = resolveRgb("--primary-darker", scopes);
+      // A link hovers on the dialog's surface; the palette's selected row lays
+      // --primary-base at 16% over it (bg-primary-alpha-16).
+      const tint = resolveRgb("--primary-base", scopes);
+      for (const surface of ["--m3-surface-container", "--m3-surface-container-high"]) {
+        const fill = resolveRgb(surface, scopes);
+        expect(contrast(ink, fill), `${name} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+        const selected = over(fill, tint, 0.16);
+        expect(contrast(ink, selected), `${name} selected on ${surface}`).toBeGreaterThanOrEqual(
+          4.5
+        );
+      }
+    }
+  });
+
   it("keeps one ramp for the canvas, what it portals and Storybook's admin stories", () => {
     // On <body>, the dialogs, side sheets, toasts and popovers that portal there draw it too.
     expect([RAMP.selector, RAMP_DARK.selector]).toEqual(["body", '[data-theme="dark"] body']);
@@ -192,6 +231,39 @@ describe("workspace tone fills", () => {
     expect(mirror.map((rule) => declarations(rule.body))).toEqual(
       [RAMP, RAMP_DARK].map((rule) => declarations(rule.body))
     );
+  });
+
+  it("gives the info roles their own dark values, so notices stay readable in dark", () => {
+    // <body>'s remap sits below theme.css's dark block on <html>, so an info role it
+    // sets keeps its light shade in dark unless the dark block sets it as well.
+    const infoRoles = (body: string) =>
+      declarations(body)
+        .map((declaration) => declaration.split(":")[0])
+        .filter((property) => property.startsWith("--information-"));
+    expect(infoRoles(RAMP_DARK.body)).toEqual(infoRoles(RAMP.body));
+    const themes = {
+      light: [RAMP.body, blocks(tokens, ":root"), blocks(theme, ":root"), theme],
+      dark: [
+        RAMP_DARK.body,
+        RAMP.body,
+        blocks(tokens, '[data-theme="dark"]'),
+        blocks(theme, '[data-theme="dark"]'),
+        blocks(tokens, ":root"),
+        blocks(theme, ":root"),
+        theme,
+      ],
+    };
+    for (const [name, scopes] of Object.entries(themes)) {
+      const [tint, alpha] = resolveRgba("--information-lighter", scopes);
+      // Info notices sit on cards and in dialogs, and carry the info ink or secondary text.
+      for (const surface of ["--m3-surface-container", "--m3-surface-container-high"]) {
+        const fill = over(resolveRgb(surface, scopes), tint, alpha);
+        for (const ink of ["--information-dark", "--text-sub-600"]) {
+          const ratio = contrast(resolveRgb(ink, scopes), fill);
+          expect(ratio, `${name} ${ink} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
   });
 
   it("fills a selected filter chip in the tone where it sits, through Shared's chip", () => {

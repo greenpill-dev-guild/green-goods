@@ -7,7 +7,7 @@
  */
 
 import { type QueryClient } from "@tanstack/react-query";
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
@@ -22,6 +22,8 @@ const mockGetHypercertFromSdkApi = vi.fn();
 const mockHydrateHypercertMetadata = vi.fn();
 const mockHydrateHypercertRecords = vi.fn();
 const TEST_CHAIN_ID = 11155111;
+/** The page a garden list reads at a time. */
+const PAGE = 50;
 
 vi.mock("../../../modules/data/hypercerts", () => ({
   getGardenHypercerts: (...args: unknown[]) => mockGetGardenHypercerts(...args),
@@ -52,6 +54,7 @@ import {
   type OptimisticHypercertData,
   useHypercerts,
 } from "../../../hooks/hypercerts/useHypercerts";
+import type { HypercertRecord } from "../../../types/hypercerts";
 import { createMockHypercertRecord, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 
 // ============================================
@@ -111,17 +114,25 @@ describe("useHypercerts", () => {
         expect(result.current.hypercerts).toHaveLength(2);
       });
 
+      // One row past the page tells whether the garden has more.
       expect(mockGetGardenHypercerts).toHaveBeenCalledWith(
         MOCK_ADDRESSES.garden,
         TEST_CHAIN_ID,
-        undefined
+        undefined,
+        PAGE + 1
       );
+      expect(result.current.hasOlder).toBe(false);
     });
 
-    it("passes status filter to query function", async () => {
-      mockGetGardenHypercerts.mockResolvedValue([]);
+    // A status narrows what is shown, not the read: a row past the page of
+    // another status still means the garden has more.
+    it("shows only the asked status, reading every status for the page", async () => {
+      mockGetGardenHypercerts.mockResolvedValue([
+        createMockHypercertRecord({ id: "hc-active", status: "active" }),
+        createMockHypercertRecord({ id: "hc-claimed", status: "claimed" }),
+      ]);
 
-      renderHookWithQueryClient(
+      const { result } = renderHookWithQueryClient(
         () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden, status: "active" }),
         {
           queryClient,
@@ -129,12 +140,14 @@ describe("useHypercerts", () => {
       );
 
       await waitFor(() => {
-        expect(mockGetGardenHypercerts).toHaveBeenCalledWith(
-          MOCK_ADDRESSES.garden,
-          TEST_CHAIN_ID,
-          "active"
-        );
+        expect(result.current.hypercerts.map((record) => record.id)).toEqual(["hc-active"]);
       });
+      expect(mockGetGardenHypercerts).toHaveBeenCalledWith(
+        MOCK_ADDRESSES.garden,
+        TEST_CHAIN_ID,
+        undefined,
+        PAGE + 1
+      );
     });
 
     it("does not fetch when gardenId is missing", () => {
@@ -160,6 +173,133 @@ describe("useHypercerts", () => {
       });
 
       expect(result.current.error).toBeInstanceOf(Error);
+    });
+
+    // The Hub's Hypercerts tab says its read failed until a refresh succeeds.
+    it("clears a failed read once a refresh succeeds, busy while it runs", async () => {
+      mockGetGardenHypercerts.mockRejectedValueOnce(new Error("indexer unavailable"));
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+      await waitFor(() => expect(result.current.hasError).toBe(true));
+      expect(result.current.isFetching).toBe(false);
+
+      let land: (records: HypercertRecord[]) => void = () => undefined;
+      mockGetGardenHypercerts.mockImplementationOnce(
+        () => new Promise<HypercertRecord[]>((resolve) => (land = resolve))
+      );
+      let refreshed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        refreshed = result.current.refetch();
+      });
+      await waitFor(() => expect(result.current.isFetching).toBe(true));
+
+      await act(async () => {
+        land([createMockHypercertRecord({ id: "hc-1" })]);
+        await refreshed;
+      });
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      expect(result.current.hasError).toBe(false);
+      expect(result.current.hypercerts.map((record) => record.id)).toEqual(["hc-1"]);
+    });
+  });
+
+  // ============================================
+  // Older hypercerts (PRD-1086)
+  // ============================================
+
+  describe("older hypercerts", () => {
+    /** A garden with 120 hypercerts, newest first, read the way the indexer limits a list. */
+    const minted = Array.from({ length: 120 }, (_, index) =>
+      createMockHypercertRecord({ id: `hc-${index}`, mintedAt: 1_700_000_000 - index })
+    );
+
+    beforeEach(() => {
+      mockGetGardenHypercerts.mockImplementation(
+        async (_garden: string, _chain: number, _status: unknown, limit: number) =>
+          minted.slice(0, limit)
+      );
+    });
+
+    it("reaches every hypercert of a garden with more than a page, one page per request", async () => {
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+
+      await waitFor(() => expect(result.current.hypercerts).toHaveLength(PAGE));
+      expect(result.current.hasOlder).toBe(true);
+      // The row read past the page is never shown, so it is never hydrated either.
+      expect(mockHydrateHypercertRecords).toHaveBeenLastCalledWith(
+        minted.slice(0, PAGE),
+        TEST_CHAIN_ID
+      );
+
+      act(() => result.current.loadOlder());
+      await waitFor(() => expect(result.current.hypercerts).toHaveLength(2 * PAGE));
+      expect(result.current.hasOlder).toBe(true);
+
+      act(() => result.current.loadOlder());
+      await waitFor(() => expect(result.current.hypercerts).toHaveLength(120));
+      expect(result.current.hasOlder).toBe(false);
+      expect(result.current.hypercerts.at(-1)?.id).toBe("hc-119");
+      // Each landed read is hydrated once; a widened window waiting on its read
+      // is not hydrated again for the rows it is about to replace.
+      await waitFor(() =>
+        expect(mockHydrateHypercertRecords.mock.calls.map(([records]) => records.length)).toEqual([
+          PAGE,
+          2 * PAGE,
+          120,
+        ])
+      );
+      expect(mockGetGardenHypercerts).toHaveBeenLastCalledWith(
+        MOCK_ADDRESSES.garden,
+        TEST_CHAIN_ID,
+        undefined,
+        3 * PAGE + 1
+      );
+    });
+
+    it("keeps a title it knows when a later metadata read learns nothing", async () => {
+      mockHydrateHypercertRecords.mockImplementation(async (records: { id: string }[]) =>
+        Object.fromEntries(
+          records.map((record) => [
+            record.id,
+            {
+              title: record.id === "hc-0" && records.length === PAGE ? "Canopy survey" : undefined,
+            },
+          ])
+        )
+      );
+      const { result } = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+      await waitFor(() => expect(result.current.hypercerts[0]?.title).toBe("Canopy survey"));
+
+      act(() => result.current.loadOlder());
+      await waitFor(() => expect(result.current.hypercerts).toHaveLength(2 * PAGE));
+      await waitFor(() => expect(mockHydrateHypercertRecords).toHaveBeenCalledTimes(2));
+      expect(result.current.hypercerts[0]?.title).toBe("Canopy survey");
+    });
+
+    it("keeps one window for every screen that lists the same garden", async () => {
+      const first = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+      await waitFor(() => expect(first.result.current.hypercerts).toHaveLength(PAGE));
+      act(() => first.result.current.loadOlder());
+      await waitFor(() => expect(first.result.current.hypercerts).toHaveLength(2 * PAGE));
+
+      // A second screen opened later reads the garden as widely as the first.
+      const second = renderHookWithQueryClient(
+        () => useHypercerts({ gardenId: MOCK_ADDRESSES.garden }),
+        { queryClient }
+      );
+      expect(second.result.current.hypercerts).toHaveLength(2 * PAGE);
+      expect(second.result.current.hasOlder).toBe(true);
     });
   });
 

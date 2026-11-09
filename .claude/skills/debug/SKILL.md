@@ -55,7 +55,7 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - "pull in the QA issues", "work the QA slices", "fix what we found in QA", "pick up the
   QA session slices", "did QA earlier — start on the findings"
 - The work objects are slice sub-issues of a `QA session YYYY-MM-DD` parent in Linear, written
-  by `/qa-triage --call` or the `qa-call-report` routine after a team QA call.
+  by `/qa-triage --call` after a team QA call, or by its unattended mode after an automated pass.
 - Focus: one slice at a time, measured repair per `.claude/context/qa.md § Fix posture` — never
   a feature build.
 

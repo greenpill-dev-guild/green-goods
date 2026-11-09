@@ -3,7 +3,12 @@ import type { P256Credential } from "viem/account-abstraction";
 import { fromPromise } from "xstate";
 import type { AuthPasskeySource } from "../modules/app/analytics-events";
 import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
-import { LEGACY_PASSKEY_PROFILE, PILOT_PASSKEY_PROFILE } from "../modules/auth/account-profile";
+import {
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  KERNEL_033_PASSKEY_PROFILE,
+  isKernel033PasskeyProfile,
+} from "../modules/auth/account-profile";
 import { guardSessionCommit } from "../modules/auth/sessionSignOut";
 import { normalizePasskeyName } from "../public-contracts/passkey-directory";
 import {
@@ -16,21 +21,12 @@ import {
   type PasskeyAdapters,
   type PasskeyServerClientAdapter,
 } from "./auth-passkey-adapters";
-import { signInWithDirectory } from "./auth-passkey-directory";
+import { registerServerPasskey, signInWithDirectory } from "./auth-passkey-directory";
 import { matchesBrowserId, verifiedCredential } from "./auth-passkey-ids";
-import type { PasskeySessionResult } from "./authMachine";
+import type { PasskeyOperationInput, PasskeySessionResult } from "./authMachine.types";
 import { createPasskeySessionServices } from "./auth-passkey-session";
 
-interface PasskeyInput {
-  userName: string | null;
-  chainId: number;
-  originalAccount?: boolean;
-}
-
 type PasskeyServerCredential = { id: string; publicKey: Hex };
-type PasskeyServerRegistrationOptions = {
-  rp?: { id?: string };
-};
 type PasskeyServerAuthenticationOptions = {
   challenge: Hex | Uint8Array | ArrayBuffer;
   rpId?: string;
@@ -76,44 +72,16 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     userName: string,
     chainId: number
   ) => {
-    const context = adapters.buildRecoveryContext(userName);
-    // New accounts go to the directory once this build is switched to it, so their passkey
-    // works on every Green Goods site. The directory itself refuses a name the hosted server
-    // already holds.
-    const client = adapters.createDirectoryClient() ?? adapters.createServerClient(chainId);
-    const existing = (await client.getCredentials({ context })) as PasskeyServerCredential[];
-    assertActive();
-    if (existing.length > 0) {
-      throw new Error(
-        "That recovery name is already registered. Try recovery or choose another name."
-      );
-    }
-    const options = (await client.startRegistration({
-      context,
-    })) as PasskeyServerRegistrationOptions;
-    const rpId = options.rp?.id || adapters.getRpId();
-    assertActive();
-    const created = await adapters.createWebAuthnCredential(options);
-    // Verification persists the credential on the server, before local session construction.
-    assertActive();
-    const verification = (await client.verifyRegistration({
-      credential: created,
-      context,
-    })) as PasskeyServerVerificationResult;
-    const credential = verifiedCredential(
-      verification,
-      created,
-      "Passkey server registration failed"
-    );
+    const registered = await registerServerPasskey(adapters, assertActive, userName, chainId);
     return buildSession(
       assertActive,
-      credential,
-      verification.userName || verification.username || context.userName,
+      registered.credential,
+      registered.userName,
       chainId,
-      rpId,
+      registered.rpId,
       false,
       [],
-      LEGACY_PASSKEY_PROFILE
+      registered.accountProfile
     );
   };
 
@@ -171,21 +139,21 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     if (sameCredential && cached) {
       alternatives.push({ ...credential, id: cached.id });
     }
-    const switchingFromPilot =
-      session.getStoredAccountProfile() === PILOT_PASSKEY_PROFILE && !sameCredential;
+    const switchingFromModernAccount =
+      isKernel033PasskeyProfile(session.getStoredAccountProfile()) && !sameCredential;
     return buildSession(
       assertActive,
       credential,
       verification.userName || verification.username || context.userName,
       chainId,
       rpId,
-      !switchingFromPilot,
+      !switchingFromModernAccount,
       alternatives.filter(
         (candidate, index, all) =>
           candidate.id !== credential.id &&
           all.findIndex((other) => other.id === candidate.id) === index
       ),
-      originalExpected || switchingFromPilot
+      originalExpected || switchingFromModernAccount
         ? LEGACY_PASSKEY_PROFILE
         : session.getStoredAccountProfile(),
       originalExpected
@@ -218,9 +186,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
           rpId,
           !switchingAccounts,
           [],
-          originalExpected || switchingAccounts
+          originalExpected
             ? LEGACY_PASSKEY_PROFILE
-            : session.getStoredAccountProfile(),
+            : signIn.accountProfile === KERNEL_033_PASSKEY_PROFILE
+              ? KERNEL_033_PASSKEY_PROFILE
+              : switchingAccounts
+                ? LEGACY_PASSKEY_PROFILE
+                : session.getStoredAccountProfile(),
           originalExpected
         );
       }
@@ -267,7 +239,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     if (!matchesBrowserId(credential, response.id))
       throw new Error("Passkey authentication verification failed");
     if (
-      session.getStoredAccountProfile() === PILOT_PASSKEY_PROFILE &&
+      isKernel033PasskeyProfile(session.getStoredAccountProfile()) &&
       !(await adapters.verifyAssertion({
         response,
         publicKey: credential.publicKey,
@@ -290,54 +262,55 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     );
   };
 
-  const registerPasskey = fromPromise<PasskeySessionResult, PasskeyInput>(
-    async ({ input, signal }) => {
-      const assertActive = guardSessionCommit(signal);
-      if (!input.userName) throw new Error("Username is required for registration");
-      const serverEnabled = adapters.isServerEnabled();
-      const source: AuthPasskeySource = serverEnabled ? "server" : "local_cache";
-      telemetry.registerStarted({
+  const registerAccount = async (input: PasskeyOperationInput, assertActive: () => void) => {
+    if (!input.userName) throw new Error("Username is required for registration");
+    const serverEnabled = adapters.isServerEnabled();
+    const source: AuthPasskeySource = serverEnabled ? "server" : "local_cache";
+    telemetry.registerStarted({
+      source,
+      outcome: "started",
+      passkeyServerEnabled: serverEnabled,
+      hasLocalCredential: Boolean(session.getStoredCredential()),
+    });
+    try {
+      const result = serverEnabled
+        ? await registerWithServer(assertActive, input.userName, input.chainId)
+        : await buildSession(
+            assertActive,
+            await adapters
+              .createLocalPasskey(input.userName)
+              .then((credential) => ({ ...credential, signingId: credential.id })),
+            input.userName,
+            input.chainId,
+            adapters.getRpId(),
+            false,
+            [],
+            LEGACY_PASSKEY_PROFILE
+          );
+      telemetry.registerSucceeded({
         source,
-        outcome: "started",
+        outcome: "success",
+        passkeyServerEnabled: serverEnabled,
+        hasLocalCredential: true,
+      });
+      return result;
+    } catch (error) {
+      telemetry.registerFailed({
+        source,
+        outcome: "failed",
+        reason: classifyAuthErrorReason(error),
         passkeyServerEnabled: serverEnabled,
         hasLocalCredential: Boolean(session.getStoredCredential()),
       });
-      try {
-        const result = serverEnabled
-          ? await registerWithServer(assertActive, input.userName, input.chainId)
-          : await buildSession(
-              assertActive,
-              await adapters
-                .createLocalPasskey(input.userName)
-                .then((credential) => ({ ...credential, signingId: credential.id })),
-              input.userName,
-              input.chainId,
-              adapters.getRpId(),
-              false,
-              [],
-              LEGACY_PASSKEY_PROFILE
-            );
-        telemetry.registerSucceeded({
-          source,
-          outcome: "success",
-          passkeyServerEnabled: serverEnabled,
-          hasLocalCredential: true,
-        });
-        return result;
-      } catch (error) {
-        telemetry.registerFailed({
-          source,
-          outcome: "failed",
-          reason: classifyAuthErrorReason(error),
-          passkeyServerEnabled: serverEnabled,
-          hasLocalCredential: Boolean(session.getStoredCredential()),
-        });
-        throw error;
-      }
+      throw error;
     }
+  };
+
+  const registerPasskey = fromPromise<PasskeySessionResult, PasskeyOperationInput>(
+    ({ input, signal }) => registerAccount(input, guardSessionCommit(signal))
   );
 
-  const authenticatePasskey = fromPromise<PasskeySessionResult, PasskeyInput>(
+  const authenticatePasskey = fromPromise<PasskeySessionResult, PasskeyOperationInput>(
     async ({ input, signal }) => {
       const assertActive = guardSessionCommit(signal);
       const serverEnabled = adapters.isServerEnabled();
@@ -370,7 +343,13 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
               originalExpected
             );
             if (serverResult) result = { ...serverResult, source: "server" };
-            else if (hasLocalCredential) {
+            else if (
+              input.createIfMissing &&
+              !input.originalAccount &&
+              !(hasLocalCredential && matchesCachedUsername(input.userName))
+            ) {
+              result = { ...(await registerAccount(input, assertActive)), source: "server" };
+            } else if (hasLocalCredential) {
               attemptSource = "local_cache";
               result = {
                 ...(await authenticateFromCache(

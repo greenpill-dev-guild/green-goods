@@ -1,3 +1,4 @@
+import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
 import { Button } from "@green-goods/shared/components/Button";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
@@ -5,8 +6,7 @@ import { ConfidenceSelector } from "@green-goods/shared/components/Form/Confiden
 import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
 import { TxHoldFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useReviewBatch, useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
 import { logger } from "@green-goods/shared/modules/app/logger";
@@ -25,8 +25,8 @@ import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
-import { formatEnsAddressName } from "@/components/EnsAddressText";
 import {
+  ReviewDecisionSubject,
   ReviewSummary,
   reviewFormState,
   uploadReviewNotes,
@@ -64,13 +64,10 @@ export function ReviewForm({
   onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
+  const authorizeUpload = useAdminUploadPolicy();
   const primaryAddress = usePrimaryAddress();
-  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
-  const { data: gardenerProtocolName } = useGreenGoodsEnsName(work.gardenerAddress);
-  const gardenerDisplayName = formatEnsAddressName(
-    work.gardenerAddress,
-    gardenerProtocolName || gardenerEnsName
-  );
+  const { display, preferredName } = useAddressDisplayName(work.gardenerAddress);
+  const gardenerIdentity = { name: display, address: preferredName ? work.gardenerAddress : null };
 
   const workTitle = localizeCanonicalActionTitle(
     toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
@@ -135,10 +132,10 @@ export function ReviewForm({
     setIsSubmitting(true);
 
     try {
-      // Build review notes CID if audio exists
       let reviewNotesCID: string | undefined;
 
       if (reviewAudioFile) {
+        if (!(await authorizeUpload())) return false;
         try {
           reviewNotesCID = await uploadReviewNotes(reviewAudioFile, formData.feedback || "");
         } catch (uploadError) {
@@ -151,8 +148,6 @@ export function ReviewForm({
             title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
             message: formatMessage({ id: "app.toast.approval.errorWallet.message" }),
           });
-          setIsSubmitting(false);
-          setSubmittingAction(null);
           return false;
         }
       }
@@ -406,7 +401,7 @@ export function ReviewForm({
                           "{gardener} will see this decision. This counts toward {garden}'s impact record.",
                       },
                       {
-                        gardener: gardenerDisplayName,
+                        gardener: <ReviewDecisionSubject {...gardenerIdentity} />,
                         garden: gardenName,
                       }
                     )}
@@ -462,7 +457,7 @@ export function ReviewForm({
                   onClose={() => setRejectDialogOpen(false)}
                   onConfirm={(reason) => finishReject(reason, false)}
                   title={formatMessage({ id: "app.work.detail.rejectDialog.title" })}
-                  target={`${workTitle} · ${gardenerDisplayName}`}
+                  target={<ReviewDecisionSubject {...gardenerIdentity} title={workTitle} />}
                   description={formatMessage(
                     { id: "app.work.detail.rejectDialog.description" },
                     { garden: gardenName }

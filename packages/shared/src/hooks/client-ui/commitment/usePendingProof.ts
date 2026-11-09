@@ -10,7 +10,8 @@
  */
 
 import { useQueries } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import { useIntl } from "react-intl";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
@@ -18,20 +19,64 @@ import { getCommitmentDetail } from "../../../modules/commitment-pooling/data";
 import type { EvidenceJobPayload } from "../../../modules/commitment-pooling/job-types";
 import { proofDraftRepository } from "../../../modules/commitment-pooling/proof-draft-repository";
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types";
+import { jobQueueDB } from "../../../modules/job-queue/db";
 import { jobQueue } from "../../../modules/job-queue/default-instance";
-import { isHeicFile, isVideoFile } from "../../../modules/work/media-processing";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
+import { isHeicFile, isVideoFile, isWorkDocument } from "../../../modules/work/media-processing";
 import {
   commitmentProofDraftPrefix,
   proofDraftHasContent,
   useCommitmentProofDraftStore,
 } from "../../../stores/useCommitmentProofDraftStore";
 import type { Address } from "../../../types/domain";
+import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentPools } from "../../commitment-pooling/useCommitmentPooling";
 import { useCommitmentPoolingAvailability } from "../../commitment-pooling/useCommitmentPoolingAvailability";
 import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQueueState";
+import { useUploadPolicy } from "../../work/useUploadPolicy";
 import { type ProofContents, proofContentsOf } from "./proofContents";
 import { proofSendKey, useProofSends } from "./proofSend";
+
+/** Repair the consent on an unsent proof without replacing its files or upload progress. */
+export function usePendingProofConsent(jobId: string | undefined) {
+  const owner = usePrimaryAddress() as Address | null;
+  const { locale } = useIntl();
+  const { request, prompt } = useUploadPolicy(owner, locale);
+  const scope = useRef<{ owner: Address | null; jobId: string | undefined } | null>(null);
+  useLayoutEffect(() => {
+    scope.current = { owner, jobId };
+    return () => {
+      scope.current = null;
+    };
+  }, [owner, jobId]);
+
+  const authorize = async (): Promise<boolean> => {
+    const initial = scope.current;
+    if (!owner || !jobId || initial?.jobId !== jobId || initial.owner !== owner) return false;
+    try {
+      const consent = await request();
+      let repaired = false;
+      await jobQueueDB.amendJob(jobId, (job) => {
+        if (
+          scope.current !== initial ||
+          job.kind !== "evidence" ||
+          job.synced ||
+          job.userAddress.toLowerCase() !== owner.toLowerCase() ||
+          job.lastError !== "unavailable:upload-policy-required"
+        )
+          return;
+        (job.payload as EvidenceJobPayload).uploadConsent = consent;
+        repaired = true;
+      });
+      return repaired && scope.current === initial;
+    } catch (error) {
+      if (error instanceof UploadPolicyCancelledError) return false;
+      throw error;
+    }
+  };
+  return { authorize, prompt };
+}
 
 export interface PendingProof {
   /** The job's id for proof in the queue; the draft's key for a draft. */
@@ -114,7 +159,10 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
         failed: failed?.jobId === job.id,
         sending: isSending(payload.commitmentId),
         discardable: !isSending(payload.commitmentId) && (own?.discardable ?? false),
-        firstPhoto: payload.media?.find((file) => !isVideoFile(file) && !isHeicFile(file)) ?? null,
+        firstPhoto:
+          payload.media?.find(
+            (file) => !isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file)
+          ) ?? null,
       });
     }
     const prefix = viewer ? commitmentProofDraftPrefix(chainId, viewer) : null;
@@ -124,6 +172,7 @@ export function usePendingProof(input: { chainId: number; viewer: Address | null
       if (commitmentId === null) continue;
       if (!proofDraftHasContent(draft)) continue;
       const contents: ProofContents = {
+        documents: 0,
         ...(draft.files ?? { photos: 0, videos: 0, voiceNotes: 0 }),
         links: draft.links.length,
         words: draft.note.trim().length > 0,

@@ -5,7 +5,9 @@ import {
   validateWorkAttachments,
   hashWorkBytes,
   identifyWorkFile,
+  isWorkDocument,
   publishableWorkFile,
+  publishedWorkFiles,
   roundWorkLocation,
 } from "../../modules/work/work-attachments";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
@@ -14,12 +16,14 @@ import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
 import type {
+  Address,
   Domain,
   WorkApprovalDraft,
   WorkDraft,
   WorkUploadCheckpoint,
 } from "../../types/domain";
 import { buildWorkMetadataPayload } from "./work-metadata";
+import { assertWorkUploadConsent } from "../../modules/work/upload-policy";
 
 /**
  * Maps MIME types to file extensions.
@@ -60,8 +64,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
   // Use dummy CID for simulation to avoid IPFS uploads
   const DUMMY_CID = "QmSimulationDummyHashForValidation000000000000";
 
-  // Map media files to dummy CIDs - strictly maintaining array length
-  const media = data.media.map(() => DUMMY_CID);
+  // One dummy CID per photo or video; documents publish in the metadata instead.
+  const media = data.media.filter((file) => !isWorkDocument(file)).map(() => DUMMY_CID);
 
   // Use dummy CID for metadata JSON
   const metadataCID = DUMMY_CID;
@@ -81,6 +85,7 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  uploaderAddress?: Address;
   /** The published content, available for a receipt-confirmed local preview. */
   onEncoded?: (content: { metadata: Record<string, unknown>; media: string[] }) => void;
   checkpoint?: WorkUploadCheckpoint;
@@ -110,6 +115,7 @@ export async function encodeWorkData(
   chainId: number | string,
   options: EncodeWorkDataOptions = {}
 ) {
+  assertWorkUploadConsent(data.uploadConsent, options.uploaderAddress);
   const checkpoint = options.checkpoint ?? { submittedAt: new Date().toISOString(), files: {} };
   let checkpointWrite: Promise<void> = Promise.resolve();
   const persistCheckpoint = () => {
@@ -257,13 +263,13 @@ export async function encodeWorkData(
   const uploadResults = await pooledSettled(uploadTasks, concurrency);
 
   // Process results and handle any failures
-  const media: string[] = [];
+  const cids: string[] = [];
   const errors: Array<{ index: number; error: unknown }> = [];
 
   for (let i = 0; i < uploadResults.length; i++) {
     const result = uploadResults[i];
     if (result.status === "fulfilled") {
-      media[result.value.index] = result.value.cid;
+      cids[result.value.index] = result.value.cid;
     } else {
       failedFiles++;
       const maybeFile = data.media[i];
@@ -313,6 +319,9 @@ export async function encodeWorkData(
     throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
+  const { media, attachments, documents } = publishedWorkFiles(
+    normalizedFiles.map((file, i) => ({ file, cid: cids[i], type: data.media[i].type }))
+  );
   // Upload audio notes to IPFS (if any)
   let audioNoteCids: string[] = [];
   if (data.audioNotes && data.audioNotes.length > 0) {
@@ -355,6 +364,7 @@ export async function encodeWorkData(
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
     const { payload: metadataPayload, version: metadataType } = buildWorkMetadataPayload({
+      uploadConsent: data.uploadConsent,
       title: data.title,
       feedback: data.feedback,
       actionUID: data.actionUID,
@@ -364,7 +374,8 @@ export async function encodeWorkData(
       tags: data.tags,
       audioNoteCids,
       submittedAt: checkpoint.submittedAt,
-      attachments: media.map((cid, index) => ({ cid, type: data.media[index].type })),
+      attachments,
+      documents,
       clientWorkId: options.clientWorkId,
       draftClientWorkId: (data as unknown as Record<string, unknown>).clientWorkId as
         | string

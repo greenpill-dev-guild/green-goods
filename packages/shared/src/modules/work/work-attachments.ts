@@ -1,8 +1,9 @@
 import type { ApproximateWorkLocation } from "../../types/domain";
 import type { SerializedFileData } from "../../types/job-queue";
 import { serializeFile } from "../../utils/storage/file-serialization";
-import { logger } from "../app/logger";
-import { withoutImageMetadata } from "./image-metadata";
+import { withoutPhotoMetadata } from "../media/image-metadata";
+import { withoutVideoMetadata } from "../media/video-metadata";
+import { isWordCompoundFile, isWordZip } from "./document-containers";
 
 export class InvalidWorkAttachmentError extends Error {
   constructor(message: string) {
@@ -30,18 +31,22 @@ export class PendingHeicConversionError extends Error {
 
 /**
  * A photo that cannot lose its metadata, because neither the byte-level
- * rewrite nor a canvas can read it, so it is never published. Queued work holds
- * it, named, as needing attention, the way a HEIC photo that will not convert
- * is held; a proof ends on it.
+ * rewrite nor a canvas can read it, or a video whose container cannot be read
+ * in full, so it is never published. Queued work holds it, named, as needing
+ * attention, the way a HEIC photo that will not convert is held; a proof ends
+ * on it.
  */
 export class UnpublishablePhotoError extends InvalidWorkAttachmentError {
-  /** The photo's file name. */
+  /** The photo's file name, or the video's. */
   readonly photo: string;
+  /** The file is a video, which the person is told about as one. */
+  readonly video: boolean;
 
-  constructor(photo: string) {
+  constructor(photo: string, { video = false }: { video?: boolean } = {}) {
     super("photo-unreadable");
     this.name = "UnpublishablePhotoError";
     this.photo = photo;
+    this.video = video;
   }
 }
 
@@ -64,6 +69,39 @@ const HEIC_TYPES = new Set([
 ]);
 const HEIC_EXTENSIONS = new Set(["heic", "heif"]);
 const MIB = 1024 * 1024;
+/** The largest video a work takes. */
+export const WORK_VIDEO_MAX_BYTES = 20 * MIB;
+/**
+ * The documents a work or a proof can carry, each by its type and the
+ * extensions a picker may report instead of it. A document publishes as it was
+ * picked, beside the photos rather than among them: the attestation's media
+ * list stays photos and videos, and the documents are listed in the metadata.
+ */
+const DOCUMENT_TYPES: Readonly<Record<string, readonly string[]>> = {
+  "application/pdf": ["pdf"],
+  "text/plain": ["txt"],
+  "text/markdown": ["md", "markdown"],
+  "application/msword": ["doc"],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ["docx"],
+};
+/** Types a picker reports when it does not know the file; the extension decides then. */
+const UNNAMED_TYPES = new Set(["", "application/octet-stream", "text/x-markdown"]);
+/** The largest document a work or a proof takes, the upload signer's own limit. */
+export const WORK_DOCUMENT_MAX_BYTES = 10 * MIB;
+/** The most documents one work or proof carries. */
+export const WORK_DOCUMENT_MAX_COUNT = 5;
+/** The documents, by type and by extension, for a file picker's `accept` list. */
+export const WORK_DOCUMENT_ACCEPT = Object.entries(DOCUMENT_TYPES)
+  .flatMap(([type, extensions]) => [type, ...extensions.map((extension) => `.${extension}`)])
+  .join(",");
+/** A document as published work metadata lists it. */
+export interface PublishedWorkDocument {
+  cid: string;
+  type: string;
+  name: string;
+  /** Bytes; 0 when the metadata did not say. */
+  size: number;
+}
 const identities = new WeakMap<
   File,
   Promise<{ id: string; contentHash: string; fileData: SerializedFileData }>
@@ -152,43 +190,145 @@ export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): bool
 }
 
 /**
- * A photo without its location, camera or other metadata, or null when it
- * cannot be published. The byte-level rewrite reads the JPEG, PNG and WebP
- * structures cameras and editors write. A file it cannot read, which a browser
- * may still draw leniently, is drawn again through a canvas, which writes no
- * metadata. Null only when neither can read it; the Agent has no canvas.
+ * The type a supported document publishes as, or null. A document type the
+ * picker reports wins. When it reports none, a generic one, or an old Markdown
+ * name, the extension decides; any other type (a photo named `.pdf`) is not a
+ * document.
  */
-export async function withoutPhotoMetadata(file: File): Promise<File | null> {
-  const stripped = await withoutImageMetadata(file);
-  if (stripped) return stripped;
-  const redrawn = await redrawPhoto(file);
-  // The canvas's output is read back like any photo, so nothing it carried over is published.
-  return redrawn ? withoutImageMetadata(redrawn) : null;
+export function workDocumentType(file: Pick<File, "name" | "type">): string | null {
+  const type = (file.type || "").split(";")[0].trim().toLowerCase();
+  if (Object.hasOwn(DOCUMENT_TYPES, type)) return type;
+  if (!UNNAMED_TYPES.has(type)) return null;
+  // A Blob has no name, so only its type can make it a document.
+  const name = file.name || "";
+  const dot = name.lastIndexOf(".");
+  if (dot < 0) return null;
+  const extension = name
+    .slice(dot + 1)
+    .trim()
+    .toLowerCase();
+  const match = Object.entries(DOCUMENT_TYPES).find(([, extensions]) =>
+    extensions.includes(extension)
+  );
+  return match ? match[0] : null;
 }
 
-async function redrawPhoto(file: File): Promise<File | null> {
-  try {
-    const { imageCompressor } = await import("../../utils/work/image-compression");
-    return await imageCompressor.redraw(file);
-  } catch (error) {
-    logger.warn("[WorkMedia] The canvas to redraw a photo could not load", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
+/** A PDF, Markdown, plain-text or Word file, by its type or its extension. */
+export function isWorkDocument(file: Pick<File, "name" | "type">): boolean {
+  return workDocumentType(file) !== null;
+}
+
+/**
+ * Whether a document's bytes are what its type says. A document publishes as it
+ * was picked, so a file renamed to look like one (an app or a web page called
+ * `.pdf`) is refused rather than pinned under a type it is not. Every zip and
+ * every compound file starts the same way, so a Word file is told by the entries
+ * its container's directory names (`document-containers`). Text must be UTF-8.
+ * `bytes` is the whole file.
+ */
+export function documentMatchesType(type: string, bytes: Uint8Array): boolean {
+  const startsWith = (...head: number[]) => head.every((byte, index) => bytes[index] === byte);
+  switch (type) {
+    case "application/pdf":
+      return startsWith(0x25, 0x50, 0x44, 0x46, 0x2d); // %PDF-
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      return startsWith(0x50, 0x4b, 0x03, 0x04) && isWordZip(bytes);
+    case "application/msword":
+      return isWordCompoundFile(bytes);
+    case "text/plain":
+    case "text/markdown":
+      if (bytes.includes(0)) return false;
+      try {
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        return true;
+      } catch {
+        return false;
+      }
+    default:
+      return false;
   }
+}
+
+/** A document's name as it publishes: the file name alone, on one line, at most 120 characters. */
+export function publishedDocumentName(name: string): string {
+  const base = name.split(/[\\/]/).pop() ?? "";
+  const printable = Array.from(base)
+    .filter((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      return code >= 0x20 && code !== 0x7f;
+    })
+    .join("");
+  return Array.from(printable.replace(/\s+/g, " ").trim()).slice(0, 120).join("") || "document";
+}
+
+/**
+ * The documents published work metadata lists. Anyone can publish metadata, so
+ * only entries with a content identifier are kept, their names are cleaned, and
+ * no more than a work may carry are read. An unfamiliar type is kept for a
+ * reader to show as a file, so a type added later still lists.
+ */
+export function readPublishedWorkDocuments(value: unknown): PublishedWorkDocument[] {
+  if (!Array.isArray(value)) return [];
+  const documents: PublishedWorkDocument[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const { cid, type, name, size } = entry as Record<string, unknown>;
+    if (typeof cid !== "string" || !/^[A-Za-z0-9]{20,120}$/.test(cid)) continue;
+    documents.push({
+      cid,
+      type: typeof type === "string" ? type.slice(0, 120) : "",
+      name: typeof name === "string" ? publishedDocumentName(name) : "document",
+      size: typeof size === "number" && Number.isFinite(size) && size > 0 ? Math.round(size) : 0,
+    });
+    if (documents.length === WORK_DOCUMENT_MAX_COUNT) break;
+  }
+  return documents;
+}
+
+/** A work's file once uploaded: the CID it pinned as and the type its draft held. */
+export interface UploadedWorkFile {
+  file: File;
+  cid: string;
+  type: string;
+}
+
+/**
+ * How a work's uploaded files publish. Photos and videos are the attestation's
+ * media, in the order they were added, with their types in the metadata's
+ * attachments. Documents publish in the metadata beside them, so a reader that
+ * draws every media CID as a picture never meets one. Each type is the one the
+ * draft held, as before documents, so a resumed upload's metadata hashes the same.
+ */
+export function publishedWorkFiles(uploaded: UploadedWorkFile[]) {
+  const media: string[] = [];
+  const attachments: Array<{ cid: string; type: string }> = [];
+  const documents: Array<{ cid: string; type: string; name: string; size: number }> = [];
+  for (const { file, cid, type } of uploaded) {
+    if (isWorkDocument(file)) {
+      documents.push({ cid, type, name: publishedDocumentName(file.name), size: file.size });
+    } else {
+      media.push(cid);
+      attachments.push({ cid, type });
+    }
+  }
+  return { media, attachments, documents };
 }
 
 /**
  * An attachment as it may be pinned. A photo loses its location and camera
- * metadata, and one that cannot lose it is refused rather than published as it
- * was picked: IPFS and the attestation cannot be withdrawn. A video is
- * published as it was picked, since removing a video container's metadata needs
- * a parser this does not have.
+ * metadata and a video its location, device and capture time, and one that
+ * cannot lose them is refused rather than published as it was picked: IPFS and
+ * the attestation cannot be withdrawn. Audio is published as it was recorded,
+ * and a document as it was picked, its own fields included.
  */
 export async function publishableWorkFile(file: File): Promise<File> {
-  if (!PHOTO_TYPES.has(file.type)) return file;
-  const published = await withoutPhotoMetadata(file);
-  if (!published) throw new UnpublishablePhotoError(file.name);
+  const video = !PHOTO_TYPES.has(file.type) && file.type.startsWith("video/");
+  const published = PHOTO_TYPES.has(file.type)
+    ? await withoutPhotoMetadata(file)
+    : video
+      ? await withoutVideoMetadata(file)
+      : file;
+  if (!published) throw new UnpublishablePhotoError(file.name, { video });
   return published;
 }
 
@@ -199,12 +339,25 @@ export function validateWorkAttachments(
   policy: WorkAttachmentPolicy = {}
 ): string[] {
   const isPhoto = (file: File) => isWorkPhoto(file, policy);
+  // Documents travel with the photos and videos but are counted on their own.
+  const visual = media.filter((file) => !isWorkDocument(file));
   const errors: string[] = [];
   if (media.filter(isPhoto).length < minPhotos) errors.push("photos-required");
-  if (media.length > 10) errors.push("media-count");
-  if (media.some((file) => !isPhoto(file) && !VIDEO_TYPES.has(file.type)))
+  if (visual.length > 10) errors.push("media-count");
+  if (media.length - visual.length > WORK_DOCUMENT_MAX_COUNT) errors.push("document-count");
+  if (visual.some((file) => !isPhoto(file) && !VIDEO_TYPES.has(file.type)))
     errors.push("media-type");
-  if (media.some((file) => file.size > (VIDEO_TYPES.has(file.type) ? 20 : 10) * MIB))
+  if (
+    media.some(
+      (file) =>
+        file.size >
+        (VIDEO_TYPES.has(file.type)
+          ? WORK_VIDEO_MAX_BYTES
+          : isWorkDocument(file)
+            ? WORK_DOCUMENT_MAX_BYTES
+            : 10 * MIB)
+    )
+  )
     errors.push("media-size");
   if (audio.some((file) => !file.type.startsWith("audio/"))) errors.push("audio-type");
   if ([...media, ...audio].some((file) => file.size === 0)) errors.push("empty-media");
@@ -214,7 +367,7 @@ export function validateWorkAttachments(
 }
 
 export async function validateWorkVideo(file: File): Promise<boolean> {
-  if (!VIDEO_TYPES.has(file.type) || file.size > 20 * MIB) return false;
+  if (!VIDEO_TYPES.has(file.type) || file.size > WORK_VIDEO_MAX_BYTES) return false;
   return new Promise((resolve) => {
     const video = document.createElement("video");
     const url = URL.createObjectURL(file);

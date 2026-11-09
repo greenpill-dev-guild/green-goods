@@ -6,7 +6,7 @@
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-ui
 - Current state: prototype/spec review may continue; runtime implementation is blocked
-- Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, PRD-728 is post-certification walkthrough video, and PRD-682 is September Community context.
+- Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, MAR-46 (formerly PRD-728) is post-certification walkthrough video, and PRD-682 is September Community context.
 
 Concurrent agents share this repository. Each UI sub-lane stays inside its named package/spec
 paths, preserves unrelated working-tree changes, and does not switch the primary tree's branch.

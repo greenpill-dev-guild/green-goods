@@ -136,8 +136,7 @@ export function useWorkSubmissionFlowController({
     reviewReward: (intent) => saveOnExit().then(() => navigate(intent.returnTo)),
   });
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
-  // Hold submission and draft retirement until the dependent link settles. Queueing starts
-  // only after Work was sent; scheduling also covers Work saved on this device.
+  // Wait for the Work link before retiring its draft, including work queued on this device.
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
   const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
@@ -229,7 +228,8 @@ export function useWorkSubmissionFlowController({
       gardenAddress,
       selectedDomain,
     });
-  const media = useWorkMediaLifecycle({
+  // Exposed like selection and form below; only the reset stays inside.
+  const { resetBrokenMedia, ...mediaLifecycle } = useWorkMediaLifecycle({
     actionUID,
     authMode,
     ensureJourneyId: ensureWorkSubmissionJourneyId,
@@ -261,7 +261,7 @@ export function useWorkSubmissionFlowController({
     try {
       await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
-      // The work's checks, then an Open ask's take-up, then admission; a stop leaves no outcome.
+      // Work validation and consent precede the linked take-up and queue admission.
       await form.uploadWork({ beforeAdmission: takeUpFirst });
       const outcome = workMutation.getLastSubmissionOutcome();
       if (!outcome) {
@@ -418,9 +418,8 @@ export function useWorkSubmissionFlowController({
   return {
     ...selection,
     ...form,
+    ...mediaLifecycle,
     audioNotes,
-    brokenMediaIds: media.brokenMediaIds,
-    cameraClickRef: media.cameraClickRef,
     canProceed,
     changeTab,
     detailsConfig,
@@ -445,7 +444,7 @@ export function useWorkSubmissionFlowController({
       startFresh: async () => {
         const scope = useWorkFlowStore.getState().draftScope;
         await handleStartFresh();
-        if (scope === useWorkFlowStore.getState().draftScope) media.resetBrokenMedia();
+        if (scope === useWorkFlowStore.getState().draftScope) resetBrokenMedia();
       },
     },
     exit: () => {
@@ -472,17 +471,14 @@ export function useWorkSubmissionFlowController({
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
     retryLinkOnly,
     submissionOutcome: workMutation.lastSubmissionOutcome,
+    uploadPolicy: workMutation.uploadPolicy,
     heicStateOf: heic.stateOf,
     retryHeicConversion: heic.retry,
-    markMediaPreviewFailed: media.markMediaPreviewFailed,
-    mediaClickRef: media.mediaClickRef,
     mediaConfig,
     minRequired,
     namedSubmissionGarden,
     queueStatusMessage,
     recordingElapsed: audio.elapsed,
-    removeBrokenMedia: media.removeBrokenMedia,
-    removeMedia: media.removeMedia,
     reviewConfig,
     reviewData,
     setAudioNotes,

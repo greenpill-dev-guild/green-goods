@@ -264,7 +264,9 @@ export const NeedsMoreSignatures: Story = {
     await enter(NEW_B);
     await stage();
     await userEvent.click(await body().findByRole("button", { name: "Add 2 Gardeners" }));
-    await expect(await body().findByText(/can’t share one signature right now/)).toBeVisible();
+    await expect(
+      await body().findByText(/can’t share one signature.*Press Add 2 Gardeners again/)
+    ).toBeVisible();
     await expect(body().getByText("Up to 2 signatures")).toBeVisible();
   },
 };

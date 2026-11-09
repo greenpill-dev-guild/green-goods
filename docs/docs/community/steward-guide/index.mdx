@@ -5,7 +5,7 @@ slug: /community/steward-guide/
 description: "Run a garden: get access, bring people in, keep the right actions available, review work, and look after the garden's funds."
 audience: steward
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Get a steward into the dashboard with the right access, and send them to the page for the job in front of them."
 difficulty: "standard"
@@ -35,15 +35,11 @@ keywords:
   - garden
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Steward Guide
 
 A steward looks after a garden. You bring people in, make sure the right kinds of work can be recorded, review what gardeners submit, and look after the garden's shared funds. Your review is what turns a gardener's photos into a record other people can trust.
 
-<figure className="gg-figure gg-overview-photo gg-guide-opening">
-  <img src="/img/community/guide-steward.webp" alt="An open community workshop with shared tools, a task board and an empty planning table." width="1672" height="941" loading="eager" />
-</figure>
+<GuideImage src="/img/community/guide-steward.webp" alt="An open community workshop with shared tools, a task board and an empty planning table." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 What you get:
 
@@ -59,10 +55,11 @@ What you get:
 
 Before you change anything, look at the garden name at the top left of the dashboard. Everything you do applies to that garden.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-hub.webp" alt="The steward dashboard on the Hub workspace: the garden's name at the top left, the buttons Create Assessment, Create Hypercert, and Submit Work, the tabs Work, Confirm, Assessments, and Hypercerts, an empty review queue reading All caught up, and a bar at the bottom with Hub, Garden, and Community" loading="lazy" width="2000" height="1250" />
-  <figcaption>Use the bottom bar to move between Hub, Garden and Community.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-hub.webp" alt="The steward dashboard on the Hub workspace: the garden's name at the top left, the buttons Create Assessment, Create Hypercert, and Submit Work, the tabs Work, Confirm, Assessments, and Hypercerts, an empty review queue reading All caught up, and a bar at the bottom with Hub, Garden, and Community" loading="lazy" width="2000" height="1250" className="gg-figure">
+
+Use the bottom bar to move between Hub, Garden and Community.
+
+</GuideImage>
 
 ## Get steward access
 
@@ -82,10 +79,11 @@ You need access to at least one garden before the dashboard opens. There are two
 5. Under **Review Your Request**, add a short note about how you plan to help. It is optional, and it helps the person deciding.
 6. Tap **Send Request** and sign the message. This is a signature, not a payment.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/admin-request-steward-access.webp" alt="The Request Steward Access dialog for a garden named Comunidad Verde: under Review Your Request, the account that will receive access, an optional note box, a line saying access is granted only after a garden owner or steward assigns the role, a Check Status link, and the buttons Change Garden and Send Request" loading="lazy" width="960" height="1400" />
-  <figcaption>Your request waits until an owner or steward grants access.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-request-steward-access.webp" alt="The Request Steward Access dialog for a garden named Comunidad Verde: under Review Your Request, the account that will receive access, an optional note box, a line saying access is granted only after a garden owner or steward assigns the role, a Check Status link, and the buttons Change Garden and Send Request" loading="lazy" width="960" height="1400" className="gg-figure gg-guide-product">
+
+Your request waits until an owner or steward grants access.
+
+</GuideImage>
 
 **Prefer to be added directly?** Open your profile in the dashboard, copy your account address, and send it to a garden owner or steward. They can add you from [Manage Members](/community/steward-guide/managing-members).
 
@@ -108,7 +106,7 @@ A garden owner or steward reviews your request in their dashboard and assigns th
 | **The request may have been saved** | Tap **Check Status** before you send another one |
 | **Can't load garden access** | A temporary problem reading the gardens. Tap **Try Again** in a moment |
 
-<a id="roles-in-a-garden"></a>
+<TermAnchor id="roles-in-a-garden" />
 
 For what each role can do, see [Roles in a garden](/community/steward-guide/managing-members#roles-in-a-garden).
 
@@ -125,11 +123,13 @@ For what each role can do, see [Roles in a garden](/community/steward-guide/mana
 
 [Create a Garden](/community/steward-guide/creating-a-garden) and maintaining the shared [action list](/community/steward-guide/managing-actions#if-you-maintain-the-action-list) require deployer access. These setup guides are under **Builders → Reference**. Ordinary stewards can [choose their garden's areas of work](/community/steward-guide/managing-actions#2-change-your-gardens-areas-of-work) without maintaining that list.
 
-:::note Using your own wallet
-If you signed in with a passkey, Green Goods covers the network fees. If you connected your own wallet, each change is a transaction you pay for on the Arbitrum network, so keep a little ETH there.
-:::
+<Callout kind="note" title="Using your own wallet">
 
-## Promises {#promises}
+If you signed in with a passkey, Green Goods covers the network fees. If you connected your own wallet, each change is a transaction you pay for on the Arbitrum network, so keep a little ETH there.
+
+</Callout>
+
+<AnchoredHeading level="2" id="promises" text="Promises" />
 
 - [Open a Pool](/community/steward-guide/open-a-pool) and agree its rules.
 - [Seed Promises](/community/steward-guide/seed-promises) people can take up.

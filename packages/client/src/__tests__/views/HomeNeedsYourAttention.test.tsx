@@ -127,15 +127,17 @@ describe("Home Needs Your Attention", () => {
               work("0x02", "Hub Shift", NOW),
             ],
           },
+          { kind: "joinRequests", count: 3 },
           { kind: "takeUp", count: 1, commitment: promise(4n, "cid-outage"), newestAt: NOW - 3600 },
           { kind: "confirm", count: 1, commitments: [promise(9n, "cid-solar")] },
         ],
       })
     );
-    const [review, takeUp, confirm] = rows();
+    const [review, joinRequests, takeUp, confirm] = rows();
 
     expect(rows().map(titleOf)).toEqual([
       "2 submissions to review",
+      "3 join requests",
       "1 take-up request",
       "1 promise to confirm",
     ]);
@@ -143,10 +145,16 @@ describe("Home Needs Your Attention", () => {
     expect(review.textContent).toContain("Workshop Delivered, Hub Shift");
     expect(takeUp.textContent).toContain("Outage log");
     expect(confirm.textContent).toContain("Solar install help");
+    // The count names nobody, so the row says where to see who asked.
+    expect(joinRequests.textContent).toContain("See who asked in Gardeners");
 
     // Work to review opens the garden's Work as a sheet over Home (DL-128), pending first.
     fireEvent.click(within(review).getByRole("button"));
     expect(openGardenSheet).toHaveBeenCalledWith("work");
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // Join requests open the Gardeners sheet over Home, whose queue comes first for a steward.
+    fireEvent.click(within(joinRequests).getByRole("button"));
+    expect(openGardenSheet).toHaveBeenLastCalledWith("gardeners");
     expect(mockNavigate).not.toHaveBeenCalled();
     fireEvent.click(within(takeUp).getByRole("button"));
     expect(mockNavigate).toHaveBeenLastCalledWith(`/home/${GARDEN}/commitments/4`, {
@@ -203,6 +211,22 @@ describe("Home Needs Your Attention", () => {
 
     expect(screen.getByText("Submissions to review")).toBeTruthy();
     expect(metadataReads.at(-1)?.map((commitment) => commitment.commitmentId)).toEqual([9n, 10n]);
+  });
+
+  it("opens an incomplete review window without inventing a count or an oldest submission", () => {
+    renderSection(
+      duties({
+        duties: [{ kind: "review", count: 0, works: [], uncounted: true }],
+      })
+    );
+    expect(rows()).toHaveLength(1);
+    expect(titleOf(rows()[0])).toBe("Submissions to review");
+    expect(rows()[0]).toHaveTextContent(
+      "The full review queue could not be checked. Open Work to see more."
+    );
+    expect(rows()[0]).not.toHaveTextContent(/0 submissions|ago|NaN/);
+    fireEvent.click(within(rows()[0]).getByRole("button"));
+    expect(openGardenSheet).toHaveBeenCalledWith("work");
   });
 
   it("says a queue could not be read rather than going quiet, and reads again on Try Again", () => {

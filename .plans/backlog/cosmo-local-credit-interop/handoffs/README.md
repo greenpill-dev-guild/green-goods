@@ -1,5 +1,10 @@
 # Handoffs
 
+[Family Garden voucher pilot preparation](family-garden-voucher-pilot-preparation.md) records the
+bounded new collective-issuer setup, unresolved service/control inputs and implementation sequence.
+It authorizes no deployment, funding or runtime activation; existing release records below retain
+their dated scope.
+
 [Current live pilot deployment package](codex-live-pilot-deployment.md) owns the 22 October
 hackathon release decision, the 24 October live target, exact deployment preparation and technical
 inputs. External audit intake and a two-week testnet wait are not hackathon prerequisites;

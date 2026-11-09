@@ -3,15 +3,15 @@
  * @vitest-environment happy-dom
  *
  * A person row names someone the way the shared address display does, shows their highest
- * role as its one chip, and leads with their photo, the surface's own picture, a glyph, or
- * nothing while the photo is still being looked up. Layout is measured in a real browser by
- * the PersonRow stories.
+ * role as its one chip, and leads with their photo, the surface's own picture or a glyph, which
+ * also holds the circle while the photo is still being looked up. Layout is measured in a real
+ * browser by the PersonRow stories.
  */
 
-import { render, screen } from "@testing-library/react";
-import { IntlProvider } from "react-intl";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../../../types/domain";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const hooks = vi.hoisted(() => ({ protocol: vi.fn(), ens: vi.fn(), avatar: vi.fn() }));
 vi.mock("../../../hooks/ens/useGreenGoodsEnsName", () => ({
@@ -25,18 +25,9 @@ vi.mock("../../../hooks/profile/useProfileAvatar", () => ({
 import { PersonRow } from "../../../components/Cards/PersonRow/PersonRow";
 
 const person = "0x1111111111111111111111111111111111111111" as Address;
-const messages = {
-  "app.roles.owner": "Owner",
-  "app.roles.steward": "Steward",
-  "app.roles.gardener": "Gardener",
-};
 
 const renderRow = (props: Partial<Parameters<typeof PersonRow>[0]> = {}) =>
-  render(
-    <IntlProvider locale="en" messages={messages}>
-      <PersonRow address={person} {...props} />
-    </IntlProvider>
-  );
+  render(<PersonRow address={person} {...props} />, { wrapper: createTestWrapper() });
 
 describe("PersonRow", () => {
   beforeEach(() => {
@@ -65,15 +56,11 @@ describe("PersonRow", () => {
     const { rerender } = renderRow({ fallbackName: "Member 7" });
     expect(screen.getByText("Member 7")).toBeInTheDocument();
 
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} />
-      </IntlProvider>
-    );
+    rerender(<PersonRow address={person} />);
     expect(screen.getByText("0x11...111")).toBeInTheDocument();
   });
 
-  it("leads with their photo, the surface's picture, a glyph, or nothing while it loads", () => {
+  it("leads with their photo, the surface's picture or a glyph, never a blank while it loads", () => {
     hooks.avatar.mockReturnValue({ avatarUri: "/images/avatar.png", isLoading: false });
     const { container, rerender } = renderRow({
       fallbackAvatar: "/images/avatar.png",
@@ -83,22 +70,27 @@ describe("PersonRow", () => {
     // A list's rows read their photos together, on the batch route.
     expect(hooks.avatar).toHaveBeenCalledWith(person, "/images/avatar.png", 42161, { list: true });
 
+    // A photo still downloading keeps the surface's picture behind it until it has loaded.
+    const photo = "https://images.example/photo.webp";
+    const sources = () =>
+      [...container.querySelectorAll(".gg-item-row-avatar img")].map((img) =>
+        img.getAttribute("src")
+      );
+    hooks.avatar.mockReturnValue({ avatarUri: photo, isLoading: false });
+    rerender(<PersonRow address={person} fallbackAvatar="/images/avatar.png" />);
+    expect(sources()).toEqual(["/images/avatar.png", photo]);
+    fireEvent.load(container.querySelector(`img[src="${photo}"]`) as HTMLImageElement);
+    expect(sources()).toEqual([photo]);
+
     const avatar = () => container.querySelector(".gg-item-row-avatar");
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: false });
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} />
-      </IntlProvider>
-    );
+    rerender(<PersonRow address={person} />);
     expect(container.querySelector("img")).toBeNull();
     expect(avatar()?.querySelector("svg")).not.toBeNull();
 
+    // A photo still being looked up keeps the glyph, as in the cockpit, never an empty circle.
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: true });
-    rerender(
-      <IntlProvider locale="en" messages={messages}>
-        <PersonRow address={person} />
-      </IntlProvider>
-    );
-    expect(avatar()).toBeEmptyDOMElement();
+    rerender(<PersonRow address={person} />);
+    expect(avatar()?.querySelector("svg")).not.toBeNull();
   });
 });

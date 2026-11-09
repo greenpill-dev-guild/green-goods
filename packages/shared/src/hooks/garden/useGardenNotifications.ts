@@ -24,6 +24,7 @@ import { useDocumentEvent } from "../utils/useEventListener";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorks } from "../work/useWorks";
 import { useGardenPermissions } from "./useGardenPermissions";
+import { useJoinRequestCount } from "./useJoinRequestCount";
 import { useMyGardens } from "./useMyGardens";
 
 /**
@@ -58,6 +59,16 @@ export interface GardenNotifications {
    * A later event is new and listed as before.
    */
   clearAll: () => void;
+  /**
+   * Read every source of the events again, as the sheet does when it opens and from its Refresh
+   * (DL-168). A source that is off (no pool yet, no grant, no steward role) stays off, and a read
+   * already running is joined rather than started over. The account's roles gate the steward
+   * events, so a roster or steward-role read that failed is asked again too; one that answered
+   * stays, kept fresh by its own read.
+   */
+  refresh: () => void;
+  /** A read is running, the first one or a refresh. */
+  isFetching: boolean;
 }
 
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
@@ -68,10 +79,11 @@ const WEEK_BOUNDARY_MARGIN_MS = 1_000;
 /**
  * The bell's events for the signed-in account in one garden (`modules/garden/notifications`),
  * from the garden's works, the promises the account is party to and, for whoever may decide
- * them, the take-up requests waiting in the garden's pool. Mount it once the garden is known;
- * Home passes its active garden. It reads the app's default chain, as the work list does. Of its
- * own it writes only this device's seen marks: nothing goes on chain or to the agent, and no
- * read asks to sign.
+ * them, the take-up requests waiting in the garden's pool and the join requests waiting in
+ * Gardeners. Mount it once the garden is known; Home passes its active garden. It reads the
+ * app's default chain, as the work list does. Of its own it writes only this device's records,
+ * the events it has shown and the join-request count it last read: nothing goes on chain or to
+ * the agent, and no read asks to sign.
  *
  * Newness is a question of the clock, so it is recomputed while the app stays mounted: when the
  * sheet opens, when the page becomes visible again, and when the next new event leaves the
@@ -96,6 +108,13 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     chainId
   );
   const canDecideTakeUps = stewardRead.hasRole;
+  // Gardeners answers requests to join for the work page's stewards and owners, and lists no
+  // other kind. Their count is read only with the grant a signed check of that queue left here.
+  const canAnswerJoinRequests = canReviewWork;
+  const joinRequestRead = useJoinRequestCount(gardenId, {
+    enabled: canAnswerJoinRequests,
+    kind: "garden_membership",
+  });
 
   // The garden's page of works, read as the installed app's other work screens read it, so they
   // share one projection and the bell never writes the cockpit's merged rows, which those screens
@@ -137,6 +156,23 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   );
   const writeSeen = useGardenNotificationsSeenStore((state) => state.markSeen);
   const clearMarks = useGardenNotificationsSeenStore((state) => state.clearAll);
+  const joinRequestsRecord = useGardenNotificationsSeenStore((state) =>
+    scope ? state.joinRequestsByScope[scope] : undefined
+  );
+  const noteJoinRequests = useGardenNotificationsSeenStore((state) => state.noteJoinRequests);
+
+  // Each answer of the count is noted here, and this device dates a rise as it reads one. A browser
+  // that no longer holds a grant drops the record, since nothing here can read the queue again.
+  const joinRequestsWaiting = joinRequestRead.waiting;
+  const holdsJoinRequestGrant = joinRequestRead.hasGrant;
+  useEffect(() => {
+    if (!scope) return;
+    if (canAnswerJoinRequests && !holdsJoinRequestGrant) {
+      noteJoinRequests(scope, 0, nowInSeconds());
+    } else if (joinRequestsWaiting !== undefined) {
+      noteJoinRequests(scope, joinRequestsWaiting, nowInSeconds());
+    }
+  }, [scope, canAnswerJoinRequests, holdsJoinRequestGrant, joinRequestsWaiting, noteJoinRequests]);
 
   // The moment newness is judged against. It moves when the sheet opens, when the page comes
   // back and when the next new event leaves the week; a render alone never moves it.
@@ -174,6 +210,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       works: [...works, ...thisWeek],
       commitments: (cachedCommitments ?? []).filter((commitment) => inPool(commitment.poolId)),
       takeUpRequests: (cachedTakeUps ?? []).filter((row) => inPool(row.commitment.poolId)),
+      // The record follows the read that answers; it stands only while that read says some wait.
+      joinRequests: joinRequestsWaiting ? joinRequestsRecord : undefined,
     })
       .filter((notification) => !isNotificationCleared(notification, record))
       .map((notification) => ({
@@ -194,6 +232,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     poolId,
     cachedCommitments,
     cachedTakeUps,
+    joinRequestsWaiting,
+    joinRequestsRecord,
     record,
     now,
   ]);
@@ -223,6 +263,39 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     if (scope) clearMarks(scope, notifications, at);
   }, [clearMarks, notifications, scope]);
 
+  // The work page's read decides for itself whether it can run (online, or its offline copy), and
+  // the join-request count needs a grant; the query reads answer whether they are on. A failed
+  // role read is asked again unless it is already being asked; one that answered is left alone,
+  // since asking again would read every garden on the chain each time the sheet opens.
+  const { refetch: refetchWorkPage } = workRead;
+  const { refetch: readJoinRequestsAgain } = joinRequestRead;
+  const { refetch: readRosterAgain } = myGardens;
+  const { refetch: readStewardRoleAgain } = stewardRead;
+  const rosterFailed = myGardens.isError && !myGardens.isFetching;
+  const stewardRoleFailed = Boolean(stewardRead.error) && !stewardRead.isFetching;
+  const refresh = useCallback(() => {
+    refreshNow();
+    if (rosterFailed) readRosterAgain();
+    if (stewardRoleFailed) void readStewardRoleAgain();
+    refetchWorkPage();
+    readJoinRequestsAgain();
+    for (const read of [activityRead, poolsRead, commitmentsRead, takeUpsRead]) {
+      if (read.isEnabled) void read.refetch({ cancelRefetch: false });
+    }
+  }, [
+    refreshNow,
+    rosterFailed,
+    readRosterAgain,
+    stewardRoleFailed,
+    readStewardRoleAgain,
+    refetchWorkPage,
+    readJoinRequestsAgain,
+    activityRead,
+    poolsRead,
+    commitmentsRead,
+    takeUpsRead,
+  ]);
+
   return {
     notifications,
     newCount,
@@ -233,7 +306,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       activityRead.isLoading ||
       poolsRead.isLoading ||
       commitmentsRead.isLoading ||
-      takeUpsRead.isLoading,
+      takeUpsRead.isLoading ||
+      joinRequestRead.isLoading,
     isError:
       myGardens.isError ||
       Boolean(stewardRead.error) ||
@@ -241,7 +315,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       activityRead.isError ||
       poolsRead.isError ||
       commitmentsRead.isError ||
-      takeUpsRead.isError,
+      takeUpsRead.isError ||
+      joinRequestRead.isError,
     isIncomplete:
       workRead.refreshWarning ||
       workRead.hasUnknownStatuses ||
@@ -249,5 +324,16 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
       weekIncomplete,
     markSeen,
     clearAll,
+    refresh,
+    // Every source a refresh reads again, so Refresh shows progress until the last has answered.
+    isFetching:
+      myGardens.isFetching ||
+      stewardRead.isFetching ||
+      workRead.isFetching ||
+      activityRead.isFetching ||
+      poolsRead.isFetching ||
+      commitmentsRead.isFetching ||
+      takeUpsRead.isFetching ||
+      joinRequestRead.isFetching,
   };
 }

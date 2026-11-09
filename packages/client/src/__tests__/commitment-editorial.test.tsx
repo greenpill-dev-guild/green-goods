@@ -22,7 +22,7 @@
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -397,6 +397,16 @@ function renderGarden() {
     ),
     { route: "/gardens/rocinha-community-garden" }
   );
+}
+
+/** The record reads the device's clock as it opens; draw it on the day `seconds` names. */
+function renderGardenAt(seconds: bigint) {
+  vi.useFakeTimers({ toFake: ["Date"], now: Number(seconds) * 1000 });
+  try {
+    return renderGarden();
+  } finally {
+    vi.useRealTimers();
+  }
 }
 
 function commitmentsSection(): HTMLElement {
@@ -813,7 +823,7 @@ describe("GardenDetail § 02 Commitments", () => {
         })
       )
     );
-    renderGarden();
+    renderGardenAt(T0);
     const section = commitmentsSection();
 
     const seasonRow = within(section)
@@ -832,17 +842,16 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(campaignRow).toHaveTextContent("4 made · 1 kept so far");
     expect(within(campaignRow).getByText("rides").nextElementSibling).toHaveTextContent("9 of 16");
 
-    // One block kicker over both rows, and it does not repeat each row's
-    // own "Open Now" so neither reading doubles the other.
-    expect(within(section).getAllByText(en["public.pool.garden.openKicker"])).toHaveLength(1);
-    expect(en["public.pool.garden.openKicker"]).not.toBe(en["public.pool.garden.cycle.openNow"]);
-
-    // Pool-scope rows stay separate from the cycle rows.
-    const poolUnits = within(section).getByText(en["public.pool.garden.units.pool"])
-      .parentElement as HTMLElement;
+    const [totalsHeading, periodsHeading] = within(section).getAllByRole("heading", { level: 3 });
+    expect(totalsHeading).toHaveTextContent(en["public.pool.garden.record.scope"]);
+    expect(periodsHeading).toHaveTextContent(en["public.pool.garden.cycles.heading"]);
+    const gardenTotals = totalsHeading.parentElement as HTMLElement;
+    expect(gardenTotals).toHaveTextContent(en["public.pool.garden.record.made"]);
+    const poolUnits = within(gardenTotals).getByText("hours").closest("dl") as HTMLElement;
     expect(poolUnits).toHaveTextContent("90 of 140");
-    // The lifetime record may carry the one sanctioned percentage; cycle and
-    // unit rows never do — no combined progress band, no per-cycle rate.
+    expect(gardenTotals).not.toHaveTextContent("25 of 52");
+    expect(periodsHeading.parentElement).not.toHaveTextContent("90 of 140");
+    // Only the lifetime stat row may publish a percentage.
     for (const block of [seasonRow, campaignRow, poolUnits]) {
       expect(block.textContent).not.toMatch(/%/);
     }
@@ -883,7 +892,10 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(names()[0]).toBe("Season 1");
     expect(names()[2]).toBe("Summer Mutirão");
     expect(within(history).getByText("Summer Mutirão").closest("li")).toHaveTextContent(
-      /Campaign ·/
+      "Campaign · Closed"
+    );
+    expect(within(history).getByText("Season 2").closest("li")).toHaveTextContent(
+      "Season · Archived"
     );
     expect(within(history).getAllByText("10 of 12 kept")).toHaveLength(12);
     expect(within(history).getByText("Showing 12 of 14")).toBeInTheDocument();
@@ -1062,7 +1074,7 @@ describe("GardenDetail § 02 Commitments", () => {
         })
       )
     );
-    renderGarden();
+    renderGardenAt(T0);
     const section = commitmentsSection();
     expect(section).toHaveTextContent(en["public.pool.garden.empty"]);
     const seasonRow = within(section)
@@ -1071,6 +1083,97 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(seasonRow).toHaveTextContent(/Season · Open now · Runs through/);
     expect(seasonRow.textContent).not.toMatch(/made|kept so far/);
     expect(within(section).queryByText(en["public.pool.garden.record.made"])).toBeNull();
+  });
+
+  // DL-162: still Open on chain because no steward has closed it, but its window has passed.
+  it("keeps an ended season's live promise totals with that season", () => {
+    mockUsePublicGardenPool.mockReturnValue(
+      poolResult(
+        poolData({
+          openSeason: makeCycle({
+            cycleId: 7n,
+            state: "OPEN",
+            name: "Season of First Rains",
+            endTime: T0 - 2n * DAY,
+            openCommitmentCount: 2n,
+          }),
+          cycleUnitSummaries: [
+            makeUnit({
+              id: "c7-hours",
+              scope: "CYCLE",
+              cycleId: 7n,
+              unitLabel: "hours",
+              expectedUnits: 52n,
+              fulfilledUnits: 25n,
+            }),
+          ],
+        })
+      )
+    );
+    renderGardenAt(T0);
+    const seasonRow = within(commitmentsSection())
+      .getByText("Season of First Rains")
+      .closest("li") as HTMLElement;
+    expect(seasonRow).toHaveTextContent(/Season · Ended \w+ \d+, \d{4}/);
+    expect(seasonRow).not.toHaveTextContent(/Open now|Runs through/);
+    expect(seasonRow).toHaveTextContent("10 made · 8 kept so far");
+    expect(within(seasonRow).getByText("hours").nextElementSibling).toHaveTextContent("25 of 52");
+  });
+
+  // DL-171: one period holds the garden's whole record, so its numbers are the garden totals.
+  it("lets a lone season point to the garden totals instead of printing them twice", () => {
+    const season = makeCycle({
+      cycleId: 7n,
+      state: "OPEN",
+      name: "Season of First Rains",
+      commitmentsAccepted: 9n,
+      commitmentsFulfilled: 7n,
+      endTime: T0 + 30n * DAY,
+    });
+    const hours = (scope: "POOL" | "CYCLE", expectedUnits = 52n) =>
+      makeUnit({
+        id: `${scope}-hours`,
+        scope,
+        cycleId: scope === "CYCLE" ? 7n : null,
+        unitLabel: "hours",
+        expectedUnits,
+        fulfilledUnits: 25n,
+      });
+    const seasonRow = (pool: PoolFixture, poolHours = hours("POOL")) => {
+      mockUsePublicGardenPool.mockReturnValue(
+        poolResult(
+          poolData({
+            pool,
+            openSeason: season,
+            cycleUnitSummaries: [hours("CYCLE")],
+            poolUnitSummaries: [poolHours],
+          })
+        )
+      );
+      renderGardenAt(T0);
+      return within(commitmentsSection())
+        .getByText("Season of First Rains")
+        .closest("li") as HTMLElement;
+    };
+    const sameNumbers = makePool({ commitmentsAccepted: 9n, commitmentsFulfilled: 7n });
+
+    const lone = seasonRow(sameNumbers);
+    expect(lone).toHaveTextContent(/Season · Open now · Runs through/);
+    expect(lone).toHaveTextContent("All 9 promises so far are part of this season.");
+    expect(lone).not.toHaveTextContent(/made|kept|hours/);
+    expect(within(commitmentsSection()).getAllByText("25 of 52")).toHaveLength(1);
+    cleanup();
+
+    // One promise or unit outside the season brings the season's own numbers back.
+    for (const [pool, poolHours] of [
+      [makePool({ commitmentsAccepted: 10n, commitmentsFulfilled: 7n }), hours("POOL")],
+      [sameNumbers, hours("POOL", 60n)],
+    ] as const) {
+      const full = seasonRow(pool, poolHours);
+      expect(full).toHaveTextContent("9 made · 7 kept so far");
+      expect(within(full).getByText("hours").nextElementSibling).toHaveTextContent("25 of 52");
+      cleanup();
+    }
   });
 
   it("says so when an open pool has no commitments yet", () => {

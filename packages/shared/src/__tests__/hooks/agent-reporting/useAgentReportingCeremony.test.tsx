@@ -608,17 +608,37 @@ describe("reporting ceremony page", () => {
   });
 
   it("resumes its own session after a refresh without opening a new challenge", async () => {
+    // A link opened fresh has nothing to resume.
     const first = render();
+    expect(first.result.current.resuming).toBe(false);
     await reachReview(first.result);
     first.unmount();
 
+    // Until the Agent answers, the start screen may stand for a request that has moved on.
+    let answer = () => {};
+    agent.accessReply = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
     agent.calls.length = 0;
     const { result } = render();
+    expect(result.current).toMatchObject({ stage: "intro", resuming: true });
+    await act(async () => answer());
     await waitFor(() => expect(result.current.stage).toBe("review"));
+    expect(result.current.resuming).toBe(false);
     expect(agent.calls.map((call) => `${call.method} ${call.path}`)).toEqual([
       "GET /access/current",
       "GET /drafts/d-1",
     ]);
+  });
+
+  it("leaves a refreshed tab on its start, with nothing to resume, once its session has ended", async () => {
+    writeCeremony("request-0123456789abcdef", { accessId: "acc-1" });
+    agent.accessEnded = true;
+    const { result } = render();
+    expect(result.current.resuming).toBe(true);
+    await waitFor(() => expect(result.current.resuming).toBe(false));
+    expect(result.current.stage).toBe("intro");
+    expect(readCeremony("request-0123456789abcdef")).toBeNull();
   });
 
   it("prepares the first report without signing, then reserves before the owner enables and publishes", async () => {

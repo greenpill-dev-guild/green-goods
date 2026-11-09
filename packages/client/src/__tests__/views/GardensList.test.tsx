@@ -6,7 +6,8 @@
  * Joining lives on the garden, and only Home's chip switches the active garden.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import en from "@green-goods/shared/i18n/en.json";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -22,6 +23,40 @@ const mockMyGardens = {
   refetch: vi.fn(),
 };
 const mockNavigate = vi.fn();
+const departure = vi.hoisted(() => ({
+  options: [] as any[],
+  leave: vi.fn(),
+  recover: vi.fn(),
+  check: vi.fn(),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useLeaveGarden", () => ({
+  useGardenDepartureOptions: () => ({
+    options: departure.options,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useLeaveGarden: () => ({
+    leaveGarden: departure.leave,
+    reconcileDeparture: departure.recover,
+    isLeaving: false,
+    availability: "available",
+    checkAvailability: departure.check,
+    hasPendingDeparture: false,
+  }),
+}));
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: "0x1234567890abcdef1234567890abcdef12345678" }),
+}));
+vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
+  useHasRole: () => ({ hasRole: false, refetch: vi.fn() }),
+}));
+vi.mock("@green-goods/shared/hooks/roles/useGardenMembership", () => ({
+  useGardenMembership: () => ({ isMember: true, refetch: vi.fn() }),
+}));
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: { success: vi.fn(), error: vi.fn() },
+}));
 const asMine = (garden: any) => ({
   garden,
   membership: { roles: ["gardener"], pendingJoin: false },
@@ -51,17 +86,6 @@ vi.mock("react-router-dom", async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-// Mock @remixicon/react
-vi.mock("@remixicon/react", () => ({
-  RiArrowRightSLine: (props: any) => createElement("span", props),
-  RiErrorWarningLine: (props: any) => createElement("span", props),
-  RiHomeLine: (props: any) => createElement("span", props),
-  RiMapPinLine: (props: any) => createElement("span", props),
-  RiLoader4Line: (props: any) => createElement("span", props),
-  RiPlantLine: (props: any) => createElement("span", props),
-  RiRefreshLine: (props: any) => createElement("span", props),
-}));
-
 // Mock client components
 vi.mock("@/components/Cards", () => ({
   Card: ({ children }: { children: React.ReactNode }) =>
@@ -72,14 +96,14 @@ vi.mock("@/components/Display", () => ({
   Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
 }));
 
-import { GardensList } from "../../views/Profile/GardensList";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import { GardensList } from "../../views/Profile/GardensList";
 
 const wrap = (el: React.ReactElement) =>
   createElement(
     MemoryRouter,
     null,
-    createElement(IntlProvider, { locale: "en", messages: {} }, el)
+    createElement(IntlProvider, { locale: "en", messages: en }, el)
   );
 
 const MOCK_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
@@ -93,6 +117,9 @@ describe("GardensList", () => {
     mockMyGardens.isError = false;
     mockMyGardens.isStale = false;
     mockActiveGarden.gardenId = null;
+    departure.options = [];
+    departure.leave.mockResolvedValue({ hash: "0xabc", departed: true });
+    departure.recover.mockResolvedValue({ hash: "0xabc", departed: false });
   });
 
   afterEach(() => {
@@ -173,7 +200,9 @@ describe("GardensList", () => {
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    const rows = screen.getAllByRole("button", { name: /garden/i });
+    const rows = mockMyGardens.gardens.map(({ garden }) =>
+      screen.getByRole("button", { name: garden.name })
+    );
     expect(rows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("My Garden"),
       expect.stringContaining("Reviewed Garden"),
@@ -181,6 +210,22 @@ describe("GardensList", () => {
     expect(screen.getByText("Berlin")).toBeInTheDocument();
     // Joining lives on the garden itself, so this list offers no join.
     expect(screen.queryByRole("button", { name: "Join" })).not.toBeInTheDocument();
+  });
+
+  it("opens the normal leave sheet for an older membership found only in Profile", async () => {
+    departure.options = [
+      {
+        ...asMine({ id: "0xolder", name: "Older Garden" }),
+        roles: ["gardener"],
+        hasPendingDeparture: false,
+      },
+    ];
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    const myGardens = screen.getByText("My gardens").closest("section")!;
+    await userEvent
+      .setup()
+      .click(within(myGardens).getByRole("button", { name: "Leave Garden: Older Garden" }));
+    expect(screen.getByRole("dialog", { name: "Leave Older Garden?" })).toBeInTheDocument();
   });
 
   it("marks the active garden On Home and offers no control to switch it", async () => {
@@ -194,7 +239,9 @@ describe("GardensList", () => {
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
     // Only Home's chip switches: the list holds its rows and nothing else.
-    const rows = screen.getAllByRole("button");
+    const rows = mockMyGardens.gardens.map(({ garden }) =>
+      screen.getByRole("button", { name: garden.name })
+    );
     expect(rows).toHaveLength(2);
     expect(rows[1]).toHaveTextContent("On Home");
     expect(rows[0]).not.toHaveTextContent("On Home");
@@ -212,7 +259,7 @@ describe("GardensList", () => {
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getAllByText("Leave Garden")).toHaveLength(2);
     expect(screen.queryByText("On Home")).not.toBeInTheDocument();
   });
 
@@ -221,7 +268,7 @@ describe("GardensList", () => {
     mockMyGardens.gardens = [asMine({ id: "0xgarden1", name: "My Garden" })];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
-    await user.click(screen.getByRole("button", { name: /my garden/i }));
+    await user.click(screen.getByRole("button", { name: "My Garden" }));
 
     expect(mockNavigate).toHaveBeenCalledWith("/home/0xgarden1");
   });
@@ -242,5 +289,91 @@ describe("GardensList", () => {
     const location = screen.getByText(longLocation);
     expect(location).toHaveClass("min-w-0", "truncate");
     expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
+  });
+
+  it.each([
+    0, 1, 2,
+  ])("hands an active departure to Home after the sheet closes (%s gardens remain)", async (remaining) => {
+    const user = userEvent.setup();
+    const leaving = asMine({ id: "0xgarden1", name: "My Garden" });
+    const others = Array.from({ length: remaining }, (_, i) =>
+      asMine({ id: `0xother${i}`, name: `Other ${i}` })
+    );
+    mockMyGardens.gardens = [leaving, ...others];
+    mockActiveGarden.gardenId = leaving.garden.id;
+    let finish!: (result: { hash: string; departed: boolean }) => void;
+    departure.leave.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const view = render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    await user.click(screen.getByRole("button", { name: "Leave Garden: My Garden" }));
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Leave Garden" })
+    );
+    // Receipt reconciliation removes the row before the command resolves. The flow must survive.
+    mockMyGardens.gardens = others;
+    mockActiveGarden.gardenId = others.length === 1 ? others[0].garden.id : null;
+    view.rerender(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    const dialogAtNavigation: Array<HTMLElement | null> = [];
+    mockNavigate.mockImplementationOnce(() => {
+      dialogAtNavigation.push(screen.queryByRole("dialog"));
+    });
+    await act(async () => finish({ hash: "0xabc", departed: true }));
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("/home", { replace: true, viewTransition: true })
+    );
+    expect(dialogAtNavigation).toEqual([null]);
+  });
+
+  it.each([
+    true,
+    false,
+  ])("keeps Profile when leaving another garden or recovering a rejoin (departed=%s)", async (departed) => {
+    const user = userEvent.setup();
+    mockMyGardens.gardens = [asMine({ id: "0xgarden1", name: "My Garden" })];
+    mockActiveGarden.gardenId = departed ? "0xanother" : "0xgarden1";
+    departure.leave.mockResolvedValue({ hash: "0xabc", departed });
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    await user.click(screen.getByRole("button", { name: "Leave Garden: My Garden" }));
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Leave Garden" })
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("keeps a previous departure accessible after the member card disappears", () => {
+    departure.options = [
+      {
+        garden: { id: "0xleft", name: "Previous Garden" },
+        membership: { roles: [], pendingJoin: false },
+        roles: [],
+        hasPendingDeparture: true,
+      },
+    ];
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    expect(screen.getByRole("heading", { name: "Previous Departures" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Check Previous Departure: Previous Garden/ })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Leave Garden: Previous Garden" })
+    ).not.toBeInTheDocument();
+  });
+  it("closes a departure on account change and does not reopen it when that account returns", async () => {
+    const user = userEvent.setup();
+    mockMyGardens.gardens = [asMine({ id: "0xgarden1", name: "My Garden" })];
+    const view = render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    await user.click(screen.getByRole("button", { name: "Leave Garden: My Garden" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    view.rerender(wrap(createElement(GardensList, { primaryAddress: undefined })));
+    view.rerender(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(departure.leave).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

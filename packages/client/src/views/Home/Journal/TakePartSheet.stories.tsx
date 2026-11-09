@@ -92,7 +92,7 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * The garden's open promises as a tall sheet over Home: every promise the reader could take up,
+ * The garden's open promises as a full sheet over Home: every promise the reader could take up,
  * of which Take Part shows the first rows, as the Pool tab's commitment rows under the garden's
  * open seasons and campaigns. See All opens it whole; a cycle's Show Its Promises opens it at
  * that cycle, which the rail widens again. Fictional data from the client journeys.
@@ -145,7 +145,7 @@ export const SeeAll: Story = {
   tags: ["storybook-ci"],
   play: async () => {
     const { dialog, sheet } = await findSheet();
-    await expect(dialog).toHaveAttribute("data-sheet-size", "tall");
+    await expect(dialog).toHaveAttribute("data-sheet-size", "full");
     await expect(dialog).toHaveAccessibleDescription("In Riverside Commons Garden");
     await expect(rowsIn(dialog)).toHaveLength(JOURNAL_ENTRIES.length);
     // The open season and campaign lead the list, and none narrows it until one is chosen.

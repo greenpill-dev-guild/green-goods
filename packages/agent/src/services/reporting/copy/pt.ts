@@ -28,7 +28,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho no jardim, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
+    "Olá! Sou o assistente de relatos do Green Goods. Para ajudar você a relatar o trabalho no jardim, eu guardo e leio as mensagens e os arquivos que você envia aqui{processors}. Nada fica público até você confirmar um relato.\n\nAo concordar, você aceita as regras de compartilhamento, versão {version}: https://www.greengoods.app/terms. Compartilhe apenas material seu ou que tenha permissão para publicar, com a permissão de cada adulto identificável. Não envie crianças identificáveis, informações pessoais sensíveis, abuso, ódio, ameaças, conteúdo sexual ou ilegal, fraude ou spam. Relatos confirmados ficam públicos na Arbitrum e no IPFS; cópias independentes podem permanecer para sempre.\n\nEnvie STOP a qualquer momento para parar, DELETE para apagar seus dados não publicados ou HELP para suporte ({support}).\n\nVocê concorda?",
   "consent.processors": " e posso usar IA para entendê-los",
   "consent.agree": "Concordo",
   "consent.decline": "Não, obrigado",
@@ -39,7 +39,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Você parou o assistente. Não vou ler mensagens novas até você enviar START. Os relatos publicados continuam públicos; os rascunhos não publicados estão sendo apagados. Suporte: {support}",
   "consent.deleted":
     "Seus rascunhos e arquivos não publicados estão sendo apagados. Os relatos publicados continuam públicos na blockchain e no IPFS e não podem ser removidos. Suporte: {support}",
-  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• GARDEN troca o jardim do seu relato, e JOIN mostra como entrar em outro jardim.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e envie só o código de seis dígitos neste chat. Você pode conectar Telegram e WhatsApp à mesma conta. RECOVER reconecta uma conta após perder o acesso ao chat.\n• ACCOUNT mostra qual conta este chat usa, DISCONNECT a desvincula e SWITCH vincula outra.\n• LANGUAGE permite escolher inglês, espanhol ou português.\n• STOP para o processamento, DELETE apaga os dados não publicados.{menu}\nSuporte: {support}",
+  help: "Relatos do Green Goods:\n• Descreva seu trabalho e envie fotos para começar um relato.\n• NEW começa um relato novo, STATUS mostra onde você está, CANCEL cancela o relato atual.\n• GARDEN troca o jardim do seu relato, e JOIN mostra como entrar em outro jardim.\n• Responsáveis: enviem REVIEW para ver trabalhos aguardando revisão.\n• CONNECT, ou o endereço da sua conta sozinho, vincula sua conta Green Goods: abra o link de verificação que envio e envie só o código de seis dígitos neste chat. RECOVER reconecta uma conta após perder o acesso ao chat.\n• ACCOUNT mostra qual conta este chat usa, DISCONNECT a desvincula e SWITCH vincula outra.\n• LANGUAGE permite escolher inglês, espanhol ou português.\n• STOP para o processamento, DELETE apaga os dados não publicados.{menu}\nSuporte: {support}",
   "menu.commands": "\n• Toque em Menu, ao lado de onde você digita, para ver estes comandos.",
   "menu.account":
     " Os comandos de conta também estão no Menu: /account, /connect, /switch e /disconnect.",
@@ -175,7 +175,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.summaryCodeInstruction":
     "Responda CONFIRM {token} para registrar, EDIT para mudar ou CANCEL.",
   "report.summary":
-    "Confira seu relato para {garden}:\n• Atividade: {action}\n• Título: {title}\n• Tempo dedicado: {time}\n• Descrição: {feedback}{details}\n• Fotos: {photos}\n\nAo publicar, o título, a descrição, os detalhes e as fotos ficam públicos na Arbitrum e no IPFS e não podem ser apagados.{account}\n\n{instruction}",
+    "Confira seu relato para {garden}:\n• Atividade: {action}\n• Título: {title}\n• Tempo dedicado: {time}\n• Descrição: {feedback}{details}\n• Fotos: {photos}\n\nAo publicar, o título, a descrição, os detalhes e as fotos ficam públicos na Arbitrum e no IPFS e não podem ser apagados.{account}\n\nAo confirmar, você concorda em tornar público este relato exato e confirma que tem permissão para compartilhar seu conteúdo e cada adulto identificável. Ele não contém crianças identificáveis nem informações pessoais sensíveis.\n\n{instruction}",
   "report.summaryAccount": "\nSerá publicado pela sua conta {account}.",
   "report.confirm": "Confirmar",
   "report.edit": "Editar",
@@ -190,8 +190,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.cancelHint": "Para cancelar este relato, responda CANCEL.",
   "report.nothingToCancel": "Não há nenhum relato em andamento.",
   "report.confirmToken": "Para publicar, responda CONFIRM {token}.",
-  "report.frozen":
-    "Este relato está sendo publicado, então não posso mudá-lo agora. Guardei sua mensagem e vou usá-la se a publicação não for concluída.",
+  "report.frozen": "Este relato está sendo publicado, então não posso mudá-lo agora.",
   "report.alreadyPublished": "Esse relato já foi publicado. Envie NEW para começar outro.",
   "report.newStarted": "Novo relato iniciado. Conte o trabalho que você fez.",
   "report.resumeFirst":
@@ -243,7 +242,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.accountTaken":
     "Essa conta já está vinculada a outro chat. Se for sua, envie RECOVER pelo chat que você quer usar. Suporte: {support}",
   "publish.consent":
-    "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. {instruction}",
+    "Publicar seu relato confirmado em {garden} pela conta {account}? O título, a descrição, os detalhes e as fotos ficam públicos e não podem ser apagados. Ao publicar, você concorda em tornar público este relato exato e confirma que tem permissão para compartilhar seu conteúdo e cada adulto identificável. Ele não contém crianças identificáveis nem informações pessoais sensíveis. {instruction}",
   "publish.publish": "Publicar",
   "publish.signLink": "Abra esta página para revisar e assinar a publicação exata com sua {kind}.",
   "publish.signLabel": "Revisar e publicar",

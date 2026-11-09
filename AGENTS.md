@@ -59,6 +59,11 @@ only the accepted work. Continue authorized work until its completion criteria a
 return unresolved product decisions or scope expansion to the user. Implementation permission
 does not imply permission to deploy, broadcast, merge, publish, or change branches.
 
+Use merge commits by default for authorized PR merges into `develop` and `main`, including
+promotions from `develop` to `main`. Squash only when documented repository policy calls for it or
+the user explicitly requests it for that PR. Verify that GitHub allows the selected method and pass
+it explicitly to the merge tool. If the selected method is unavailable, ask before merging.
+
 ### Multi-Agent Repo Safety
 
 Concurrent sessions share this checkout. Inspect `git status` before editing and leave changes
@@ -184,7 +189,9 @@ accepted product delivery go to Product; research before product scope is accept
 Research. Use Community only for explicitly relevant community work. Read the
 [routing contract](.claude/context/linear-routing-rules.md) before writing, and query live workspace
 state instead of caching teams, states, or project inventories here. An audit alone authorizes no
-external writes. A merge does not finish a Linear record; after one, follow
+external writes. Every pull request names one Linear issue, found or filed before it opens, per
+[Every pull request names an issue](.claude/context/linear-routing-rules.md#every-pull-request-names-an-issue).
+A merge does not finish a Linear record; after one, follow
 [After a merge](.claude/context/linear-routing-rules.md#after-a-merge). Cloud routine ownership and
 limits live in [docs/routines](docs/routines/README.md).
 

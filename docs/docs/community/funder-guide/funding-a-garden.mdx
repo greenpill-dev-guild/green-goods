@@ -5,7 +5,7 @@ slug: /community/funder-guide/funding-a-garden
 description: "Make a deposit that stays yours while its earnings support a garden, and understand the risks before you do."
 audience: funder
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Walk a funder through one endowment from the public Fund page, with a plain account of where the money sits and what is not guaranteed."
 difficulty: "standard"
@@ -33,15 +33,11 @@ keywords:
   - fund page
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-
 # Endow a Garden
 
 An endowment is a deposit, not a gift. The deposit belongs to your wallet, and you can request a withdrawal. It is used to earn support for the garden; neither earnings nor the amount you can withdraw is guaranteed. It is a way to support a garden for as long as you leave the deposit in place.
 
-<figure className="gg-figure gg-overview-photo gg-guide-opening">
-  <img src="/img/community/guide-endow.webp" alt="A young orchard with mulched trees, water storage and maintained paths." width="1672" height="941" loading="eager" />
-</figure>
+<GuideImage src="/img/community/guide-endow.webp" alt="A young orchard with mulched trees, water storage and maintained paths." width="1672" height="941" loading="eager" className="gg-figure gg-overview-photo gg-guide-opening" />
 
 Read the next section before you deposit. An endowment carries risks a donation does not.
 
@@ -62,7 +58,6 @@ If any of that is not acceptable, [donate](/community/funder-guide/donating-to-a
 - **A garden you want to support.** Read its approved work first, on its page at [greengoods.app/gardens](https://greengoods.app/gardens).
 - **Use a wallet you will keep.** Your endowment belongs to the wallet that made it. You need the same wallet to take it back out.
 
-
 ## Steps
 
 ### 1. Choose the garden
@@ -79,10 +74,11 @@ If the garden has no endowment fund configured, choose another garden or [donate
 2. Under **Payment currency**, choose **DAI** or **WETH**, according to what the garden accepts and what you hold. With WETH selected, **Enter amount in** lets you switch between dollars and WETH. Check the unit beside the amount.
 3. Tap **Connect Wallet** if your wallet is not connected yet.
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/guide-endow-form.webp" alt="Endow to Riverside Commons Garden shows a 50 dollar amount, payment currencies and the endowment action." loading="lazy" width="480" height="549" />
-  <figcaption>Check the destination and payment currency along with the amount.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/guide-endow-form.webp" alt="Endow to Riverside Commons Garden shows a 50 dollar amount, payment currencies and the endowment action." loading="lazy" width="480" height="549" className="gg-figure" maxWidth="480px">
+
+Check the destination and payment currency along with the amount.
+
+</GuideImage>
 
 If the live ETH price is unavailable, choose DAI or try again later. The page cannot convert other tokens for you.
 
@@ -98,10 +94,11 @@ If the live ETH price is unavailable, choose DAI or try again later. The page ca
 - Your wallet's history shows the transaction on Arbitrum.
 - On the Fund page, **Manage Endowments** now lists your deposit. It can take a moment to appear.
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/guide-endow-result.webp" alt="Example success screen says Endowed 50 dollars to Riverside Commons Garden." loading="lazy" width="480" height="414" />
-  <figcaption>Example only, not a payment receipt. No transaction was made.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/guide-endow-result.webp" alt="Example success screen says Endowed 50 dollars to Riverside Commons Garden." loading="lazy" width="480" height="414" className="gg-figure" maxWidth="480px">
+
+Example only, not a payment receipt. No transaction was made.
+
+</GuideImage>
 
 ## What happens next
 
@@ -126,9 +123,11 @@ Connect the wallet you deposited from, then give **Manage Endowments** a moment 
 
 For anything else, ask in the [Green Goods community on Discord](https://discord.gg/greenpill).
 
-:::note Check any separate arrangements
+<Callout kind="note" title="Check any separate arrangements">
+
 Green Goods does not promise a charitable receipt, nonprofit backing or a tax deduction. Ask the garden about any separate arrangement. Endowment earnings support the garden's configured destinations rather than earning a return for you.
-:::
+
+</Callout>
 
 ## Next step
 

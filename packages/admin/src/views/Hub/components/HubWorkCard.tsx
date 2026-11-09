@@ -233,6 +233,7 @@ export function HubWorkCard({
 
   return (
     <MediaCard
+      className="hub-work-card"
       layout={layout}
       selected={selected}
       onClick={onClick}

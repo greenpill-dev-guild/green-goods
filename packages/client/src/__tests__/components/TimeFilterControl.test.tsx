@@ -10,7 +10,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TimeFilterControl } from "../../views/Home/WorkDashboard/TimeFilterControl";
+import { TimeFilterControl } from "../../components/Inputs/TimeFilterControl";
 
 const wrap = (node: ReactNode) => createElement(IntlProvider, { locale: "en", messages: {} }, node);
 
@@ -51,13 +51,21 @@ describe("TimeFilterControl", () => {
     expect(onChange).toHaveBeenCalledWith("day");
   });
 
-  it("can change to year filter", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
+  it("offers only the periods it is given, in their order, any time among them", () => {
+    render(
+      wrap(
+        createElement(TimeFilterControl, {
+          value: "any",
+          onChange: vi.fn(),
+          periods: ["any", "day", "week"] as const,
+        })
+      )
+    );
 
-    render(wrap(createElement(TimeFilterControl, { value: "month", onChange })));
-
-    await user.selectOptions(screen.getByRole("combobox"), "year");
-    expect(onChange).toHaveBeenCalledWith("year");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Any time",
+      "Day",
+      "Week",
+    ]);
   });
 });

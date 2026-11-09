@@ -18,14 +18,22 @@ import type {
 } from "@green-goods/shared/modules/commitment-pooling/types-core";
 
 import { useState } from "react";
-import { createMemoryRouter, RouterProvider, useNavigate } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   defaultCycleDates,
   STEPS_BY_INTENT,
   type StepId,
 } from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
-import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "../test-utils";
+import {
+  act,
+  fireEvent,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
@@ -196,26 +204,28 @@ function renderFlow(
   return { onClose, ...rendered };
 }
 
-function renderRoutedFlow() {
-  function RoutedFlow() {
-    const navigate = useNavigate();
+/** Mounted as PoolDialogs mounts it: the flow closes by setting state, and the page can go Back. */
+function renderPoolPageFlow() {
+  const pool = controller();
+  function PoolPage() {
+    const [open, setOpen] = useState(true);
     return (
       <PoolSetupFlow
-        open
+        open={open}
         intent="first-run"
-        console={controller()}
+        console={pool}
         target={{ gardenName: "Rocinha", isProtocol: false }}
-        onClose={() => navigate("/hub")}
+        onClose={() => setOpen(false)}
       />
     );
   }
 
   const router = createMemoryRouter(
     [
-      { path: "/garden/pool", element: <RoutedFlow /> },
-      { path: "/hub", element: <p>Hub workspace</p> },
+      { path: "/garden/pool", element: <PoolPage /> },
+      { path: "/garden/health", element: <p>Health tab</p> },
     ],
-    { initialEntries: ["/garden/pool"] }
+    { initialEntries: ["/garden/health", "/garden/pool"], initialIndex: 1 }
   );
   renderWithProviders(<RouterProvider router={router} />);
   return router;
@@ -343,26 +353,82 @@ describe("PoolSetupFlow (W11)", () => {
   });
 
   it("closes pristine state without a discard prompt", async () => {
-    const router = renderRoutedFlow();
+    renderPoolPageFlow();
     fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/hub"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("keeps editing or discards after a dirty close request", async () => {
-    const router = renderRoutedFlow();
+  it("asks before Cancel, X or Escape discards a dirty flow, and keeps it on Keep Editing", async () => {
+    renderPoolPageFlow();
     await fillHow();
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
-    const discardDialog = await screen.findByRole("alertdialog");
-    expect(router.state.location.pathname).toBe("/garden/pool");
-    fireEvent.click(within(discardDialog).getByRole("button", { name: /keep editing/i }));
-    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    const closes = [
+      () => fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i })),
+      () => fireEvent.click(within(dialog()).getByRole("button", { name: /^close$/i })),
+      () => fireEvent.keyDown(dialog(), { key: "Escape" }),
+    ];
 
-    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    for (const close of closes) {
+      close();
+      const discardDialog = await screen.findByRole("alertdialog");
+      fireEvent.click(within(discardDialog).getByRole("button", { name: /keep editing/i }));
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+      expect(within(dialog()).getByLabelText(/what this pool is for/i)).toHaveValue(
+        "Neighbourly help in Rocinha"
+      );
+    }
+
+    closes[1]();
     fireEvent.click(
-      within(screen.getByRole("alertdialog")).getByRole("button", { name: /discard/i })
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: /discard/i })
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe("/hub"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it.each([
+    [
+      "the cap on first-run",
+      "first-run" as const,
+      () =>
+        fireEvent.change(within(dialog()).getByLabelText(/how many promises/i), {
+          target: { value: "30" },
+        }),
+    ],
+    [
+      "the dates on a campaign",
+      "campaign" as const,
+      () =>
+        fireEvent.change(within(dialog()).getByLabelText(/^starts/i), {
+          target: { value: "2099-01-01" },
+        }),
+    ],
+    [
+      "the split on a prepared season",
+      "open-season" as const,
+      () =>
+        fireEvent.change(within(dialog()).getAllByLabelText(/^gardeners/i)[0], {
+          target: { value: "55" },
+        }),
+    ],
+  ])("asks before discarding a change to %s, the first step it shows", async (_, intent, edit) => {
+    const cycle = intent === "open-season" ? makePreparedCycle("SEASON") : undefined;
+    const { onClose } = renderFlow({ intent, cycle });
+
+    edit();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("asks before browser Back leaves a dirty flow", async () => {
+    const router = renderPoolPageFlow();
+    await fillHow();
+
+    await act(() => router.navigate(-1));
+
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/garden/pool");
   });
 
   it("keeps Continue disabled while the split does not total 100 %", async () => {
@@ -584,7 +650,7 @@ describe("PoolSetupFlow (W11)", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("starts every fresh open from today, so a discarded date range never comes back", () => {
+  it("starts every fresh open from today, so a discarded date range never comes back", async () => {
     const pool = controller();
     function Harness() {
       const [open, setOpen] = useState(true);
@@ -621,8 +687,13 @@ describe("PoolSetupFlow (W11)", () => {
     fireEvent.change(endField(), { target: { value: "2099-01-30" } });
     expect(startField().value).toBe("2099-01-01");
 
-    // Cancel closes the flow; PoolDialogs keeps it mounted on `open={flow !== null}`.
+    // Cancel asks first, since a name was typed, and Discard closes the flow. PoolDialogs keeps it
+    // mounted on `open={flow !== null}`.
     fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    fireEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: /discard/i })
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     fireEvent.click(toggle());
 
     // Nothing unmounted, so the fresh-open reset is the only thing that clears it.

@@ -376,6 +376,40 @@ describe("service worker registration config", () => {
     });
   });
 
+  it("prepares startup files from the public site after the scoped worker activates", async () => {
+    const worker = Object.assign(new EventTarget(), { state: "installing", postMessage: vi.fn() });
+    const registration = {
+      scope: "https://www.greengoods.app/home",
+      active: null as typeof worker | null,
+      installing: worker,
+    };
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: Object.assign(new EventTarget(), {
+        register: vi.fn().mockResolvedValue(registration),
+        controller: null,
+        ready: new Promise(() => {}),
+      }),
+    });
+    const { schedulePwaShellPreparation } = await import(
+      "../../../modules/app/service-worker-registration"
+    );
+    const readiness = vi.fn();
+    schedulePwaShellPreparation("priority", readiness);
+    const registered = registerServiceWorkerFromEnv({ PROD: true });
+    await vi.waitFor(() => expect(serviceWorkerManager.getStatus().isRegistered).toBe(true));
+    expect(worker.postMessage).not.toHaveBeenCalled();
+
+    worker.state = "activated";
+    registration.active = worker;
+    worker.dispatchEvent(new Event("statechange"));
+    await expect(registered).resolves.toBe(true);
+    const [message, [port]] = worker.postMessage.mock.calls[0];
+    expect(message).toEqual({ type: "PREPARE_PWA_PRIORITY" });
+    port.postMessage({ status: "ready" });
+    await vi.waitFor(() => expect(readiness).toHaveBeenCalledWith("ready"));
+  });
+
   it("only performs the legacy root-scope cleanup once", async () => {
     const legacyRegistration = {
       scope: "https://www.greengoods.app/",

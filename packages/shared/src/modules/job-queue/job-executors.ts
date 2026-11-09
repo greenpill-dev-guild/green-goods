@@ -3,6 +3,7 @@ import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { logger } from "../app/logger";
+import { readCreationStanding } from "../commitment-pooling/creation-standing";
 import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
 import { EarnedRewardWaiting } from "../commitment-pooling/earned-agreement-error";
 import {
@@ -73,8 +74,26 @@ export type CommitmentQueueExecution =
 
 /** As many tries as any other job gets, so a dead gateway cannot queue forever. */
 const MAX_METADATA_ATTEMPTS = 5;
+
+/** Whether this job's call goes out in one atomic request with `earlier`'s, after it. */
+function goesAfter(sender: TransactionSender, earlier: string, jobId: string): boolean {
+  const order = sender.bundledWith ?? [];
+  const at = order.indexOf(earlier);
+  return at >= 0 && at < order.indexOf(jobId);
+}
+
 // ICommitmentPoolingModule.ClaimType.Individual; the payload carries the Solidity ordinal.
 const CLAIM_TYPE_INDIVIDUAL = 1;
+
+/** A creation whose words wait in the job, unpublished, with no send of it on record. */
+function carriesUnpublishedWords(job: Job): boolean {
+  const payload = job.payload as Partial<CommitmentCreationPayload>;
+  return (
+    Boolean(payload.metadata) &&
+    !payload.metadataCID &&
+    typeof job.meta?.submittedTxHash !== "string"
+  );
+}
 
 /**
  * Publish a commitment's words, if it was composed before they could be.
@@ -165,10 +184,24 @@ export async function executeCommitmentQueueJob(
   // Add and Send's second act goes after its proof: sent first, it would settle
   // the team before the proof and its credit were on the record. A proof that
   // landed has left the queue; one that was discarded took this send with it.
+  // In one request with its proof, after it, the send lands with it or not at all.
   const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
-  if (proofJobId && job.kind !== "workLink") {
+  const ridesWithProof = proofJobId !== null && goesAfter(sender, proofJobId, jobId);
+  if (proofJobId && job.kind !== "workLink" && !ridesWithProof) {
     const proof = await store.getJob(proofJobId);
     if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
+  }
+  // Words composed offline ride the job and are published only when the promise sends, and no send
+  // can go before they are, so nothing of such a promise is on the chain yet. One the chain can no
+  // longer keep is refused before its words are published; one whose standing can't be read waits
+  // with them unpublished.
+  if (job.kind === "commitment" && carriesUnpublishedWords(job)) {
+    const standing = await readCreationStanding(
+      job.payload as CommitmentCreationPayload,
+      chainReads
+    );
+    if (standing === "unreadable") return { status: "waiting", reason: "windows-unavailable" };
+    if (standing !== "open") return { status: "unavailable", reason: standing };
   }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
@@ -251,15 +284,18 @@ export async function executeCommitmentQueueJob(
         };
         if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
         // A wallet estimates inside its own send, after the intent is recorded;
-        // asking the chain first keeps a refusal a refusal.
+        // asking the chain first keeps a refusal a refusal. A send riding with its
+        // proof could only revert alone (`EvidenceRequired`); its request is
+        // simulated whole before anything is signed.
         try {
-          await chainReads.simulateSend?.({
-            address: target,
-            functionName: built.functionName,
-            args: built.args,
-            account: job.userAddress as Address,
-            chainId: targetChain,
-          });
+          if (!ridesWithProof)
+            await chainReads.simulateSend?.({
+              address: target,
+              functionName: built.functionName,
+              args: built.args,
+              account: job.userAddress as Address,
+              chainId: targetChain,
+            });
         } catch (simulationError) {
           // Reward state may have changed since preflight. Only that dependency waits.
           await beforeBroadcast?.();
@@ -294,6 +330,9 @@ export async function executeCommitmentQueueJob(
     throw error;
   }
 
+  // A promise the chain can no longer keep is given up on, as on anything outside the queue:
+  // nothing about it conflicts with the chain, and sending it again cannot help.
+  if (result.status === "refused") return { status: "unavailable", reason: result.reason };
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {
       await store.storeClientSeriesIdMapping(

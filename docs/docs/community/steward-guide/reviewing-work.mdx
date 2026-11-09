@@ -5,7 +5,7 @@ slug: /community/steward-guide/reviewing-work
 description: "Review what gardeners submit: what good evidence looks like, how to choose a confidence level, and how to reject in a way that helps."
 audience: steward
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-11-02"
 feature_status: Live
 goal: "Walk a steward through approving or rejecting a submission, with the judgment to do it consistently."
 difficulty: "standard"
@@ -28,6 +28,11 @@ source_of_truth:
   - packages/shared/src/hooks/work/useWorkApprovalActions.ts
   - packages/shared/src/modules/work/submit-approval-command.ts
   - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/agent/src/services/reporting/coordinator/review-steps.ts
+  - packages/agent/src/services/reporting/coordinator/review-prompts.ts
+  - packages/agent/src/services/reporting/review-jobs.ts
+  - packages/agent/src/services/reporting/copy/en.ts
+  - packages/shared/src/modules/agent-reporting/grants.ts
   - packages/shared/src/i18n/en.json
 keywords:
   - approve work
@@ -37,21 +42,19 @@ keywords:
   - feedback
 ---
 
-import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
-
 # Review Work
-
 
 Reviewing is the heart of a steward's job. A gardener says "I did this." You look at the evidence and decide whether the garden stands behind it. Your decision is saved next to their work, with your reason, for anyone to read.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/admin-review-queue-example.png" alt="A steward queue card with a seedling photograph, a note about moving 36 lettuce seedlings, Seedling Transplant, the sender and a Pending label." loading="eager" width="366" height="358" />
-  <figcaption>Open the card to read the full evidence before deciding.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-review-queue-example.png" alt="A steward queue card with a seedling photograph, a note about moving 36 lettuce seedlings, Seedling Transplant, the sender and a Pending label." loading="eager" width="366" height="358" className="gg-figure gg-guide-product">
+
+Open the card to read the full evidence before deciding.
+
+</GuideImage>
 
 <StewardPathNav />
 
-Start with the judgment below, then follow either the [dashboard steps](#steps-in-the-dashboard) or the [phone steps](#steps-in-the-app).
+Start with the judgment below, then follow the [dashboard steps](#steps-in-the-dashboard), the [phone steps](#steps-in-the-app), or the [chat steps](#steps-in-chat).
 
 ## Before you start
 
@@ -92,7 +95,7 @@ A rejection is the gardener's fix list. Say exactly what to change so the next t
 
 A rejected submission cannot be edited. The gardener submits a new one, so your note is all they have to go on.
 
-<a id="steps-in-the-cockpit"></a>
+<TermAnchor id="steps-in-the-cockpit" />
 
 ## Steps in the dashboard
 
@@ -102,17 +105,17 @@ Use the dashboard when you have several submissions to get through.
 2. Tap a submission to open it. The evidence is on the left and **Steward Review** is on the right.
 3. Look through **Media Evidence**, then read **Submission Details**, including **Gardener notes**.
 
-
 To approve:
 
 1. Choose a **Confidence level**: **Low**, **Medium**, or **High**. Nothing is chosen for you.
 2. Add a note under **Feedback** if you have one. It is optional. You can also record an **Audio review note**.
 3. Tap **Approve** and confirm.
 
-<figure className="gg-figure" style={{maxWidth: '560px'}}>
-  <img src="/img/screenshots/admin-review-form.webp" alt="The Steward Review form: a Confidence level row with Low, Medium, and High and the line Choose a confidence level to approve, an optional Feedback box, an optional Audio review note with a Record Audio Note button, a note saying who will see the decision, and the buttons Reject and Approve, with Approve grayed out" loading="lazy" width="1152" height="1080" />
-  <figcaption>Choose a confidence level to enable <strong className="gg-inline-label">Approve</strong>.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-review-form.webp" alt="The Steward Review form: a Confidence level row with Low, Medium, and High and the line Choose a confidence level to approve, an optional Feedback box, an optional Audio review note with a Record Audio Note button, a note saying who will see the decision, and the buttons Reject and Approve, with Approve grayed out" loading="lazy" width="1152" height="1080" className="gg-figure" maxWidth="560px">
+
+Choose a confidence level to enable <InlineLabel>Approve</InlineLabel>.
+
+</GuideImage>
 
 To reject:
 
@@ -120,10 +123,11 @@ To reject:
 2. In **Reject Work**, answer **Why are you rejecting this?** A reason is required. The three suggestions underneath are a starting point, and your own words are better.
 3. Tap **Reject Work** and confirm.
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
-  <img src="/img/screenshots/admin-reject-work.webp" alt="The Reject Work dialog for a submission named Planted 50 native saplings: the line The gardener sees your reason, a required box labeled Why are you rejecting this? holding the text Details are missing, the suggestions Photos don't show the work, Details are missing, and Wrong action chosen, and the buttons Cancel and Reject Work" loading="lazy" width="960" height="900" />
-  <figcaption>Explain what the gardener needs to fix before submitting again.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-reject-work.webp" alt="The Reject Work dialog for a submission named Planted 50 native saplings: the line The gardener sees your reason, a required box labeled Why are you rejecting this? holding the text Details are missing, the suggestions Photos don't show the work, Details are missing, and Wrong action chosen, and the buttons Cancel and Reject Work" loading="lazy" width="960" height="900" className="gg-figure" maxWidth="480px">
+
+Explain what the gardener needs to fix before submitting again.
+
+</GuideImage>
 
 ## Steps in the app
 
@@ -135,22 +139,39 @@ Use the app on your phone when you are at the garden.
 4. In **Add Feedback**, check **Confidence** if you are approving. It starts on Medium, so change it if that is not right. Write feedback if it helps; a reason is required when you reject.
 5. Tap **Submit** and confirm.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-review-work.png" alt="Evaluate Work on a phone, showing the garden, a seedling photograph and the Approve and Reject controls." loading="lazy" width="390" height="844" />
-  <figcaption>Read the photos, numbers and note before approving or rejecting.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/client-review-work.png" alt="Evaluate Work on a phone, showing the garden, a seedling photograph and the Approve and Reject controls." loading="lazy" width="390" height="844" className="gg-figure gg-guide-product">
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/client-review-feedback.png" alt="Add Feedback on the phone with Medium confidence selected, an example review note, Cancel and Submit." loading="lazy" width="390" height="844" />
-  <figcaption>Check whether the starting <strong className="gg-inline-label">Medium</strong> confidence fits the evidence.</figcaption>
-</figure>
+Read the photos, numbers and note before approving or rejecting.
+
+</GuideImage>
+
+<GuideImage src="/img/screenshots/client-review-feedback.png" alt="Add Feedback on the phone with Medium confidence selected, an example review note, Cancel and Submit." loading="lazy" width="390" height="844" className="gg-figure gg-guide-product">
+
+Check whether the starting <InlineLabel>Medium</InlineLabel> confidence fits the evidence.
+
+</GuideImage>
 
 With no signal, the app saves your decision on the phone. Send it later from **Your Work** with **Upload all**.
+
+## Steps in chat
+
+Gardeners can [report work in chat](/community/gardener-guide/report-in-chat) with the Green Goods bot in Telegram. Their reports wait in the same queue as work sent from the app, so you can review them in the dashboard, the app, or the same chat. Chat review is still being tested, and it works in Telegram only.
+
+1. In a private chat with the bot, agree to its notice if it asks, then send **REVIEW**. If the chat isn't linked to your account yet, the bot sends a link to verify it first, the same way a gardener [links an account](/community/gardener-guide/report-in-chat#step-2-link-your-account). Once it's linked, send **REVIEW** again.
+2. The bot lists up to 10 pieces of work waiting in the gardens where you're a steward or owner, leaving out your own. Tap the one to review.
+3. Tap **Approve** or **Reject**.
+4. For an approval, choose a confidence level: **Low**, **Medium**, or **High**.
+5. Write feedback of up to 2,000 characters. It is public. A rejection needs a reason; for an approval you can reply **SKIP**.
+6. Check the summary, then tap **Confirm** to record it, **Edit** to change it, or **Cancel**.
+7. Tap **Check and sign**. On the page, show it's your account, check your decision under **Check and Record**, and tap **Record Decision**. Approve in your wallet or passkey prompt.
+
+Every decision needs its own signature, because chat can't hold a standing permission for reviews yet. The **Check and sign** link works for 10 minutes. If it expires, send **EDIT**, answer again and confirm, and the bot sends a new link.
 
 ## How you know it worked
 
 - **In the dashboard:** a message says **Approval submitted** or **Decision submitted**, and the submission leaves the **Pending** list. Approved work appears under the **Approved** filter.
 - **In the app:** a message says **Work approved** or **Work rejected**, and the submission shows **Approved** or **Rejected** with no buttons.
+- **In chat:** the bot says **Your review is recorded ✅**, with a link to the work.
 
 ## What happens next
 
@@ -166,7 +187,7 @@ Approving does not pay the gardener. If your garden rewards work from its shared
 
 **Independent review required** means you submitted the work; ask another steward to review it. **Owner or steward access required** means your role cannot record the decision; ask an owner or steward to add the steward role.
 
-### Approve stays gray {#approve-stays-grey}
+<AnchoredHeading level="3" id="approve-stays-grey" text="Approve stays gray" />
 
 Choose a confidence level first. If **Action expired** appears, the action closed before a decision was recorded. Ask the gardener to submit again under an open action.
 

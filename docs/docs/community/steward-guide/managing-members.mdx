@@ -5,7 +5,7 @@ slug: /community/steward-guide/managing-members
 description: "Add people to your garden, change their roles, answer requests to join, and decide whether anyone can join without asking."
 audience: steward
 owner: docs
-last_verified: 2026-10-13
+last_verified: "2026-10-13"
 feature_status: Live
 goal: "Let a steward bring the right people into a garden with the right roles, and keep the door set the way the garden wants."
 difficulty: "standard"
@@ -35,17 +35,15 @@ keywords:
   - steward access requests
 ---
 
-import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
-
 # Manage Members
-
 
 Bring people into your garden, give them the right role, and decide how new people get in. Everything here happens in the steward dashboard, in the **Community** workspace.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="eager" width="2000" height="1250" />
-  <figcaption>Use <strong className="gg-inline-label">Manage Roles</strong> on the row of the member whose access you want to change.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="eager" width="2000" height="1250" className="gg-figure">
+
+Use <InlineLabel>Manage Roles</InlineLabel> on the row of the member whose access you want to change.
+
+</GuideImage>
 
 <StewardPathNav />
 
@@ -84,12 +82,15 @@ Giving someone the steward role also gives them the evaluator and gardener roles
 
 ## Change or remove a role
 
-1. On the **Members** tab, find the person. You can search by address or role.
-2. Tap **Manage Roles** on their row.
-3. Tap the remove button on the role you want to take away.
-4. Read **Confirm Member Removal**, then tap **Remove Member** and confirm.
+1. On the **Members** tab, find the person. You can search by name, address, or role.
+2. Tap **Manage Roles** on their row. To change several people at once, tap **Manage Roles** at the top of the member directory.
+3. Check each role you want to take away. You can search and filter between checks; the bottom of the window counts what you checked, even people you can no longer see.
+4. Tap **Review Removal**. Check the garden name under the title, and what each person keeps.
+5. Tap the red button, which reads something like **Remove 2 Roles**, and confirm. You confirm once for each role, and each one shows when it lands.
 
 Removing a role removes only that one. If you take the steward role away from someone, they keep the evaluator and gardener roles until you remove those too.
+
+Some roles show a lock instead of a check box, with the reason on their row. Only an owner can change an owner's roles or remove a steward's Steward role. You can't remove your own Owner or Steward role here, and a garden always keeps at least one owner.
 
 ## Answer requests
 
@@ -114,10 +115,11 @@ By default a garden is invite only: people join when you add them or approve the
 3. To cap how many people can join this way, turn on **Limit gardeners** and set **Maximum gardeners**.
 4. Tap **Save Changes** and confirm. You confirm once for each setting you changed.
 
-<figure className="gg-figure" style={{maxWidth: '520px'}}>
-  <img src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" />
-  <figcaption>Wait for the garden’s limit to load before changing <strong className="gg-inline-label">Limit gardeners</strong>.</figcaption>
-</figure>
+<GuideImage src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" className="gg-figure" maxWidth="520px">
+
+Wait for the garden’s limit to load before changing <InlineLabel>Limit gardeners</InlineLabel>.
+
+</GuideImage>
 
 Two things to know about the limit. It counts people who join by themselves, not members you add. And the count does not go down when someone leaves, so raise the limit if you need more room.
 
@@ -141,6 +143,10 @@ The person acts next. A new gardener sees your garden under **My gardens** in th
 | You added someone and they still cannot see the garden | They are probably signed in to a different account. Compare the address you added with the Account ID in their app |
 | **Missing coverage** next to the member list | The garden has nobody in one of the key roles: owner, steward, or evaluator. Add someone to it |
 | A request shows as still catching up | The role was given. The member list will show it shortly |
+| **Nothing was removed** after you confirmed | The wallet request was declined, so nothing changed. Your checks are still there. Tap the red button again, or **Back** to change them |
+| **We couldn't confirm a removal** | The role may already be gone. Tap **Check Again** to read the garden before you send anything else |
+| Some roles are removed and some are not | The ones marked removed are gone. The red button, which reads something like **Remove 1 Remaining Role**, sends only the roles still held |
+| A role says **Can't remove** | The garden would not take that removal from your account. Its row says why |
 | **The current limit hasn't loaded yet, so it can't be changed** | The dashboard is still reading the garden's limit. Close **Edit Garden**, wait a moment, and open it again |
 | No **Community** workspace | Your account is an evaluator in this garden, not a steward or owner. Ask a steward to add the role |
 

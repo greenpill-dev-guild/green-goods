@@ -9,7 +9,7 @@
  * unit tests of createGardenOperation and integration tests in admin package.
  */
 
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
@@ -251,5 +251,62 @@ describe("useGardenOperations", () => {
 
     expect(queryClient.setQueryData).toHaveBeenCalledTimes(2);
     expect(cachedGardens[0]?.gardeners).toEqual([targetAddress.toLowerCase()]);
+  });
+
+  it("settles a failed add before another screen adds the same person", async () => {
+    const targetAddress = "0x5555555555555555555555555555555555555555";
+    let cachedGardens = [{ id: gardenId, gardeners: [] as string[] }];
+    let releaseFirst!: () => void;
+    const firstPrompt = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const calls = vi.fn();
+    mockUseQueryClient.mockReturnValue({
+      getQueryData: () => cachedGardens,
+      setQueryData: (_key: unknown, next: typeof cachedGardens) => {
+        cachedGardens = next;
+      },
+      resetQueries: vi.fn().mockResolvedValue(undefined),
+    });
+    mockCreateGardenOperation.mockImplementation(
+      (
+        _garden: string,
+        config: { memberType: string; operationType: "add" | "remove" },
+        _sender: unknown,
+        _account: unknown,
+        _chain: unknown,
+        _toast: unknown,
+        _loading: unknown,
+        optimistic: (update: unknown) => void
+      ) =>
+        async (address: string) => {
+          if (config.memberType !== "gardener" || config.operationType !== "add")
+            return { success: true };
+          calls();
+          const first = calls.mock.calls.length === 1;
+          const update = { memberType: "gardener", operationType: "add", targetAddress: address };
+          optimistic(update);
+          if (first) await firstPrompt;
+          return { success: !first, optimisticUpdate: update };
+        }
+    );
+    const first = renderHook(() => useGardenOperations(gardenId));
+    const second = renderHook(() => useGardenOperations(gardenId));
+    let failed!: Promise<unknown>;
+    let succeeded!: Promise<unknown>;
+    await act(async () => {
+      failed = first.result.current.addGardener(targetAddress);
+    });
+    await waitFor(() => expect(calls).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      succeeded = second.result.current.addGardener(targetAddress);
+    });
+    expect(calls).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      releaseFirst();
+      await Promise.all([failed, succeeded]);
+    });
+    expect(calls).toHaveBeenCalledTimes(2);
+    expect(cachedGardens[0]?.gardeners).toEqual([targetAddress]);
   });
 });

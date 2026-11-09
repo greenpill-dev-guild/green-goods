@@ -2,6 +2,7 @@ import { encodeFunctionData, type Hex } from "viem";
 import type { Address } from "../../types/domain";
 import type { BatchBudget, BatchQuote } from "./batch-types";
 import { assertBatchCalls, assertBatchQuote } from "./batch-budget";
+import { withGasHeadroom } from "./gas-headroom";
 import type { ContractCall } from "./types";
 
 interface WalletBatchReader {
@@ -17,7 +18,10 @@ interface WalletBatchReader {
   estimateFeesPerGas(): Promise<{ maxFeePerGas?: bigint; gasPrice?: bigint }>;
 }
 
-/** Ordered execution estimation; this protocol cannot cap the final fee chosen by the wallet. */
+/**
+ * Ordered execution estimation, plus the most headroom any call asks for, because a single call is
+ * sent at that limit. This protocol cannot cap the final fee chosen by the wallet.
+ */
 export async function quoteWalletBatch(
   reader: WalletBatchReader,
   calls: readonly ContractCall[],
@@ -56,7 +60,8 @@ export async function quoteWalletBatch(
     if (gas > simulation.block.gasLimit) throw new Error("batch-invalid-quote");
     return gas;
   };
-  const [gas, fees] = await Promise.all([estimate(), reader.estimateFeesPerGas()]);
+  const [estimated, fees] = await Promise.all([estimate(), reader.estimateFeesPerGas()]);
+  const gas = withGasHeadroom(estimated, calls);
   const fee = fees.maxFeePerGas ?? fees.gasPrice;
   if (!fee || fee <= 0n || gas <= 0n) throw new Error("batch-invalid-quote");
   const quote: BatchQuote = {

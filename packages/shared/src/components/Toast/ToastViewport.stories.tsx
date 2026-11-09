@@ -132,7 +132,7 @@ export const QueuedUploadRecovery: Story = {
     const toasts = createUpdateToasts(({ id, defaultMessage }) => defaultMessage ?? id);
     toasts.codeUnavailable(() => {});
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("Restart to continue uploading")).toBeVisible();
+    await expect(await canvas.findByText("Restart to continue")).toBeVisible();
     await expect(await canvas.findByRole("button", { name: /^Update$/ })).toBeVisible();
   },
 };

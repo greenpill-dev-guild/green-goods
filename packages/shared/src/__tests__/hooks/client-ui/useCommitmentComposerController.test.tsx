@@ -23,10 +23,16 @@ type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 
 const mocks = vi.hoisted(() => ({
   actions: [] as Action[],
+  actionsPending: false,
+  /** What reading actions by their id returns; each call is kept, so a test sees what was asked. */
+  lookedUp: [] as Action[],
+  lookUp: vi.fn(),
   viewer: null as Address | null,
   isOnline: true,
   pools: [] as ReturnType<typeof poolFixture>[],
   cycles: [] as ReturnType<typeof cycleFixture>[],
+  /** The chain's time, Unix seconds: the fixtures' season runs March to May 2026. */
+  chainNow: 1_775_000_000n,
   steward: { hasRole: false, isLoading: false },
   owner: { hasRole: false, isLoading: false },
   enqueue: vi.fn<Enqueue>(),
@@ -55,6 +61,11 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentCycleNames", () => ({
   useCommitmentCycleNames: () => ({ byCycleId: new Map(), isLoading: false }),
 }));
 
+// Time is the edge here; which cycles stay on offer is decided for real.
+vi.mock("../../../hooks/commitment-pooling/useCycleClock", () => ({
+  useCycleClock: () => mocks.chainNow,
+}));
+
 vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   useCommitmentJobs: () => ({
     enqueue: mocks.enqueue,
@@ -64,8 +75,18 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/action/useAction", () => ({
+  useActionsByUID: (uids: readonly number[], chainId: number) => {
+    mocks.lookUp(uids, chainId);
+    return mocks.lookedUp.filter((action) => uids.some((uid) => action.id === `${chainId}-${uid}`));
+  },
+}));
+
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
-  useActions: () => ({ data: mocks.actions }),
+  useActions: () => ({
+    data: mocks.actionsPending ? undefined : mocks.actions,
+    isPending: mocks.actionsPending,
+  }),
   useGardens: () => ({ data: [{ id: DEMO_GARDEN, name: "Green Goods Garden" }] }),
 }));
 
@@ -96,10 +117,13 @@ beforeEach(() => {
   window.localStorage.clear();
   useCommitmentComposerDraftStore.setState({ drafts: {} });
   mocks.actions = [];
+  mocks.actionsPending = false;
+  mocks.lookedUp = [];
   mocks.viewer = TUNDE;
   mocks.isOnline = true;
   mocks.pools = [poolFixture()];
   mocks.cycles = [];
+  mocks.chainNow = 1_775_000_000n;
   mocks.steward = { hasRole: false, isLoading: false };
   mocks.owner = { hasRole: false, isLoading: false };
   mocks.pending = false;
@@ -200,6 +224,24 @@ describe("useCommitmentComposerController", () => {
     await waitFor(() => expect(result.current.form.getValues("cycleId")).toBe("0"));
   });
 
+  // DL-162: the chain still takes a promise into an Open cycle past its end, past due as it is
+  // made, so the composer offers none that has ended, and a chosen one falls back as it ends.
+  it("offers no cycle past its end, and lets go of a chosen one the second it ends", async () => {
+    mocks.cycles = [
+      cycleFixture({ cycleId: 8n, cycleType: "SEASON", endTime: 100n }),
+      cycleFixture({ cycleId: 9n, cycleType: "CAMPAIGN", endTime: 200n }),
+    ];
+    mocks.chainNow = 150n;
+    const { result, rerender } = renderController();
+    expect(result.current.openCycles.map((cycle) => cycle.cycleId)).toEqual([9n]);
+
+    act(() => result.current.form.setValue("cycleId", "9", { shouldDirty: true }));
+    mocks.chainNow = 201n;
+    rerender();
+    expect(result.current.openCycles).toEqual([]);
+    await waitFor(() => expect(result.current.form.getValues("cycleId")).toBe("0"));
+  });
+
   it("places one payload with a stable client id across queue retries", async () => {
     mocks.enqueue
       .mockRejectedValueOnce(new Error("queue unavailable"))
@@ -258,6 +300,38 @@ describe("useCommitmentComposerController", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("holds a chosen action the list doesn't hold until its window is read by its id", async () => {
+    // A resumed draft names an action while the list is still loading.
+    mocks.actionsPending = true;
+    const { result, rerender } = renderController();
+    act(() => {
+      result.current.form.setValue("title", "Mulch the north beds", { shouldDirty: true });
+      result.current.form.setValue("requirements", [{ actionUID: "77", requiredCount: 1 }], {
+        shouldDirty: true,
+      });
+    });
+    expect(result.current.uncheckedActionUIDs).toEqual(["77"]);
+    expect(mocks.lookUp).toHaveBeenLastCalledWith([], DEMO_CHAIN_ID);
+    await act(async () => expect(result.current.place()).resolves.toBe(false));
+
+    // The list answers without it, so it is read by its id, and still waits for that read.
+    mocks.actionsPending = false;
+    mocks.actions = [createMockAction({ id: `${DEMO_CHAIN_ID}-44` })];
+    rerender();
+    expect(mocks.lookUp).toHaveBeenLastCalledWith([77], DEMO_CHAIN_ID);
+    expect(result.current.uncheckedActionUIDs).toEqual(["77"]);
+    await act(async () => expect(result.current.place()).resolves.toBe(false));
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+
+    // Its window is known and open, so the same commitment places.
+    mocks.lookedUp = [createMockAction({ id: `${DEMO_CHAIN_ID}-77` })];
+    rerender();
+    expect(result.current.uncheckedActionUIDs).toEqual([]);
+    expect(result.current.closedActionUIDs).toEqual([]);
+    await act(async () => expect(result.current.place()).resolves.toBe(true));
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
   });
 
   it.each([

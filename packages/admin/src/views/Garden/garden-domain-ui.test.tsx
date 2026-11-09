@@ -278,6 +278,8 @@ vi.mock("@green-goods/shared/stores/useGardenStateStore", () => ({
     }),
 }));
 
+vi.mock("@/views/Garden/components/GardenSetupCard", () => ({ GardenSetupPanel: () => null }));
+
 vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
   GardenSettingsEditor: (props: {
     onDirtyStateChange?: typeof settingsEditorProbe.reportDirtyState;

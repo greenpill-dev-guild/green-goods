@@ -39,9 +39,17 @@ interface RowCopy {
   blocked?: boolean;
   /** The act the row offers besides Discard; none while a background flush will send it. */
   actId: string | null;
+  /** Nothing can send it as it stands, so Discard is offered without a send. */
+  offersDiscard?: boolean;
 }
 
 const SEND_NOW = "app.commitment.queue.sendNow";
+
+/** What a promise the queue refused says first: why the chain can no longer keep it. */
+const REFUSAL_NOTE_IDS: Record<NonNullable<PendingCommitmentCreation["refusal"]>, string> = {
+  "action-closed": "app.pool.queued.actionClosedNote",
+  "cycle-ended": "app.pool.queued.cycleEndedNote",
+};
 
 /**
  * What the row says in each cast. Two belong to a reader who sends from their
@@ -49,12 +57,22 @@ const SEND_NOW = "app.commitment.queue.sendNow";
  * a creation that never went waits for their Send Now.
  */
 function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): RowCopy {
+  if (creation.refusal) {
+    return {
+      pending: "sendFailed",
+      noteId: REFUSAL_NOTE_IDS[creation.refusal],
+      blocked: true,
+      actId: null,
+      offersDiscard: true,
+    };
+  }
   if (creation.settlementDeferred) {
     return {
       chipId: "app.pool.queued.settlementDeferred",
       noteId: "app.pool.queued.settlementDeferredNote",
       blocked: true,
       actId: null,
+      offersDiscard: true,
     };
   }
   if (creation.failed) {
@@ -109,7 +127,8 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
  * in view. The two ways out sit in the row's right slot, the send rightmost. Three casts:
  * waiting to send, waiting for the member's garden hat (which spends no retries), and given
  * up, where retry and discard are the member's explicit choice and nothing is ever dropped
- * silently.
+ * silently. One the queue refused, because an action it names closed or its season ended
+ * before it was sent, says which and offers only Discard: trying again cannot help.
  *
  * A reader who sends from their own tap has no background flush, so for them a creation
  * that has not gone reads as not sent, with Send Now and Discard, and one whose send is on
@@ -136,8 +155,7 @@ export function PendingCreationRow({
   // A creation whose transaction was already sent keeps its record: retry can still find
   // the commitment, while throwing it away would file a second one. Only the safe case is
   // offered a way to delete, and only where the row offers an act at all.
-  const showActs =
-    Boolean(copy.actId) || Boolean(creation.settlementDeferred && creation.discardable);
+  const showActs = Boolean(copy.actId) || Boolean(copy.offersDiscard);
   const discard =
     showActs && creation.discardable ? (
       <IconButton

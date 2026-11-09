@@ -1,11 +1,8 @@
 import { ServiceWorkerUpdateProvider } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
-import { useENSRegistrationStatus } from "@green-goods/shared/hooks/ens/useENSRegistrationStatus";
-import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
+import { useGardenDepartureOptions } from "@green-goods/shared/hooks/garden/useLeaveGarden";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, within } from "storybook/test";
@@ -22,7 +19,7 @@ const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 
 /**
  * The Profile's Account tab (DL-159): every section its own cards under one heading pattern, with
- * Username's and Your Services' act in the right slot. The gardens and the name are fictional.
+ * Your Services' act in the right slot. The gardens are fictional.
  */
 const meta: Meta<typeof ProfileAccount> = {
   title: "Client/Profile/Account",
@@ -62,34 +59,14 @@ const meta: Meta<typeof ProfileAccount> = {
       gardenId: JOURNEY_GARDEN_RECORD.id,
       selectGarden: fn(),
     } as unknown as ReturnType<typeof useActiveGarden>);
-    mocked(useOnlineStatus).mockReturnValue(true);
-    mocked(useProtocolMemberStatus).mockReturnValue({
-      data: true,
+    mocked(useGardenDepartureOptions).mockReturnValue({
+      options: [],
       isLoading: false,
-    } as ReturnType<typeof useProtocolMemberStatus>);
-    mocked(useGreenGoodsEnsName).mockReturnValue({
-      data: "amara.greengoods.eth",
-      isLoading: false,
-    } as ReturnType<typeof useGreenGoodsEnsName>);
-    mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
-    mocked(useENSRegistrationStatus).mockReturnValue({
-      data: {
-        status: "active",
-        registration: { owner: ACCOUNT, nameType: 0, registeredAt: "1768521600" },
-      },
       isError: false,
-      isFetching: false,
       refetch: fn(),
-    } as unknown as ReturnType<typeof useENSRegistrationStatus>);
-    return resetHookMocks(
-      useGardens,
-      useActiveGarden,
-      useOnlineStatus,
-      useProtocolMemberStatus,
-      useGreenGoodsEnsName,
-      useEnsName,
-      useENSRegistrationStatus
-    );
+    });
+    mocked(useOnlineStatus).mockReturnValue(true);
+    return resetHookMocks(useGardens, useActiveGarden, useGardenDepartureOptions, useOnlineStatus);
   },
 };
 
@@ -100,14 +77,13 @@ type Story = StoryObj<typeof ProfileAccount>;
 export const Current: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const sections = ["Settings", "My gardens", "Username", "Your Services", "Account"];
+    const sections = ["Settings", "My gardens", "Your Services", "Account"];
     for (const name of sections) {
       await expect(await canvas.findByRole("heading", { level: 5, name })).toBeVisible();
     }
+    await expect(canvas.queryByRole("heading", { level: 5, name: "Username" })).toBeNull();
     await expect(canvasElement.querySelectorAll("h1, h2, h3, h4, h6")).toHaveLength(0);
     await expect(canvasElement.querySelectorAll('[data-component="FactList"]')).toHaveLength(0);
-    const change = canvas.getByRole("button", { name: "Change Username" });
-    await expect(change.closest("[data-component='UsernameCard']")).not.toBeNull();
     await expect(canvas.getByRole("button", { name: "Hilltop Market Garden" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Riverside Commons Garden" })).toHaveAttribute(
       "aria-describedby"

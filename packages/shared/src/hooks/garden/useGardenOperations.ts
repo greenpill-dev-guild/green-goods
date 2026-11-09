@@ -10,6 +10,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import {
+  createRoleRemovalChain,
+  readHeldRoles,
+  type RoleRemovalApi,
+  removeGardenRolesOneByOne,
+} from "../../modules/garden/members-removal";
 import type { Address, Garden } from "../../types/domain";
 import { formatAddress } from "../../utils/app/text";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
@@ -32,9 +38,21 @@ import {
 } from "./gardenRosterCache";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { runGardenRoleWrites } from "./gardenRoleWriteQueue";
 
 export { useAddMembersBatch } from "./useAddMembersBatch";
 export type { AddMembersOutcome } from "../../modules/garden/members-batch";
+export type {
+  RoleRemovalApi,
+  RoleRemovalOutcome,
+  RoleRemovalStatus,
+} from "../../modules/garden/members-removal";
+export {
+  type GardenSetup,
+  type GardenSetupStep,
+  type GardenSetupStepId,
+  useGardenSetup,
+} from "./useGardenSetup";
 
 export function useGardenOperations(gardenId: string) {
   // Garden ids are token-bound account addresses; callers still pass them as route strings.
@@ -121,31 +139,39 @@ export function useGardenOperations(gardenId: string) {
         targetAddress: Address,
         options?: GardenOperationCallOptions
       ): Promise<GardenOperationResult> => {
-        const queryKey = gardensKeys.byChain(chainId);
-        const wasOnRoster = isOnCachedRoster(
-          queryClient.getQueryData<Garden[]>(queryKey) ?? [],
+        return runGardenRoleWrites(
+          queryClient,
+          chainId,
           gardenId,
-          memberType,
-          targetAddress
+          [{ address: targetAddress, role: memberType }],
+          async () => {
+            const queryKey = gardensKeys.byChain(chainId);
+            const wasOnRoster = isOnCachedRoster(
+              queryClient.getQueryData<Garden[]>(queryKey) ?? [],
+              gardenId,
+              memberType,
+              targetAddress
+            );
+
+            const result = await operation(targetAddress, options);
+
+            if (result.success) {
+              // The chain now answers differently for this person, so a cached
+              // "doesn't wear it" must not outlive the write (Add Members trusts it).
+              void resetRoleHatAnswers(queryClient, gardenId, targetAddress);
+            }
+
+            const currentData = queryClient.getQueryData<Garden[]>(queryKey);
+            if (!result.success && result.optimisticUpdate && currentData) {
+              queryClient.setQueryData(
+                queryKey,
+                rollBackFailedWrite(currentData, gardenId, result.optimisticUpdate, wasOnRoster)
+              );
+            }
+
+            return result;
+          }
         );
-
-        const result = await operation(targetAddress, options);
-
-        if (result.success) {
-          // The chain now answers differently for this person, so a cached
-          // "doesn't wear it" must not outlive the write (Add Members trusts it).
-          void resetRoleHatAnswers(queryClient, gardenId, targetAddress);
-        }
-
-        const currentData = queryClient.getQueryData<Garden[]>(queryKey);
-        if (!result.success && result.optimisticUpdate && currentData) {
-          queryClient.setQueryData(
-            queryKey,
-            rollBackFailedWrite(currentData, gardenId, result.optimisticUpdate, wasOnRoster)
-          );
-        }
-
-        return result;
       };
     },
     [chainId, gardenId, queryClient]
@@ -160,6 +186,7 @@ export function useGardenOperations(gardenId: string) {
         error: {
           name: "WalletNotConnected",
           message: "Please connect your wallet to continue",
+          cannotLand: true,
         },
       });
       return {
@@ -388,4 +415,70 @@ export function useGardenOperations(gardenId: string) {
     ...operations,
     isLoading,
   };
+}
+
+/**
+ * Removes person-and-role pairs with one signature each, reading the chain before every
+ * signature and after any send that does not end cleanly (`removeGardenRolesOneByOne`). Each
+ * send is the role operation a single removal uses, with its simulation, roster update and
+ * toasts, so one removal and many take the same path.
+ */
+export function useRemoveMemberRoles(gardenId: string): RoleRemovalApi {
+  const gardenAddress = gardenId as Address;
+  const chainId = DEFAULT_CHAIN_ID;
+  const queryClient = useQueryClient();
+  const account = usePrimaryAddress();
+  const {
+    removeGardener,
+    removeSteward,
+    removeEvaluator,
+    removeOwner,
+    removeFunder,
+    removeCommunity,
+  } = useGardenOperations(gardenId);
+
+  return useMemo(() => {
+    const chain = createRoleRemovalChain({
+      gardenAddress,
+      chainId,
+      account,
+      removeByRole: {
+        gardener: removeGardener,
+        steward: removeSteward,
+        evaluator: removeEvaluator,
+        owner: removeOwner,
+        funder: removeFunder,
+        community: removeCommunity,
+      },
+      // The roster lags the chain, so a role a read proved gone leaves it now.
+      onGone: ({ address, role }) => {
+        const key = gardensKeys.byChain(chainId);
+        const gardens = queryClient.getQueryData<Garden[]>(key);
+        if (gardens) {
+          queryClient.setQueryData(
+            key,
+            applyOptimisticUpdate(gardens, gardenId, role, "remove", address)
+          );
+        }
+        void resetRoleHatAnswers(queryClient, gardenId, address);
+      },
+    });
+    return {
+      account,
+      check: (rows) => readHeldRoles(rows, chain),
+      remove: (rows, events) => removeGardenRolesOneByOne(rows, chain, events),
+    };
+  }, [
+    account,
+    chainId,
+    gardenAddress,
+    gardenId,
+    queryClient,
+    removeCommunity,
+    removeEvaluator,
+    removeFunder,
+    removeGardener,
+    removeOwner,
+    removeSteward,
+  ]);
 }

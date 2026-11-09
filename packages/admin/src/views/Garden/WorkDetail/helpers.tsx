@@ -1,6 +1,11 @@
 import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
-import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared/types/domain";
+import {
+  type Address,
+  Confidence,
+  type Work,
+  type WorkMetadata,
+} from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { z } from "zod";
 
@@ -71,6 +76,35 @@ export async function uploadReviewNotes(audio: File, comments: string): Promise<
     { source: "WorkDetail.reviewNotes", metadataType: "review_notes" }
   );
   return cid;
+}
+
+/** Pair a resolved label with its stable account address at the point of decision. */
+export function ReviewDecisionSubject({
+  name,
+  address,
+  title,
+}: {
+  name: string;
+  address: Address | null;
+  title?: string;
+}) {
+  return (
+    <>
+      {title && `${title} · `}
+      {address ? (
+        <>
+          <bdi>{name}</bdi>
+          {" ("}
+          <bdi dir="ltr" className="break-all font-mono">
+            {address}
+          </bdi>
+          {")"}
+        </>
+      ) : (
+        name
+      )}
+    </>
+  );
 }
 
 export function ReviewSummary({ work }: { work: Work }) {

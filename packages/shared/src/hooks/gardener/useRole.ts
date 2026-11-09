@@ -1,5 +1,13 @@
 import type { Address } from "../../types/domain";
 import { useQuery } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
+import {
+  getGardenFenceFilters,
+  reconcileStewardHints,
+  getServerGardenFenceFilters,
+  subscribeToGardenFences,
+} from "../../modules/garden/garden-departures";
+import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
@@ -9,6 +17,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { roleKeys } from "../../config/query-keys/identity";
+import { compareAddresses } from "../../utils/blockchain/address";
 
 const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
@@ -33,7 +42,7 @@ interface StewardGarden {
  * Fetches gardens where the given address is a steward
  * (the indexer still spells the membership field `operators`)
  */
-async function fetchStewardGardens(address: string, chainId: number): Promise<StewardGarden[]> {
+async function fetchStewardGardens(address: Address, chainId: number): Promise<StewardGarden[]> {
   const { data, error } = await greenGoodsIndexer.query(
     GET_STEWARD_GARDENS,
     { steward: [address.toLowerCase()], chainId },
@@ -48,14 +57,22 @@ async function fetchStewardGardens(address: string, chainId: number): Promise<St
     throw error;
   }
 
-  return data?.Garden ?? [];
+  const gardens = data?.Garden ?? [];
+  await reconcileStewardHints(gardens, chainId, address);
+  return gardens;
 }
 
 export type UserRole = "deployer" | "steward" | "user";
 
 export interface RoleInfo {
   role: UserRole;
+  /** May create gardens: the deployment registry's owner or an account on its allowlist. */
   isDeployer: boolean;
+  /**
+   * Runs the protocol: the registry's owner or an owner or steward of the Green Goods Community
+   * Garden. Being allowed to create gardens does not make an account part of the team.
+   */
+  isProtocolTeam: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
@@ -90,7 +107,7 @@ export function useRole(): RoleInfo {
 
   // Use React Query for fetching steward gardens
   const {
-    data: stewardGardens = [],
+    data: indexedStewardGardens = [],
     isLoading: isFetching,
     isError: gardensError,
   } = useQuery({
@@ -102,8 +119,21 @@ export function useRole(): RoleInfo {
     networkMode: "offlineFirst",
   });
 
+  const fences = useSyncExternalStore(
+    subscribeToGardenFences,
+    getGardenFenceFilters,
+    getServerGardenFenceFilters
+  );
+  const stewardGardens = normalizedAddress
+    ? fences.stewardHints(indexedStewardGardens, chainId, normalizedAddress)
+    : [];
   const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
+  const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
+  const isProtocolTeam =
+    deploymentRegistry.isOwner ||
+    (rootGarden !== undefined &&
+      stewardGardens.some((garden) => compareAddresses(garden.id, rootGarden)));
 
   // Determine primary role based on capabilities
   let role: UserRole = "user";
@@ -116,6 +146,7 @@ export function useRole(): RoleInfo {
   return {
     role,
     isDeployer,
+    isProtocolTeam,
     isSteward,
     stewardGardens,
     loading: !ready || isFetching || deploymentRegistry.loading,

@@ -32,3 +32,6 @@ export const MediaCards: Story = {
 export const Cards: Story = {
   args: { count: 4, variant: "card" },
 };
+
+/** The desktop queue keeps the same 192px mosaic and 160px height while loading. */
+export const WideMediaCards: Story = { args: { count: 3, variant: "media-card", layout: "wide" } };

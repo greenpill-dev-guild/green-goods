@@ -96,6 +96,7 @@ export async function submitWorkWithPasskey(
     {
       gardenAddress,
       authMode: "passkey",
+      uploaderAddress: smartAccount.address as `0x${string}`,
     }
   );
 

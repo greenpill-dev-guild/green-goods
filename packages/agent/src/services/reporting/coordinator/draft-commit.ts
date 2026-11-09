@@ -13,9 +13,11 @@ import { invalidateConfirmation } from "../confirmations";
 import {
   commitDraft,
   type DraftRecord,
+  isOpenLifecycle,
   REPORT_LIFECYCLE_VERSION,
   type ReportLifecycle,
 } from "../drafts";
+import { closeSubjectPrompt } from "../prompts";
 
 /** Thrown inside a commit transaction to roll it back when another writer changed the draft. */
 export class StaleDraftError extends Error {
@@ -123,7 +125,11 @@ function supersedeConfirmedWork(core: Parameters<typeof commitDraft>[0], draftId
     .run({ draft: draftId });
 }
 
-/** Commits lifecycle-only events at the current revision. */
+/**
+ * Commits lifecycle-only events at the current revision. A report that ends (published,
+ * cancelled or expired) closes its open question too: left open, it would take the gardener's next
+ * message for an answer to a report that can no longer change.
+ */
 export function commitLifecycle(
   core: Parameters<typeof commitDraft>[0],
   draft: DraftRecord,
@@ -140,5 +146,7 @@ export function commitLifecycle(
     authorAccountId: options.authorAccountId,
   });
   if (committed === "stale") throw new StaleDraftError();
+  if (!isOpenLifecycle(committed.lifecycle))
+    closeSubjectPrompt(core, draft.conversationId, "draft", draft.id);
   return { draft: committed, refused };
 }

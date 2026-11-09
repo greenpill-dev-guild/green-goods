@@ -238,7 +238,8 @@ function commitInTransaction(
     });
     // An album's photos finish one by one and a download may be retried, so each takes its place
     // in the order sent. One past the activity's limit in that order finds no room, and the batch's
-    // reply says so.
+    // reply says so. A photo sent earlier that finishes late pushes out one already placed, and
+    // what only that one gave goes with it.
     const placed: Working = {
       content: added === content ? content : inSentOrder(core, asset.draftId, added),
       snapshot: draft.snapshot,

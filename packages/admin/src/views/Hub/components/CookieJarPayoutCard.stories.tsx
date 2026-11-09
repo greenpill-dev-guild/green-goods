@@ -131,6 +131,6 @@ export const PayoutHistoryAtItsLimit: Story = {
   args: { allocationCount: 20, allocationCountAtLeast: true },
   play: async ({ canvasElement }) => {
     const canvas = await openJarPage(canvasElement);
-    await expect(canvas.getByText("20+ yield payouts so far.")).toBeVisible();
+    await expect(canvas.getByText("20+ garden yield payouts so far.")).toBeVisible();
   },
 };

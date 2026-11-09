@@ -21,6 +21,7 @@ export interface RecoveryCopy {
   /** The line under the logo while the app reloads itself onto a new build. */
   launchUpdating: string;
   reload: string;
+  homepage: string;
 }
 
 const COPY: Record<RecoveryLanguage, RecoveryCopy> = {
@@ -35,6 +36,7 @@ const COPY: Record<RecoveryLanguage, RecoveryCopy> = {
     launchOfflineNote: "Green Goods opens when you are back online.",
     launchUpdating: "Updating Green Goods…",
     reload: "Reload",
+    homepage: "Go to Homepage",
   },
   es: {
     siteTitle: "No se pudo cargar esta página",
@@ -47,6 +49,7 @@ const COPY: Record<RecoveryLanguage, RecoveryCopy> = {
     launchOfflineNote: "Green Goods se abrirá cuando vuelvas a tener conexión.",
     launchUpdating: "Actualizando Green Goods…",
     reload: "Recargar",
+    homepage: "Ir al inicio",
   },
   pt: {
     siteTitle: "Não foi possível carregar esta página",
@@ -59,6 +62,7 @@ const COPY: Record<RecoveryLanguage, RecoveryCopy> = {
     launchOfflineNote: "O Green Goods abrirá quando você voltar a ficar online.",
     launchUpdating: "Atualizando o Green Goods…",
     reload: "Recarregar",
+    homepage: "Ir para a página inicial",
   },
 };
 

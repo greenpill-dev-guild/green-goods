@@ -17,10 +17,22 @@ const meta: Meta<typeof PublicFooter> = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const footer = within(canvasElement).getByRole("navigation", { name: "Footer links" });
-    for (const label of ["Twitter", "LinkedIn", "GitHub", "Docs"]) {
+    for (const label of [
+      "Twitter",
+      "LinkedIn",
+      "GitHub",
+      "Docs",
+      "Privacy",
+      "Contact",
+      "Terms of Use",
+    ]) {
       await expect(within(footer).getByRole("link", { name: label })).toBeVisible();
     }
-    await expect(within(footer).getAllByRole("link")).toHaveLength(4);
+    await expect(within(footer).getAllByRole("link")).toHaveLength(7);
+    await expect(within(footer).getByRole("link", { name: "Terms of Use" })).toHaveAttribute(
+      "href",
+      "/terms"
+    );
     const document = canvasElement.ownerDocument;
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
@@ -39,9 +51,10 @@ const meta: Meta<typeof PublicFooter> = {
       description: {
         component:
           "Compact utility footer for every public-browser page: small Fraunces " +
-          "wordmark, restored provenance message, and links to Twitter, LinkedIn, " +
-          "GitHub, and Docs in a single quiet row (stacks on mobile). Schedule-a-Call " +
-          "lives in PublicGetInTouch above the footer.",
+          "wordmark, provenance message, and two rows of links: Twitter, LinkedIn, " +
+          "GitHub and Docs, then Privacy, Contact and Terms of Use. On mobile everything " +
+          "stacks and the provenance message comes last. Schedule-a-Call lives in " +
+          "PublicGetInTouch above the footer.",
       },
     },
   },

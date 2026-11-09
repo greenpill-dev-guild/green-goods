@@ -2,10 +2,6 @@
  * useSlugAvailability Hook Tests
  *
  * Tests the debounced RPC availability check for ENS slugs across L2 and L1.
- * This is tier 2 of the three-tier validation pipeline:
- *   1. Sync Zod (instant) — useSlugForm
- *   2. Debounced RPC (300ms) — this hook
- *   3. On-submit recheck — useENSClaim
  */
 
 import { waitFor } from "@testing-library/react";

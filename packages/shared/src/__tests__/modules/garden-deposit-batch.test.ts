@@ -167,6 +167,26 @@ describe("depositRoute", () => {
     expect(route({ rail: "wallet", walletAtomic: true })).toBeNull();
     expect(walletRouteListed({ action: "vault-deposit", chainId, asset })).toBe(false);
   });
+
+  it("goes step by step for a wallet that can't batch, on each listed DAI deposit", () => {
+    const dai: Address = "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
+    for (const action of ["vault-deposit", "jar-deposit"] as const) {
+      expect(walletRouteListed({ action, chainId, asset: dai })).toBe(true);
+      expect(route({ action, rail: "wallet", walletAtomic: false, asset: dai })).toEqual({
+        atomic: false,
+      });
+      // Only the sequential profile is listed, so a wallet that reports atomic keeps today's flow.
+      expect(route({ action, rail: "wallet", walletAtomic: true, asset: dai })).toBeNull();
+    }
+  });
+
+  it("sends one request on a listed passkey, on each listed DAI deposit", () => {
+    const dai: Address = "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
+    for (const action of ["vault-deposit", "jar-deposit"] as const) {
+      expect(route({ action, asset: dai })).toEqual({ atomic: true });
+      expect(route({ action, asset: dai, passkeyProfile: "kernel-0.3.3-pilot" })).toBeNull();
+    }
+  });
 });
 
 describe("sendDepositBatch", () => {

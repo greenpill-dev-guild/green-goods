@@ -180,7 +180,7 @@ function CommunityJoinRequestQueue({
                   : "cockpit.community.joinRequests.title",
               })}
             </AdminCardTitle>
-            <p className="mt-1 type-meta text-text-sub">
+            <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: stewardRequest
                   ? "cockpit.community.stewardRequests.description"

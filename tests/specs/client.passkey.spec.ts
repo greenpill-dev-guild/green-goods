@@ -4,14 +4,40 @@ import { expect, test } from "@playwright/test";
 import { PUBLIC_AGENT_ROUTES } from "../../packages/shared/src/public-contracts/routes";
 import { TEST_URLS } from "../helpers/test-utils";
 
-test.use({ baseURL: TEST_URLS.client, serviceWorkers: "block" });
+const rememberedUsername = "remembered-gardener";
+test.use({
+  baseURL: TEST_URLS.client,
+  serviceWorkers: "block",
+  storageState: {
+    cookies: [],
+    origins: [
+      {
+        origin: TEST_URLS.client,
+        localStorage: [
+          { name: "greengoods_username", value: rememberedUsername },
+          { name: "greengoods_signed_out", value: "true" },
+          {
+            name: "greengoods_credential",
+            value: JSON.stringify({
+              version: 3,
+              id: "cmVtZW1iZXJlZA",
+              signingId: "cmVtZW1iZXJlZA",
+              publicKey:
+                "0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5",
+            }),
+          },
+        ],
+      },
+    ],
+  },
+});
 // The login is the unbundled dev client's first paint after a navigation. On a cold server, or
 // beside another case's first load, it takes longer than the five seconds an assertion waits, so
 // those two waits get a minute each and the case gets room for both.
 test.describe.configure({ timeout: 150_000 });
 const FIRST_PAINT = { timeout: 60_000 };
 
-test("server rejection after credential creation stays signed out and permits retry", async ({
+test("a different username can create a passkey; rejection preserves the remembered account", async ({
   page,
 }) => {
   const cdp = await page.context().newCDPSession(page);
@@ -31,6 +57,12 @@ test("server rejection after credential creation stays signed out and permits re
   page.on("pageerror", (error) => {
     throw error;
   });
+  await page.route("https://api.pimlico.io/**", async (route) => {
+    const { id, method, params } = route.request().postDataJSON();
+    expect(method).toBe("pks_getCredentials");
+    expect(params).toEqual([{ userName: username }]);
+    await route.fulfill({ json: { jsonrpc: "2.0", id, result: [] } });
+  });
   await page.route(`**${PUBLIC_AGENT_ROUTES.passkeyDirectory}`, async (route) => {
     expect(route.request().url()).toBe(
       `http://localhost:3005${PUBLIC_AGENT_ROUTES.passkeyDirectory}`
@@ -39,10 +71,10 @@ test("server rejection after credential creation stays signed out and permits re
     calls.push(method);
     let result: unknown;
     if (method === "pks_getCredentials") {
-      expect(params).toEqual([{ userName: username }]);
+      expect(params).toEqual([{ userName: username, accountProfileVersion: 1 }]);
       result = [];
     } else if (method === "pks_startRegistration") {
-      expect(params).toEqual([{ userName: username }]);
+      expect(params).toEqual([{ userName: username, accountProfileVersion: 1 }]);
       result = {
         attestation: "none",
         challenge: Buffer.alloc(32, 7).toString("base64"),
@@ -61,7 +93,7 @@ test("server rejection after credential creation stays signed out and permits re
         timeout: 10000,
       };
     } else if (method === "pks_verifyRegistration") {
-      expect(params[1]).toEqual({ userName: username });
+      expect(params[1]).toEqual({ userName: username, accountProfileVersion: 1 });
       expect(params[0].type).toBe("public-key");
       const clientData = JSON.parse(
         Buffer.from(params[0].response.clientDataJSON, "base64").toString()
@@ -77,14 +109,18 @@ test("server rejection after credential creation stays signed out and permits re
   });
   try {
     await page.goto("/home/login?presentation=pwa");
-    await expect(page.getByTestId("login-button")).toHaveText("Create Account", FIRST_PAINT);
+    await expect(page.getByTestId("login-button")).toHaveText(
+      `Continue as ${rememberedUsername}`,
+      FIRST_PAINT
+    );
     await expect(page.getByTestId("secondary-action-button")).toBeVisible();
-    await page.getByTestId("login-button").click();
+    await page.getByRole("button", { name: "Use Different Username" }).click();
     await expect(page.getByTestId("username-input")).toBeVisible();
     await page.getByTestId("username-input").fill(username);
     await page.getByTestId("login-button").click();
     await expect(page.getByRole("alert")).toHaveText("Error:We couldn't verify your passkey.");
     expect(calls).toEqual([
+      "pks_getCredentials",
       "pks_getCredentials",
       "pks_startRegistration",
       "pks_verifyRegistration",
@@ -96,7 +132,11 @@ test("server rejection after credential creation stays signed out and permits re
     await expect(page.getByTestId("username-input")).toHaveValue(username);
     await expect(page.getByTestId("login-button")).toBeEnabled();
     await page.reload();
-    await expect(page.getByTestId("login-button")).toHaveText("Create Account", FIRST_PAINT);
+    await expect(page.getByTestId("login-button")).toHaveText(
+      `Continue as ${rememberedUsername}`,
+      FIRST_PAINT
+    );
+    await expect(page.getByRole("button", { name: "Use Different Username" })).toBeVisible();
     await expect(page).toHaveURL(/\/home\/login\?presentation=pwa$/);
     await test
       .info()

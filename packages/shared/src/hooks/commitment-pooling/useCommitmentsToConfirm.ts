@@ -65,7 +65,10 @@ import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../modules/commitment-pooling/selectors";
-import { selectOrdinaryConfirmationReachable } from "../../modules/commitment-pooling/steward-selectors";
+import {
+  selectOrdinaryConfirmationReachable,
+  withEffectiveConfirmers,
+} from "../../modules/commitment-pooling/steward-selectors";
 import type {
   CommitmentReadModel,
   FallbackConfirmationCandidate,
@@ -307,7 +310,8 @@ export function useCommitmentsToConfirm({
     stewarded.forEach((garden, index) => {
       const gardenAddress = garden.id as Address;
       const rows: ToConfirmRow[] = [];
-      for (const commitment of ordinaryQueries[index]?.data ?? []) {
+      for (const row of ordinaryQueries[index]?.data ?? []) {
+        const commitment = withEffectiveConfirmers(row);
         if (isPersonalParty(commitment, viewer)) continue;
         // Already in the reader's own set: they are a named party or on the
         // team. Live carries it, and a contributor's confirmation reverts.
@@ -339,7 +343,8 @@ export function useCommitmentsToConfirm({
       candidate: FallbackConfirmationCandidate,
       authority: { garden: Garden; local: boolean }
     ) => {
-      const { commitment, activeContributors } = candidate;
+      const { activeContributors } = candidate;
+      const commitment = withEffectiveConfirmers(candidate.commitment);
       if (listed.has(commitment.id) || ordinaryIds.has(commitment.id)) return;
       if (isPersonalParty(commitment, viewer)) return;
       const ordinaryReachable = selectOrdinaryConfirmationReachable({
@@ -453,17 +458,24 @@ export function useCommitmentsToConfirm({
       poolsQuery.isLoading ||
       protocolPool.isLoading ||
       queries.some((q) => q.isLoading),
+    isFetching:
+      own.isFetching ||
+      confirmed.isFetching ||
+      poolsQuery.isFetching ||
+      protocolPool.isFetching ||
+      queries.some((query) => query.isFetching),
     isError:
       own.isError ||
       confirmed.isError ||
       poolsQuery.isError ||
       queries.some((query) => query.isError),
+    // A refresh rereads only what the queue reads now: a read its gate keeps
+    // off (pooling unavailable on the chain, no stewarded garden) stays off.
     refetch: () =>
-      Promise.all([
-        own.refetch(),
-        confirmed.refetch(),
-        poolsQuery.refetch(),
-        ...queries.map((query) => query.refetch()),
-      ]),
+      Promise.all(
+        [own, confirmed, poolsQuery, ...queries]
+          .filter((query) => query.isEnabled)
+          .map((query) => query.refetch())
+      ),
   };
 }

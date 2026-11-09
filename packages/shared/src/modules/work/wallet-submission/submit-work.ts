@@ -157,6 +157,7 @@ export async function submitWorkDirectly(
         onEncoded: (content) => {
           uploadedContent = content;
         },
+        uploaderAddress: walletClient.account.address,
         clientWorkId: options.clientWorkId,
         checkpoint: options.checkpoint,
         onCheckpoint: options.onCheckpoint,

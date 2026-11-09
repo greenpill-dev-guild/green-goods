@@ -109,6 +109,7 @@ export function SubmissionFlow({
                 onGallery={flow.mediaTools.openGallery}
                 onCamera={flow.mediaTools.openCamera}
                 onToggleRecording={flow.mediaTools.toggleRecording}
+                onDocuments={flow.mediaTools.openDocuments}
                 isRecording={flow.mediaTools.isRecording}
                 disabled={flow.mediaTools.disabled}
               />

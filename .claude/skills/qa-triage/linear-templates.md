@@ -184,7 +184,7 @@ This parent is filed as `Todo`, so **`Done when` is required** — without check
 
 ---
 
-## QA session report — parent Issue (`/qa-triage --call` + the `qa-call-report` routine)
+## QA session report — parent Issue (`/qa-triage --call`, attended or unattended)
 
 One per QA call, titled exactly `QA session YYYY-MM-DD` — a second call on the same date appends
 its counter, `QA session YYYY-MM-DD · 2`, which is also that call's identity for parent lookup
@@ -276,7 +276,7 @@ an agent with only Linear access can read the whole session. Rules:
 - Title exactly `QA session YYYY-MM-DD · full report` (a second same-day call appends its counter
   to the date, as the parent does). Parent = the session issue (`issue`), never a project.
 - Content = the `report.md` of the pull the results blocks were pasted from — the `-final`
-  directory when the routine re-pulled after the window closed — verbatim after the privacy grep: redact `0x` strings, replay or session
+  directory when an unattended run re-pulled after the window closed — verbatim after the privacy grep: redact `0x` strings, replay or session
   identifiers, and any name outside the team; team members' display names and their own notes stay
   (decided 2026-09-05, [`.claude/context/qa.md`](../../context/qa.md) § Public-repository boundary).
 - Created right after the parent and before the children; the parent's lede then links it (a
@@ -290,7 +290,7 @@ Title exactly `Product decisions from QA session YYYY-MM-DD`, a sub-issue of the
 `parentId`, state `Backlog`, labels = the parent set, no `package:*`. The missing package label is
 load-bearing: slice pickup (`debug` § QA Slice Fix Protocol) takes only sub-issues that carry one, so
 this record is never mistaken for a slice. The interactive skill assigns
-the product owner; the routine leaves it unassigned. It exists so a ruling has a place to land that
+the product owner; an unattended run leaves it unassigned. It exists so a ruling has a place to land that
 outlives the parent, and so a Linear-only agent reads the open questions before touching the slices
 they block.
 
@@ -431,7 +431,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Notes-only cluster (call report) | QA slice sub-issue of the session report | `Backlog` | No |
 | Decision needed (call report) | Line under the parent's `Decisions needed` + the session's decisions child | `Backlog` | No |
 | Investigate (call report) | `Not sliced · investigate` line in the parent; no Issue until someone looks | — | No |
-| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (routine) | — | No |
+| Catalog feedback (call report) | Never a slice — `tmp/qa-triage/<slug>/catalog-feedback.md` (skill), copied de-attributed into the catalog-owning plan hub at close, or one `Catalog feedback` comment on the parent (unattended run) | — | No |
 | Environment finding (call report) | One `environment:` line under the parent's `Not sliced`; never a slice | — | No |
 | Never-filed standing fail accepted at the gate (call report) | QA slice sub-issue opening with `Standing since <date>.` | `Todo` + derived priority | No |
 

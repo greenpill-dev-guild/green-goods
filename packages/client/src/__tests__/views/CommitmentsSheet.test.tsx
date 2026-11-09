@@ -243,6 +243,8 @@ describe("CommitmentsSheet", () => {
       const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
       expect(fold).toHaveTextContent(HUB_DAY);
       expect(fold).toHaveTextContent("Offered");
+      // The tile's number is said in the line too, not only to screen readers (DL-166).
+      expect(fold.querySelector(".gg-item-row-details")).toHaveTextContent("10 promises");
       expect(screen.getAllByRole("button", { name: new RegExp(HUB_DAY) })).toHaveLength(1);
       await user.click(fold);
 
@@ -839,7 +841,7 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
-    expect(screen.queryByText(/could not be sent after several tries/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/promise could not be sent/i)).not.toBeInTheDocument();
   });
 
   it("still speaks for a failure no row could carry", () => {
@@ -847,7 +849,10 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox({ failedJobCount: 1, unlistedFailureCount: 1 }));
 
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
-    expect(screen.getByText(/could not be sent after several tries/i)).toBeInTheDocument();
+    // A promise the queue refused counts here too, so the line says only that it didn't go.
+    expect(
+      screen.getByText("1 promise could not be sent. Nothing else is affected.")
+    ).toBeInTheDocument();
   });
 
   it("says a commitment made offline is still on its way", () => {

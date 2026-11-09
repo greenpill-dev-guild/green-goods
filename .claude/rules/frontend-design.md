@@ -73,6 +73,8 @@ All user-generated text MUST have `truncate` or `line-clamp-*` AND a `title` att
 
 View-level actions in the `CanvasRouteHeader` `actions` slot / `AdminViewActions` (or the tab bar) are canonical. Do not create shortcut cards that duplicate them.
 
+An empty state's Create button repeats a header action only while that header action is hidden: the Hub's Assessments and Hypercerts keep their empty-state Create below 1024px and hide it from 1024px (DL-138).
+
 ## Rule 6: Flex Height
 
 Use `flex-1` on cards that should expand vertically within a flex container.
@@ -93,9 +95,11 @@ Entity references in lists (gardens, actions) include small thumbnails — 40px 
 
 Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the cockpit's density (`packages/admin/DESIGN.md` § Typography):
 
-- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, state titles (the state block, DL-106), and metric values · `type-title-sm` 14/20. Titles are weight 600.
+- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063). The headline value in the shared `StatTile` also takes this role (DL-136) · `type-title-md` 16/24 for route headers, card and section titles, and state titles (the state block, DL-106) · `type-title-sm` 14/20. Titles are weight 600.
 - `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
 - `type-field` for field text and checkbox and choice labels: 16px on touch widths, 14px from 640px (DL-030).
+
+Card subtitles are `type-body` (14px). Headline numbers use `StatTile` (12px / 500 label, 22px / 600 value, optional 12px delta); lists of facts use `FactRow` at 12/14 (DL-136).
 
 The roles are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`type-body font-medium`) and responsive variants work (`type-meta sm:type-body`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired; `check:design-tokens` fails on them and on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like) anywhere in `packages/admin/src` and `packages/shared/src`, and on a raw size anywhere in `packages/admin/src`, stories included.
 

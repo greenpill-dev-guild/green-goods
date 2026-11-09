@@ -22,14 +22,14 @@ export function useHeldBatches<Hold, Saved>(input: {
   read: (shown: Hold | null) => Promise<HeldBatchSettlement<Hold, Saved>>;
   moveOn: (hold: Hold) => Promise<HeldBatchSettlement<Hold, Saved>>;
   /** Refresh whatever the proven items change. */
-  onSaved: (saved: Saved[]) => void;
+  onSaved: (saved: Saved[]) => void | Promise<void>;
   onError: (error: unknown) => void;
 }) {
   const { domain, account, chainId, enabled, read, moveOn, onSaved, onError } = input;
   const queryClient = useQueryClient();
   const key = batchKeys.hold(domain, account ?? "", chainId);
-  const note = (settlement: HeldBatchSettlement<Hold, Saved>) => {
-    if (settlement.saved.length > 0) onSaved(settlement.saved);
+  const note = async (settlement: HeldBatchSettlement<Hold, Saved>) => {
+    if (settlement.saved.length > 0) await onSaved(settlement.saved);
     return settlement;
   };
 

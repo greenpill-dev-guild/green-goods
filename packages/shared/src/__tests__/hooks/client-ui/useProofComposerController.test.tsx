@@ -5,11 +5,13 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toastService } from "../../../components/Toast/toast.service";
 import {
   proofSendKey,
   settleProofSend,
   useProofSend,
 } from "../../../hooks/client-ui/commitment/proofSend";
+import { usePendingProofConsent } from "../../../hooks/client-ui/commitment/usePendingProof";
 import { useProofComposerController } from "../../../hooks/client-ui/commitment/useProofComposerController";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import type { CommitmentJobVariables } from "../../../hooks/commitment-pooling/useCommitmentJobs";
@@ -34,6 +36,8 @@ import {
   useCommitmentProofDraftStore,
 } from "../../../stores/useCommitmentProofDraftStore";
 import type { Address } from "../../../types/domain";
+import { UploadPolicyCancelledError } from "../../../modules/work/upload-policy";
+import { uploadConsent } from "../../test-utils/upload-policy";
 import type { Job } from "../../../types/job-queue";
 import {
   availableCapability,
@@ -82,6 +86,8 @@ const mocks = vi.hoisted(() => ({
   cycle: null as CommitmentCycleRecord | null,
   metadata: null as { version: 1; title: string } | null,
   enqueue: vi.fn<Enqueue>(),
+  consent: vi.fn(),
+  amendJob: vi.fn<(id: string, amend: (job: Job) => void) => Promise<void>>(),
   sendQueued: vi.fn(async (_input: { jobId: string; commitmentId: bigint }) => "landed"),
   jobsPending: false,
   sendsFromTap: true,
@@ -187,8 +193,16 @@ vi.mock("../../../modules/job-queue/media-resource-manager", () => ({
   },
 }));
 
+vi.mock("../../../modules/job-queue/db", () => ({
+  jobQueueDB: { amendJob: mocks.amendJob },
+}));
+
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { getJobs: mocks.getJobs },
+}));
+
+vi.mock("../../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: () => ({ request: mocks.consent, prompt: null }),
 }));
 
 vi.mock("../../../components/Toast/presets/proof", () => ({
@@ -198,6 +212,7 @@ vi.mock("../../../components/Toast/presets/proof", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.sendQueued.mockResolvedValue("landed");
+  mocks.consent.mockResolvedValue(uploadConsent(TUNDE));
   mocks.viewer = TUNDE;
   mocks.isOnline = true;
   mocks.query.detail = detail;
@@ -345,6 +360,70 @@ describe("useProofComposerController", () => {
     });
   });
 
+  it("adds nothing from a pick that would take the proof past five documents", async () => {
+    const pdf = (name: string) => new File(["%PDF-1.7"], name, { type: "application/pdf" });
+    const five = ["a", "b", "c", "d", "e"].map((name) => pdf(`${name}.pdf`));
+    const { result } = renderController();
+
+    await act(async () => {
+      await expect(result.current.pick(five)).resolves.toEqual({ rejectedCount: 0 });
+    });
+    // Whatever is queued is uploaded, so a sixth is refused rather than published and dropped.
+    await act(async () => {
+      await expect(result.current.pick([pdf("f.pdf")])).resolves.toEqual({
+        rejectedCount: 0,
+        overLimit: true,
+      });
+    });
+    expect(result.current.media).toEqual(five);
+  });
+
+  it("leaves out a voice note that would take the proof past 50 MB", async () => {
+    const sized = (name: string, type: string, size: number) => {
+      const file = new File(["x"], name, { type });
+      Object.defineProperty(file, "size", { value: size });
+      return file;
+    };
+    const mib = 1024 * 1024;
+    const full = ["a", "b", "c", "d", "e"].map((name) =>
+      sized(`${name}.pdf`, "application/pdf", 10 * mib)
+    );
+    const { result } = renderController();
+
+    await act(async () => {
+      await expect(result.current.pick(full)).resolves.toEqual({ rejectedCount: 0 });
+    });
+    const error = vi.spyOn(toastService, "error");
+    act(() => mocks.recordingComplete?.(sized("note.webm", "audio/webm", mib)));
+    expect(result.current.audioNotes).toEqual([]);
+    // The limits are the toast's message, so it adds no "Try again" that this note cannot pass.
+    expect(error).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "app.garden.attachments.invalid" })
+    );
+    error.mockRestore();
+  });
+
+  it("keeps the draft and queues neither act if upload consent is canceled", async () => {
+    const { result } = renderController();
+    act(() => {
+      result.current.setNote("Beds cleared");
+      result.current.setSendToo(true);
+    });
+    mocks.consent.mockRejectedValueOnce(new UploadPolicyCancelledError());
+
+    await act(async () => {
+      await expect(result.current.submit()).resolves.toBe(false);
+    });
+
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+    expect(mocks.draft.clear).not.toHaveBeenCalled();
+    expect(result.current.note).toBe("Beds cleared");
+    await act(async () => {
+      await expect(result.current.submit()).resolves.toBe(true);
+    });
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+  });
+
   it("sends one sparse payload and lets go of the draft once the queue holds it", async () => {
     const { result } = renderController();
     act(() => {
@@ -364,6 +443,7 @@ describe("useProofComposerController", () => {
         commitmentId: 1001n,
         creditedContributors: [TUNDE, MARIA],
         gardenAddress: DEMO_GARDEN,
+        uploadConsent: uploadConsent(TUNDE),
         note: "Beds cleared",
       },
     });
@@ -450,6 +530,7 @@ describe("useProofComposerController", () => {
       payload: {
         clientEvidenceId: saved.clientEvidenceId,
         commitmentId: 1001n,
+        uploadConsent: uploadConsent(TUNDE),
         creditedContributors: [TUNDE],
         gardenAddress: DEMO_GARDEN,
         note: "Beds cleared",
@@ -1033,6 +1114,7 @@ describe("useProofComposerController", () => {
     act(() => {
       sendingFirst = result.current.submit();
     });
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledOnce());
     mocks.query.detail = commitmentDetailFixture({
       commitment: { ...detail.commitment, commitmentId: 1002n },
       contributors: detail.contributors,
@@ -1043,7 +1125,7 @@ describe("useProofComposerController", () => {
     act(() => {
       sendingNext = result.current.submit();
     });
-    expect(mocks.enqueue).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(2));
     await act(async () => {
       admitFirst();
       expect(await sendingFirst).toBe(true);
@@ -1077,5 +1159,28 @@ describe("useProofComposerController", () => {
     });
     expect(result.current.landing).toBe("sending");
     expect(repository.clear).toHaveBeenCalledWith(nextKey);
+  });
+});
+
+describe("usePendingProofConsent", () => {
+  it("keeps a blocked proof intact and attaches current consent on retry", async () => {
+    const job: Job = {
+      id: "proof-1",
+      kind: "evidence",
+      userAddress: TUNDE,
+      createdAt: 1,
+      attempts: 5,
+      synced: false,
+      lastError: "unavailable:upload-policy-required",
+      payload: { cid: "bafy-staged", note: "Beds cleared" },
+      meta: { evidenceAttempts: 1 },
+    };
+    mocks.amendJob.mockImplementationOnce(async (_id, amend) => amend(job));
+    const { result } = renderHook(() => usePendingProofConsent(job.id), { wrapper });
+    await expect(result.current.authorize()).resolves.toBe(true);
+    expect(job).toMatchObject({
+      payload: { cid: "bafy-staged", note: "Beds cleared", uploadConsent: uploadConsent(TUNDE) },
+      meta: { evidenceAttempts: 1 },
+    });
   });
 });

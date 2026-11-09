@@ -12,10 +12,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CommunityPayoutsTab } from "./CommunityPayoutsTab";
 import { storyAllocations, storyGarden } from "./communityStoryFixtures";
 
-const access = vi.hoisted(() => ({ isDeployer: false, isProtocolGarden: false }));
+const access = vi.hoisted(() => ({ isProtocolTeam: false, isProtocolGarden: false }));
 
 vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
-  useRole: () => ({ isDeployer: access.isDeployer, loading: false }),
+  useRole: () => ({ isProtocolTeam: access.isProtocolTeam, loading: false }),
 }));
 
 vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
@@ -63,6 +63,7 @@ function renderPayouts({
           garden={storyGarden}
           allocations={allocations}
           allocationsAtLimit={allocationsAtLimit}
+          allocationsUnread={false}
           selectedItem={selectedItem}
         />
         <LocationProbe />
@@ -73,7 +74,7 @@ function renderPayouts({
 
 describe("CommunityPayoutsTab", () => {
   beforeEach(() => {
-    access.isDeployer = false;
+    access.isProtocolTeam = false;
     access.isProtocolGarden = false;
   });
 
@@ -106,7 +107,7 @@ describe("CommunityPayoutsTab", () => {
 
   it("holds the campaign cookie jars for a deployer in the protocol garden (DL-046)", async () => {
     const user = userEvent.setup();
-    access.isDeployer = true;
+    access.isProtocolTeam = true;
     access.isProtocolGarden = true;
     renderPayouts();
 
@@ -116,8 +117,8 @@ describe("CommunityPayoutsTab", () => {
   });
 
   it.each([
-    { isDeployer: true, isProtocolGarden: false },
-    { isDeployer: false, isProtocolGarden: true },
+    { isProtocolTeam: true, isProtocolGarden: false },
+    { isProtocolTeam: false, isProtocolGarden: true },
   ])("shows no campaign cookie jars elsewhere (%o)", (who) => {
     Object.assign(access, who);
     renderPayouts({ selectedItem: "create-campaign-jar" });
@@ -127,7 +128,7 @@ describe("CommunityPayoutsTab", () => {
   });
 
   it("opens Create Cookie Jar from its route item", () => {
-    access.isDeployer = true;
+    access.isProtocolTeam = true;
     access.isProtocolGarden = true;
     renderPayouts({ selectedItem: "create-campaign-jar" });
 

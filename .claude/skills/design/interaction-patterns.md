@@ -36,6 +36,10 @@ violated half of these. Validators check structure; this contract is what "desig
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
   trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts):
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
+- **Empty-state Create repeats a hidden header action only.** The Hub's Assessments and
+  Hypercerts keep their Create button below 1024px, where the FAB carries the route actions,
+  and hide it from 1024px, where the header trio is visible (DL-138). Proof:
+  [HubRecordLists.tsx](../../../packages/admin/src/views/Hub/components/HubRecordLists.tsx).
 - **The FAB always shows a plus.** Closed, every FAB shows "+" in the workspace tone it already
   wears, whether it fires one act or opens a dial: the tone says which tab this is, so the glyph
   stays one landmark across all of them. A dial swaps the plus for a close icon while open, and
@@ -130,7 +134,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   Funding (DL-068; the names are DL-077's). Collapse to one column below ~900px: rail content
   stacks after the left column, nothing disappears. (web.dev responsive; brief: no hidden
   critical data.)
-- **On phones, a tab's alert card leads.** Below 768px the rail stacks after the main column,
+- **On phones, a tab's alert card leads.** Below the 1024px desktop split the rail stacks after the main column,
   except the Attention Needed card, which leads above it, so the steward's next task is the first
   thing on screen (DL-051, amending DL-008's collapse order for that one card). Proof:
   [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx),
@@ -138,6 +142,14 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **Group by proximity, not by boxes.** Cards contain one coherent subject each; don't wrap
   every list in nested containers. Information density is a feature on operational screens:
   organize it, don't dilute it. (Laws of UX proximity/common region; brief: no card-itis.)
+- **Garden Health keeps its own height.** The Health tab stacks Garden Health and the three-row
+  Activity Feed in the main column; Attention Needed and Karma Integration stay in the rail.
+  The phone alert-first rule still applies. A tab's lone directory card still fills the canvas
+  (DL-143). Proof: [OverviewTab.tsx](../../../packages/admin/src/views/Garden/components/OverviewTab.tsx).
+- **The Members rail carries role counts.** Its Members card shows counts per role and the
+  missing-coverage warning. The directory has no subtitle; its role chips have no counts and
+  omit empty roles, and become a select on a narrow card (DL-141). Proof:
+  [CommunityMembersTab.tsx](../../../packages/admin/src/views/Community/components/CommunityMembersTab.tsx).
 - No accidental horizontal page overflow at any supported viewport; wide tables scroll inside
   their own container deliberately.
 
@@ -206,6 +218,12 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   when a title-shaped i18n key holds them; es/pt keep their native casing throughout. A card
   title also never repeats its container's name: the Promises tab's status card is "Pool
   Status", not "Pool" (the container).
+- **Profile explains steward access.** Its "Steward access" section says it asks to steward
+  another garden and names the act "Request Access to Another Garden". The picker excludes
+  gardens already owned or stewarded by the account; a pasted link to one says why it cannot
+  be requested (DL-139). Proof:
+  [AccountProfilePanel.tsx](../../../packages/admin/src/components/Layout/AccountProfilePanel.tsx)
+  and [useStewardAccessRequestController.ts](../../../packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts).
 - **Work age is metadata, never an alarm (DL-044).** A waiting card shows a neutral Pending chip
   with its age ("submitted 6 months ago"), and the Hub header counts work waiting over a week in
   plain ink. A garden's health turns Critical only when work has waited 7 days or more *and* no
@@ -216,17 +234,22 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [garden-detail.ts](../../../packages/shared/src/utils/garden-detail.ts). An alarm on every card
   stops meaning anything. (Refactoring UI: emphasize by de-emphasizing.)
 - **Member counts mean people (DL-049).** Every member count counts distinct people, never
-  role seats: a person who owns, stewards, and gardens is one member. Manage Members lists each
-  person once, with one role chip per role, and each role carries its own remove, named for the
-  role it takes away ("Remove Gardener"), so taking one role leaves the others. Other lists of
+  role seats: a person who owns, stewards, and gardens is one member. Manage Roles lists each
+  person once, with a check chip for each role they hold; a checked chip picks that
+  person-and-role pair, so taking one role leaves the others (DL-173). Picks survive search and
+  filters, the footer counts them in roles and in people and says how many are out of view, and a
+  role the viewer may not remove is locked with the reason on its row. Review opens in the same
+  dialog, names the garden, reads every pair on chain again, and says what each person loses and
+  keeps; its confirm is the flow's only destructive button, and the result names what landed
+  before it offers anything again. Other lists of
   people are person rows (DL-112): the person once, their highest role as its one chip, and how
   many roles they hold when it is more than one. The lists DL-112 sets apart keep their own rows,
   the Add Members queue among them: each of its rows shows the role the person is about to be
-  given beside any they hold, so a steward checks every grant before the wallet writes. Counts of
-  people per role live in one place per surface, the role filter, which folds into a select on a
-  narrow card rather than pushing the people below the fold. Proof: `memberCount` in
+  given beside any they hold, so a steward checks every grant before the wallet writes. The
+  Members tab's counts per role live in its rail card; its count-free role filter folds into a
+  select on a narrow card (DL-141, amending the role-filter clause). Proof: `memberCount` in
   [useGardenDerivedState.ts](../../../packages/shared/src/hooks/garden/useGardenDerivedState.ts)
-  and the rows of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
+  and the rows and review of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
 - **A promise leads with its direction (DL-110).** Every promise in a list is the shared
   commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or a

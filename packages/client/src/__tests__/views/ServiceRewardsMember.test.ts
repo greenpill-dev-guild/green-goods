@@ -5,6 +5,8 @@
  */
 
 import type { RewardStoryState } from "../../../../shared/.storybook/voucherBookingFixtures";
+import es from "@green-goods/shared/i18n/es";
+import pt from "@green-goods/shared/i18n/pt";
 import en from "@green-goods/shared/i18n/en";
 import { createIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
@@ -66,6 +68,10 @@ describe("a request rewarded with a member's voucher", () => {
     expect(result.rows[0]?.status.label).toBe(label);
     expect(result.messageLinks).toHaveLength(status === "preparing" ? 0 : 1);
     expect(result.facts.some((fact) => fact.id === "aside")).toBe(false);
+    if (status === "on-the-way") {
+      expect(result.band.sentence).toBe(result.rows[0]?.detail);
+      expect(result.band.sentence).toContain("20 minutes or longer. Do not send it again.");
+    }
     if (status === "received") expect(result.band.sentence).toContain("recorded recipients");
   });
   it.each([
@@ -142,5 +148,55 @@ describe("a request rewarded with a member's voucher", () => {
 
   it("says a single voucher that arrived is in the reader's account", () => {
     expect(rewards("received").band.sentence).toBe("Your Teo Alves voucher is in your account.");
+  });
+});
+
+describe("voucher service and arrival details", () => {
+  it.each([
+    [
+      "en",
+      en,
+      "Integration lesson: 60 minutes for 1 voucher",
+      "Arrived",
+      "Arrival time unavailable",
+    ],
+    [
+      "es",
+      es,
+      "Clase de integración: 60 minutos por 1 vale",
+      "Llegó el",
+      "Fecha de llegada no disponible",
+    ],
+    [
+      "pt",
+      pt,
+      "Aula de integração: 60 minutos por 1 vale",
+      "Chegou em",
+      "Data de chegada indisponível",
+    ],
+  ] as const)("formats reviewed service terms and the received reward's time in %s", (locale, messages, description, arrived, unknown) => {
+    const snapshot = memberRewardStorySnapshot("received");
+    const reward = requestRewardDeliveries(snapshot)![0]!;
+    delete snapshot.pilot;
+    snapshot.earnedReward = { ...reward, receivedAt: 1792862400 };
+    const input = {
+      snapshot,
+      coreState: "FULFILLED" as const,
+      issuer: LESSON_STORY_ISSUER,
+      garden: "Test garden",
+      takeUp: null,
+    };
+    const local = createIntl({ locale, messages });
+    const row = serviceRewardsView(input, local)!.rows[0]!;
+    expect(row.services).toEqual([description]);
+    expect(row.arrival?.label).toContain(arrived);
+    expect(row.arrival?.dateTime).toBe(new Date(1792862400 * 1000).toISOString());
+    snapshot.earnedReward.receivedAt = null;
+    expect(serviceRewardsView(input, local)!.rows[0]?.arrival).toEqual({
+      label: unknown,
+      dateTime: null,
+    });
+    snapshot.earnedReward.status = "on-the-way";
+    expect(serviceRewardsView(input, local)!.rows[0]?.arrival).toBeNull();
   });
 });

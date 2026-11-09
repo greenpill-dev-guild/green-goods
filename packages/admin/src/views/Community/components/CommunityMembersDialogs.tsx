@@ -2,6 +2,7 @@ import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/comm
 import {
   useAddMembersBatch,
   useGardenOperations,
+  useRemoveMemberRoles,
 } from "@green-goods/shared/hooks/garden/useGardenOperations";
 import { useRouteItemClose } from "@green-goods/shared/hooks/navigation/useCanvasSearchParams";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -15,20 +16,27 @@ import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
 
 export type CommunityMembersDialogsProps = Pick<
   CommunityWorkspace,
-  "canManage" | "closeMembersModal" | "roleMembers" | "scheduleBackgroundRefetch" | "selectedItem"
+  | "canManage"
+  | "closeMembersModal"
+  | "isOwner"
+  | "roleMembers"
+  | "scheduleBackgroundRefetch"
+  | "selectedItem"
 > & {
   garden: NonNullable<CommunityWorkspace["garden"]>;
 };
 
 /**
  * The Community workspace's member dialogs. They mount at the workspace because
- * Add Member opens over any tab (DL-140); Manage Roles only opens from Members,
- * and it closes back there.
+ * Add Member opens over any tab (DL-140); Manage Roles opens from Members, for
+ * everyone from the directory's header or for one person from their row, and it
+ * closes back there.
  */
 export function CommunityMembersDialogs({
   garden,
   canManage,
   closeMembersModal,
+  isOwner,
   roleMembers,
   scheduleBackgroundRefetch,
   selectedItem,
@@ -53,6 +61,7 @@ export function CommunityMembersDialogs({
       : undefined;
   const operations = useGardenOperations(garden.id);
   const addMembersBatch = useAddMembersBatch(garden.id);
+  const removal = useRemoveMemberRoles(garden.id);
   const gardenAddress = garden.id;
 
   const addByRole = useMemo<
@@ -68,20 +77,6 @@ export function CommunityMembersDialogs({
     }),
     [operations]
   );
-  const removeByRole = useMemo<
-    Record<GardenRole, (address: Address) => Promise<{ success: boolean }>>
-  >(
-    () => ({
-      gardener: operations.removeGardener,
-      steward: operations.removeSteward,
-      evaluator: operations.removeEvaluator,
-      owner: operations.removeOwner,
-      funder: operations.removeFunder,
-      community: operations.removeCommunity,
-    }),
-    [operations]
-  );
-
   const openAddMembers = (prefill?: Address) => {
     setAddMembersPrefill(prefill);
     setAddingFromManage(true);
@@ -91,29 +86,31 @@ export function CommunityMembersDialogs({
     setAddMembersPrefill(undefined);
     closeAddMemberItem();
   };
-  const handleRemoveMember = async (address: Address, role: GardenRole) => {
-    const result = await removeByRole[role](address);
-    if (!result.success) scheduleBackgroundRefetch();
-    return result;
-  };
 
   return (
     <>
+      {/* Each restarts when the garden changes; sibling keys must still differ. */}
       <ManageMembersDialog
-        key={garden.id}
+        key={`manage-members:${garden.id}`}
         open={manageMembersOpen}
-        initialSearch={initialMemberAddress}
+        initialMember={initialMemberAddress}
         onClose={closeMembersModal}
+        closesByRoute
         tone="community"
         roleMembers={roleMembers}
         canManage={canManage}
+        viewerIsOwner={isOwner}
+        viewerAddress={removal.account}
+        gardenName={garden.name}
+        chainId={garden.chainId}
         isLoading={operations.isLoading}
-        onRemoveMember={handleRemoveMember}
+        removal={removal}
+        onRosterStale={scheduleBackgroundRefetch}
         onAddMembers={openAddMembers}
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
-          key={garden.id}
+          key={`add-members:${garden.id}`}
           open={canManage && (addMemberItemOpen || addingFromManage)}
           closesByRoute={addMemberItemOpen}
           onClose={closeAddMembers}

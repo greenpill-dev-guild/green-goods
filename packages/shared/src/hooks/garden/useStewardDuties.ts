@@ -2,13 +2,17 @@
  * useStewardDuties Hook
  *
  * What waits in one garden's queues for the reader, for Home's Needs Your Attention (PWA Home
- * decisions 22 and 27): work to review, take-up requests on approval-gated asks and promises to
- * confirm (`modules/garden/steward-duties`). Each queue is read, and listed, only for an account
- * that can perform the act it opens, under that act's existing predicate, so the section grants
- * nothing the screens do not:
+ * decisions 22 and 27): work to review, join requests, take-up requests on approval-gated asks
+ * and promises to confirm (`modules/garden/steward-duties`). Each queue is read, and listed, only
+ * for an account that can perform the act it opens, under that act's existing predicate, so the
+ * section grants nothing the screens do not:
  *
  * - work to review: the work page's steward mode, `canManageGarden` (a steward or an owner on
  *   the garden's record), counted as Your Work counts its To review rows;
+ * - join requests: the Gardeners sheet's queue of requests to join, for the same stewards and
+ *   owners, counted only with the grant a signed check of that queue left in this browser
+ *   (`useJoinRequestCount`), so a browser without one reads nothing and nothing here asks for a
+ *   signature;
  * - take-up requests: the claim panel's `stewardsPoolGarden`, a steward of the pool's garden as
  *   the chain answers it;
  * - promises to confirm: the To confirm tab's own, `canManageGarden`, as its rows for the garden.
@@ -25,7 +29,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { type StewardDuty, selectStewardDuties } from "../../modules/garden/steward-duties";
 import { useUIStore } from "../../stores/useUIStore";
 import type { Address, Garden } from "../../types/domain";
-import { compareAddresses } from "../../utils/blockchain/address";
+import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { useNavigateToTop } from "../app/useNavigateToTop";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
@@ -35,11 +39,12 @@ import { usePoolClaimRequests } from "../commitment-pooling/usePoolClaimRequests
 import { useHasRole } from "../roles/useHasRole";
 import { useNeedsReview } from "../work/useNeedsReview";
 import { useGardenPermissions } from "./useGardenPermissions";
+import { useJoinRequestCount } from "./useJoinRequestCount";
 
 const NO_GARDENS: string[] = [];
 
 export interface StewardDuties {
-  /** The queues with something waiting that the account can act on, in the section's order. */
+  /** Actionable queues with waiting items or an incomplete review window, in section order. */
   duties: StewardDuty[];
   /** A queue the account can act on has not answered yet. */
   isLoading: boolean;
@@ -57,6 +62,11 @@ export function useStewardDuties(garden: Garden): StewardDuties {
   const managesGarden = useGardenPermissions().canManageGarden(garden);
 
   const review = useNeedsReview(managesGarden ? [garden.id] : NO_GARDENS, user?.id);
+  // Gardeners answers requests to join for the same stewards and owners, and lists no other kind.
+  const joinRequests = useJoinRequestCount(garden.id, {
+    enabled: managesGarden,
+    kind: "garden_membership",
+  });
 
   const poolsRead = useCommitmentPools({ chainId, garden: garden.id as Address });
   const pool = poolsRead.pools.find((candidate) => compareAddresses(candidate.garden, garden.id));
@@ -102,28 +112,61 @@ export function useStewardDuties(garden: Garden): StewardDuties {
         // An incomplete list still names the work it read, without a count: a partial page would
         // undercount the queue the row opens, and dropping it would hide that anything waits.
         toReview: review.works,
-        reviewComplete: review.ready,
+        // An empty first read is still loading, or has its own error row. Loaded partial work
+        // stays uncounted even while it refreshes.
+        reviewComplete:
+          !managesGarden ||
+          review.ready ||
+          (review.works.length === 0 && (review.isLoading || review.isError)),
+        joinRequestsWaiting: joinRequests.waiting,
         // A disabled read still hands back what it read before; only a decider sees it.
         pendingClaims: stewardsPoolGarden ? claims.rows : [],
         toConfirm,
       }),
-    [account, review.works, review.ready, stewardsPoolGarden, claims.rows, toConfirm]
+    [
+      account,
+      managesGarden,
+      review.works,
+      review.ready,
+      review.isLoading,
+      review.isError,
+      joinRequests.waiting,
+      stewardsPoolGarden,
+      claims.rows,
+      toConfirm,
+    ]
   );
 
   const { refetch: refetchReview } = review;
+  const { refetch: refetchJoinRequests } = joinRequests;
   const { refetch: refetchClaims } = claims;
   const { refetch: refetchConfirm } = confirm;
   const { refetch: refetchPools } = poolsRead;
   const { refetch: refetchRole } = stewardRole;
-  const refetch = useCallback(() => {
-    void refetchReview();
-    void refetchPools();
-    void refetchRole();
-    void refetchClaims();
-    void refetchConfirm();
-  }, [refetchReview, refetchPools, refetchRole, refetchClaims, refetchConfirm]);
-
+  const canReadRole = Boolean(pool?.garden && account && !isZeroAddress(pool.garden));
   const decidesClaims = Boolean(pool) && stewardsPoolGarden;
+  const refetch = useCallback(() => {
+    if (managesGarden) {
+      void refetchReview();
+      refetchJoinRequests();
+      void refetchConfirm();
+    }
+    void refetchPools();
+    // Manual refetch bypasses a query's enabled flag: retry only reads with valid inputs.
+    if (canReadRole) void refetchRole();
+    if (decidesClaims) void refetchClaims();
+  }, [
+    managesGarden,
+    canReadRole,
+    decidesClaims,
+    refetchReview,
+    refetchJoinRequests,
+    refetchPools,
+    refetchRole,
+    refetchClaims,
+    refetchConfirm,
+  ]);
+
   // Who may decide take-ups rests on two reads of its own: the garden's pool, then the chain's
   // answer on its steward. Either one failing may hide take-up requests, so it counts for whoever
   // manages the garden on the record.
@@ -132,10 +175,12 @@ export function useStewardDuties(garden: Garden): StewardDuties {
   return {
     duties,
     isLoading:
-      (managesGarden && (review.isLoading || confirm.isLoading || takeUpPathLoading)) ||
+      (managesGarden &&
+        (review.isLoading || joinRequests.isLoading || confirm.isLoading || takeUpPathLoading)) ||
       (decidesClaims && claims.isLoading),
     isError:
-      (managesGarden && (review.isError || confirm.isError || takeUpPathFailed)) ||
+      (managesGarden &&
+        (review.isError || joinRequests.isError || confirm.isError || takeUpPathFailed)) ||
       (decidesClaims && claims.isError),
     refetch,
   };
@@ -143,9 +188,10 @@ export function useStewardDuties(garden: Garden): StewardDuties {
 
 /**
  * Opens a duty's exact queue (DL-127): work to review, the garden's Work as a sheet over Home
- * (DL-128), whose list puts pending work first, so Home keeps its place under it; a promise's
- * take-up requests, its page, where the claim panel decides them; promises to confirm, the
- * Promises sheet on To confirm.
+ * (DL-128), whose list puts pending work first, so Home keeps its place under it; join requests,
+ * the Gardeners sheet over Home, whose queue comes first for a steward; a promise's take-up
+ * requests, its page, where the claim panel decides them; promises to confirm, the Promises sheet
+ * on To confirm.
  */
 export function useOpenStewardDuty(gardenId: string): (duty: StewardDuty) => void {
   const navigate = useNavigateToTop();
@@ -155,6 +201,8 @@ export function useOpenStewardDuty(gardenId: string): (duty: StewardDuty) => voi
     switch (duty.kind) {
       case "review":
         return openGardenSheet("work");
+      case "joinRequests":
+        return openGardenSheet("gardeners");
       case "takeUp":
         return navigate(`/home/${gardenId}/commitments/${duty.commitment.commitmentId.toString()}`);
       case "confirm":

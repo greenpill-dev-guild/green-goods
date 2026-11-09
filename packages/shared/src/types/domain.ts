@@ -1,6 +1,14 @@
-import type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+import type {
+  ApproximateWorkLocation,
+  WorkUploadCheckpoint,
+  WorkUploadConsent,
+} from "./work-media";
 
-export type { ApproximateWorkLocation, WorkUploadCheckpoint } from "./work-media";
+export type {
+  ApproximateWorkLocation,
+  WorkUploadCheckpoint,
+  WorkUploadConsent,
+} from "./work-media";
 
 /**
  * Green Goods Domain Types
@@ -372,6 +380,7 @@ export type WorkDisplayStatus =
  * @see Work for the final on-chain work record
  */
 export interface WorkSubmission {
+  uploadConsent?: WorkUploadConsent;
   location?: ApproximateWorkLocation;
   uploadCheckpoint?: WorkUploadCheckpoint;
   actionUID: number;
@@ -424,35 +433,7 @@ export interface Work extends WorkCard {
   reviewFeedback?: string;
 }
 
-/**
- * Work metadata v2 — generic, domain-aware.
- * Stored as JSON on IPFS, CID referenced in EAS attestation.
- */
-export interface WorkMetadata {
-  attachments?: Array<{ cid: string; type: string }>;
-  schemaVersion: "work_metadata_v2";
-  domain: Domain;
-  actionSlug: string;
-  timeSpentMinutes: number;
-  details: Record<string, unknown>;
-  tags?: string[];
-  audioNoteCids?: string[];
-  clientWorkId: string;
-  submittedAt: string;
-  /** Optional GPS location (coarse, user-triggered) */
-  location?: ApproximateWorkLocation | null;
-}
-
-/**
- * Work metadata v1 — old shape for legacy works.
- * Kept for backward compatibility with existing attestations.
- */
-export interface WorkMetadataV1 {
-  clientWorkId?: string;
-  plantCount: number;
-  plantSelection: string[];
-  timeSpentMinutes?: number;
-}
+export type { WorkMetadata, WorkMetadataV1 } from "./work-media";
 
 // ============================================
 // Work Approval Types

@@ -31,7 +31,8 @@ vi.mock("../../config/pimlico", async (importOriginal) => {
   };
 });
 
-import { createPasskeyOwner, defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
+import { createPasskeyOwner } from "../../modules/auth/passkey-kernel-account";
+import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 
 const credential: P256Credential = {
   id: "canary-test-credential",
@@ -54,7 +55,10 @@ describe("passkey cross-chain account construction", () => {
     expect(factoryCalls).toHaveLength(0);
   });
 
-  it("uses the explicit patched pilot recipe on all three chains without reinterpreting the legacy ID", async () => {
+  it.each([
+    "kernel-0.3.3",
+    "kernel-0.3.3-pilot",
+  ] as const)("uses the patched %s recipe on all three chains without reinterpreting the legacy ID", async (profile) => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     const pilotCredential = { ...credential, id: "deadbeef", signingId: "3q2-7w" };
     const factoryArgs = [];
@@ -64,7 +68,7 @@ describe("passkey cross-chain account construction", () => {
         chainId,
         "greengoods.app",
         undefined,
-        "kernel-0.3.3-pilot"
+        profile
       );
       factoryArgs.push(await result.client.account!.getFactoryArgs());
       expect(result.client.chain?.id).toBe(chainId);
@@ -224,7 +228,7 @@ describe("account identity and ceremony encoding", () => {
   ])("keeps $id as identity and requests $lengths byte IDs", async ({ id, signingId, lengths }) => {
     const getFn = vi.fn<NonNullable<Parameters<typeof createPasskeyOwner>[2]>>(async () => null);
     const owner = createPasskeyOwner(
-      { id, signingId, publicKey: "0x1234", raw: undefined as unknown as PublicKeyCredential },
+      { id, signingId, publicKey: "0x1234" },
       "greengoods.app",
       getFn
     );

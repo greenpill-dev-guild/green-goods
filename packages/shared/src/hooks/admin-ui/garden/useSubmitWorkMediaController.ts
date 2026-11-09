@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import type { IntlShape } from "react-intl";
 import { toastService } from "../../../components/toast";
 import { logger } from "../../../modules/app/logger";
-import { normalizeWorkMediaFiles } from "../../../modules/work/media-processing";
+import { isWorkDocument, normalizeWorkMediaFiles } from "../../../modules/work/media-processing";
 import { imageCompressor } from "../../../utils/work/image-compression";
 
 export type SubmitWorkMediaFeedback = {
@@ -65,7 +65,12 @@ export function useSubmitWorkMediaController(
         });
         if (!isCurrentAction()) return;
 
-        const acceptedFiles = normalized.accepted.map((item) => item.file);
+        // A steward's Submit Work takes photos and videos only, so a document picked
+        // through the file dialog's "all files" choice is refused like any other file.
+        const acceptedFiles = normalized.accepted
+          .map((item) => item.file)
+          .filter((file) => !isWorkDocument(file));
+        const refusedDocuments = normalized.accepted.length - acceptedFiles.length;
         if (acceptedFiles.length > 0) {
           const preparedFiles = await compressMedia(acceptedFiles, (progress) => {
             setProgressMessage(
@@ -79,9 +84,9 @@ export function useSubmitWorkMediaController(
           setImages((previous) => [...previous, ...preparedFiles]);
         }
 
-        const unsupportedCount = normalized.rejected.filter(
-          (item) => item.reason === "unsupported"
-        ).length;
+        const unsupportedCount =
+          normalized.rejected.filter((item) => item.reason === "unsupported").length +
+          refusedDocuments;
         const conversionFailureCount = normalized.rejected.filter(
           (item) => item.reason === "heic_conversion_failed"
         ).length;
@@ -89,7 +94,7 @@ export function useSubmitWorkMediaController(
         if (unsupportedCount > 0) {
           const message = formatMessage(
             {
-              id: "app.garden.upload.unsupportedMediaMessage",
+              id: "admin.fileUpload.unsupportedMedia",
               defaultMessage:
                 "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
             },

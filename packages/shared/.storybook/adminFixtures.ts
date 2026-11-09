@@ -272,13 +272,13 @@ const STORYBOOK_ADMIN_COMMUNITY: GardenCommunity = {
 const STORYBOOK_ADMIN_POOLS: GardenSignalPool[] = [
   {
     poolAddress: RIO_ACTION_POOL_ADDRESS,
-    poolType: PoolType.Action,
+    poolType: PoolType.ActionSignal,
     gardenAddress: RIO_GARDEN_ADDRESS,
     communityAddress: RIO_COMMUNITY_ADDRESS,
   },
   {
     poolAddress: RIO_HYPERCERT_POOL_ADDRESS,
-    poolType: PoolType.Hypercert,
+    poolType: PoolType.HypercertSignal,
     gardenAddress: RIO_GARDEN_ADDRESS,
     communityAddress: RIO_COMMUNITY_ADDRESS,
   },
@@ -330,9 +330,11 @@ export const STORYBOOK_ADMIN_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, u
     queryKeys.role.stewardGardens(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     STORYBOOK_DEPLOYER_ADMIN_GARDENS.map((garden) => ({ id: garden.id, name: garden.name })),
   ],
+  // The registry's owner: the team account that creates gardens and also opens the team's own
+  // workspaces. An account that is only allowed to create gardens does not see those.
   [
     queryKeys.role.deploymentPermissions(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
-    { isOwner: false, isInAllowlist: true, canDeploy: true },
+    { isOwner: true, isInAllowlist: true, canDeploy: true },
   ],
   [queryKeys.ens.name(STORYBOOK_DEPLOYER_ADDRESS_KEY), "deployer.greengoods.eth"],
   [queryKeys.ens.avatar(STORYBOOK_DEPLOYER_ADDRESS_KEY), null],

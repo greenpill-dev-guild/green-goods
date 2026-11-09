@@ -44,6 +44,49 @@ const gardens = {
 };
 
 describe("browser backend contract", () => {
+  it("answers only explicitly declared module-code reads for leave preflight", async () => {
+    const mock = transport();
+    const module = "0x3333333333333333333333333333333333333333";
+    await mockSepoliaRpc(mock.page, { codes: { [module]: "0x6000" } });
+    expect(
+      (await mock.request({ method: "eth_getCode", params: [module, "latest"] }, "rpc")).result
+    ).toBe("0x6000");
+    await expect(
+      mock.request({ method: "eth_getCode", params: [MOCK_CLIENT_GARDEN.id, "latest"] }, "rpc")
+    ).rejects.toThrow(/declared RPC code read/);
+    await expect(
+      mock.request({ method: "eth_sendTransaction", params: [{}] }, "rpc")
+    ).rejects.toThrow(/Unsupported RPC/);
+  });
+  it.each([
+    ["isGardener", true],
+    ["isOwner", false],
+    ["isFunder", false],
+    ["isCommunity", false],
+  ])("answers %s for the leave confirmation's member", async (name, expected) => {
+    const mock = transport();
+    await mockSepoliaRpc(mock.page);
+    const response = await mock.request(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_call",
+        params: [
+          {
+            to: MOCK_CLIENT_GARDEN.id,
+            data: encodeFunctionData({
+              abi: parseAbi([`function ${name}(address) view returns (bool)`]),
+              functionName: name,
+              args: [MOCK_CLIENT_GARDEN.gardeners[0]],
+            }),
+          },
+          "latest",
+        ],
+      },
+      "rpc"
+    );
+    expect(decodeAbiParameters([{ type: "bool" }], response.result)[0]).toBe(expected);
+  });
   it("rejects unknown operations, including names merely containing Action", async () => {
     const mock = transport();
     await mockClientBackend(mock.page);

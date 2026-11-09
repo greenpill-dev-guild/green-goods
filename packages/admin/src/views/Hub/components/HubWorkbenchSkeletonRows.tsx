@@ -20,15 +20,18 @@ export function HubWorkbenchSkeletonRows({
         {Array.from({ length: count }).map((_, index) => (
           <li key={`hub-card-skeleton-${index}`} aria-hidden="true" className="min-w-0">
             <div
+              data-layout={layout}
               className={cn(
-                "gg-card pointer-events-none flex h-full",
+                "hub-work-card gg-card pointer-events-none flex h-full",
                 wide ? "flex-row" : "flex-col"
               )}
             >
               <div
                 className={cn(
                   "shrink-0 skeleton-shimmer",
-                  wide ? "min-h-30 w-36 self-stretch" : "aspect-video w-full"
+                  wide
+                    ? "min-h-[var(--gg-media-wide-height,7.5rem)] w-[var(--gg-media-wide-width,9rem)] self-stretch"
+                    : "aspect-video w-full"
                 )}
               />
               <div

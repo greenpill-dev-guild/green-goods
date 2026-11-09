@@ -19,6 +19,7 @@ import {
   PendingHeicConversionError,
 } from "../../modules/work/work-attachments";
 import { cleanPhoto, photoFile } from "../test-utils/photo-fixtures";
+import { uploadConsent } from "../test-utils/upload-policy";
 
 beforeEach(() => {
   mocks.file.mockReset();
@@ -28,6 +29,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 const draft = (media: File[], audioNotes: File[] = []): WorkDraft => ({
+  uploadConsent: uploadConsent(),
   actionUID: 1,
   title: "Work",
   feedback: "Done",
@@ -40,6 +42,25 @@ const image = (name: string) =>
   photoFile(cleanPhoto("image/jpeg", { label: name }), `${name}.jpg`, "image/jpeg");
 
 describe("durable upload checkpoints", () => {
+  it("uploads nothing without current, account-bound consent, even with a saved published checkpoint", async () => {
+    const data = { ...draft([image("one")]), uploadConsent: undefined };
+    await expect(
+      encodeWorkData(data, 11155111, {
+        checkpoint: {
+          submittedAt: "now",
+          files: {},
+          published: { data: "0x1234", metadata: { old: true }, media: ["old"] },
+        },
+      })
+    ).rejects.toThrow("upload-policy-required");
+    await expect(
+      encodeWorkData(draft([image("one")]), 11155111, {
+        uploaderAddress: "0x2222222222222222222222222222222222222222",
+      })
+    ).rejects.toThrow("upload-policy-required");
+    expect(mocks.file).not.toHaveBeenCalled();
+    expect(mocks.json).not.toHaveBeenCalled();
+  });
   it("exposes the exact published metadata and ordered media for a confirmed preview", async () => {
     const onEncoded = vi.fn();
     const data = draft([image("one"), image("two")]);
@@ -61,6 +82,28 @@ describe("durable upload checkpoints", () => {
     mocks.json.mockRejectedValue(new Error("metadata failed"));
     await expect(encodeWorkData(data, 11155111, { onEncoded })).rejects.toThrow("metadata failed");
     expect(onEncoded).not.toHaveBeenCalled();
+  });
+
+  it("keeps documents out of the attestation's media and lists them in the metadata", async () => {
+    const onEncoded = vi.fn();
+    const certificate = new File(["%PDF-1.7"], "Install certificate.pdf", {
+      type: "application/pdf",
+    });
+    mocks.file.mockImplementation(async (file: File) => ({ cid: `cid-${file.name}` }));
+    await encodeWorkData(draft([certificate, image("panels")]), 11155111, { onEncoded });
+    const { metadata, media } = onEncoded.mock.calls[0][0];
+    expect(media).toEqual(["cid-panels.jpg"]);
+    expect(metadata.attachments).toEqual([{ cid: "cid-panels.jpg", type: "image/jpeg" }]);
+    expect(metadata.documents).toEqual([
+      {
+        cid: "cid-Install certificate.pdf",
+        type: "application/pdf",
+        name: "Install certificate.pdf",
+        size: 8,
+      },
+    ]);
+    // The document is pinned as it was picked.
+    expect(mocks.file.mock.calls.map(([file]) => file)).toContain(certificate);
   });
 
   it("reuses successes after partial failure and reload, then reuses metadata", async () => {
@@ -102,8 +145,10 @@ describe("durable upload checkpoints", () => {
     expect(mocks.file).not.toHaveBeenCalled();
     expect(mocks.json).not.toHaveBeenCalled();
 
-    const text = new File(["notes"], "notes.txt", { type: "text/plain" });
-    await expect(encodeWorkData(draft([heic, text]), 11155111, {})).rejects.toBeInstanceOf(
+    const sheet = new File(["PK"], "yields.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    await expect(encodeWorkData(draft([heic, sheet]), 11155111, {})).rejects.toBeInstanceOf(
       InvalidWorkAttachmentError
     );
   });

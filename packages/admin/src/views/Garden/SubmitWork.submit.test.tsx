@@ -827,6 +827,58 @@ describe("SubmitWorkPanel submit behavior", () => {
       } else await user.type(field(input), "A1");
     }
 
+    it("validates, edits and submits repeating rows with readable review values", async () => {
+      const user = userEvent.setup();
+      const input: WorkInput = {
+        key: "breakdown",
+        title: "Category Breakdown",
+        type: "repeater",
+        required: true,
+        options: [],
+        placeholder: "",
+        repeaterFields: [
+          {
+            key: "category",
+            title: "Category",
+            type: "text",
+            required: true,
+            options: [],
+            placeholder: "",
+          },
+          {
+            key: "weight",
+            title: "Weight (kg)",
+            type: "number",
+            required: true,
+            options: [],
+            placeholder: "",
+          },
+        ],
+      };
+      await openDetails(user, [input]);
+      expect(
+        screen.getByRole("group", { name: /Category Breakdown/ }).querySelector("legend")
+      ).toHaveTextContent("*");
+      await clickNext(user);
+      expect(screen.getByText("This field is required")).toBeVisible();
+      await user.click(screen.getByRole("button", { name: /^Add$/ }));
+      await user.type(screen.getByLabelText(/Category \*/), "Plastic");
+      await clickNext(user);
+      expect(screen.getByLabelText(/Weight \(kg\)/)).toHaveAttribute("aria-invalid", "true");
+      await user.type(screen.getByLabelText(/Weight \(kg\)/), "12");
+      await user.click(screen.getByRole("button", { name: /^Add$/ }));
+      await user.click(screen.getByRole("button", { name: "Remove Category Breakdown 2" }));
+      await clickNext(user);
+      expect(await screen.findByText("Plastic")).toBeVisible();
+      expect(screen.getByText("12")).toBeVisible();
+      expect(screen.queryByText(/\[object Object\]/)).not.toBeInTheDocument();
+      await submitWork(user);
+      await waitFor(() => expect(mockMutate).toHaveBeenCalledTimes(1));
+      expect(mockMutate.mock.calls[0]?.[0]).toMatchObject({
+        draft: { details: { breakdown: [{ category: "Plastic", weight: 12 }] } },
+      });
+    });
+
     it("opens with no errors showing and marks only the required fields", async () => {
       const user = userEvent.setup();
       await openDetails(user, [...REQUIRED, ...OPTIONAL]);

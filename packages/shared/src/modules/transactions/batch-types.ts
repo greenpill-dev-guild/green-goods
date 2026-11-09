@@ -184,3 +184,14 @@ export class BatchNotSubmittedError extends Error {
     this.name = "BatchNotSubmittedError";
   }
 }
+
+/**
+ * A call held for a request that goes only whole, whose partner handed over no
+ * call. Nothing was asked of anyone, so the job that held it was never tried.
+ */
+export class BundleIncompleteError extends BatchNotSubmittedError {
+  constructor() {
+    super(new Error("bundle-incomplete"));
+    this.name = "BundleIncompleteError";
+  }
+}

@@ -1,11 +1,12 @@
+import type { Address } from "../../types/domain";
 import type { PasskeyAccountProfileId } from "../auth/account-profile";
+import type { AtomicBatchAction } from "./types";
+
+export type { AtomicBatchAction };
 
 export type BatchRail = "passkey" | "wallet";
 
 export type DepositAction = "vault-deposit" | "jar-deposit";
-
-/** What a caller names when it asks a sender whether it may group its own writes. */
-export type AtomicBatchAction = "pool-setup";
 
 interface RailListing {
   rail: BatchRail;
@@ -23,10 +24,17 @@ interface RailListing {
 export type BatchEnablement = RailListing &
   (
     | {
-        action: "garden-settings" | "add-members" | "bulk-reviews" | AtomicBatchAction;
+        action:
+          | "garden-settings"
+          | "add-members"
+          | "bulk-reviews"
+          | "action-edit"
+          | "campaign-jar-sync"
+          | "karma-reconcile"
+          | AtomicBatchAction;
         asset?: never;
       }
-    | { action: DepositAction; asset: string }
+    | { action: DepositAction; asset: Address }
   );
 
 /**
@@ -42,6 +50,43 @@ export const ENABLED_BATCHES: readonly BatchEnablement[] = [
   { action: "add-members", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
   { action: "add-members", rail: "wallet", profile: "contract-call", chainId: 42161 },
   { action: "bulk-reviews", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  { action: "bulk-reviews", rail: "wallet", profile: "contract-call", chainId: 42161 },
+  { action: "reward-edits", rail: "passkey", profile: "kernel-0.3.1-legacy", chainId: 42161 },
+  {
+    action: "commitment-creations",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+  },
+  { action: "proof-and-send", rail: "passkey", profile: "kernel-0.3.3", chainId: 42161 },
+  {
+    action: "vault-deposit",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "jar-deposit",
+    rail: "passkey",
+    profile: "kernel-0.3.1-legacy",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "vault-deposit",
+    rail: "wallet",
+    profile: "sequential",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  {
+    action: "jar-deposit",
+    rail: "wallet",
+    profile: "sequential",
+    chainId: 42161,
+    asset: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
 ];
 
 export function isBatchEnabled(

@@ -21,7 +21,11 @@ import {
   trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
 import { addBreadcrumb } from "../../modules/app/error-tracking";
-import { isOfflineTxHash } from "../../modules/job-queue/queue-policy";
+import {
+  hasRecordedSend,
+  hasRevertedWorkSend,
+  isOfflineTxHash,
+} from "../../modules/job-queue/queue-policy";
 import {
   createDefaultSubmitWorkPorts,
   submitWork,
@@ -38,22 +42,16 @@ import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
-import type { UseWorkMutationOptions } from "./useWorkMutation.types";
+import type { UseWorkMutationOptions, WorkMutationOrigin as Origin } from "./useWorkMutation.types";
+import { useUploadPolicy } from "./useUploadPolicy";
+import {
+  assertWorkUploadConsent,
+  UploadPolicyCancelledError,
+} from "../../modules/work/upload-policy";
 
 export type { UseWorkMutationOptions } from "./useWorkMutation.types";
 
-/**
- * Hook to manage work submission mutation
- *
- * Handles:
- * - Auth mode branching (wallet vs passkey)
- * - Online/offline detection
- * - Toast notifications
- * - Job queue integration
- *
- * @param options - Configuration options
- * @returns Mutation instance
- */
+/** Checks upload consent and owns a Work submission through queue admission, sending and recovery. */
 export function useWorkMutation(options: UseWorkMutationOptions) {
   const {
     authMode,
@@ -71,6 +69,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     dependencies,
   } = options;
   const intl = useIntl();
+  const uploadPolicy = useUploadPolicy(userAddress, intl.locale);
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
@@ -78,17 +77,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const session = useRef({ identity, generation: 0 });
   if (session.current.identity !== identity)
     session.current = { identity, generation: session.current.generation + 1 };
-  type Variables = { draft: WorkDraft; images: File[] };
-  type Origin = {
-    identity: string;
-    generation: number;
-    activeDraftId: string | null | undefined;
-    journeyId: string;
-    clientWorkId?: string;
-    outcome?: SubmitWorkOutcome;
-    /** The queue took the work, so the draft is no longer its only copy. */
-    admitted?: boolean;
-  };
+  type Variables = { draft: WorkDraft; images: File[]; beforeAdmission?: () => Promise<boolean> };
   const origins = useRef(new WeakMap<Variables, Origin>());
   const ownsSession = (origin: Origin | undefined) =>
     Boolean(
@@ -189,6 +178,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           journeyWork.current = { scope, id: crypto.randomUUID() };
         journeyWorkId = journeyWork.current.id;
       }
+      const consentedDraft = { ...draft };
+      if (origin.uploadConsent) consentedDraft.uploadConsent = origin.uploadConsent;
       const outcome = await submitWork(
         {
           ...persistence,
@@ -214,7 +205,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           actions,
           userAddress,
           chainId,
-          draft,
+          draft: consentedDraft,
           images,
           allowOfflineQueue,
           retainSubmission,
@@ -273,6 +264,17 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         journeyId: flow.ensureWorkSubmissionJourneyId(),
       };
       origins.current.set(variables, origin);
+      const work = { kind: "work", payload: variables.draft };
+      const hasSubmissionContext = userAddress && gardenAddress && typeof actionUID === "number";
+      if (hasSubmissionContext && (!hasRecordedSend(work) || hasRevertedWorkSend(work))) {
+        const receipt = await uploadPolicy.request();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
+        assertWorkUploadConsent(receipt, userAddress);
+        origin.uploadConsent = receipt;
+        if (variables.beforeAdmission && !(await variables.beforeAdmission()))
+          throw new UploadPolicyCancelledError();
+        if (!ownsFlow(origin)) throw new UploadPolicyCancelledError();
+      }
       const workSubmissionJourneyId = origin.journeyId;
 
       if (DEBUG_ENABLED && variables) {
@@ -369,11 +371,17 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const workSubmissionJourneyId = origin.journeyId;
 
       const awaiting = origin.outcome?.kind === "awaiting-confirmation";
+      // A send on record whose check could not run now says so, not that it is being checked.
+      const unchecked =
+        origin.outcome?.kind === "awaiting-confirmation" &&
+        origin.outcome.reason === "connection-unconfirmed";
       if (awaiting) {
         walletProgressToasts.dismiss();
         toastService.info({
           title: intl.formatMessage({ id: "app.work.awaitingConfirmation" }),
-          message: intl.formatMessage({ id: "app.work.confirmationExplanation" }),
+          message: intl.formatMessage({
+            id: unchecked ? "app.work.confirmationUnchecked" : "app.work.confirmationExplanation",
+          }),
           context: "work",
         });
       }
@@ -438,6 +446,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onError: (error: unknown, variables, context) => {
       const origin = origins.current.get(variables);
       if (!origin || !ownsFlow(origin)) return;
+      if (error instanceof UploadPolicyCancelledError) {
+        onError?.(error);
+        return;
+      }
       const previous = lastSubmissionOutcomeRef.current;
       if (
         error instanceof WorkTransactionReverted &&
@@ -495,6 +507,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   return {
     ...useSafeMutation(mutation),
+    uploadPolicy: uploadPolicy.prompt,
     reset: () => {
       retainedSubmission.current = null;
       journeyWork.current = null;

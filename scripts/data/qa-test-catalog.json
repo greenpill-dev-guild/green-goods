@@ -833,7 +833,7 @@
         "Pick the asset, toggle the USD and token denomination, and enter an amount",
         "Press Donate and approve then deposit at the wallet"
       ],
-      "expected": "The card connects without leaving the page; the denomination toggle converts the amount with the live price and says when the price is stale; two prompts complete with 'Sending…' progress; success names the donation and offers Donate Again",
+      "expected": "The card connects without leaving the page; the denomination toggle converts the amount with the live price and says when the price is stale; before Donate the card says how many signatures it takes; two prompts complete with 'Sending…' progress, and with DAI a declined deposit step sends nothing more and the next press asks for one signature; success names the donation and offers Donate Again",
       "evidence": "Recording of the donation and the success state",
       "role": "funder",
       "tags": ["funding", "tx"],
@@ -880,7 +880,7 @@
         "Submit an amount; sign reset/approve/deposit as prompted",
         "Repeat on a garden without a vault"
       ],
-      "expected": "Up to three prompts (reset→approve→deposit) narrated honestly; gardens without vaults say so; success updates the position",
+      "expected": "Before the press the card says how many signatures the deposit takes; up to three prompts (reset→approve→deposit) are narrated honestly and each lands in turn; with DAI a declined deposit step sends nothing more and the next press asks for one signature, and a step nobody can confirm reads as pending, never failed; gardens without vaults say so; success updates the position",
       "evidence": "Screenshot of success + no-vault message",
       "role": "funder",
       "tags": ["funding", "tx"],
@@ -1101,7 +1101,7 @@
         "Enter a deposit amount on a jar and press Deposit",
         "Approve then deposit at the wallet"
       ],
-      "expected": "Deposit approves then deposits in order with progress; 'Deposit received' toasts and the jar balance rises",
+      "expected": "Before Deposit the jar says how many signatures it takes; the deposit approves then deposits in order with progress, and with DAI a declined deposit step sends nothing more and the next press asks for one signature; 'Deposit received' toasts and the jar balance rises",
       "evidence": "Screenshots of the toast and the balance",
       "role": "funder",
       "tags": ["cookies", "tx"],
@@ -2096,6 +2096,38 @@
       "source": "qa-runs-catalog-split-2026-09-07"
     },
     {
+      "id": "PWA-139",
+      "tab": "PWA",
+      "platform": "Mobile Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Garden",
+      "scenario": "Leave a garden as a member or steward; owners hand over first",
+      "preconditions": [
+        "Staging Hats module upgrade includes leaveGarden; record as blocked before the upgrade",
+        "A member who self-joined, a steward with overlapping roles, and an owner",
+        "A saved unsent work item for the test garden; repeat with a wallet and a passkey"
+      ],
+      "steps": [
+        "Open Profile → Account → My gardens and choose Leave Garden on the garden card; verify the garden page and Gardeners list have no departure action",
+        "Verify an absent or old module keeps Leave disabled with unavailable guidance, and unread capability stays disabled with retry guidance",
+        "Read the role, saved-work, promise, loan-request, and rejoin warnings; cancel and verify membership is unchanged and focus returns to that card’s Leave Garden action; repeat with Escape and Close, and verify the confirmation stays an app bottom sheet at all viewport widths",
+        "Confirm Leave Garden and approve the signing prompt; wait for success",
+        "Verify all roles disappear from this account and My gardens; for the active garden, verify the sheet closes before Home shows the remaining-garden chooser, sole garden or Find Your Garden; choosing a remaining garden opens its Home. Leaving another garden stays in Profile. Reload while the indexer catches up",
+        "Try Upload all for saved work: it remains saved and blocked without a work submission; restore membership and verify upload becomes available",
+        "Repeat as a steward with multiple hats; verify another member and steward removal in the admin still work",
+        "As an owner, open Leave Garden and verify the handover explanation with no confirmation action",
+        "Reject a signing prompt or interrupt receipt lookup; verify no premature success, Check Previous Departure stays available after membership disappears or capability becomes unreadable, reconciles the same known reference without a new send, and never presents an old receipt as a new departure after rejoin; account or chain changes during preparation send nothing"
+      ],
+      "expected": "Only a confirmed departure removes every role. Cancel and rejected sends preserve membership. Owners must hand over first. Saved work is retained and cannot upload without membership; promises and pending loan requests warn rather than block. Stale indexer data does not restore membership, and a later join works within the cumulative self-join cap. No claim is made that voting power or a paid voting stake is removed.",
+      "evidence": "Labeled mobile Profile and next-garden screenshots, confirmed transaction reference, all-role removal, and retained blocked work; authenticated wallet and passkey proof on staging after upgrade",
+      "role": "gardener",
+      "tags": ["garden-leave", "tx", "recovery"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "PRD-1084"
+    },
+    {
       "id": "PWA-052",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
@@ -2248,9 +2280,16 @@
       "kind": "transaction",
       "area": "Garden",
       "scenario": "Deposit into the garden vault from the endowment drawer",
-      "preconditions": ["Garden with a vault", "Wallet with test funds"],
-      "steps": ["Open the garden endowment drawer", "Deposit an amount"],
-      "expected": "Deposit walks approve then deposit with honest progress, and the vault balance updates",
+      "preconditions": [
+        "Garden with a vault",
+        "A wallet with test funds, or a legacy passkey holding DAI"
+      ],
+      "steps": [
+        "Open the garden endowment drawer",
+        "Enter an amount and read the signature count",
+        "Deposit"
+      ],
+      "expected": "The drawer says how many signatures the deposit takes before the press; a wallet walks approve then deposit with honest progress; a legacy passkey deposits DAI under '1 signature', approving and depositing in one prompt; the vault balance updates",
       "evidence": "Screenshot of the deposit confirmation and balance",
       "role": "funder",
       "tags": ["endowment", "tx"],
@@ -5386,6 +5425,34 @@
       "source": "mdx-matrix"
     },
     {
+      "id": "ADM-198",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Hub · Work",
+      "scenario": "Stage several reviews with Add to Batch and send them from the Hub under one signature",
+      "preconditions": [
+        "Steward session on a garden on Arbitrum with at least three pending submissions",
+        "A legacy passkey or any wallet, since a review batch works on every wallet"
+      ],
+      "steps": [
+        "Open a pending submission, choose Approve, and press Add to Batch",
+        "Stage a second approval and one rejection the same way",
+        "Open the Hub and read the chips on the queue and the batch bar",
+        "Reload the page and read the bar again",
+        "Press Send 3 and confirm the one prompt",
+        "Read the queue and the bar after the send"
+      ],
+      "expected": "Add to Batch sits beside Approve and in the reject dialog, and a staged review reads 'It goes out when you send your batch from the Hub.'; the queue shows 'To approve' and 'To reject' chips, and the bar, 'Reviews waiting to send', counts '2 approvals' and '1 rejection' and says how many signatures sending takes before any prompt; the staged reviews survive the reload; Send 3 goes under one signature and the bar reads '3 reviews sent'; Approve and Reject without Add to Batch still send at once",
+      "evidence": "Screenshots of the staged chips, the bar before sending, and the sent state",
+      "role": "steward",
+      "tags": ["review", "batch", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "transaction-batching-proof-2026-11-04"
+    },
+    {
       "id": "ADM-018",
       "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
@@ -5806,19 +5873,22 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settings",
-      "scenario": "Save garden name, description, and location, one wallet confirmation each, and resume a stopped save",
+      "scenario": "Save garden name, description, and location: one wallet confirmation each on a plain wallet, one signature on a listed passkey, and resume a stopped save",
       "preconditions": [
-        "Steward with manage rights on a garden",
-        "A wallet that can reject one prompt mid-run"
+        "Steward with manage rights on a garden on Arbitrum",
+        "A plain wallet that can reject one prompt mid-run",
+        "A legacy passkey session for the one-signature path"
       ],
       "steps": [
-        "Press Edit Garden from the garden workspace and change the name, description, and location",
+        "With the plain wallet, press Edit Garden from the garden workspace and change the name, description, and location",
         "Read the footer and press Save Changes",
         "Confirm the first wallet prompt and reject the second",
-        "Read the rows and the footer, then press Try Again and confirm what the wallet asks"
+        "Read the rows and the footer, then press Try Again and confirm what the wallet asks",
+        "Sign in with the passkey, change the same three fields again, read the footer, and press Save Changes",
+        "Decline the passkey prompt, then press Save Changes again and approve it"
       ],
-      "expected": "The dialog is titled Edit Garden; before saving the footer reads '3 changes · 3 wallet confirmations'; each change is its own row, numbered by its prompt, moving from waiting to 'Confirmed' with a link to its transaction; the rejection stops the run with 'Stopped at Description. 1 of 3 saved. Your other edits are still here.' and the unsaved edits stay; Try Again sends only the description and location, never the name again, and the dialog ends on 'All changes saved' with Done",
-      "evidence": "Screenshots of the mid-run error and the saved state",
+      "expected": "The dialog is titled Edit Garden. On the plain wallet the footer reads '3 changes · 3 wallet confirmations' before saving; each change is its own row, numbered by its prompt, moving from waiting to 'Confirmed' with a link to its transaction; the rejection stops the run with 'Stopped at Description. 1 of 3 saved. Your other edits are still here.' and the unsaved edits stay; Try Again sends only the description and location, never the name again, and the dialog ends on 'All changes saved' with Done. On the passkey the footer reads '3 changes · 1 signature'; the declined prompt sends nothing, raises no error, and keeps every edit with the footer unchanged; the approved prompt saves all three together and the dialog ends on 'All changes saved'",
+      "evidence": "Screenshots of the plain wallet's mid-run error, the passkey footer, and the saved state",
       "role": "steward",
       "tags": ["garden-settings", "tx"],
       "requiresProduction": false,
@@ -5977,7 +6047,7 @@
         "Press Set Up Promises and complete the flow",
         "Read the pool status card and the app's garden tabs"
       ],
-      "expected": "The console shows the setup state and checklist instead of an empty list; the flow pins its documents before any chain write and names a failure if pinning fails; on success the status card shows the pool and its readiness and the app's garden gains a Pool tab",
+      "expected": "The console shows the setup state and checklist instead of an empty list; the flow says how many times the wallet will ask before it starts, twice on a legacy passkey and up to six times on a plain wallet; it pins its documents before any chain write and names a failure if pinning fails; a retry repeats only what did not land; on success the status card shows the pool and its readiness and the app's garden gains a Pool tab",
       "evidence": "Screenshots of the checklist and the configured pool",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
@@ -6312,15 +6382,18 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Garden · Settings",
-      "scenario": "Edit Garden says how many wallet confirmations a save takes and shows each one landing",
-      "preconditions": ["Steward session on a garden it can edit"],
+      "scenario": "Edit Garden says how many signatures a save takes and shows each one landing, on a plain wallet and a listed passkey",
+      "preconditions": [
+        "Steward session on a garden it can edit, once with a plain wallet and once with a legacy passkey on Arbitrum"
+      ],
       "steps": [
-        "Press Edit Garden and change the description and open joining",
+        "With the plain wallet, press Edit Garden and change the description and open joining",
         "Read the footer before saving",
         "Press Save Changes and confirm each wallet prompt, reading the rows as they move",
-        "Press Done"
+        "Press Done",
+        "Make the same two changes with the passkey, read the footer, and approve its one prompt"
       ],
-      "expected": "Before saving the footer reads '2 changes · 2 wallet confirmations'; once saving starts the form gives way to two rows numbered 1 and 2 that read 'Waiting for your wallet' in turn and then 'Confirmed' with a link to each transaction; the footer ends on 'All changes saved' and Done closes the dialog",
+      "expected": "On the plain wallet the footer reads '2 changes · 2 wallet confirmations' before saving; once saving starts the form gives way to two rows numbered 1 and 2 that read 'Waiting for your wallet' in turn and then 'Confirmed' with a link to each transaction; the footer ends on 'All changes saved' and Done closes the dialog. On the passkey the footer reads '2 changes · 1 signature', both rows read 'Waiting for your signature' together, one prompt saves both, and both read 'Confirmed' before 'All changes saved'",
       "evidence": "Screenshots of the footer before saving and of the rows after the save",
       "role": "steward",
       "tags": ["tx", "garden"],
@@ -6387,10 +6460,10 @@
       ],
       "steps": [
         "Open Community, then Members, and read Total members in the rail",
-        "Count the people in the directory, then open Manage Members and read its count and rows",
+        "Count the people in the directory, then open Manage Roles and read its count and rows",
         "At phone width, read the role filter"
       ],
-      "expected": "Total members, the directory, and Manage Members agree on the number of people; a member with several roles is one row with a chip per role; role counts appear only in the role filter, which is a select at phone width",
+      "expected": "Total members, the directory, and Manage Roles agree on the number of people; a member with several roles is one row with a check chip per role; role counts appear only in the Members rail, and the role filter, which is a select at phone width, shows none",
       "evidence": "Screenshots of the rail, the dialog, and the phone filter",
       "role": "steward",
       "tags": ["garden"],
@@ -6569,7 +6642,7 @@
         "Read the completed flow before closing it",
         "Read the Pool tab in the app"
       ],
-      "expected": "The flow seeds and opens the season in order; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
+      "expected": "The flow seeds and opens the season in order; on a legacy passkey opening the seeded season goes in one prompt, while a plain wallet confirms each step in turn; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
       "evidence": "Screenshots of the cycles list and the app's rail",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -7177,14 +7250,17 @@
       "kind": "transaction",
       "area": "Garden · Pool",
       "scenario": "Declining the wallet prompt while seeding leaves nothing queued and keeps the answers",
-      "preconditions": ["Steward with manage rights, signed in with a wallet", "An open pool"],
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet or a legacy passkey",
+        "An open pool"
+      ],
       "steps": [
         "Run the seed wizard to the review and press Seed This Commitment",
         "Reject the wallet prompt",
         "Read the wizard, press Back to Review, and read the review and the pool tab",
         "Press Seed This Commitment again and confirm in the wallet"
       ],
-      "expected": "After the rejection the wizard stays open and says nothing was created and the commitment was not sent, offering Back to Review and Try Again; Back to Review returns to the review with every answer intact; no queued row appears on the pool tab; the second press sends it, and exactly one commitment with that title appears",
+      "expected": "After the rejection the wizard stays open and says nothing was created and the commitment was not sent ('Nothing was created', then 'Your wallet declined the request.'), offering Back to Review and Try Again; Back to Review returns to the review with every answer intact; no queued row appears on the pool tab; the second press sends it, and exactly one commitment with that title appears",
       "evidence": "Screenshots of the review after the rejection and of the list afterwards",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -8464,18 +8540,19 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Community · Members",
-      "scenario": "Batch-add members by address, ENS name, and clipboard paste",
+      "scenario": "Batch-add members by address, ENS name, and clipboard paste, under one signature on Arbitrum",
       "preconditions": [
-        "Steward with manage rights",
+        "Steward with manage rights on a garden on Arbitrum, signed in with a wallet or a legacy passkey",
         "Two addresses and one ENS name to add, plus one invalid string"
       ],
       "steps": [
         "Open Community members and press Add Members",
         "Type an address, then an ENS name, then paste several lines from the clipboard, then an invalid string",
-        "Choose the role and press Add",
+        "Choose the role and read the signature count and the Add button",
+        "Press Add and confirm the one prompt",
         "Read the directory and the role coverage summary"
       ],
-      "expected": "Each entry is validated as it is staged: the ENS name shows 'Resolves to {address}' and the invalid string is refused inline; Add transacts once per member and a failed address stays staged for retry; the directory lists the new members under the chosen role and the coverage summary updates",
+      "expected": "Each entry is validated as it is staged: the ENS name shows 'Resolves to {address}' and the invalid string is refused inline; before Add the dialog reads '1 signature' and the button names the count and the role; one wallet confirmation or passkey prompt adds the whole list, anyone who already holds the role is skipped, and a refused row is named while nothing is sent until the list changes; on a chain or account that can't batch, Add transacts once per member and a failed address stays staged for retry; the directory lists the new members under the chosen role and the coverage summary updates",
       "evidence": "Screenshots of the staged list and the updated directory",
       "role": "steward",
       "tags": ["members", "tx"],
@@ -8493,12 +8570,12 @@
       "scenario": "Remove one role from a member, with confirmation",
       "preconditions": ["Steward with manage rights", "A member who is not a steward"],
       "steps": [
-        "Open Manage Members and find a member who holds two roles",
-        "Press the remove on one of their role chips and cancel",
-        "Press it again and confirm"
+        "Open Manage Roles and find a member who holds two roles",
+        "Check one of their role chips, press Review Removal, then press Back",
+        "Press Review Removal again, then the red Remove 1 Role"
       ],
-      "expected": "The member has one row with a chip per role, each with its own remove named for the role ('Remove Gardener'); removal asks for confirmation naming the member and the role; Cancel changes nothing; Confirm sends one transaction and only that role leaves the row, which stays listed with the member's other role",
-      "evidence": "Screenshots of the confirmation and the directory afterwards",
+      "expected": "The member has one row with a check chip per role, each named for the role and the member ('Remove Gardener from …'); Review names the garden under its title, the role going and the roles the member keeps, and asks for one signature; Back returns with the chip still checked and nothing sent; Remove 1 Role sends one transaction and only that role leaves the row, which stays listed with the member's other role",
+      "evidence": "Screenshots of the review and the directory afterwards",
       "role": "steward",
       "tags": ["members", "tx"],
       "requiresProduction": false,
@@ -8824,15 +8901,17 @@
       "scenario": "Deposit into the garden vault from the admin, within its limits",
       "preconditions": [
         "Steward holding the vault asset on Arbitrum",
-        "A garden with an auto-allocated vault"
+        "A garden with an auto-allocated vault",
+        "A legacy passkey session holding DAI for the one-signature path"
       ],
       "steps": [
         "Open /community/endowment and press Deposit",
-        "Enter an amount above the deposit limit, then a valid one",
+        "Enter an amount above the deposit limit, then a valid one, and read the signature count",
         "Approve and deposit at the wallet",
+        "Repeat with DAI on the passkey and approve its one prompt",
         "Read the vault position and events"
       ],
-      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; a valid amount approves then deposits with 'Depositing...' progress and 'Deposit completed successfully'; the vault's net deposited row and the page's total, named by asset, update with the events",
+      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; before the press it says how many signatures the deposit takes; on a wallet a valid amount reads '2 signatures' when an approval is needed and approves then deposits with 'Depositing...' progress and 'Deposit completed successfully', and a declined deposit step sends nothing more, so the next press asks for one signature; on the passkey a DAI deposit reads '1 signature' and one prompt approves and deposits together; the vault's net deposited row and the page's total, named by asset, update with the events",
       "evidence": "Screenshots of the refused amount and the completed deposit",
       "role": "steward",
       "tags": ["endowment", "tx"],
@@ -8914,13 +8993,18 @@
       "kind": "transaction",
       "area": "Community · Payouts",
       "scenario": "Fund the garden's payouts cookie jar from the admin",
-      "preconditions": ["Steward holding the jar asset", "A garden with a payouts jar"],
+      "preconditions": [
+        "Steward holding the jar asset",
+        "A garden with a payouts jar",
+        "A legacy passkey session holding DAI for the one-signature path"
+      ],
       "steps": [
         "Open /community/payouts and press Fund Cookie Jar",
-        "Enter an amount and confirm approve then deposit",
+        "Enter an amount, read the signature count, and confirm approve then deposit",
+        "Repeat with DAI on the passkey and approve its one prompt",
         "Read the jar balance and Payouts so far"
       ],
-      "expected": "The deposit dialog approves then deposits with progress; the jar balance and payout readiness update; Payouts so far counts yield payouts, so a deposit leaves it unchanged",
+      "expected": "Before the press the dialog says how many signatures the deposit takes; on a wallet it approves then deposits with progress, and a declined deposit step sends nothing more, so the next press asks for one signature; on the passkey a DAI deposit reads '1 signature' and one prompt approves and deposits together; the jar balance and payout readiness update; Payouts so far counts yield payouts, so a deposit leaves it unchanged",
       "evidence": "Screenshots of the deposit and the updated balance",
       "role": "steward",
       "tags": ["payouts", "tx"],
@@ -10411,25 +10495,53 @@
       "area": "Garden · Pool",
       "scenario": "Seed several independent promises with the prompt count matched to wallet capability",
       "preconditions": [
-        "Steward with manage rights, signed in with a wallet",
+        "Steward with manage rights, signed in with a wallet or a legacy passkey",
         "An open pool with room for the chosen promise count",
-        "Wallets with and without atomic bundle support, with each capability recorded for the walk"
+        "Wallets with and without atomic bundle support, with each capability recorded for the walk, and a legacy passkey on Arbitrum"
       ],
       "steps": [
         "Run Seed Promises to Review for one promise and press Add Another Like This",
         "Verify the answers were kept, change the title and return to Review",
         "Read the total and wallet note, then press Create 2 Promises and answer the wallet requests",
-        "Repeat the two-promise pass with the other wallet capability",
+        "Repeat the two-promise pass with the other wallet capability, then with the passkey",
         "With the bundling wallet, repeat with eleven independent promises and read the note and requests",
         "Press Done after each completed pass and inspect the pool list"
       ],
-      "expected": "Add Another Like This keeps the answers and Review includes both promises. For two promises, an atomic-capable wallet is asked once for both; a wallet without that capability is asked twice, one per promise. Atomic requests contain at most ten, so eleven promises use two requests. The note predicts the actual request count, and each created child exists once with its own lifecycle even when compatible children appear as one display group. Done closes the dialog.",
-      "evidence": "Screenshots of Review and wallet-count notes for both capabilities, the eleven-promise bundle boundary, and the resulting pool entries",
+      "expected": "Add Another Like This keeps the answers and Review includes both promises. For two promises, an atomic-capable wallet is asked once for both; a wallet without that capability is asked twice, one per promise. On a legacy passkey on Arbitrum the note reads 'Your wallet will ask you once, for all 2', the prompt asks for '2 promises in one request', and both are created together under one sponsored signature. Atomic requests contain at most ten, so eleven promises use two requests. The note predicts the actual request count, and each created child exists once with its own lifecycle even when compatible children appear as one display group. Done closes the dialog.",
+      "evidence": "Screenshots of Review and wallet-count notes for both capabilities and the passkey, the eleven-promise bundle boundary, and the resulting pool entries",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "tx"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-199",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Edit a group's reward: one prompt per promise on a plain wallet, one request on a legacy passkey",
+      "preconditions": [
+        "Steward with manage rights on a pool with a group of exactly two available promises, none of them kept",
+        "A plain wallet, and a legacy passkey on Arbitrum"
+      ],
+      "steps": [
+        "Open the group and press Edit Reward",
+        "Type a new amount and read the summary and the wallet note",
+        "With the plain wallet, press Change 2 Rewards, confirm the first prompt and decline the second",
+        "Press Try Again (1), confirm, and read the group",
+        "With the passkey, set another amount, press Change 2 Rewards and decline the prompt",
+        "Press it again and approve, then read the group"
+      ],
+      "expected": "Edit Reward is offered until one of the group is kept. The summary names the available promises with the old and new amounts, and anyone who already took one keeps theirs. A plain wallet asks once per promise ('Confirm in your wallet (1 of 2)'). Declining the second prompt leaves only that promise as it was: the dialog reads '1 changed · 1 didn't change', and Try Again (1) changes only that one, to the same amount. On the passkey the note reads 'Your wallet will ask you once, for all 2' and the prompt asks for '2 rewards in one request'. A declined prompt changes nothing ('Nothing was changed', then 'Your wallet declined the request.'), and an approved one changes both together. The group then shows the new reward.",
+      "evidence": "Screenshots of the summary and note, the partial and declined states, and the group's new reward",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "transaction-batching-proof-2026-11-04"
     },
     {
       "id": "ADM-191",

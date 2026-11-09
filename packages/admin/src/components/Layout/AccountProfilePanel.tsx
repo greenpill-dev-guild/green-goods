@@ -120,7 +120,7 @@ export function AccountProfilePanel({
         <section className="space-y-2">
           <div>
             <h2 className="type-body font-semibold text-text-strong">
-              {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your gardens" })}
+              {formatMessage({ id: "cockpit.account.gardens", defaultMessage: "Your Gardens" })}
             </h2>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
@@ -133,7 +133,7 @@ export function AccountProfilePanel({
             <AdminChoiceGroup
               ariaLabel={formatMessage({
                 id: "cockpit.account.gardens",
-                defaultMessage: "Your gardens",
+                defaultMessage: "Your Gardens",
               })}
               value={selectedGardenChoiceId}
               onChange={selectGarden}
@@ -152,7 +152,20 @@ export function AccountProfilePanel({
             </p>
           )}
         </section>
-        {primaryAddress && stewardAccess ? <div className="pt-3">{stewardAccess}</div> : null}
+        {primaryAddress && stewardAccess ? (
+          <>
+            <SheetDivider />
+            <section className="space-y-2">
+              <h2 className="type-body font-semibold text-text-strong">
+                {formatMessage({ id: "cockpit.account.stewardAccess.title" })}
+              </h2>
+              <p className="type-body text-text-sub">
+                {formatMessage({ id: "cockpit.account.stewardAccess.description" })}
+              </p>
+              {stewardAccess}
+            </section>
+          </>
+        ) : null}
       </SheetBody>
 
       {/* Sign out — identity action pinned with the identity surface. */}

@@ -3,6 +3,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { EASABI } from "../../utils/blockchain/contracts";
 import { decodeWorkApprovalData, encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { APPROVAL_GAS_HEADROOM_PERCENT } from "../../utils/eas/constants";
 import { buildQueuedAttestationsCall } from "../../utils/eas/transaction-builder";
 import { logger } from "../app/logger";
 import type { BatchRail } from "../transactions/batch-enablement";
@@ -45,6 +46,7 @@ function reviewCall(decisions: readonly ReviewDecision[], chainId: number): Cont
       schema: eas.WORK_APPROVAL.uid as Hex,
       gardenAddress: gardenAddress as Hex,
       attestationData: encodeWorkApprovalData(draft, chainId),
+      gasHeadroomPercent: APPROVAL_GAS_HEADROOM_PERCENT,
     }))
   );
   return { ...call, abi: onlyFunction(EASABI, call.functionName) };
@@ -121,17 +123,24 @@ export function verifyReviews(
   { chain, retryMs }: Pick<ReviewBatchInput, "chain" | "retryMs">,
   attestationUIDs: Map<string, Hex>
 ): VerifyBatchItems {
-  const read = new Map<Hex, readonly ReviewAttestation[]>();
+  // Decisions are checked at once, so they share one read of each transaction.
+  const read = new Map<Hex, Promise<readonly ReviewAttestation[] | null>>();
+  const attestationsIn = (hash: Hex) => {
+    const reading = read.get(hash);
+    if (reading) return reading;
+    // A node can answer from before the receipt's block, so a failed read is another try.
+    const next = chain.attestationsIn(hash).catch(() => {
+      read.delete(hash);
+      return null;
+    });
+    read.set(hash, next);
+    return next;
+  };
   const madeIn = async (receipts: readonly BatchReceipt[]) => {
     const found = await Promise.all(
-      receipts.map(async ({ transactionHash: hash }) => {
-        // A node can answer from before the receipt's block, so a failed read is another try.
-        const made = read.get(hash) ?? (await chain.attestationsIn(hash).catch(() => null));
-        if (made) read.set(hash, made);
-        return made ?? [];
-      })
+      receipts.map(({ transactionHash }) => attestationsIn(transactionHash))
     );
-    return found.flat();
+    return found.flatMap((made) => made ?? []);
   };
   return (execution) => {
     const isProven = async (id: string) => {
@@ -185,8 +194,9 @@ const NOT_BATCHABLE = new Set(["batch-budget-exceeded", "batch-atomic-unavailabl
 
 /**
  * Send every decision, one signature per group. Everything is checked before anything is signed,
- * because one decision the resolver refuses reverts its whole call. Earlier groups stay sent when a
- * later one stops, since each is its own transaction.
+ * because one decision the resolver refuses reverts its whole call, and a check that cannot run
+ * stops the send before the wallet. Earlier groups stay sent when a later one stops, since each is
+ * its own transaction.
  */
 export async function sendReviewBatch(
   input: ReviewBatchInput & {
@@ -233,26 +243,41 @@ export async function sendReviewBatch(
     fresh.slice(index * perSignature, (index + 1) * perSignature)
   );
 
-  for (const group of groups) {
-    const refusal = await chain.refusal(reviewCall(group, scope.chainId), scope.account);
-    if (!refusal) continue;
-    const alone = await Promise.all(
-      group.map(async (decision) => ({
-        workUID: decision.draft.workUID,
-        reason: await chain.refusal(reviewCall([decision], scope.chainId), scope.account),
-      }))
-    );
-    const refused = alone.flatMap(({ workUID, reason }) => (reason ? [{ workUID, reason }] : []));
-    // The call is refused but no single decision is: nothing is sent blind.
-    if (refused.length === 0) {
-      return { ...outcome, notSent: uids(fresh), failure: new Error(refusal) };
-    }
-    outcome.refused.push(...refused);
-  }
-  if (outcome.refused.length > 0) {
+  // A decision the resolver refuses on its own is reported as refused, never also as unsent.
+  const unrefused = () => {
     const refusedIds = new Set(outcome.refused.map(({ workUID }) => workUID));
-    return { ...outcome, notSent: uids(fresh).filter((workUID) => !refusedIds.has(workUID)) };
+    return uids(fresh).filter((workUID) => !refusedIds.has(workUID));
+  };
+  try {
+    for (const group of groups) {
+      const refusal = await chain.refusal(reviewCall(group, scope.chainId), scope.account);
+      if (!refusal) continue;
+      const alone = await Promise.allSettled(
+        group.map((decision) => chain.refusal(reviewCall([decision], scope.chainId), scope.account))
+      );
+      const refused = group.flatMap(({ draft }, index) => {
+        const check = alone[index];
+        return check.status === "fulfilled" && check.value
+          ? [{ workUID: draft.workUID, reason: check.value }]
+          : [];
+      });
+      outcome.refused.push(...refused);
+      // A decision whose own check could not run is not refused: the send stops there, and the
+      // refusals the other checks proved stay named.
+      const unchecked = alone.find(
+        (check): check is PromiseRejectedResult => check.status === "rejected"
+      );
+      if (unchecked) return { ...outcome, notSent: unrefused(), failure: unchecked.reason };
+      // The call is refused but no single decision is: nothing is sent blind.
+      if (refused.length === 0) {
+        return { ...outcome, notSent: unrefused(), failure: new Error(refusal) };
+      }
+    }
+  } catch (failure) {
+    // A check that could not run refuses nothing, and nothing is signed on a guess.
+    return { ...outcome, notSent: unrefused(), failure };
   }
+  if (outcome.refused.length > 0) return { ...outcome, notSent: unrefused() };
 
   for (const [index, group] of groups.entries()) {
     const remaining = uids(groups.slice(index).flat());

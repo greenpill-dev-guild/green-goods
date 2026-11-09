@@ -21,6 +21,7 @@ import pt from "../../i18n/pt.json";
 import { WalletChainMismatchError } from "../../modules/transactions/chain-guard";
 import { parseAndFormatError, parseContractError } from "../../utils/errors/contract-errors";
 import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
 import { VOUCHER_ENTITLEMENT_ERRORS } from "../../utils/errors/voucher-entitlement-errors";
 
 describe("contract error recovery fields", () => {
@@ -299,6 +300,13 @@ describe("contract error recovery fields", () => {
       expect(parseContractError(new Error("You are offline")).name).toBe("Offline");
     });
 
+    it("reads a send refused for its connection as nothing sent, never as saved", () => {
+      const { title, message, parsed } = parseAndFormatError(new ConnectionNeededError());
+      expect(parsed.name).toBe("ConnectionNeeded");
+      expect(title).toBe("Connection Needed");
+      expect(message).toBe("Nothing was sent. Check your connection, then try again.");
+    });
+
     it("names copy that exists in every language, and falls back to the same English", () => {
       const declinedSwitch = new WalletChainMismatchError({
         targetChainId: ARBITRUM,
@@ -309,6 +317,7 @@ describe("contract error recovery fields", () => {
         parseContractError(declinedSwitch.message),
         parseContractError(loggedConflict),
         parseContractError("You are offline"),
+        parseContractError(new ConnectionNeededError()),
       ];
       for (const parsed of parsedErrors) {
         for (const key of [parsed.titleKey, parsed.messageKey]) {

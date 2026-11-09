@@ -32,6 +32,9 @@ const mocks = vi.hoisted(() => ({
   promises: vi.fn(),
   cycleNames: vi.fn(),
   serviceLines: vi.fn(),
+  // A cycle's details read its own promises and its units (DL-169).
+  cyclePromises: vi.fn(),
+  cycleDetail: vi.fn(),
   shareLink: vi.fn(),
   // The edges of the About section's access predicate (`useGardenAccess`): who is signed in,
   // the garden's vaults, the account's deposits, and the chain's answer on the evaluator role.
@@ -58,6 +61,8 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentCycleNames: () => mocks.cycleNames(),
   useServiceOfferLines: (input: unknown) => mocks.serviceLines(input),
+  useCommitments: () => mocks.cyclePromises(),
+  useCommitmentCycle: () => mocks.cycleDetail(),
 }));
 
 // Needs Your Attention (step 19) and Continue (step 8), each with its own tests, stand in as
@@ -331,6 +336,8 @@ describe("Home journal", () => {
     mocks.promises.mockReturnValue(promises());
     mocks.cycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
     mocks.serviceLines.mockReturnValue(new Map());
+    mocks.cyclePromises.mockReturnValue({ data: [], commitments: [], isLoading: false });
+    mocks.cycleDetail.mockReturnValue({ detail: null });
   });
 
   describe("Recent Activity", () => {
@@ -723,11 +730,47 @@ describe("Home journal", () => {
 
     it("opens a cycle's details, whose Show Its Promises opens the garden's open promises at it", async () => {
       const user = userEvent.setup();
+      // One promise in each state the details count, kept ones and one still being set up too.
+      const states = [
+        ...["OFFERED", "REQUESTED", "ACCEPTED", "ACTIVE", "EVIDENCE_SUBMITTED"],
+        ...["PARTIALLY_APPROVED", "READY_FOR_CONFIRMATION", "DISPUTED", "CANCELLED", "EXPIRED"],
+        ...["FULFILLED", "RECONCILED", "DRAFT"],
+      ];
+      const seasonPromises = states.map((derivedState) => ({ derivedState }));
+      mocks.cyclePromises.mockReturnValue({
+        data: seasonPromises,
+        commitments: seasonPromises,
+        isLoading: false,
+      });
+      mocks.cycleDetail.mockReturnValue({
+        detail: {
+          unitSummaries: [
+            { id: "u-1", unitLabel: "hours", fulfilledUnits: 12n, expectedUnits: 40n },
+          ],
+        },
+      });
       render(<HighlightsCarousel gardenId={GARDEN} />);
 
       const card = screen.getByRole("button", { name: /Autumn Planting 2026/ });
       await user.click(card);
       const sheet = await screen.findByRole("dialog");
+      // Where its promises stand, counted from its own list in its rows' words, with Kept so far
+      // from its record; then what they add up to (DL-169).
+      const facts = (component: string) =>
+        [
+          ...sheet.querySelectorAll(`[data-component="${component}"] [data-component="FactRow"]`),
+        ].map((row) => [
+          row.querySelector(".gg-fact-label")?.textContent,
+          row.querySelector(".gg-fact-value")?.textContent,
+        ]);
+      expect(facts("CyclePromiseStanding")).toEqual([
+        ["Open to take up", "2"],
+        ["In progress", "4"],
+        ["Waiting to be confirmed", "2"],
+        ["Kept so far", "3 of 7 kept"],
+        ["Withdrawn or lapsed", "2"],
+      ]);
+      expect(facts("CycleUnits")).toEqual([["hours", "12 of 40"]]);
       const promises = recordPromisesOpener();
       await user.click(within(sheet).getByRole("button", { name: "Show Its Promises" }));
       // The garden's open promises open at the season, not the reader's own, and once the
@@ -741,6 +784,50 @@ describe("Home journal", () => {
       expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
       promises.stop();
       expect(promises.recorded.opener).toBe(card);
+    });
+
+    it("says when a cycle's promises or units cannot be answered, offline included (DL-169)", async () => {
+      const user = userEvent.setup();
+      // Paused offline with nothing saved: no answer, no error, and nothing running.
+      mocks.cyclePromises.mockReturnValue({
+        data: undefined,
+        commitments: [],
+        isError: false,
+        fetchStatus: "paused",
+      });
+      mocks.cycleDetail.mockReturnValue({ detail: null, isError: false, fetchStatus: "paused" });
+      render(<HighlightsCarousel gardenId={GARDEN} />);
+
+      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const sheet = await screen.findByRole("dialog");
+      // The record's own count stays, and neither section passes a missing read off as the whole.
+      expect(within(sheet).getByText("3 of 7 kept")).toBeVisible();
+      expect(within(sheet).queryByText("Open to take up")).toBeNull();
+      expect(
+        within(sheet).getByText("The rest of its promises couldn't be read just now.")
+      ).toBeVisible();
+      expect(within(sheet).getByRole("heading", { name: "What it adds up to" })).toBeVisible();
+      expect(within(sheet).getByText("Its units couldn't be read just now.")).toBeVisible();
+    });
+
+    // DL-162: the last open cycle leaves What's Open, and Take Part's lines, the second it ends;
+    // a details sheet open on it stays, and turns to Ended, rather than vanishing with its entry.
+    it.each([
+      ["What's Open", () => <HighlightsCarousel gardenId={GARDEN} />],
+      ["Take Part's cycle lines", () => <TakePart gardenId={GARDEN} withCycleLines />],
+    ])("keeps a cycle's open details in %s as that cycle ends and leaves", async (_view, view) => {
+      mocks.cycles.mockReturnValue(
+        cycles({ state: { status: "ready", items: [SEASON], savedAt: null } })
+      );
+      const user = userEvent.setup();
+      const { rerender } = render(view());
+      await user.click(screen.getByRole("button", { name: /Autumn Planting 2026/ }));
+      const sheet = await screen.findByRole("dialog");
+
+      mocks.cycles.mockReturnValue(cycles({ state: { status: "empty" } }));
+      rerender(<MemoryRouter>{view()}</MemoryRouter>);
+      expect(screen.queryByRole("button", { name: /Autumn Planting 2026/ })).toBeNull();
+      expect(screen.getByRole("dialog")).toBe(sheet);
     });
 
     it("holds its height while the cycles load, and is absent when their read failed or none is open", () => {
@@ -827,7 +914,7 @@ describe("Home journal", () => {
       expect(screen.getByText("1 member")).toBeInTheDocument();
     });
 
-    it("opens Insights as a tall sheet named for the garden, with its banner, and hands focus back to the row", async () => {
+    it("opens Insights as a full sheet named for the garden, with its banner, and hands focus back to the row", async () => {
       const user = userEvent.setup();
       mocks.account = NEIGHBOUR;
       renderAbout(garden(), ["gardener"]);
@@ -835,7 +922,7 @@ describe("Home journal", () => {
       const row = screen.getByRole("button", { name: /Insights/ });
       await user.click(row);
       const sheet = await screen.findByRole("dialog", { name: "Insights" });
-      expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+      expect(sheet).toHaveAttribute("data-sheet-size", "full");
       expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
       // The banner is decorative: the title names the garden's section, the chip the garden.
       expect(within(sheet).getByTestId("garden-sheet-banner").querySelector("img")).toHaveAttribute(

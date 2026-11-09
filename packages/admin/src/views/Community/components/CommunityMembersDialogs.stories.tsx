@@ -12,6 +12,7 @@ const meta = {
   args: {
     garden: storyGarden,
     canManage: true,
+    isOwner: false,
     closeMembersModal: fn(),
     roleMembers: storyRoleMembers,
     scheduleBackgroundRefetch: fn(),
@@ -23,4 +24,4 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const AddMember: Story = {};
-export const ManageMembers: Story = { args: { selectedItem: "manage-members" } };
+export const ManageRoles: Story = { args: { selectedItem: "manage-members" } };

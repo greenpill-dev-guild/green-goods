@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useCommitmentsToConfirm } from "../hooks/commitment-pooling/useCommitmentsToConfirm";
@@ -186,6 +186,17 @@ describe("useCommitmentsToConfirm", () => {
 
     expect(result.current.isSteward).toBe(false);
     expect(result.current.groups).toEqual([]);
+    expect(mocks.getCommitments).not.toHaveBeenCalled();
+  });
+
+  // The Hub's refresh calls this queue's refetch on the Confirm tab; it must not
+  // run a read the queue's own gate keeps off.
+  it("asks nothing for a plain member on a refresh either", async () => {
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { gardeners: [VIEWER] })];
+
+    const result = await toConfirm();
+    await act(() => result.current.refetch());
+
     expect(mocks.getCommitments).not.toHaveBeenCalled();
   });
 
@@ -383,6 +394,32 @@ describe("useCommitmentsToConfirm", () => {
       );
     expect(ownCalls).toHaveLength(1);
   });
+
+  // The Hub's refresh is busy while the Confirm tab's queue rereads.
+  it("is busy while a refresh rereads it", async () => {
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
+    answerWith([commitment()]);
+    const result = await toConfirm();
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    mocks.getCommitments.mockImplementation(async () => {
+      await held;
+      return [];
+    });
+    let refreshed: Promise<unknown> = Promise.resolve();
+    act(() => {
+      refreshed = result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.isFetching).toBe(true));
+
+    await act(async () => {
+      release();
+      await refreshed;
+    });
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+  });
 });
 
 describe("useCommitmentsToConfirm fallback group", () => {
@@ -451,6 +488,28 @@ describe("useCommitmentsToConfirm fallback group", () => {
     const result = await toConfirm();
 
     expect(result.current.fallback).toEqual([]);
+  });
+
+  it("does not offer fallback when take-up removed the sole named confirmer and the creator can confirm", async () => {
+    mocks.getFallbackCandidates.mockResolvedValue([
+      {
+        commitment: commitment({
+          direction: "REQUEST",
+          leadProvider: CONTRIBUTOR,
+          counterparty: CONTRIBUTOR,
+          counterpartyKind: "INDIVIDUAL",
+          confirmers: [CONTRIBUTOR],
+          confirmationThreshold: 1,
+          protocolFallbackEnabled: true,
+        }),
+        activeContributors: [CONTRIBUTOR],
+      },
+    ]);
+
+    const result = await toConfirm();
+
+    expect(result.current.fallback).toEqual([]);
+    expect(result.current.count).toBe(0);
   });
 
   it("keeps a row out of the fallback group when the garden can confirm it ordinarily", async () => {

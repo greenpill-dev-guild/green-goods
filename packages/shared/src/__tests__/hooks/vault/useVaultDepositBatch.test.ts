@@ -401,17 +401,18 @@ describe("useDepositPlan", () => {
         throw new Error("rpc down");
       },
     ],
-  ])("states no count when a listed wallet's capability read %s, and locks no one out", async (_case, read) => {
+  ])("pauses without a count when a listed wallet's capability read %s", async (_case, read) => {
     listing.enabled = true;
     listing.walletProfile = "sequential";
-    const { renderPlan, sender } = setup({}, "wallet");
+    const { renderPlan, sender, queryClient } = setup({}, "wallet");
     vi.mocked(sender.getBatchCapability!).mockImplementation(read as never);
     chainState.allowance = 100n;
     const { result } = renderPlan();
 
     await waitFor(() => expect(sender.getBatchCapability).toHaveBeenCalled());
-    await waitFor(() => expect(result.current.isPaused).toBe(false));
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
 
+    expect(result.current.isPaused).toBe(true);
     expect(result.current.signatures).toBeNull();
     expect(result.current.signatureLine).toBeNull();
   });

@@ -54,6 +54,7 @@ export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
 export { useCommitmentCycleNames } from "./useCommitmentCycleNames";
 export type { CommitmentCycleLabel } from "./useCommitmentCycleLabel";
 export { useCommitmentCycleLabel } from "./useCommitmentCycleLabel";
+export { useCycleClock } from "./useCycleClock";
 export type { CommitmentMetadataMap } from "./useCommitmentMetadata";
 export {
   useCommitmentMetadata,

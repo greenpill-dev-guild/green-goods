@@ -40,6 +40,7 @@ import type { WorkJobPayload } from "../../../types/job-queue";
 import { createMockAction, createMockWorkDraft } from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { uploadConsent } from "../../test-utils/upload-policy";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
 const GARDEN = "0x5eed000000000000000000000000000000000001";
@@ -61,6 +62,10 @@ const ANOTHER_PROMISE_PAGE = writeWorkLinkIntent(new URLSearchParams(), {
   returnTo: `/home/${GARDEN}/commitments/9`,
 }).toString();
 
+// These draft and queue scenarios start with a member who accepted the current terms.
+vi.mock("../../../hooks/work/useUploadPolicy", () => ({
+  useUploadPolicy: () => ({ request: async () => uploadConsent(ACCOUNT), prompt: null }),
+}));
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: ACCOUNT }),
 }));

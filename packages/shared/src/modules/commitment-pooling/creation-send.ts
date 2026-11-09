@@ -7,12 +7,18 @@
  * ever sent again. What this adds is how many times the wallet asks:
  *
  * - a wallet that runs several calls as one transaction is asked once per
- *   bundle of up to ten copies, all or nothing (PRD-1022 D7);
- * - any other wallet is asked once per copy, and declining one skips only
- *   that one;
- * - passkey and embedded accounts send nothing from here: their copies wait in
- *   the queue, as any queued act does, for the pool tab's Send Now (or a
- *   background flush, where the app runs one; the admin runs none).
+ *   bundle of up to ten copies, all or nothing (PRD-1022 D7), and so is a
+ *   passkey where the enablement list names its rail for creations;
+ * - any other wallet or passkey is asked once per copy, and declining one
+ *   skips only that one;
+ * - embedded accounts send nothing from here: their copies wait in the queue,
+ *   as any queued act does, for the pool tab's Send Now (or a background
+ *   flush, where the app runs one; the admin runs none).
+ *
+ * A bundle refused by the sender's own checks before it went out (past its
+ * ceilings, say) created nothing. A bundle past its ceilings comes back with
+ * every copy `over-ceilings`, and the caller's next pass asks once per copy
+ * (`oneByOne`), so the count it states first stays the count the wallet asks.
  *
  * Each copy runs through `processJob` either way, so its claim, its metadata
  * publishing, its recovery read and its failure record behave exactly as they
@@ -31,10 +37,14 @@ import type { Address } from "../../types/domain";
 import { classifyTxError } from "../../utils/errors/tx-error-classifier";
 import { logger } from "../app/logger";
 import type { JobQueueHandle, JobSendPhase, ProcessJobResult } from "../job-queue/ports";
+import type { AtomicBatchAction } from "../transactions/batch-enablement";
+import type { BatchBudget } from "../transactions/batch-types";
 import { type BundleOutcome, createBundlingSender } from "../transactions/bundling-sender";
 import type { TransactionSender } from "../transactions/types";
+import { creationRefusalOf } from "./creation-standing";
 import type { CommitmentCreationPayload } from "./job-types";
 import {
+  CREATION_BUNDLE_SIZE,
   chunkCopies,
   type SeedCopyMiss,
   type SeedCopyProgress,
@@ -43,6 +53,48 @@ import {
 
 /** How the wallet is asked: once per bundle, once per copy, or not from here at all. */
 export type CreationSendMode = "bundle" | "one-by-one" | "background";
+
+/**
+ * A passkey's ceilings for one bundle of creations, on the chains they were measured on. On a fork
+ * of Arbitrum (block 520,827,637, 2026-11-03), ten copies of a live promise took 5.7M gas from the
+ * steward's own address and 14.2 KB of Kernel calldata, and twenty-five took 14.1M. A Green Goods
+ * passkey UserOperation adds about 730k for validation and sponsorship, and Pimlico's bundler
+ * refuses one past 16M gas or 90 KB. So ten fit one signature with room for a heavier promise. The
+ * first live bundle confirms them before the rail is listed. A wallet sets its own limits.
+ */
+const CREATION_BUDGETS: Partial<Record<number, BatchBudget>> = {
+  42161: {
+    maxCalls: CREATION_BUNDLE_SIZE,
+    maxCalldataBytes: 24_576,
+    maxGas: "12000000",
+    maxFeePerGas: "1000000000",
+    maxFee: "3000000000000000",
+    sponsorship: "required",
+  },
+};
+
+export function creationBudget(chainId: number): BatchBudget | null {
+  return CREATION_BUDGETS[chainId] ?? null;
+}
+
+/**
+ * How a steward act that writes one call per copy asks: once per bundle where the sender can take
+ * several calls as one transaction, once per copy otherwise, or not from here. A passkey bundles
+ * only where the enablement list names `action` for its rail, and only within `budget`. Asking
+ * never prompts anyone, and a sender that cannot answer is asked once per copy.
+ */
+export async function copiesSendMode(
+  sender: TransactionSender | null,
+  chainId: number,
+  action: AtomicBatchAction,
+  budget: BatchBudget | null
+): Promise<CreationSendMode> {
+  if (!sender || sender.authMode === "embedded") return "background";
+  if (!sender.sendAtomicBatch || !sender.canSendAtomicBatch) return "one-by-one";
+  if (sender.authMode === "passkey" && !budget) return "one-by-one";
+  const able = await sender.canSendAtomicBatch(chainId, action).catch(() => false);
+  return able ? "bundle" : "one-by-one";
+}
 
 export interface CreationCopy {
   clientCommitmentId: string;
@@ -73,32 +125,65 @@ export interface CreationSendInput {
    * every set sent here is whole in this pass.
    */
   clearable?: (setId: string) => boolean;
+  /**
+   * Ask once per copy even where the wallet could take a bundle: an earlier
+   * bundle was past its ceilings, and the count said up front follows that.
+   */
+  oneByOne?: boolean;
 }
 
 /** Asking the wallet what it can do never prompts anyone. */
-export async function creationSendMode(
+export function creationSendMode(
   sender: TransactionSender | null,
   chainId: number
 ): Promise<CreationSendMode> {
-  if (sender?.authMode !== "wallet") return "background";
-  if (!sender.sendAtomicBatch || !sender.canSendAtomicBatch) return "one-by-one";
-  const able = await sender.canSendAtomicBatch(chainId).catch(() => false);
-  return able ? "bundle" : "one-by-one";
+  return copiesSendMode(sender, chainId, "commitment-creations", creationBudget(chainId));
 }
 
-/** Why a copy's own send failed, when its error is all there is to go on. */
-function missOf(error: unknown): SeedCopyMiss {
+/**
+ * Why a copy's send failed, when its error is all there is to go on. A send its
+ * sender proved never went out left nothing on chain, whatever its error says.
+ */
+export function missOfSend(error: unknown, neverSent = false): SeedCopyMiss {
   const { kind } = classifyTxError(error);
   if (kind === "cancelled") return "declined";
   if (kind === "reverted") return "refused";
+  if (neverSent) return kind === "overCeilings" ? "over-ceilings" : "refused";
   return "failed";
 }
 
 function missOfBundle(outcome: BundleOutcome, error: unknown): SeedCopyMiss {
   if (outcome.status === "declined") return "declined";
-  if (outcome.status === "refused") return "refused";
+  // The bundle reads as refused only once nothing of it can be on chain.
+  if (outcome.status === "refused") return missOfSend(outcome.error, true);
   if (outcome.status === "failed") return "failed";
-  return missOf(error);
+  return missOfSend(error);
+}
+
+/**
+ * The sender one copy's own sends go through, keeping how they ended: the error
+ * itself, since the queue keeps only its message and a passkey's closed prompt
+ * is known by its name, and whether a call reached the point where it can go
+ * out (`onBeforeBroadcast`). One that never did sent nothing.
+ */
+function watchedSender(base: TransactionSender) {
+  const watch: { error?: unknown; crossed: boolean } = { crossed: false };
+  const sender = Object.create(base) as TransactionSender;
+  sender.sendContractCall = async (call, options = {}) => {
+    try {
+      return await base.sendContractCall(call, {
+        ...options,
+        onBeforeBroadcast: async (reference) => {
+          watch.crossed = true;
+          await options.onBeforeBroadcast?.(reference);
+        },
+      });
+    } catch (error) {
+      watch.error = error;
+      throw error;
+    }
+  };
+  return { sender, watch };
 }
 
 /** A creation's first pass submitted it; the second reads it back. */
@@ -134,7 +219,9 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
   const ended = (id: string, result: ProcessJobResult, miss: () => SeedCopyMiss) => {
     if (result.success) tell(id, { status: "created", txHash: result.txHash ?? null });
     else if (result.skipped) tell(id, { status: "later", txHash: result.txHash ?? null });
-    else tell(id, { status: "not-sent", miss: miss() });
+    // One the queue refused before sending (a closed action, an ended season) never went out.
+    else
+      tell(id, { status: "not-sent", miss: creationRefusalOf(result.error) ? "refused" : miss() });
   };
 
   // A copy tried before keeps its job, and the retry is that same job: a second
@@ -169,10 +256,12 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
     }
   }
 
-  const mode = await creationSendMode(sender, chainId);
+  const probed = await creationSendMode(sender, chainId);
+  const mode = probed === "bundle" && input.oneByOne ? "one-by-one" : probed;
   if (mode === "background" || !sender) {
     for (const { id } of admitted) tell(id, { status: "later" });
   } else if (mode === "bundle") {
+    const batchBudget = sender.authMode === "passkey" ? creationBudget(chainId) : null;
     for (const chunk of chunkCopies(admitted)) {
       const bundle = createBundlingSender(
         sender,
@@ -180,6 +269,7 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
         {
           onAsking: () => chunk.forEach(({ id }) => tell(id, { status: "wallet" })),
           onAccepted: () => chunk.forEach(({ id }) => tell(id, { status: "confirming" })),
+          ...(batchBudget ? { batchBudget } : {}),
         }
       );
       for (const { id } of chunk) tell(id, { status: "preparing" });
@@ -202,7 +292,7 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
           ended(id, { ...second, txHash: second.txHash ?? first.txHash }, () => "failed");
         } else {
           ended(id, first, () =>
-            bundle.sentBy(jobId) ? missOfBundle(outcome, first.error) : missOf(first.error)
+            bundle.sentBy(jobId) ? missOfBundle(outcome, first.error) : missOfSend(first.error)
           );
         }
       }
@@ -210,8 +300,9 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
   } else {
     for (const { id, jobId } of admitted) {
       tell(id, { status: "preparing" });
+      const { sender: watched, watch } = watchedSender(sender);
       const context = {
-        transactionSender: sender,
+        transactionSender: watched,
         explicit: true,
         onPhase: (phase: JobSendPhase) =>
           tell(
@@ -223,7 +314,9 @@ export async function sendCreationCopies(input: CreationSendInput): Promise<Seed
       };
       const first = await queue.processJob(jobId, context);
       const result = submitted(first) ? await queue.processJob(jobId, context) : first;
-      ended(id, { ...result, txHash: result.txHash ?? first.txHash }, () => missOf(result.error));
+      ended(id, { ...result, txHash: result.txHash ?? first.txHash }, () =>
+        missOfSend(watch.error ?? result.error, !watch.crossed)
+      );
     }
   }
 

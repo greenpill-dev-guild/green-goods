@@ -30,7 +30,7 @@ export const EN_REPORTING_COPY = {
   "report.fieldLead": "{title}?",
   "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nBy agreeing, you accept the sharing rules, version {version}: https://www.greengoods.app/terms. Share only your own material or material you have permission to publish, with permission from every identifiable adult shown. Do not send identifiable children, sensitive personal information, abuse, hate, threats, sexual or unlawful content, fraud or spam. Confirmed reports become public on Arbitrum and IPFS; independent copies may remain permanently.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
   "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
@@ -41,7 +41,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• ACCOUNT shows which account this chat uses, DISCONNECT unlinks it, and SWITCH links a different one.\n• LANGUAGE lets you choose English, Spanish or Portuguese.\n• STOP stops processing, DELETE removes unpublished data.{menu}\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. RECOVER reconnects an account after losing chat access.\n• ACCOUNT shows which account this chat uses, DISCONNECT unlinks it, and SWITCH links a different one.\n• LANGUAGE lets you choose English, Spanish or Portuguese.\n• STOP stops processing, DELETE removes unpublished data.{menu}\nSupport: {support}",
   "menu.commands": "\n• Tap Menu, next to where you type, to see these commands.",
   "menu.account":
     " Account commands are in the Menu too: /account, /connect, /switch and /disconnect.",
@@ -169,7 +169,7 @@ export const EN_REPORTING_COPY = {
   "review.summaryCodeInstruction":
     "Reply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
   "report.summary":
-    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\n{instruction}",
+    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\nBy confirming, you agree to make this exact report public and confirm you have permission to share its content and every identifiable adult shown. It contains no identifiable children or sensitive personal information.\n\n{instruction}",
   "report.summaryAccount": "\nIt will be published by your account {account}.",
   "report.confirm": "Confirm",
   "report.edit": "Edit",
@@ -185,8 +185,7 @@ export const EN_REPORTING_COPY = {
   "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
   "report.confirmToken": "To publish, reply CONFIRM {token}.",
-  "report.frozen":
-    "This report is being published, so I can't change it now. I've kept your message and will use it if publishing doesn't complete.",
+  "report.frozen": "This report is being published, so I can't change it now.",
   "report.alreadyPublished": "That report is already published. Send NEW to start another report.",
   "report.newStarted": "New report started. Tell me about the work you did.",
   "report.resumeFirst":
@@ -238,7 +237,7 @@ export const EN_REPORTING_COPY = {
   "link.accountTaken":
     "That account is already linked to another chat. If it's yours, send RECOVER from the chat you want to use. Support: {support}",
   "publish.consent":
-    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. {instruction}",
+    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. By publishing, you agree to make this exact report public and confirm you have permission to share its content and every identifiable adult shown. It contains no identifiable children or sensitive personal information. {instruction}",
   "publish.publish": "Publish",
   "publish.signLink": "Open this page to review and sign the exact publication with your {kind}.",
   "publish.signLabel": "Review and publish",
