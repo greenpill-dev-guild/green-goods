@@ -85,6 +85,7 @@ export function HatsCookieJarControls({
           {confirmation ? (
             <Button
               size="sm"
+              type="button"
               emphasis="secondary"
               disabled={confirmation.isPending || mutation.isPending}
               onClick={() => confirmation.mutate()}
@@ -110,6 +111,7 @@ export function HatsCookieJarControls({
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
+                type="button"
                 emphasis="secondary"
                 onClick={() =>
                   showReview({
@@ -123,6 +125,7 @@ export function HatsCookieJarControls({
               </Button>
               <Button
                 size="sm"
+                type="button"
                 disabled={ready.getTime() > Date.now()}
                 onClick={() =>
                   showReview({
@@ -255,6 +258,7 @@ export function HatsCookieJarControls({
       {canOperate && !jar.isPaused ? (
         <Button
           size="sm"
+          type="button"
           emphasis="secondary"
           onClick={() =>
             showReview({
@@ -270,6 +274,7 @@ export function HatsCookieJarControls({
         <>
           <Button
             size="sm"
+            type="button"
             emphasis="secondary"
             onClick={() =>
               showReview({
