@@ -1,0 +1,6 @@
+{
+  "upgrade": "KarmaGAPModule",
+  "supersedesCreationCodeHash": "0x47c6ebff2b94fda8602196eb6fe2aba2495fea411ec23826164a419163c2ba69",
+  "expectedImplementationCreationCodeHash": "0x7f0b9921ef371664ff1a36b52e2b176302d9e12d1582fcead4525f227ef4aec2",
+  "reason": "Rebuilt after the release was frozen: each Project Update gets a unique title and its Work's submission date. The frozen manifest keeps its original pin, so the release lock's manifestHash still matches it."
+}

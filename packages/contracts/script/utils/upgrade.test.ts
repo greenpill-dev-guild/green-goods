@@ -454,6 +454,22 @@ describe("release-owned upgrade plan integrity", () => {
     );
   });
 
+  it("holds a rebuilt implementation to its pin outside the frozen manifest", () => {
+    const frozen = structuredClone(manifest);
+    frozen.existingProxyUpgrades[0].expectedImplementationCreationCodeHash = keccak256("0xdead");
+    const pin = {
+      upgrade: "AssessmentResolver",
+      supersedesCreationCodeHash: keccak256("0xdead"),
+      expectedImplementationCreationCodeHash: keccak256(createData),
+      reason: "Rebuilt after the release was frozen",
+    };
+    expect(() => validateReleaseOwnedUpgradePlan(plan(), frozen, lock, deployment, pin)).not.toThrow();
+    // The shipped pin names KarmaGAPModule only, so this upgrade keeps its superseded frozen hash.
+    expect(() => validateReleaseOwnedUpgradePlan(plan(), frozen, lock, deployment)).toThrow(
+      "implementation hashes differ from the frozen release",
+    );
+  });
+
   it("requires one contiguous receipt-backed checkpoint prefix", () => {
     const reviewed = plan();
     const checkpoint: UpgradeCheckpoint = {
