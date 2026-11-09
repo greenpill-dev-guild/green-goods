@@ -538,7 +538,7 @@ contract GnosisVoucherMemberProjectForkTest is CLCMemberProjectFixture {
         );
         vm.prank(projectAnalyst);
         analystHelp.approve(address(journeyPool.pool), 1e6);
-        vm.expectRevert();
+        vm.expectRevert(ICLCSwapPool.UnauthorizedToken.selector);
         vm.prank(projectAnalyst);
         journeyPool.pool.withdraw(address(journeyA), address(analystHelp), 1e6, projectAnalyst, 1, block.timestamp);
         assertEq(analystHelp.balanceOf(projectAnalyst), 4e6);
@@ -583,7 +583,7 @@ contract GnosisVoucherMemberProjectForkTest is CLCMemberProjectFixture {
         );
         vm.prank(projectAnalyst);
         analystHelp.approve(address(memberLocalPool.pool), 1e6);
-        vm.expectRevert();
+        vm.expectRevert(ICLCSwapPool.LimitExceeded.selector);
         vm.prank(projectAnalyst);
         memberLocalPool.pool.withdraw(address(journeyB), address(analystHelp), 1e6, projectAnalyst, 1, block.timestamp);
         assertEq(analystHelp.balanceOf(projectAnalyst), 4e6);
