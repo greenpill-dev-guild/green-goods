@@ -24,7 +24,6 @@ import {
   getPublicClient as defaultGetPublicClient,
   sendCalls as defaultSendCalls,
   waitForCallsStatus as defaultWaitForCallsStatus,
-  waitForTransactionReceipt as defaultWaitForReceipt,
   type Config,
 } from "@wagmi/core";
 import type { Hex } from "viem";
@@ -48,6 +47,7 @@ import {
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
 import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
+import { waitForReceipt } from "./receipt-wait";
 import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { quoteWalletBatch } from "./wallet-batch-preflight";
 import { logger } from "../app/logger";
@@ -77,7 +77,8 @@ export interface WalletSenderDeps extends WalletBatchDeps {
   preflightBatch?: (calls: readonly ContractCall[], budget: BatchBudget) => Promise<BatchQuote>;
   reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
-  waitForTransactionReceipt: (
+  /** Resolves with a reverted receipt rather than throwing; defaults to `waitForReceipt`. */
+  waitForTransactionReceipt?: (
     config: Config,
     params: {
       hash: Hex;
@@ -128,8 +129,6 @@ export class WalletSender implements TransactionSender {
     // path defaults the EIP-5792 actions. They are reached lazily, when a batch
     // is actually asked for, so constructing a sender never touches them.
     this.deps = deps ?? {
-      waitForTransactionReceipt:
-        defaultWaitForReceipt as unknown as WalletSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
       getCapabilities: (config, params) =>
         (defaultGetCapabilities as unknown as NonNullable<WalletSenderDeps["getCapabilities"]>)(
@@ -155,6 +154,7 @@ export class WalletSender implements TransactionSender {
       defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
         typeof defaultSignTypedData
       >[1]);
+    this.deps.waitForTransactionReceipt ??= waitForReceipt;
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.estimateGas ??= (request) => defaultEstimateGas(this.config, request);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
@@ -292,9 +292,9 @@ export class WalletSender implements TransactionSender {
 
     // Wait for on-chain confirmation and verify the tx was not reverted
     let invalidReplacement: "cancelled" | "replaced" | undefined;
-    let receipt: Awaited<ReturnType<WalletSenderDeps["waitForTransactionReceipt"]>>;
+    let receipt: Awaited<ReturnType<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>>;
     try {
-      receipt = await this.deps.waitForTransactionReceipt(this.config, {
+      receipt = await this.deps.waitForTransactionReceipt!(this.config, {
         hash,
         chainId,
         onReplaced: ({ reason }) => {

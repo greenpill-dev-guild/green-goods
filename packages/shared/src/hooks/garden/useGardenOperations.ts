@@ -186,6 +186,7 @@ export function useGardenOperations(gardenId: string) {
         error: {
           name: "WalletNotConnected",
           message: "Please connect your wallet to continue",
+          cannotLand: true,
         },
       });
       return {

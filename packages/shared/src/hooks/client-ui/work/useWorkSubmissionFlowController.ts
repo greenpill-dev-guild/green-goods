@@ -228,7 +228,8 @@ export function useWorkSubmissionFlowController({
       gardenAddress,
       selectedDomain,
     });
-  const media = useWorkMediaLifecycle({
+  // Exposed like selection and form below; only the reset stays inside.
+  const { resetBrokenMedia, ...mediaLifecycle } = useWorkMediaLifecycle({
     actionUID,
     authMode,
     ensureJourneyId: ensureWorkSubmissionJourneyId,
@@ -417,9 +418,8 @@ export function useWorkSubmissionFlowController({
   return {
     ...selection,
     ...form,
+    ...mediaLifecycle,
     audioNotes,
-    brokenMediaIds: media.brokenMediaIds,
-    cameraClickRef: media.cameraClickRef,
     canProceed,
     changeTab,
     detailsConfig,
@@ -444,7 +444,7 @@ export function useWorkSubmissionFlowController({
       startFresh: async () => {
         const scope = useWorkFlowStore.getState().draftScope;
         await handleStartFresh();
-        if (scope === useWorkFlowStore.getState().draftScope) media.resetBrokenMedia();
+        if (scope === useWorkFlowStore.getState().draftScope) resetBrokenMedia();
       },
     },
     exit: () => {
@@ -474,15 +474,11 @@ export function useWorkSubmissionFlowController({
     uploadPolicy: workMutation.uploadPolicy,
     heicStateOf: heic.stateOf,
     retryHeicConversion: heic.retry,
-    markMediaPreviewFailed: media.markMediaPreviewFailed,
-    mediaClickRef: media.mediaClickRef,
     mediaConfig,
     minRequired,
     namedSubmissionGarden,
     queueStatusMessage,
     recordingElapsed: audio.elapsed,
-    removeBrokenMedia: media.removeBrokenMedia,
-    removeMedia: media.removeMedia,
     reviewConfig,
     reviewData,
     setAudioNotes,

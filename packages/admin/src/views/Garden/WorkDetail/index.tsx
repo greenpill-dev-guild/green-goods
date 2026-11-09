@@ -88,6 +88,16 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
   const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
   const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
+  // The voice notes and documents come from the metadata file, read after the work itself.
+  // Offline, the read waits for the connection and a retry cannot run, so it is not a failure.
+  const evidenceState =
+    resolved.metadataStatus === "loading"
+      ? "loading"
+      : resolved.metadataStatus === "unavailable"
+        ? "offline"
+        : resolved.metadataStatus === "error"
+          ? "failed"
+          : undefined;
   const resolutionStatusRef = useRef(resolved.resolutionStatus);
   useEffect(() => {
     resolutionStatusRef.current = resolved.resolutionStatus;
@@ -214,6 +224,8 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
                 media={work.media}
                 audioNoteCids={resolved.audioNoteCids}
                 documents={resolved.documents}
+                evidenceState={evidenceState}
+                onRetryEvidence={resolved.retryMetadata}
                 actionTitle={localizedActionTitle}
               />
             </section>
@@ -252,6 +264,8 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               media={work.media}
               audioNoteCids={resolved.audioNoteCids}
               documents={resolved.documents}
+              evidenceState={evidenceState}
+              onRetryEvidence={resolved.retryMetadata}
               actionTitle={localizedActionTitle}
             />
           </section>

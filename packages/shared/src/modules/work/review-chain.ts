@@ -20,7 +20,10 @@ export interface ReviewAttestation {
 
 /** How a send of reviews reads the chain. */
 export interface ReviewChain {
-  /** Why the chain would refuse this call from `account`, or null when it would go through. */
+  /**
+   * Why the chain would refuse this call from `account`, or null when it would go through. Throws
+   * when it cannot tell, and nothing is signed on it.
+   */
   refusal(call: ContractCall, account: Address): Promise<string | null>;
   /**
    * Whether anyone has decided this work. The resolver counts a decision the moment it lands;
@@ -65,8 +68,12 @@ export function createReviewChain(chainId: number): ReviewChain {
         account,
         chainId
       );
+      if (success) return null;
+      // Only a revert is the chain refusing. Any other failure, such as an RPC's error page, says
+      // nothing about the call: the check fails, and nothing is signed on it.
+      if (!error?.reverted) throw new Error(error?.message ?? "Transaction simulation failed");
       // The raw revert, so whoever shows it can still name the contract's error.
-      return success ? null : (error?.raw ?? "Transaction simulation failed");
+      return error.raw;
     },
     isDecided: async (workUID) => {
       if (countedSince !== undefined) {

@@ -165,7 +165,7 @@ export interface FakeWagmiDeps extends WalletSenderDeps, EmbeddedSenderDeps {
   writeContractAsync: ReturnType<typeof vi.fn<WalletWriteContract>>;
   writeContract: ReturnType<typeof vi.fn<EmbeddedSenderDeps["writeContract"]>>;
   waitForTransactionReceipt: ReturnType<
-    typeof vi.fn<WalletSenderDeps["waitForTransactionReceipt"]>
+    typeof vi.fn<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>
   >;
   assertWriteSafety: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["assertWriteSafety"]>>>;
   ensureWalletChain: ReturnType<typeof vi.fn<NonNullable<WalletSenderDeps["ensureWalletChain"]>>>;
@@ -194,7 +194,7 @@ export function createFakeWagmiDeps(options: FakeWagmiDepsOptions = {}): FakeWag
     writeContractAsync,
     writeContract,
     waitForTransactionReceipt: vi
-      .fn<WalletSenderDeps["waitForTransactionReceipt"]>()
+      .fn<NonNullable<WalletSenderDeps["waitForTransactionReceipt"]>>()
       .mockResolvedValue({ status: receiptStatus }),
     // A wallet is connected, unless a test says otherwise: a send needs one.
     getAccount: () => ({ address: MOCK_ADDRESSES.deployer }),

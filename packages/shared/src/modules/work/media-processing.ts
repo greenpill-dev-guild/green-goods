@@ -14,7 +14,7 @@ import {
   isWorkDocument,
   workDocumentType,
 } from "./work-attachments";
-export type WorkMediaSource = "camera" | "gallery";
+export type WorkMediaSource = "camera" | "gallery" | "documents";
 export type WorkMediaKind = "image" | "video" | "document" | "unknown";
 export type MediaRejectedReason = "unsupported" | "heic_conversion_failed" | "too_large";
 

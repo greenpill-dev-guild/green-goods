@@ -36,6 +36,7 @@ function workController(overrides: Record<string, unknown> = {}): WorkController
     linkIntent: null,
     mediaClickRef: { current: null },
     cameraClickRef: { current: null },
+    documentClickRef: { current: null },
     toggleAudioRecording: vi.fn(),
     isRecording: false,
     start: { skipped: false, back: vi.fn(() => false) },
@@ -339,19 +340,24 @@ describe("useSubmissionFlowController", () => {
     gallery.id = "work-media-upload";
     const camera = document.createElement("input");
     camera.id = "proof-media-camera";
-    document.body.append(gallery, camera);
+    const documents = document.createElement("input");
+    documents.id = "proof-document-upload";
+    document.body.append(gallery, camera, documents);
     const galleryClick = vi.spyOn(gallery, "click");
     const cameraClick = vi.spyOn(camera, "click");
+    const documentsClick = vi.spyOn(documents, "click");
     try {
       const atStart = renderWork(workController());
       expect(atStart.result.current.mediaTools).toBeNull();
 
       const openGallery = vi.fn();
+      const openDocuments = vi.fn();
       const toggleAudioRecording = vi.fn();
       const work = renderWork(
         workController({
           activeTab: "Media",
           mediaClickRef: { current: openGallery },
+          documentClickRef: { current: openDocuments },
           toggleAudioRecording,
           isRecording: true,
         })
@@ -362,6 +368,9 @@ describe("useSubmissionFlowController", () => {
       workTools?.openGallery();
       expect(openGallery).toHaveBeenCalledTimes(1);
       expect(galleryClick).not.toHaveBeenCalled();
+      // Documents have their own picker, apart from the photos.
+      workTools?.openDocuments();
+      expect(openDocuments).toHaveBeenCalledTimes(1);
       workTools?.toggleRecording();
       expect(toggleAudioRecording).toHaveBeenCalledTimes(1);
       const fallback = renderWork(workController({ activeTab: "Media" }));
@@ -374,6 +383,8 @@ describe("useSubmissionFlowController", () => {
       expect(proofTools).toMatchObject({ isRecording: false, disabled: true });
       proofTools?.openCamera();
       expect(cameraClick).toHaveBeenCalledTimes(1);
+      proofTools?.openDocuments();
+      expect(documentsClick).toHaveBeenCalledTimes(1);
       proofTools?.toggleRecording();
       expect(toggleRecording).toHaveBeenCalledTimes(1);
       act(() => evidence.result.current.forward?.run());
@@ -381,6 +392,7 @@ describe("useSubmissionFlowController", () => {
     } finally {
       gallery.remove();
       camera.remove();
+      documents.remove();
     }
   });
 

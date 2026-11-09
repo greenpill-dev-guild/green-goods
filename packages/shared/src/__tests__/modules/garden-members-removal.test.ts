@@ -151,6 +151,23 @@ describe("modules/garden/members-removal", () => {
     expect(chain.removeRole).toHaveBeenCalledTimes(1);
   });
 
+  it("stops before the wallet when the read just before a signature fails", async () => {
+    const chain = fakeChain();
+    chain.wearsRole.mockImplementation(async ({ address }) => {
+      if (address === BEN) throw new Error("rpc down");
+      return true;
+    });
+    const outcomes = await removeGardenRolesOneByOne(
+      [evaluatorOf(ADA), evaluatorOf(BEN), evaluatorOf(CY)],
+      chain
+    );
+
+    // Nothing shows BEN still holds the role, so nothing is simulated or signed for it.
+    expect(statuses(outcomes)).toEqual(["removed", "notSent", "notSent"]);
+    expect(chain.refusal).toHaveBeenCalledTimes(1);
+    expect(chain.removeRole).toHaveBeenCalledTimes(1);
+  });
+
   it("reads the chain after an unclear send: gone counts, held or unread stops the run", async () => {
     const landed = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
@@ -161,29 +178,34 @@ describe("modules/garden/members-removal", () => {
     );
     expect(statuses(landed)).toEqual(["removed", "removed"]);
 
+    // A send that proved it cannot land, here a receipt that showed a revert, leaves a role still
+    // held failed.
     const held = await removeGardenRolesOneByOne(
-      [evaluatorOf(ADA), evaluatorOf(BEN)],
-      fakeChain({
-        sends: {
-          [ADA.toLowerCase()]: { success: false, error: { name: "Error", message: "reverted" } },
-        },
-      })
-    );
-    expect(held).toEqual([{ status: "failed", reason: "reverted" }, { status: "notSent" }]);
-
-    // A send that lost the chain may still land, so a role held after it is unconfirmed.
-    const timedOut = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
       fakeChain({
         sends: {
           [ADA.toLowerCase()]: {
             success: false,
-            error: { name: "TimeoutError", message: "Request timed out." },
+            error: { name: "TransactionRevertedError", message: "reverted", cannotLand: true },
           },
         },
       })
     );
-    expect(timedOut).toEqual([{ status: "unknown" }, { status: "notSent" }]);
+    expect(held).toEqual([{ status: "failed", reason: "reverted" }, { status: "notSent" }]);
+
+    // Any other failed send may still land, so a role held after it is unconfirmed: a wallet that
+    // timed out, or a sent removal whose receipt poll an RPC answered with a 503. That one parses
+    // to an unknown error named by the first hex in its request body, the hash's.
+    for (const error of [
+      { name: "TimeoutError", message: "Request timed out." },
+      { name: "UnknownError", message: "Transaction failed with error code: 0xabababab" },
+    ]) {
+      const unconfirmed = await removeGardenRolesOneByOne(
+        [evaluatorOf(ADA), evaluatorOf(BEN)],
+        fakeChain({ sends: { [ADA.toLowerCase()]: { success: false, error } } })
+      );
+      expect(unconfirmed).toEqual([{ status: "unknown" }, { status: "notSent" }]);
+    }
 
     const unread = await removeGardenRolesOneByOne(
       [evaluatorOf(ADA), evaluatorOf(BEN)],
@@ -214,7 +236,7 @@ describe("modules/garden/members-removal", () => {
     expect(ran).toEqual([{ status: "removed", transactionHash: hash }]);
   });
 
-  it("names a refusal only when the simulation reached the chain", async () => {
+  it("names a refusal only when the simulation reverted", async () => {
     const chain = createRoleRemovalChain({
       gardenAddress: CY,
       chainId: 42161,
@@ -224,16 +246,40 @@ describe("modules/garden/members-removal", () => {
     vi.mocked(simulateTransaction)
       .mockResolvedValueOnce({
         success: false,
-        error: { name: "NotGardenAdmin", message: "Not a garden admin", raw: "NotGardenAdmin" },
+        error: {
+          name: "NotGardenAdmin",
+          message: "Not a garden admin",
+          raw: "NotGardenAdmin",
+          reverted: true,
+        },
       })
       .mockResolvedValueOnce({
         success: false,
-        error: { name: "NetworkError", message: "Network error.", raw: "failed to fetch" },
+        error: {
+          name: "NetworkError",
+          message: "Network error.",
+          raw: "failed to fetch",
+          reverted: false,
+        },
+      })
+      // What an RPC's 503 parses to: the code is revokeRole's own selector, read from the request.
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          name: "UnknownError",
+          message: "Transaction failed with error code: 0xf13e5d09",
+          raw: "0xf13e5d09",
+          reverted: false,
+        },
       });
 
     await expect(chain.refusal(evaluatorOf(BEN))).resolves.toBe("Not a garden admin");
-    // A dropped connection refuses nothing: the run sends, and the send simulates again.
+    // A simulation that failed without a revert refuses nothing: the check fails, and the run
+    // stops before the wallet.
     await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow("Network error.");
+    await expect(chain.refusal(evaluatorOf(BEN))).rejects.toThrow(
+      "Transaction failed with error code: 0xf13e5d09"
+    );
   });
 
   it("keeps owner-only removals from a steward's signature, even when the roster was late", async () => {

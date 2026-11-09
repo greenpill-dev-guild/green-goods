@@ -490,6 +490,28 @@ describe("useCommitmentsToConfirm fallback group", () => {
     expect(result.current.fallback).toEqual([]);
   });
 
+  it("does not offer fallback when take-up removed the sole named confirmer and the creator can confirm", async () => {
+    mocks.getFallbackCandidates.mockResolvedValue([
+      {
+        commitment: commitment({
+          direction: "REQUEST",
+          leadProvider: CONTRIBUTOR,
+          counterparty: CONTRIBUTOR,
+          counterpartyKind: "INDIVIDUAL",
+          confirmers: [CONTRIBUTOR],
+          confirmationThreshold: 1,
+          protocolFallbackEnabled: true,
+        }),
+        activeContributors: [CONTRIBUTOR],
+      },
+    ]);
+
+    const result = await toConfirm();
+
+    expect(result.current.fallback).toEqual([]);
+    expect(result.current.count).toBe(0);
+  });
+
   it("keeps a row out of the fallback group when the garden can confirm it ordinarily", async () => {
     const row = commitment({ counterparty: GARDEN_A, counterpartyKind: "GARDEN" });
     answerWith([row]);

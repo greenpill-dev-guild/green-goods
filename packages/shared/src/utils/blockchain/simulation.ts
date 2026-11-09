@@ -8,7 +8,7 @@
  */
 
 import { simulateContract } from "@wagmi/core";
-import type { Abi, Address } from "viem";
+import { BaseError, ContractFunctionRevertedError, type Abi, type Address } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { parseContractError } from "../errors/contract-errors";
 
@@ -24,6 +24,13 @@ export interface SimulationResult {
     message: string;
     action?: string;
     raw: string;
+    /**
+     * Whether viem's error chain holds a `ContractFunctionRevertedError`, its sign that the
+     * contract ran the call and reverted it. False for any other failure, such as an RPC that
+     * could not be reached or answered with an error page; the parsed name and message cannot
+     * tell these apart.
+     */
+    reverted?: boolean;
   };
   /** Original simulation result from wagmi */
   result?: unknown;
@@ -96,6 +103,9 @@ export async function simulateTransaction(
         message: parsed.message,
         action: parsed.action,
         raw: parsed.raw,
+        reverted:
+          error instanceof BaseError &&
+          error.walk((cause) => cause instanceof ContractFunctionRevertedError) !== null,
       },
     };
   }
