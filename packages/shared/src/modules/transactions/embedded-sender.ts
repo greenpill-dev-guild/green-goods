@@ -19,13 +19,13 @@ import {
   ConnectorNotConnectedError,
   estimateGas as defaultEstimateGas,
   getAccount as defaultGetAccount,
-  waitForTransactionReceipt as defaultWaitForReceipt,
   writeContract as defaultWriteContract,
   type Config,
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { type EstimateTransactionGas, walletGasLimit } from "./gas-headroom";
+import { waitForReceipt } from "./receipt-wait";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -51,7 +51,8 @@ export interface EmbeddedSenderDeps {
   estimateGas?: EstimateTransactionGas;
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   writeContract: (config: Config, params: Record<string, unknown>) => Promise<Hex>;
-  waitForTransactionReceipt: (
+  /** Resolves with a reverted receipt rather than throwing; defaults to `waitForReceipt`. */
+  waitForTransactionReceipt?: (
     config: Config,
     params: {
       hash: Hex;
@@ -82,10 +83,9 @@ export class EmbeddedSender implements TransactionSender {
     this.erc7677ProxyUrl = erc7677ProxyUrl;
     this.deps = deps ?? {
       writeContract: defaultWriteContract as unknown as EmbeddedSenderDeps["writeContract"],
-      waitForTransactionReceipt:
-        defaultWaitForReceipt as unknown as EmbeddedSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
     };
+    this.deps.waitForTransactionReceipt ??= waitForReceipt;
     this.deps.signTypedData ??= (config, request) =>
       defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
         typeof defaultSignTypedData
@@ -191,7 +191,7 @@ export class EmbeddedSender implements TransactionSender {
     await options.onBroadcast?.(hash as `0x${string}`);
 
     let invalidReplacement: "cancelled" | "replaced" | undefined;
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, {
+    const receipt = await this.deps.waitForTransactionReceipt!(this.config, {
       hash,
       chainId,
       onReplaced: ({ reason }) => {

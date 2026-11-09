@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => ({
   estimateGas: vi.fn(async () => 1n),
 }));
 vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: mocks.simulate }));
-vi.mock("@wagmi/core", () => ({ waitForTransactionReceipt: mocks.waitReceipt }));
+vi.mock("../../modules/transactions/receipt-wait", () => ({ waitForReceipt: mocks.waitReceipt }));
 vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
 vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),

@@ -1,4 +1,4 @@
-import { getPublicClient, waitForTransactionReceipt } from "@wagmi/core";
+import { getPublicClient } from "@wagmi/core";
 import type { Address, Hex } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../app/logger";
@@ -7,6 +7,7 @@ import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { simulateGardenLeave } from "./garden-leave-availability";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
+import { waitForReceipt } from "../transactions/receipt-wait";
 import {
   TransactionConfirmationPendingError,
   TransactionRevertedError,
@@ -135,7 +136,7 @@ export function createDefaultLeaveGardenPorts(input: {
       );
     },
     receipt: (hash, chainId) =>
-      waitForTransactionReceipt(getWagmiConfig(), {
+      waitForReceipt(getWagmiConfig(), {
         hash,
         chainId,
         timeout: TX_RECEIPT_TIMEOUT_MS,

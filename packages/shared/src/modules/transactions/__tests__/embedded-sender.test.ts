@@ -15,9 +15,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
   createMockContractCall,
+  type FakeWagmiDeps,
 } from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
-import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
+import { EmbeddedSender } from "../embedded-sender";
 
 // ============================================
 // Test fixtures
@@ -32,7 +33,7 @@ const MOCK_ERC7677_URL = "https://paymaster.example.com/rpc";
 
 describe("EmbeddedSender", () => {
   let sender: EmbeddedSender;
-  let mockDeps: EmbeddedSenderDeps;
+  let mockDeps: FakeWagmiDeps;
 
   beforeEach(() => {
     vi.clearAllMocks();
