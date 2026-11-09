@@ -9,6 +9,12 @@ export interface ActPhaseLineProps {
   chainId: number;
   /** What the settled act did, in the row's own words. */
   confirmed: string;
+  /**
+   * Why the act can no longer go, said in place of the phase once an act has run, so the line
+   * announces it: a queued promise the queue refused when a send found it so. The caller keeps
+   * it back while an act is in flight; while idle it says nothing.
+   */
+  reason?: string | null;
   className?: string;
 }
 
@@ -56,9 +62,10 @@ export function actPhaseText(
  * waiting on the chain, done, left queued on this device, or failed with
  * nothing changed.
  */
-export function ActPhaseLine({ phase, chainId, confirmed, className }: ActPhaseLineProps) {
+export function ActPhaseLine({ phase, chainId, confirmed, reason, className }: ActPhaseLineProps) {
   const intl = useIntl();
-  const line = actPhaseText(intl, { phase, chainId, confirmed });
+  const saysReason = Boolean(reason) && phase.status !== "idle";
+  const line = saysReason ? (reason as string) : actPhaseText(intl, { phase, chainId, confirmed });
   if (line === null) return null;
   return (
     <p
@@ -67,7 +74,7 @@ export function ActPhaseLine({ phase, chainId, confirmed, className }: ActPhaseL
       data-phase={phase.status}
       className={cn(
         "type-meta",
-        phase.status === "failed" ? "text-error-dark" : "text-text-soft",
+        phase.status === "failed" && !saysReason ? "text-error-dark" : "text-text-soft",
         className
       )}
     >

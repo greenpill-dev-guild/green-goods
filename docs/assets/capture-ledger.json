@@ -289,7 +289,7 @@
     {
       "page": "docs/docs/community/welcome.mdx",
       "images": ["/img/screenshots/client-work-media-current.png"],
-      "capture_note": "Start with the work in front of you. The app asks what to photograph,\n    then gives you space for the details. Someone from your garden reviews the record you send.\n    Submit Work walks through it.\n    Source: local static Storybook, Client/Work/SubmitWork,\n    Media With Example Photo; 13 October 2026, 390 \u00d7 844. Fixture build is recorded in the Plan Hub image ledger.\n    Photo: Leon Brooks, Seedlings, public domain.\n    This is a fictional example, not a real Green Goods submission."
+      "capture_note": "Start with the work in front of you. The app asks what to photograph,\n    then gives you space for the details. Someone from your garden reviews the record you send.\n    Submit Work walks through it.\n    Source: local Storybook, Client/Work/SubmitWork,\n    Media With Example Photo; 8 November 2026, 390 \u00d7 844. Fixture build is recorded in the Plan Hub image ledger.\n    Photo: Leon Brooks, Seedlings, public domain.\n    This is a fictional example, not a real Green Goods submission."
     },
     {
       "page": "docs/docs/community/how-it-works.mdx",
@@ -358,7 +358,7 @@
     {
       "page": "docs/docs/community/gardener-guide/uploading-your-work.mdx",
       "images": ["/img/screenshots/client-work-media-current.png"],
-      "capture_note": "Step 2: check the photo rule. Read what this action asks you to photograph. The counter tells you when you have enough; Details takes you to the questions.\n    Source: local static Storybook, Client/Work/SubmitWork, Media With Example Photo.\n    Captured 13 October 2026, 390 \u00d7 844; fixture build recorded in the Plan Hub image ledger.\n    Photo: Leon Brooks, Seedlings, public domain.\n    The photo illustrates this fictional example. Use your own work photos when submitting."
+      "capture_note": "Step 2: check the photo rule. Read what this action asks you to photograph. The counter tells you when you have enough; Details takes you to the questions.\n    Source: local Storybook, Client/Work/SubmitWork, Media With Example Photo.\n    Captured 8 November 2026, 390 \u00d7 844; fixture build recorded in the Plan Hub image ledger.\n    Photo: Leon Brooks, Seedlings, public domain.\n    The photo illustrates this fictional example. Use your own work photos when submitting."
     },
     {
       "page": "docs/docs/community/gardener-guide/uploading-your-work.mdx",

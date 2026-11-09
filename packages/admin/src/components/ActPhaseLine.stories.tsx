@@ -50,3 +50,12 @@ export const Queued: Story = {
 export const Failed: Story = {
   args: { phase: { status: "failed", key: "row" } },
 };
+
+/** A send found the promise refused: the line announces why it can't go, not that it failed. */
+export const Reason: Story = {
+  args: {
+    phase: { status: "failed", key: "row" },
+    reason:
+      "Its season or campaign ended before it was sent, so it can no longer join. Nothing reached the pool. Discard it and make a new promise.",
+  },
+};

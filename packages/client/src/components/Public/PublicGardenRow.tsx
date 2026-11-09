@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type {
@@ -63,7 +64,12 @@ export function PublicGardenRow({
       )}
       className="@container h-full min-w-0"
     >
-      <div className="flex h-full min-w-0 flex-wrap content-between items-start gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
+      <div
+        className={
+          "flex h-full min-w-0 flex-wrap content-between items-start gap-4 py-4 sm:gap-5" +
+          (ENDOWMENT_DEPOSITS_ENABLED ? " @[28rem]:flex-nowrap" : " sm:@[28rem]:flex-nowrap")
+        }
+      >
         <Link
           to={`/gardens/${garden.slug}`}
           viewTransition
@@ -112,22 +118,32 @@ export function PublicGardenRow({
           </div>
         </Link>
 
-        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col">
+        <div
+          className={
+            ENDOWMENT_DEPOSITS_ENABLED
+              ? "flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col"
+              : "flex basis-full sm:@[28rem]:shrink-0 sm:@[28rem]:basis-auto sm:@[28rem]:self-center"
+          }
+        >
           <EditorialPrimaryButton
             size="sm"
-            className="flex-1 @[28rem]:flex-none"
+            className={
+              ENDOWMENT_DEPOSITS_ENABLED ? "flex-1 @[28rem]:flex-none" : "w-full sm:@[28rem]:w-auto"
+            }
             onClick={() => onSupport(garden, "donate")}
           >
             {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
           </EditorialPrimaryButton>
-          <EditorialGhostButton
-            variant="warm"
-            size="sm"
-            className="flex-1 @[28rem]:flex-none"
-            onClick={() => onSupport(garden, "endow")}
-          >
-            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-          </EditorialGhostButton>
+          {ENDOWMENT_DEPOSITS_ENABLED && (
+            <EditorialGhostButton
+              variant="warm"
+              size="sm"
+              className="flex-1 @[28rem]:flex-none"
+              onClick={() => onSupport(garden, "endow")}
+            >
+              {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+            </EditorialGhostButton>
+          )}
         </div>
       </div>
     </div>

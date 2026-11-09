@@ -187,6 +187,7 @@ export function proofComposerControllerFixture(
     contents: {
       photos: media.filter((file) => !file.type.startsWith("video/")).length,
       videos: media.filter((file) => file.type.startsWith("video/")).length,
+      documents: 0,
       voiceNotes: audioNotes.length,
       links: links.length,
       words: note.trim().length > 0,

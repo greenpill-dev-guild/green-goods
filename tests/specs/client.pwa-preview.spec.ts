@@ -13,9 +13,11 @@ async function observeLogoHandoff(page: Page) {
     const observe = () => {
       const fallback = document.getElementById("boot-fallback");
       const phase = fallback && !fallback.hidden ? "boot" : "react";
+      // The logo's slot, not the image: the loading screen's logo breathes (it
+      // scales), and the hand-over must hold where the logo is laid out.
       const logo = document.querySelector(
         phase === "boot" ? ".boot-pwa-logo-slot img" : '#root img[src="/icon.png"]'
-      );
+      )?.parentElement;
       const rect = logo?.getBoundingClientRect();
       if (rect && rect.width > 0 && rect.height > 0) {
         state[phase] = { top: rect.top, width: rect.width, height: rect.height };

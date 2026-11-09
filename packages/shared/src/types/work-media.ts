@@ -74,7 +74,10 @@ export interface WorkUploadCheckpoint {
  */
 export interface WorkMetadata {
   uploadConsent?: WorkUploadConsent;
+  /** The photos and videos, one per CID in the attestation's media list. */
   attachments?: Array<{ cid: string; type: string }>;
+  /** The documents, published beside the media list; read with `readPublishedWorkDocuments`. */
+  documents?: Array<{ cid: string; type: string; name: string; size: number }>;
   schemaVersion: "work_metadata_v2";
   domain: Domain;
   actionSlug: string;

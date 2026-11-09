@@ -51,6 +51,7 @@ const Work: React.FC = () => {
     control,
     detailsConfig,
     detailInputs,
+    documentClickRef,
     draft,
     ensureWorkSubmissionJourneyId,
     feedback,
@@ -150,6 +151,7 @@ const Work: React.FC = () => {
             minRequired={minRequired}
             onMediaClickRef={mediaClickRef}
             onCameraClickRef={cameraClickRef}
+            onDocumentClickRef={documentClickRef}
             isRecording={isRecording}
             recordingElapsed={recordingElapsed}
             brokenMediaIds={brokenMediaIds}

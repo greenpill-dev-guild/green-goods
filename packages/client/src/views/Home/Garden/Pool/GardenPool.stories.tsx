@@ -220,6 +220,24 @@ export const QueuedCreationWalletChecking: Story = {
   ),
 };
 
+/**
+ * A request the queue refused: its season ended before it was sent, so the chain could no
+ * longer keep it. It never sends, so the row leads with why and offers only Discard (DL-172).
+ */
+export const QueuedCreationRefused: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: withQueuedRequest({ ...QUEUED_REQUEST, failed: true, refusal: "cycle-ended" }, false),
+  play: async ({ canvasElement }) => {
+    const row = within(
+      canvasElement.querySelector("[data-component=PendingCreationRow]") as HTMLElement
+    );
+    await expect(row.getByText("Didn't send")).toBeVisible();
+    await expect(row.getByText(/Its season or campaign ended before it was sent/)).toBeVisible();
+    await expect(row.queryByRole("button", { name: "Try Again" })).toBeNull();
+    await expect(row.getByRole("button", { name: "Discard" })).toBeEnabled();
+  },
+};
+
 export const Settled: Story = {
   beforeEach: withController(
     gardenPoolControllerFixture(SETTLED_PROMISES, { liveness: "settled" })

@@ -62,7 +62,9 @@ export interface GardenNotifications {
   /**
    * Read every source of the events again, as the sheet does when it opens and from its Refresh
    * (DL-168). A source that is off (no pool yet, no grant, no steward role) stays off, and a read
-   * already running is joined rather than started over.
+   * already running is joined rather than started over. The account's roles gate the steward
+   * events, so a roster or steward-role read that failed is asked again too; one that answered
+   * stays, kept fresh by its own read.
    */
   refresh: () => void;
   /** A read is running, the first one or a refresh. */
@@ -262,11 +264,19 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   }, [clearMarks, notifications, scope]);
 
   // The work page's read decides for itself whether it can run (online, or its offline copy), and
-  // the join-request count needs a grant; the query reads answer whether they are on.
+  // the join-request count needs a grant; the query reads answer whether they are on. A failed
+  // role read is asked again unless it is already being asked; one that answered is left alone,
+  // since asking again would read every garden on the chain each time the sheet opens.
   const { refetch: refetchWorkPage } = workRead;
   const { refetch: readJoinRequestsAgain } = joinRequestRead;
+  const { refetch: readRosterAgain } = myGardens;
+  const { refetch: readStewardRoleAgain } = stewardRead;
+  const rosterFailed = myGardens.isError && !myGardens.isFetching;
+  const stewardRoleFailed = Boolean(stewardRead.error) && !stewardRead.isFetching;
   const refresh = useCallback(() => {
     refreshNow();
+    if (rosterFailed) readRosterAgain();
+    if (stewardRoleFailed) void readStewardRoleAgain();
     refetchWorkPage();
     readJoinRequestsAgain();
     for (const read of [activityRead, poolsRead, commitmentsRead, takeUpsRead]) {
@@ -274,6 +284,10 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     }
   }, [
     refreshNow,
+    rosterFailed,
+    readRosterAgain,
+    stewardRoleFailed,
+    readStewardRoleAgain,
     refetchWorkPage,
     readJoinRequestsAgain,
     activityRead,
@@ -313,6 +327,8 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
     refresh,
     // Every source a refresh reads again, so Refresh shows progress until the last has answered.
     isFetching:
+      myGardens.isFetching ||
+      stewardRead.isFetching ||
       workRead.isFetching ||
       activityRead.isFetching ||
       poolsRead.isFetching ||

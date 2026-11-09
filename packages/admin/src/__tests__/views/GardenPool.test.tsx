@@ -861,6 +861,40 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
   });
 
+  it("says why the queue refused a promise, and offers only Discard", () => {
+    mocks.controller = controller({
+      pendingCreates: [
+        {
+          jobId: "refused",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Prune the north beds",
+          unitLabel: "hours",
+          targetUnits: "6",
+          waitingForMembership: false,
+          failed: true,
+          refusal: "cycle-ended",
+          discardable: true,
+          createdAt: 1,
+        },
+      ],
+      // The Send Now that found the refusal reported a failure; the row still says why.
+      queuedPhase: (jobId: string) => ({ status: "failed", key: jobId }),
+    });
+    renderTab();
+    const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
+    expect(row).toHaveTextContent("Its season or campaign ended before it was sent");
+    expect(row).not.toHaveTextContent("You can try again");
+    // The send's live line now announces why, so a screen reader hears the refusal too.
+    const line = row.querySelector('[data-component="ActPhaseLine"]');
+    expect(line).toHaveAttribute("role", "status");
+    expect(line).toHaveTextContent("Its season or campaign ended before it was sent");
+    // Sending it again cannot help, so nothing offers to.
+    expect(within(row).queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
+  });
+
   it("lists a lapsed group's queued copy on its own to discard, with no Finish Creating", () => {
     mocks.controller = controller({
       // The group's deadline has passed.

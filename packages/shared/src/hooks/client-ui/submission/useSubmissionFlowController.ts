@@ -71,10 +71,14 @@ export interface SubmissionForwardAct {
   takeUpPrompts: number | null;
 }
 
-/** The Media stage's tools: the kind's own photo and camera inputs, and the voice note. */
+/**
+ * The Media stage's tools: the kind's own photo, camera and document inputs, and the voice
+ * note. Documents have their own picker, so the photo picker stays photos and videos.
+ */
 export interface SubmissionMediaTools {
   openGallery: () => void;
   openCamera: () => void;
+  openDocuments: () => void;
   toggleRecording: () => void;
   isRecording: boolean;
   /** Photos are still being prepared, so more can't be added yet. */
@@ -194,6 +198,10 @@ function workKind(controller: WorkSubmissionFlowController): SubmissionKindModul
         if (controller.cameraClickRef.current) controller.cameraClickRef.current();
         else clickInput("work-media-camera");
       },
+      openDocuments: () => {
+        if (controller.documentClickRef.current) controller.documentClickRef.current();
+        else clickInput("work-document-upload");
+      },
       toggleRecording: controller.toggleAudioRecording,
       isRecording: controller.isRecording,
       disabled: false,
@@ -263,6 +271,7 @@ function evidenceKind(
     mediaTools: {
       openGallery: () => clickInput("proof-media-upload"),
       openCamera: () => clickInput("proof-media-camera"),
+      openDocuments: () => clickInput("proof-document-upload"),
       toggleRecording: controller.toggleRecording,
       isRecording: controller.isRecording,
       disabled: controller.isProcessing,

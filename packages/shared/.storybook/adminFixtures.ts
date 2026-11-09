@@ -319,6 +319,9 @@ export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unkn
     queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: false, isInAllowlist: false, canDeploy: false },
   ],
+  // The Garden Creators card asks the registry who may manage its allowlist; a steward of other
+  // gardens may not, so no story reaches the RPC for it.
+  [queryKeys.role.allowlistManager(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID), false],
   [queryKeys.ens.name(STORYBOOK_STEWARD_ADDRESS_KEY), "steward.greengoods.eth"],
   [queryKeys.ens.avatar(STORYBOOK_STEWARD_ADDRESS_KEY), null],
 ];
@@ -336,6 +339,9 @@ export const STORYBOOK_ADMIN_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, u
     queryKeys.role.deploymentPermissions(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: true, isInAllowlist: true, canDeploy: true },
   ],
+  // The registry's owner may manage the allowlist, which holds it.
+  [queryKeys.role.allowlistManager(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID), true],
+  [queryKeys.role.allowlist(DEFAULT_CHAIN_ID), [STORYBOOK_DEPLOYER_ADDRESS]],
   [queryKeys.ens.name(STORYBOOK_DEPLOYER_ADDRESS_KEY), "deployer.greengoods.eth"],
   [queryKeys.ens.avatar(STORYBOOK_DEPLOYER_ADDRESS_KEY), null],
 ];

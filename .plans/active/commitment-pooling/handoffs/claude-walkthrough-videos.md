@@ -6,8 +6,8 @@
 - Machine lane: none
 - Owner: Claude
 - Branch signal: docs/commitment-pooling-walkthrough-videos
-- Current state: blocked until QA Pass 2 and post-QA documentation polish are complete
-- Linear context: PRD-728 (walkthrough-video lane, repurposed from docs-guides) under parent PRD-650
+- Current state: blocked until QA Pass 2 and post-QA documentation polish are complete, and deferred by Afo on 2026-11-07 to the demo-video packaging pass: quick, unedited recordings of these flows come first, and these finished walkthroughs follow
+- Linear context: MAR-46 (formerly PRD-728; walkthrough-video lane, repurposed from docs-guides) on the Marketing team under MAR-48, the demo-video packaging parent, beside the quick-recording streams MAR-38 (app, including the promise flows), MAR-16 (website donate and endow) and MAR-47 (admin, including the pool and season flows). Its lane sync is off because that parent sits outside this hub's tree; the hub's preserve-only sync just verifies the identifier.
 
 ## Inputs
 
@@ -54,6 +54,7 @@
 
 - QA Pass 2 is GREEN and the release-certification blocker list is empty or explicitly accepted.
 - PRD-727 documentation polish is complete and re-read.
+- The demo-video packaging pass (MAR-48) has started.
 - Authenticated Brave and the required real-device PWA path can reach the final states.
 - The recording checklist names route, role, locale, state, capture date, source SHA, and source handoff.
 - Captions/transcripts, privacy review, final path replay, and exact commands pass.

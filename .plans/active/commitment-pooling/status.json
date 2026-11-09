@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-10-21T18:13:18Z"
+    "updated_at": "2026-11-08T04:06:05Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -167,6 +167,7 @@
     "Current fourth-garden execution state (Decision Log #29, 2026-07-18, supersedes Decision Log #25 and Decision Log #27): the fourth garden is NOT selected. No candidate was ever selected, only options under consideration. The slot is open, its selection criteria retained, any candidate's identity confined to research-notes storage, and no artifact — repo, Linear, Google Doc, graphics, or presentation prose — names a fourth garden. The three confirmed candidates cover all four action domains on their own, so the four-domain claim stands without a fourth name. Never re-introduce a fourth-garden name without an explicit new selection decision; this has been reversed twice.",
     "Canonical historical mapping (2026-07-20): PRD-701 resolves to COM-3 and RESR-62 resolves to COM-7. Preserve the old IDs only in frozen archives and dated history; active instructions use COM-3 and COM-7.",
     "Canonical historical mapping extension (2026-07-24): PRD-735 resolves to COM-11 — the settlement-evidence lane issue moved to the Community team with parent PRD-650, the Follow On / Hardening milestone, and the 2026-09-30 due date unchanged. Active instructions use COM-11; PRD-735 stays only in dated history (corrections-log section 13).",
+    "Canonical historical mapping extension (2026-11-07): PRD-728 resolves to MAR-46 — the walkthrough-video lane issue moved to the Marketing team under MAR-48, the demo-video packaging parent, beside the quick-recording streams MAR-38 (app), MAR-16 (website) and MAR-47 (admin). Its parent now sits outside this hub's tree, so the lane's Linear sync is off; under preserve_existing, linear-sync only verifies the MAR-46 identifier. Active instructions use MAR-46; PRD-728 stays only in dated history (corrections log, 2026-11-07 entry).",
     "Audit reconciliation (register #39, 2026-07-20): native phases are Scope and Design, Build, Release, and Follow On / Hardening; July dry run and September Community/settlement evidence are separate operational checkpoints. Execution sub-lane Linear metadata is first-class; agent labels are derived only for ready agent-owned lanes. Docs remains blocked until repository, live Linear, and canonical Google Doc sources converge.",
     "Phase-date correction (register #40, 2026-07-20): Scope and Design closes with the reconciliation on 2026-07-20, Build closes 2026-07-31, Release is 2026-08-12, and Follow On / Hardening remains 2026-12-31. The July 31 dry run and September 30 Community/settlement-evidence deliveries remain operational checkpoints, not native phases. The Release date grants no broadcast authority and waives no tier gate.",
     "Build-to-Release broadcast correction (register #41, 2026-07-20; SUPERSEDED IN PART 2026-07-20 by register #42 — the 'nothing broadcasts during Build' position is reversed to tiered broadcast, non-value tier in Build/July): Build closes 2026-07-31 with implementation and readiness evidence only; nothing broadcasts during Build. The non-custodial/non-transferable pooling module, register, and schemas retain a narrower evidence gate, but every mainnet broadcast is a separately authorized Release action on or after 2026-08-12. Settlement and Safes retain the full value-tier gate.",
@@ -507,18 +508,18 @@
       "owner": "claude",
       "status": "blocked",
       "ready_when_dependencies_met": true,
-      "manual_blocked": false,
+      "manual_blocked": true,
       "branch": "docs/commitment-pooling-walkthrough-videos",
       "depends_on": ["qa_pass_2", "docs"],
       "handoff": "handoffs/claude-walkthrough-videos.md",
       "linear": {
-        "sync": true,
-        "issue": "PRD-728",
-        "parentIssue": "PRD-650",
+        "sync": false,
+        "issue": "MAR-46",
+        "parentIssue": "MAR-48",
         "milestone": "release"
       },
-      "linear_issues": ["PRD-728", "PRD-650"],
-      "blocked_reason": "Walkthrough videos are the final communication artifact and begin only after release-certification QA Pass 2 and the post-QA documentation polish are complete.",
+      "linear_issues": ["MAR-46", "MAR-48"],
+      "blocked_reason": "Walkthrough videos are the final communication artifact and begin only after release-certification QA Pass 2 and the post-QA documentation polish are complete. Afo also deferred them on 2026-11-07 to the demo-video packaging pass (MAR-48), which follows the quick, unedited recordings in MAR-38 (app), MAR-16 (website) and MAR-47 (admin).",
       "acceptance": "Record, edit, caption, and publish the approved app walkthrough set only from the QA-certified authenticated client PWA, admin console, and editorial surfaces; cover the core member, Garden Steward, evaluator, and operational journeys; show recovery and settlement-status distinctions without exposing secrets or unsupported live claims; include version/date/source SHA and accessible captions/transcripts; re-run each recorded path against the final build before completion."
     },
     "july_dry_run": {
@@ -1844,6 +1845,14 @@
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 follow-up: after Afo's explicit approval, added one corrective comment to completed PRD-796 at 18:12:59 UTC and read it back at 18:13:18 UTC (comment 13c5454a-85e9-42ac-a613-d5afaf38a3b9). Only the fulfilled-first issuance order is superseded; point 6's one-pool issuance/seed/exchange/service/liquidity/repair proof and the release gates remain active. PRD-796 stays Done with description and state history unchanged. This is a bounded comment sync, not a workspace-wide readback. Current policy notes reconciled; historical entries, lane states and manual blocks preserved."
+    },
+    {
+      "timestamp": "2026-11-08T04:06:05Z",
+      "actor": "claude",
+      "lane": "walkthrough_videos",
+      "status": "blocked",
+      "branch": "chore/update-pooling-walkthrough-notes",
+      "note": "Afo reorganized the demo-video issues on 2026-11-07 in a desktop session: quick, unedited recordings come first in MAR-38 (app), MAR-16 (website donate and endow) and MAR-47 (admin), and editing, captions and docs embedding wait for the packaging parent MAR-48. MAR-46, formerly PRD-728, moved there from PRD-650 on the Marketing team, in Backlog with its due date cleared (read back 2026-11-08T02:54Z). This lane is now manual_blocked behind that packaging pass, and its Linear sync is off because its parent sits outside this hub's tree; under preserve_existing, linear-sync only verifies the MAR-46 identifier. This change records the move and writes nothing to Linear; hub gates and the lane's acceptance text are unchanged."
     }
   ]
 }

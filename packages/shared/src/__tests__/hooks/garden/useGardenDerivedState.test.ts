@@ -71,7 +71,6 @@ describe("useGardenDerivedState", () => {
         roleMembers: members,
         selectedRange: "30d",
         activityFilter: "all",
-        memberSearch: "",
         section: undefined,
         canAccessCommunity,
         cookieJars,

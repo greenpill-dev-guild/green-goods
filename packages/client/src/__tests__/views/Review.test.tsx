@@ -46,6 +46,9 @@ vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
   isHeicFile: (file: File) => /\.hei[cf]$/i.test(file.name),
   isVideoFile: (file: File) => file.type.startsWith("video/"),
+  // Mirrors the real rule: a PDF, Markdown, text or Word file, by type or extension.
+  isWorkDocument: (file: File) =>
+    file.type === "application/pdf" || /\.(pdf|md|markdown|txt|docx?)$/i.test(file.name),
 }));
 
 vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({

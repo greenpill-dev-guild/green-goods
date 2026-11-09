@@ -51,6 +51,7 @@ const mockWorkFlowState = {
 const mockSetActiveTab = vi.fn();
 const mockExit = vi.fn();
 const mockToggleAudioRecording = vi.fn();
+const mockOpenDocuments = vi.fn();
 const mockSetSelectedDomain = vi.fn();
 const mockClearLinkIntent = vi.fn();
 const mockStartProps = vi.fn();
@@ -139,6 +140,7 @@ vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowControlle
     authMode: "wallet",
     brokenMediaIds: new Set(),
     cameraClickRef: { current: null },
+    documentClickRef: { current: mockOpenDocuments },
     canProceed: Boolean(mockSelection.gardenAddress && mockSelection.actionUID !== null),
     changeTab: mockSetActiveTab,
     detailsConfig: {},
@@ -296,6 +298,7 @@ const messages = {
   "app.garden.draft.retry": "Retry",
   "app.garden.submit.gardenLine": "Logging work in {garden}",
   "app.proof.media.gallery": "Choose from Your Photos",
+  "app.proof.media.documents": "Choose Documents",
   "app.proof.media.camera": "Take a Photo",
   "app.proof.media.record": "Record a voice note",
 };
@@ -424,11 +427,20 @@ describe("Garden (Work) View", () => {
     mockActiveTab = "Media";
     renderWithProviders();
 
-    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+    const tools = [
+      "Choose from Your Photos",
+      "Take a Photo",
+      "Record a voice note",
+      "Choose Documents",
+    ];
+    for (const tool of tools) {
       expect(screen.getByRole("button", { name: tool })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Record a voice note" }));
     expect(mockToggleAudioRecording).toHaveBeenCalledTimes(1);
+    // Documents open their own picker, so the photo picker stays photos and videos.
+    fireEvent.click(screen.getByRole("button", { name: "Choose Documents" }));
+    expect(mockOpenDocuments).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
     expect(mockSetActiveTab).toHaveBeenCalledWith("Intro");
     expect(mockExit).not.toHaveBeenCalled();

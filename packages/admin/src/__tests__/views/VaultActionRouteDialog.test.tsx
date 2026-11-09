@@ -36,6 +36,11 @@ vi.mock("@/components/Vault", () => ({
   ),
 }));
 
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("VaultActionRouteDialog address rejection and recovery", () => {
   beforeEach(() => {
     vi.clearAllMocks();

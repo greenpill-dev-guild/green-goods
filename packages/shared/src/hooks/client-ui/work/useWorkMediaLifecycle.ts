@@ -30,6 +30,7 @@ export function useWorkMediaLifecycle({
   const [brokenMediaIds, setBrokenMediaIds] = useState<Set<string>>(() => new Set());
   const brokenMediaIdsRef = useRef(brokenMediaIds);
   const mediaClickRef = useRef<(() => void) | null>(null);
+  const documentClickRef = useRef<(() => void) | null>(null);
   const cameraClickRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -110,6 +111,7 @@ export function useWorkMediaLifecycle({
   return {
     brokenMediaIds,
     cameraClickRef,
+    documentClickRef,
     markMediaPreviewFailed,
     mediaClickRef,
     removeBrokenMedia,

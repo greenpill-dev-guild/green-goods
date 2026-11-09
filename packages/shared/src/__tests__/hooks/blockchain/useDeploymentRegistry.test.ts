@@ -80,6 +80,31 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   getChain: () => ({ id: 11155111, name: "Sepolia" }),
 }));
 
+// The managing hook's write path
+const mockSendContractCall = vi.fn();
+const mockSimulateTransaction = vi.fn();
+const mockToastError = vi.fn();
+
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => ({ sendContractCall: mockSendContractCall }),
+}));
+
+vi.mock("../../../utils/blockchain/simulation", () => ({
+  simulateTransaction: (...args: unknown[]) => mockSimulateTransaction(...args),
+}));
+
+vi.mock("../../../components/toast", () => ({
+  toastService: { error: (...args: unknown[]) => mockToastError(...args) },
+}));
+
+vi.mock("../../../hooks/app/useToastAction", () => ({
+  useToastAction: () => ({ executeWithToast: (action: () => Promise<unknown>) => action() }),
+}));
+
+vi.mock("react-intl", () => ({
+  useIntl: () => ({ formatMessage: ({ id }: { id: string }) => id }),
+}));
+
 // Mock address comparison
 vi.mock("../../../utils/blockchain/address", () => ({
   compareAddresses: (a: string, b: string) => a?.toLowerCase() === b?.toLowerCase(),
@@ -102,7 +127,15 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
-import { useDeploymentRegistry } from "../../../hooks/blockchain/useDeploymentRegistry";
+import {
+  useDeploymentRegistry,
+  useGardenCreators,
+} from "../../../hooks/blockchain/useDeploymentRegistry";
+import {
+  TransactionConfirmationPendingError,
+  TransactionRevertedError,
+} from "../../../modules/transactions/types";
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 
 // ============================================
 // Tests
@@ -333,6 +366,177 @@ describe("useDeploymentRegistry", () => {
 
       // Restore the spy to avoid leaking into other tests
       spy.mockRestore();
+    });
+  });
+
+  describe("useGardenCreators", () => {
+    const creator = "0x2222222222222222222222222222222222222222" as const;
+    const registryAnswers = (answers: {
+      canManage: boolean | Error;
+      allowlist?: string[] | Error;
+    }) =>
+      mockReadContract.mockImplementation(async ({ functionName }: { functionName: string }) => {
+        const answer =
+          functionName === "canManageAllowlist" ? answers.canManage : (answers.allowlist ?? []);
+        if (answer instanceof Error) throw answer;
+        return answer;
+      });
+
+    beforeEach(() => {
+      mockSendContractCall.mockReset();
+      mockSimulateTransaction.mockReset();
+      mockToastError.mockReset();
+    });
+
+    it("reads the allowlist for an account the registry lets manage it", async () => {
+      registryAnswers({ canManage: true, allowlist: [creator] });
+
+      const { result } = renderHookWithQueryClient(() => useGardenCreators());
+
+      await waitFor(() => expect(result.current.creators).toEqual([creator]));
+      expect(result.current.canManage).toBe(true);
+      expect(mockReadContract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          functionName: "canManageAllowlist",
+          args: [MOCK_ADDRESSES.deployer.toLowerCase()],
+        })
+      );
+    });
+
+    it("treats a registry that cannot answer as no permission and leaves the list unread", async () => {
+      // What a registry from before this check does: it reverts on the unknown function.
+      registryAnswers({ canManage: new Error("execution reverted") });
+
+      const { result } = renderHookWithQueryClient(() => useGardenCreators());
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.canManage).toBe(false);
+      expect(result.current.creators).toEqual([]);
+      expect(mockReadContract).not.toHaveBeenCalledWith(
+        expect.objectContaining({ functionName: "getAllowlist" })
+      );
+    });
+
+    it("simulates, then sends the add, and reports that the wallet accepted", async () => {
+      registryAnswers({ canManage: true, allowlist: [] });
+      mockSimulateTransaction.mockResolvedValue({ success: true });
+      mockSendContractCall.mockResolvedValue({ hash: `0x${"1".repeat(64)}`, sponsored: false });
+
+      const { result } = renderHookWithQueryClient(() => useGardenCreators());
+      await waitFor(() => expect(result.current.canManage).toBe(true));
+
+      await expect(result.current.addCreator(creator)).resolves.toBe(true);
+
+      expect(mockSendContractCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          address: mockDeploymentRegistryAddress,
+          // Bound to the account the simulation and the permission read were for.
+          account: MOCK_ADDRESSES.deployer,
+          functionName: "addToAllowlist",
+          args: [creator],
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
+      );
+      expect(mockSimulateTransaction.mock.invocationCallOrder[0]).toBeLessThan(
+        mockSendContractCall.mock.invocationCallOrder[0]
+      );
+    });
+
+    it.each([
+      {
+        when: "the registry refuses the change",
+        reverted: true,
+        says: "You can't change this list",
+      },
+      {
+        // An RPC that answers with an error page parses to a code, which would read as a refusal.
+        when: "the check itself cannot run",
+        reverted: false,
+        says: "cockpit.community.gardenCreators.checkFailed",
+      },
+    ])("never opens the wallet when $when", async ({ reverted, says }) => {
+      registryAnswers({ canManage: true, allowlist: [creator] });
+      mockSimulateTransaction.mockResolvedValue({
+        success: false,
+        error: { name: "UnauthorizedCaller", message: "You can't change this list", reverted },
+      });
+
+      const { result } = renderHookWithQueryClient(() => useGardenCreators());
+      await waitFor(() => expect(result.current.canManage).toBe(true));
+
+      await expect(result.current.removeCreator(creator)).resolves.toBe(false);
+
+      expect(mockSendContractCall).not.toHaveBeenCalled();
+      expect(mockToastError).toHaveBeenCalledWith(expect.objectContaining({ message: says }));
+    });
+
+    /** The sender reaches the point where the call could leave, then ends as `outcome` does. */
+    const afterBroadcast =
+      (outcome: () => Promise<unknown>) =>
+      async (_call: unknown, options?: { onBeforeBroadcast?: () => Promise<void> }) => {
+        await options?.onBeforeBroadcast?.();
+        return outcome();
+      };
+
+    it.each([
+      {
+        when: "the sender is still waiting for a confirmation",
+        send: async () => {
+          throw new TransactionConfirmationPendingError();
+        },
+      },
+      {
+        when: "a wallet queues the call, as a Safe does",
+        send: async () => ({
+          hash: `0x${"2".repeat(64)}`,
+          sponsored: false,
+          confirmation: "pending",
+        }),
+      },
+      {
+        when: "the receipt cannot be read after the call went out",
+        send: afterBroadcast(async () => {
+          throw new Error("HTTP request failed. Status: 503");
+        }),
+      },
+    ])("counts a change that may still land as sent, never offering it again, when $when", async ({
+      send,
+    }) => {
+      registryAnswers({ canManage: true, allowlist: [] });
+      mockSimulateTransaction.mockResolvedValue({ success: true });
+      mockSendContractCall.mockImplementation(send);
+
+      const { result } = renderHookWithQueryClient(() => useGardenCreators());
+      await waitFor(() => expect(result.current.canManage).toBe(true));
+
+      await expect(result.current.addCreator(creator)).resolves.toBe(true);
+    });
+
+    it.each([
+      { when: "the person declines the signature", error: new Error("User rejected the request") },
+      {
+        when: "the receipt shows a revert",
+        error: new TransactionRevertedError(`0x${"3".repeat(64)}`),
+      },
+      {
+        // viem refused the write for the wallet's network and the check before a retry failed.
+        when: "the wallet changed network and the write was not tried again",
+        error: new WalletWriteNotRetriedError(new Error("Switch to Arbitrum failed")),
+      },
+    ])("reports the change as not sent when $when", async ({ error }) => {
+      registryAnswers({ canManage: true, allowlist: [] });
+      mockSimulateTransaction.mockResolvedValue({ success: true });
+      mockSendContractCall.mockImplementation(
+        afterBroadcast(async () => {
+          throw error;
+        })
+      );
+
+      const { result } = renderHookWithQueryClient(() => useGardenCreators());
+      await waitFor(() => expect(result.current.canManage).toBe(true));
+
+      await expect(result.current.addCreator(creator)).resolves.toBe(false);
+      await waitFor(() => expect(result.current.isWriting).toBe(false));
     });
   });
 });

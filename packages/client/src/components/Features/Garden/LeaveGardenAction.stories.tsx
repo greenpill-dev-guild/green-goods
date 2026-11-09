@@ -37,6 +37,7 @@ export const Owner: Story = {
       hasRole: true,
       isLoading: false,
       error: null,
+      isFetching: false,
       refetch: async () => undefined,
     });
     return resetHookMocks(useHasRole);

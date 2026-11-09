@@ -4,6 +4,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowRightSLine,
   RiCameraFill,
+  RiFileTextFill,
   RiImageFill,
   RiMicLine,
   RiStopFill,
@@ -47,7 +48,8 @@ export function FlowBar({
         )}
       >
         {status}
-        <div className="flex flex-row gap-4 w-full">
+        {/* Four tools and the act share one row, so the tools sit closer than a lone act. */}
+        <div className={cn("flex flex-row w-full", tools ? "gap-2" : "gap-4")}>
           {tools}
           {children}
         </div>
@@ -107,29 +109,39 @@ export function FlowForward({
       className="w-full whitespace-normal [text-wrap:balance]"
       size="lg"
       type={form ? "submit" : "button"}
-      trailingIcon={
-        loading ? undefined : <RiArrowRightSLine className="h-5 w-5" aria-hidden="true" />
-      }
     >
-      {label}
+      {/* Beside the four media tools on a narrow phone, the act gives up its arrow, then its
+          word, which stays its name for screen readers, rather than spilling out of itself. */}
+      <span className="@container flex w-full min-w-0 items-center justify-center gap-2">
+        <span className="min-w-0 @max-[60px]:sr-only">{label}</span>
+        {loading ? null : (
+          <RiArrowRightSLine
+            className="h-5 w-5 shrink-0 @min-[60px]:@max-[88px]:hidden"
+            aria-hidden="true"
+          />
+        )}
+      </span>
     </Button>
   );
 }
 
 /**
- * The media step's tools: your photos, the camera, and a voice note, which
- * fills with the error colour while it records.
+ * The media step's tools: your photos and videos, the camera, a voice note, which fills
+ * with the error colour while it records, and your documents. Documents have a picker of
+ * their own, so the photo picker keeps the phone's photo grid.
  */
 export function MediaTools({
   onGallery,
   onCamera,
   onToggleRecording,
+  onDocuments,
   isRecording,
   disabled = false,
 }: {
   onGallery: () => void;
   onCamera: () => void;
   onToggleRecording: () => void;
+  onDocuments: () => void;
   isRecording: boolean;
   /** Photos are still being prepared, so more can't be added yet. */
   disabled?: boolean;
@@ -169,6 +181,14 @@ export function MediaTools({
             <RiMicLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />
           )
         }
+      />
+      <IconButton
+        onClick={onDocuments}
+        disabled={disabled}
+        aria-label={formatMessage({ id: "app.proof.media.documents" })}
+        emphasis="secondary"
+        size="lg"
+        icon={<RiFileTextFill className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
       />
     </>
   );

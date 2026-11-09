@@ -9,6 +9,7 @@ import {
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
 } from "@green-goods/shared/modules/work/media-processing";
 import { RiFileTextLine, RiGroupLine, RiLinksLine } from "@remixicon/react";
 import { type ReactNode, useId, useMemo } from "react";
@@ -16,7 +17,11 @@ import { useIntl } from "react-intl";
 
 import { FormCard } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
-import { PendingPhotoTile, type PendingPhotoState } from "@/components/Features/Work";
+import {
+  PendingPhotoTile,
+  type PendingPhotoState,
+  WorkDocumentRow,
+} from "@/components/Features/Work";
 
 export interface ProofReviewProps {
   media: File[];
@@ -85,15 +90,17 @@ export function ProofReview({
   const switchTitleId = useId();
   const switchBodyId = useId();
 
-  const { shown, pending } = useMemo(
-    () => ({
+  const { shown, pending, documents } = useMemo(() => {
+    const visual = media.filter((file) => !isWorkDocument(file));
+    return {
       // Photos and videos in the order they were added; a HEIC photo still
       // waiting to convert has no preview yet, so it waits below as a tile.
-      shown: media.filter((file) => isVideoFile(file) || !isHeicFile(file)),
-      pending: media.filter((file) => !isVideoFile(file) && isHeicFile(file)),
-    }),
-    [media]
-  );
+      shown: visual.filter((file) => isVideoFile(file) || !isHeicFile(file)),
+      pending: visual.filter((file) => !isVideoFile(file) && isHeicFile(file)),
+      // Documents are read, not looked at, so they list as rows rather than slides.
+      documents: media.filter((file) => isWorkDocument(file)),
+    };
+  }, [media]);
   // The composer owns these URLs and revokes them once the proof is queued.
   const urls = useMemo(
     () => shown.map((file) => mediaResourceManager.getOrCreateUrl(file, "proof")),
@@ -201,6 +208,22 @@ export function ProofReview({
             />
           ))}
         </div>
+      ) : null}
+
+      {documents.length > 0 ? (
+        <>
+          {heading(formatMessage({ id: "app.work.documents" }))}
+          <div className="flex flex-col gap-2">
+            {documents.map((file) => (
+              <WorkDocumentRow
+                key={getWorkMediaId(file)}
+                name={file.name}
+                type={file.type}
+                size={file.size}
+              />
+            ))}
+          </div>
+        </>
       ) : null}
 
       {audioNotes.length > 0 ? (

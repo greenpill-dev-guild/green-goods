@@ -78,6 +78,10 @@ function executionDependencies(
     readCommitmentId: vi.fn().mockResolvedValue(0n),
     readCommitment: vi.fn(),
     readWorkLinkPayloadHash: vi.fn().mockResolvedValue(ZERO_HASH),
+    // The chain holds every action and season open, on its own clock.
+    readActionWindow: vi.fn().mockResolvedValue({ startTime: 1n, endTime: 4_000_000_000n }),
+    readCycleWindow: vi.fn().mockResolvedValue({ state: "OPEN", endTime: 4_000_000_000n }),
+    readChainHead: vi.fn().mockResolvedValue({ number: 1n, timestamp: 1_900_000_000 }),
     send: vi.fn().mockResolvedValue(`0x${"12".repeat(32)}`),
     ...overrides,
   };

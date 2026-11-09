@@ -983,6 +983,26 @@ describe("useCommitmentDialogController", () => {
     expect(again.result.current.can.confirmOrdinary).toBe(false);
   });
 
+  it("uses the effective confirmer rule in the inspector without changing the indexed terms", async () => {
+    const indexed = detail({
+      onchainState: "READY_FOR_CONFIRMATION",
+      state: "READY_FOR_CONFIRMATION",
+      derivedState: "READY_FOR_CONFIRMATION",
+      direction: "REQUEST",
+      creator: TAKER,
+      counterparty: LEAD,
+      confirmers: [LEAD],
+      protocolFallbackEnabled: true,
+      contributorsFrozen: true,
+    });
+    mocks.getCommitmentDetail.mockResolvedValue(indexed);
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.commitment?.confirmers).toEqual([]));
+    expect(result.current.can.confirmFallback).toBe(false);
+    expect(indexed.commitment.confirmers).toEqual([LEAD]);
+  });
+
   // GuardLib.requirePoolState(Open) and freezeAndReady's Open-cycle check both
   // gate on state a failed read cannot report, so the acts wait for the read.
   it("fails closed on the acts a failed pool or cycle read cannot vouch for", async () => {
@@ -1039,7 +1059,7 @@ describe("useCommitmentDialogController", () => {
 
     // As is a named confirmer who is neither party.
     mocks.getCommitmentDetail.mockResolvedValue(
-      detail({ ...gardenClaimed, confirmers: [STEWARD] })
+      detail({ ...gardenClaimed, leadProvider: LEAD, confirmers: [STEWARD] })
     );
     const named = render();
     await waitFor(() => expect(named.result.current.commitment).not.toBeNull());

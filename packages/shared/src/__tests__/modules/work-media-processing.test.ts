@@ -215,15 +215,43 @@ describe("normalizeWorkMediaFiles", () => {
   });
 
   it("rejects unsupported files before they enter the draft", async () => {
-    const text = new File(["notes"], "notes.txt", { type: "text/plain" });
+    const sheet = new File(["PK"], "yields.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
 
-    const result = await normalizeWorkMediaFiles([text]);
+    const result = await normalizeWorkMediaFiles([sheet]);
 
     expect(result.accepted).toEqual([]);
     expect(result.converted).toEqual([]);
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0].reason).toBe("unsupported");
     expect(heicToMocks.heicTo).not.toHaveBeenCalled();
+  });
+
+  it("keeps a document only when its bytes match its type, and queues it as it was picked", async () => {
+    const pdf = new File(["%PDF-1.7\n"], "certificate.pdf", { type: "application/pdf" });
+    const notes = new File(["# Site report\n\nPanels: 12"], "report.md", { type: "" });
+    const renamed = new File(["<html><script></script>"], "invoice.pdf", {
+      type: "application/pdf",
+    });
+    const scan = new File(["%PDF-1.7\n"], "scan.pdf", { type: "application/pdf" });
+    Object.defineProperty(scan, "size", { value: 10 * 1024 * 1024 + 1 });
+
+    const result = await normalizeWorkMediaFiles([pdf, notes, renamed, scan]);
+
+    // The Markdown file takes the type its extension names, so its upload can be signed for it.
+    expect(result.accepted.map(({ file }) => [file.name, file.type])).toEqual([
+      ["certificate.pdf", "application/pdf"],
+      ["report.md", "text/markdown"],
+    ]);
+    expect(result.rejected.map(({ file, reason }) => [file.name, reason])).toEqual([
+      ["invoice.pdf", "unsupported"],
+      ["scan.pdf", "too_large"],
+    ]);
+    const compressor = { shouldCompress: vi.fn(() => true), compressImages: vi.fn() };
+    const prepared = await prepareMediaForUpload([pdf], compressor);
+    expect(compressor.compressImages).not.toHaveBeenCalled();
+    expect(await prepared.files[0].text()).toBe("%PDF-1.7\n");
   });
 
   it("returns stable media IDs and safe batch metadata", () => {
@@ -238,6 +266,7 @@ describe("normalizeWorkMediaFiles", () => {
       size_buckets: ["0-1mb"],
       image_count: 1,
       video_count: 1,
+      document_count: 0,
     });
   });
 });

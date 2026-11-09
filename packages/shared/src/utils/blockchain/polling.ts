@@ -70,8 +70,8 @@ function getQueryDataCount(queryKey: readonly unknown[]): number {
  *
  * @example
  * ```typescript
- * // After transaction confirmation
- * await waitForTransactionReceipt(wagmiConfig, { hash, chainId });
+ * // After transaction confirmation (check the receipt's status: it may have reverted)
+ * const receipt = await waitForReceipt(wagmiConfig, { hash, chainId });
  *
  * // Poll for indexer updates with smart early exit
  * await pollQueriesAfterTransaction({

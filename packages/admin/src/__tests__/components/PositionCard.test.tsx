@@ -104,6 +104,11 @@ const defaultProps = {
   onWithdraw: vi.fn(),
 };
 
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("PositionCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();

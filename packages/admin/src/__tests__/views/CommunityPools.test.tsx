@@ -107,7 +107,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsControll
     sourcePaused: null,
     owner: null,
     isSettlementOwner: false,
-    isDeployer: false,
+    isProtocolTeam: false,
     canConfigureDelivery: false,
     showControl: false,
     isLoading: false,
@@ -120,6 +120,9 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsControll
   }),
 }));
 
+vi.mock("@/views/Community/components/GardenCreatorsCard", () => ({
+  GardenCreatorsPanel: () => <div data-testid="garden-creators" />,
+}));
 vi.mock("@/views/Community/components/ProtocolFundingOperationsPanel", () => ({
   ProtocolFundingOperationsPanel: ({
     renderLayout,
@@ -188,6 +191,7 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
     expect(screen.queryByTestId("protocol-pool")).not.toBeInTheDocument();
     expect(screen.queryByTestId("protocol-confirm-queue")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("garden-creators")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(mocks.confirmQueueProps).toEqual([]);
   });
@@ -197,6 +201,7 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-funding-operations")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-confirm-queue")).toBeInTheDocument();
+    expect(screen.getByTestId("garden-creators")).toBeInTheDocument();
     // The protocol pool's console is that garden's own Promises tab, not embedded here.
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
   });

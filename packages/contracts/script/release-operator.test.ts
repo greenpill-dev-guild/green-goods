@@ -17,9 +17,11 @@ import {
   parseSessionOptions,
   plannedStageBoundaries,
   RELEASE_OPERATOR_COMMANDS,
+  requireCompleteCheckpoint,
   tokenizeOperatorCommand,
   transactionHashFromBoundaryOutput,
 } from "./release-operator";
+import { buildReleaseLock, CONTRACTS_ROOT, loadReleaseManifest, type ReleaseLock } from "./utils/release-manifest";
 
 // Contract-session unit tests never load developer credentials.
 vi.mock("dotenv", () => ({ config: vi.fn(), default: { config: vi.fn() } }));
@@ -148,6 +150,40 @@ describe("release operator session", () => {
     expect(() => plannedStageBoundaries("garden-safes", 19)).toThrow(/but its plan defines 18/);
     expect(() => plannedStageBoundaries("garden-safes", -1)).toThrow(/non-negative integer/);
     expect(() => plannedStageBoundaries("garden-safes", 1.5)).toThrow(/non-negative integer/);
+  });
+
+  it("resumes a completed checkpoint recorded under the frozen release manifest hash", () => {
+    const frozen = JSON.parse(
+      fs.readFileSync(path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json"), "utf8"),
+    ) as ReleaseLock;
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-operator-resume-"));
+    temporaryDirectories.push(directory);
+    const planPath = path.join(directory, "pooling-transaction-plan.json");
+    const checkpointPath = path.join(directory, "pooling-checkpoint.json");
+    const bound = {
+      releaseId: frozen.releaseId,
+      manifestHash: frozen.manifestHash,
+      stage: "pooling",
+      network: "arbitrum",
+    };
+    fs.writeFileSync(
+      planPath,
+      `${JSON.stringify({ ...bound, sourceCommit: frozen.sourceCommit, transactions: [{ label: "library:A", nonce: 7 }] })}\n`,
+    );
+    const receipt = {
+      step: 1,
+      label: "library:A",
+      expectedNonce: 7,
+      transactionHash: `0x${"a".repeat(64)}`,
+      blockNumber: 9,
+    };
+    fs.writeFileSync(checkpointPath, `${JSON.stringify({ ...bound, lastVerifiedStep: 1, completed: [receipt] })}\n`);
+
+    const lock = buildReleaseLock(loadReleaseManifest());
+    expect(requireCompleteCheckpoint(planPath, checkpointPath, lock).evidence).toEqual([receipt]);
+    // Any edit to the frozen manifest moves this hash and orphans every stored checkpoint.
+    const edited = { ...lock, manifestHash: `0x${"0".repeat(64)}` };
+    expect(() => requireCompleteCheckpoint(planPath, checkpointPath, edited)).toThrow(/mismatched evidence/);
   });
 
   it("binds each ownership boundary to the freshly observed pending nonce", () => {

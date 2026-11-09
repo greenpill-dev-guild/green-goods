@@ -5,6 +5,7 @@ import {
   getWorkMediaId,
   isHeicFile,
   isVideoFile,
+  isWorkDocument,
 } from "@green-goods/shared/modules/work/media-processing";
 import type { Action, Garden, WorkInput } from "@green-goods/shared/types/domain";
 import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
@@ -12,7 +13,12 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckboxCircleFill, RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { PendingPhotoTile, type PendingPhotoState, WorkView } from "@/components/Features/Work";
+import {
+  PendingPhotoTile,
+  type PendingPhotoState,
+  WorkDocumentRow,
+  WorkView,
+} from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
@@ -128,16 +134,17 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       : []),
   ];
 
-  // Separate photos from videos (both can coexist)
+  // Separate photos from videos and documents (all can coexist)
   // A HEIC photo still waiting to convert has no preview, so it shows as a placeholder.
-  const { photoFiles, pendingPhotos, videoFiles } = useMemo(
-    () => ({
-      photoFiles: images.filter((f) => !isVideoFile(f) && !isHeicFile(f)),
-      pendingPhotos: images.filter((f) => !isVideoFile(f) && isHeicFile(f)),
+  const { photoFiles, pendingPhotos, videoFiles, documentFiles } = useMemo(() => {
+    const photos = images.filter((f) => !isVideoFile(f) && !isWorkDocument(f));
+    return {
+      photoFiles: photos.filter((f) => !isHeicFile(f)),
+      pendingPhotos: photos.filter((f) => isHeicFile(f)),
       videoFiles: images.filter(isVideoFile),
-    }),
-    [images]
-  );
+      documentFiles: images.filter((f) => isWorkDocument(f)),
+    };
+  }, [images]);
 
   const brokenCount = useMemo(
     () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
@@ -251,6 +258,22 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
             >
               <track kind="captions" />
             </video>
+          ))}
+        </div>
+      )}
+
+      {documentFiles.length > 0 && (
+        <div className="padded flex flex-col gap-2">
+          <p className="text-xs tracking-tight mb-1 uppercase text-text-sub">
+            {intl.formatMessage({ id: "app.work.documents" })}
+          </p>
+          {documentFiles.map((file) => (
+            <WorkDocumentRow
+              key={getWorkMediaId(file)}
+              name={file.name}
+              type={file.type}
+              size={file.size}
+            />
           ))}
         </div>
       )}
