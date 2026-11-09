@@ -16,6 +16,7 @@ import {
 
 export const CONTRACTS_ROOT = path.join(__dirname, "../..");
 export const RELEASE_MANIFEST_PATH = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.json");
+export const KARMA_UPGRADE_PIN_PATH = path.join(CONTRACTS_ROOT, "config/karma-gap-module-pin.json");
 export const PRODUCTION_ARTIFACT_ROOT = path.join(CONTRACTS_ROOT, ".generated/foundry/out/production");
 
 export type ReleaseNetwork = "arbitrum" | "celo";
@@ -262,6 +263,56 @@ export function loadReleaseManifest(filePath = RELEASE_MANIFEST_PATH): ReleaseMa
   const manifest = readJson<ReleaseManifest>(filePath);
   validateReleaseManifest(manifest);
   return manifest;
+}
+
+export type ExistingProxyUpgrade = ReleaseManifest["existingProxyUpgrades"][number];
+
+/**
+ * The creation-code pin for an existing proxy upgrade whose implementation was rebuilt after the
+ * release was frozen. It lives outside the manifest because every manifest byte feeds the release
+ * lock's `manifestHash`, which stored release plans and checkpoints are bound to. It applies only
+ * while the manifest still holds the exact pin it supersedes, so a later edit to either fails closed.
+ */
+export interface ExistingUpgradePin {
+  upgrade: string;
+  supersedesCreationCodeHash: string;
+  expectedImplementationCreationCodeHash: string;
+  reason: string;
+}
+
+export function loadKarmaUpgradePin(filePath = KARMA_UPGRADE_PIN_PATH): ExistingUpgradePin {
+  const pin = readJson<ExistingUpgradePin>(filePath);
+  if (pin.upgrade !== "KarmaGAPModule") throw new Error(`${filePath} must pin the KarmaGAPModule upgrade`);
+  for (const [label, value] of Object.entries({
+    supersedesCreationCodeHash: pin.supersedesCreationCodeHash,
+    expectedImplementationCreationCodeHash: pin.expectedImplementationCreationCodeHash,
+  })) {
+    if (typeof value !== "string" || !/^0x[0-9a-f]{64}$/iu.test(value)) {
+      throw new Error(`${filePath} ${label} must be an exact bytes32`);
+    }
+  }
+  if (pin.supersedesCreationCodeHash.toLowerCase() === pin.expectedImplementationCreationCodeHash.toLowerCase()) {
+    throw new Error(`${filePath} must pin a different build from the one it supersedes`);
+  }
+  if (typeof pin.reason !== "string" || pin.reason.trim() === "") {
+    throw new Error(`${filePath} must say why the implementation was rebuilt`);
+  }
+  return pin;
+}
+
+/** The creation-code hash an existing proxy upgrade's implementation must build to. */
+export function expectedUpgradeCreationCodeHash(
+  upgrade: ExistingProxyUpgrade,
+  pin: ExistingUpgradePin = loadKarmaUpgradePin(),
+): string {
+  if (upgrade.name !== pin.upgrade) return upgrade.expectedImplementationCreationCodeHash;
+  if (upgrade.expectedImplementationCreationCodeHash.toLowerCase() !== pin.supersedesCreationCodeHash.toLowerCase()) {
+    throw new Error(
+      `${upgrade.name} pin supersedes ${pin.supersedesCreationCodeHash}, but the frozen release manifest pins ` +
+        `${upgrade.expectedImplementationCreationCodeHash}; review both before changing either`,
+    );
+  }
+  return pin.expectedImplementationCreationCodeHash;
 }
 
 function requireAddress(value: unknown, label: string): asserts value is string {
@@ -697,9 +748,9 @@ const REBUILD_PRODUCTION_ARTIFACTS =
 // Every value here mixes compiled bytecode with manifest inputs: the CREATE2 factory, constructor
 // arguments, and the initializer owner all feed the creation code and the addresses derived from it.
 // A fresh build settles the bytecode half, so name both causes rather than only the bytecode.
-function artifactDriftError(label: string, frozen: string, computed: string): Error {
+function artifactDriftError(label: string, frozen: string, computed: string, source = "manifest"): Error {
   return new Error(
-    `${label} drift: manifest=${frozen} computed=${computed}; ${REBUILD_PRODUCTION_ARTIFACTS} and retry. ` +
+    `${label} drift: ${source}=${frozen} computed=${computed}; ${REBUILD_PRODUCTION_ARTIFACTS} and retry. ` +
       "Drift that survives a fresh build means the compiled bytecode or a manifest input changed.",
   );
 }
@@ -864,6 +915,7 @@ function directLibraryReferences(artifact: FoundryArtifact): Array<{ source: str
 }
 
 function assertExistingUpgradeArtifacts(manifest: ReleaseManifest): void {
+  const pin = loadKarmaUpgradePin();
   for (const upgrade of manifest.existingProxyUpgrades) {
     const artifact = loadArtifact(upgrade.finalArtifact);
     const linkedCreation = linkBytecode(
@@ -877,8 +929,10 @@ function assertExistingUpgradeArtifacts(manifest: ReleaseManifest): void {
       AbiCoder.defaultAbiCoder().encode(constructorTypes, upgrade.constructorArguments),
     ]);
     const actual = keccak256(creation);
-    if (actual.toLowerCase() !== upgrade.expectedImplementationCreationCodeHash.toLowerCase()) {
-      throw artifactDriftError(`${upgrade.name} creation-code`, upgrade.expectedImplementationCreationCodeHash, actual);
+    const expected = expectedUpgradeCreationCodeHash(upgrade, pin);
+    if (actual.toLowerCase() !== expected.toLowerCase()) {
+      const source = upgrade.name === pin.upgrade ? "pin" : "manifest";
+      throw artifactDriftError(`${upgrade.name} creation-code`, expected, actual, source);
     }
   }
 }

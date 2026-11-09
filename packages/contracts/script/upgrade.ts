@@ -18,6 +18,9 @@ import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
 import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "./utils/cast-env";
 import {
   buildReleaseLock,
+  type ExistingUpgradePin,
+  expectedUpgradeCreationCodeHash,
+  loadKarmaUpgradePin,
   loadReleaseManifest,
   type ReleaseLock,
   type ReleaseManifest,
@@ -984,6 +987,7 @@ export function validateReleaseOwnedUpgradePlan(
   manifest: ReleaseManifest,
   lock: ReleaseLock,
   deployment: Record<string, unknown>,
+  pin: ExistingUpgradePin = loadKarmaUpgradePin(),
 ): void {
   const expectedNames: Record<string, readonly string[]> = {
     "assessment-resolver": ["AssessmentResolver"],
@@ -1032,9 +1036,10 @@ export function validateReleaseOwnedUpgradePlan(
     sameAddress(upgrade.proxy, expected.proxy, `${name} plan proxy`);
     sameAddress(upgrade.ownerAtPlan, expected.currentOwner, `${name} plan owner`);
     sameAddress(upgrade.previousImplementation, expected.currentImplementation, `${name} prior implementation`);
+    const expectedCreationCodeHash = expectedUpgradeCreationCodeHash(expected, pin);
     if (
       upgrade.previousImplementationCodeHash !== expected.currentImplementationCodeHash ||
-      upgrade.newImplementationCreationCodeHash !== expected.expectedImplementationCreationCodeHash
+      upgrade.newImplementationCreationCodeHash !== expectedCreationCodeHash
     ) {
       throw new Error(`${name} implementation hashes differ from the frozen release`);
     }
@@ -1051,7 +1056,7 @@ export function validateReleaseOwnedUpgradePlan(
     if (deployTransaction.contractName !== name) {
       throw new Error(`${name} implementation boundary changes the reviewed contract artifact`);
     }
-    if (keccak256(deployTransaction.data as `0x${string}`) !== expected.expectedImplementationCreationCodeHash) {
+    if (keccak256(deployTransaction.data as `0x${string}`) !== expectedCreationCodeHash) {
       throw new Error(`${name} implementation creation code differs from the frozen release`);
     }
     const predictedImplementation = getCreateAddress({

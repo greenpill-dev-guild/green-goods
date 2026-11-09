@@ -12,7 +12,7 @@ error InvalidDomainValue(uint8 domain);
 ///
 ///      JSON Schemas:
 ///      - Project Details: { title, description, locationOfImpact, imageURL, slug, type }
-///      - Project Update:  { title, text, startsAt, endsAt, deliverables[], type }
+///      - Project Update:  { title, text, startDate, deliverables[], type }
 ///      - Milestone:       { title, text, startDate, endDate, domain, location, assessmentConfigCID, type }
 library JsonBuilder {
     /// @notice Builds project details JSON for Karma GAP
@@ -72,7 +72,7 @@ library JsonBuilder {
     /// @param proofIPFS IPFS CID for proof media
     /// @param workUID UID of the original work attestation
     /// @param garden Garden account address (for Green Goods link)
-    /// @param timestamp Block timestamp for ISO date formatting
+    /// @param timestamp Time the update is dated by, written as its ISO `startDate`
     /// @param metadataCID IPFS CID for structured work metadata (domain-specific indicators)
     /// @return JSON string conforming to GAP project-update schema
     function buildImpact(
@@ -130,17 +130,17 @@ library JsonBuilder {
             )
         );
 
+        // Karma draws a Project Update's date line from ISO `startDate`/`endDate` only; a start alone shows
+        // one date, and the card's Posted time already shows when the update was attested.
         return string(
             abi.encodePacked(
                 "{\"title\":\"",
-                StringUtils.escapeJSON(workTitle),
+                _uniqueTitle(workTitle, workUID),
                 "\",\"text\":\"",
                 StringUtils.escapeJSON(text),
-                "\",\"startsAt\":",
-                StringUtils.uint2str(timestamp),
-                ",\"endsAt\":",
-                StringUtils.uint2str(timestamp),
-                ",\"deliverables\":[",
+                "\",\"startDate\":\"",
+                StringUtils.timestampToISO(timestamp),
+                "\",\"deliverables\":[",
                 _buildDeliverables(updateText, proofReference, metadataReference),
                 "],\"type\":\"project-update\"}"
             )
@@ -174,6 +174,16 @@ library JsonBuilder {
                 "\",\"description\":\"Structured Green Goods Work metadata\"}"
             );
         return abi.encodePacked(evidence, metadata);
+    }
+
+    /// @dev Karma lists only the newest Project Update per title, so each title carries its Work's short UID.
+    function _uniqueTitle(string memory workTitle, bytes32 workUID) private pure returns (string memory) {
+        bytes memory full = bytes(StringUtils.bytes32ToHexString(workUID));
+        bytes memory short = new bytes(8);
+        for (uint256 i = 0; i < 8; i++) {
+            short[i] = full[i];
+        }
+        return string(abi.encodePacked(StringUtils.escapeJSON(workTitle), " (", short, ")"));
     }
 
     function _easScanBaseURL(uint256 chainId) private pure returns (string memory) {
