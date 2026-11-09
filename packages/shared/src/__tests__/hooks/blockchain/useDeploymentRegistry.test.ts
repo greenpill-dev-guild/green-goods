@@ -135,6 +135,7 @@ import {
   TransactionConfirmationPendingError,
   TransactionRevertedError,
 } from "../../../modules/transactions/types";
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 
 // ============================================
 // Tests
@@ -516,6 +517,11 @@ describe("useDeploymentRegistry", () => {
       {
         when: "the receipt shows a revert",
         error: new TransactionRevertedError(`0x${"3".repeat(64)}`),
+      },
+      {
+        // viem refused the write for the wallet's network and the check before a retry failed.
+        when: "the wallet changed network and the write was not tried again",
+        error: new WalletWriteNotRetriedError(new Error("Switch to Arbitrum failed")),
       },
     ])("reports the change as not sent when $when", async ({ error }) => {
       registryAnswers({ canManage: true, allowlist: [] });

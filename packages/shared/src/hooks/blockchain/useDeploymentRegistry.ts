@@ -23,6 +23,7 @@ import type { Address } from "../../types/domain";
 import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import { refusedForWalletNetwork } from "../../utils/errors/wallet-network-refusal";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { roleKeys } from "../../config/query-keys/identity";
@@ -170,8 +171,9 @@ export function useDeploymentAllowlist(enabled: boolean): DeploymentAllowlistRes
 // --- Garden creators: the allowlist as its managers see and change it ---
 
 /**
- * Once the call could reach the network, only a revert, a replacement or a declined signature
- * proves it did not land. Anything else, a receipt read that failed say, may still land.
+ * Once the call could reach the network, only a revert, a replacement, a declined signature or a
+ * write refused for the wallet's network (never signed, not tried again) proves it did not land.
+ * Anything else, a receipt read that failed say, may still land.
  */
 function mayStillLand(error: unknown, couldReachNetwork: boolean): boolean {
   return (
@@ -179,7 +181,8 @@ function mayStillLand(error: unknown, couldReachNetwork: boolean): boolean {
     !(error instanceof TransactionConfirmationPendingError) &&
     !(error instanceof TransactionRevertedError) &&
     !(error instanceof TransactionReplacementError) &&
-    !isCancelledTxError(error)
+    !isCancelledTxError(error) &&
+    !refusedForWalletNetwork(error)
   );
 }
 
