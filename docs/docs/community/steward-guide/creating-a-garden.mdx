@@ -2,15 +2,15 @@
 title: Create a Garden
 sidebar_label: Create a Garden
 slug: /community/steward-guide/creating-a-garden
-description: "Set up a new garden in the steward dashboard: its name, place, areas of work, and first team. Creating a garden needs deployer access."
+description: "Set up a new garden in the steward dashboard: its name, place, areas of work, and first team. Your account needs to be on the list of garden creators."
 audience: steward
 owner: docs
-last_verified: "2026-10-12"
+last_verified: "2026-11-08"
 feature_status: Live
-goal: "Walk someone with deployer access through creating a garden, and tell everyone else how to get one."
+goal: "Walk a garden creator through creating a garden, and tell everyone else how to become one."
 difficulty: "standard"
 estimated_time: "10 to 20 minutes."
-prereqs: "Deployer access, a name, a place, a short description, and the garden's areas of work."
+prereqs: "An account on the list of garden creators, a name, a place, a short description, and the garden's areas of work."
 next_steps: "/community/steward-guide/managing-members"
 persona_context: "The person setting up a new garden so a community can start recording work in it."
 source_of_truth:
@@ -21,7 +21,9 @@ source_of_truth:
   - packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.tsx
   - packages/admin/src/components/Layout/CanvasGardenAccessState.tsx
+  - packages/admin/src/views/Garden/components/GardenSetupCard.tsx
   - packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts
+  - packages/shared/src/hooks/blockchain/useDeploymentRegistry.ts
   - packages/shared/src/hooks/garden/useCreateGardenForm.ts
   - packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts
   - packages/shared/src/modules/garden/create-garden-command.ts
@@ -31,7 +33,7 @@ source_of_truth:
 keywords:
   - create garden
   - steward
-  - deployer
+  - garden creator
   - garden setup
 ---
 
@@ -41,13 +43,13 @@ A garden is the home for one community's work: its people, its records, and its 
 
 <GuideImage src="/img/screenshots/admin-create-garden-details.png" alt="The Create Garden form in the steward dashboard, with the Garden details section showing fields for the name, location, ENS subdomain, description, and optional banner image" loading="eager" width="1104" height="440" className="gg-figure" />
 
-**Not everyone can create a garden.** It needs deployer access, which the Green Goods team gives out. If you want a garden for your community and do not have that access, ask in the [Green Goods community on Discord](https://discord.gg/greenpill). If your garden already exists, skip to [Manage Members](/community/steward-guide/managing-members).
+**Not everyone can create a garden.** Your account has to be on the list of garden creators, which the Green Goods team keeps. If you want a garden for your community and are not on the list, ask in the [Green Goods community on Discord](https://discord.gg/greenpill). If your garden already exists, skip to [Manage Members](/community/steward-guide/managing-members).
 
 ## Before you start
 
 Have these ready so you can finish in one sitting:
 
-- **Deployer access** on the account you sign in with.
+- **The account you sign in with** on the list of garden creators.
 - **A name** for the garden, and **where it is**.
 - **A short description** of the community and its work.
 - **The areas of work** the garden covers: Solar, Agroforestry, Education, or Waste. Pick only the ones it really does. They decide which actions its gardeners can record.
@@ -70,7 +72,7 @@ The form is one page with three numbered sections.
 
 1. Enter the **Garden name**.
 2. Enter the **Location**.
-3. Check the **ENS subdomain**. The form suggests one from the name. It becomes the garden's short web name, ending in `.greengoods.eth`, so keep it simple.
+3. Check the **Web name**. The form suggests one from the name. It is the garden's short name on the web, ending in `.greengoods.eth`, so keep it simple.
 4. Write the **Description**.
 5. Add a **Banner image** if you have one.
 6. Under **Action domains**, choose the areas of work.
@@ -80,50 +82,53 @@ The form is one page with three numbered sections.
 1. Under **Stewards**, paste an address or name and tap **Add**. Repeat for each steward.
 2. Do the same under **Gardeners**.
 
-Stewards can already do everything a gardener can, so you do not need to add them to both lists. You can leave both lists empty.
+Stewards can already do everything a gardener can, so you do not need to add them to both lists. You can leave both lists empty. An address you typed and did not add stops the garden from being created until you add it or clear the field.
+
+A new garden is **Invite only** unless you turn on **Open joining**, which lets anyone join as a gardener. You can change this later.
 
 <GuideImage src="/img/screenshots/guide-garden-team.webp" alt="Planned team members contains one steward and two gardeners and explains that grants must be verified after creation." loading="lazy" width="688" height="478" className="gg-figure" maxWidth="672px">
 
-Verify these planned members’ roles in Garden Members after creation.
+You can check these people’s roles under Members after creation.
 
 </GuideImage>
 
 ### 4. Review and create
 
 1. Read **Review and Create**. It shows everything you entered and what creating the garden costs.
-2. Fix anything that looks wrong. A new garden starts as **Invite only**. You can open it up afterwards.
+2. Fix anything that looks wrong.
 3. Tap **Create Garden** and approve the request.
 4. Keep the page open until it finishes.
 
 <GuideImage src="/img/screenshots/guide-garden-review.webp" alt="Riverside Commons Garden review shows Invite only and its planned gardeners and steward." loading="lazy" width="784" height="459" className="gg-figure" maxWidth="672px">
 
-Check Invite only and the planned team before creating the garden.
+Check Invite only and your first team before creating the garden.
 
 </GuideImage>
 
 ## How you know it worked
 
 - A message says **Garden created**.
-- The dashboard takes you to the **Garden** workspace.
-- If you added people, a second message asks you to **Verify planned members**.
+- The dashboard takes you to your new garden, which is already selected. Its records can take a moment to fill in.
+- If you added people, a second message asks you to **Check your first team**.
 
 You are the garden's first owner.
 
 ## What happens next
 
-You act next. The garden exists, and it is empty and closed.
+You act next. The garden exists, and it is empty.
 
 1. **Check the team.** Open **Community** and confirm the people you added are listed with the right roles. See [Manage Members](/community/steward-guide/managing-members).
-2. **Decide who can join.** The same page shows how to turn on open joining.
-3. **Check the garden's funds.** A new garden normally comes with a shared fund and an endowment already in place. If **Community** shows that either is missing, ask the Green Goods team.
+2. **Decide who can join.** The same page shows how to change open joining.
+3. **Check its setup.** Creating a garden sets up its web name, community, pools, vaults, and cookie jars on its own. If a part is missing or still on its way, a **Garden Setup** card appears on the garden's **Health** tab. It finishes what you can finish from there, and says when the Green Goods team needs to finish the rest.
 
 ## If something goes wrong
 
 | What you see | What to do |
 |---|---|
-| **Unauthorized** when you open the form | Your account does not have deployer access. Ask the Green Goods team |
-| A field is marked as required | Fill it in. The garden name, location, ENS subdomain, description, and at least one domain are all needed |
-| **This name is already taken** | Change the ENS subdomain to something else |
+| **Unauthorized** when you open the form | Your account is not on the list of garden creators. Ask the Green Goods team |
+| A field is marked as required | Fill it in. The garden name, location, web name, description, and at least one domain are all needed |
+| **This name is already taken** | Change the web name to something else |
+| **Add or clear the address you typed** | An address is still sitting in a team field. Tap **Add** to include it, or clear the field |
 | **You're offline** | Reconnect, then tap **Create Garden** again. What you typed is still there |
 | **Not ready to create yet** | The form does not think it is complete. Check every field in section 01, then try again. If every field is filled and it still appears, tell the Green Goods team |
 | **Transaction canceled** | You closed the confirmation. Nothing was created. Tap **Try Again** when you are ready |
