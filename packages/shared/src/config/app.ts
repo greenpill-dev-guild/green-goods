@@ -22,3 +22,6 @@ export const GOVERNANCE_ENABLED = false;
 // G$ settlement: stewards can add G$ rewards and send payouts. Set false to block every
 // settlement write and new G$ reward before signing, without touching the live contracts.
 export const SETTLEMENT_ENABLED = true;
+
+// Reopen new endowments after the vault rollout has been verified.
+export const ENDOWMENT_DEPOSITS_ENABLED = false;

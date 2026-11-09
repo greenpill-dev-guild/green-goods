@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -51,6 +52,27 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
   if (!action) return null;
 
   const isDeposit = action === "deposit";
+  if (isDeposit && !ENDOWMENT_DEPOSITS_ENABLED) {
+    return (
+      <AdminDialog
+        open
+        onOpenChange={(open) => {
+          if (!open) handleClose();
+        }}
+        size="md"
+        tone="community"
+        title={formatMessage({ id: "public.fund.endowmentPause.title" })}
+        actions={
+          <Button type="button" emphasis="primary" size="sm" onClick={handleClose}>
+            {formatMessage({ id: "cockpit.community.endowment" })}
+          </Button>
+        }
+      >
+        <p>{formatMessage({ id: "public.fund.endowmentPause.body" })}</p>
+      </AdminDialog>
+    );
+  }
+
   const title = formatMessage({
     id: isDeposit ? "app.treasury.deposit" : "app.treasury.withdraw",
   });

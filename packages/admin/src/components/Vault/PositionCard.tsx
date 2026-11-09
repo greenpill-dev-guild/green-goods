@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
@@ -335,20 +336,22 @@ export function PositionCard({
           </dl>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              emphasis="primary"
-              size="compact"
-              onClick={() => onDeposit(vault.asset)}
-              disabled={!vaultAcceptingDeposits}
-              title={
-                !vaultAcceptingDeposits
-                  ? formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })
-                  : undefined
-              }
-            >
-              {formatMessage({ id: "app.treasury.deposit" })}
-            </Button>
+            {ENDOWMENT_DEPOSITS_ENABLED && (
+              <Button
+                type="button"
+                emphasis="primary"
+                size="compact"
+                onClick={() => onDeposit(vault.asset)}
+                disabled={!vaultAcceptingDeposits}
+                title={
+                  !vaultAcceptingDeposits
+                    ? formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })
+                    : undefined
+                }
+              >
+                {formatMessage({ id: "app.treasury.deposit" })}
+              </Button>
+            )}
             <Button
               type="button"
               emphasis="secondary"

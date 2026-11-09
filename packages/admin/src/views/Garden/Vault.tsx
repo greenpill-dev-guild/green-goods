@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
@@ -229,6 +230,12 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
 
       {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
         <EmptyState icon={<RiBankLine />} title={formatMessage({ id: "app.treasury.noVault" })} />
+      )}
+
+      {!ENDOWMENT_DEPOSITS_ENABLED && (
+        <p className="type-body text-text-sub">
+          {formatMessage({ id: "public.fund.endowmentPause.status" })}
+        </p>
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
