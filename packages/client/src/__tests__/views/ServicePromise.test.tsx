@@ -9,12 +9,12 @@ import {
 import { ServicePromise } from "../../views/Home/Garden/Commitment/ServicePromise";
 import { renderWithProviders, screen, userEvent } from "../test-utils";
 
-const mocks = vi.hoisted(() => ({ send: vi.fn(), issuer: vi.fn() }));
+const mocks = vi.hoisted(() => ({ send: vi.fn(), issuer: vi.fn(), walletRefetch: vi.fn() }));
 vi.mock("@green-goods/shared/commitment-pooling", async (original) => ({
   ...(await original<typeof import("@green-goods/shared/commitment-pooling")>()),
   useServiceIssuerOperations: (...args: unknown[]) => mocks.issuer(...args),
   useServiceAccessMutation: () => ({ isPending: false, mutateAsync: mocks.send }),
-  useVoucherWallet: () => ({ data: undefined }),
+  useVoucherWallet: () => ({ data: undefined, isError: false, refetch: mocks.walletRefetch }),
   useVoucherIssuerApproval: () => ({ data: undefined }),
 }));
 
@@ -50,10 +50,11 @@ function page(options: { online?: boolean; failed?: boolean; checking?: boolean 
 }
 
 describe("checking a voucher promise's remote status", () => {
-  it("checks the existing read without submitting another transaction", async () => {
+  it("checks the existing read, and the reader's vouchers, without submitting another transaction", async () => {
     const refetch = page();
     await userEvent.click(screen.getByRole("button", { name: "Check Status" }));
     expect(refetch).toHaveBeenCalledOnce();
+    expect(mocks.walletRefetch).toHaveBeenCalledOnce();
     expect(mocks.send).not.toHaveBeenCalled();
   });
   it("retains the booking and explains a failed refresh", () => {

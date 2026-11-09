@@ -191,3 +191,21 @@ export const SERVICE_LIVE_ROUTES: readonly ServiceLiveRoute[] = [
     ],
   },
 ];
+
+/**
+ * The reviewed name of a voucher's issuer, from the live route catalog, so copy can name the
+ * issuer before the wallet does and never shows a token symbol for a catalogued asset. Null for
+ * an asset in no catalog, which has no name of its own.
+ */
+export function liveVoucherIssuerName(token: Address, issuer?: Address | null): string | null {
+  for (const route of SERVICE_LIVE_ROUTES) {
+    for (const asset of route.assets) {
+      if (
+        asset.token.toLowerCase() === token.toLowerCase() &&
+        (!issuer || asset.issuer.toLowerCase() === issuer.toLowerCase())
+      )
+        return asset.issuerName ?? null;
+    }
+  }
+  return null;
+}

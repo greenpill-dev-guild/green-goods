@@ -33,6 +33,8 @@ import {
 } from "../../views/Home/Garden/Commitment/serviceActs";
 import {
   bookingVoucherIssuer,
+  bookingVoucherPair,
+  catalogVoucherIssuer,
   ownServiceOfferView,
   serviceBookingView,
 } from "../../views/Home/Garden/Commitment/serviceBooking";
@@ -221,7 +223,7 @@ describe("voucher booking on the promise page", () => {
       "hubDay",
       "readyToClose",
       "Approve the final split, then confirm",
-      "Close the Booking",
+      "Approve the Final Split",
       "Report a Problem",
     ],
     [
@@ -256,7 +258,7 @@ describe("voucher booking on the promise page", () => {
       null,
     ],
     ["hubDay", "problemReported", "You reported a problem", null, null],
-    ["access", "notEnough", "Open for booking.", null, null],
+    ["access", "notEnough", "Open for booking.", "Exchange Vouchers", "Review Terms"],
     [
       "access",
       "readyToDeposit",
@@ -297,7 +299,11 @@ describe("voucher booking on the promise page", () => {
         "You confirmed the hub day was kept, and your voucher went to Tech and Sun's reserve.",
     });
     const settled = view("access", "closed", { coreState: "ACCEPTED" }).band;
-    expect(settled).toMatchObject({ sentence: "Settled", pillId: null });
+    expect(settled).toMatchObject({
+      sentence:
+        "Settled: 6 back to you, 4 to Green Goods' reserve. Confirming the promise is the last step.",
+      pillId: null,
+    });
     const early = view("access", "closed", { coreState: "CANCELLED" }).band;
     expect(early.pillId).toBe("app.voucher.pp.st.endedEarly");
     expect(early.sentence).toContain("closed the promise as ended early");
@@ -412,18 +418,115 @@ describe("voucher booking on the promise page", () => {
     expect(serviceActOffered("review", snapshot, booking?.split ?? null)).toBe(true);
   });
 
-  it("gives a reader with too few vouchers one sentence and one door, not a dead act", () => {
+  it("gives a reader with too few vouchers one explanation and one next step: the exchange", () => {
     const short = view("access", "notEnough", { held: vouchers(2) });
-    expect(short.primary).toBeNull();
+    // The page's one action bar carries the exchange; the card only explains.
+    expect(short.primary).toEqual({ kind: "exchange", label: "Exchange Vouchers" });
+    expect(short.secondary).toEqual({ kind: "redeem", label: "Review Terms" });
     expect(short.door).toEqual({
       title: "You hold 2 Green Goods vouchers.",
       body: "Claude access takes 10. You can exchange other vouchers in the shared pool, or earn more.",
-      act: { kind: "exchange", label: "Exchange Vouchers" },
+      act: null,
     });
     expect(short.facts.find((fact) => fact.id === "give")).toMatchObject({
       value: "10 Green Goods vouchers",
       detail: "You hold 2.",
     });
+    expect(short.band.chip).toBeNull();
+  });
+
+  // Approved, then the vouchers left the account: the deposit would be refused, so it isn't offered.
+  it("says when an approved booking's holder no longer holds the deposit, and offers what they can do", () => {
+    const short = view("hubDay", "readyToDeposit", { held: 0n });
+    expect(short.band.sentence).toBe(
+      "Tech and Sun approved, but you hold 0 Tech and Sun vouchers. Exchange or earn 1 Tech and Sun voucher before Nov 2, or cancel the booking."
+    );
+    expect(short.facts[0]?.value).toBe(
+      "0 Tech and Sun vouchers in your account; this booking takes 1"
+    );
+    expect(short.door).toEqual({
+      title: "You hold 0 Tech and Sun vouchers.",
+      body: "A hub day takes 1. You can exchange other vouchers in the shared pool, or earn more.",
+      act: null,
+    });
+    expect(short.primary).toEqual({ kind: "exchange", label: "Exchange Vouchers" });
+    expect(short.secondary).toEqual({ kind: "cancel", label: "Cancel Booking" });
+    const enough = view("hubDay", "readyToDeposit", { held: vouchers(1) });
+    expect(enough.facts[0]?.value).toBe("1 Tech and Sun voucher, still in your account");
+    expect(enough.primary?.label).toBe("Deposit 1 Voucher");
+    expect(enough.door).toBeNull();
+  });
+
+  // The promise reads "Offered" through the whole deposit, so the booking carries its own state.
+  it.each([
+    ["waitingApproval", "app.voucher.pp.chip.waitingApproval", "info"],
+    ["readyToDeposit", "app.voucher.pp.chip.readyToDeposit", "warning"],
+    ["confirmingDeposit", "app.voucher.pp.chip.confirmingDeposit", "info"],
+    ["waitingAcceptance", "app.voucher.pp.chip.waitingAcceptance", "info"],
+    ["canceling", "app.voucher.pp.chip.canceling", "neutral"],
+    ["canceled", "app.voucher.pp.chip.canceled", "success"],
+    ["transfersPending", "app.voucher.pp.chip.transfersPending", "info"],
+  ] as const)("marks the booking's own state at %s", (stage, labelId, tone) => {
+    const booking = view("hubDay", stage);
+    expect(booking.band.chip).toEqual({ labelId, tone });
+    expect(en).toHaveProperty(labelId);
+  });
+
+  it("leaves the pill alone where it already says enough", () => {
+    expect(view("hubDay", "open").band.chip).toBeNull();
+    expect(view("hubDay", "inProgress").band.chip).toBeNull();
+    expect(view("hubDay", "closed", { coreState: "FULFILLED" }).band.chip).toBeNull();
+    // "Awaiting delivery" replaces the pill while a request is on its way; no second word.
+    const transit = view("hubDay", "waitingApproval");
+    transit.band.pillId = "app.voucher.wait.messagePending";
+    const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
+    snapshot.voucherSetups[0]!.destination!.result.phase = "none";
+    snapshot.voucherSetups[0]!.source.authorizationDispatched = true;
+    const inTransit = serviceBookingView(
+      {
+        snapshot,
+        coreState: "OFFERED",
+        issuer: ISSUER.hubDay,
+        approval: APPROVAL.hubDay,
+        held: vouchers(9),
+      },
+      intl
+    )!;
+    expect(inTransit.stage).toBe("requestInTransit");
+    expect(inTransit.band).toMatchObject({
+      pillId: "app.voucher.wait.messagePending",
+      chip: null,
+    });
+  });
+
+  // One voucher, one name: the catalog names a live issuer before the wallet does, and an asset
+  // the catalog doesn't know never borrows a symbol for its unit.
+  it("names the issuer from the live catalog when the wallet hasn't matched it", () => {
+    const snapshot = bookingStorySnapshot("access", "open");
+    snapshot.offer!.voucher!.asset.token = "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590";
+    snapshot.offer!.voucher!.issuer = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19" as never;
+    const pair = bookingVoucherPair(snapshot);
+    expect(pair).toEqual({
+      token: "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590",
+      account: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    });
+    expect(catalogVoucherIssuer(pair)?.name).toBe("Green Goods");
+    expect(catalogVoucherIssuer(bookingVoucherPair(bookingStorySnapshot("access", "open")))).toBe(
+      null
+    );
+    const unnamed = bookingStorySnapshot("access", "open");
+    unnamed.offer!.voucher!.asset.symbol = null;
+    const plain = serviceBookingView(
+      {
+        snapshot: unnamed,
+        coreState: "OFFERED",
+        issuer: null,
+        approval: null,
+        held: vouchers(10),
+      },
+      intl
+    )!;
+    expect(plain.words.vouchers).toBe("10 vouchers");
   });
 });
 

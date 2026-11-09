@@ -437,7 +437,8 @@ const RECOVERY: JourneyStep[] = [
     holds: { techAndSun: 9, greenGoods: 0 },
   },
   {
-    caption: "Lina holds no Tech and Sun vouchers, and no pool can quote here: no Exchange act.",
+    caption:
+      "Lina holds no Tech and Sun vouchers. The deposit isn't offered until she does; she can exchange, or cancel.",
     booking: { service: "hubDay", stage: "readyToDeposit", options: { held: 0n } },
     holds: { techAndSun: 0, greenGoods: 0 },
   },

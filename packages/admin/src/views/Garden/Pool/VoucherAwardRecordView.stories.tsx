@@ -10,6 +10,7 @@ const meta: Meta<typeof VoucherAwardRecordView> = {
   args: {
     record: awardStoryRecord,
     decimals: 6,
+    issuerName: "Fictional hub days",
     disabled: false,
     recovered: true,
     uncertain: false,

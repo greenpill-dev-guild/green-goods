@@ -1,5 +1,6 @@
 import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
+import { SERVICE_ISSUER_ROUTES } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ComponentType } from "react";
 import { IntlProvider } from "react-intl";
@@ -109,6 +110,30 @@ export const AllowanceShortOfReward: Story = {
       )
     ).toBeVisible();
     await expect(card.queryByText("is used up", { exact: false })).toBeNull();
+  },
+};
+
+/**
+ * A reserve the live issuer catalog knows: Award Vouchers sits in the card's header, beside a
+ * subtitle that says the card also awards past work. Fixture data; the award desk itself needs
+ * the Agent and is not opened here.
+ */
+export const AwardsAvailable: Story = {
+  args: {
+    reserve: {
+      ...STORY_TECH_AND_SUN_VOUCHERS.reserve!,
+      issuer: {
+        ...STORY_TECH_AND_SUN_VOUCHERS.reserve!.issuer,
+        safe: SERVICE_ISSUER_ROUTES[0]!.assets[0]!.ownerReserve,
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const card = within(canvasElement);
+    await expect(card.getByRole("button", { name: "Award Vouchers" })).toBeEnabled();
+    await expect(
+      card.getByText("Vouchers you can send as rewards or award for past work", { exact: false })
+    ).toBeVisible();
   },
 };
 

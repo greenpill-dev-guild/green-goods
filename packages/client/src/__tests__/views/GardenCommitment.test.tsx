@@ -1754,7 +1754,7 @@ describe("a voucher booking on the promise page", () => {
       bookingStorySnapshot("hubDay", "transfersPending", { legsSent: false }),
       bookingStoryController("hubDay", "READY_FOR_CONFIRMATION")
     );
-    await userEvent.click(screen.getByRole("button", { name: "Close the Booking" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send the Transfers" }));
     expect(mockServiceMutation).toHaveBeenCalledWith(
       expect.objectContaining({ action: "executeVoucherFinalLeg", leg: "release" })
     );
@@ -1818,6 +1818,11 @@ describe("a voucher booking on the promise page", () => {
     );
     expect(document.querySelector('[data-component="JoinToAct"][data-mode="door"]')).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Exchange Vouchers" })).toBeNull();
+    // The terms stay a step back, outlined: nothing on the page reads as bookable.
+    expect(screen.getByRole("button", { name: "Review Terms" })).toHaveAttribute(
+      "data-emphasis",
+      "secondary"
+    );
   });
 
   describe("the same offer, read by a buyer and by the person who made it", () => {

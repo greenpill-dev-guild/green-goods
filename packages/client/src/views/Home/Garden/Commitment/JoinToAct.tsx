@@ -88,7 +88,13 @@ export function JoinToActDoor({
 }: {
   title: string;
   line: string;
-  door: { label: string; icon?: ReactNode; onAct: () => void } | null;
+  /** The door's act; `secondary` for a read again, where the page's primary act stays elsewhere. */
+  door: {
+    label: string;
+    icon?: ReactNode;
+    emphasis?: "primary" | "secondary";
+    onAct: () => void;
+  } | null;
 }) {
   return (
     <section
@@ -102,6 +108,7 @@ export function JoinToActDoor({
         <Button
           type="button"
           size="sm"
+          emphasis={door.emphasis}
           className="mt-3"
           onClick={door.onAct}
           leadingIcon={door.icon}

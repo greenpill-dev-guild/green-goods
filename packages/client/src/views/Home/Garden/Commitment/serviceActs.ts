@@ -5,7 +5,8 @@ import {
   selectServiceAccessAction,
 } from "@green-goods/shared/commitment-pooling";
 import type { Hex } from "viem";
-import { currentVoucherSetup, SERVICE_ACCEPTANCE_WINDOW_SECONDS } from "./serviceBooking";
+import { SERVICE_ACCEPTANCE_WINDOW_SECONDS } from "./serviceBooking";
+import { currentVoucherSetup } from "./serviceBookingStage";
 import type { ServiceActKind } from "./serviceBookingTypes";
 import { boundVoucherSetup } from "./serviceVoucherReview";
 

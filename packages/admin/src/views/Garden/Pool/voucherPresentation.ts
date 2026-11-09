@@ -461,3 +461,19 @@ export function voucherSafeNote(
     .filter(Boolean)
     .join(" ");
 }
+
+/** "2 Tech and Sun vouchers": a voucher amount with its issuer's name, never the token's symbol. */
+export function voucherAmountWords(
+  formatMessage: FormatMessage,
+  units: bigint,
+  decimals: number,
+  issuer: string
+): string {
+  return formatMessage(
+    {
+      id: "cockpit.garden.pool.voucher.vouchers",
+      defaultMessage: "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
+    },
+    { count: voucherCount(units, decimals), issuer }
+  );
+}

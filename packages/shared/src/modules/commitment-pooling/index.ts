@@ -25,6 +25,7 @@ export * from "./proof-draft-repository";
 export * from "./reasons";
 export * from "./selectors";
 export * from "./service-access";
+export { liveVoucherIssuerName } from "./service-access-live-config";
 export * from "./service-access-pilot-types";
 export * from "./service-access-types";
 export * from "./service-access-voucher-types";

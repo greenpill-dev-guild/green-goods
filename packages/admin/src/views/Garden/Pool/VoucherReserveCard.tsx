@@ -43,6 +43,7 @@ export function VoucherReserveCard({
 }: VoucherReserveCardProps) {
   const { formatMessage } = useIntl();
   const [awarding, setAwarding] = useState(false);
+  const awardButtonRef = useRef<HTMLButtonElement>(null);
   const awardAvailable =
     reserve.issuer.chainId === 100 &&
     SERVICE_ISSUER_ROUTES.some((route) =>
@@ -71,19 +72,41 @@ export function VoucherReserveCard({
       data-testid="voucher-reserve"
       className="space-y-3"
     >
-      <div>
-        <AdminCardTitle>
-          {formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.title",
-            defaultMessage: "Your Reserve",
-          })}
-        </AdminCardTitle>
-        <p className="mt-1 type-meta text-text-soft">
-          {formatMessage({
-            id: "cockpit.garden.pool.voucher.reserve.description",
-            defaultMessage: "Vouchers you can send as rewards, kept apart from bookings",
-          })}
-        </p>
+      {/* The card's one act sits in its header slot, where the eye lands before the facts. */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <AdminCardTitle>
+            {formatMessage({
+              id: "cockpit.garden.pool.voucher.reserve.title",
+              defaultMessage: "Your Reserve",
+            })}
+          </AdminCardTitle>
+          <p className="mt-1 type-meta text-text-soft">
+            {awardAvailable
+              ? formatMessage({
+                  id: "cockpit.garden.pool.voucher.reserve.descriptionAwards",
+                  defaultMessage:
+                    "Vouchers you can send as rewards or award for past work, kept apart from bookings",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.voucher.reserve.description",
+                  defaultMessage: "Vouchers you can send as rewards, kept apart from bookings",
+                })}
+          </p>
+        </div>
+        {awardAvailable ? (
+          <Button
+            ref={awardButtonRef}
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            className="shrink-0"
+            disabled={disabled}
+            onClick={() => setAwarding(true)}
+          >
+            {formatMessage({ id: "cockpit.voucherAward.title" })}
+          </Button>
+        ) : null}
       </div>
       <FactList frame="inset">
         <FactRow
@@ -282,21 +305,14 @@ export function VoucherReserveCard({
           )}
         </WithPerson>
       ) : null}
-      {awardAvailable ? (
-        <Button
-          type="button"
-          emphasis="secondary"
-          disabled={disabled}
-          onClick={() => setAwarding(true)}
-        >
-          {formatMessage({ id: "cockpit.voucherAward.title" })}
-        </Button>
-      ) : null}
       {awarding ? (
         <VoucherAwardDesk
           reserve={reserve}
           disabled={disabled}
-          onClose={() => setAwarding(false)}
+          onClose={() => {
+            setAwarding(false);
+            awardButtonRef.current?.focus();
+          }}
         />
       ) : null}
       <VoucherRaiseAllowanceDialog

@@ -5,7 +5,7 @@ import type { BookingContext, ServiceFact } from "./serviceBookingTypes";
  * member's words count the vouchers the booking takes, one or more.
  */
 export function bookingSentence(ctx: BookingContext): string {
-  const { t, stage, profile, member, values, one, refund, units, date } = ctx;
+  const { t, stage, profile, member, values, one, refund, release, unit, units, date } = ctx;
   const { coreState, schedule, problem } = ctx.input;
   const final = ctx.setup?.destination?.finalAllocation ?? null;
   const counted = { ...values, count: one ? 1 : 2 };
@@ -22,9 +22,18 @@ export function bookingSentence(ctx: BookingContext): string {
     case "waitingApproval":
       if (member) return t("rd.n.approvalM.b", counted);
       return ctx.sigs ? t("rd.band.approval", { sigs: ctx.sigs }) : t("rd.n.approval.t");
-    case "readyToDeposit":
+    case "readyToDeposit": {
+      const held = ctx.input.held;
+      // Approved, but the account holds less than the deposit: what to do before the deadline.
+      if (held !== null && held < units)
+        return t("rd.n.depositShort.b", {
+          ...values,
+          have: `${ctx.count(held)} ${unit(held)}`,
+          need: `${ctx.n} ${unit(units)}`,
+        });
       if (member) return t("rd.n.depositM.b", counted);
       return t(one ? "rd.n.deposit1.b" : "rd.n.deposit.b", values);
+    }
     case "confirmingDeposit":
       return member ? t("rd.n.confirmingM.b", counted) : t("rd.n.confirming.b");
     case "waitingAcceptance":
@@ -65,7 +74,11 @@ export function bookingSentence(ctx: BookingContext): string {
         : t("rd.n.legFailedS.b");
     case "closed":
       if (ctx.kept) return profile === "hubDay" ? t("rd.n.kept.b") : t("rd.n.kept.t");
-      if (coreState !== "CANCELLED") return t("rd.n.closedEarly.t");
+      // Settled before the promise closes: where the vouchers went, then the one step left.
+      if (coreState !== "CANCELLED")
+        return refund > 0n
+          ? t("rd.n.settledBack.b", values)
+          : t("rd.n.settled.b", { ...values, unit: unit(release) });
       return t(member ? "rd.n.closedEarlyM.b" : "rd.n.closedEarly.b", values);
     case "canceling":
       return t("rd.n.canceling.b");
@@ -173,8 +186,13 @@ function vouchersNow(ctx: BookingContext): [bigint, string] {
     case "requestInTransit":
     case "waitingApproval":
     case "readyToDeposit":
-    case "termsChanged":
+    case "termsChanged": {
+      // The booking rests on the reader's own vouchers until the deposit: say so when they fall short.
+      const held = ctx.input.held;
+      if (held !== null && held < units)
+        return [held, t("rd.b.short", { unit: unit(held), n: ctx.n })];
       return [units, phrase("rd.b.yours", units)];
+    }
     case "canceled":
       return [units, phrase("rd.b.back", units)];
     case "transfersPending":

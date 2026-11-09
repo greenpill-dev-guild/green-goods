@@ -1,6 +1,5 @@
 import type { ServicePromiseProps } from "./servicePromiseTypes";
 import {
-  isCommitmentCreator,
   isDemoPoolingActive,
   type ServiceAccessAction,
   serviceVoucherHolder,
@@ -8,10 +7,11 @@ import {
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
+  type VoucherWalletSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import type { Hex } from "viem";
@@ -23,6 +23,7 @@ import { ServiceLiveExchange } from "./ServiceLiveExchange";
 import { ServiceAccessPanel } from "./ServiceAccessPanel";
 import { ServiceAccessSection } from "./ServiceAccessSection";
 import { ServiceBookingSheets, type ServiceSheet } from "./ServiceBookingSheets";
+import { ServiceReadDoors } from "./ServiceReadDoors";
 import { ServiceReadStatus } from "./ServiceReadStatus";
 import type { ServiceRedeemOutcome } from "./ServiceRedeemSheet";
 import { ServiceRewardsSection } from "./ServiceRewardsSection";
@@ -41,13 +42,7 @@ import {
   splitStep,
   unsentLegStep,
 } from "./serviceActs";
-import {
-  bookingVoucherIssuer,
-  formatVoucherMessage,
-  isServiceAccessPromise,
-  ownServiceOfferView,
-  serviceBookingView,
-} from "./serviceBooking";
+import { formatVoucherMessage, isServiceAccessPromise } from "./serviceBooking";
 import type { ServiceActKind } from "./serviceBookingTypes";
 import {
   exchangeAvailable,
@@ -55,7 +50,7 @@ import {
   exchangeStep,
   smallerExchangeInput,
 } from "./serviceExchange";
-import { serviceRewardsView } from "./serviceRewards";
+import { promiseVoucherIssuer, servicePromiseViews } from "./servicePromiseViews";
 import { VoucherPilotJourney } from "./VoucherPilotJourney";
 
 /**
@@ -92,13 +87,29 @@ export function ServicePromise({
     [walletChain, walletModule, walletAccount]
   );
   const walletQuery = useVoucherWallet(walletScope);
-  const wallet = walletQuery.data;
+  const read = walletQuery.data;
+  // A read that answered "unavailable" names nothing and counts nothing: not a wallet to draw from.
+  const readUsable = read !== undefined && read.evidence !== "unavailable";
+  // The last wallet that did answer, kept through a refresh that fails, so the issuer's name and
+  // the reader's holdings never vanish mid-page; the page says the refresh failed instead.
+  const [lastGood, setLastGood] = useState<VoucherWalletSnapshot | null>(null);
+  useEffect(() => {
+    if (readUsable) setLastGood(read);
+  }, [read, readUsable]);
+  const wallet = readUsable
+    ? read
+    : lastGood && walletAccount && lastGood.account.toLowerCase() === walletAccount.toLowerCase()
+      ? lastGood
+      : undefined;
+  const walletUnavailable =
+    walletScope !== null && (walletQuery.isError || (read !== undefined && !readUsable));
   const liveExchangeChoices = serviceIssuerExchangeChoices(snapshot, wallet);
   const canExchange = Boolean(
     snapshot && (exchangeAvailable(snapshot) || liveExchangeChoices.length)
   );
-  const issuer = bookingVoucherIssuer(snapshot, wallet?.issuers);
-  const approval = useVoucherIssuerApproval(issuer).data ?? null;
+  // The wallet names the issuer it matched; until it does, the catalog gives the same name.
+  const { matched: matchedIssuer, issuer } = promiseVoucherIssuer(snapshot, wallet);
+  const approval = useVoucherIssuerApproval(matchedIssuer).data ?? null;
   const [sheet, setSheet] = useState<ServiceSheet>(null);
   // Keep the chosen checkout visible through wallet refresh so its receipt is not lost on success.
   const [liveCheckout, setLiveCheckout] = useState<{
@@ -113,55 +124,32 @@ export function ServicePromise({
   const [agreeing, setAgreeing] = useState<{ revision: bigint; termsHash: Hex } | null>(null);
   const [agreeOutcome, setAgreeOutcome] = useState<EarnedAgreeOutcome>(null);
 
-  const held = issuer
-    ? (wallet?.holdings.find(
-        (entry) =>
-          entry.issuer.asset.chainId === issuer.asset.chainId &&
-          entry.issuer.asset.token.toLowerCase() === issuer.asset.token.toLowerCase()
-      )?.available ?? null)
-    : null;
-  // A paused contract stops every new booking; a paused issuer, its own.
-  const paused =
-    Boolean(snapshot && Object.values(snapshot.pause).some((p) => p === true)) ||
-    issuer?.standing.bookings === "paused";
-  const ownOffer =
-    snapshot && isCommitmentCreator({ commitment: { creator }, viewer: serviceKey?.buyer })
-      ? ownServiceOfferView({ snapshot, coreState, issuer, paused }, intl)
-      : null;
-  const booking =
-    snapshot && !ownOffer
-      ? serviceBookingView({ snapshot, coreState, issuer, approval, held }, intl)
-      : null;
-  const rewards = snapshot
-    ? serviceRewardsView(
+  // The reader's own offer, their booking, or the request's rewards, worked out once.
+  const views = snapshot
+    ? servicePromiseViews(
         {
           snapshot,
           coreState,
-          issuer:
-            wallet?.issuers.find(
-              (entry) =>
-                entry.asset.token.toLowerCase() ===
-                  snapshot.acceptancePolicy.earned.terms?.asset.token.toLowerCase() &&
-                entry.account.toLowerCase() ===
-                  snapshot.acceptancePolicy.earned.terms?.issuer.toLowerCase()
-            ) ?? (booking || ownOffer ? null : issuer),
+          creator,
+          viewer: serviceKey?.buyer,
+          issuer,
+          matched: matchedIssuer,
+          wallet,
+          approval,
           garden: gardenName,
-          takeUp: ownOffer ? null : snapshot.knownService ? "service" : (takeUp?.mode ?? null),
+          takeUp: takeUp?.mode ?? null,
         },
         intl
       )
     : null;
+  const held = views?.held ?? null;
+  const ownOffer = views?.ownOffer ?? null;
+  const booking = views?.booking ?? null;
+  const rewards = views?.rewards ?? null;
+  const blocked = views?.blocked ?? null;
   const text = (id: string) =>
     formatVoucherMessage(intl, id, { issuer: booking?.words.issuer ?? "" });
   const offline = snapshot?.capabilities.reasons.includes("offline") ?? false;
-  const blocked =
-    booking?.stage === "open"
-      ? paused
-        ? text("of.r.paused.b")
-        : offline
-          ? text("pp.reason.offline")
-          : null
-      : null;
   const pending = running || mutation.isPending;
 
   /** One member act through the shared runner; the page only shows that it is running. */
@@ -228,12 +216,14 @@ export function ServicePromise({
     else if (kind === "retryConfirm") void act(retryConfirmStep);
   };
   // The bar offers an act only when the shared selector offers its first write. Deposit's sheet
-  // and a paused or offline offer say why an act can't run; any other refusal hides the act.
+  // and a paused or offline offer say why an act can't run; any other refusal hides the act. The
+  // exchange shows only where a pool can quote or a live route exists, whatever the selector says.
   const shown = (kind: ServiceActKind) =>
-    (kind === "exchange" && canExchange) ||
-    kind === "deposit" ||
-    (kind === "redeem" && blocked !== null) ||
-    (snapshot !== null && serviceActOffered(kind, snapshot, booking?.split ?? null));
+    kind === "exchange"
+      ? canExchange
+      : kind === "deposit" ||
+        (kind === "redeem" && blocked !== null) ||
+        (snapshot !== null && serviceActOffered(kind, snapshot, booking?.split ?? null));
   const primary = booking?.primary && shown(booking.primary.kind) ? booking.primary : null;
   const secondary =
     booking?.secondary &&
@@ -280,11 +270,25 @@ export function ServicePromise({
         onRun={takeUp.run}
       />
     ) : null;
+  /** Check Status reads the booking and the reader's vouchers again, together. */
+  const checkStatus = () => {
+    void walletQuery.refetch();
+    return access.refetch();
+  };
+  // Holdings the page can't read leave the terms open to review, not the booking open to make.
+  const holdingsUnknown = walletUnavailable && wallet === undefined && booking?.stage === "open";
   const bar = rewardBar ? (
     rewardBar
   ) : primary ? (
     <CommitmentActionBar
-      act={{ kind: "service", labelId: "", label: primary.label, needsNetwork: true }}
+      act={{
+        kind: "service",
+        labelId: "",
+        label:
+          holdingsUnknown && primary.kind === "redeem" ? text("of.cta.reviewTerms") : primary.label,
+        needsNetwork: true,
+        emphasis: holdingsUnknown ? "secondary" : undefined,
+      }}
       isPending={pending}
       isOnline={isOnline}
       blockedReason={blocked}
@@ -325,6 +329,17 @@ export function ServicePromise({
       <>
         {booking || rewards ? (
           <>
+            <ServiceReadDoors
+              stage={booking?.stage ?? null}
+              walletUnavailable={walletUnavailable}
+              walletKnown={wallet !== undefined}
+              exchangePending={
+                snapshot?.pilot?.exchange.status === "unknown" && sheet !== "exchange"
+              }
+              text={text}
+              onCheckWallet={() => void walletQuery.refetch()}
+              onCheckExchange={() => void runOnce({ action: "resolvePilotExchange" })}
+            />
             {booking?.door ? (
               <JoinToActDoor
                 title={booking.door.title}
@@ -355,7 +370,11 @@ export function ServicePromise({
             {booking ? <ServiceAccessSection view={booking} /> : null}
             {rewards ? <ServiceRewardsSection view={rewards} /> : null}
             {ownOffer ? null : (
-              <ServiceReadStatus access={access} isOnline={isOnline} isPending={pending} />
+              <ServiceReadStatus
+                access={{ ...access, refetch: checkStatus }}
+                isOnline={isOnline}
+                isPending={pending}
+              />
             )}
             {snapshot?.pilot && import.meta.env.DEV && isDemoPoolingActive() ? (
               <VoucherPilotJourney

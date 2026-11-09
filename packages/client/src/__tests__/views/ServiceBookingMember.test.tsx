@@ -38,7 +38,13 @@ function lesson(
       coreState: lessonStoryCoreState(stage),
       issuer,
       approval: LESSON_STORY_APPROVAL,
-      held: stage === "notEnough" ? 0n : vouchers(1),
+      // Enough for the booking at hand, or none at all: the shortfall copy is its own test.
+      held:
+        stage === "notEnough"
+          ? 0n
+          : (snapshot.offer?.voucher?.units ??
+            snapshot.voucherSetups[0]?.authorization.voucherUnits ??
+            vouchers(1)),
     },
     intl
   );
