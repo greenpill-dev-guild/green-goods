@@ -5946,7 +5946,6 @@
   "public.fund.gardenQuery.ambiguous.title": "Multiple gardens match",
   "public.fund.gardenQuery.stale": "We couldn't find a garden matching \"{query}\". Browse the list below.",
   "public.fund.gardenQuery.stale.title": "Garden not found",
-  "public.fund.gardens.donateTitle": "Find a Garden to Donate To",
   "public.fund.gardens.donateKicker": "§ 02: Choose a garden",
   "public.fund.gardens.kicker": "§ 03: Choose a garden",
   "public.fund.gardens.title": "Find a Garden to support.",

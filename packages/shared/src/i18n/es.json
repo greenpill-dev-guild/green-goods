@@ -5946,7 +5946,6 @@
   "public.fund.gardenQuery.ambiguous.title": "Varios jardines coinciden",
   "public.fund.gardenQuery.stale": "No encontramos un jardín que coincida con \"{query}\". Explora la lista abajo.",
   "public.fund.gardenQuery.stale.title": "Jardín no encontrado",
-  "public.fund.gardens.donateTitle": "Encuentra un jardín al que donar",
   "public.fund.gardens.donateKicker": "§ 02: Elige un jardín",
   "public.fund.gardens.kicker": "§ 03: Elige un jardín",
   "public.fund.gardens.title": "Encuentra un jardín que apoyar.",

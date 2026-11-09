@@ -245,6 +245,14 @@ describe("Treasury amount controls", () => {
     rerender(treasury({}));
     expect(screen.getByText("No deposits yet")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(/Support this garden by making an endowment deposit/)).toBeVisible();
+
+    mocks.endowmentDepositsEnabled = false;
+    rerender(treasury({}));
+    expect(screen.getByText("No deposits yet")).toBeVisible();
+    expect(
+      screen.queryByText(/Support this garden by making an endowment deposit/)
+    ).not.toBeInTheDocument();
   });
 
   it("associates a vault precision error with the input and prevents a withdrawal", async () => {

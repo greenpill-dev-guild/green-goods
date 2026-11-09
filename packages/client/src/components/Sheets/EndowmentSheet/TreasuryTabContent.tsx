@@ -188,7 +188,11 @@ export function TreasuryTabContent({
             className="mt-2 min-h-[9rem] rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0"
             icon={<RiBankLine />}
             title={formatMessage({ id: "app.treasury.noDeposits" })}
-            description={formatMessage({ id: "app.treasury.supportGardenCta" })}
+            description={
+              ENDOWMENT_DEPOSITS_ENABLED
+                ? formatMessage({ id: "app.treasury.supportGardenCta" })
+                : undefined
+            }
           />
         )}
         {myDeposits.length > 0 && (

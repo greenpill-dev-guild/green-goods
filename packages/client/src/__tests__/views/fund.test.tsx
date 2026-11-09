@@ -526,12 +526,15 @@ describe("FundPage", () => {
     expect(fallbackInitial).toHaveClass("lg:text-4xl");
   });
 
-  it("explains the deposit pause once while keeping donation and management available", async () => {
+  it("explains the pause before the locale catalogue loads and keeps Donate available", async () => {
     depositPolicy.enabled = false;
     const user = userEvent.setup();
-    renderView(["/fund"], { catalog: en });
+    renderView(["/fund"], { catalog: {} });
 
     expect(screen.getAllByText("New endowment deposits are paused")).toHaveLength(1);
+    expect(
+      screen.getByText(/You can still review your existing endowments and withdraw/)
+    ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Endow" })).toBeNull();
     await user.click(screen.getAllByRole("button", { name: "Donate" })[0]);
     expect(await screen.findByTestId("public-funding-card")).toHaveAttribute(

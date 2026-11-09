@@ -477,15 +477,10 @@ function FundPageContent() {
                       })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
-                  {ENDOWMENT_DEPOSITS_ENABLED
-                    ? formatMessage({
-                        id: "public.fund.gardens.title",
-                        defaultMessage: "Find a Garden to support.",
-                      })
-                    : formatMessage({
-                        id: "public.fund.gardens.donateTitle",
-                        defaultMessage: "Find a Garden to Donate To",
-                      })}
+                  {formatMessage({
+                    id: "public.fund.gardens.title",
+                    defaultMessage: "Find a Garden to support.",
+                  })}
                 </EditorialHeading>
               </div>
               <EditorialGhostButton
@@ -504,9 +499,18 @@ function FundPageContent() {
             {!ENDOWMENT_DEPOSITS_ENABLED && (
               <div className="mt-5 max-w-2xl text-sm text-text-sub-600">
                 <p className="font-semibold text-text-strong-950">
-                  {formatMessage({ id: "public.fund.endowmentPause.title" })}
+                  {formatMessage({
+                    id: "public.fund.endowmentPause.title",
+                    defaultMessage: "New endowment deposits are paused",
+                  })}
                 </p>
-                <p className="mt-1">{formatMessage({ id: "public.fund.endowmentPause.body" })}</p>
+                <p className="mt-1">
+                  {formatMessage({
+                    id: "public.fund.endowmentPause.body",
+                    defaultMessage:
+                      "We’re updating our endowment vaults. You can still review your existing endowments and withdraw what’s available.",
+                  })}
+                </p>
               </div>
             )}
           </header>
