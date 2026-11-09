@@ -112,6 +112,11 @@ const {
   useEnableAutoAllocate,
 } = operationsModule;
 
+vi.mock("../../../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("hooks/vault/useVaultOperations", () => {
   beforeEach(() => {
     vi.clearAllMocks();

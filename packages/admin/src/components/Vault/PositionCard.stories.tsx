@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
@@ -348,6 +349,11 @@ export const Documentation: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.queryByRole("button", { name: "Deposit" })).toBeNull();
     await userEvent.click(canvas.getByRole("button", { expanded: false }));
-    await expect(canvas.getByRole("button", { name: "Deposit" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Withdraw" })).toBeVisible();
+    if (ENDOWMENT_DEPOSITS_ENABLED) {
+      await expect(canvas.getByRole("button", { name: "Deposit" })).toBeVisible();
+    } else {
+      await expect(canvas.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+    }
   },
 };

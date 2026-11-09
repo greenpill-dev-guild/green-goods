@@ -1,3 +1,4 @@
+import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
 import { Button } from "@green-goods/shared/components/Button";
 import { getOctantVaultCampaignCopy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
@@ -199,43 +200,45 @@ export function CampaignCard({
         <CampaignYieldRow campaign={campaign} />
       </div>
 
-      <section
-        className="self-end"
-        aria-labelledby={`vault-campaign-${campaign.slug}-actions-title`}
-      >
-        <h4
-          id={`vault-campaign-${campaign.slug}-actions-title`}
-          className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-text-soft-400"
+      {ENDOWMENT_DEPOSITS_ENABLED && (
+        <section
+          className="self-end"
+          aria-labelledby={`vault-campaign-${campaign.slug}-actions-title`}
         >
-          {formatMessage({
-            id: "public.vaults.card.readiness",
-            defaultMessage: "Availability",
-          })}
-        </h4>
-        <div className="mt-4">
-          {ready ? (
-            <Button
-              type="button"
-              onClick={() => onEndow?.(campaign)}
-              aria-label={formatMessage(
-                {
-                  id: "public.vaults.endow.ctaLabel",
-                  defaultMessage: "Endow to {campaign}",
-                },
-                { campaign: campaign.displayName }
-              )}
-              className="w-full"
-            >
-              {formatMessage({
-                id: "public.vaults.endow.cta",
-                defaultMessage: "Endow",
-              })}
-            </Button>
-          ) : (
-            <CampaignPreviewNote />
-          )}
-        </div>
-      </section>
+          <h4
+            id={`vault-campaign-${campaign.slug}-actions-title`}
+            className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.vaults.card.readiness",
+              defaultMessage: "Availability",
+            })}
+          </h4>
+          <div className="mt-4">
+            {ready ? (
+              <Button
+                type="button"
+                onClick={() => onEndow?.(campaign)}
+                aria-label={formatMessage(
+                  {
+                    id: "public.vaults.endow.ctaLabel",
+                    defaultMessage: "Endow to {campaign}",
+                  },
+                  { campaign: campaign.displayName }
+                )}
+                className="w-full"
+              >
+                {formatMessage({
+                  id: "public.vaults.endow.cta",
+                  defaultMessage: "Endow",
+                })}
+              </Button>
+            ) : (
+              <CampaignPreviewNote />
+            )}
+          </div>
+        </section>
+      )}
     </article>
   );
 }
