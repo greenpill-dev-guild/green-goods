@@ -1145,7 +1145,7 @@ describe("PWA durable submission boundary", () => {
     ).toMatchObject({ kind: "direct", txHash: hash });
     expect(send).toHaveBeenCalledTimes(1);
   });
-  it("reports the queued work a wallet sends as processed once, and a reverted one as permanently failed", async () => {
+  it("reports each end of the queued work a wallet sends once: processed, reverted, or refused", async () => {
     const tracked = (event: string) =>
       telemetry.track.mock.calls.filter(([name]) => name === event).map(([, props]) => props);
     telemetry.track.mockClear();
@@ -1166,6 +1166,12 @@ describe("PWA durable submission boundary", () => {
     expect(tracked("offline_job_permanently_failed")).toEqual([
       expect.objectContaining({ job_kind: "work" }),
     ]);
+
+    const refused = fixture();
+    const failure = new WorkSubmissionError("Cannot encode work", "transaction");
+    refused.ports.direct.submitWork = vi.fn().mockRejectedValue(failure);
+    await expect(submitWork(refused.command, refused.ports)).rejects.toBe(failure);
+    expect(tracked("offline_job_permanently_failed")).toHaveLength(2);
     expect(tracked("offline_job_processed")).toHaveLength(1);
   });
   it("allows only one immediate sender for two simultaneous submissions", async () => {

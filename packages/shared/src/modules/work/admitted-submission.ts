@@ -359,10 +359,9 @@ async function admitAndSend(
         if (!input.allowOfflineQueue) throw error;
         return queuedOutcome(queued, ports.sender);
       }
-      await jobQueueDB.markJobTerminalFailed(
-        job.id,
-        error instanceof Error ? error.message : "submission-failed"
-      );
+      const lastError = error instanceof Error ? error.message : "submission-failed";
+      await jobQueueDB.markJobTerminalFailed(job.id, lastError);
+      trackJobPermanentlyFailed({ ...job, lastError });
       if (failure.kind === "not-sent") input.onTerminalUnsentFailure?.();
       throw error;
     }
