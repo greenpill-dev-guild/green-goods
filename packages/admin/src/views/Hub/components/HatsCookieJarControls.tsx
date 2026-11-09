@@ -74,6 +74,7 @@ export function HatsCookieJarControls({
   if (!policy) return <p role="status">{t("policyUnavailable")}</p>;
 
   const ready = pending ? new Date(Number(pending.readyAt) * 1_000) : null;
+  const pauseAction = jar.isPaused ? "unpause" : "pause";
   const isOperatorReview =
     review?.action.functionName === "setOperationalLimits" ||
     review?.action.functionName === "pause";
@@ -255,82 +256,67 @@ export function HatsCookieJarControls({
         </details>
       ) : null}
 
-      {canOperate && !jar.isPaused ? (
+      {(jar.isPaused ? canGovern : canOperate) ? (
         <Button
           size="sm"
           type="button"
           emphasis="secondary"
           onClick={() =>
             showReview({
-              label: t("pause"),
-              action: { functionName: "pause", args: [] },
+              label: t(pauseAction),
+              action: { functionName: pauseAction, args: [] },
             })
           }
         >
-          {t("pause")}
+          {t(pauseAction)}
         </Button>
       ) : null}
       {canGovern && jar.isPaused ? (
-        <>
-          <Button
-            size="sm"
-            type="button"
-            emphasis="secondary"
-            onClick={() =>
-              showReview({
-                label: t("unpause"),
-                action: { functionName: "unpause", args: [] },
-              })
-            }
+        <details>
+          <summary className="cursor-pointer type-label">{t("recovery")}</summary>
+          <form
+            className="mt-2 space-y-2"
+            onSubmit={(event) => {
+              const surplus =
+                (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "surplus";
+              submit(event, (form) => {
+                const value = readAmount(form, "recovery", jar.decimals);
+                if (value === 0n || (!surplus && value > jar.balance))
+                  throw new Error("Invalid recovery amount");
+                const recipient = policy.recoveryRecipient;
+                return {
+                  label: t(surplus ? "recoverSurplus" : "recoverCredit"),
+                  action: surplus
+                    ? {
+                        functionName: "recoverSurplus",
+                        args: [jar.assetAddress, value],
+                        recipient,
+                      }
+                    : { functionName: "emergencyWithdraw", args: [value], recipient },
+                  facts: (
+                    <FactList frame="inset">
+                      <FactRow label={t("recoveryAmount")} value={amount(value)} />
+                      <FactRow
+                        label={t("recipient")}
+                        value={<EnsAddressText address={recipient} />}
+                      />
+                    </FactList>
+                  ),
+                };
+              });
+            }}
           >
-            {t("unpause")}
-          </Button>
-          <details>
-            <summary className="cursor-pointer type-label">{t("recovery")}</summary>
-            <form
-              className="mt-2 space-y-2"
-              onSubmit={(event) => {
-                const surplus =
-                  (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "surplus";
-                submit(event, (form) => {
-                  const value = readAmount(form, "recovery", jar.decimals);
-                  if (value === 0n || (!surplus && value > jar.balance))
-                    throw new Error("Invalid recovery amount");
-                  const recipient = policy.recoveryRecipient;
-                  return {
-                    label: t(surplus ? "recoverSurplus" : "recoverCredit"),
-                    action: surplus
-                      ? {
-                          functionName: "recoverSurplus",
-                          args: [jar.assetAddress, value],
-                          recipient,
-                        }
-                      : { functionName: "emergencyWithdraw", args: [value], recipient },
-                    facts: (
-                      <FactList frame="inset">
-                        <FactRow label={t("recoveryAmount")} value={amount(value)} />
-                        <FactRow
-                          label={t("recipient")}
-                          value={<EnsAddressText address={recipient} />}
-                        />
-                      </FactList>
-                    ),
-                  };
-                });
-              }}
-            >
-              <AdminTextField name="recovery" label={t("recoveryAmount")} required />
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" type="submit" value="credit">
-                  {t("recoverCredit")}
-                </Button>
-                <Button size="sm" type="submit" value="surplus" emphasis="secondary">
-                  {t("recoverSurplus")}
-                </Button>
-              </div>
-            </form>
-          </details>
-        </>
+            <AdminTextField name="recovery" label={t("recoveryAmount")} required />
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" type="submit" value="credit">
+                {t("recoverCredit")}
+              </Button>
+              <Button size="sm" type="submit" value="surplus" emphasis="secondary">
+                {t("recoverSurplus")}
+              </Button>
+            </div>
+          </form>
+        </details>
       ) : null}
       {error ? (
         <p role="alert" className="type-meta text-text-sub">
