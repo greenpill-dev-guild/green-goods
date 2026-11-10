@@ -65,7 +65,7 @@ export type CommitmentJobInput =
       act: "confirm";
       commitmentId: bigint;
       gardenAddress: Address;
-      /** The reader was seated through the commitment's named confirmer list. */
+      /** The chain authorizes the reader by account (named or default confirmer), not by a hat. */
       membershipNotRequired?: boolean;
     }
   | { act: "create"; payload: Omit<CommitmentCreationPayload, "creationRequestKey"> };

@@ -155,6 +155,10 @@ export function useHubConfirmQueueController(input: {
           act: "confirm",
           commitmentId: row.commitment.commitmentId,
           gardenAddress: row.garden,
+          // The reader's own confirmation is authorized by their account, not by a
+          // hat in this garden, so a role lost before the queue sends it must not
+          // hold it (CreditLib.isOrdinaryConfirmer).
+          ...(row.eligibility === "OWN" ? { membershipNotRequired: true } : {}),
           report: (event) => {
             if (event.stage === "landed") landed = true;
           },
