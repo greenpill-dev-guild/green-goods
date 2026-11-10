@@ -134,3 +134,29 @@ export const PayoutHistoryAtItsLimit: Story = {
     await expect(canvas.getByText("20+ garden yield payouts so far.")).toBeVisible();
   },
 };
+
+export const HatsOwner: Story = {
+  args: {
+    signer: { canSign: false, isResolved: true },
+    hatsAdmin: {
+      kind: "hats",
+      policy: {
+        maxClaimCeiling: 20_000_000_000_000_000n,
+        minCooldown: 86_400n,
+        dailyBudget: 100_000_000_000_000_000n,
+        recoveryRecipient: "0x2222222222222222222222222222222222222222",
+      },
+      pending: undefined,
+      canOperate: true,
+      canGovern: true,
+      mutation: { mutate: fn(), isPending: false },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = await openJarPage(canvasElement);
+    await expect(canvas.getByText("Active payout policy")).toBeVisible();
+    await expect(canvas.getByText("Recovery recipient")).toBeVisible();
+    await expect(canvas.getByText("Propose payout policy", { selector: "summary" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Pause payouts and deposits" })).toBeVisible();
+  },
+};

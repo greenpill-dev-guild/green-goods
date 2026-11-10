@@ -3,10 +3,14 @@ import { readContract } from "@wagmi/core";
 import { type Hex, toHex, zeroAddress } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getWorkApprovalsForWork } from "../../modules/data/eas";
+import { quoteUserOperation } from "../../modules/transactions/batch-budget";
 import {
+  type BatchBudget,
   BatchNotSubmittedError,
   type BatchExecution,
 } from "../../modules/transactions/batch-types";
+import { withGasHeadroom } from "../../modules/transactions/gas-headroom";
+import type { ContractCall } from "../../modules/transactions/types";
 import {
   prepareReviewBatch,
   type ReviewDecision,
@@ -26,7 +30,10 @@ import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { encodeWorkApprovalData } from "../../utils/eas/encoders";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { createMockWorkApproval } from "../test-utils/mock-factories";
-import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
+import {
+  createFakeBatchingSender,
+  fakePreparedUserOperation,
+} from "../test-utils/transaction-fakes";
 
 // What `createReviewChain` reads: the chain through wagmi, and EAS's index.
 vi.mock("@wagmi/core", async (importOriginal) => ({
@@ -421,37 +428,71 @@ describe("sendReviewBatch", () => {
     expect(outcome.unknown).toEqual([]);
   });
 
-  it("takes a signature per review when asked, for a list too big to send together", async () => {
-    const { sender, decide, landed, input } = setup();
-    const decisions = Array.from({ length: 3 }, () => decide());
-    decisions.forEach((decision) => landed(decision));
+  describe("on an Arbitrum passkey", () => {
+    /**
+     * The bundler's call gas for one and five decisions, measured on a fork of Arbitrum One on
+     * 10 November 2026 with 55-character work descriptions. Open-source Alto quotes the least gas
+     * the call runs on; Pimlico's hosted bundler quoted 1.131 times the gas used on 2 November.
+     */
+    const OPEN_SOURCE_ALTO = { 5: 9_970_414n };
+    const HOSTED = { 1: 2_367_214n, 5: 10_946_022n };
 
-    const outcome = await sendReviewBatch({
-      ...input,
-      rail: "passkey",
-      decisions,
-      perSignature: 1,
+    /** The passkey sender's preflight, against a bundler that quotes `callGas`. */
+    const bundlerQuoting =
+      (callGas: Partial<Record<number, bigint>>) =>
+      async (calls: readonly ContractCall[], budget: BatchBudget) => {
+        const [{ functionName, args, account }] = calls;
+        const reviews =
+          functionName === "attest" ? 1 : (args as [[{ data: unknown[] }]])[0][0].data.length;
+        return quoteUserOperation(
+          {
+            ...fakePreparedUserOperation(account!),
+            // What a Green Goods passkey UserOperation adds to its call.
+            verificationGasLimit: 605_410n,
+            preVerificationGas: 79_162n,
+            paymasterVerificationGasLimit: 46_456n,
+            paymasterPostOpGasLimit: 1n,
+            callGasLimit: withGasHeadroom(callGas[reviews]!, calls),
+          },
+          budget
+        );
+      };
+
+    it("turns away five reviews quoted past 16M before any prompt, then takes a signature each", async () => {
+      const { sender, decide, landed, input, send } = setup();
+      const decisions = Array.from({ length: 5 }, () => decide());
+      decisions.forEach((decision) => landed(decision));
+      // 17.15M together: past 16M, though under the 20M this ceiling allowed before.
+      sender.preflightBatch = bundlerQuoting(HOSTED);
+
+      const together = await send(decisions);
+
+      expect(together.notBatchable).toEqual(decisions.map(({ draft }) => draft.workUID));
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+      const apart = await sendReviewBatch({
+        ...input,
+        rail: "passkey",
+        decisions,
+        perSignature: 1,
+      });
+
+      expect(sender.sendContractCall).toHaveBeenCalledTimes(5);
+      expect(apart.sent).toHaveLength(5);
     });
 
-    expect(sender.sendContractCall).toHaveBeenCalledTimes(3);
-    expect(outcome.sent).toHaveLength(3);
-  });
+    it("keeps five reviews under one signature when the bundler quotes them under 16M", async () => {
+      const { sender, decide, landed, send } = setup();
+      const decisions = Array.from({ length: 5 }, () => decide());
+      decisions.forEach((decision) => landed(decision));
+      // 15.69M together.
+      sender.preflightBatch = bundlerQuoting(OPEN_SOURCE_ALTO);
 
-  it("reports a list past its ceilings without sending anything for it", async () => {
-    const { sender, decide, send } = setup();
-    const decision = decide();
-    sender.preflightBatch = async () => ({
-      gas: "90000000",
-      maxFeePerGas: "10000000",
-      maxFee: "900000000000000",
-      sponsored: true,
-      authority: "user-operation",
+      const outcome = await send(decisions);
+
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+      expect(outcome.sent).toHaveLength(5);
     });
-
-    const outcome = await send([decision]);
-
-    expect(outcome.notBatchable).toEqual([decision.draft.workUID]);
-    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
 
