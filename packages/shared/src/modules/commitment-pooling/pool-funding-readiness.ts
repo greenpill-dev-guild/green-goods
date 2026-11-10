@@ -3,6 +3,7 @@ import type {
   PoolFundingSnapshot,
   PoolFundingTransferBlock,
   PoolFundingTransferLimit,
+  PoolFundingTransferRefusal,
   PoolFundingUnavailableReason,
   SettlementUnavailableReason,
 } from "./pool-funding";
@@ -218,28 +219,57 @@ export function selectTransferBlock(
 }
 
 /**
- * Why a queued transfer can't be dispatched or resent yet. Celo debits the amount
- * plus any sender-paid G$ fee and refuses a fee the receiver would pay, so this
- * also needs the read's own quote for the transfer: none, or one Celo would
- * refuse, leaves nothing to show it fits.
+ * What holds every transfer out of this Safe, whatever its amount, in the order a
+ * steward should hear it: what Celo refuses outright before what the read couldn't
+ * show. The Safe's settlement readiness derives each one from the read.
+ */
+const SAFE_WIDE_REFUSALS = [
+  "inactive_route",
+  "executor_paused",
+  "token_paused",
+  "executor_unreadable",
+  "token_unreadable",
+] as const satisfies readonly PoolFundingTransferRefusal[];
+
+/**
+ * Why a queued transfer can't be dispatched or resent yet. A send spends the CCIP
+ * fee before Celo can refuse it, so it needs a whole read showing that Celo would
+ * take it: an active route, an executor and a token that aren't paused, and the
+ * read's own quote for the transfer. Celo debits the amount plus any sender-paid
+ * G$ fee, and refuses a fee the receiver would pay or one over its fee policy. No
+ * quote, or one Celo would refuse, leaves nothing to show the transfer fits.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
     snapshot: Pick<
       PoolFundingSnapshot,
-      "balance" | "limits" | "disbursements" | "feeQuotes"
+      | "balance"
+      | "limits"
+      | "disbursements"
+      | "feeQuotes"
+      | "feePolicy"
+      | "settlementUnavailableReasons"
     > | null;
   },
   transfer: { disbursementId: bigint; amount: bigint }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
   if (!snapshot || !selectTransferLimitsRead(funding)) return "limits_unread";
+  const refusal = SAFE_WIDE_REFUSALS.find((reason) =>
+    snapshot.settlementUnavailableReasons.includes(reason)
+  );
+  if (refusal) return refusal;
   const row = snapshot.disbursements.find(
     (entry) => entry.disbursementId === transfer.disbursementId
   );
   const quote = row && snapshot.feeQuotes.find((entry) => entry.id === row.id);
   if (!quote || quote.fee === null || quote.senderPays === null) return "limits_unread";
   if (quote.fee > 0n && !quote.senderPays) return "limits_unread";
+  // The readiness checks every quote against the policy; a send needs only its own to fit.
+  if (!snapshot.feePolicy) return "fee_policy_unavailable";
+  if (quote.fee > calculateKnownTransferFeeBuffer(quote.amount, snapshot.feePolicy)) {
+    return "fee_policy_breach";
+  }
   return selectExceededTransferLimit(funding, transfer.amount, quote.fee);
 }
 

@@ -4,7 +4,10 @@ import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProtocolFundingOperationsController } from "../hooks/admin-ui/pool/useProtocolFundingOperationsController";
-import type { PoolFundingSnapshot } from "../modules/commitment-pooling/pool-funding";
+import type {
+  PoolFundingDisbursement,
+  PoolFundingSnapshot,
+} from "../modules/commitment-pooling/pool-funding";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
@@ -69,6 +72,7 @@ function snapshot(
     feeBuffer: 0n,
     quotedFees: 0n,
     feeQuotes: [{ id: "42161-8", amount: 2n, fee: 0n, senderPays: false, recipient: TARGET_SAFE }],
+    feePolicy: { maxFeeBps: 10_000, maxFeeAmount: 100n },
     available: 0n,
     shortfall: 0n,
     suggestedTopUp: 0n,
@@ -105,6 +109,27 @@ function snapshot(
     },
     nativeFeeBalance: null,
   };
+}
+
+/** A read listing these funding transfers from the protocol Safe, each queued for 2 unless set. */
+function transfers(
+  ...rows: (Partial<PoolFundingDisbursement> & { disbursementId: bigint })[]
+): PoolFundingSnapshot {
+  const read = snapshot();
+  const [listed] = read.disbursements;
+  read.disbursements = rows.map((row) => ({
+    ...listed!,
+    ...row,
+    id: `42161-${row.disbursementId}`,
+  }));
+  read.feeQuotes = read.disbursements.map((row) => ({
+    id: row.id,
+    amount: row.amount,
+    fee: 0n,
+    senderPays: false,
+    recipient: TARGET_SAFE,
+  }));
+  return read;
 }
 
 describe("useProtocolFundingOperationsController", () => {
@@ -204,26 +229,67 @@ describe("useProtocolFundingOperationsController", () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("closes every send after a Safe proposal, until the transfers read differently", async () => {
+  it("holds every send after a Safe proposal until that transfer moves, not another", async () => {
     mocks.capabilities = dispatcher;
     mocks.mutateAsync.mockResolvedValue({
       hash: "safe-proposal",
       sponsored: false,
       confirmation: "pending",
     });
+    mocks.sourceSnapshot = transfers({ disbursementId: 8n }, { disbursementId: 9n });
     const { result, rerender } = renderController();
-    expect(result.current.rows[0]?.canDispatch).toBe(true);
+    expect(result.current.rows.every((row) => row.canDispatch)).toBe(true);
 
     await act(async () => {
       await result.current.dispatch(8n);
     });
     expect(result.current.lastAct).toMatchObject({ kind: "dispatch", phase: "proposed" });
-    expect(result.current.rows[0]).toMatchObject({
-      canDispatch: false,
-      canCancel: false,
-    });
+    expect(result.current.rows.some((row) => row.canDispatch || row.canCancel)).toBe(false);
 
-    mocks.sourceSnapshot = snapshot("DISPATCHED");
+    // Another steward dispatches #9: the list moved, but the proposal for #8 hasn't run.
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n },
+      { disbursementId: 9n, state: "DISPATCHED" }
+    );
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows.find((row) => row.disbursementId === 8n)?.canDispatch).toBe(false);
+
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n, state: "DISPATCHED" },
+      { disbursementId: 9n, state: "DISPATCHED" }
+    );
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("submitted");
+  });
+
+  it("holds queuing after a Safe proposal until that garden's new transfer is listed", async () => {
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    mocks.sourceSnapshot = transfers({ disbursementId: 8n });
+    const { result, rerender } = renderController();
+
+    await act(async () => {
+      await result.current.queueFunding(TARGET, 2n);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "queue-funding", phase: "proposed" });
+
+    // A transfer that was already listed, and another top-up of a different amount, aren't it.
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n, state: "DISPATCHED", garden: TARGET },
+      { disbursementId: 9n, garden: TARGET, amount: 3n }
+    );
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n, state: "DISPATCHED", garden: TARGET },
+      { disbursementId: 9n, garden: TARGET, amount: 3n },
+      { disbursementId: 10n, garden: TARGET }
+    );
     rerender();
     expect(result.current.lastAct?.phase).toBe("submitted");
   });

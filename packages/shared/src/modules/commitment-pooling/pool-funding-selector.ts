@@ -66,6 +66,7 @@ export function selectPoolFundingSnapshot(input: PoolFundingCalculationInput): P
       ? input.feeQuotes.reduce((sum, quote) => sum + (quote.fee ?? 0n), 0n)
       : null,
     feeQuotes: input.feeQuotes,
+    feePolicy: input.feePolicy,
     available,
     shortfall,
     suggestedTopUp,

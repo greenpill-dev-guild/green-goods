@@ -556,6 +556,7 @@ import {
   selectSettlementWorkflow,
   type SettlementChainDisbursement,
   type SettlementChainPlan,
+  type SettlementWorkflowInput,
 } from "../../modules/commitment-pooling/settlement-workflow";
 import type { Address } from "../../types/domain";
 
@@ -680,6 +681,8 @@ const settlementActs: CommitmentSettlementController["acts"] = {
 export function commitmentSettlementControllerFixture(
   overrides: Partial<CommitmentSettlementController> & {
     commitment?: CommitmentReadModel;
+    /** Why the paying Safe can't send a transfer; by default nothing holds one. */
+    transferBlock?: SettlementWorkflowInput["transferBlock"];
   } = {}
 ): CommitmentSettlementController {
   const commitment = overrides.commitment ?? settlementCommitmentFixture();
@@ -724,7 +727,7 @@ export function commitmentSettlementControllerFixture(
       chainRead,
       isActing,
       proposalPending: false,
-      transferBlock: () => null,
+      transferBlock: overrides.transferBlock ?? (() => null),
       now: NOW,
     });
   return {

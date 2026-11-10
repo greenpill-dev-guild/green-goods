@@ -17,6 +17,7 @@ import type { CommitmentSettlementChainState } from "@green-goods/shared/modules
 import {
   type SettlementChainDisbursement,
   type SettlementChainPlan,
+  type SettlementWorkflowInput,
   selectSettlementWorkflow,
 } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -93,6 +94,8 @@ export function storySettlementDisbursement(
 export function storyCommitmentSettlement(
   overrides: Omit<Partial<CommitmentSettlementController>, "chain"> & {
     chain?: Partial<CommitmentSettlementChainState> | null;
+    /** Why the paying Safe can't send a transfer; by default nothing holds one. */
+    transferBlock?: SettlementWorkflowInput["transferBlock"];
   } = {}
 ): CommitmentSettlementController {
   const commitment = storyCommitment({
@@ -142,7 +145,7 @@ export function storyCommitmentSettlement(
     canRequeueOrCancel: true,
     resolved: true,
   };
-  const { chain: _chain, ...rest } = overrides;
+  const { chain: _chain, transferBlock = () => null, ...rest } = overrides;
   const workflow =
     overrides.workflow ??
     selectSettlementWorkflow({
@@ -165,7 +168,7 @@ export function storyCommitmentSettlement(
       chainRead: chain ? "ready" : "pending",
       isActing: false,
       proposalPending: false,
-      transferBlock: () => null,
+      transferBlock,
       now: Number(STORY_NOW),
     });
   return {

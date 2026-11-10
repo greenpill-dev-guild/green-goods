@@ -38,10 +38,70 @@ import {
 } from "../../commitment-pooling/useSettlement";
 import { useRole } from "../../gardener/useRole";
 
-function transfersKey(snapshot: ReturnType<typeof usePoolFunding>["snapshot"]): string | null {
-  return snapshot
-    ? snapshot.disbursements.map((row) => `${row.disbursementId}:${row.state}`).join(",")
-    : null;
+type FundingRead = ReturnType<typeof usePoolFunding>["snapshot"];
+
+type FundingAct =
+  | { action: "queueFunding"; garden: Address; amount: bigint }
+  | { action: "dispatchDisbursement" | "retryCommand" | "requeue"; disbursementId: bigint }
+  | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string };
+
+/**
+ * What a proposal will change once it runs, against the read it was sent from: a
+ * new funding transfer numbered above every transfer that read listed, or one
+ * transfer moving on from where it stood.
+ */
+type ProposedEffect =
+  | { kind: "new-transfer"; garden: Address; amount: bigint; after: bigint }
+  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null };
+
+/** Where one transfer stands, its Celo execution included; null when the read doesn't list it. */
+function transferProgress(read: FundingRead, disbursementId: bigint): string | null {
+  const row = read?.disbursements.find((entry) => entry.disbursementId === disbursementId);
+  if (!row) return null;
+  const key = row.executionKey?.toLowerCase();
+  const execution = key
+    ? read?.executions.find((entry) => entry.executionKey.toLowerCase() === key)
+    : undefined;
+  return [row.state, key ?? "", execution?.status ?? "", execution?.acknowledgmentSent ?? ""].join(
+    ":"
+  );
+}
+
+function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
+  if (act.action === "queueFunding") {
+    const after = (read?.disbursements ?? []).reduce(
+      (highest, row) => (row.disbursementId > highest ? row.disbursementId : highest),
+      0n
+    );
+    return { kind: "new-transfer", garden: act.garden, amount: act.amount, after };
+  }
+  return {
+    kind: "transfer-moves",
+    disbursementId: act.disbursementId,
+    from: transferProgress(read, act.disbursementId),
+  };
+}
+
+/**
+ * Whether the read shows the proposal's own effect. Until it does, the same act could
+ * be proposed again and both could run, so another transfer moving changes nothing.
+ * A resend shows only once Celo answers it.
+ */
+function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
+  if (!read) return false;
+  if (effect.kind === "transfer-moves") {
+    const now = transferProgress(read, effect.disbursementId);
+    return now !== null && now !== effect.from;
+  }
+  const source = read.safe?.toLowerCase();
+  return read.disbursements.some(
+    (row) =>
+      row.kind === "FUNDING" &&
+      row.source.toLowerCase() === source &&
+      row.garden?.toLowerCase() === effect.garden.toLowerCase() &&
+      row.amount === effect.amount &&
+      row.disbursementId > effect.after
+  );
 }
 
 function fundingView(query: ReturnType<typeof usePoolFunding>): PoolFundingControllerView {
@@ -84,11 +144,11 @@ export function useProtocolFundingOperationsController(input: {
   });
   const mutation = useSettlementMutation({ chainId });
   const [lastAct, setLastAct] = useState<SettlementActStatus | null>(null);
-  // The transfers as they stood when a Safe took an act as a proposal. Sends stay
-  // closed while the list still reads the same, so nothing goes out twice. This
-  // lasts as long as the panel: reloading is how a rejected proposal is sent again.
-  const [proposedAt, setProposedAt] = useState<string | null>(null);
-  const proposalPending = proposedAt !== null && transfersKey(sourceQuery.snapshot) === proposedAt;
+  // What an act a Safe took as a proposal will change. Sends stay closed until the
+  // read shows that change, so the act can't be proposed twice. This lasts as long
+  // as the panel: reloading is how a rejected proposal is sent again.
+  const [proposed, setProposed] = useState<ProposedEffect | null>(null);
+  const proposalPending = proposed !== null && !effectShown(proposed, sourceQuery.snapshot);
   // From the first tap: a send reads the Safe again before the wallet is asked.
   const isActing = mutation.isPending || lastAct?.phase === "signing";
   const canAct = Boolean(viewer) && isOnline && !isActing && !capabilities.isLoading;
@@ -162,17 +222,14 @@ export function useProtocolFundingOperationsController(input: {
   const run = useCallback(
     async (
       kind: SettlementActKind,
-      action:
-        | { action: "queueFunding"; garden: Address; amount: bigint }
-        | { action: "dispatchDisbursement" | "retryCommand" | "requeue"; disbursementId: bigint }
-        | { action: "cancelDisbursement"; disbursementId: bigint; reasonCID: string },
+      action: FundingAct,
       /** Asks the latest read why this can't go, when the send can spend the CCIP fee. */
       blockOf?: (
         funding: Parameters<typeof selectQueuedTransferBlock>[0]
       ) => PoolFundingTransferBlock | null
     ): Promise<HexString> => {
       setLastAct({ kind, phase: "signing" });
-      let before = transfersKey(sourceQuery.snapshot);
+      let before = sourceQuery.snapshot;
       try {
         if (blockOf) {
           // The rows and the review read a snapshot up to 30 seconds old; the send reads again.
@@ -183,12 +240,12 @@ export function useProtocolFundingOperationsController(input: {
             hasStaleBalance: false,
           });
           if (block) throw new Error(`The protocol Safe can't send this transfer: ${block}`);
-          before = transfersKey(fresh.data ?? null);
+          before = fresh.data ?? null;
         }
         const result = await mutation.mutateAsync(action);
         const hash = result.hash as HexString;
         if (result.confirmation === "pending") {
-          setProposedAt(before);
+          setProposed(proposedEffect(action, before));
           setLastAct({ kind, phase: "proposed", hash });
         } else {
           setLastAct({ kind, phase: "submitted", hash });
@@ -228,7 +285,7 @@ export function useProtocolFundingOperationsController(input: {
     sourceFunding: fundingView(sourceQuery),
     targetFunding: fundingView(targetQuery),
     rows,
-    // Once the list moves, the proposal ran and the indexed rows say how it went.
+    // Once the read shows the proposal's own change, it ran and the indexed rows say how it went.
     lastAct:
       lastAct?.phase === "proposed" && !proposalPending
         ? { ...lastAct, phase: "submitted" }
