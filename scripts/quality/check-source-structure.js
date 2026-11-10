@@ -155,7 +155,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/shared/src/types/domain.ts": 614,
   "packages/shared/src/utils/action/translations.ts": 564,
   "packages/shared/src/utils/cookie-jar-campaign.ts": 501,
-  "packages/shared/src/utils/errors/contract-errors.ts": 823,
+  "packages/shared/src/utils/errors/contract-errors.ts": 817,
   "packages/shared/src/utils/time.ts": 536,
   "packages/shared/src/workflows/authMachine.ts": 724,
 };
