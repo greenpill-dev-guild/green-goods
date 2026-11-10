@@ -12,6 +12,7 @@ const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const VAULT_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 const VAULT_B = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as Address;
 const STRATEGY = "0xcccccccccccccccccccccccccccccccccccccccc" as Address;
+const OLD_STRATEGY = "0xdddddddddddddddddddddddddddddddddddddddd" as Address;
 const success = (result: unknown) => ({ status: "success", result });
 const failure = { status: "failure", error: new Error("Read failed") };
 
@@ -49,32 +50,36 @@ function vault(overrides: Partial<GardenVault> = {}): GardenVault {
   };
 }
 
-describe("usePublicVaultCatalogSummary with the real chain reader", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    getVaults.mockResolvedValue([vault()]);
-    getAllocations.mockResolvedValue([
-      { gardenAddress: GARDEN, assetAddress: DAI, totalAmount: 3n },
-    ]);
-    getBlockNumber.mockResolvedValue(123n);
-    multicall.mockImplementation(async ({ contracts }) =>
-      contracts.map((call: { functionName: string }) => {
-        switch (call.functionName) {
-          case "vaultStrategies":
-            return success(STRATEGY);
-          case "totalAssets":
-            return success(110n);
-          case "totalDebt":
-            return success(100n);
-          case "getReserveData":
-            return success({ currentLiquidityRate: 10n ** 25n });
-          default:
-            throw new Error(`Unexpected read: ${call.functionName}`);
-        }
-      })
-    );
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  getVaults.mockResolvedValue([vault()]);
+  getAllocations.mockResolvedValue([{ gardenAddress: GARDEN, assetAddress: DAI, totalAmount: 3n }]);
+  getBlockNumber.mockResolvedValue(123n);
+  multicall.mockImplementation(async ({ contracts }) =>
+    contracts.map((call: { functionName: string }) => {
+      switch (call.functionName) {
+        case "vaultStrategies":
+          return success(STRATEGY);
+        case "get_default_queue":
+          return success([STRATEGY]);
+        case "strategies":
+          return success({ activation: 1n, currentDebt: 100n });
+        case "balanceOf":
+          return success(100n);
+        case "convertToAssets":
+          return success(110n);
+        case "totalDebt":
+          return success(100n);
+        case "getReserveData":
+          return success({ currentLiquidityRate: 10n ** 25n });
+        default:
+          throw new Error(`Unexpected read: ${call.functionName}`);
+      }
+    })
+  );
+});
 
+describe("usePublicVaultCatalogSummary with the real chain reader", () => {
   it("restores live yield, APR and garden balances through the provider-free summary", async () => {
     const { result } = renderHookWithQueryClient(() => usePublicVaultCatalogSummary());
     await waitFor(() => expect(result.current.assets[0]?.accruingYield).toBe(10n));
@@ -153,6 +158,40 @@ describe("usePublicVaultCatalogSummary with the real chain reader", () => {
     expect(result.current.assets[0].netDeposited).toBe(0n);
   });
 
+  it.each([
+    [OLD_STRATEGY, STRATEGY, OLD_STRATEGY],
+    [OLD_STRATEGY],
+  ])("includes retained old debt and the replacement regardless of queue membership: %j", async (...queue) => {
+    multicall.mockImplementation(async ({ contracts }) =>
+      contracts.map((call: { address: string; functionName: string; args?: unknown[] }) => {
+        switch (call.functionName) {
+          case "vaultStrategies":
+            return success(STRATEGY);
+          case "get_default_queue":
+            return success(queue);
+          case "totalDebt":
+            return success(200n);
+          case "strategies":
+            return success({ activation: 1n, currentDebt: 100n });
+          case "balanceOf":
+            return success(call.address === OLD_STRATEGY ? 50n : 100n);
+          case "convertToAssets":
+            return success(call.args?.[0] === 50n ? 125n : 110n);
+          case "totalAssets":
+            return success(call.address === OLD_STRATEGY ? 250n : 110n);
+          case "getReserveData":
+            return success({ currentLiquidityRate: 10n ** 25n });
+          default:
+            throw new Error(`Unexpected read: ${call.functionName}`);
+        }
+      })
+    );
+    const { result } = renderHookWithQueryClient(() => usePublicVaultCatalogSummary());
+    await waitFor(() => expect(result.current.assets[0]?.accruingYield).toBeDefined());
+    expect(result.current.assets[0].accruingYield).toBe(35n);
+    expect(result.current.gardensByAddress[GARDEN].assets[0].currentValue).toBe(135n);
+  });
+
   it("does not contact the chain for an empty catalog", async () => {
     getVaults.mockResolvedValue([]);
     const { result } = renderHookWithQueryClient(() => usePublicVaultCatalogSummary());
@@ -170,13 +209,56 @@ describe("readPublicVaultYield boundaries", () => {
   });
 
   it("clamps losses to zero and treats a successful idle-strategy read as zero", async () => {
-    multicall.mockResolvedValueOnce([
-      success(STRATEGY),
-      success("0x0000000000000000000000000000000000000000"),
-    ]);
-    multicall.mockResolvedValueOnce([success(90n), success(100n), failure]);
+    const normalRead = multicall.getMockImplementation()!;
+    multicall.mockImplementation(async (input) => {
+      const reads = await normalRead(input);
+      return reads.map((read: unknown, index: number) => {
+        const call = input.contracts[index];
+        if (call.address === VAULT_B) {
+          if (call.functionName === "get_default_queue") return success([]);
+          if (call.functionName === "totalDebt") return success(0n);
+        }
+        if (call.functionName === "vaultStrategies" && call.args[0] === VAULT_B)
+          return success("0x0000000000000000000000000000000000000000");
+        if (call.functionName === "convertToAssets") return success(90n);
+        if (call.functionName === "getReserveData") return failure;
+        return read;
+      });
+    });
     const result = await readPublicVaultYield([vault(), vault({ vaultAddress: VAULT_B })], 42161);
     expect(result.yieldByVault).toEqual({ [VAULT_A]: 0n, [VAULT_B]: 0n });
     expect(result.ratesByAsset[DAI]).toBeUndefined();
+  });
+
+  it.each([
+    "get_default_queue",
+    "strategies",
+    "balanceOf",
+    "convertToAssets",
+  ])("withholds yield when %s fails while preserving independently read APR", async (functionName) => {
+    const normalRead = multicall.getMockImplementation()!;
+    multicall.mockImplementation(async (input) => {
+      const reads = await normalRead(input);
+      return reads.map((read: unknown, index: number) =>
+        input.contracts[index].functionName === functionName ? failure : read
+      );
+    });
+    const result = await readPublicVaultYield([vault()], 42161);
+    expect(result.yieldByVault[VAULT_A]).toBeUndefined();
+    expect(result.ratesByAsset[DAI]?.apr).toBe(1);
+  });
+
+  it("withholds yield when a custom queue omits indebted strategies", async () => {
+    const normalRead = multicall.getMockImplementation()!;
+    multicall.mockImplementation(async (input) => {
+      const reads = await normalRead(input);
+      return reads.map((read: unknown, index: number) =>
+        input.contracts[index].functionName === "strategies"
+          ? success({ activation: 1n, currentDebt: 50n })
+          : read
+      );
+    });
+    const result = await readPublicVaultYield([vault()], 42161);
+    expect(result.yieldByVault[VAULT_A]).toBeUndefined();
   });
 });
