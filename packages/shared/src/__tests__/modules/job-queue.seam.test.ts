@@ -15,6 +15,7 @@ import {
   createJobQueueDependencies,
 } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
+import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 
 const USER = "0x1111111111111111111111111111111111111111";
 
@@ -721,6 +722,19 @@ describe("processJob", () => {
       error: "Max retries (5) exceeded",
     });
     expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
+  });
+
+  it("reports a send that reverts as permanently failed", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob()]);
+    const executors = {
+      execute: vi.fn().mockRejectedValue(new WorkTransactionReverted(`0x${"ab".repeat(32)}`)),
+    };
+    const { deps, queue } = setup({ store, executors });
+    await queue.processJob("job-1", { transactionSender: {} as never });
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ attempts: 1, lastError: "work-transaction-reverted" })
+    );
+    expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
   });
 
   it("uses the ordinary retry ceiling for repeated Work metadata failures", async () => {

@@ -4,7 +4,10 @@ import type { CommitmentQueueState } from "../../commitment-pooling/useCommitmen
 import type { CommitmentReasonResolution } from "../../commitment-pooling/useCommitmentReason";
 import type { PoolCharterResolution } from "../../commitment-pooling/usePoolCharter";
 import type { selectCommitmentActPermissions } from "../../../modules/commitment-pooling/commitment-act-permissions";
-import type { ConfirmRowState } from "../../../modules/commitment-pooling/confirm-queue";
+import type {
+  ConfirmQueueEligibility,
+  ConfirmRowState,
+} from "../../../modules/commitment-pooling/confirm-queue";
 import type {
   CommitmentSeat,
   selectConfirmationEligibility,
@@ -180,11 +183,8 @@ export interface VoucherConsoleView {
   acts: VoucherConsoleActs;
 }
 
-export type ConfirmQueueEligibility =
-  | "ORDINARY"
-  | "POOL_FALLBACK"
-  | "PROTOCOL_FALLBACK"
-  | "DISPUTED";
+// The projection owns the list; re-exported so the queue's callers keep one import.
+export type { ConfirmQueueEligibility };
 
 export interface ConfirmQueueRow {
   commitment: CommitmentReadModel;
