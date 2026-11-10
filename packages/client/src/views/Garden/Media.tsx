@@ -21,7 +21,7 @@ import type { Action } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiImageFill, RiLoader4Line } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { defineMessages, useIntl } from "react-intl";
+import { defineMessages, type NoMessageValues, useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 import { ImagePreviewDialog } from "@/components/Display";
 import {
@@ -36,7 +36,12 @@ const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,.hei
 const PHOTO_AND_VIDEO_ACCEPT = `${PHOTO_ACCEPT},video/mp4,video/webm`;
 
 /** What a pick's toasts say when it leaves files out: how many, and which limit did it. */
-const limitMessages = defineMessages({
+const limitMessages = defineMessages<{
+  notAdded: { dropped: number };
+  limits: NoMessageValues;
+  actionLimit: { max: number };
+  documentLimit: { max: number };
+}>({
   notAdded: {
     id: "app.garden.upload.truncatedTitle",
     defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",

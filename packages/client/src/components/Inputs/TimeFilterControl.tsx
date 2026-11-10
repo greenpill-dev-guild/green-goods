@@ -41,7 +41,7 @@ export function TimeFilterControl<T extends TimePeriod>({
       value={value}
       onChange={(e) => onChange(e.target.value as T)}
     >
-      {periods.map((period) => (
+      {periods.map((period: TimePeriod) => (
         <option key={period} value={period}>
           {formatMessage(PERIOD_LABELS[period])}
         </option>
