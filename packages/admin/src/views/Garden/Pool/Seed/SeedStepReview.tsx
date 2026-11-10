@@ -130,7 +130,7 @@ export function SeedStepReview({
     values.direction === "REQUEST"
       ? formatMessage({
           id: "cockpit.garden.pool.seed.direction.request",
-          defaultMessage: "The pool requests",
+          defaultMessage: "The pool asks",
         })
       : formatMessage({
           id: "cockpit.garden.pool.seed.direction.offer",
@@ -371,7 +371,7 @@ export function SeedStepReview({
             {
               id: "cockpit.garden.pool.seed.tray.roomFull",
               defaultMessage:
-                "That is as many offers as you can hold at once: the pool's promise limit is {cap} per person. A request takes none of that room.",
+                "That is as many offers as you can hold at once: the pool's promise limit is {cap} per person. An ask takes none of that room.",
             },
             { cap: capacity.cap ?? 0 }
           )}

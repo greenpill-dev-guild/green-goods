@@ -80,6 +80,12 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOrigin
   };
 });
 
+// No garden is active unless a case enters one, so the other cases list every garden's jars.
+let mockActiveGardenId: string | null = null;
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ gardenId: mockActiveGardenId, garden: null, inScope: () => true }),
+}));
+
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
   return {
     ...(await importOriginal()),
@@ -100,6 +106,7 @@ describe("CookieJarTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsOnline = true;
+    mockActiveGardenId = null;
     mockUseAccessibleCookieJars.mockReturnValue({
       jars: [testJar],
       isLoading: false,
@@ -127,6 +134,39 @@ describe("CookieJarTab", () => {
     // The cooldown lives on the jar's page, which the row opens.
     await userEvent.setup().click(row);
     expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
+  });
+
+  it("leads with the chip's garden and keeps the other gardens behind one row", async () => {
+    const elsewhere = "0x4444444444444444444444444444444444444444" as const;
+    mockActiveGardenId = TEST_GARDEN;
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [
+        {
+          ...testJar,
+          jarAddress: "0x6666666666666666666666666666666666666666",
+          gardenAddress: elsewhere,
+        },
+        testJar,
+      ],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 2,
+      confirmedGardenCount: 2,
+      unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
+    });
+    render(<CookieJarTab />);
+
+    // The active garden's jars show first; the other garden waits behind one row.
+    expect(screen.getByText("Garden Alpha")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /USDC a claim/ })).toHaveLength(1);
+    const others = screen.getByRole("button", { name: "Other Gardens (1)" });
+    expect(others).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.setup().click(others);
+    expect(others).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("button", { name: /USDC a claim/ })).toHaveLength(2);
   });
 
   it("caps the claimable-now figure at the jar's remaining balance", () => {

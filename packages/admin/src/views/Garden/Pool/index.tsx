@@ -39,7 +39,7 @@ export interface GardenPoolTabProps {
 /**
  * W7, the steward's pool console (uiux-spec §6.2), which the Garden workspace
  * shows as its Promises tab (DL-077). Two columns: what needs the steward, the
- * season and its campaigns, and Offers and Requests on the left; Review
+ * season and its campaigns, and Offers and Asks on the left; Review
  * Promises, Pool Status and Pool Funding on the right, which is 37.5% of the
  * width (PRD-1025 D8–D10). Every act goes through the controller
  * in shared; every reasoned act through the one reason dialog; every row opens

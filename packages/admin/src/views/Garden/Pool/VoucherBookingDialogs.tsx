@@ -160,7 +160,7 @@ export function VoucherReportVisitDialog({
 export type VoucherBookingAct = { kind: "report" | "propose"; booking: VoucherBooking } | null;
 
 /**
- * The dialog a booking's act opens from its row in Offers and Requests: a
+ * The dialog a booking's act opens from its row in Offers and Asks: a
  * visit's report, or the return proposed for access that ended early.
  */
 export function VoucherBookingDialogs({

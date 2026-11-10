@@ -105,3 +105,5 @@ type Story = StoryObj<typeof GardenWork>;
 
 export const EvaluateExample: Story = { beforeEach: onReview(null) };
 export const FeedbackExample: Story = { beforeEach: onReview("approve") };
+/** Declining asks what the gardener should change, where approving asks for anything to say. */
+export const DeclineExample: Story = { beforeEach: onReview("reject") };

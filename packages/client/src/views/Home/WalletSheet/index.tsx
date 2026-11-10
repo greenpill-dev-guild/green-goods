@@ -85,10 +85,9 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
     <AppSheet
       isOpen={isOpen}
       onClose={onClose}
-      header={{
-        title: formatMessage({ id: "app.wallet.title" }),
-        description: formatMessage({ id: "app.wallet.subtitle" }),
-      }}
+      // The title is enough: the Cookies tab leads with the chip's garden (DL-028 keeps the
+      // description optional).
+      header={{ title: formatMessage({ id: "app.wallet.title" }) }}
       tabs={tabs}
       activeTab={tab}
       onTabChange={(id) => {

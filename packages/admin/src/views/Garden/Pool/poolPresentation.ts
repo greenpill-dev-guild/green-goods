@@ -192,7 +192,7 @@ export function commitmentStateChip(
       return {
         label: formatMessage({
           id: "cockpit.garden.pool.row.state.requested",
-          defaultMessage: "Requested",
+          defaultMessage: "Asked",
         }),
         variant: "info",
       };
@@ -267,7 +267,7 @@ export function directionLabel(
   formatMessage: FormatMessage
 ): string {
   return direction === "REQUEST"
-    ? formatMessage({ id: "cockpit.garden.pool.row.request", defaultMessage: "Request" })
+    ? formatMessage({ id: "cockpit.garden.pool.row.request", defaultMessage: "Ask" })
     : formatMessage({ id: "cockpit.garden.pool.row.offer", defaultMessage: "Offer" });
 }
 

@@ -6,7 +6,10 @@ import {
   type GardenPoolLiveness,
   useGardenPoolController,
 } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
-import { usePoolPromiseEntries } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
+import {
+  usePastDuePromises,
+  usePoolPromiseEntries,
+} from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
 import {
   type CommitmentCycleRecord,
   type CommitmentPoolRecord,
@@ -90,6 +93,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
     () => controller.rows.map(({ commitment }) => commitment),
     [controller.rows]
   );
+  // An untaken promise past its due date says so on its row, as the cockpit's rows do (DL-110).
+  const pastDueIds = usePastDuePromises({
+    chainId: controller.chainId,
+    poolId: pool.poolId,
+    commitments: serviceOffers,
+  });
   const serviceLines = useServiceOfferLines({ chainId: controller.chainId, offers: serviceOffers });
   const [charterOpen, setCharterOpen] = useState(false);
   // The last cycle stays drawn while its sheet closes.
@@ -277,6 +286,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
                       intl,
                       serviceLines.get(entry.row.commitment.commitmentId.toString())
                     )}
+                    pastDue={pastDueIds.has(entry.row.commitment.id)}
                     onOpen={(id) => navigate(`commitments/${id.toString()}`)}
                   />
                 ) : (

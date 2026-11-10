@@ -7,13 +7,16 @@ import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddr
 import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import {
   type CommitmentCycleRecord,
+  type InboxCommitment,
   useCommitmentPools,
   useCommitmentSeries,
   useCommitmentsInbox,
   useCommitmentsToConfirm,
+  usePoolClaimRequests,
 } from "@green-goods/shared/commitment-pooling";
+import { usePastDuePromises } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
 import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import {
@@ -80,6 +83,36 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   const gardenPool = gardenId
     ? pools.find((pool) => compareAddresses(pool.garden, gardenId))
     : undefined;
+  // The reader's take-up requests in the garden's pool that still wait on a steward's yes: they
+  // are the reader's business before anything is theirs (PRD-1368, decision 3).
+  const pendingClaims = usePoolClaimRequests(
+    { chainId, poolId: gardenPool?.poolId ?? 0n, state: "PENDING" },
+    { enabled: isOpen && Boolean(gardenPool && viewer) }
+  );
+  const waiting = useMemo<InboxCommitment[]>(() => {
+    if (!viewer) return [];
+    const listed = new Set(inbox.live.map((row) => row.commitment.id));
+    const seen = new Set<string>();
+    const rows: InboxCommitment[] = [];
+    for (const { claim, commitment } of pendingClaims.rows) {
+      const theirs =
+        compareAddresses(claim.requestedBy, viewer) || compareAddresses(claim.claimant, viewer);
+      if (!theirs || listed.has(commitment.id) || seen.has(commitment.id)) continue;
+      seen.add(commitment.id);
+      rows.push({ commitment, seat: "bystander", needsYou: false });
+    }
+    return rows;
+  }, [pendingClaims.rows, inbox.live, viewer]);
+  // An untaken promise past its due date says so on its row (DL-110 as amended).
+  const listedCommitments = useMemo(
+    () => [...inbox.live, ...waiting].map((row) => row.commitment),
+    [inbox.live, waiting]
+  );
+  const pastDueIds = usePastDuePromises({
+    chainId,
+    poolId: gardenPool?.poolId ?? null,
+    commitments: listedCommitments,
+  });
   // Back from a promise restores the filter as it was left, even when it was cleared.
   const initialCycleId = returnState ? returnState.cycleId : opening?.cycleId;
   const rail = usePoolCycleRail({
@@ -223,6 +256,8 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
               onDirectionChange={setDirection}
               onOpenCommitment={openCommitment}
               covered={dashboardNavigation.isDashboardCovered}
+              waiting={waiting}
+              pastDueIds={pastDueIds}
             />
           )}
           {selectedTab === "over-time" && (

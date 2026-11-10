@@ -1,28 +1,14 @@
-import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { IconButton } from "@green-goods/shared/components/IconButton";
-import type { Garden, Work } from "@green-goods/shared/types/domain";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import {
-  RiArrowLeftFill,
-  RiBankLine,
-  RiGovernmentLine,
-  RiNotificationFill,
-  RiNotificationLine,
-  RiShareLine,
-} from "@remixicon/react";
-import { useState } from "react";
+import { RiArrowLeftFill, RiBankLine, RiGovernmentLine, RiShareLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AppSheet } from "@/components/Sheets";
 import { type PwaStatusTone, pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
   onBackClick?: (e: React.SyntheticEvent<HTMLButtonElement>) => void;
   garden?: Garden;
-  works?: Work[];
   overlay?: boolean;
-  /** Whether the current user is a steward of this garden */
-  isSteward?: boolean;
   showEndowmentButton?: boolean;
   hasEndowmentDeposits?: boolean;
   onEndowmentClick?: () => void;
@@ -42,52 +28,6 @@ const BUTTON_VARIANT_TONES = {
 // icon carries the status tone (DL-023, DL-026).
 const iconTone = (variant: ButtonVariant = "work") =>
   pwaStatusStyles[BUTTON_VARIANT_TONES[variant]].icon;
-
-const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works, garden }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { formatMessage } = useIntl();
-
-  const workNotifications = works?.filter((work) => work.status === "pending") || [];
-  const hasNotifications = workNotifications.length > 0;
-  const NotificationIcon = hasNotifications ? RiNotificationFill : RiNotificationLine;
-
-  if (works === undefined) return null;
-
-  return (
-    <>
-      <IconButton
-        emphasis="secondary"
-        size="compact"
-        onClick={() => setIsOpen(true)}
-        aria-label="View notifications"
-        icon={<NotificationIcon className={iconTone()} aria-hidden="true" />}
-        badge={hasNotifications ? <CountBadge count={workNotifications.length} ring /> : null}
-      />
-      <AppSheet
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        header={{
-          title: formatMessage({
-            id: "app.home.notifications.drawerTitle",
-            defaultMessage: "Notifications",
-          }),
-          description: hasNotifications
-            ? formatMessage(
-                {
-                  id: "app.home.notifications.pendingCount",
-                  defaultMessage: "{count, plural, one {# pending} other {# pending}}",
-                },
-                { count: workNotifications.length }
-              )
-            : undefined,
-        }}
-        size="tall"
-      >
-        <GardenNotifications garden={garden} notifications={works} />
-      </AppSheet>
-    </>
-  );
-};
 
 const EndowmentButton: React.FC<{
   hasDeposits: boolean;
@@ -146,9 +86,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   children,
   onBackClick,
   garden,
-  works,
   overlay,
-  isSteward = false,
   showEndowmentButton = false,
   hasEndowmentDeposits = false,
   onEndowmentClick,
@@ -203,8 +141,8 @@ export const TopNav: React.FC<TopNavProps> = ({
       {/* A garden's page actions stack at the end. */}
       <div className="flex grow" />
       <div className="flex flex-col items-end gap-2 z-1">
-        {/* Notifications at top — stewards need quick access to pending reviews */}
-        {garden && isSteward && <NotificationCenter works={works} garden={garden} />}
+        {/* No bell here: Home's bell carries the garden's events and Needs Your Attention what
+            waits on a steward (DL-130), so a second count of pending work would disagree. */}
         {garden && showGovernanceButton && onGovernanceClick && (
           <GovernanceButton
             onClick={onGovernanceClick}

@@ -966,7 +966,7 @@ describe("GardenPool", () => {
     // Closed: one entry, no doors, and no form.
     expect(screen.queryByRole("button", { name: /^Offer Something/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Offer or Request" }));
-    expect(await screen.findByRole("button", { name: /^Request Something/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Ask Something/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "How Promises Work" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Offer Something/ }));
@@ -1010,7 +1010,7 @@ describe("GardenPool", () => {
     expect(screen.getByText("0 live")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Make a request" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Offer or Request" }));
-    await user.click(await screen.findByRole("button", { name: /^Request Something/ }));
+    await user.click(await screen.findByRole("button", { name: /^Ask Something/ }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=request");
   });
 
@@ -1119,7 +1119,7 @@ describe("GardenPool", () => {
     const [offer, request] = screen.getAllByRole("button", { name: /hours|rides/ });
     // The icon says offer or request, so no detail repeats it (DL-110).
     expect(within(offer).getByRole("img", { name: "Offer" })).toBeInTheDocument();
-    expect(within(request).getByRole("img", { name: "Request" })).toBeInTheDocument();
+    expect(within(request).getByRole("img", { name: "Ask" })).toBeInTheDocument();
     // Waiting on the reader replaces the state in the pill, and the edge follows it.
     expect(offer).toHaveTextContent("Needs you");
     expect(offer).not.toHaveTextContent("Waiting to be confirmed");

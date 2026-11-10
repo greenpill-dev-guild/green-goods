@@ -23,7 +23,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "Report Visit (PRD-1297 surface 6, `SIssuer`), opened from a hub day's row in Offers and Requests: what the steward records about the visit, as evidence for the final split, written to the pool. It moves no vouchers, and the holder still approves the split. The people and moments are fictional.",
+          "Report Visit (PRD-1297 surface 6, `SIssuer`), opened from a hub day's row in Offers and Asks: what the steward records about the visit, as evidence for the final split, written to the pool. It moves no vouchers, and the holder still approves the split. The people and moments are fictional.",
       },
     },
   },
