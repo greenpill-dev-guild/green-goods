@@ -384,7 +384,22 @@
     {
       "page": "docs/docs/community/steward-guide/creating-a-garden.mdx",
       "images": ["/img/screenshots/admin-create-garden-details.png"],
-      "capture_note": "Garden details, cropped to the fields in the desktop form. Source: deployed Storybook, Admin/Workspaces/Garden, Create Garden Route fixture; captured 12 October 2026. The deployed build identifier is not exposed."
+      "recorded_at": "2026-11-09",
+      "proof_class": "Storybook",
+      "engine": "Chromium (Playwright 1.60, headless)",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "garden-details",
+      "width": 1616,
+      "height": 1224,
+      "sha256": "c6f45518458481817f35d0d530285f241d6a40bbbf880bc78ced1730383adeb0",
+      "source_revision": "a8d494876",
+      "status": "current",
+      "story_id": "admin-workspaces-garden--create-garden-route",
+      "viewport": {
+        "width": 960,
+        "height": 1200
+      },
+      "framing": "Actual component bounds plus 8px of the canvas, at 2x device pixels; no UI compositing"
     },
     {
       "page": "docs/docs/community/steward-guide/funding-and-governance.mdx",
@@ -1018,42 +1033,42 @@
     {
       "page": "docs/docs/community/steward-guide/creating-a-garden.mdx",
       "images": ["/img/screenshots/guide-garden-team.webp"],
-      "recorded_at": "2026-10-17",
+      "recorded_at": "2026-11-09",
       "proof_class": "Storybook",
-      "engine": "Chromium in-app browser",
+      "engine": "Chromium (Playwright 1.60, headless)",
       "data": "Fictional garden/account/work records; write callbacks are local stubs.",
       "capture_name": "garden-team",
-      "width": 688,
-      "height": 478,
-      "sha256": "da7ebea17ee1dd93b92309202f735b16a72e90af1e6b1413394c7e971ec43374",
-      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "width": 1376,
+      "height": 1272,
+      "sha256": "4549da17ef0d24052244ac314a17664cb1f612502463fb9ffc05b03cb5236ac1",
+      "source_revision": "a8d494876",
       "status": "current",
       "story_id": "admin-workflows-garden-teamstep--documentation",
       "viewport": {
         "width": 840,
         "height": 1100
       },
-      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+      "framing": "Actual component bounds plus 8px of the canvas, at 2x device pixels; no UI compositing"
     },
     {
       "page": "docs/docs/community/steward-guide/creating-a-garden.mdx",
       "images": ["/img/screenshots/guide-garden-review.webp"],
-      "recorded_at": "2026-10-17",
+      "recorded_at": "2026-11-09",
       "proof_class": "Storybook",
-      "engine": "Chromium in-app browser",
+      "engine": "Chromium (Playwright 1.60, headless)",
       "data": "Fictional garden/account/work records; write callbacks are local stubs.",
       "capture_name": "garden-review",
-      "width": 784,
-      "height": 459,
-      "sha256": "3da10b74ef1d9b721b98ce64468730dd8756d977f79d0f717580f143f3a25a20",
-      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "width": 1568,
+      "height": 1150,
+      "sha256": "6d8c70c96cd239a272465c097f75e35e8b262a110e8862000a29e3dac746d997",
+      "source_revision": "a8d494876 plus the Documentation story's cost estimate from PRD-1458",
       "status": "current",
       "story_id": "admin-workflows-garden-reviewstep--documentation",
       "viewport": {
         "width": 840,
         "height": 1100
       },
-      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+      "framing": "Actual component bounds plus 8px of the canvas, at 2x device pixels; no UI compositing"
     },
     {
       "page": "docs/docs/community/steward-guide/managing-actions.mdx",

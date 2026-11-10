@@ -2386,6 +2386,7 @@
   "app.garden.create.plannedStewards": "Planned stewards",
   "app.garden.create.slugRequired": "Web name is required",
   "app.garden.create.slugTaken": "This name is already taken",
+  "app.garden.create.slugUnchecked": "We couldn't check this name. We'll check it again when you create the garden.",
   "app.garden.create.teamAssignmentNotice": "We add these people when the garden is created. You can check their roles under Members afterward.",
   "app.garden.create.uploadFailed": "Upload failed",
   "app.garden.create.uploadFailedMessage": "Could not upload banner image. Please try again.",

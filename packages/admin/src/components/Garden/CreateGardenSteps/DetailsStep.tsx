@@ -82,9 +82,15 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   // Slug availability check (tier 2: debounced RPC)
   const trimmedSlug = form.slug.trim();
   const slugValidation = useMemo(() => validateSlug(trimmedSlug), [trimmedSlug]);
-  const { data: isSlugAvailable, isFetching: isCheckingSlug } = useSlugAvailability(
-    slugValidation.valid ? trimmedSlug : undefined
-  );
+  const {
+    data: isSlugAvailable,
+    isError: slugCheckFailed,
+    isFetching: isCheckingSlug,
+  } = useSlugAvailability(slugValidation.valid ? trimmedSlug : undefined);
+  // The chain's last answer stands. A name it never answered for reads as unchecked, not taken:
+  // submit asks again, and the mint has the final say.
+  const isSlugUnchecked =
+    slugValidation.valid && slugCheckFailed && isSlugAvailable === undefined && !isCheckingSlug;
 
   const detailsErrors = useMemo(
     () => ({
@@ -287,9 +293,15 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               : undefined
         }
         helperText={
-          trimmedSlug
-            ? `${trimmedSlug}.greengoods.eth`
-            : formatMessage({ id: "app.garden.create.ensHint" })
+          isSlugUnchecked
+            ? formatMessage({
+                id: "app.garden.create.slugUnchecked",
+                defaultMessage:
+                  "We couldn't check this name. We'll check it again when you create the garden.",
+              })
+            : trimmedSlug
+              ? `${trimmedSlug}.greengoods.eth`
+              : formatMessage({ id: "app.garden.create.ensHint" })
         }
         inputProps={{
           className: "font-mono",

@@ -24,7 +24,7 @@
     "typescript": "~7.0.2"
   },
   "dependencies": {
-    "envio": "3.6.1",
+    "envio": "3.16.0",
     "viem": "2.55.13"
   },
   "engines": {
