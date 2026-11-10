@@ -12,6 +12,9 @@ interface ICookieJarModule {
     /// @notice Emitted when a new Cookie Jar vault is created for a garden
     event JarCreated(address indexed garden, address indexed asset, address indexed jar);
 
+    /// @notice Emitted when the module stops listing a garden's jar
+    event JarUnlisted(address indexed garden, address indexed asset, address indexed jar);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -19,6 +22,7 @@ interface ICookieJarModule {
     error UnauthorizedCaller(address caller);
     error ZeroAddress();
     error AssetNotFound(address asset);
+    error UnsupportedGarden(address garden);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Garden Mint Callback
