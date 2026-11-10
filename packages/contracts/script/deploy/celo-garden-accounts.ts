@@ -218,6 +218,8 @@ interface ParsedArguments {
   broadcast: boolean;
   step?: number;
   receipt?: string;
+  /** Plans against state at this Celo block instead of the finalized head. */
+  block?: number;
 }
 
 dotenv.config({ path: path.join(REPOSITORY_ROOT, ".env"), quiet: true });
@@ -249,7 +251,7 @@ function confinedRuntimePath(value: string): string {
   return resolved;
 }
 
-function parseArguments(args: string[]): ParsedArguments {
+export function parseArguments(args: string[]): ParsedArguments {
   const command = args[0] as Command | undefined;
   if (!command || !["plan", "verify", "deploy"].includes(command)) {
     throw new Error("Use: celo-garden-accounts.ts plan|verify|deploy [reviewed options]");
@@ -259,6 +261,7 @@ function parseArguments(args: string[]): ParsedArguments {
   let broadcast = false;
   let step: number | undefined;
   let receipt: string | undefined;
+  let block: number | undefined;
   for (let index = 1; index < args.length; ++index) {
     const argument = args[index];
     if (argument === "--broadcast") {
@@ -271,7 +274,10 @@ function parseArguments(args: string[]): ParsedArguments {
     else if (argument === "--raw-bundle") rawBundlePath = path.resolve(REPOSITORY_ROOT, value);
     else if (argument === "--step") step = Number(value);
     else if (argument === "--receipt") receipt = value;
-    else throw new Error(`Unknown argument: ${argument}`);
+    else if (argument === "--block") {
+      block = Number(value);
+      if (!Number.isSafeInteger(block) || block < 1) throw new Error("--block must be a positive block number");
+    } else throw new Error(`Unknown argument: ${argument}`);
     index++;
   }
   if (command === "deploy" && (!broadcast || !Number.isInteger(step) || !step || step < 1 || step > 2)) {
@@ -281,7 +287,9 @@ function parseArguments(args: string[]): ParsedArguments {
     throw new Error(`${command} does not accept broadcast, step, or receipt options`);
   }
   if (receipt && command !== "deploy") throw new Error("--receipt is valid only for deploy");
-  return { command, planPath, rawBundlePath, broadcast, step, receipt };
+  // Only planning reads a chosen block. Verification and broadcasts always check the live head.
+  if (block !== undefined && command !== "plan") throw new Error("--block is valid only for plan");
+  return { command, planPath, rawBundlePath, broadcast, step, receipt, block };
 }
 
 function artifactHex(value: FoundryArtifact["bytecode"], label: string): string {
@@ -375,7 +383,11 @@ async function codeHash(
   return code === "0x" ? null : keccak256(code);
 }
 
-async function buildPlan(rawBundlePath: string): Promise<CeloGardenAccountPlan> {
+/**
+ * Reads chain state at the finalized head, or at `block` when given. The pinned fork proof passes
+ * the block it forks, because the release has since run and the live head would refuse it.
+ */
+async function buildPlan(rawBundlePath: string, block?: number): Promise<CeloGardenAccountPlan> {
   const manifest = readJson<ReleaseIdentity>(RELEASE_MANIFEST);
   if (
     manifest.schemaVersion !== 1 ||
@@ -450,7 +462,7 @@ async function buildPlan(rawBundlePath: string): Promise<CeloGardenAccountPlan> 
 
   const networkManager = new NetworkManager();
   const provider = new JsonRpcProvider(networkManager.getRpcUrl("celo"), CELO_CHAIN_ID, { staticNetwork: true });
-  const [network, finalized] = await Promise.all([provider.getNetwork(), provider.getBlock("finalized")]);
+  const [network, finalized] = await Promise.all([provider.getNetwork(), provider.getBlock(block ?? "finalized")]);
   if (network.chainId !== BigInt(CELO_CHAIN_ID) || !finalized) throw new Error("Celo finalized RPC is unavailable");
   plan.finalizedBlock = finalized.number;
 
@@ -473,7 +485,7 @@ async function buildPlan(rawBundlePath: string): Promise<CeloGardenAccountPlan> 
     if (observed !== expected.codeHash) plan.blockers.push(`${name} code differs from the frozen Celo identity`);
   }
 
-  const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
+  const pendingNonce = await provider.getTransactionCount(plan.sender, block ?? "pending");
   const observedCoordinatorHash = await codeHash(provider, coordinator, finalized.number);
   if (!observedCoordinatorHash) {
     plan.transactions.push({
@@ -759,7 +771,7 @@ async function executeBoundary(plan: CeloGardenAccountPlan, step: number, recove
 async function main(args: string[]): Promise<void> {
   const options = parseArguments(args);
   if (options.command === "plan") {
-    const plan = await buildPlan(options.rawBundlePath);
+    const plan = await buildPlan(options.rawBundlePath, options.block);
     atomicWrite(options.planPath, plan);
     process.stdout.write(
       stable({ planPath: options.planPath, coordinator: plan.coordinator, blockers: plan.blockers }),

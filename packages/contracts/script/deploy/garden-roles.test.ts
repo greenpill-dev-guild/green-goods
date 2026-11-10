@@ -212,6 +212,16 @@ describe("Roles execution boundaries", () => {
     expect(() => parseArguments(["configure"])).toThrow(/plan\|verify\|deploy\|enable/);
   });
 
+  it("plans at a pinned block but verifies and broadcasts only against the live head", () => {
+    expect(parseArguments(["plan", "--block", "75178393"]).block).toBe(75_178_393);
+    expect(parseArguments(["plan"]).block).toBeUndefined();
+    expect(() => parseArguments(["plan", "--block", "0"])).toThrow(/positive block number/);
+    expect(() => parseArguments(["verify", "--block", "75178393"])).toThrow(/valid only for plan/);
+    expect(() => parseArguments(["enable", "--broadcast", "--step", "1", "--block", "75178393"])).toThrow(
+      /valid only for plan/,
+    );
+  });
+
   it("resumes at the first uncheckpointed boundary and refuses to replay or skip", () => {
     expect(assertNextRolesBoundary(1, 0)).toBe(1);
     expect(assertNextRolesBoundary(108, 107)).toBe(108);

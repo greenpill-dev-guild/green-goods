@@ -7,6 +7,11 @@ import { NetworkManager } from "./network";
 
 const contractsRoot = path.resolve(import.meta.dir, "../..");
 
+// The block CeloGardenAccountRelease.t.sol forks Celo at (its CELO_BLOCK). The release has since
+// run on Celo, so a plan against the live head reports the deployed accounts as blockers. The
+// planner reads the state the proof forks instead.
+const PROOF_CELO_BLOCK = 74_938_820;
+
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });
 
 // This proof pins historical blocks, so it needs archive-capable endpoints. Resolving through
@@ -22,14 +27,30 @@ const environment = {
   FOUNDRY_PROFILE: "fork",
 };
 
-function run(command: string, args: string[], label: string): void {
+function run(command: string, args: string[], label: string, profile = environment.FOUNDRY_PROFILE): void {
   process.stdout.write(`[garden-account-release] ${label}\n`);
-  const result = spawnSync(command, args, { cwd: contractsRoot, env: environment, stdio: "inherit" });
+  const result = spawnSync(command, args, {
+    cwd: contractsRoot,
+    env: { ...environment, FOUNDRY_PROFILE: profile },
+    stdio: "inherit",
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-run(process.execPath, ["script/deploy/celo-garden-accounts.ts", "plan"], "generating reviewed runtime fixture");
+// The planner derives the coordinator's address and code hashes from the production artifact and
+// refuses to plan without it, so a clean checkout has to build it first.
+run(
+  process.execPath,
+  ["script/utils/build-target.ts", "src/accounts/CeloGardenAccountDeploymentCoordinator.sol"],
+  "building the production coordinator artifact the planner reads",
+  "production",
+);
+run(
+  process.execPath,
+  ["script/deploy/celo-garden-accounts.ts", "plan", "--block", String(PROOF_CELO_BLOCK)],
+  "generating reviewed runtime fixture",
+);
 run(
   "forge",
   ["test", "--match-path", "test/fork/CeloGardenAccountRelease.t.sol", "--threads", "1", "-vvv"],

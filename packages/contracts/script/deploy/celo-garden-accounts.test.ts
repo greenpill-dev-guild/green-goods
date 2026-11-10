@@ -5,6 +5,7 @@ import dependencyEvidence from "../../config/celo-garden-accounts/deterministic-
 import rawDependencyEvidence from "../../config/celo-garden-accounts/celo-dependency-init-code-2026-08-15.json";
 import {
   buildAccountInitializations,
+  parseArguments,
   validateRawDependencies,
   type GardenInitializationEntry,
 } from "./celo-garden-accounts";
@@ -63,5 +64,15 @@ describe("Celo GardenAccount deployment planning", () => {
         gardenToken: "0x0000000000000000000000000000000000000001",
       }),
     ).toThrow("frozen identity tuple");
+  });
+
+  it("plans at a pinned block but verifies and broadcasts only against the live head", () => {
+    expect(parseArguments(["plan", "--block", "74938820"]).block).toBe(74_938_820);
+    expect(parseArguments(["plan"]).block).toBeUndefined();
+    expect(() => parseArguments(["plan", "--block", "finalized"])).toThrow(/positive block number/);
+    expect(() => parseArguments(["verify", "--block", "74938820"])).toThrow(/valid only for plan/);
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "1", "--block", "74938820"])).toThrow(
+      /valid only for plan/,
+    );
   });
 });

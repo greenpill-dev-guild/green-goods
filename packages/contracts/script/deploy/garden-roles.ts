@@ -486,7 +486,11 @@ export function assertRegisteredSafes(
   }
 }
 
-async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
+/**
+ * Reads chain state at `blockTag`. A live plan reads "latest"; the pinned fork proofs pass the
+ * block they fork, because the release has since run and the live head would refuse it.
+ */
+async function buildPlan(safePlanPath: string, blockTag: number | "latest"): Promise<GardenRolesPlan> {
   const safePlan = readJson<{ entries: SafePlanEntry[] }>(safePlanPath);
   // The plan path is operator-supplied, so a wrong --safe-plan must fail by name, not by TypeError.
   if (!Array.isArray(safePlan.entries)) throw new Error(`Safe plan ${safePlanPath} has no entries array`);
@@ -518,21 +522,25 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
       to: MODULE_PROXY_FACTORY,
       data: FACTORY_INTERFACE.encodeFunctionData("deployModule", [ROLES_MASTERCOPY, initializer, saltNonce]),
       from: DEPLOYMENT_OPERATOR,
+      blockTag,
     });
     const returned = getAddress(`0x${simulated.slice(26, 66)}`);
     if (returned !== predicted) {
       blockers.push(`Garden ${entry.tokenId}: factory would deploy ${returned}, predicted ${predicted}`);
     }
-    if ((await provider.getCode(predicted, "latest")) !== "0x") {
+    if ((await provider.getCode(predicted, blockTag)) !== "0x") {
       blockers.push(`Garden ${entry.tokenId}: a contract already exists at ${predicted}`);
     }
-    const liveNonce = BigInt(await provider.call({ to: entry.safe, data: SAFE_INTERFACE.encodeFunctionData("nonce") }));
+    const liveNonce = BigInt(
+      await provider.call({ to: entry.safe, data: SAFE_INTERFACE.encodeFunctionData("nonce"), blockTag }),
+    );
     if (liveNonce !== 0n) blockers.push(`Garden ${entry.tokenId}: Safe nonce is ${liveNonce}, expected 0`);
     const alreadyEnabled = SAFE_INTERFACE.decodeFunctionResult(
       "isModuleEnabled",
       await provider.call({
         to: entry.safe,
         data: SAFE_INTERFACE.encodeFunctionData("isModuleEnabled", [predicted]),
+        blockTag,
       }),
     )[0] as boolean;
     if (alreadyEnabled) blockers.push(`Garden ${entry.tokenId}: the modifier is already enabled on its Safe`);
@@ -671,19 +679,22 @@ export interface RolesCliOptions {
   planPath: string;
   broadcast: boolean;
   step?: number;
+  /** Plans against state at this Celo block instead of the live head. */
+  block?: number;
 }
 
 export function parseArguments(args: string[]): RolesCliOptions {
   const command = args[0] as RolesCliOptions["command"] | undefined;
   if (!command || !["plan", "verify", "deploy", "enable"].includes(command)) {
     throw new Error(
-      "Use: garden-roles.ts plan|verify|deploy|enable [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]",
+      "Use: garden-roles.ts plan|verify|deploy|enable [--safe-plan <path>] [--plan <path>] [--block <n>] [--broadcast --step <n>]",
     );
   }
   let safePlanPath = DEFAULT_SAFE_PLAN;
   let planPath = DEFAULT_PLAN;
   let broadcast = false;
   let step: number | undefined;
+  let block: number | undefined;
   for (let index = 1; index < args.length; index += 1) {
     const key = args[index];
     if (key === "--broadcast") {
@@ -698,6 +709,9 @@ export function parseArguments(args: string[]): RolesCliOptions {
     else if (key === "--step") {
       step = Number(value);
       if (!Number.isInteger(step) || step < 1) throw new Error("--step must be a positive boundary index");
+    } else if (key === "--block") {
+      block = Number(value);
+      if (!Number.isSafeInteger(block) || block < 1) throw new Error("--block must be a positive block number");
     } else throw new Error(`Unknown argument: ${key}`);
   }
   if (command === "deploy" || command === "enable") {
@@ -706,7 +720,9 @@ export function parseArguments(args: string[]): RolesCliOptions {
   } else if (broadcast || step !== undefined) {
     throw new Error(`${command} does not accept --broadcast or --step`);
   }
-  return { command, safePlanPath, planPath, broadcast, step };
+  // Only planning reads a chosen block. Verification and broadcasts always check the live head.
+  if (block !== undefined && command !== "plan") throw new Error("--block is valid only for plan");
+  return { command, safePlanPath, planPath, broadcast, step, block };
 }
 
 export interface RolesCheckpointEntry {
@@ -1036,7 +1052,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     return;
   }
 
-  const plan = await buildPlan(safePlanPath);
+  const plan = await buildPlan(safePlanPath, options.block ?? "latest");
   atomicWrite(planPath, plan);
   // The fork proof reads its fixture inside the EVM, where the full plan's 126 calldata payloads
   // exhaust the test gas budget. This carries only what the proof executes.

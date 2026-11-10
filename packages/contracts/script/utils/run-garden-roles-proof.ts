@@ -10,6 +10,10 @@ const reviewedSafeBindings = path.resolve(
   contractsRoot,
   "config/celo-garden-accounts/garden-safe-final-bindings-2026-08-15.json",
 );
+// The block both proofs fork Celo at (CELO_FORK_BLOCK in each file). The modifiers have since been
+// deployed on Celo, so the factory refuses the planner's live-head simulation with TakenAddress. The
+// planner reads the state the proofs fork instead.
+const PROOF_CELO_BLOCK = 75_178_393;
 
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });
 
@@ -32,7 +36,7 @@ function run(command: string, args: string[], label: string): void {
 
 run(
   process.execPath,
-  ["script/deploy/garden-roles.ts", "plan", "--safe-plan", reviewedSafeBindings],
+  ["script/deploy/garden-roles.ts", "plan", "--safe-plan", reviewedSafeBindings, "--block", String(PROOF_CELO_BLOCK)],
   "generating the reviewed permission fixture from checked-in Safe bindings",
 );
 run(
