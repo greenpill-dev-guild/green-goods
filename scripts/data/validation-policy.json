@@ -1779,6 +1779,7 @@
         "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarDepositMutation.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarWithdraw.ts",
+        "packages/shared/src/hooks/cookie-jar/useHatsCookieJarAdmin.ts",
         "packages/shared/src/hooks/garden/createGardenOperation.ts",
         "packages/shared/src/hooks/garden/gardenRecovery.ts",
         "packages/shared/src/hooks/garden/useAddMembersBatch.ts",
