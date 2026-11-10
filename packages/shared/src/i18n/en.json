@@ -8611,7 +8611,7 @@
   "app.voucher.pp.chip.returnProposed": "Return proposed",
   "app.voucher.pp.chip.transfersPending": "Transfers pending",
   "app.voucher.pp.chip.returnFailed": "Transfer failed",
-  "app.voucher.pp.chip.canceling": "Cancelling",
+  "app.voucher.pp.chip.canceling": "Canceling",
   "app.voucher.pp.chip.canceled": "Vouchers back",
   "app.voucher.rd.band.approval": "{issuer} approves your booking next; their Safe needs {sigs}. Nothing has left your account, and you can cancel any time before {issuer} accepts.",
   "app.voucher.rd.f.vouchers": "Your vouchers",
