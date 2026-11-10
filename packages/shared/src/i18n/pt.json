@@ -2161,7 +2161,7 @@
   "app.cookieJar.hats.notice": "O titular do papel de proprietário pode aplicar esta política após 48 horas. Um orçamento de zero remove o limite diário.",
   "app.cookieJar.hats.updateLimits": "Atualizar limites de pagamento",
   "app.cookieJar.hats.cooldown": "Intervalo entre resgates (segundos)",
-  "app.cookieJar.hats.operatorOnly": "É necessário o papel de gestor ou proprietário para administrar este fundo.",
+  "app.cookieJar.hats.stewardOrOwnerOnly": "É necessário o papel de gestor ou proprietário para administrar este fundo.",
   "app.cookieJar.hats.pause": "Pausar pagamentos e depósitos",
   "app.cookieJar.hats.unpause": "Retomar pagamentos e depósitos",
   "app.cookieJar.hats.recovery": "Recuperar valores do fundo pausado",

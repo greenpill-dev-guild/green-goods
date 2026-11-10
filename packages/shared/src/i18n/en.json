@@ -2161,7 +2161,7 @@
   "app.cookieJar.hats.notice": "The Owner Hat can apply this policy after 48 hours. A daily budget of zero removes the daily cap.",
   "app.cookieJar.hats.updateLimits": "Update payout limits",
   "app.cookieJar.hats.cooldown": "Wait between claims (seconds)",
-  "app.cookieJar.hats.operatorOnly": "A Steward or Owner Hat is required to manage this jar.",
+  "app.cookieJar.hats.stewardOrOwnerOnly": "A Steward or Owner Hat is required to manage this jar.",
   "app.cookieJar.hats.pause": "Pause payouts and deposits",
   "app.cookieJar.hats.unpause": "Resume payouts and deposits",
   "app.cookieJar.hats.recovery": "Recover funds from the paused jar",

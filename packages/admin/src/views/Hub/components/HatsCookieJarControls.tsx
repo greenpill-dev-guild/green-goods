@@ -189,7 +189,7 @@ export function HatsCookieJarControls({
           </form>
         </details>
       ) : submission ? null : (
-        <p className="type-meta text-text-sub">{t("operatorOnly")}</p>
+        <p className="type-meta text-text-sub">{t("stewardOrOwnerOnly")}</p>
       )}
 
       {canGovern && !pending ? (
