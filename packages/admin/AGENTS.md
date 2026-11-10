@@ -4,9 +4,11 @@ Use this guide when editing `packages/admin/**`.
 
 ## Role
 
-The admin package is the operator cockpit for Green Goods stewards and deployers. It
-depends on shared hooks, permissions, contract interaction helpers, and shared UI
-foundations.
+The admin package is the operator cockpit for Green Goods stewards. Garden creators use it
+to create gardens, and the protocol team runs the Green Goods Community Garden from it; the
+[admin context](../../.claude/context/admin.md#role-based-access-control) says who each role is
+and how code tests for it. It depends on shared hooks, permissions, contract interaction
+helpers, and shared UI foundations.
 
 ## UI Contract
 
