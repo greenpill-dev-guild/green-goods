@@ -273,6 +273,9 @@ export const commitmentPoolingKeys = {
    */
   settlementChain: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-chain", String(commitmentId)] as const,
+  /** Whether a wallet has run one settlement proposal, by the identifier it returned for it. */
+  settlementProposal: (chainId: number, proposal: string) =>
+    [...commitmentPoolingKeys.all(chainId), "settlement-proposal", proposal] as const,
   /** Owner, pause flag and gardener-delivery gate of the settlement module. */
   settlementOperations: (chainId: number) =>
     [...commitmentPoolingKeys.all(chainId), "settlement-operations"] as const,

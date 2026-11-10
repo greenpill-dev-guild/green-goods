@@ -1,4 +1,4 @@
-/** @vitest-environment happy-dom */
+/** @vitest-environment jsdom */
 
 import { useState } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+import { AttestationRequest, AttestationRequestData, IEAS } from "@eas/IEAS.sol";
 
 import { IGap } from "../interfaces/IKarma.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
@@ -76,8 +76,18 @@ library KarmaUpdatesLib {
             return bytes32(0);
         }
 
+        // An update is dated by when the gardener submitted the Work: its EAS attestation's time. A Work EAS
+        // doesn't know is dated now, so a missing date never costs the update.
+        uint256 submittedAt = IEAS(KarmaLib.getEAS()).getAttestation(workUID).time;
         string memory updateJson = JsonBuilder.buildProjectUpdate(
-            workTitle, updateText, proofReference, workUID, garden, block.timestamp, metadataReference, block.chainid
+            workTitle,
+            updateText,
+            proofReference,
+            workUID,
+            garden,
+            submittedAt == 0 ? block.timestamp : submittedAt,
+            metadataReference,
+            block.chainid
         );
         AttestationRequestData memory requestData = AttestationRequestData({
             recipient: garden,

@@ -222,6 +222,48 @@ describe("CommitmentSettlement", () => {
     expect(screen.queryByRole("button", { name: /…$/ })).not.toBeInTheDocument();
   });
 
+  it("names what Celo would refuse before a dispatch or a resend can spend the fee", () => {
+    const queued = commitmentSettlementControllerFixture({
+      chain: settlementChainStateFixture({
+        payoutPlanId: 7n,
+        plan: preparedPlan(),
+        disbursements: [settlementDisbursementFixture()],
+      }),
+      transferBlock: () => "executor_paused",
+    });
+    const { unmount } = renderWithProviders(
+      <CommitmentSettlement settlement={queued} tone="garden" />
+    );
+    expect(
+      within(screen.getByTestId("settlement-blockers")).getByText(
+        "The Celo settlement executor is paused."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "Dispatch…" })).toHaveLength(0);
+    unmount();
+
+    const dispatched = commitmentSettlementControllerFixture({
+      chain: settlementChainStateFixture({
+        payoutPlanId: 7n,
+        plan: preparedPlan(),
+        disbursements: [
+          settlementDisbursementFixture({
+            state: "DISPATCHED",
+            attempt: 1,
+            dispatchedAt: 1_756_000_000,
+            acknowledgmentPending: true,
+          }),
+        ],
+      }),
+      transferBlock: () => "fee_policy_breach",
+    });
+    renderWithProviders(<CommitmentSettlement settlement={dispatched} tone="garden" />);
+    expect(screen.getByTestId("settlement-resend-block")).toHaveTextContent(
+      "A current G$ fee quote exceeds the settlement policy."
+    );
+    expect(screen.queryByRole("button", { name: "Resend…" })).not.toBeInTheDocument();
+  });
+
   it("blocks a garden → member payout while gardener delivery is disabled and names the gate", () => {
     const settlement = commitmentSettlementControllerFixture({
       chain: settlementChainStateFixture({

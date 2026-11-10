@@ -304,7 +304,7 @@ export function ProtocolFundingOperationsCard({
                 ? formatMessage({
                     id: "cockpit.community.protocolFunding.status.proposed",
                     defaultMessage:
-                      "Sent to your Safe. Queuing and dispatching stay closed until the transfer list changes. If your Safe rejected it, reload this page.",
+                      "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
                   })
                 : formatMessage({
                     id: "cockpit.community.protocolFunding.status.submitted",

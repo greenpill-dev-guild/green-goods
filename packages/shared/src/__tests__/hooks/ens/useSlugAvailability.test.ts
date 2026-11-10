@@ -47,6 +47,7 @@ vi.mock("../../../hooks/utils/useDebouncedValue", () => ({
 
 // Import after mocks
 import { useSlugAvailability } from "../../../hooks/ens/useSlugAvailability";
+import { logger } from "../../../modules/app/logger";
 
 // ============================================================================
 // TESTS
@@ -132,6 +133,20 @@ describe("useSlugAvailability", () => {
       const { result } = renderHookWithQueryClient(() => useSlugAvailability("carol"));
 
       await waitFor(() => expect(result.current.data).toBe(false));
+    });
+
+    it("fails instead of reading as taken when the chain can't be asked", async () => {
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+      mockReadContract.mockRejectedValue(new Error("RPC unavailable"));
+
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("erin"));
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.data).toBeUndefined();
+      expect(warn).toHaveBeenCalledWith(
+        "Slug availability check failed",
+        expect.objectContaining({ slug: "erin" })
+      );
     });
 
     it("returns false when the L1 receiver is not configured", async () => {

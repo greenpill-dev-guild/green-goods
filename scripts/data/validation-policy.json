@@ -1759,6 +1759,7 @@
         "packages/shared/src/hooks/agent-reporting/useGrantInstallation.ts",
         "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
         "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
+        "packages/shared/src/hooks/blockchain/useDeploymentRegistry.ts",
         "packages/shared/src/hooks/blockchain/useSendToken.ts",
         "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
         "packages/shared/src/hooks/blockchain/useWalletNetworkAlignment.ts",

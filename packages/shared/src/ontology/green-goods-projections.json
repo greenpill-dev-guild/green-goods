@@ -945,7 +945,7 @@
       "engagements": [
         {
           "when": "Starting a garden",
-          "what": "Create the garden with its name, place and first roles. This needs deployer authority, and whoever creates the garden becomes its owner.",
+          "what": "Create the garden with its name, place and first roles. This needs permission from the Green Goods team, and whoever creates the garden becomes its owner.",
           "where": ["admin"],
           "term_refs": ["entity:garden"],
           "guide": "/community/steward-guide/creating-a-garden",

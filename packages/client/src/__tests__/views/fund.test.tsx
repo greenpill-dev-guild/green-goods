@@ -262,8 +262,18 @@ const rowCopy: Array<[string, Record<string, string>, string[], string[], string
   ],
 ];
 
+const depositPolicy = vi.hoisted(() => ({ enabled: true }));
+
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get ENDOWMENT_DEPOSITS_ENABLED() {
+    return depositPolicy.enabled;
+  },
+}));
+
 describe("FundPage", () => {
   beforeEach(() => {
+    depositPolicy.enabled = true;
     vi.clearAllMocks();
     mockLastEndowmentExitComplete.current = null;
     mockPrimaryAddress.current = null;
@@ -516,7 +526,25 @@ describe("FundPage", () => {
     expect(fallbackInitial).toHaveClass("lg:text-4xl");
   });
 
+  it("explains the pause before the locale catalogue loads and keeps Donate available", async () => {
+    depositPolicy.enabled = false;
+    const user = userEvent.setup();
+    renderView(["/fund"], { catalog: {} });
+
+    expect(screen.getAllByText("New endowment deposits are paused")).toHaveLength(1);
+    expect(
+      screen.getByText(/You can still review your existing endowments and withdraw/)
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Endow" })).toBeNull();
+    await user.click(screen.getAllByRole("button", { name: "Donate" })[0]);
+    expect(await screen.findByTestId("public-funding-card")).toHaveAttribute(
+      "data-intent",
+      "donate"
+    );
+  });
+
   it("opens the endowment panel from /fund?manage=endowments", () => {
+    depositPolicy.enabled = false;
     renderView(["/fund?manage=endowments"]);
 
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();

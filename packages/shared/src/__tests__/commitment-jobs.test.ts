@@ -902,6 +902,32 @@ describe("membership preflight covers every membership-gated act", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
+  it("sends a confirmation the chain authorizes by account even after the garden role is gone", async () => {
+    // The reader's own confirmation (named, or the Request's creator or the
+    // Offer's taker) passes isOrdinaryConfirmer by address, so a role lost after
+    // it was queued must not hold it as the gated confirmation above is held.
+    const own = {
+      id: "job-own-confirmation",
+      kind: "confirmation",
+      payload: {
+        action: "confirm",
+        commitmentId: 9n,
+        gardenAddress: GARDEN,
+        membershipNotRequired: true,
+      },
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    } as CommitmentJob;
+    const send = vi.fn().mockResolvedValue(SENT);
+    const hasMembership = vi.fn().mockResolvedValue(false);
+
+    const result = await executeCommitmentJob(own, dependencies({ hasMembership, send }));
+
+    expect(result).toEqual({ status: "sent", txHash: SENT });
+    expect(hasMembership).not.toHaveBeenCalled();
+  });
+
   it("still sends a job queued before the garden rode along, rather than stranding it", async () => {
     // Persisted before 2026-08-21: no gardenAddress on the record. It keeps
     // the behaviour it was queued with, a send with no preflight, instead of

@@ -485,7 +485,7 @@ function getPromotionValue(value: Record<string, unknown>, dottedPath: string): 
   }, value);
 }
 
-function requireCompleteCheckpoint(
+export function requireCompleteCheckpoint(
   planPath: string,
   checkpointPath: string,
   lock: ReleaseLock,

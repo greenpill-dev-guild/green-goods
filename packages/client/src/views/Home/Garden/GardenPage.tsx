@@ -14,6 +14,7 @@ import {
   isGardenMember,
   usePendingJoinsVersion,
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
+import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -79,20 +80,25 @@ export function GardenPage({ garden, onBack, showHeader = true, children }: Gard
   // The version counter refreshes membership as in-tab joins confirm or expire,
   // so the header does not keep showing stale join controls.
   const pendingJoinsVersion = usePendingJoinsVersion();
-  const isMember = useMemo(() => {
+  const isListedMember = useMemo(() => {
     const { gardeners, stewards, id } = garden;
     return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
-
-  // Determine if join button should be shown
-  const showJoinButton = useMemo(() => {
-    if (!primaryAddress) return false;
-    if (isMember) return false;
-    if (!garden.openJoining) return false;
-    return true;
-  }, [primaryAddress, isMember, garden.openJoining]);
-  const showJoinRequestButton = Boolean(primaryAddress && !isMember && !garden.openJoining);
+  // A steward's welcome, or a member added from the admin, is on chain before the indexer lists
+  // it. Before offering a join, the chain says whether the account already holds the gardener
+  // role, which a steward or owner holds too. No join shows until its first answer. A failed read
+  // still offers one, so an unknown answer never strands someone outside the garden, and a member
+  // who uses it is told they already belong.
+  const { hasRole: holdsGardenerRole, isLoading: isAskingChain } = useHasRole(
+    isListedMember ? undefined : validGardenAddress,
+    primaryAddress,
+    "gardener"
+  );
+  const isMember = isListedMember || holdsGardenerRole;
+  const offersJoin = Boolean(primaryAddress) && !isMember && !isAskingChain;
+  const showJoinButton = offersJoin && Boolean(garden.openJoining);
+  const showJoinRequestButton = offersJoin && !garden.openJoining;
 
   const handleShareGarden = () => {
     shareGarden(garden.id, garden.name).catch(() => {

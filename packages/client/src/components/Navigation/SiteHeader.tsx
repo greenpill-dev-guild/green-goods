@@ -18,7 +18,6 @@ const NAV_ITEMS = [
   { path: "/impact", labelId: "public.nav.impact", defaultLabel: "Impact" },
   { path: "/fund", labelId: "public.nav.fund", defaultLabel: "Fund" },
   { path: "/actions", labelId: "public.nav.actions", defaultLabel: "Actions" },
-  { path: "/strategy", labelId: "public.nav.strategy", defaultLabel: "Strategy" },
 ] as const;
 
 /**

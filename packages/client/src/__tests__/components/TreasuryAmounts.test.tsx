@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   planInput: {} as { onLanded?: () => void },
   online: true,
   pending: false,
+  endowmentDepositsEnabled: true,
   maxWithdraw: 100000n,
   withdraw: vi.fn(),
   preview: vi.fn(),
@@ -68,6 +69,12 @@ const jar: CookieJar = {
 
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mocks.online,
+}));
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get ENDOWMENT_DEPOSITS_ENABLED() {
+    return mocks.endowmentDepositsEnabled;
+  },
 }));
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: account }),
@@ -123,6 +130,7 @@ beforeEach(() => {
   mocks.plan = QUIET_PLAN;
   mocks.online = true;
   mocks.pending = false;
+  mocks.endowmentDepositsEnabled = true;
   mocks.maxWithdraw = 100000n;
 });
 
@@ -139,6 +147,19 @@ describe("Depositing from the endowment sheet", () => {
   const sheet = () => (
     <EndowmentSheet isOpen onClose={vi.fn()} gardenAddress={garden} gardenName="Garden" />
   );
+  const heldPlan = () => ({
+    ...QUIET_PLAN,
+    isHeld: true,
+    isPaused: true,
+    holdFeedback: {
+      title: "We couldn’t confirm your last deposit.",
+      message: "Deposits here are paused.",
+      hasUnreadValues: false,
+      isSettling: false,
+      onCheckAgain: vi.fn(),
+      onMoveOn: vi.fn(),
+    },
+  });
 
   it("says how many signatures a deposit takes and pauses it while an earlier one is unknown", async () => {
     mocks.plan = { ...QUIET_PLAN, signatureLine: "2 signatures" };
@@ -147,22 +168,23 @@ describe("Depositing from the endowment sheet", () => {
     expect(screen.getByRole("button", { name: "Deposit" })).toBeEnabled();
     expect(screen.getByText("2 signatures")).toBeInTheDocument();
 
-    mocks.plan = {
-      ...QUIET_PLAN,
-      isHeld: true,
-      isPaused: true,
-      holdFeedback: {
-        title: "We couldn’t confirm your last deposit.",
-        message: "Deposits here are paused.",
-        hasUnreadValues: false,
-        isSettling: false,
-        onCheckAgain: vi.fn(),
-        onMoveOn: vi.fn(),
-      },
-    };
+    mocks.plan = heldPlan();
     rerender(sheet());
     expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Check Again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
+  });
+
+  it("keeps recovery for an earlier deposit available during the endowment pause", async () => {
+    mocks.endowmentDepositsEnabled = false;
+    const plan = heldPlan();
+    mocks.plan = plan;
+    render(sheet());
+
+    expect(screen.getByText("New deposits paused")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Deposit" })).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Check Again" }));
+    expect(plan.holdFeedback.onCheckAgain).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", { name: "Move On" })).toBeEnabled();
   });
 
@@ -223,6 +245,14 @@ describe("Treasury amount controls", () => {
     rerender(treasury({}));
     expect(screen.getByText("No deposits yet")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(/Support this garden by making an endowment deposit/)).toBeVisible();
+
+    mocks.endowmentDepositsEnabled = false;
+    rerender(treasury({}));
+    expect(screen.getByText("No deposits yet")).toBeVisible();
+    expect(
+      screen.queryByText(/Support this garden by making an endowment deposit/)
+    ).not.toBeInTheDocument();
   });
 
   it("associates a vault precision error with the input and prevents a withdrawal", async () => {

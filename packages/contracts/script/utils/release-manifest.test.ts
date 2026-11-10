@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getCreate2Address, keccak256, zeroPadValue } from "ethers";
+import { getCreate2Address, keccak256, toUtf8Bytes, zeroPadValue } from "ethers";
 import { describe, expect, it } from "vitest";
 import { buildTransferConditions, encodeConditions, permissionsConfigHash } from "../deploy/garden-roles";
 import {
@@ -8,6 +8,8 @@ import {
   buildReleaseLock,
   CONTRACTS_ROOT,
   commitmentPoolingImplementationRuntimeHash,
+  expectedUpgradeCreationCodeHash,
+  loadKarmaUpgradePin,
   loadReleaseManifest,
   PRODUCTION_ARTIFACT_ROOT,
   type ReleaseIdentity,
@@ -406,5 +408,29 @@ describe("combined commitment release manifest", () => {
     // 0x3f4e55e1632bde5ef29aadf5224e5a07498b529c27e82d850829583a75fce27f.
     // The lock stores its template hash, not materialized bytecode; current candidate materialization
     // is independently verified above rather than claiming this unavailable historical binary is rebuilt.
+  });
+
+  it("keeps the frozen lock's manifest hash while the Karma rebuild is pinned outside the manifest", () => {
+    const historical = JSON.parse(
+      fs.readFileSync(path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json"), "utf8"),
+    ) as ReleaseLock;
+    const manifest = loadReleaseManifest();
+    // Stored release plans and checkpoints are bound to this hash, and every manifest byte feeds it.
+    expect(keccak256(toUtf8Bytes(JSON.stringify(manifest)))).toBe(historical.manifestHash);
+    expect(buildReleaseLock(manifest).manifestHash).toBe(historical.manifestHash);
+
+    const karma = manifest.existingProxyUpgrades.find((upgrade) => upgrade.name === "KarmaGAPModule");
+    if (!karma) throw new Error("The frozen release must keep its KarmaGAPModule upgrade");
+    const pin = loadKarmaUpgradePin();
+    expect(karma.expectedImplementationCreationCodeHash).toBe(pin.supersedesCreationCodeHash);
+    const artifact = JSON.parse(fs.readFileSync(path.join(PRODUCTION_ARTIFACT_ROOT, karma.finalArtifact), "utf8"));
+    expect(artifact.bytecode.linkReferences ?? {}).toEqual({});
+    expect(expectedUpgradeCreationCodeHash(karma, pin)).toBe(keccak256(artifact.bytecode.object));
+    for (const upgrade of manifest.existingProxyUpgrades.filter((candidate) => candidate !== karma)) {
+      expect(expectedUpgradeCreationCodeHash(upgrade, pin)).toBe(upgrade.expectedImplementationCreationCodeHash);
+    }
+    // Re-pinning inside the manifest as well fails closed instead of keeping either value.
+    const repinned = { ...karma, expectedImplementationCreationCodeHash: pin.expectedImplementationCreationCodeHash };
+    expect(() => expectedUpgradeCreationCodeHash(repinned, pin)).toThrow(/review both before changing either/);
   });
 });

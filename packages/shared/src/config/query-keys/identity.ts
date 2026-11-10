@@ -54,6 +54,8 @@ export const roleKeys = {
   deploymentPermissions: (address?: string, chainId?: number) =>
     ["greengoods", "role", "deploymentPermissions", address, chainId] as const,
   allowlist: (chainId?: number) => ["greengoods", "role", "allowlist", chainId] as const,
+  allowlistManager: (address?: string, chainId?: number) =>
+    ["greengoods", "role", "allowlistManager", address, chainId] as const,
 } as const;
 
 export const communityKeys = {
