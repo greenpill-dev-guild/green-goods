@@ -30,8 +30,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
         mockEventData: mockEvent(CHAIN_ID, 5000),
       }),
     ]);
-    // Envio 3.6's simulated source ignores static topic values. Inspect the
-    // actual resolved registrations so removing `where` fails this proof.
+    // Inspect the resolved retrieval filters on each configured chain.
     const { activeRegistration } = (
       globalThis as unknown as {
         __envioGlobal: {
@@ -42,10 +41,10 @@ describe("HypercertMinter.TransferSingle — mints", () => {
                 onEventRegistrations: {
                   eventConfig: { contractName: string; name: string };
                   resolvedWhere: {
-                    topicSelections: {
-                      topic1: { TAG: string; _0: string[] };
+                    topicFilters: {
+                      topic1: "Any";
                       topic2: { TAG: string; _0: string[] };
-                      topic3: { TAG: string; _0: string[] };
+                      topic3: "Any";
                     }[];
                   };
                 }[];
@@ -62,12 +61,12 @@ describe("HypercertMinter.TransferSingle — mints", () => {
           eventConfig.contractName === "HypercertMinter" && eventConfig.name === "TransferSingle"
       );
       assert.ok(transfer);
-      assert.equal(transfer.resolvedWhere.topicSelections.length, 1);
-      const topics = transfer.resolvedWhere.topicSelections[0];
+      assert.equal(transfer.resolvedWhere.topicFilters.length, 1);
+      const topics = transfer.resolvedWhere.topicFilters[0];
       assert.ok(topics);
       assert.deepEqual(topics.topic2, { TAG: "Values", _0: [`0x${"0".repeat(64)}`] });
-      assert.deepEqual(topics.topic1, { TAG: "Values", _0: [] });
-      assert.deepEqual(topics.topic3, { TAG: "Values", _0: [] });
+      assert.equal(topics.topic1, "Any");
+      assert.equal(topics.topic3, "Any");
     }
   });
 
@@ -109,8 +108,11 @@ describe("HypercertMinter.TransferSingle — mints", () => {
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
     });
 
-    const result = await HypercertMinter.TransferSingle.processEvent({ event, mockDb });
-    const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
+    await assert.rejects(
+      HypercertMinter.TransferSingle.processEvent({ event, mockDb }),
+      /never reached a handler/
+    );
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
 
     assert.equal(hc, undefined);
   });

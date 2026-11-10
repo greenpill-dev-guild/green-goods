@@ -2386,6 +2386,7 @@
   "app.garden.create.plannedStewards": "Responsáveis planejados",
   "app.garden.create.slugRequired": "O nome na web é obrigatório",
   "app.garden.create.slugTaken": "Este nome já está em uso",
+  "app.garden.create.slugUnchecked": "Não conseguimos verificar este nome. Vamos verificá-lo de novo quando você criar o jardim.",
   "app.garden.create.teamAssignmentNotice": "Adicionamos estas pessoas quando o jardim é criado. Depois, você pode conferir as funções delas em Membros.",
   "app.garden.create.uploadFailed": "Falha no envio",
   "app.garden.create.uploadFailedMessage": "Não foi possível enviar a imagem do banner. Tente novamente.",
