@@ -218,7 +218,7 @@ describe("WorkStart", () => {
     expect(cards).toHaveLength(2);
     expect(within(cards[0]).getByText("Node uptime log")).toBeVisible();
     expect(within(cards[1]).getByText("Hub keys handover")).toBeVisible();
-    expect(within(cards[1]).getByText("Asked for")).toBeVisible();
+    expect(within(cards[1]).getByText("Ask")).toBeVisible();
     expect(
       container.querySelector('[data-component="WorkStart"] [data-component="LogWorkOnItsOwn"]')
         ?.previousElementSibling

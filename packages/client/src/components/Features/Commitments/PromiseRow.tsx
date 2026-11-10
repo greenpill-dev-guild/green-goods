@@ -21,6 +21,10 @@ export interface PromiseRowProps {
   service?: CommitmentRowProps["service"];
   /** Identical open copies standing behind this row: their number marks the tile (DL-150). */
   copies?: number;
+  /** Nobody took it up and the chain is past its due date: the pill says Past due (DL-110). */
+  pastDue?: boolean;
+  /** The reader asked to take it up and a steward's yes is still to come. */
+  takeUpRequested?: boolean;
   /** Given a destination, the row becomes the way into the promise. */
   onOpen?: (commitmentId: bigint) => void;
 }
@@ -39,12 +43,14 @@ export function PromiseRow({
   kind,
   service,
   copies,
+  pastDue = false,
+  takeUpRequested = false,
   onOpen,
 }: PromiseRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const { commitment, seat, needsYou } = row;
-  const state = presentState(commitment.derivedState);
+  const state = presentState(commitment.derivedState, { pastDue });
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
@@ -60,7 +66,10 @@ export function PromiseRow({
       status={
         needsYou
           ? { label: formatMessage({ id: "app.commitments.row.needsYou" }), tone: "warning" }
-          : { label: formatMessage({ id: state.labelId }), tone: state.tone }
+          : takeUpRequested && !pastDue
+            ? // The reader's request is what this row is about until a steward answers it.
+              { label: formatMessage({ id: "app.claim.PENDING.chip" }), tone: "info" }
+            : { label: formatMessage({ id: state.labelId }), tone: state.tone }
       }
       pending={sendFailed ? "sendFailed" : null}
       note={kind}

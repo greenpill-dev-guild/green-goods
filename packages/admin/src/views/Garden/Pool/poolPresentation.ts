@@ -192,7 +192,7 @@ export function commitmentStateChip(
       return {
         label: formatMessage({
           id: "cockpit.garden.pool.row.state.requested",
-          defaultMessage: "Requested",
+          defaultMessage: "Asked",
         }),
         variant: "info",
       };
@@ -261,13 +261,13 @@ export function commitmentStateChip(
   }
 }
 
-/** Offer or Request, the row's first chip. */
+/** Offer or Ask, the row's first chip. */
 export function directionLabel(
   direction: CommitmentReadModel["direction"],
   formatMessage: FormatMessage
 ): string {
   return direction === "REQUEST"
-    ? formatMessage({ id: "cockpit.garden.pool.row.request", defaultMessage: "Request" })
+    ? formatMessage({ id: "cockpit.garden.pool.row.request", defaultMessage: "Ask" })
     : formatMessage({ id: "cockpit.garden.pool.row.offer", defaultMessage: "Offer" });
 }
 

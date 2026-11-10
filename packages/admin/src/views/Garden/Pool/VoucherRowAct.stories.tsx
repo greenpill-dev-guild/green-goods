@@ -11,7 +11,7 @@ const meta: Meta<typeof VoucherRowAct> = {
     docs: {
       description: {
         component:
-          "A booking's one act in its offer row's right slot in Offers and Requests (PRD-1297 surface 6, `SIssuer`): Report Visit… and Propose Return… open their dialogs, outlined like the list's other row acts; Retry Transfer sends the same transfer again in one tap, since anyone may and it can't be sent twice.",
+          "A booking's one act in its offer row's right slot in Offers and Asks (PRD-1297 surface 6, `SIssuer`): Report Visit… and Propose Return… open their dialogs, outlined like the list's other row acts; Retry Transfer sends the same transfer again in one tap, since anyone may and it can't be sent twice.",
       },
     },
   },
@@ -23,7 +23,7 @@ const meta: Meta<typeof VoucherRowAct> = {
     onRetry: async () => undefined,
   },
   decorators: [
-    // The act reads its row's width, as it does in Offers and Requests.
+    // The act reads its row's width, as it does in Offers and Asks.
     (Story) => (
       <div className="@container w-[560px] max-w-full p-4">
         <Story />

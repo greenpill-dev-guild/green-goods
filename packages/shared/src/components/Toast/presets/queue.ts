@@ -11,7 +11,7 @@ const queueDefaults = {
     message: "We'll retry automatically in the background.",
   },
   jobFailed: {
-    title: "Sync failed",
+    title: "Didn't send",
     workMessage: "Your work is still saved on this device. Open Your Work to try again.",
     approvalMessage: "Your decision is still saved on this device. Open Your Work to try again.",
     workMessageInGarden:

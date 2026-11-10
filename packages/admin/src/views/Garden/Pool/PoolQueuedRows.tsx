@@ -30,7 +30,7 @@ export interface PoolQueuedRowsProps {
 }
 
 /**
- * Creations still queued on this device, above Offers and Requests' indexed
+ * Creations still queued on this device, above Offers and Asks' indexed
  * rows, so a seeded promise shows up before the indexer has it. Nothing in the
  * admin sends a queued creation on its own, so each row offers the send and,
  * where the queue allows it, the way out (Discard), and leads its line with
