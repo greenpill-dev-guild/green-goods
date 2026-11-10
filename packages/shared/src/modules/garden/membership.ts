@@ -3,8 +3,9 @@
  * and which gardens are the account's own.
  *
  * A garden is the account's own when its record lists the account as owner, steward, evaluator
- * or gardener (PWA Home decision 2), or when this device sent an open join that the record does
- * not show yet. Funders and community members hold hats too but are not members here: a
+ * or gardener (PWA Home decision 2), or when this device holds a join that the record does not
+ * show yet: an open join it sent, or its request to join that a steward welcomed
+ * (`pending-joins`). Funders and community members hold hats too but are not members here: a
  * depositor keeps Endowment on the garden page and has no place among "my gardens". A join
  * request waiting for a steward never counts: it grants nothing until a steward welcomes it.
  *
@@ -39,8 +40,9 @@ export interface GardenMembership {
   /** The roles the garden's record lists for the account, owner first. */
   roles: MemberRole[];
   /**
-   * This device sent an open join that the record does not list yet. It stands in for the
-   * gardener role until the indexer catches up or the pending-join record expires.
+   * This device holds a join that the record does not list yet: an open join it sent, or its
+   * request a steward welcomed. It stands in for the gardener role until the indexer catches up
+   * or the pending-join record expires.
    */
   pendingJoin: boolean;
 }
@@ -60,7 +62,7 @@ function listsAccount(list: unknown, account: string): boolean {
 
 /**
  * The account's membership in one garden. `pendingJoin` says whether this device holds a fresh
- * open join for the account there; it counts only while the record lists no role.
+ * join for the account there; it counts only while the record lists no role.
  */
 export function gardenMembership(
   garden: GardenRoleLists,
@@ -81,8 +83,8 @@ export function isMyGarden(membership: GardenMembership): boolean {
 }
 
 /**
- * Whether the account can submit work in the garden: an evaluator alone cannot, and an open
- * join just sent makes the account a gardener.
+ * Whether the account can submit work in the garden: an evaluator alone cannot, and a join the
+ * record does not show yet makes the account a gardener.
  */
 export function canSubmitWork(membership: GardenMembership): boolean {
   return (
@@ -92,7 +94,7 @@ export function canSubmitWork(membership: GardenMembership): boolean {
 
 /**
  * The account's gardens in the list's order, each with its membership. `hasPendingJoin` says
- * whether this device holds a fresh open join for the account in a garden.
+ * whether this device holds a fresh join for the account in a garden.
  */
 export function listMyGardens<G extends GardenRoleLists & { id: string }>(
   gardens: readonly G[],

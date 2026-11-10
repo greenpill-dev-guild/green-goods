@@ -19,6 +19,7 @@ source_of_truth:
   - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Home/GardenFilters/index.tsx
   - packages/client/src/views/Home/Garden/index.tsx
+  - packages/client/src/views/Home/Garden/GardenPage.tsx
   - packages/client/src/components/Features/Garden/JoinGardenButton.tsx
   - packages/client/src/components/Features/Garden/JoinGardenConfirmDialog.tsx
   - packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx
@@ -26,6 +27,7 @@ source_of_truth:
   - packages/client/src/views/Profile/AccountInfo.tsx
   - packages/client/src/views/Profile/GardensList.tsx
   - packages/shared/src/hooks/garden/useJoinGarden.ts
+  - packages/shared/src/hooks/garden/useMyGardens.ts
   - packages/shared/src/hooks/garden/useLeaveGarden.ts
   - packages/client/src/components/Features/Garden/LeaveGardenAction.tsx
   - packages/agent/src/config.ts
@@ -110,7 +112,7 @@ In every case, a garden you belong to shows up in **My gardens** on your Profile
 ## What happens next
 
 - **You joined an open garden.** Nobody else needs to act. You can submit work now.
-- **You sent a request.** A steward of that garden reviews it. Green Goods does not send you an alert, so come back to the garden's page and tap **Check Request Status**. It will read **Welcome to the garden** once you are in, or **This request was declined** with the steward's reason. You can **Withdraw Request** at any time and send a new one later.
+- **You sent a request.** A steward of that garden reviews it. Green Goods does not send you an alert, so come back to the app. Once a steward lets you in, the garden shows up in **My gardens** and its page stops offering **Request to Join**. Until then, tap **Request to Join** on the garden's page, then **Check Request Status**. It reads **Request waiting for approval**, or **This request was declined** with the steward's reason. You can **Withdraw Request** at any time and send a new one later.
 - **You asked a steward to add you.** The steward adds your Account ID from their side. Check **My gardens** after they tell you it is done.
 
 Once you are a member, return to **Home** and select the garden you joined. If the app asks you to choose a garden, choose it there. The name at the top tells you where new work will go.
