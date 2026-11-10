@@ -141,8 +141,9 @@ describe("NavigationBar", () => {
       }
     });
 
+    // The computed offset is the measured bar height plus a 6px gap.
     expect(document.querySelector('[data-slot="mobile-fab-layer"]')).toHaveStyle({
-      bottom: "calc(116px + 0.375rem)",
+      bottom: "122px",
     });
   });
 });

@@ -4,7 +4,11 @@ import {
   type ExternalErrorReporterContext,
 } from "./external-error-reporters";
 import { isReportingCeremonyPath } from "./private-paths";
-import { sanitizeSentryContext, sanitizeSentryValue } from "./sentry-redaction";
+import {
+  createSentryDataCollection,
+  sanitizeSentryContext,
+  sanitizeSentryValue,
+} from "./sentry-redaction";
 
 export type BrowserSentrySurface = "client" | "admin";
 
@@ -35,7 +39,8 @@ export function initBrowserSentry(options: InitBrowserSentryOptions): () => void
     dsn,
     environment: options.environment,
     release: options.release,
-    sendDefaultPii: false,
+    dataCollection: createSentryDataCollection(),
+    traceLifecycle: "static",
     debug: options.debug === true,
     tracesSampleRate: options.tracesSampleRate ?? 0.05,
     replaysSessionSampleRate: 0,
