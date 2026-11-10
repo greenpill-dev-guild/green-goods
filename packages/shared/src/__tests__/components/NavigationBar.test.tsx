@@ -184,7 +184,7 @@ describe("NavigationBar", () => {
     );
 
     const nav = screen.getByRole("navigation");
-    expect(nav).toHaveStyle({ position: "fixed", left: "0.75rem", right: "0.75rem" });
+    expect(nav.style).toMatchObject({ position: "fixed", left: "0.75rem", right: "0.75rem" });
     expect(nav.style.zIndex).toBe("var(--z-nav)");
   });
 
@@ -434,7 +434,7 @@ describe("NavigationBar", () => {
     expect(disabledAction).toHaveAttribute("aria-disabled", "true");
     expect(disabledAction).toHaveAccessibleDescription("Nothing to fund yet.");
     expect(within(disabledAction).getByText("Nothing to fund yet.")).toBeInTheDocument();
-    expect(enabledAction).toHaveStyle({ maxWidth: "calc(100vw - 2rem)" });
+    expect(enabledAction.style.maxWidth).toBe("calc(100vw - 2rem)");
 
     await user.click(disabledAction);
     expect(onAction).not.toHaveBeenCalled();
@@ -604,7 +604,7 @@ describe("NavigationBar", () => {
     await user.click(screen.getByRole("button", { name: /open actions/i }));
 
     const launcher = screen.getByRole("menu", { name: /actions/i });
-    expect(launcher).toHaveStyle({
+    expect(launcher.style).toMatchObject({
       position: "absolute",
       right: "0px",
       bottom: "100%",
