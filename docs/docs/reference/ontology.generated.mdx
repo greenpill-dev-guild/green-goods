@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:d638ef7b603ea3e647e9832e43b59f368bf4b3cdd161691f94c646207b338a82"
+source_digest: "sha256:062d63cf4f19f7759a843226b86de11d659dff31e4cc12d7e11cb4591f941b09"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -131,15 +131,19 @@ Category of regenerative work — where the work happens. Four production domain
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Domain</code> | <code>SOLAR=0, AGRO=1, EDU=2, WASTE=3</code> |  |
-| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when its work names exactly one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) publishes the same words from its own list. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
-| slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy actions validator and the create-action form reject a slug whose prefix is not its domain's. |
+| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings written into hypercert metadata: each attested work's domain, the hypercert's own domain when its work names exactly one, and the work scope suggested from an assessment. The admin keys its hypercert domain labels on them, and the public garden-impact API (v1) derives its ordered list from the shared enum mapping. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
+| slug-prefix | shared | <code>packages/shared/src/utils/domain.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). Each is its Solidity member name in lower case, and both the deploy actions validator and the create-action form reject a slug whose prefix is not its domain's. |
+| design-token | shared | <code>packages/shared/src/types/domain.ts · DOMAIN_TOKEN_SLUG</code> | <code>solar, agro, education, waste</code> | CSS token and display-label spelling. DOMAIN_COLORS and DOMAIN_CONFIG derive from this map; the palette keeps complete Tailwind class names so app builds can discover them. |
 
 - **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; bijective): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
-  - Code anchor: `packages/shared/src/modules/data/hypercerts-filters.ts`
+  - Code anchor: `packages/shared/src/utils/domain.ts`
 
 - **Mapping `domain-to-slug-prefix`** (solidity → slug-prefix; explicit; total; bijective): SOLAR → solar, AGRO → agro, EDU → edu, WASTE → waste.
-  - Code anchor: `packages/shared/src/hooks/action/useActionForm.ts`
+  - Code anchor: `packages/shared/src/utils/domain.ts`
   - AGRO and EDU each have two published lowercase spellings, and neither can be rewritten: action slugs are immutable on chain, and minted hypercert metadata keeps the long forms. Each spelling is mapped from the canonical enum, never from the other, so agro and agroforestry both mean AGRO.
+
+- **Mapping `domain-to-design-token`** (solidity → design-token; explicit; total; bijective): SOLAR → solar, AGRO → agro, EDU → education, WASTE → waste.
+  - Code anchor: `packages/shared/src/types/domain.ts`
 
 ### `garden-role`
 
@@ -555,6 +559,10 @@ Read-model direction derived from immutable payer and provider gardens plus the 
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> | UNKNOWN is retained until the protocol garden configuration is observed. |
 | shared | shared | <code>packages/shared/src/modules/commitment-pooling/types-vocabulary.ts · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> |  |
 
+- **Mapping `canonical-to-indexer`** (canonical → indexer; explicit; total; bijective; unmapped on the right: UNKNOWN): Internal → INTERNAL, ProtocolToGarden → PROTOCOL_TO_GARDEN, GardenToProtocol → GARDEN_TO_PROTOCOL, GardenToGarden → GARDEN_TO_GARDEN.
+  - Code anchor: `packages/shared/src/modules/commitment-pooling/types-vocabulary.ts`
+  - Conceptual direction names map to the published uppercase read-model words. UNKNOWN is an indexer sentinel, not a settlement direction.
+
 ### `loan-state`
 
 Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by shared consumers from indexed repayment amounts while repayment sits between zero and principal + feeAmount and is never stored as a contract or indexer hard state.
@@ -688,46 +696,6 @@ source: implemented · revocable: false · resolver: `packages/contracts/src/res
 | endDate | <code>uint256</code> |
 | location | <code>string</code> |
 
-### `work` — Green Goods Work Submission
-
-source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/Work.sol`
-
-| Field | Type |
-|---|---|
-| actionUID | <code>uint256</code> |
-| title | <code>string</code> |
-| feedback | <code>string</code> |
-| metadata | <code>string</code> |
-| media | <code>string[]</code> |
-
-### `workApproval` — Green Goods Work Approval
-
-source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/WorkApproval.sol`
-
-| Field | Type |
-|---|---|
-| actionUID | <code>uint256</code> |
-| workUID | <code>bytes32</code> |
-| approved | <code>bool</code> |
-| feedback | <code>string</code> |
-| confidence | <code>uint8</code> |
-| verificationMethod | <code>uint8</code> |
-| reviewNotesCID | <code>string</code> |
-
-### `badge` — GreenGoodsBadge
-
-source: implemented · revocable: true · resolver: none
-
-Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver. Records no canonical entity: GreenWill badging is a demonstration sidecar, not part of the v1 entity set.
-
-| Field | Type |
-|---|---|
-| badgeType | <code>string</code> |
-| recipient | <code>address</code> |
-| earnedAt | <code>uint40</code> |
-| evidenceUri | <code>string</code> |
-| tier | <code>uint8</code> |
-
 ### `assessmentV3` — Green Goods Assessment v3
 
 source: implemented · revocable: false · resolver: none
@@ -747,6 +715,20 @@ Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exact
 | cycleId | <code>uint256</code> |
 | baselineUID | <code>bytes32</code> |
 
+### `badge` — GreenGoodsBadge
+
+source: implemented · revocable: true · resolver: none
+
+Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver. Records no canonical entity: GreenWill badging is a demonstration sidecar, not part of the v1 entity set.
+
+| Field | Type |
+|---|---|
+| badgeType | <code>string</code> |
+| recipient | <code>address</code> |
+| earnedAt | <code>uint40</code> |
+| evidenceUri | <code>string</code> |
+| tier | <code>uint8</code> |
+
 ### `communityTestimony` — Green Goods Community Testimony
 
 source: implemented · revocable: false · resolver: none
@@ -758,6 +740,20 @@ Community-Hat-gated testimony attached to a commitment; the second of exactly tw
 | commitmentId | <code>uint256</code> |
 | title | <code>string</code> |
 | testimonyCID | <code>string</code> |
+
+### `fundingAttribution` — Green Goods Funding Attribution
+
+source: specified · revocable: false · planned resolver: `FundingAttributionResolver`
+
+Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.
+
+| Field | Type |
+|---|---|
+| chainId | <code>uint256</code> |
+| txHash | <code>bytes32</code> |
+| token | <code>address</code> |
+| amount | <code>uint256</code> |
+| rail | <code>uint8</code> |
 
 ### `need` — Green Goods Need
 
@@ -795,19 +791,31 @@ Steward-authored child moderation records use EAS recipient as the garden, refUI
 | mergedIntoNeedUID | <code>bytes32</code> |
 | noteCID | <code>string</code> |
 
-### `fundingAttribution` — Green Goods Funding Attribution
+### `work` — Green Goods Work Submission
 
-source: specified · revocable: false · planned resolver: `FundingAttributionResolver`
-
-Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/Work.sol`
 
 | Field | Type |
 |---|---|
-| chainId | <code>uint256</code> |
-| txHash | <code>bytes32</code> |
-| token | <code>address</code> |
-| amount | <code>uint256</code> |
-| rail | <code>uint8</code> |
+| actionUID | <code>uint256</code> |
+| title | <code>string</code> |
+| feedback | <code>string</code> |
+| metadata | <code>string</code> |
+| media | <code>string[]</code> |
+
+### `workApproval` — Green Goods Work Approval
+
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/WorkApproval.sol`
+
+| Field | Type |
+|---|---|
+| actionUID | <code>uint256</code> |
+| workUID | <code>bytes32</code> |
+| approved | <code>bool</code> |
+| feedback | <code>string</code> |
+| confidence | <code>uint8</code> |
+| verificationMethod | <code>uint8</code> |
+| reviewNotesCID | <code>string</code> |
 
 ## Constraints
 

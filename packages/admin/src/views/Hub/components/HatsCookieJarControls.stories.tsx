@@ -60,10 +60,9 @@ export const OwnerRecovery: Story = {
     await userEvent.type(canvas.getByRole("textbox", { name: "Amount to recover" }), "1.25");
     await userEvent.click(canvas.getByRole("button", { name: "Recover payout funds" }));
     const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("alertdialog"));
-    // The dialog mounts at opacity 0 and fades in, so wait until its facts can be seen.
-    await waitFor(() => {
-      expect(dialog.getByText("1.25 USDC")).toBeVisible();
-      expect(dialog.getByText("Recovery recipient")).toBeVisible();
+    await waitFor(async () => {
+      await expect(dialog.getByText("1.25 USDC")).toBeVisible();
+      await expect(dialog.getByText("Recovery recipient")).toBeVisible();
     });
   },
 };
