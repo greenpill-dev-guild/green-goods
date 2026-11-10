@@ -46,18 +46,18 @@
     "zustand": "5.1.0"
   },
   "devDependencies": {
-    "@babel/core": "7.29.7",
-    "@rolldown/plugin-babel": "0.2.3",
+    "@babel/core": "8.1.0",
+    "@rolldown/plugin-babel": "0.3.0",
     "@sentry/vite-plugin": "5.4.0",
     "@storybook/react": "10.6.6",
     "@types/babel__core": "7.20.5",
-    "@vitejs/plugin-react": "6.0.5",
+    "@vitejs/plugin-react": "6.2.1",
     "abitype": "1.2.3",
     "babel-plugin-react-compiler": "^1.0.0",
     "storybook": "10.6.6",
     "tailwindcss": "4.3.5",
     "typescript": "~7.0.2",
-    "vite": "8.2.4",
+    "vite": "8.3.6",
     "vite-plugin-mkcert": "2.1.0"
   }
 }

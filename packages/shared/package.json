@@ -609,22 +609,21 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@babel/parser": "8.0.4",
-    "@babel/traverse": "8.0.4",
-    "@babel/types": "8.0.4",
+    "@babel/parser": "8.1.0",
+    "@babel/traverse": "8.1.0",
+    "@babel/types": "8.1.0",
     "@chromatic-com/storybook": "5.6.0",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@sentry/react": "10.70.0",
     "@storybook/addon-a11y": "10.6.6",
     "@storybook/addon-docs": "10.6.6",
-    "@storybook/addon-mcp": "0.6.0",
+    "@storybook/addon-mcp": "10.6.6",
     "@storybook/addon-vitest": "10.6.6",
     "@storybook/react": "10.6.6",
     "@storybook/react-vite": "10.6.6",
     "@tailwindcss/vite": "4.3.5",
-    "@vitest/browser": "4.1.11",
-    "@vitest/browser-playwright": "4.1.11",
-    "@vitest/runner": "4.1.11",
+    "@vitest/browser": "5.1.0",
+    "@vitest/browser-playwright": "5.1.0",
     "chromatic": "16.5.0",
     "storybook": "10.6.6"
   }
