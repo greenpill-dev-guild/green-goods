@@ -7,6 +7,7 @@ import { holdWorkClaims } from "../job-queue/work-claims";
 import { holdingSend } from "../job-queue/send-guards";
 import { hasRecordedSend, MAX_RETRIES } from "../job-queue/queue-policy";
 import { jobQueueEventBus } from "../job-queue/event-bus";
+import { trackJobPermanentlyFailed, trackJobProcessed } from "../job-queue/job-analytics";
 import { convertQueuedHeicMedia } from "../job-queue/job-media-conversion";
 import { findTakeUpOf } from "../job-queue/take-up-hold";
 import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
@@ -266,6 +267,7 @@ async function admitAndSend(
       // A draft is cleanup state after admission. Its write may fail without losing the durable job checkpoint.
       await input.onCheckpoint?.(value).catch(() => undefined);
     };
+    const startedAt = Date.now();
     try {
       const txHash = await holdingSend(job.id, () =>
         ports.direct.submitWork(
@@ -305,6 +307,7 @@ async function admitAndSend(
       forgetWorkBroadcast(job.id);
       await jobQueueDB.deleteJob(job.id).catch(() => undefined);
       jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash });
+      trackJobProcessed(job.kind, Date.now() - startedAt, job.attempts + 1);
       return {
         kind: "direct",
         txHash,
@@ -318,6 +321,12 @@ async function admitAndSend(
         if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
         await jobQueueDB.updateJob(job);
         await jobQueueDB.markJobTerminalFailed(job.id, "work-transaction-reverted");
+        // The stored job's count moved, not this copy's: count the try that ended it.
+        trackJobPermanentlyFailed({
+          ...job,
+          lastError: "work-transaction-reverted",
+          attempts: job.attempts + 1,
+        });
         throw error;
       }
       const cause = error instanceof Error && error.cause ? error.cause : error;
@@ -355,10 +364,9 @@ async function admitAndSend(
         if (!input.allowOfflineQueue) throw error;
         return queuedOutcome(queued, ports.sender);
       }
-      await jobQueueDB.markJobTerminalFailed(
-        job.id,
-        error instanceof Error ? error.message : "submission-failed"
-      );
+      const lastError = error instanceof Error ? error.message : "submission-failed";
+      await jobQueueDB.markJobTerminalFailed(job.id, lastError);
+      trackJobPermanentlyFailed({ ...job, lastError, attempts: job.attempts + 1 });
       if (failure.kind === "not-sent") input.onTerminalUnsentFailure?.();
       throw error;
     }
