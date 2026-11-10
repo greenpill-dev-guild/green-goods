@@ -65,6 +65,11 @@ async function stage() {
   await userEvent.click(await body().findByRole("button", { name: "Add" }));
 }
 
+/** The dialog fades in from opacity 0, so a field hint is checked once it can be seen. */
+async function expectHintShown(hint: RegExp) {
+  await waitFor(() => expect(body().getByText(hint)).toBeVisible());
+}
+
 const meta: Meta<typeof AddMembersDialog> = {
   title: "Admin/Workflows/Garden/AddMembersDialog",
   component: AddMembersDialog,
@@ -155,7 +160,7 @@ export const Default: Story = {};
 export const DuplicateBlocked: Story = {
   play: async () => {
     await enter(ROSA);
-    await expect(await body().findByText(/is already a Gardener/)).toBeVisible();
+    await expectHintShown(/is already a Gardener/);
     await expect(body().getByRole("button", { name: "Add" })).toBeDisabled();
   },
 };
@@ -165,7 +170,7 @@ export const PromotionHint: Story = {
   play: async () => {
     await pickRole("steward");
     await enter(ROSA);
-    await expect(await body().findByText(/is currently a Gardener/)).toBeVisible();
+    await expectHintShown(/is currently a Gardener/);
     await expect(body().getByRole("button", { name: "Add" })).toBeEnabled();
   },
 };
@@ -190,7 +195,7 @@ export const AlreadyInList: Story = {
     await enter(NEW_A);
     await stage();
     await enter(NEW_A);
-    await expect(await body().findByText(/is already in the list as a Gardener/)).toBeVisible();
+    await expectHintShown(/is already in the list as a Gardener/);
   },
 };
 
