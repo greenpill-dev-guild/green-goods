@@ -156,7 +156,7 @@ describe("public information pages", () => {
     "en",
     "es",
     "pt",
-  ] as const)("offers a person, the support mailbox and the privacy policy in %s", (locale) => {
+  ] as const)("offers a person, the support mailbox, the strategy and the privacy policy in %s", (locale) => {
     const messages = renderPage(Contact, locale);
     expect(
       screen.getByRole("heading", { level: 1, name: messages["public.contact.title"] })
@@ -168,6 +168,10 @@ describe("public information pages", () => {
       "href",
       "mailto:contact@greengoods.app"
     );
+    // The site's menus leave Strategy out, so Contact links to it for partners.
+    expect(
+      screen.getByRole("link", { name: messages["public.contact.strategy.link"] })
+    ).toHaveAttribute("href", "/strategy");
     expect(
       screen.getByRole("link", { name: messages["public.contact.privacy.link"] })
     ).toHaveAttribute("href", "/privacy");
