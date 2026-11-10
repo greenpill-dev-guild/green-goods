@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@green-goods/shared": "workspace:*",
-    "@sentry/bun": "10.78.0",
+    "@sentry/bun": "11.11.0",
     "@sentry/cli": "3.8.2",
     "@huggingface/transformers": "4.3.2",
     "@simplewebauthn/server": "13.3.3",
