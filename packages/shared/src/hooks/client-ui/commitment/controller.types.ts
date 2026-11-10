@@ -75,6 +75,11 @@ export interface GardenCommitmentController {
   pendingClaimRequests: CommitmentClaimRequestRecord[];
   /** Someone can still take this up: nobody has, and it is known not to be past due. */
   takeUpOpen: boolean;
+  /**
+   * Nobody took it up and the chain's clock is known to be past its due date, so anyone may
+   * expire it; the app says so, and expiring stays the cockpit's act (DL-110 as amended).
+   */
+  pastDue: boolean;
   canAskAgain: boolean;
   claimNeedsContext: boolean;
   /**

@@ -152,11 +152,16 @@ export function showWorkSubmissionFailure(
     });
   }
 
+  // A passkey account has no wallet to reconnect, so a wallet's own advice reads as an unknown
+  // failure there and gets the phase-aware fallback instead.
+  const known =
+    parsed.isKnown && !(parsed.suggestedAction === "check-wallet" && authMode !== "wallet");
+
   // Use parsed error if known, otherwise provide phase-aware fallback
   let displayMessage: string;
   if (error instanceof WorkTransactionReverted) {
     displayMessage = intl.formatMessage({ id: "app.work.confirmationFailed" });
-  } else if (parsed.isKnown) {
+  } else if (known) {
     displayMessage = message;
   } else if (phase === "upload") {
     displayMessage = "Media upload failed. Please check your connection and try again.";
@@ -170,12 +175,11 @@ export function showWorkSubmissionFailure(
     // Use wallet progress toast for consistent UX
     walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
   } else {
-    const displayTitle = parsed.isKnown
+    // A send that failed for an unknown reason has the one name every surface gives it.
+    const displayTitle = known
       ? title
-      : phase === "upload"
-        ? "Upload failed"
-        : "Work submission failed";
-    const description = parsed.isKnown
+      : intl.formatMessage({ id: "app.toast.queue.jobFailed.title" });
+    const description = known
       ? parsed.action || undefined
       : intl.formatMessage({ id: "app.home.work.retryFailedMessage" });
 

@@ -17,8 +17,19 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
 }));
 vi.mock("react-intl", () => ({
   useIntl: () => ({
-    formatMessage: ({ defaultMessage }: { defaultMessage?: string }) => defaultMessage ?? "",
+    formatMessage: (
+      { defaultMessage }: { defaultMessage?: string },
+      values: Record<string, string> = {}
+    ) =>
+      (defaultMessage ?? "").replace(
+        /\{(\w+)\}/g,
+        (_, name: string) => values[name] ?? `{${name}}`
+      ),
+    formatDate: () => "3 Nov 2026",
   }),
+}));
+vi.mock("@green-goods/shared/hooks/ens/useAddressDisplayName", () => ({
+  useAddressDisplayName: () => ({ preferredName: "Ana", display: "Ana" }),
 }));
 
 vi.mock("@green-goods/shared/utils/form/normalizers", async (importOriginal) => {
@@ -101,7 +112,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
         effectiveStatus: "sync_failed" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Upload didn't work");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Your work didn't send");
   });
 
   it("shows 'Saved on your device' title for syncing status", () => {
@@ -178,15 +189,20 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     );
   });
 
-  it("shows steward-specific title for approved status", () => {
+  it.each([
+    "pending",
+    "approved",
+  ] as const)("names the work, who sent it and when for a steward (%s)", (status) => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         viewingMode: "steward",
-        effectiveStatus: "approved" as WorkDisplayStatus,
+        effectiveStatus: status as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Work approved");
+    // The work's own name, where the page once said "Evaluate Work" for every submission.
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Test Action");
+    expect(screen.getByTestId("work-info")).toHaveTextContent("Ana sent this on 3 Nov 2026.");
   });
 
   it("shows the review's feedback on a decided work", () => {

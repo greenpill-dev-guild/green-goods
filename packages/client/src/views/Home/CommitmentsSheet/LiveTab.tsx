@@ -44,6 +44,10 @@ export interface LiveTabProps {
   gardenHeadings: boolean;
   /** A promise's page is open over the sheet, so the list of copies waits for its return. */
   covered: boolean;
+  /** The reader's take-up requests still waiting on a steward's yes, each on its ask. */
+  waiting?: InboxCommitment[];
+  /** Ids of the listed promises that nobody took up and that are past due on the chain's clock. */
+  pastDueIds?: ReadonlySet<string>;
 }
 
 /** The copies a folded row opens: drawn while they close, and already in place on the way back. */
@@ -78,11 +82,13 @@ export function LiveTab({
   cycleId,
   gardenHeadings,
   covered,
+  waiting = [],
+  pastDueIds,
 }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
-    useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live])
+    useMemo(() => [...inbox.live, ...waiting].map((row) => row.commitment), [inbox.live, waiting])
   );
   const [openCopies, setOpenCopies] = useState<OpenCopies>({
     ids: new Set(),
@@ -131,13 +137,26 @@ export function LiveTab({
     formatMessage,
   ]);
 
-  const promiseRow = (row: InboxCommitment, beforeOpen?: () => void) => {
+  // A take-up request waits under the same chips and season as the list it heads.
+  const shownWaiting = waiting.filter(
+    (row) =>
+      (direction === "all" || row.commitment.direction === direction) &&
+      (cycleId === null || row.commitment.cycleId === cycleId)
+  );
+
+  const promiseRow = (
+    row: InboxCommitment,
+    beforeOpen?: () => void,
+    options: { takeUpRequested?: boolean } = {}
+  ) => {
     const gardenAddress = gardenAddressFor(row, pools);
     return (
       <PromiseRow
         key={row.commitment.id}
         row={row}
         title={titleOf(row)}
+        takeUpRequested={options.takeUpRequested}
+        pastDue={pastDueIds?.has(row.commitment.id) ?? false}
         sendFailed={inbox.failedCommitmentIds.has(row.commitment.commitmentId.toString())}
         onOpen={
           gardenAddress
@@ -169,6 +188,7 @@ export function LiveTab({
       // most. Treating the tab as empty would hide the only thing saying so.
       isEmpty={
         inbox.live.length === 0 &&
+        waiting.length === 0 &&
         !inbox.hasPendingCreate &&
         inbox.unlistedFailureCount === 0 &&
         !inbox.queueUnavailable
@@ -236,11 +256,14 @@ export function LiveTab({
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState
-          placement="sheet"
-          icon={<RiFilterOffLine />}
-          title={formatMessage({ id: "app.commitments.filter.noMatches" })}
-        />
+        // A take-up request under the filters still lists, so the filters matched something.
+        shownWaiting.length > 0 ? null : (
+          <EmptyState
+            placement="sheet"
+            icon={<RiFilterOffLine />}
+            title={formatMessage({ id: "app.commitments.filter.noMatches" })}
+          />
+        )
       ) : (
         groups.map((group) => (
           <div key={group.key}>
@@ -259,6 +282,7 @@ export function LiveTab({
                     row={first}
                     title={titleOf(first)}
                     copies={entry.rows.length}
+                    pastDue={pastDueIds?.has(first.commitment.id) ?? false}
                     onOpen={() =>
                       setOpenCopies({
                         ids: new Set(entry.rows.map((row) => row.commitment.commitmentId)),
@@ -273,6 +297,19 @@ export function LiveTab({
           </div>
         ))
       )}
+
+      {/* A take-up request is the reader's business too, though nothing is theirs until a
+          steward says yes, so it follows their promises under its own heading (PRD-1368). */}
+      {shownWaiting.length > 0 ? (
+        <section data-component="WaitingOnSteward">
+          <SheetHeading as="h4" className="mb-2">
+            {formatMessage({ id: "app.commitments.waiting.title" })}
+          </SheetHeading>
+          <div className="flex flex-col gap-(--gg-list-gap)">
+            {shownWaiting.map((row) => promiseRow(row, undefined, { takeUpRequested: true }))}
+          </div>
+        </section>
+      ) : null}
 
       {copiesOnScreen && !covered && !wasCovered ? (
         <AppSheet

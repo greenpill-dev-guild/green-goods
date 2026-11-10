@@ -145,3 +145,38 @@ export const TakenCopyKeepsItsRow: Story = {
     await expectItemRowsFit(canvasElement);
   },
 };
+
+/** The reader's take-up request on someone's ask, waiting on a steward's yes, heads the list. */
+const askWaitingOnSteward: InboxCommitment = {
+  commitment: {
+    ...storyGroup({
+      available: 2,
+      overrides: {
+        direction: "REQUEST",
+        onchainState: "REQUESTED",
+        derivedState: "REQUESTED",
+        state: "REQUESTED",
+      },
+    }).group.children[0],
+    id: "42161-501",
+    commitmentId: 501n,
+  } as InboxCommitment["commitment"],
+  seat: "bystander",
+  needsYou: false,
+};
+
+/** Your Promises lists a take-up request under its own heading until a steward answers it. */
+export const WaitingOnSteward: Story = {
+  args: { waiting: [askWaitingOnSteward] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const section = canvas
+      .getByRole("heading", { name: "Waiting on a Steward" })
+      .closest("section");
+    await expect(section).not.toBeNull();
+    await expect(within(section as HTMLElement).getByRole("status")).toHaveTextContent(
+      "Waiting for review"
+    );
+    await expectItemRowsFit(canvasElement);
+  },
+};

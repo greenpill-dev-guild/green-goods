@@ -5,26 +5,26 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Configuracion del sitio y preparacion",
-          "description": "Documenta la preparacion del sitio del hub solar, la evaluacion de preparacion y cualquier permiso o acuerdo obtenido. Captura las condiciones del sitio y el nivel de preparacion para desplegar infraestructura solar.",
+          "title": "Configuración del sitio y preparación",
+          "description": "Documenta la preparación del sitio del hub solar, la evaluación de preparación y cualquier permiso o acuerdo obtenido. Captura las condiciones del sitio y el nivel de preparación para desplegar infraestructura solar.",
           "uiConfig": {
             "media": {
               "title": "Captura fotos del sitio",
-              "description": "Toma fotos de la ubicacion del sitio, cualquier infraestructura existente y documentacion de permisos si esta disponible.",
+              "description": "Toma fotos de la ubicación del sitio, cualquier infraestructura existente y documentación de permisos si está disponible.",
               "needed": ["Vista general del sitio", "Puntos de acceso"],
               "optional": ["Documentos de permisos", "Infraestructura existente"]
             },
             "details": {
-              "title": "Detalles de preparacion del sitio",
-              "description": "Proporciona detalles sobre la configuracion del sitio y la evaluacion de preparacion.",
-              "feedbackPlaceholder": "Notas sobre condiciones del sitio, desafios o proximos pasos",
+              "title": "Detalles de preparación del sitio",
+              "description": "Proporciona detalles sobre la configuración del sitio y la evaluación de preparación.",
+              "feedbackPlaceholder": "Notas sobre condiciones del sitio, desafíos o próximos pasos",
               "inputs": [
                 {
                   "key": "readinessScore",
-                  "title": "Nivel de preparacion",
-                  "placeholder": "Selecciona el nivel de preparacion del sitio",
+                  "title": "Nivel de preparación",
+                  "placeholder": "Selecciona el nivel de preparación del sitio",
                   "bands": {
-                    "Not Ready": "No esta listo",
+                    "Not Ready": "No está listo",
                     "Early Stage": "Etapa inicial",
                     "Mostly Ready": "Casi listo",
                     "Fully Ready": "Totalmente listo"
@@ -38,8 +38,8 @@
                     "Land use permit": "Permiso de uso de suelo",
                     "Community agreement": "Acuerdo comunitario",
                     "Government license": "Licencia gubernamental",
-                    "Utility interconnection": "Interconexion con la red electrica",
-                    "None yet": "Aun ninguno"
+                    "Utility interconnection": "Interconexión con la red eléctrica",
+                    "None yet": "Aún ninguno"
                   }
                 },
                 {
@@ -59,8 +59,8 @@
               ]
             },
             "review": {
-              "title": "Revisar configuracion del sitio",
-              "description": "Revisa los detalles de preparacion del sitio antes de enviar."
+              "title": "Revisar configuración del sitio",
+              "description": "Revisa los detalles de preparación del sitio antes de enviar."
             }
           }
         },
@@ -70,27 +70,27 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Preparacao do local e prontidao",
-          "description": "Documente a preparacao do local do hub solar, a avaliacao de prontidao e quaisquer permissoes ou acordos obtidos. Registra as condicoes do local e o nivel de prontidao para a implantacao da infraestrutura solar.",
+          "title": "Preparação do local e prontidão",
+          "description": "Documente a preparação do local do hub solar, a avaliação de prontidão e quaisquer permissões ou acordos obtidos. Registra as condições do local e o nível de prontidão para a implantação da infraestrutura solar.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos do local",
-              "description": "Tire fotos da localizacao, de qualquer infraestrutura existente e da documentacao de permissoes, se disponivel.",
-              "needed": ["Visao geral do local", "Pontos de acesso"],
-              "optional": ["Documentos de permissao", "Infraestrutura existente"]
+              "description": "Tire fotos da localização, de qualquer infraestrutura existente e da documentação de permissões, se disponível.",
+              "needed": ["Visão geral do local", "Pontos de acesso"],
+              "optional": ["Documentos de permissão", "Infraestrutura existente"]
             },
             "details": {
-              "title": "Detalhes de prontidao do local",
-              "description": "Forneca detalhes sobre a preparacao do local e a avaliacao de prontidao.",
-              "feedbackPlaceholder": "Notas sobre condicoes do local, desafios ou proximos passos",
+              "title": "Detalhes de prontidão do local",
+              "description": "Forneça detalhes sobre a preparação do local e a avaliação de prontidão.",
+              "feedbackPlaceholder": "Notas sobre condições do local, desafios ou próximos passos",
               "inputs": [
                 {
                   "key": "readinessScore",
-                  "title": "Nivel de prontidao",
-                  "placeholder": "Selecione o nivel de prontidao do local",
+                  "title": "Nível de prontidão",
+                  "placeholder": "Selecione o nível de prontidão do local",
                   "bands": {
-                    "Not Ready": "Nao pronto",
-                    "Early Stage": "Estagio inicial",
+                    "Not Ready": "Não pronto",
+                    "Early Stage": "Estágio inicial",
                     "Mostly Ready": "Quase pronto",
                     "Fully Ready": "Totalmente pronto"
                   }
@@ -100,10 +100,10 @@
                   "title": "Tipo de acordo",
                   "placeholder": "Selecione o tipo de acordo obtido",
                   "options": {
-                    "Land use permit": "Permissao de uso da terra",
-                    "Community agreement": "Acordo comunitario",
-                    "Government license": "Licenca governamental",
-                    "Utility interconnection": "Interconexao com a rede eletrica",
+                    "Land use permit": "Permissão de uso da terra",
+                    "Community agreement": "Acordo comunitário",
+                    "Government license": "Licença governamental",
+                    "Utility interconnection": "Interconexão com a rede elétrica",
                     "None yet": "Ainda nenhum"
                   }
                 },
@@ -114,9 +114,9 @@
                   "options": {
                     "Rooftop": "Telhado",
                     "Ground mount": "Montagem no solo",
-                    "Community center": "Centro comunitario",
+                    "Community center": "Centro comunitário",
                     "School": "Escola",
-                    "Health facility": "Unidade de saude",
+                    "Health facility": "Unidade de saúde",
                     "Market": "Mercado",
                     "Other": "Outro"
                   }
@@ -124,8 +124,8 @@
               ]
             },
             "review": {
-              "title": "Revisar preparacao do local",
-              "description": "Revise os detalhes de prontidao do local antes de enviar."
+              "title": "Revisar preparação do local",
+              "description": "Revise os detalhes de prontidão do local antes de enviar."
             }
           }
         },
@@ -138,23 +138,23 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Hito de infraestructura",
-          "description": "Registra hitos de avance de instalacion de paneles solares, baterias, equipos de internet o mejoras. Documenta valores de capacidad y evidencia de respaldo.",
+          "description": "Registra hitos de avance de instalación de paneles solares, baterías, equipos de internet o mejoras. Documenta valores de capacidad y evidencia de respaldo.",
           "uiConfig": {
             "media": {
-              "title": "Captura fotos de instalacion",
-              "description": "Toma fotos del equipo instalado, factura o recibo si esta disponible.",
+              "title": "Captura fotos de instalación",
+              "description": "Toma fotos del equipo instalado, factura o recibo si está disponible.",
               "needed": ["Equipo instalado"],
-              "optional": ["Factura/recibo", "Lectura de medicion"]
+              "optional": ["Factura/recibo", "Lectura de medición"]
             },
             "details": {
               "title": "Detalles del hito",
               "description": "Proporciona detalles sobre este hito de infraestructura.",
-              "feedbackPlaceholder": "Notas sobre calidad de instalacion, desafios o desviaciones del plan",
+              "feedbackPlaceholder": "Notas sobre calidad de instalación, desafíos o desviaciones del plan",
               "inputs": [
                 {
                   "key": "milestoneValue",
                   "title": "Valor del hito",
-                  "placeholder": "Ingresa el valor numerico de este hito"
+                  "placeholder": "Ingresa el valor numérico de este hito"
                 },
                 {
                   "key": "milestoneType",
@@ -162,7 +162,7 @@
                   "placeholder": "Selecciona el tipo de hito",
                   "options": {
                     "Solar kW installed": "kW solares instalados",
-                    "Battery kWh added": "kWh de bateria agregados",
+                    "Battery kWh added": "kWh de batería agregados",
                     "Internet Mbps provisioned": "Mbps de internet provisionados",
                     "Retrofit completed": "Mejora completada",
                     "Commissioning": "Puesta en marcha"
@@ -170,13 +170,13 @@
                 },
                 {
                   "key": "measurementMethod",
-                  "title": "Metodo de medicion",
-                  "placeholder": "Como se midio el valor?",
+                  "title": "Método de medición",
+                  "placeholder": "Cómo se midió el valor?",
                   "options": {
                     "Nameplate rating": "Capacidad nominal",
                     "Meter reading": "Lectura de medidor",
-                    "Invoice specification": "Especificacion de factura",
-                    "Field estimate": "Estimacion en campo"
+                    "Invoice specification": "Especificación de factura",
+                    "Field estimate": "Estimación en campo"
                   }
                 }
               ]
@@ -194,23 +194,23 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Marco de infraestrutura",
-          "description": "Registre marcos de progresso da instalacao de paineis solares, baterias, equipamentos de internet ou melhorias. Documente valores de capacidade e evidencias de apoio.",
+          "description": "Registre marcos de progresso da instalação de painéis solares, baterias, equipamentos de internet ou melhorias. Documente valores de capacidade e evidências de apoio.",
           "uiConfig": {
             "media": {
-              "title": "Capturar fotos da instalacao",
-              "description": "Tire fotos do equipamento instalado, fatura ou recibo, se disponivel.",
+              "title": "Capturar fotos da instalação",
+              "description": "Tire fotos do equipamento instalado, fatura ou recibo, se disponível.",
               "needed": ["Equipamento instalado"],
-              "optional": ["Fatura/recibo", "Leitura de medicao"]
+              "optional": ["Fatura/recibo", "Leitura de medição"]
             },
             "details": {
               "title": "Detalhes do marco",
-              "description": "Forneca detalhes sobre este marco de infraestrutura.",
-              "feedbackPlaceholder": "Notas sobre qualidade da instalacao, desafios ou desvios do plano",
+              "description": "Forneça detalhes sobre este marco de infraestrutura.",
+              "feedbackPlaceholder": "Notas sobre qualidade da instalação, desafios ou desvios do plano",
               "inputs": [
                 {
                   "key": "milestoneValue",
                   "title": "Valor do marco",
-                  "placeholder": "Insira o valor numerico deste marco"
+                  "placeholder": "Insira o valor numérico deste marco"
                 },
                 {
                   "key": "milestoneType",
@@ -220,18 +220,18 @@
                     "Solar kW installed": "kW solares instalados",
                     "Battery kWh added": "kWh de bateria adicionados",
                     "Internet Mbps provisioned": "Mbps de internet provisionados",
-                    "Retrofit completed": "Melhoria concluida",
+                    "Retrofit completed": "Melhoria concluída",
                     "Commissioning": "Comissionamento"
                   }
                 },
                 {
                   "key": "measurementMethod",
-                  "title": "Metodo de medicao",
+                  "title": "Método de medição",
                   "placeholder": "Como o valor foi medido?",
                   "options": {
-                    "Nameplate rating": "Potencia nominal",
+                    "Nameplate rating": "Potência nominal",
                     "Meter reading": "Leitura do medidor",
-                    "Invoice specification": "Especificacao da fatura",
+                    "Invoice specification": "Especificação da fatura",
                     "Field estimate": "Estimativa em campo"
                   }
                 }
@@ -251,18 +251,18 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Sesion de servicio del hub",
-          "description": "Documenta una sesion en la que el hub solar estuvo abierto para uso comunitario. Registra servicios prestados, duracion y numero de usuarios atendidos.",
+          "title": "Sesión de servicio del hub",
+          "description": "Documenta una sesión en la que el hub solar estuvo abierto para uso comunitario. Registra servicios prestados, duración y número de usuarios atendidos.",
           "uiConfig": {
             "media": {
               "title": "Captura el hub en uso",
-              "description": "Toma una foto segura para la privacidad del hub durante la sesion de servicio.",
-              "needed": ["Hub en operacion"],
-              "optional": ["Fila/usuarios (con privacidad)", "Area de servicio"]
+              "description": "Toma una foto segura para la privacidad del hub durante la sesión de servicio.",
+              "needed": ["Hub en operación"],
+              "optional": ["Fila/usuarios (con privacidad)", "Área de servicio"]
             },
             "details": {
-              "title": "Detalles de la sesion de servicio",
-              "description": "Proporciona detalles sobre esta sesion de servicio del hub.",
+              "title": "Detalles de la sesión de servicio",
+              "description": "Proporciona detalles sobre esta sesión de servicio del hub.",
               "feedbackPlaceholder": "Notas sobre necesidades de usuarios, problemas u observaciones",
               "inputs": [
                 {
@@ -273,26 +273,26 @@
                 {
                   "key": "usersServed",
                   "title": "Usuarios atendidos",
-                  "placeholder": "Ingresa el numero de usuarios atendidos"
+                  "placeholder": "Ingresa el número de usuarios atendidos"
                 },
                 {
                   "key": "serviceTags",
                   "title": "Servicios prestados",
                   "placeholder": "Selecciona todos los servicios prestados",
                   "options": {
-                    "Phone charging": "Carga de telefonos",
+                    "Phone charging": "Carga de teléfonos",
                     "Internet access": "Acceso a internet",
-                    "Classroom/training": "Aula/capacitacion",
-                    "Device repairs": "Reparacion de dispositivos",
-                    "Printing": "Impresion",
+                    "Classroom/training": "Aula/capacitación",
+                    "Device repairs": "Reparación de dispositivos",
+                    "Printing": "Impresión",
                     "Other": "Otro"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar sesion de servicio",
-              "description": "Revisa los detalles de la sesion de servicio antes de enviar."
+              "title": "Revisar sesión de servicio",
+              "description": "Revisa los detalles de la sesión de servicio antes de enviar."
             }
           }
         },
@@ -302,19 +302,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Sessao de servico do hub",
-          "description": "Documente uma sessao em que o hub solar ficou aberto para uso comunitario. Registre servicos prestados, duracao e numero de usuarios atendidos.",
+          "title": "Sessão de serviço do hub",
+          "description": "Documente uma sessão em que o hub solar ficou aberto para uso comunitário. Registre serviços prestados, duração e número de usuários atendidos.",
           "uiConfig": {
             "media": {
               "title": "Capturar o hub em uso",
-              "description": "Tire uma foto com privacidade protegida do hub durante a sessao de servico.",
-              "needed": ["Hub em operacao"],
-              "optional": ["Fila/usuarios (com privacidade)", "Area de servico"]
+              "description": "Tire uma foto com privacidade protegida do hub durante a sessão de serviço.",
+              "needed": ["Hub em operação"],
+              "optional": ["Fila/usuários (com privacidade)", "Área de serviço"]
             },
             "details": {
-              "title": "Detalhes da sessao de servico",
-              "description": "Forneca detalhes sobre esta sessao de servico do hub.",
-              "feedbackPlaceholder": "Notas sobre necessidades dos usuarios, problemas ou observacoes",
+              "title": "Detalhes da sessão de serviço",
+              "description": "Forneça detalhes sobre esta sessão de serviço do hub.",
+              "feedbackPlaceholder": "Notas sobre necessidades dos usuários, problemas ou observações",
               "inputs": [
                 {
                   "key": "hoursOpen",
@@ -323,27 +323,27 @@
                 },
                 {
                   "key": "usersServed",
-                  "title": "Usuarios atendidos",
-                  "placeholder": "Insira o numero de usuarios atendidos"
+                  "title": "Usuários atendidos",
+                  "placeholder": "Insira o número de usuários atendidos"
                 },
                 {
                   "key": "serviceTags",
-                  "title": "Servicos prestados",
-                  "placeholder": "Selecione todos os servicos prestados",
+                  "title": "Serviços prestados",
+                  "placeholder": "Selecione todos os serviços prestados",
                   "options": {
                     "Phone charging": "Carregamento de telefones",
-                    "Internet access": "Acesso a internet",
-                    "Classroom/training": "Sala de aula/capacitacao",
+                    "Internet access": "Acesso à internet",
+                    "Classroom/training": "Sala de aula/capacitação",
                     "Device repairs": "Reparo de dispositivos",
-                    "Printing": "Impressao",
+                    "Printing": "Impressão",
                     "Other": "Outro"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar sessao de servico",
-              "description": "Revise os detalhes da sessao de servico antes de enviar."
+              "title": "Revisar sessão de serviço",
+              "description": "Revise os detalhes da sessão de serviço antes de enviar."
             }
           }
         },
@@ -355,29 +355,29 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Revision de energia y disponibilidad",
-          "description": "Registra datos de generacion de energia y disponibilidad del sistema. Documenta lecturas de medidor y cualquier problema que afecte el rendimiento.",
+          "title": "Revisión de energía y disponibilidad",
+          "description": "Registra datos de generación de energía y disponibilidad del sistema. Documenta lecturas de medidor y cualquier problema que afecte el rendimiento.",
           "uiConfig": {
             "media": {
               "title": "Captura foto de medidor/inversor",
               "description": "Toma una foto del medidor o pantalla del inversor que muestre las lecturas actuales.",
               "needed": ["Pantalla de medidor/inversor"],
-              "optional": ["Arreglo de paneles", "Documentacion de problemas"]
+              "optional": ["Arreglo de paneles", "Documentación de problemas"]
             },
             "details": {
-              "title": "Detalles de energia y disponibilidad",
-              "description": "Proporciona datos de generacion de energia y disponibilidad para este periodo de revision.",
+              "title": "Detalles de energía y disponibilidad",
+              "description": "Proporciona datos de generación de energía y disponibilidad para este período de revisión.",
               "feedbackPlaceholder": "Notas sobre rendimiento del sistema, necesidades de mantenimiento o impactos del clima",
               "inputs": [
                 {
                   "key": "kwhGenerated",
-                  "title": "Energia generada (kWh)",
-                  "placeholder": "Ingresa los kWh generados en este periodo"
+                  "title": "Energía generada (kWh)",
+                  "placeholder": "Ingresa los kWh generados en este período"
                 },
                 {
                   "key": "uptimeBand",
                   "title": "Nivel de disponibilidad",
-                  "placeholder": "Selecciona el rango de disponibilidad de este periodo",
+                  "placeholder": "Selecciona el rango de disponibilidad de este período",
                   "bands": {
                     "0-25%": "0-25%",
                     "26-50%": "26-50%",
@@ -388,20 +388,20 @@
                 },
                 {
                   "key": "measurementMethod",
-                  "title": "Metodo de medicion",
-                  "placeholder": "Como se midio la energia?",
+                  "title": "Método de medición",
+                  "placeholder": "Cómo se midió la energía?",
                   "options": {
                     "Smart meter": "Medidor inteligente",
                     "Inverter display": "Pantalla del inversor",
                     "IoT sensor": "Sensor IoT",
-                    "Manual estimate": "Estimacion manual"
+                    "Manual estimate": "Estimación manual"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar revision de energia",
-              "description": "Revisa los datos de energia y disponibilidad antes de enviar."
+              "title": "Revisar revisión de energía",
+              "description": "Revisa los datos de energía y disponibilidad antes de enviar."
             }
           }
         },
@@ -411,29 +411,29 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Verificacao de energia e disponibilidade",
-          "description": "Registre dados de geracao de energia e disponibilidade do sistema. Documente leituras do medidor e quaisquer problemas que afetem o desempenho.",
+          "title": "Verificação de energia e disponibilidade",
+          "description": "Registre dados de geração de energia e disponibilidade do sistema. Documente leituras do medidor e quaisquer problemas que afetem o desempenho.",
           "uiConfig": {
             "media": {
               "title": "Capturar foto do medidor/inversor",
               "description": "Tire uma foto do medidor ou da tela do inversor mostrando as leituras atuais.",
               "needed": ["Tela do medidor/inversor"],
-              "optional": ["Conjunto de paineis", "Documentacao de problemas"]
+              "optional": ["Conjunto de painéis", "Documentação de problemas"]
             },
             "details": {
               "title": "Detalhes de energia e disponibilidade",
-              "description": "Forneca dados de geracao de energia e disponibilidade para este periodo de verificacao.",
-              "feedbackPlaceholder": "Notas sobre desempenho do sistema, necessidades de manutencao ou impactos do clima",
+              "description": "Forneça dados de geração de energia e disponibilidade para este período de verificação.",
+              "feedbackPlaceholder": "Notas sobre desempenho do sistema, necessidades de manutenção ou impactos do clima",
               "inputs": [
                 {
                   "key": "kwhGenerated",
                   "title": "Energia gerada (kWh)",
-                  "placeholder": "Insira os kWh gerados neste periodo"
+                  "placeholder": "Insira os kWh gerados neste período"
                 },
                 {
                   "key": "uptimeBand",
-                  "title": "Nivel de disponibilidade",
-                  "placeholder": "Selecione a faixa de disponibilidade deste periodo",
+                  "title": "Nível de disponibilidade",
+                  "placeholder": "Selecione a faixa de disponibilidade deste período",
                   "bands": {
                     "0-25%": "0-25%",
                     "26-50%": "26-50%",
@@ -444,7 +444,7 @@
                 },
                 {
                   "key": "measurementMethod",
-                  "title": "Metodo de medicao",
+                  "title": "Método de medição",
                   "placeholder": "Como a energia foi medida?",
                   "options": {
                     "Smart meter": "Medidor inteligente",
@@ -456,7 +456,7 @@
               ]
             },
             "review": {
-              "title": "Revisar verificacao de energia",
+              "title": "Revisar verificação de energia",
               "description": "Revise os dados de energia e disponibilidade antes de enviar."
             }
           }
@@ -469,24 +469,24 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Registro de operacion del nodo",
-          "description": "Documenta operaciones de nodos blockchain, incluida disponibilidad, rendimiento y prueba de operacion. Admite capturas de panel o prueba de transaccion en cadena.",
+          "title": "Registro de operación del nodo",
+          "description": "Documenta operaciones de nodos blockchain, incluida disponibilidad, rendimiento y prueba de operación. Admite capturas de panel o prueba de transacción en cadena.",
           "uiConfig": {
             "media": {
               "title": "Captura prueba del nodo",
-              "description": "Toma una captura del panel o proporciona prueba en cadena de la operacion del nodo.",
+              "description": "Toma una captura del panel o proporciona prueba en cadena de la operación del nodo.",
               "needed": ["Panel o prueba en cadena"],
-              "optional": ["Configuracion de hardware", "Estadisticas de red"]
+              "optional": ["Configuración de hardware", "Estadísticas de red"]
             },
             "details": {
-              "title": "Detalles de operacion del nodo",
-              "description": "Proporciona detalles sobre rendimiento del nodo y yield de este periodo.",
+              "title": "Detalles de operación del nodo",
+              "description": "Proporciona detalles sobre rendimiento del nodo y yield de este período.",
               "feedbackPlaceholder": "Notas sobre rendimiento del nodo, problemas o condiciones de red",
               "inputs": [
                 {
                   "key": "uptimeBand",
                   "title": "Disponibilidad del nodo",
-                  "placeholder": "Selecciona el rango de disponibilidad de este periodo",
+                  "placeholder": "Selecciona el rango de disponibilidad de este período",
                   "bands": {
                     "0-25%": "0-25%",
                     "26-50%": "26-50%",
@@ -498,23 +498,23 @@
                 {
                   "key": "yieldEth",
                   "title": "Yield (ETH)",
-                  "placeholder": "Ingresa el yield en ETH de este periodo"
+                  "placeholder": "Ingresa el yield en ETH de este período"
                 },
                 {
                   "key": "proofType",
                   "title": "Tipo de prueba",
-                  "placeholder": "Selecciona el metodo de prueba",
+                  "placeholder": "Selecciona el método de prueba",
                   "options": {
-                    "On-chain transaction": "Transaccion en cadena",
+                    "On-chain transaction": "Transacción en cadena",
                     "Dashboard screenshot": "Captura del panel",
-                    "API export": "Exportacion de API"
+                    "API export": "Exportación de API"
                   }
                 }
               ]
             },
             "review": {
               "title": "Revisar registro del nodo",
-              "description": "Revisa los detalles de operacion del nodo antes de enviar."
+              "description": "Revisa los detalles de operación del nodo antes de enviar."
             }
           }
         },
@@ -524,24 +524,24 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Registro de operacao do nodo",
-          "description": "Documente operacoes de nodos blockchain, incluindo disponibilidade, rendimento e prova de operacao. Suporta capturas de painel ou prova de transacao on-chain.",
+          "title": "Registro de operação do nodo",
+          "description": "Documente operações de nodos blockchain, incluindo disponibilidade, rendimento e prova de operação. Suporta capturas de painel ou prova de transação on-chain.",
           "uiConfig": {
             "media": {
               "title": "Capturar prova do nodo",
-              "description": "Tire uma captura do painel ou forneca prova on-chain da operacao do nodo.",
+              "description": "Tire uma captura do painel ou forneça prova on-chain da operação do nodo.",
               "needed": ["Painel ou prova on-chain"],
-              "optional": ["Configuracao de hardware", "Estatisticas da rede"]
+              "optional": ["Configuração de hardware", "Estatísticas da rede"]
             },
             "details": {
-              "title": "Detalhes de operacao do nodo",
-              "description": "Forneca detalhes sobre desempenho do nodo e yield deste periodo.",
-              "feedbackPlaceholder": "Notas sobre desempenho do nodo, problemas ou condicoes da rede",
+              "title": "Detalhes de operação do nodo",
+              "description": "Forneça detalhes sobre desempenho do nodo e yield deste período.",
+              "feedbackPlaceholder": "Notas sobre desempenho do nodo, problemas ou condições da rede",
               "inputs": [
                 {
                   "key": "uptimeBand",
                   "title": "Disponibilidade do nodo",
-                  "placeholder": "Selecione a faixa de disponibilidade deste periodo",
+                  "placeholder": "Selecione a faixa de disponibilidade deste período",
                   "bands": {
                     "0-25%": "0-25%",
                     "26-50%": "26-50%",
@@ -553,23 +553,23 @@
                 {
                   "key": "yieldEth",
                   "title": "Yield (ETH)",
-                  "placeholder": "Insira o yield em ETH deste periodo"
+                  "placeholder": "Insira o yield em ETH deste período"
                 },
                 {
                   "key": "proofType",
                   "title": "Tipo de prova",
-                  "placeholder": "Selecione o metodo de prova",
+                  "placeholder": "Selecione o método de prova",
                   "options": {
-                    "On-chain transaction": "Transacao on-chain",
+                    "On-chain transaction": "Transação on-chain",
                     "Dashboard screenshot": "Captura do painel",
-                    "API export": "Exportacao de API"
+                    "API export": "Exportação de API"
                   }
                 }
               ]
             },
             "review": {
               "title": "Revisar registro do nodo",
-              "description": "Revise os detalhes de operacao do nodo antes de enviar."
+              "description": "Revise os detalhes de operação do nodo antes de enviar."
             }
           }
         },
@@ -581,35 +581,35 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Evaluacion del sitio y plan de especies",
-          "description": "Documenta las condiciones base del sitio y planifica la mezcla de especies para un area de siembra. Registra conteos planificados de plantulas, cobertura de area y caracteristicas del terreno.",
+          "title": "Evaluación del sitio y plan de especies",
+          "description": "Documenta las condiciones base del sitio y planifica la mezcla de especies para un área de siembra. Registra conteos planificados de plántulas, cobertura de área y características del terreno.",
           "uiConfig": {
             "media": {
-              "title": "Captura fotos de linea base",
-              "description": "Toma fotos del sitio que muestren condiciones actuales, terreno y vegetacion.",
+              "title": "Captura fotos de línea base",
+              "description": "Toma fotos del sitio que muestren condiciones actuales, terreno y vegetación.",
               "needed": ["Vista general del sitio", "Terreno/suelo"],
-              "optional": ["Vegetacion existente", "Acceso al agua"]
+              "optional": ["Vegetación existente", "Acceso al agua"]
             },
             "details": {
               "title": "Detalles del sitio y plan de especies",
-              "description": "Proporciona detalles sobre el sitio de siembra planificado y la seleccion de especies.",
-              "feedbackPlaceholder": "Notas sobre calidad del suelo, acceso al agua o consideraciones especificas del sitio",
+              "description": "Proporciona detalles sobre el sitio de siembra planificado y la selección de especies.",
+              "feedbackPlaceholder": "Notas sobre calidad del suelo, acceso al agua o consideraciones específicas del sitio",
               "inputs": [
                 {
                   "key": "plannedSeedlings",
-                  "title": "Plantulas planificadas",
-                  "placeholder": "Ingresa el numero planificado de plantulas"
+                  "title": "Plántulas planificadas",
+                  "placeholder": "Ingresa el número planificado de plántulas"
                 },
                 {
                   "key": "siteAreaBand",
-                  "title": "Area del sitio",
-                  "placeholder": "Selecciona el area aproximada del sitio",
+                  "title": "Área del sitio",
+                  "placeholder": "Selecciona el área aproximada del sitio",
                   "bands": {
                     "< 100 m²": "< 100 m²",
                     "100-500 m²": "100-500 m²",
                     "500-2000 m²": "500-2000 m²",
                     "2000-10000 m²": "2000-10000 m²",
-                    "> 1 hectare": "> 1 hectarea"
+                    "> 1 hectare": "> 1 hectárea"
                   }
                 },
                 {
@@ -618,11 +618,11 @@
                   "placeholder": "Selecciona especies planificadas",
                   "options": {
                     "Native hardwood": "Madera dura nativa",
-                    "Fruit tree": "Arbol frutal",
-                    "Nitrogen fixer": "Fijadora de nitrogeno",
+                    "Fruit tree": "Árbol frutal",
+                    "Nitrogen fixer": "Fijadora de nitrógeno",
                     "Timber species": "Especie maderable",
                     "Medicinal": "Medicinal",
-                    "Shade tree": "Arbol de sombra",
+                    "Shade tree": "Árbol de sombra",
                     "Ornamental": "Ornamental",
                     "Other": "Otro"
                   }
@@ -631,7 +631,7 @@
             },
             "review": {
               "title": "Revisar plan del sitio",
-              "description": "Revisa la evaluacion del sitio y el plan de especies antes de enviar."
+              "description": "Revisa la evaluación del sitio y el plan de especies antes de enviar."
             }
           }
         },
@@ -641,29 +641,29 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Avaliacao do local e plano de especies",
-          "description": "Documente as condicoes de linha de base do local e planeje a mistura de especies para uma area de plantio. Registre contagens planejadas de mudas, cobertura de area e caracteristicas do terreno.",
+          "title": "Avaliação do local e plano de espécies",
+          "description": "Documente as condições de linha de base do local e planeje a mistura de espécies para uma área de plantio. Registre contagens planejadas de mudas, cobertura de área e características do terreno.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos de linha de base",
-              "description": "Tire fotos do local mostrando as condicoes atuais, o terreno e a vegetacao.",
-              "needed": ["Visao geral do local", "Terreno/solo"],
-              "optional": ["Vegetacao existente", "Acesso a agua"]
+              "description": "Tire fotos do local mostrando as condições atuais, o terreno e a vegetação.",
+              "needed": ["Visão geral do local", "Terreno/solo"],
+              "optional": ["Vegetação existente", "Acesso à água"]
             },
             "details": {
-              "title": "Detalhes do local e do plano de especies",
-              "description": "Forneca detalhes sobre o local de plantio planejado e a selecao de especies.",
-              "feedbackPlaceholder": "Notas sobre qualidade do solo, acesso a agua ou consideracoes especificas do local",
+              "title": "Detalhes do local e do plano de espécies",
+              "description": "Forneça detalhes sobre o local de plantio planejado e a seleção de espécies.",
+              "feedbackPlaceholder": "Notas sobre qualidade do solo, acesso à água ou considerações específicas do local",
               "inputs": [
                 {
                   "key": "plannedSeedlings",
                   "title": "Mudas planejadas",
-                  "placeholder": "Insira o numero planejado de mudas"
+                  "placeholder": "Insira o número planejado de mudas"
                 },
                 {
                   "key": "siteAreaBand",
-                  "title": "Area do local",
-                  "placeholder": "Selecione a area aproximada do local",
+                  "title": "Área do local",
+                  "placeholder": "Selecione a área aproximada do local",
                   "bands": {
                     "< 100 m²": "< 100 m²",
                     "100-500 m²": "100-500 m²",
@@ -674,15 +674,15 @@
                 },
                 {
                   "key": "speciesTags",
-                  "title": "Especies selecionadas",
-                  "placeholder": "Selecione as especies planejadas",
+                  "title": "Espécies selecionadas",
+                  "placeholder": "Selecione as espécies planejadas",
                   "options": {
                     "Native hardwood": "Madeira nobre nativa",
-                    "Fruit tree": "Arvore frutifera",
-                    "Nitrogen fixer": "Fixadora de nitrogenio",
-                    "Timber species": "Especie madeireira",
+                    "Fruit tree": "Árvore frutífera",
+                    "Nitrogen fixer": "Fixadora de nitrogênio",
+                    "Timber species": "Espécie madeireira",
                     "Medicinal": "Medicinal",
-                    "Shade tree": "Arvore de sombra",
+                    "Shade tree": "Árvore de sombra",
                     "Ornamental": "Ornamental",
                     "Other": "Outro"
                   }
@@ -691,7 +691,7 @@
             },
             "review": {
               "title": "Revisar plano do local",
-              "description": "Revise a avaliacao do local e o plano de especies antes de enviar."
+              "description": "Revise a avaliação do local e o plano de espécies antes de enviar."
             }
           }
         },
@@ -704,28 +704,28 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Evento de siembra",
-          "description": "Documenta un evento de siembra, incluido el numero de plantulas sembradas, especies, participantes involucrados y metodo de siembra utilizado.",
+          "description": "Documenta un evento de siembra, incluido el número de plántulas sembradas, especies, participantes involucrados y método de siembra utilizado.",
           "uiConfig": {
             "media": {
               "title": "Captura fotos de siembra",
-              "description": "Toma fotos de la actividad de siembra, mostrando plantulas, participantes y el sitio de siembra.",
-              "needed": ["Siembra en curso", "Plantulas sembradas"],
+              "description": "Toma fotos de la actividad de siembra, mostrando plántulas, participantes y el sitio de siembra.",
+              "needed": ["Siembra en curso", "Plántulas sembradas"],
               "optional": ["Participantes", "Vista general del sitio"]
             },
             "details": {
               "title": "Detalles del evento de siembra",
               "description": "Proporciona detalles sobre este evento de siembra.",
-              "feedbackPlaceholder": "Notas sobre condiciones, desafios u observaciones durante la siembra",
+              "feedbackPlaceholder": "Notas sobre condiciones, desafíos u observaciones durante la siembra",
               "inputs": [
                 {
                   "key": "seedlingsPlanted",
-                  "title": "Plantulas sembradas",
-                  "placeholder": "Ingresa el numero de plantulas sembradas"
+                  "title": "Plántulas sembradas",
+                  "placeholder": "Ingresa el número de plántulas sembradas"
                 },
                 {
                   "key": "participants",
                   "title": "Participantes",
-                  "placeholder": "Ingresa el numero de participantes"
+                  "placeholder": "Ingresa el número de participantes"
                 },
                 {
                   "key": "speciesTags",
@@ -733,11 +733,11 @@
                   "placeholder": "Selecciona especies sembradas",
                   "options": {
                     "Native hardwood": "Madera dura nativa",
-                    "Fruit tree": "Arbol frutal",
-                    "Nitrogen fixer": "Fijadora de nitrogeno",
+                    "Fruit tree": "Árbol frutal",
+                    "Nitrogen fixer": "Fijadora de nitrógeno",
                     "Timber species": "Especie maderable",
                     "Medicinal": "Medicinal",
-                    "Shade tree": "Arbol de sombra",
+                    "Shade tree": "Árbol de sombra",
                     "Ornamental": "Ornamental",
                     "Other": "Otro"
                   }
@@ -757,40 +757,40 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Evento de plantio",
-          "description": "Documente um evento de plantio, incluindo numero de mudas plantadas, especies, participantes envolvidos e metodo de plantio utilizado.",
+          "description": "Documente um evento de plantio, incluindo número de mudas plantadas, espécies, participantes envolvidos e método de plantio utilizado.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos do plantio",
               "description": "Tire fotos da atividade de plantio, mostrando mudas, participantes e o local de plantio.",
               "needed": ["Plantio em andamento", "Mudas plantadas"],
-              "optional": ["Participantes", "Visao geral do local"]
+              "optional": ["Participantes", "Visão geral do local"]
             },
             "details": {
               "title": "Detalhes do evento de plantio",
-              "description": "Forneca detalhes sobre este evento de plantio.",
-              "feedbackPlaceholder": "Notas sobre condicoes, desafios ou observacoes durante o plantio",
+              "description": "Forneça detalhes sobre este evento de plantio.",
+              "feedbackPlaceholder": "Notas sobre condições, desafios ou observações durante o plantio",
               "inputs": [
                 {
                   "key": "seedlingsPlanted",
                   "title": "Mudas plantadas",
-                  "placeholder": "Insira o numero de mudas plantadas"
+                  "placeholder": "Insira o número de mudas plantadas"
                 },
                 {
                   "key": "participants",
                   "title": "Participantes",
-                  "placeholder": "Insira o numero de participantes"
+                  "placeholder": "Insira o número de participantes"
                 },
                 {
                   "key": "speciesTags",
-                  "title": "Especies plantadas",
-                  "placeholder": "Selecione as especies plantadas",
+                  "title": "Espécies plantadas",
+                  "placeholder": "Selecione as espécies plantadas",
                   "options": {
                     "Native hardwood": "Madeira nobre nativa",
-                    "Fruit tree": "Arvore frutifera",
-                    "Nitrogen fixer": "Fixadora de nitrogenio",
-                    "Timber species": "Especie madeireira",
+                    "Fruit tree": "Árvore frutífera",
+                    "Nitrogen fixer": "Fixadora de nitrogênio",
+                    "Timber species": "Espécie madeireira",
                     "Medicinal": "Medicinal",
-                    "Shade tree": "Arvore de sombra",
+                    "Shade tree": "Árvore de sombra",
                     "Ornamental": "Ornamental",
                     "Other": "Outro"
                   }
@@ -811,29 +811,29 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Revision de supervivencia",
-          "description": "Documenta tasas de supervivencia de plantulas sembradas en puntos de control. Toma fotos desde el mismo angulo y registra conteos vivos frente a revisados para seguir la supervivencia con el tiempo.",
+          "title": "Revisión de supervivencia",
+          "description": "Documenta tasas de supervivencia de plántulas sembradas en puntos de control. Toma fotos desde el mismo ángulo y registra conteos vivos frente a revisados para seguir la supervivencia con el tiempo.",
           "uiConfig": {
             "media": {
               "title": "Captura fotos de parcela",
-              "description": "Toma fotos desde angulos repetidos de las parcelas de siembra para seguir crecimiento y supervivencia.",
-              "needed": ["Vista de la parcela (mismo angulo que la revision anterior)"],
+              "description": "Toma fotos desde ángulos repetidos de las parcelas de siembra para seguir crecimiento y supervivencia.",
+              "needed": ["Vista de la parcela (mismo ángulo que la revisión anterior)"],
               "optional": ["Primer plano de plantas sanas", "Primer plano de problemas"]
             },
             "details": {
-              "title": "Detalles de revision de supervivencia",
-              "description": "Proporciona detalles sobre los resultados de la revision de supervivencia.",
+              "title": "Detalles de revisión de supervivencia",
+              "description": "Proporciona detalles sobre los resultados de la revisión de supervivencia.",
               "feedbackPlaceholder": "Notas sobre salud de las plantas, patrones de crecimiento o factores ambientales",
               "inputs": [
                 {
                   "key": "aliveCount",
                   "title": "Conteo vivo",
-                  "placeholder": "Ingresa el numero de plantulas sobrevivientes"
+                  "placeholder": "Ingresa el número de plántulas sobrevivientes"
                 },
                 {
                   "key": "checkedCount",
                   "title": "Conteo revisado",
-                  "placeholder": "Ingresa el numero total de plantulas revisadas"
+                  "placeholder": "Ingresa el número total de plántulas revisadas"
                 },
                 {
                   "key": "checkpoint",
@@ -843,15 +843,15 @@
                     "1 month": "1 mes",
                     "3 months": "3 meses",
                     "6 months": "6 meses",
-                    "1 year": "1 ano",
-                    "2+ years": "2+ anos"
+                    "1 year": "1 año",
+                    "2+ years": "2+ años"
                   }
                 }
               ]
             },
             "review": {
               "title": "Revisar supervivencia",
-              "description": "Revisa los detalles de la revision de supervivencia antes de enviar."
+              "description": "Revisa los detalles de la revisión de supervivencia antes de enviar."
             }
           }
         },
@@ -861,36 +861,36 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Verificacao de sobrevivencia",
-          "description": "Documente taxas de sobrevivencia de mudas plantadas em pontos de controle. Tire fotos no mesmo angulo e registre contagens vivas versus verificadas para acompanhar a sobrevivencia ao longo do tempo.",
+          "title": "Verificação de sobrevivência",
+          "description": "Documente taxas de sobrevivência de mudas plantadas em pontos de controle. Tire fotos no mesmo ângulo e registre contagens vivas versus verificadas para acompanhar a sobrevivência ao longo do tempo.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos da parcela",
-              "description": "Tire fotos em angulos repetidos das parcelas de plantio para acompanhar crescimento e sobrevivencia.",
-              "needed": ["Visao da parcela (mesmo angulo da verificacao anterior)"],
-              "optional": ["Close de plantas saudaveis", "Close de problemas"]
+              "description": "Tire fotos em ângulos repetidos das parcelas de plantio para acompanhar crescimento e sobrevivência.",
+              "needed": ["Visão da parcela (mesmo ângulo da verificação anterior)"],
+              "optional": ["Close de plantas saudáveis", "Close de problemas"]
             },
             "details": {
-              "title": "Detalhes da verificacao de sobrevivencia",
-              "description": "Forneca detalhes sobre os resultados da verificacao de sobrevivencia.",
-              "feedbackPlaceholder": "Notas sobre saude das plantas, padroes de crescimento ou fatores ambientais",
+              "title": "Detalhes da verificação de sobrevivência",
+              "description": "Forneça detalhes sobre os resultados da verificação de sobrevivência.",
+              "feedbackPlaceholder": "Notas sobre saúde das plantas, padrões de crescimento ou fatores ambientais",
               "inputs": [
                 {
                   "key": "aliveCount",
                   "title": "Contagem viva",
-                  "placeholder": "Insira o numero de mudas sobreviventes"
+                  "placeholder": "Insira o número de mudas sobreviventes"
                 },
                 {
                   "key": "checkedCount",
                   "title": "Contagem verificada",
-                  "placeholder": "Insira o numero total de mudas verificadas"
+                  "placeholder": "Insira o número total de mudas verificadas"
                 },
                 {
                   "key": "checkpoint",
                   "title": "Ponto de controle",
                   "placeholder": "Selecione o momento do ponto de controle",
                   "options": {
-                    "1 month": "1 mes",
+                    "1 month": "1 mês",
                     "3 months": "3 meses",
                     "6 months": "6 meses",
                     "1 year": "1 ano",
@@ -900,8 +900,8 @@
               ]
             },
             "review": {
-              "title": "Revisar sobrevivencia",
-              "description": "Revise os detalhes da verificacao de sobrevivencia antes de enviar."
+              "title": "Revisar sobrevivência",
+              "description": "Revise os detalhes da verificação de sobrevivência antes de enviar."
             }
           }
         },
@@ -914,7 +914,7 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Actividad de mantenimiento",
-          "description": "Documenta actividades rutinarias de mantenimiento del jardin, como riego, deshierbe, acolchado, cercado y control de plagas.",
+          "description": "Documenta actividades rutinarias de mantenimiento del jardín, como riego, deshierbe, acolchado, cercado y control de plagas.",
           "uiConfig": {
             "media": {
               "title": "Captura foto de mantenimiento",
@@ -929,8 +929,8 @@
               "inputs": [
                 {
                   "key": "areaMaintainedBand",
-                  "title": "Area mantenida",
-                  "placeholder": "Selecciona el area aproximada mantenida",
+                  "title": "Área mantenida",
+                  "placeholder": "Selecciona el área aproximada mantenida",
                   "bands": {
                     "< 50 m²": "< 50 m²",
                     "50-200 m²": "50-200 m²",
@@ -957,7 +957,7 @@
                 {
                   "key": "activityCount",
                   "title": "Conteo de actividades (opcional)",
-                  "placeholder": "Ingresa el numero de tareas discretas completadas"
+                  "placeholder": "Ingresa el número de tareas discretas completadas"
                 }
               ]
             },
@@ -973,24 +973,24 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Atividade de manutencao",
-          "description": "Documente atividades rotineiras de manutencao do jardim, incluindo rega, capina, cobertura morta, cercamento e manejo de pragas.",
+          "title": "Atividade de manutenção",
+          "description": "Documente atividades rotineiras de manutenção do jardim, incluindo rega, capina, cobertura morta, cercamento e manejo de pragas.",
           "uiConfig": {
             "media": {
-              "title": "Capturar foto de manutencao",
-              "description": "Tire uma foto mostrando o trabalho de manutencao realizado.",
-              "needed": ["Evidencia do trabalho de manutencao"],
+              "title": "Capturar foto de manutenção",
+              "description": "Tire uma foto mostrando o trabalho de manutenção realizado.",
+              "needed": ["Evidência do trabalho de manutenção"],
               "optional": ["Estado anterior", "Ferramentas/materiais usados"]
             },
             "details": {
-              "title": "Detalhes da manutencao",
-              "description": "Forneca detalhes sobre a atividade de manutencao realizada.",
-              "feedbackPlaceholder": "Notas sobre condicoes, materiais usados ou observacoes",
+              "title": "Detalhes da manutenção",
+              "description": "Forneça detalhes sobre a atividade de manutenção realizada.",
+              "feedbackPlaceholder": "Notas sobre condições, materiais usados ou observações",
               "inputs": [
                 {
                   "key": "areaMaintainedBand",
-                  "title": "Area mantida",
-                  "placeholder": "Selecione a area aproximada mantida",
+                  "title": "Área mantida",
+                  "placeholder": "Selecione a área aproximada mantida",
                   "bands": {
                     "< 50 m²": "< 50 m²",
                     "50-200 m²": "50-200 m²",
@@ -1002,7 +1002,7 @@
                 {
                   "key": "activityTags",
                   "title": "Atividades realizadas",
-                  "placeholder": "Selecione todas as atividades de manutencao",
+                  "placeholder": "Selecione todas as atividades de manutenção",
                   "options": {
                     "Watering": "Rega",
                     "Weeding": "Capina",
@@ -1010,20 +1010,20 @@
                     "Fencing": "Cercamento",
                     "Pest control": "Controle de pragas",
                     "Pruning": "Poda",
-                    "Soil amendment": "Correcao do solo",
+                    "Soil amendment": "Correção do solo",
                     "Other": "Outro"
                   }
                 },
                 {
                   "key": "activityCount",
                   "title": "Contagem de atividades (opcional)",
-                  "placeholder": "Insira o numero de tarefas discretas concluidas"
+                  "placeholder": "Insira o número de tarefas discretas concluídas"
                 }
               ]
             },
             "review": {
-              "title": "Revisar manutencao",
-              "description": "Revise os detalhes da atividade de manutencao antes de enviar."
+              "title": "Revisar manutenção",
+              "description": "Revise os detalhes da atividade de manutenção antes de enviar."
             }
           }
         },
@@ -1035,24 +1035,24 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Reflexion de aprendizaje",
-          "description": "Captura aprendizajes de actividades del jardin. Una accion de bajo esfuerzo para documentar que funciono, que fallo y proximos pasos.",
+          "title": "Reflexión de aprendizaje",
+          "description": "Captura aprendizajes de actividades del jardín. Una acción de bajo esfuerzo para documentar qué funcionó, qué falló y próximos pasos.",
           "uiConfig": {
             "media": {
               "title": "Foto opcional",
-              "description": "Opcionalmente adjunta una foto relacionada con tu observacion de aprendizaje.",
+              "description": "Opcionalmente adjunta una foto relacionada con tu observación de aprendizaje.",
               "needed": [],
-              "optional": ["Foto de observacion relacionada"]
+              "optional": ["Foto de observación relacionada"]
             },
             "details": {
-              "title": "Detalles de reflexion de aprendizaje",
-              "description": "Comparte tus aprendizajes y observaciones de actividades recientes del jardin.",
-              "feedbackPlaceholder": "Describe lo que aprendiste, observaste o quieres probar despues",
+              "title": "Detalles de reflexión de aprendizaje",
+              "description": "Comparte tus aprendizajes y observaciones de actividades recientes del jardín.",
+              "feedbackPlaceholder": "Describe lo que aprendiste, observaste o quieres probar después",
               "inputs": [
                 {
                   "key": "insightCount",
                   "title": "Aprendizajes clave",
-                  "placeholder": "Cuantos aprendizajes clave?",
+                  "placeholder": "Cuántos aprendizajes clave?",
                   "bands": {
                     "1": "1",
                     "2": "2",
@@ -1062,35 +1062,35 @@
                 {
                   "key": "lessonTags",
                   "title": "Lecciones aprendidas",
-                  "placeholder": "Selecciona categorias de lecciones",
+                  "placeholder": "Selecciona categorías de lecciones",
                   "options": {
-                    "What worked well": "Lo que funciono bien",
-                    "What failed": "Lo que fallo",
+                    "What worked well": "Lo que funcionó bien",
+                    "What failed": "Lo que falló",
                     "Unexpected result": "Resultado inesperado",
-                    "Seasonal pattern": "Patron estacional",
-                    "Technique improvement": "Mejora de tecnica",
+                    "Seasonal pattern": "Patrón estacional",
+                    "Technique improvement": "Mejora de técnica",
                     "Community insight": "Aprendizaje comunitario"
                   }
                 },
                 {
                   "key": "nextStepTags",
-                  "title": "Proximos pasos",
+                  "title": "Próximos pasos",
                   "placeholder": "Selecciona acciones de seguimiento planificadas",
                   "options": {
-                    "Change technique": "Cambiar tecnica",
+                    "Change technique": "Cambiar técnica",
                     "Scale up": "Escalar",
                     "Scale down": "Reducir escala",
-                    "Get training": "Recibir capacitacion",
+                    "Get training": "Recibir capacitación",
                     "Share with others": "Compartir con otros",
-                    "Research more": "Investigar mas",
+                    "Research more": "Investigar más",
                     "No change needed": "No se necesita cambio"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar reflexion",
-              "description": "Revisa tu reflexion de aprendizaje antes de enviar."
+              "title": "Revisar reflexión",
+              "description": "Revisa tu reflexión de aprendizaje antes de enviar."
             }
           }
         },
@@ -1100,19 +1100,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Reflexao de aprendizagem",
-          "description": "Capture aprendizados de atividades do jardim. Uma acao de baixo esforco para documentar o que funcionou, o que falhou e proximos passos.",
+          "title": "Reflexão de aprendizagem",
+          "description": "Capture aprendizados de atividades do jardim. Uma ação de baixo esforço para documentar o que funcionou, o que falhou e próximos passos.",
           "uiConfig": {
             "media": {
               "title": "Foto opcional",
-              "description": "Opcionalmente anexe uma foto relacionada a sua observacao de aprendizagem.",
+              "description": "Opcionalmente anexe uma foto relacionada à sua observação de aprendizagem.",
               "needed": [],
-              "optional": ["Foto de observacao relacionada"]
+              "optional": ["Foto de observação relacionada"]
             },
             "details": {
-              "title": "Detalhes da reflexao de aprendizagem",
-              "description": "Compartilhe seus aprendizados e observacoes de atividades recentes do jardim.",
-              "feedbackPlaceholder": "Descreva o que voce aprendeu, observou ou quer tentar em seguida",
+              "title": "Detalhes da reflexão de aprendizagem",
+              "description": "Compartilhe seus aprendizados e observações de atividades recentes do jardim.",
+              "feedbackPlaceholder": "Descreva o que você aprendeu, observou ou quer tentar em seguida",
               "inputs": [
                 {
                   "key": "insightCount",
@@ -1126,36 +1126,36 @@
                 },
                 {
                   "key": "lessonTags",
-                  "title": "Licoes aprendidas",
-                  "placeholder": "Selecione categorias de licoes",
+                  "title": "Lições aprendidas",
+                  "placeholder": "Selecione categorias de lições",
                   "options": {
                     "What worked well": "O que funcionou bem",
                     "What failed": "O que falhou",
                     "Unexpected result": "Resultado inesperado",
-                    "Seasonal pattern": "Padrao sazonal",
-                    "Technique improvement": "Melhoria de tecnica",
-                    "Community insight": "Aprendizado comunitario"
+                    "Seasonal pattern": "Padrão sazonal",
+                    "Technique improvement": "Melhoria de técnica",
+                    "Community insight": "Aprendizado comunitário"
                   }
                 },
                 {
                   "key": "nextStepTags",
-                  "title": "Proximos passos",
-                  "placeholder": "Selecione acoes de acompanhamento planejadas",
+                  "title": "Próximos passos",
+                  "placeholder": "Selecione ações de acompanhamento planejadas",
                   "options": {
-                    "Change technique": "Mudar tecnica",
+                    "Change technique": "Mudar técnica",
                     "Scale up": "Aumentar escala",
                     "Scale down": "Reduzir escala",
-                    "Get training": "Receber capacitacao",
+                    "Get training": "Receber capacitação",
                     "Share with others": "Compartilhar com outros",
                     "Research more": "Pesquisar mais",
-                    "No change needed": "Nenhuma mudanca necessaria"
+                    "No change needed": "Nenhuma mudança necessária"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar reflexao",
-              "description": "Revise sua reflexao de aprendizagem antes de enviar."
+              "title": "Revisar reflexão",
+              "description": "Revise sua reflexão de aprendizagem antes de enviar."
             }
           }
         },
@@ -1168,18 +1168,18 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Registro de cosecha y rendimiento",
-          "description": "Documenta eventos de cosecha, incluido tipo de cultivo, peso de rendimiento, conteo de cosecha y metodo de distribucion. Una foto de la lectura de la bascula aumenta la confianza de verificacion.",
+          "description": "Documenta eventos de cosecha, incluido tipo de cultivo, peso de rendimiento, conteo de cosecha y método de distribución. Una foto de la lectura de la báscula aumenta la confianza de verificación.",
           "uiConfig": {
             "media": {
               "title": "Captura fotos de cosecha",
-              "description": "Toma fotos de la cosecha. Una foto de bascula con lectura de peso es opcional, pero aumenta la confianza.",
+              "description": "Toma fotos de la cosecha. Una foto de báscula con lectura de peso es opcional, pero aumenta la confianza.",
               "needed": ["Productos cosechados"],
-              "optional": ["Lectura de bascula/peso", "Area de cosecha"]
+              "optional": ["Lectura de báscula/peso", "Área de cosecha"]
             },
             "details": {
               "title": "Detalles de cosecha y rendimiento",
               "description": "Proporciona detalles sobre este evento de cosecha.",
-              "feedbackPlaceholder": "Notas sobre calidad de la cosecha, desafios o planes de distribucion",
+              "feedbackPlaceholder": "Notas sobre calidad de la cosecha, desafíos o planes de distribución",
               "inputs": [
                 {
                   "key": "yieldKg",
@@ -1189,7 +1189,7 @@
                 {
                   "key": "harvestCount",
                   "title": "Conteo de cosecha",
-                  "placeholder": "Ingresa el numero de articulos o lotes cosechados"
+                  "placeholder": "Ingresa el número de artículos o lotes cosechados"
                 },
                 {
                   "key": "cropTags",
@@ -1201,7 +1201,7 @@
                     "Herb": "Hierba",
                     "Grain": "Grano",
                     "Legume": "Legumbre",
-                    "Root crop": "Raiz o tuberculo",
+                    "Root crop": "Raíz o tubérculo",
                     "Leafy green": "Hoja verde",
                     "Other": "Otro"
                   }
@@ -1221,18 +1221,18 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Registro de colheita e rendimento",
-          "description": "Documente eventos de colheita, incluindo tipo de cultivo, peso do rendimento, contagem da colheita e metodo de distribuicao. Uma foto da leitura da balanca aumenta a confianca da verificacao.",
+          "description": "Documente eventos de colheita, incluindo tipo de cultivo, peso do rendimento, contagem da colheita e método de distribuição. Uma foto da leitura da balança aumenta a confiança da verificação.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos da colheita",
-              "description": "Tire fotos da colheita. Uma foto da balanca com a leitura do peso e opcional, mas aumenta a confianca.",
+              "description": "Tire fotos da colheita. Uma foto da balança com a leitura do peso é opcional, mas aumenta a confiança.",
               "needed": ["Produtos colhidos"],
-              "optional": ["Leitura de balanca/peso", "Area da colheita"]
+              "optional": ["Leitura de balança/peso", "Área da colheita"]
             },
             "details": {
               "title": "Detalhes da colheita e rendimento",
-              "description": "Forneca detalhes sobre este evento de colheita.",
-              "feedbackPlaceholder": "Notas sobre qualidade da colheita, desafios ou planos de distribuicao",
+              "description": "Forneça detalhes sobre este evento de colheita.",
+              "feedbackPlaceholder": "Notas sobre qualidade da colheita, desafios ou planos de distribuição",
               "inputs": [
                 {
                   "key": "yieldKg",
@@ -1242,7 +1242,7 @@
                 {
                   "key": "harvestCount",
                   "title": "Contagem da colheita",
-                  "placeholder": "Insira o numero de itens ou lotes colhidos"
+                  "placeholder": "Insira o número de itens ou lotes colhidos"
                 },
                 {
                   "key": "cropTags",
@@ -1252,9 +1252,9 @@
                     "Vegetable": "Verdura",
                     "Fruit": "Fruta",
                     "Herb": "Erva",
-                    "Grain": "Grao",
+                    "Grain": "Grão",
                     "Legume": "Leguminosa",
-                    "Root crop": "Raiz ou tuberculo",
+                    "Root crop": "Raiz ou tubérculo",
                     "Leafy green": "Folhosa",
                     "Other": "Outro"
                   }
@@ -1275,34 +1275,34 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Publicar sesion y abrir lista",
-          "description": "Anuncia y publica una proxima sesion educativa. Documenta duracion planificada, capacidad, tipo de sesion y detalles del lugar.",
+          "title": "Publicar sesión y abrir lista",
+          "description": "Anuncia y publica una próxima sesión educativa. Documenta duración planificada, capacidad, tipo de sesión y detalles del lugar.",
           "uiConfig": {
             "media": {
               "title": "Adjuntar volante o cartel",
-              "description": "Opcionalmente adjunta un volante, cartel o captura del anuncio de la sesion.",
+              "description": "Opcionalmente adjunta un volante, cartel o captura del anuncio de la sesión.",
               "needed": [],
               "optional": ["Volante/cartel", "Foto del lugar"]
             },
             "details": {
-              "title": "Detalles de planificacion de la sesion",
-              "description": "Proporciona detalles sobre la sesion educativa planificada.",
-              "feedbackPlaceholder": "Notas adicionales sobre el plan de sesion, requisitos previos o logistica",
+              "title": "Detalles de planificación de la sesión",
+              "description": "Proporciona detalles sobre la sesión educativa planificada.",
+              "feedbackPlaceholder": "Notas adicionales sobre el plan de sesión, requisitos previos o logística",
               "inputs": [
                 {
                   "key": "plannedDurationMin",
-                  "title": "Duracion planificada (min)",
-                  "placeholder": "Ingresa la duracion planificada de la sesion en minutos"
+                  "title": "Duración planificada (min)",
+                  "placeholder": "Ingresa la duración planificada de la sesión en minutos"
                 },
                 {
                   "key": "capacity",
                   "title": "Capacidad",
-                  "placeholder": "Ingresa la capacidad maxima de participantes"
+                  "placeholder": "Ingresa la capacidad máxima de participantes"
                 },
                 {
                   "key": "sessionType",
-                  "title": "Tipo de sesion",
-                  "placeholder": "Selecciona el formato de la sesion",
+                  "title": "Tipo de sesión",
+                  "placeholder": "Selecciona el formato de la sesión",
                   "options": {
                     "Workshop": "Taller",
                     "Lecture": "Charla",
@@ -1316,8 +1316,8 @@
               ]
             },
             "review": {
-              "title": "Revisar plan de sesion",
-              "description": "Revisa los detalles de la sesion antes de publicar."
+              "title": "Revisar plan de sesión",
+              "description": "Revisa los detalles de la sesión antes de publicar."
             }
           }
         },
@@ -1327,38 +1327,38 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Publicar sessao e abrir lista",
-          "description": "Anuncie e publique uma proxima sessao educativa. Documente duracao planejada, capacidade, tipo de sessao e detalhes do local.",
+          "title": "Publicar sessão e abrir lista",
+          "description": "Anuncie e publique uma próxima sessão educativa. Documente duração planejada, capacidade, tipo de sessão e detalhes do local.",
           "uiConfig": {
             "media": {
               "title": "Anexar flyer ou cartaz",
-              "description": "Opcionalmente anexe um flyer, cartaz ou captura do anuncio da sessao.",
+              "description": "Opcionalmente anexe um flyer, cartaz ou captura do anúncio da sessão.",
               "needed": [],
               "optional": ["Flyer/cartaz", "Foto do local"]
             },
             "details": {
-              "title": "Detalhes de planejamento da sessao",
-              "description": "Forneca detalhes sobre a sessao educativa planejada.",
-              "feedbackPlaceholder": "Notas adicionais sobre o plano da sessao, pre-requisitos ou logistica",
+              "title": "Detalhes de planejamento da sessão",
+              "description": "Forneça detalhes sobre a sessão educativa planejada.",
+              "feedbackPlaceholder": "Notas adicionais sobre o plano da sessão, pré-requisitos ou logística",
               "inputs": [
                 {
                   "key": "plannedDurationMin",
-                  "title": "Duracao planejada (min)",
-                  "placeholder": "Insira a duracao planejada da sessao em minutos"
+                  "title": "Duração planejada (min)",
+                  "placeholder": "Insira a duração planejada da sessão em minutos"
                 },
                 {
                   "key": "capacity",
                   "title": "Capacidade",
-                  "placeholder": "Insira a capacidade maxima de participantes"
+                  "placeholder": "Insira a capacidade máxima de participantes"
                 },
                 {
                   "key": "sessionType",
-                  "title": "Tipo de sessao",
-                  "placeholder": "Selecione o formato da sessao",
+                  "title": "Tipo de sessão",
+                  "placeholder": "Selecione o formato da sessão",
                   "options": {
                     "Workshop": "Oficina",
                     "Lecture": "Palestra",
-                    "Office hours": "Horario de atendimento",
+                    "Office hours": "Horário de atendimento",
                     "Hackathon": "Hackathon",
                     "Field trip": "Visita de campo",
                     "Panel": "Painel",
@@ -1368,8 +1368,8 @@
               ]
             },
             "review": {
-              "title": "Revisar plano da sessao",
-              "description": "Revise os detalhes da sessao antes de publicar."
+              "title": "Revisar plano da sessão",
+              "description": "Revise os detalhes da sessão antes de publicar."
             }
           }
         },
@@ -1382,28 +1382,28 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Taller realizado",
-          "description": "Documenta un taller o sesion educativa completada. Registra duracion realizada, numero de facilitadores y detalles del formato.",
+          "description": "Documenta un taller o sesión educativa completada. Registra duración realizada, número de facilitadores y detalles del formato.",
           "uiConfig": {
             "media": {
               "title": "Captura foto del taller",
-              "description": "Toma una foto de la sala, materiales o sesion en curso.",
-              "needed": ["Sesion en curso o materiales"],
+              "description": "Toma una foto de la sala, materiales o sesión en curso.",
+              "needed": ["Sesión en curso o materiales"],
               "optional": ["Participantes (con privacidad)", "Pizarra/pantalla"]
             },
             "details": {
-              "title": "Detalles de realizacion del taller",
-              "description": "Proporciona detalles sobre la sesion de taller realizada.",
-              "feedbackPlaceholder": "Notas sobre participacion, desafios o comentarios recibidos",
+              "title": "Detalles de realización del taller",
+              "description": "Proporciona detalles sobre la sesión de taller realizada.",
+              "feedbackPlaceholder": "Notas sobre participación, desafíos o comentarios recibidos",
               "inputs": [
                 {
                   "key": "deliveredDurationMin",
-                  "title": "Duracion realizada (min)",
-                  "placeholder": "Ingresa la duracion real de la sesion en minutos"
+                  "title": "Duración realizada (min)",
+                  "placeholder": "Ingresa la duración real de la sesión en minutos"
                 },
                 {
                   "key": "facilitators",
                   "title": "Facilitadores",
-                  "placeholder": "Ingresa el numero de facilitadores"
+                  "placeholder": "Ingresa el número de facilitadores"
                 },
                 {
                   "key": "trackTags",
@@ -1414,7 +1414,7 @@
                     "Smart contracts": "Contratos inteligentes",
                     "DeFi": "DeFi",
                     "Governance": "Gobernanza",
-                    "Impact measurement": "Medicion de impacto",
+                    "Impact measurement": "Medición de impacto",
                     "Regenerative finance": "Finanzas regenerativas",
                     "Developer tools": "Herramientas para desarrolladores",
                     "Other": "Otro"
@@ -1424,7 +1424,7 @@
             },
             "review": {
               "title": "Revisar taller",
-              "description": "Revisa los detalles de realizacion del taller antes de enviar."
+              "description": "Revisa los detalles de realización del taller antes de enviar."
             }
           }
         },
@@ -1435,40 +1435,40 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Oficina realizada",
-          "description": "Documente uma oficina ou sessao educativa concluida. Registre duracao realizada, numero de facilitadores e detalhes do formato.",
+          "description": "Documente uma oficina ou sessão educativa concluída. Registre duração realizada, número de facilitadores e detalhes do formato.",
           "uiConfig": {
             "media": {
               "title": "Capturar foto da oficina",
-              "description": "Tire uma foto da sala, materiais ou sessao em andamento.",
-              "needed": ["Sessao em andamento ou materiais"],
+              "description": "Tire uma foto da sala, materiais ou sessão em andamento.",
+              "needed": ["Sessão em andamento ou materiais"],
               "optional": ["Participantes (com privacidade)", "Quadro/tela"]
             },
             "details": {
-              "title": "Detalhes da realizacao da oficina",
-              "description": "Forneca detalhes sobre a sessao da oficina realizada.",
+              "title": "Detalhes da realização da oficina",
+              "description": "Forneça detalhes sobre a sessão da oficina realizada.",
               "feedbackPlaceholder": "Notas sobre engajamento, desafios ou feedback recebido",
               "inputs": [
                 {
                   "key": "deliveredDurationMin",
-                  "title": "Duracao realizada (min)",
-                  "placeholder": "Insira a duracao real da sessao em minutos"
+                  "title": "Duração realizada (min)",
+                  "placeholder": "Insira a duração real da sessão em minutos"
                 },
                 {
                   "key": "facilitators",
                   "title": "Facilitadores",
-                  "placeholder": "Insira o numero de facilitadores"
+                  "placeholder": "Insira o número de facilitadores"
                 },
                 {
                   "key": "trackTags",
-                  "title": "Topicos abordados",
-                  "placeholder": "Selecione os topicos abordados",
+                  "title": "Tópicos abordados",
+                  "placeholder": "Selecione os tópicos abordados",
                   "options": {
                     "Web3 basics": "Fundamentos de Web3",
                     "Smart contracts": "Contratos inteligentes",
                     "DeFi": "DeFi",
-                    "Governance": "Governanca",
-                    "Impact measurement": "Medicao de impacto",
-                    "Regenerative finance": "Financas regenerativas",
+                    "Governance": "Governança",
+                    "Impact measurement": "Medição de impacto",
+                    "Regenerative finance": "Finanças regenerativas",
                     "Developer tools": "Ferramentas para desenvolvedores",
                     "Other": "Outro"
                   }
@@ -1477,7 +1477,7 @@
             },
             "review": {
               "title": "Revisar oficina",
-              "description": "Revise os detalhes da realizacao da oficina antes de enviar."
+              "description": "Revise os detalhes da realização da oficina antes de enviar."
             }
           }
         },
@@ -1490,31 +1490,31 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Asistencia verificada",
-          "description": "Verifica y documenta asistencia a una sesion educativa. Registra conteo de asistentes, metodo de verificacion y modo de privacidad usado.",
+          "description": "Verifica y documenta asistencia a una sesión educativa. Registra conteo de asistentes, método de verificación y modo de privacidad usado.",
           "uiConfig": {
             "media": {
               "title": "Captura prueba de asistencia",
-              "description": "Sube una exportacion de lista, captura de escaneo QR o registro de asistencia.",
+              "description": "Sube una exportación de lista, captura de escaneo QR o registro de asistencia.",
               "needed": ["Registro/lista de asistencia"],
               "optional": ["Captura de escaneo QR"]
             },
             "details": {
-              "title": "Detalles de verificacion de asistencia",
+              "title": "Detalles de verificación de asistencia",
               "description": "Proporciona detalles sobre la asistencia verificada.",
-              "feedbackPlaceholder": "Notas sobre el proceso de verificacion o cualquier discrepancia",
+              "feedbackPlaceholder": "Notas sobre el proceso de verificación o cualquier discrepancia",
               "inputs": [
                 {
                   "key": "attendees",
                   "title": "Asistentes verificados",
-                  "placeholder": "Ingresa el numero de asistentes verificados"
+                  "placeholder": "Ingresa el número de asistentes verificados"
                 },
                 {
                   "key": "verifyMethod",
-                  "title": "Metodo de verificacion",
-                  "placeholder": "Selecciona como se verifico la asistencia",
+                  "title": "Método de verificación",
+                  "placeholder": "Selecciona cómo se verificó la asistencia",
                   "options": {
                     "Sign-in sheet": "Hoja de registro",
-                    "QR code scan": "Escaneo de codigo QR",
+                    "QR code scan": "Escaneo de código QR",
                     "POAP/NFT claim": "Reclamo POAP/NFT",
                     "Roll call": "Pase de lista",
                     "Digital roster": "Lista digital",
@@ -1523,8 +1523,8 @@
                 },
                 {
                   "key": "uniqueCountBand",
-                  "title": "Estimacion de asistentes unicos",
-                  "placeholder": "Selecciona el rango aproximado de asistentes unicos",
+                  "title": "Estimación de asistentes únicos",
+                  "placeholder": "Selecciona el rango aproximado de asistentes únicos",
                   "bands": {
                     "1-5": "1-5",
                     "6-15": "6-15",
@@ -1538,7 +1538,7 @@
             },
             "review": {
               "title": "Revisar asistencia",
-              "description": "Revisa los detalles de verificacion de asistencia antes de enviar."
+              "description": "Revisa los detalles de verificación de asistencia antes de enviar."
             }
           }
         },
@@ -1548,33 +1548,33 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Presenca verificada",
-          "description": "Verifique e documente a presenca em uma sessao educativa. Registre contagem de participantes, metodo de verificacao e modo de privacidade usado.",
+          "title": "Presença verificada",
+          "description": "Verifique e documente a presença em uma sessão educativa. Registre contagem de participantes, método de verificação e modo de privacidade usado.",
           "uiConfig": {
             "media": {
-              "title": "Capturar prova de presenca",
-              "description": "Envie uma exportacao de lista, captura de escaneamento QR ou registro de presenca.",
-              "needed": ["Registro/lista de presenca"],
+              "title": "Capturar prova de presença",
+              "description": "Envie uma exportação de lista, captura de escaneamento QR ou registro de presença.",
+              "needed": ["Registro/lista de presença"],
               "optional": ["Captura de escaneamento QR"]
             },
             "details": {
-              "title": "Detalhes da verificacao de presenca",
-              "description": "Forneca detalhes sobre a presenca verificada.",
-              "feedbackPlaceholder": "Notas sobre o processo de verificacao ou quaisquer discrepancias",
+              "title": "Detalhes da verificação de presença",
+              "description": "Forneça detalhes sobre a presença verificada.",
+              "feedbackPlaceholder": "Notas sobre o processo de verificação ou quaisquer discrepâncias",
               "inputs": [
                 {
                   "key": "attendees",
                   "title": "Participantes verificados",
-                  "placeholder": "Insira o numero de participantes verificados"
+                  "placeholder": "Insira o número de participantes verificados"
                 },
                 {
                   "key": "verifyMethod",
-                  "title": "Metodo de verificacao",
-                  "placeholder": "Selecione como a presenca foi verificada",
+                  "title": "Método de verificação",
+                  "placeholder": "Selecione como a presença foi verificada",
                   "options": {
-                    "Sign-in sheet": "Lista de presenca",
-                    "QR code scan": "Escaneamento de codigo QR",
-                    "POAP/NFT claim": "Reivindicacao POAP/NFT",
+                    "Sign-in sheet": "Lista de presença",
+                    "QR code scan": "Escaneamento de código QR",
+                    "POAP/NFT claim": "Reivindicação POAP/NFT",
                     "Roll call": "Chamada",
                     "Digital roster": "Lista digital",
                     "Other": "Outro"
@@ -1582,8 +1582,8 @@
                 },
                 {
                   "key": "uniqueCountBand",
-                  "title": "Estimativa de participantes unicos",
-                  "placeholder": "Selecione a faixa aproximada de participantes unicos",
+                  "title": "Estimativa de participantes únicos",
+                  "placeholder": "Selecione a faixa aproximada de participantes únicos",
                   "bands": {
                     "1-5": "1-5",
                     "6-15": "6-15",
@@ -1596,8 +1596,8 @@
               ]
             },
             "review": {
-              "title": "Revisar presenca",
-              "description": "Revise os detalhes da verificacao de presenca antes de enviar."
+              "title": "Revisar presença",
+              "description": "Revise os detalhes da verificação de presença antes de enviar."
             }
           }
         },
@@ -1609,31 +1609,31 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Accion de seguimiento registrada",
-          "description": "Documenta una accion de seguimiento realizada despues de una sesion educativa. Captura prueba de aplicacion real, como configuracion de billetera, transacciones en cadena o contribuciones a proyectos.",
+          "title": "Acción de seguimiento registrada",
+          "description": "Documenta una acción de seguimiento realizada después de una sesión educativa. Captura prueba de aplicación real, como configuración de billetera, transacciones en cadena o contribuciones a proyectos.",
           "uiConfig": {
             "media": {
               "title": "Captura prueba",
-              "description": "Sube una captura o prueba de la accion de seguimiento realizada.",
-              "needed": ["Prueba de accion (captura, foto o exportacion)"],
+              "description": "Sube una captura o prueba de la acción de seguimiento realizada.",
+              "needed": ["Prueba de acción (captura, foto o exportación)"],
               "optional": ["Contexto adicional"]
             },
             "details": {
-              "title": "Detalles de accion de seguimiento",
-              "description": "Proporciona detalles sobre la accion de seguimiento realizada.",
-              "feedbackPlaceholder": "Notas sobre la experiencia, desafios o proximos pasos planificados",
+              "title": "Detalles de acción de seguimiento",
+              "description": "Proporciona detalles sobre la acción de seguimiento realizada.",
+              "feedbackPlaceholder": "Notas sobre la experiencia, desafíos o próximos pasos planificados",
               "inputs": [
                 {
                   "key": "followUpType",
                   "title": "Tipo de seguimiento",
-                  "placeholder": "Selecciona que tipo de accion de seguimiento",
+                  "placeholder": "Selecciona qué tipo de acción de seguimiento",
                   "options": {
-                    "Wallet setup": "Configuracion de billetera",
-                    "First transaction": "Primera transaccion",
+                    "Wallet setup": "Configuración de billetera",
+                    "First transaction": "Primera transacción",
                     "Smart contract deploy": "Despliegue de contrato inteligente",
-                    "dApp interaction": "Interaccion con dApp",
-                    "Repository contribution": "Contribucion a repositorio",
-                    "Blog/documentation": "Blog/documentacion",
+                    "dApp interaction": "Interacción con dApp",
+                    "Repository contribution": "Contribución a repositorio",
+                    "Blog/documentation": "Blog/documentación",
                     "Community event": "Evento comunitario",
                     "Other": "Otro"
                   }
@@ -1641,7 +1641,7 @@
                 {
                   "key": "proofCountBand",
                   "title": "Elementos de prueba",
-                  "placeholder": "Selecciona el numero de elementos de prueba",
+                  "placeholder": "Selecciona el número de elementos de prueba",
                   "bands": {
                     "1": "1",
                     "2-3": "2-3",
@@ -1652,12 +1652,12 @@
                 {
                   "key": "proofType",
                   "title": "Tipo de prueba",
-                  "placeholder": "Selecciona categoria de prueba",
+                  "placeholder": "Selecciona categoría de prueba",
                   "options": {
-                    "On-chain transaction": "Transaccion en cadena",
+                    "On-chain transaction": "Transacción en cadena",
                     "Wallet screenshot": "Captura de billetera",
                     "Repository commit": "Commit en repositorio",
-                    "Blog post": "Publicacion de blog",
+                    "Blog post": "Publicación de blog",
                     "Event photo": "Foto de evento",
                     "Other": "Otro"
                   }
@@ -1666,7 +1666,7 @@
             },
             "review": {
               "title": "Revisar seguimiento",
-              "description": "Revisa los detalles de la accion de seguimiento antes de enviar."
+              "description": "Revisa los detalles de la acción de seguimiento antes de enviar."
             }
           }
         },
@@ -1676,39 +1676,39 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Acao de acompanhamento registrada",
-          "description": "Documente uma acao de acompanhamento realizada apos uma sessao educativa. Captura prova de aplicacao real, como configuracao de carteira, transacoes on-chain ou contribuicoes para projetos.",
+          "title": "Ação de acompanhamento registrada",
+          "description": "Documente uma ação de acompanhamento realizada após uma sessão educativa. Captura prova de aplicação real, como configuração de carteira, transações on-chain ou contribuições para projetos.",
           "uiConfig": {
             "media": {
               "title": "Capturar prova",
-              "description": "Envie uma captura ou prova da acao de acompanhamento realizada.",
-              "needed": ["Prova da acao (captura, foto ou exportacao)"],
+              "description": "Envie uma captura ou prova da ação de acompanhamento realizada.",
+              "needed": ["Prova da ação (captura, foto ou exportação)"],
               "optional": ["Contexto adicional"]
             },
             "details": {
-              "title": "Detalhes da acao de acompanhamento",
-              "description": "Forneca detalhes sobre a acao de acompanhamento realizada.",
-              "feedbackPlaceholder": "Notas sobre a experiencia, desafios ou proximos passos planejados",
+              "title": "Detalhes da ação de acompanhamento",
+              "description": "Forneça detalhes sobre a ação de acompanhamento realizada.",
+              "feedbackPlaceholder": "Notas sobre a experiência, desafios ou próximos passos planejados",
               "inputs": [
                 {
                   "key": "followUpType",
                   "title": "Tipo de acompanhamento",
-                  "placeholder": "Selecione o tipo de acao de acompanhamento",
+                  "placeholder": "Selecione o tipo de ação de acompanhamento",
                   "options": {
-                    "Wallet setup": "Configuracao de carteira",
-                    "First transaction": "Primeira transacao",
-                    "Smart contract deploy": "Implantacao de contrato inteligente",
-                    "dApp interaction": "Interacao com dApp",
-                    "Repository contribution": "Contribuicao em repositorio",
-                    "Blog/documentation": "Blog/documentacao",
-                    "Community event": "Evento comunitario",
+                    "Wallet setup": "Configuração de carteira",
+                    "First transaction": "Primeira transação",
+                    "Smart contract deploy": "Implantação de contrato inteligente",
+                    "dApp interaction": "Interação com dApp",
+                    "Repository contribution": "Contribuição em repositório",
+                    "Blog/documentation": "Blog/documentação",
+                    "Community event": "Evento comunitário",
                     "Other": "Outro"
                   }
                 },
                 {
                   "key": "proofCountBand",
                   "title": "Itens de prova",
-                  "placeholder": "Selecione o numero de itens de prova",
+                  "placeholder": "Selecione o número de itens de prova",
                   "bands": {
                     "1": "1",
                     "2-3": "2-3",
@@ -1721,9 +1721,9 @@
                   "title": "Tipo de prova",
                   "placeholder": "Selecione a categoria da prova",
                   "options": {
-                    "On-chain transaction": "Transacao on-chain",
+                    "On-chain transaction": "Transação on-chain",
                     "Wallet screenshot": "Captura da carteira",
-                    "Repository commit": "Commit em repositorio",
+                    "Repository commit": "Commit em repositório",
                     "Blog post": "Post de blog",
                     "Event photo": "Foto do evento",
                     "Other": "Outro"
@@ -1733,7 +1733,7 @@
             },
             "review": {
               "title": "Revisar acompanhamento",
-              "description": "Revise os detalhes da acao de acompanhamento antes de enviar."
+              "description": "Revise os detalhes da ação de acompanhamento antes de enviar."
             }
           }
         },
@@ -1745,19 +1745,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Evaluacion de aprendizaje",
-          "description": "Documenta el resultado de una evaluacion de aprendizaje (cuestionario, proyecto o evaluacion practica). Registra estado aprobado/no aprobado, rango de puntaje y tipo de evaluacion.",
+          "title": "Evaluación de aprendizaje",
+          "description": "Documenta el resultado de una evaluación de aprendizaje (cuestionario, proyecto o evaluación práctica). Registra estado aprobado/no aprobado, rango de puntaje y tipo de evaluación.",
           "uiConfig": {
             "media": {
-              "title": "Captura prueba de evaluacion",
-              "description": "Sube una captura del resultado del cuestionario, salida del proyecto o registro de evaluacion.",
-              "needed": ["Captura del resultado de evaluacion"],
+              "title": "Captura prueba de evaluación",
+              "description": "Sube una captura del resultado del cuestionario, salida del proyecto o registro de evaluación.",
+              "needed": ["Captura del resultado de evaluación"],
               "optional": ["Resultado del proyecto", "Certificado"]
             },
             "details": {
-              "title": "Detalles de evaluacion",
-              "description": "Proporciona detalles sobre la evaluacion de aprendizaje.",
-              "feedbackPlaceholder": "Notas sobre la experiencia de evaluacion, dificultad o areas de mejora",
+              "title": "Detalles de evaluación",
+              "description": "Proporciona detalles sobre la evaluación de aprendizaje.",
+              "feedbackPlaceholder": "Notas sobre la experiencia de evaluación, dificultad o áreas de mejora",
               "inputs": [
                 {
                   "key": "result",
@@ -1782,13 +1782,13 @@
                 },
                 {
                   "key": "assessmentType",
-                  "title": "Tipo de evaluacion",
-                  "placeholder": "Selecciona formato de evaluacion",
+                  "title": "Tipo de evaluación",
+                  "placeholder": "Selecciona formato de evaluación",
                   "options": {
                     "Written quiz": "Cuestionario escrito",
-                    "Practical project": "Proyecto practico",
-                    "Oral presentation": "Presentacion oral",
-                    "Code review": "Revision de codigo",
+                    "Practical project": "Proyecto práctico",
+                    "Oral presentation": "Presentación oral",
+                    "Code review": "Revisión de código",
                     "Portfolio": "Portafolio",
                     "Other": "Otro"
                   }
@@ -1796,8 +1796,8 @@
               ]
             },
             "review": {
-              "title": "Revisar evaluacion",
-              "description": "Revisa los detalles de la evaluacion de aprendizaje antes de enviar."
+              "title": "Revisar evaluación",
+              "description": "Revisa los detalles de la evaluación de aprendizaje antes de enviar."
             }
           }
         },
@@ -1807,19 +1807,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Avaliacao de aprendizagem",
-          "description": "Documente o resultado de uma avaliacao de aprendizagem (questionario, projeto ou avaliacao pratica). Registre status aprovado/reprovado, faixa de pontuacao e tipo de avaliacao.",
+          "title": "Avaliação de aprendizagem",
+          "description": "Documente o resultado de uma avaliação de aprendizagem (questionário, projeto ou avaliação prática). Registre status aprovado/reprovado, faixa de pontuação e tipo de avaliação.",
           "uiConfig": {
             "media": {
-              "title": "Capturar prova da avaliacao",
-              "description": "Envie uma captura do resultado do questionario, saida do projeto ou registro da avaliacao.",
-              "needed": ["Captura do resultado da avaliacao"],
+              "title": "Capturar prova da avaliação",
+              "description": "Envie uma captura do resultado do questionário, saída do projeto ou registro da avaliação.",
+              "needed": ["Captura do resultado da avaliação"],
               "optional": ["Resultado do projeto", "Certificado"]
             },
             "details": {
-              "title": "Detalhes da avaliacao",
-              "description": "Forneca detalhes sobre a avaliacao de aprendizagem.",
-              "feedbackPlaceholder": "Notas sobre a experiencia da avaliacao, dificuldade ou areas de melhoria",
+              "title": "Detalhes da avaliação",
+              "description": "Forneça detalhes sobre a avaliação de aprendizagem.",
+              "feedbackPlaceholder": "Notas sobre a experiência da avaliação, dificuldade ou áreas de melhoria",
               "inputs": [
                 {
                   "key": "result",
@@ -1832,8 +1832,8 @@
                 },
                 {
                   "key": "scoreBand",
-                  "title": "Faixa de pontuacao",
-                  "placeholder": "Selecione a faixa de pontuacao",
+                  "title": "Faixa de pontuação",
+                  "placeholder": "Selecione a faixa de pontuação",
                   "bands": {
                     "0-25%": "0-25%",
                     "26-50%": "26-50%",
@@ -1844,22 +1844,22 @@
                 },
                 {
                   "key": "assessmentType",
-                  "title": "Tipo de avaliacao",
-                  "placeholder": "Selecione o formato da avaliacao",
+                  "title": "Tipo de avaliação",
+                  "placeholder": "Selecione o formato da avaliação",
                   "options": {
-                    "Written quiz": "Questionario escrito",
-                    "Practical project": "Projeto pratico",
-                    "Oral presentation": "Apresentacao oral",
-                    "Code review": "Revisao de codigo",
-                    "Portfolio": "Portfolio",
+                    "Written quiz": "Questionário escrito",
+                    "Practical project": "Projeto prático",
+                    "Oral presentation": "Apresentação oral",
+                    "Code review": "Revisão de código",
+                    "Portfolio": "Portfólio",
                     "Other": "Outro"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar avaliacao",
-              "description": "Revise os detalhes da avaliacao de aprendizagem antes de enviar."
+              "title": "Revisar avaliação",
+              "description": "Revise os detalhes da avaliação de aprendizagem antes de enviar."
             }
           }
         },
@@ -1871,8 +1871,8 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Evaluacion del sitio (antes)",
-          "description": "Documenta la condicion base de un sitio con residuos antes de la limpieza. Registra tamano del sitio, nivel de severidad de residuos y tipos de residuos presentes.",
+          "title": "Evaluación del sitio (antes)",
+          "description": "Documenta la condición base de un sitio con residuos antes de la limpieza. Registra tamaño del sitio, nivel de severidad de residuos y tipos de residuos presentes.",
           "uiConfig": {
             "media": {
               "title": "Captura fotos del antes",
@@ -1881,16 +1881,16 @@
               "optional": ["Primer plano de tipos de residuos", "Puntos de acceso"]
             },
             "details": {
-              "title": "Detalles de evaluacion del sitio",
+              "title": "Detalles de evaluación del sitio",
               "description": "Proporciona detalles sobre las condiciones del sitio con residuos.",
               "feedbackPlaceholder": "Notas sobre accesibilidad, peligros o preocupaciones ambientales",
               "inputs": [
                 {
                   "key": "siteSizeBand",
-                  "title": "Tamano del sitio",
-                  "placeholder": "Selecciona el tamano aproximado del sitio",
+                  "title": "Tamaño del sitio",
+                  "placeholder": "Selecciona el tamaño aproximado del sitio",
                   "bands": {
-                    "Small (< 50 m²)": "Pequeno (< 50 m²)",
+                    "Small (< 50 m²)": "Pequeño (< 50 m²)",
                     "Medium (50-200 m²)": "Mediano (50-200 m²)",
                     "Large (200-1000 m²)": "Grande (200-1000 m²)",
                     "Very Large (> 1000 m²)": "Muy grande (> 1000 m²)"
@@ -1911,23 +1911,23 @@
                   "title": "Tipos de residuos presentes",
                   "placeholder": "Selecciona todos los tipos de residuos observados",
                   "options": {
-                    "Plastic": "Plastico",
+                    "Plastic": "Plástico",
                     "Metal": "Metal",
                     "Glass": "Vidrio",
-                    "Paper/cardboard": "Papel/carton",
-                    "Organic": "Organico",
+                    "Paper/cardboard": "Papel/cartón",
+                    "Organic": "Orgánico",
                     "Textile": "Textil",
-                    "E-waste": "Residuos electronicos",
+                    "E-waste": "Residuos electrónicos",
                     "Hazardous": "Peligroso",
-                    "Construction debris": "Escombros de construccion",
+                    "Construction debris": "Escombros de construcción",
                     "Other": "Otro"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar evaluacion del sitio",
-              "description": "Revisa los detalles de evaluacion del sitio antes de enviar."
+              "title": "Revisar evaluación del sitio",
+              "description": "Revisa los detalles de evaluación del sitio antes de enviar."
             }
           }
         },
@@ -1937,19 +1937,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Avaliacao do local (antes)",
-          "description": "Documente a condicao inicial de um local com residuos antes da limpeza. Registre o tamanho do local, o nivel de severidade dos residuos e os tipos de residuos presentes.",
+          "title": "Avaliação do local (antes)",
+          "description": "Documente a condição inicial de um local com resíduos antes da limpeza. Registre o tamanho do local, o nível de severidade dos resíduos e os tipos de resíduos presentes.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos do antes",
-              "description": "Tire fotos mostrando as condicoes atuais de residuos no local.",
-              "needed": ["Visao geral do local com residuos"],
-              "optional": ["Close-up dos tipos de residuos", "Pontos de acesso"]
+              "description": "Tire fotos mostrando as condições atuais de resíduos no local.",
+              "needed": ["Visão geral do local com resíduos"],
+              "optional": ["Close-up dos tipos de resíduos", "Pontos de acesso"]
             },
             "details": {
-              "title": "Detalhes da avaliacao do local",
-              "description": "Forneca detalhes sobre as condicoes do local com residuos.",
-              "feedbackPlaceholder": "Notas sobre acessibilidade, riscos ou preocupacoes ambientais",
+              "title": "Detalhes da avaliação do local",
+              "description": "Forneça detalhes sobre as condições do local com resíduos.",
+              "feedbackPlaceholder": "Notas sobre acessibilidade, riscos ou preocupações ambientais",
               "inputs": [
                 {
                   "key": "siteSizeBand",
@@ -1957,43 +1957,43 @@
                   "placeholder": "Selecione o tamanho aproximado do local",
                   "bands": {
                     "Small (< 50 m²)": "Pequeno (< 50 m²)",
-                    "Medium (50-200 m²)": "Medio (50-200 m²)",
+                    "Medium (50-200 m²)": "Médio (50-200 m²)",
                     "Large (200-1000 m²)": "Grande (200-1000 m²)",
                     "Very Large (> 1000 m²)": "Muito grande (> 1000 m²)"
                   }
                 },
                 {
                   "key": "wasteLevel",
-                  "title": "Severidade dos residuos",
-                  "placeholder": "Selecione o nivel de severidade dos residuos",
+                  "title": "Severidade dos resíduos",
+                  "placeholder": "Selecione o nível de severidade dos resíduos",
                   "options": {
                     "Low": "Baixo",
-                    "Medium": "Medio",
+                    "Medium": "Médio",
                     "High": "Alto"
                   }
                 },
                 {
                   "key": "wasteTypeTags",
-                  "title": "Tipos de residuos presentes",
-                  "placeholder": "Selecione todos os tipos de residuos observados",
+                  "title": "Tipos de resíduos presentes",
+                  "placeholder": "Selecione todos os tipos de resíduos observados",
                   "options": {
-                    "Plastic": "Plastico",
+                    "Plastic": "Plástico",
                     "Metal": "Metal",
                     "Glass": "Vidro",
-                    "Paper/cardboard": "Papel/papelao",
-                    "Organic": "Organico",
-                    "Textile": "Textil",
-                    "E-waste": "Residuos eletronicos",
+                    "Paper/cardboard": "Papel/papelão",
+                    "Organic": "Orgânico",
+                    "Textile": "Têxtil",
+                    "E-waste": "Resíduos eletrônicos",
                     "Hazardous": "Perigoso",
-                    "Construction debris": "Entulho de construcao",
+                    "Construction debris": "Entulho de construção",
                     "Other": "Outro"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar avaliacao do local",
-              "description": "Revise os detalhes da avaliacao do local antes de enviar."
+              "title": "Revisar avaliação do local",
+              "description": "Revise os detalhes da avaliação do local antes de enviar."
             }
           }
         },
@@ -2006,28 +2006,28 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Evento de limpieza",
-          "description": "Documenta un evento de limpieza de residuos, incluyendo participantes, duracion, cantidad retirada y metodos usados. Se requieren fotos de antes y despues.",
+          "description": "Documenta un evento de limpieza de residuos, incluyendo participantes, duración, cantidad retirada y métodos usados. Se requieren fotos de antes y después.",
           "uiConfig": {
             "media": {
-              "title": "Captura fotos de antes/despues",
-              "description": "Toma fotos que muestren el sitio antes y despues de la limpieza.",
-              "needed": ["Antes de la limpieza", "Despues de la limpieza"],
+              "title": "Captura fotos de antes/después",
+              "description": "Toma fotos que muestren el sitio antes y después de la limpieza.",
+              "needed": ["Antes de la limpieza", "Después de la limpieza"],
               "optional": ["Residuos recolectados", "Participantes"]
             },
             "details": {
               "title": "Detalles del evento de limpieza",
               "description": "Proporciona detalles sobre el evento de limpieza.",
-              "feedbackPlaceholder": "Notas sobre desafios, respuesta comunitaria o necesidades de seguimiento",
+              "feedbackPlaceholder": "Notas sobre desafíos, respuesta comunitaria o necesidades de seguimiento",
               "inputs": [
                 {
                   "key": "participants",
                   "title": "Participantes",
-                  "placeholder": "Ingresa el numero de participantes"
+                  "placeholder": "Ingresa el número de participantes"
                 },
                 {
                   "key": "durationMin",
-                  "title": "Duracion (min)",
-                  "placeholder": "Ingresa la duracion de la limpieza en minutos"
+                  "title": "Duración (min)",
+                  "placeholder": "Ingresa la duración de la limpieza en minutos"
                 },
                 {
                   "key": "amountRemoved",
@@ -2049,33 +2049,33 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Evento de limpeza",
-          "description": "Documente um evento de limpeza de residuos, incluindo participantes, duracao, quantidade removida e metodos usados. Fotos de antes e depois sao obrigatorias.",
+          "description": "Documente um evento de limpeza de resíduos, incluindo participantes, duração, quantidade removida e métodos usados. Fotos de antes e depois são obrigatórias.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos de antes/depois",
               "description": "Tire fotos mostrando o local antes e depois da limpeza.",
               "needed": ["Antes da limpeza", "Depois da limpeza"],
-              "optional": ["Residuos coletados", "Participantes"]
+              "optional": ["Resíduos coletados", "Participantes"]
             },
             "details": {
               "title": "Detalhes do evento de limpeza",
-              "description": "Forneca detalhes sobre o evento de limpeza.",
+              "description": "Forneça detalhes sobre o evento de limpeza.",
               "feedbackPlaceholder": "Notas sobre desafios, resposta da comunidade ou necessidades de acompanhamento",
               "inputs": [
                 {
                   "key": "participants",
                   "title": "Participantes",
-                  "placeholder": "Insira o numero de participantes"
+                  "placeholder": "Insira o número de participantes"
                 },
                 {
                   "key": "durationMin",
-                  "title": "Duracao (min)",
-                  "placeholder": "Insira a duracao da limpeza em minutos"
+                  "title": "Duração (min)",
+                  "placeholder": "Insira a duração da limpeza em minutos"
                 },
                 {
                   "key": "amountRemoved",
                   "title": "Quantidade removida",
-                  "placeholder": "Insira a quantidade de residuos removida"
+                  "placeholder": "Insira a quantidade de resíduos removida"
                 }
               ]
             },
@@ -2093,19 +2093,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Clasificacion y desglose",
-          "description": "Documenta los resultados de clasificacion de residuos con desglose de peso por categoria. Usa un repetidor para entradas categoria por categoria.",
+          "title": "Clasificación y desglose",
+          "description": "Documenta los resultados de clasificación de residuos con desglose de peso por categoría. Usa un repetidor para entradas categoría por categoría.",
           "uiConfig": {
             "media": {
               "title": "Captura foto de pilas clasificadas",
-              "description": "Toma una foto que muestre las categorias de residuos clasificadas.",
-              "needed": ["Categorias de residuos clasificadas"],
-              "optional": ["Lectura de balanza", "Proceso de clasificacion"]
+              "description": "Toma una foto que muestre las categorías de residuos clasificadas.",
+              "needed": ["Categorías de residuos clasificadas"],
+              "optional": ["Lectura de balanza", "Proceso de clasificación"]
             },
             "details": {
-              "title": "Detalles de clasificacion",
-              "description": "Proporciona el peso total y el desglose por categoria.",
-              "feedbackPlaceholder": "Notas sobre niveles de contaminacion, materiales inusuales o desafios de clasificacion",
+              "title": "Detalles de clasificación",
+              "description": "Proporciona el peso total y el desglose por categoría.",
+              "feedbackPlaceholder": "Notas sobre niveles de contaminación, materiales inusuales o desafíos de clasificación",
               "inputs": [
                 {
                   "key": "totalAmountKg",
@@ -2114,47 +2114,47 @@
                 },
                 {
                   "key": "categoryBreakdown",
-                  "title": "Desglose por categoria",
-                  "placeholder": "Agrega cada categoria de residuos y su peso",
+                  "title": "Desglose por categoría",
+                  "placeholder": "Agrega cada categoría de residuos y su peso",
                   "repeaterFields": [
                     {
                       "key": "category",
-                      "title": "Categoria",
-                      "placeholder": "Selecciona categoria de residuos",
+                      "title": "Categoría",
+                      "placeholder": "Selecciona categoría de residuos",
                       "options": {
-                        "Plastic": "Plastico",
+                        "Plastic": "Plástico",
                         "Metal": "Metal",
                         "Glass": "Vidrio",
-                        "Paper/cardboard": "Papel/carton",
-                        "Organic": "Organico",
+                        "Paper/cardboard": "Papel/cartón",
+                        "Organic": "Orgánico",
                         "Textile": "Textil",
-                        "E-waste": "Residuos electronicos",
+                        "E-waste": "Residuos electrónicos",
                         "Other": "Otro"
                       }
                     },
                     {
                       "key": "weightKg",
                       "title": "Peso (kg)",
-                      "placeholder": "Ingresa el peso de esta categoria"
+                      "placeholder": "Ingresa el peso de esta categoría"
                     }
                   ]
                 },
                 {
                   "key": "sortingMethod",
-                  "title": "Metodo de clasificacion",
-                  "placeholder": "Como se realizo la clasificacion?",
+                  "title": "Método de clasificación",
+                  "placeholder": "Cómo se realizó la clasificación?",
                   "options": {
-                    "Manual sorting": "Clasificacion manual",
-                    "Mechanical separation": "Separacion mecanica",
-                    "Community sorting event": "Evento comunitario de clasificacion",
+                    "Manual sorting": "Clasificación manual",
+                    "Mechanical separation": "Separación mecánica",
+                    "Community sorting event": "Evento comunitario de clasificación",
                     "Other": "Otro"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar desglose de clasificacion",
-              "description": "Revisa los detalles del desglose de clasificacion antes de enviar."
+              "title": "Revisar desglose de clasificación",
+              "description": "Revisa los detalles del desglose de clasificación antes de enviar."
             }
           }
         },
@@ -2165,18 +2165,18 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Triagem e detalhamento",
-          "description": "Documente os resultados da triagem de residuos com detalhamento de peso por categoria. Usa um repetidor para entradas categoria por categoria.",
+          "description": "Documente os resultados da triagem de resíduos com detalhamento de peso por categoria. Usa um repetidor para entradas categoria por categoria.",
           "uiConfig": {
             "media": {
               "title": "Capturar foto das pilhas separadas",
-              "description": "Tire uma foto mostrando as categorias de residuos separadas.",
-              "needed": ["Categorias de residuos separadas"],
-              "optional": ["Leitura da balanca", "Processo de triagem"]
+              "description": "Tire uma foto mostrando as categorias de resíduos separadas.",
+              "needed": ["Categorias de resíduos separadas"],
+              "optional": ["Leitura da balança", "Processo de triagem"]
             },
             "details": {
               "title": "Detalhes da triagem",
-              "description": "Forneca o peso total e o detalhamento por categoria.",
-              "feedbackPlaceholder": "Notas sobre niveis de contaminacao, materiais incomuns ou desafios de triagem",
+              "description": "Forneça o peso total e o detalhamento por categoria.",
+              "feedbackPlaceholder": "Notas sobre níveis de contaminação, materiais incomuns ou desafios de triagem",
               "inputs": [
                 {
                   "key": "totalAmountKg",
@@ -2186,20 +2186,20 @@
                 {
                   "key": "categoryBreakdown",
                   "title": "Detalhamento por categoria",
-                  "placeholder": "Adicione cada categoria de residuos e seu peso",
+                  "placeholder": "Adicione cada categoria de resíduos e seu peso",
                   "repeaterFields": [
                     {
                       "key": "category",
                       "title": "Categoria",
-                      "placeholder": "Selecione a categoria de residuos",
+                      "placeholder": "Selecione a categoria de resíduos",
                       "options": {
-                        "Plastic": "Plastico",
+                        "Plastic": "Plástico",
                         "Metal": "Metal",
                         "Glass": "Vidro",
-                        "Paper/cardboard": "Papel/papelao",
-                        "Organic": "Organico",
-                        "Textile": "Textil",
-                        "E-waste": "Residuos eletronicos",
+                        "Paper/cardboard": "Papel/papelão",
+                        "Organic": "Orgânico",
+                        "Textile": "Têxtil",
+                        "E-waste": "Resíduos eletrônicos",
                         "Other": "Outro"
                       }
                     },
@@ -2212,12 +2212,12 @@
                 },
                 {
                   "key": "sortingMethod",
-                  "title": "Metodo de triagem",
+                  "title": "Método de triagem",
                   "placeholder": "Como a triagem foi realizada?",
                   "options": {
                     "Manual sorting": "Triagem manual",
-                    "Mechanical separation": "Separacao mecanica",
-                    "Community sorting event": "Evento comunitario de triagem",
+                    "Mechanical separation": "Separação mecânica",
+                    "Community sorting event": "Evento comunitário de triagem",
                     "Other": "Outro"
                   }
                 }
@@ -2237,19 +2237,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Transferencia a reciclador/disposicion",
-          "description": "Documenta la transferencia de residuos clasificados a una instalacion de reciclaje o sitio de disposicion. Registra cantidad, tipo de destino y prueba de recibo.",
+          "title": "Transferencia a reciclador/disposición",
+          "description": "Documenta la transferencia de residuos clasificados a una instalación de reciclaje o sitio de disposición. Registra cantidad, tipo de destino y prueba de recibo.",
           "uiConfig": {
             "media": {
-              "title": "Captura recibo o prueba de instalacion",
-              "description": "Sube una foto del recibo de transferencia, entrada de la instalacion o ticket de pesaje.",
-              "needed": ["Recibo o prueba de instalacion"],
-              "optional": ["Vehiculo/transporte", "Ticket de pesaje"]
+              "title": "Captura recibo o prueba de instalación",
+              "description": "Sube una foto del recibo de transferencia, entrada de la instalación o ticket de pesaje.",
+              "needed": ["Recibo o prueba de instalación"],
+              "optional": ["Vehículo/transporte", "Ticket de pesaje"]
             },
             "details": {
               "title": "Detalles de transferencia",
-              "description": "Proporciona detalles sobre la transferencia y disposicion de residuos.",
-              "feedbackPlaceholder": "Notas sobre condiciones de la instalacion, logistica de transporte o precios",
+              "description": "Proporciona detalles sobre la transferencia y disposición de residuos.",
+              "feedbackPlaceholder": "Notas sobre condiciones de la instalación, logística de transporte o precios",
               "inputs": [
                 {
                   "key": "amountTransferredKg",
@@ -2259,20 +2259,20 @@
                 {
                   "key": "disposition",
                   "title": "Destino",
-                  "placeholder": "Selecciona que ocurrio con los residuos",
+                  "placeholder": "Selecciona qué ocurrió con los residuos",
                   "options": {
                     "Recycled": "Reciclado",
                     "Composted": "Compostado",
                     "Landfilled": "Enviado a relleno sanitario",
                     "Incinerated": "Incinerado",
-                    "Hazardous disposal": "Disposicion de residuos peligrosos",
+                    "Hazardous disposal": "Disposición de residuos peligrosos",
                     "Mixed": "Mixto"
                   }
                 },
                 {
                   "key": "tripCountBand",
-                  "title": "Numero de viajes",
-                  "placeholder": "Selecciona el numero de viajes realizados",
+                  "title": "Número de viajes",
+                  "placeholder": "Selecciona el número de viajes realizados",
                   "bands": {
                     "1": "1",
                     "2-3": "2-3",
@@ -2294,19 +2294,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Transferencia para reciclador/descarte",
-          "description": "Documente a transferencia de residuos separados para uma instalacao de reciclagem ou local de descarte. Registre quantidade, tipo de destino e comprovante de recebimento.",
+          "title": "Transferência para reciclador/descarte",
+          "description": "Documente a transferência de resíduos separados para uma instalação de reciclagem ou local de descarte. Registre quantidade, tipo de destino e comprovante de recebimento.",
           "uiConfig": {
             "media": {
-              "title": "Capturar recibo ou prova da instalacao",
-              "description": "Envie uma foto do recibo de transferencia, entrada da instalacao ou ticket de pesagem.",
-              "needed": ["Recibo ou prova da instalacao"],
-              "optional": ["Veiculo/transporte", "Ticket de pesagem"]
+              "title": "Capturar recibo ou prova da instalação",
+              "description": "Envie uma foto do recibo de transferência, entrada da instalação ou ticket de pesagem.",
+              "needed": ["Recibo ou prova da instalação"],
+              "optional": ["Veículo/transporte", "Ticket de pesagem"]
             },
             "details": {
-              "title": "Detalhes da transferencia",
-              "description": "Forneca detalhes sobre a transferencia e destino dos residuos.",
-              "feedbackPlaceholder": "Notas sobre condicoes da instalacao, logistica de transporte ou precos",
+              "title": "Detalhes da transferência",
+              "description": "Forneça detalhes sobre a transferência e destino dos resíduos.",
+              "feedbackPlaceholder": "Notas sobre condições da instalação, logística de transporte ou preços",
               "inputs": [
                 {
                   "key": "amountTransferredKg",
@@ -2316,20 +2316,20 @@
                 {
                   "key": "disposition",
                   "title": "Destino",
-                  "placeholder": "Selecione o que aconteceu com os residuos",
+                  "placeholder": "Selecione o que aconteceu com os resíduos",
                   "options": {
                     "Recycled": "Reciclado",
                     "Composted": "Compostado",
                     "Landfilled": "Enviado a aterro",
                     "Incinerated": "Incinerado",
-                    "Hazardous disposal": "Disposicao de residuos perigosos",
+                    "Hazardous disposal": "Disposição de resíduos perigosos",
                     "Mixed": "Misto"
                   }
                 },
                 {
                   "key": "tripCountBand",
-                  "title": "Numero de viagens",
-                  "placeholder": "Selecione o numero de viagens realizadas",
+                  "title": "Número de viagens",
+                  "placeholder": "Selecione o número de viagens realizadas",
                   "bands": {
                     "1": "1",
                     "2-3": "2-3",
@@ -2340,8 +2340,8 @@
               ]
             },
             "review": {
-              "title": "Revisar recibo de transferencia",
-              "description": "Revise os detalhes da transferencia antes de enviar."
+              "title": "Revisar recibo de transferência",
+              "description": "Revise os detalhes da transferência antes de enviar."
             }
           }
         },
@@ -2353,19 +2353,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Lote de compost/reutilizacion creativa",
-          "description": "Documenta un lote de compost o reutilizacion creativa, incluyendo materiales de entrada, productos de salida y tipo de lote.",
+          "title": "Lote de compost/reutilización creativa",
+          "description": "Documenta un lote de compost o reutilización creativa, incluyendo materiales de entrada, productos de salida y tipo de lote.",
           "uiConfig": {
             "media": {
               "title": "Captura foto del lote",
               "description": "Toma una foto de los materiales del lote, pila de compost o productos reutilizados.",
               "needed": ["Materiales o salida del lote"],
-              "optional": ["Configuracion de procesamiento", "Antes/despues"]
+              "optional": ["Configuración de procesamiento", "Antes/después"]
             },
             "details": {
               "title": "Detalles del lote",
-              "description": "Proporciona detalles sobre el lote de compost o reutilizacion creativa.",
-              "feedbackPlaceholder": "Notas sobre calidad del lote, tiempo de procesamiento o desafios",
+              "description": "Proporciona detalles sobre el lote de compost o reutilización creativa.",
+              "feedbackPlaceholder": "Notas sobre calidad del lote, tiempo de procesamiento o desafíos",
               "inputs": [
                 {
                   "key": "inputKg",
@@ -2384,7 +2384,7 @@
                   "options": {
                     "Compost": "Compost",
                     "Upcycled product": "Producto reutilizado creativamente",
-                    "Biochar": "Biocarbon",
+                    "Biochar": "Biocarbón",
                     "Mulch": "Acolchado",
                     "Other": "Otro"
                   }
@@ -2404,17 +2404,17 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Lote de composto/reaproveitamento criativo",
-          "description": "Documente um lote de composto ou reaproveitamento criativo, incluindo materiais de entrada, produtos de saida e tipo de lote.",
+          "description": "Documente um lote de composto ou reaproveitamento criativo, incluindo materiais de entrada, produtos de saída e tipo de lote.",
           "uiConfig": {
             "media": {
               "title": "Capturar foto do lote",
               "description": "Tire uma foto dos materiais do lote, pilha de composto ou produtos reaproveitados.",
-              "needed": ["Materiais ou saida do lote"],
-              "optional": ["Configuracao de processamento", "Antes/depois"]
+              "needed": ["Materiais ou saída do lote"],
+              "optional": ["Configuração de processamento", "Antes/depois"]
             },
             "details": {
               "title": "Detalhes do lote",
-              "description": "Forneca detalhes sobre o lote de composto ou reaproveitamento criativo.",
+              "description": "Forneça detalhes sobre o lote de composto ou reaproveitamento criativo.",
               "feedbackPlaceholder": "Notas sobre qualidade do lote, tempo de processamento ou desafios",
               "inputs": [
                 {
@@ -2424,8 +2424,8 @@
                 },
                 {
                   "key": "outputKg",
-                  "title": "Saida (kg)",
-                  "placeholder": "Insira o peso do produto de saida em quilogramas"
+                  "title": "Saída (kg)",
+                  "placeholder": "Insira o peso do produto de saída em quilogramas"
                 },
                 {
                   "key": "batchType",
@@ -2434,7 +2434,7 @@
                   "options": {
                     "Compost": "Composto",
                     "Upcycled product": "Produto reaproveitado criativamente",
-                    "Biochar": "Biocarvao",
+                    "Biochar": "Biocarvão",
                     "Mulch": "Cobertura morta",
                     "Other": "Outro"
                   }
@@ -2455,19 +2455,19 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Revision recurrente de mantenimiento",
-          "description": "Documenta una revision recurrente de mantenimiento del sitio para acumulacion de residuos. Da seguimiento a niveles residuales de residuos y condicion del sitio en el tiempo.",
+          "title": "Revisión recurrente de mantenimiento",
+          "description": "Documenta una revisión recurrente de mantenimiento del sitio para acumulación de residuos. Da seguimiento a niveles residuales de residuos y condición del sitio en el tiempo.",
           "uiConfig": {
             "media": {
               "title": "Captura foto del sitio",
               "description": "Toma una foto del sitio que muestre las condiciones actuales de residuos.",
-              "needed": ["Condicion actual del sitio"],
-              "optional": ["Comparacion con revision previa", "Areas problematicas"]
+              "needed": ["Condición actual del sitio"],
+              "optional": ["Comparación con revisión previa", "Áreas problemáticas"]
             },
             "details": {
-              "title": "Detalles de revision de mantenimiento",
-              "description": "Proporciona detalles sobre la condicion del sitio y cualquier residuo retirado.",
-              "feedbackPlaceholder": "Notas sobre tendencias, nuevos vertidos o participacion comunitaria",
+              "title": "Detalles de revisión de mantenimiento",
+              "description": "Proporciona detalles sobre la condición del sitio y cualquier residuo retirado.",
+              "feedbackPlaceholder": "Notas sobre tendencias, nuevos vertidos o participación comunitaria",
               "inputs": [
                 {
                   "key": "amountRemoved",
@@ -2476,10 +2476,10 @@
                 },
                 {
                   "key": "siteSizeBand",
-                  "title": "Tamano del sitio",
-                  "placeholder": "Selecciona el tamano aproximado del sitio",
+                  "title": "Tamaño del sitio",
+                  "placeholder": "Selecciona el tamaño aproximado del sitio",
                   "bands": {
-                    "Small (< 50 m²)": "Pequeno (< 50 m²)",
+                    "Small (< 50 m²)": "Pequeño (< 50 m²)",
                     "Medium (50-200 m²)": "Mediano (50-200 m²)",
                     "Large (200-1000 m²)": "Grande (200-1000 m²)",
                     "Very Large (> 1000 m²)": "Muy grande (> 1000 m²)"
@@ -2487,22 +2487,22 @@
                 },
                 {
                   "key": "conditionTags",
-                  "title": "Condicion del sitio",
+                  "title": "Condición del sitio",
                   "placeholder": "Selecciona las condiciones actuales del sitio",
                   "options": {
                     "Clean": "Limpio",
                     "Light waste": "Residuos ligeros",
                     "Moderate waste": "Residuos moderados",
                     "Heavy waste": "Residuos pesados",
-                    "New dumping observed": "Se observo nuevo vertido",
-                    "Improved since last check": "Mejoro desde la ultima revision"
+                    "New dumping observed": "Se observó nuevo vertido",
+                    "Improved since last check": "Mejoró desde la última revisión"
                   }
                 }
               ]
             },
             "review": {
               "title": "Revisar mantenimiento",
-              "description": "Revisa los detalles de revision de mantenimiento antes de enviar."
+              "description": "Revisa los detalles de revisión de mantenimiento antes de enviar."
             }
           }
         },
@@ -2512,24 +2512,24 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Verificacao recorrente de manutencao",
-          "description": "Documente uma verificacao recorrente de manutencao do local para acumulacao de residuos. Acompanhe os niveis residuais de residuos e a condicao do local ao longo do tempo.",
+          "title": "Verificação recorrente de manutenção",
+          "description": "Documente uma verificação recorrente de manutenção do local para acumulação de resíduos. Acompanhe os níveis residuais de resíduos e a condição do local ao longo do tempo.",
           "uiConfig": {
             "media": {
               "title": "Capturar foto do local",
-              "description": "Tire uma foto do local mostrando as condicoes atuais de residuos.",
-              "needed": ["Condicao atual do local"],
-              "optional": ["Comparacao com verificacao anterior", "Areas problematicas"]
+              "description": "Tire uma foto do local mostrando as condições atuais de resíduos.",
+              "needed": ["Condição atual do local"],
+              "optional": ["Comparação com verificação anterior", "Áreas problemáticas"]
             },
             "details": {
-              "title": "Detalhes da verificacao de manutencao",
-              "description": "Forneca detalhes sobre a condicao do local e qualquer residuo removido.",
-              "feedbackPlaceholder": "Notas sobre tendencias, novo descarte ou engajamento comunitario",
+              "title": "Detalhes da verificação de manutenção",
+              "description": "Forneça detalhes sobre a condição do local e qualquer resíduo removido.",
+              "feedbackPlaceholder": "Notas sobre tendências, novo descarte ou engajamento comunitário",
               "inputs": [
                 {
                   "key": "amountRemoved",
                   "title": "Quantidade removida (kg ou sacos)",
-                  "placeholder": "Insira a quantidade de residuos removida"
+                  "placeholder": "Insira a quantidade de resíduos removida"
                 },
                 {
                   "key": "siteSizeBand",
@@ -2537,29 +2537,29 @@
                   "placeholder": "Selecione o tamanho aproximado do local",
                   "bands": {
                     "Small (< 50 m²)": "Pequeno (< 50 m²)",
-                    "Medium (50-200 m²)": "Medio (50-200 m²)",
+                    "Medium (50-200 m²)": "Médio (50-200 m²)",
                     "Large (200-1000 m²)": "Grande (200-1000 m²)",
                     "Very Large (> 1000 m²)": "Muito grande (> 1000 m²)"
                   }
                 },
                 {
                   "key": "conditionTags",
-                  "title": "Condicao do local",
-                  "placeholder": "Selecione as condicoes atuais do local",
+                  "title": "Condição do local",
+                  "placeholder": "Selecione as condições atuais do local",
                   "options": {
                     "Clean": "Limpo",
-                    "Light waste": "Residuos leves",
-                    "Moderate waste": "Residuos moderados",
-                    "Heavy waste": "Residuos pesados",
+                    "Light waste": "Resíduos leves",
+                    "Moderate waste": "Resíduos moderados",
+                    "Heavy waste": "Resíduos pesados",
                     "New dumping observed": "Novo descarte observado",
-                    "Improved since last check": "Melhorou desde a ultima verificacao"
+                    "Improved since last check": "Melhorou desde a última verificação"
                   }
                 }
               ]
             },
             "review": {
-              "title": "Revisar manutencao",
-              "description": "Revise os detalhes da verificacao de manutencao antes de enviar."
+              "title": "Revisar manutenção",
+              "description": "Revise os detalhes da verificação de manutenção antes de enviar."
             }
           }
         },
@@ -2571,65 +2571,65 @@
         "status": "reviewed",
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
-          "title": "Evento de reparacion",
-          "description": "Documenta un evento comunitario de reparacion. Da seguimiento a articulos llevados frente a reparados exitosamente para demostrar desvio de residuos, esfuerzo voluntario y habilidades compartidas.",
+          "title": "Evento de reparación",
+          "description": "Documenta un evento comunitario de reparación. Da seguimiento a artículos llevados frente a reparados exitosamente para demostrar desvío de residuos, esfuerzo voluntario y habilidades compartidas.",
           "uiConfig": {
             "media": {
-              "title": "Captura fotos del evento de reparacion",
-              "description": "Sube fotos de antes, durante y despues del evento de reparacion.",
-              "needed": ["Antes de la reparacion", "Durante la reparacion", "Despues de la reparacion"],
+              "title": "Captura fotos del evento de reparación",
+              "description": "Sube fotos de antes, durante y después del evento de reparación.",
+              "needed": ["Antes de la reparación", "Durante la reparación", "Después de la reparación"],
               "optional": []
             },
             "details": {
-              "title": "Detalles del evento de reparacion",
-              "description": "Proporciona detalles sobre lo que se llevo al evento, se reparo y se aprendio.",
-              "feedbackPlaceholder": "Notas o comentarios sobre desafios de reparacion, habilidades compartidas o necesidades de seguimiento",
+              "title": "Detalles del evento de reparación",
+              "description": "Proporciona detalles sobre lo que se llevó al evento, se reparó y se aprendió.",
+              "feedbackPlaceholder": "Notas o comentarios sobre desafíos de reparación, habilidades compartidas o necesidades de seguimiento",
               "inputs": [
                 {
                   "key": "itemsBrought",
-                  "title": "Articulos llevados a reparacion",
-                  "placeholder": "Ingresa el numero de articulos llevados a reparar"
+                  "title": "Artículos llevados a reparación",
+                  "placeholder": "Ingresa el número de artículos llevados a reparar"
                 },
                 {
                   "key": "itemsSuccessfullyRepaired",
-                  "title": "Articulos reparados exitosamente",
-                  "placeholder": "Ingresa el numero de articulos reparados completamente"
+                  "title": "Artículos reparados exitosamente",
+                  "placeholder": "Ingresa el número de artículos reparados completamente"
                 },
                 {
                   "key": "itemsPartiallyRepaired",
-                  "title": "Articulos reparados parcialmente",
-                  "placeholder": "Ingresa el numero de articulos reparados parcialmente"
+                  "title": "Artículos reparados parcialmente",
+                  "placeholder": "Ingresa el número de artículos reparados parcialmente"
                 },
                 {
                   "key": "itemsNotRepairable",
-                  "title": "Articulos evaluados pero no reparables",
-                  "placeholder": "Ingresa el numero de articulos evaluados pero no reparables"
+                  "title": "Artículos evaluados pero no reparables",
+                  "placeholder": "Ingresa el número de artículos evaluados pero no reparables"
                 },
                 {
                   "key": "repairVolunteers",
-                  "title": "Voluntarios de reparacion",
-                  "placeholder": "Ingresa el numero de voluntarios de reparacion"
+                  "title": "Voluntarios de reparación",
+                  "placeholder": "Ingresa el número de voluntarios de reparación"
                 },
                 {
                   "key": "communityMembersAttended",
                   "title": "Miembros de la comunidad asistentes",
-                  "placeholder": "Ingresa el numero de miembros de la comunidad que asistieron"
+                  "placeholder": "Ingresa el número de miembros de la comunidad que asistieron"
                 },
                 {
                   "key": "durationMin",
-                  "title": "Duracion en minutos",
-                  "placeholder": "Ingresa la duracion del evento de reparacion en minutos"
+                  "title": "Duración en minutos",
+                  "placeholder": "Ingresa la duración del evento de reparación en minutos"
                 },
                 {
                   "key": "itemCategoriesRepaired",
-                  "title": "Categorias de articulos reparados",
-                  "placeholder": "Selecciona todas las categorias reparadas durante el evento",
+                  "title": "Categorías de artículos reparados",
+                  "placeholder": "Selecciona todas las categorías reparadas durante el evento",
                   "options": {
-                    "Electronics": "Electronica",
+                    "Electronics": "Electrónica",
                     "Clothing/Textiles": "Ropa/textiles",
                     "Furniture": "Muebles",
-                    "Appliances": "Electrodomesticos",
-                    "Bikes/Vehicles": "Bicicletas/vehiculos",
+                    "Appliances": "Electrodomésticos",
+                    "Bikes/Vehicles": "Bicicletas/vehículos",
                     "Toys/Games": "Juguetes/juegos",
                     "Other": "Otro"
                   }
@@ -2637,8 +2637,8 @@
               ]
             },
             "review": {
-              "title": "Revisar evento de reparacion",
-              "description": "Revisa los detalles del evento de reparacion antes de enviar."
+              "title": "Revisar evento de reparación",
+              "description": "Revisa los detalles del evento de reparación antes de enviar."
             }
           }
         },
@@ -2649,7 +2649,7 @@
         "updatedAt": "2026-04-28T00:00:00.000Z",
         "data": {
           "title": "Evento de reparo",
-          "description": "Documente um evento comunitario de reparo. Acompanhe itens trazidos versus reparados com sucesso para demonstrar desvio de residuos, esforco voluntario e habilidades compartilhadas.",
+          "description": "Documente um evento comunitário de reparo. Acompanhe itens trazidos versus reparados com sucesso para demonstrar desvio de resíduos, esforço voluntário e habilidades compartilhadas.",
           "uiConfig": {
             "media": {
               "title": "Capturar fotos do evento de reparo",
@@ -2659,54 +2659,54 @@
             },
             "details": {
               "title": "Detalhes do evento de reparo",
-              "description": "Forneca detalhes sobre o que foi trazido ao evento, reparado e aprendido.",
-              "feedbackPlaceholder": "Notas ou comentarios sobre desafios de reparo, habilidades compartilhadas ou necessidades de acompanhamento",
+              "description": "Forneça detalhes sobre o que foi trazido ao evento, reparado e aprendido.",
+              "feedbackPlaceholder": "Notas ou comentários sobre desafios de reparo, habilidades compartilhadas ou necessidades de acompanhamento",
               "inputs": [
                 {
                   "key": "itemsBrought",
                   "title": "Itens trazidos para reparo",
-                  "placeholder": "Insira o numero de itens trazidos para reparo"
+                  "placeholder": "Insira o número de itens trazidos para reparo"
                 },
                 {
                   "key": "itemsSuccessfullyRepaired",
                   "title": "Itens reparados com sucesso",
-                  "placeholder": "Insira o numero de itens totalmente reparados"
+                  "placeholder": "Insira o número de itens totalmente reparados"
                 },
                 {
                   "key": "itemsPartiallyRepaired",
                   "title": "Itens parcialmente reparados",
-                  "placeholder": "Insira o numero de itens parcialmente reparados"
+                  "placeholder": "Insira o número de itens parcialmente reparados"
                 },
                 {
                   "key": "itemsNotRepairable",
-                  "title": "Itens avaliados mas nao reparaveis",
-                  "placeholder": "Insira o numero de itens avaliados mas nao reparaveis"
+                  "title": "Itens avaliados mas não reparáveis",
+                  "placeholder": "Insira o número de itens avaliados mas não reparáveis"
                 },
                 {
                   "key": "repairVolunteers",
-                  "title": "Voluntarios de reparo",
-                  "placeholder": "Insira o numero de voluntarios de reparo"
+                  "title": "Voluntários de reparo",
+                  "placeholder": "Insira o número de voluntários de reparo"
                 },
                 {
                   "key": "communityMembersAttended",
                   "title": "Membros da comunidade presentes",
-                  "placeholder": "Insira o numero de membros da comunidade que participaram"
+                  "placeholder": "Insira o número de membros da comunidade que participaram"
                 },
                 {
                   "key": "durationMin",
-                  "title": "Duracao em minutos",
-                  "placeholder": "Insira a duracao do evento de reparo em minutos"
+                  "title": "Duração em minutos",
+                  "placeholder": "Insira a duração do evento de reparo em minutos"
                 },
                 {
                   "key": "itemCategoriesRepaired",
                   "title": "Categorias de itens reparados",
                   "placeholder": "Selecione todas as categorias reparadas durante o evento",
                   "options": {
-                    "Electronics": "Eletronicos",
-                    "Clothing/Textiles": "Roupas/texteis",
-                    "Furniture": "Moveis",
-                    "Appliances": "Eletrodomesticos",
-                    "Bikes/Vehicles": "Bicicletas/veiculos",
+                    "Electronics": "Eletrônicos",
+                    "Clothing/Textiles": "Roupas/têxteis",
+                    "Furniture": "Móveis",
+                    "Appliances": "Eletrodomésticos",
+                    "Bikes/Vehicles": "Bicicletas/veículos",
                     "Toys/Games": "Brinquedos/jogos",
                     "Other": "Outro"
                   }

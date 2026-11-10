@@ -39,7 +39,17 @@ const STATE_PRESENTATION: Record<CommitmentDerivedState, StatePresentation> = {
   UNKNOWN: { labelId: "app.commitments.state.beingSetUp", tone: "neutral" },
 };
 
-export function presentState(state: CommitmentDerivedState): StatePresentation {
+const PAST_DUE: StatePresentation = { labelId: "app.commitments.state.pastDue", tone: "warning" };
+
+/**
+ * The pill for a state. An untaken promise past its due date says "Past due" in its place, as
+ * the cockpit's rows do; expiring it stays the cockpit's act (DL-110 as amended).
+ */
+export function presentState(
+  state: CommitmentDerivedState,
+  options: { pastDue?: boolean } = {}
+): StatePresentation {
+  if (options.pastDue && (state === "OFFERED" || state === "REQUESTED")) return PAST_DUE;
   return STATE_PRESENTATION[state] ?? STATE_PRESENTATION.UNKNOWN;
 }
 

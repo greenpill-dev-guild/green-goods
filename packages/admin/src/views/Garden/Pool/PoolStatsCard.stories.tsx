@@ -12,7 +12,7 @@ const meta: Meta<typeof PoolStatsCard> = {
     docs: {
       description: {
         component:
-          "What needs the steward on the Promises tab, as counts: one hairline card of columns, the label above its 22px headline number, with no button chrome. A count lands on exactly what it counts: To review on Review Promises, Needs recovery and Past due on Offers and Requests filtered to them. A zero goes nowhere, so it reads as calm text.",
+          "What needs the steward on the Promises tab, as counts: one hairline card of columns, the label above its 22px headline number, with no button chrome. A count lands on exactly what it counts: To review on Review Promises, Needs recovery and Past due on Offers and Asks filtered to them. A zero goes nowhere, so it reads as calm text.",
       },
     },
   },

@@ -6,7 +6,10 @@ import {
   type GardenPoolLiveness,
   useGardenPoolController,
 } from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
-import { usePoolPromiseEntries } from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
+import {
+  usePastDuePromises,
+  usePoolPromiseEntries,
+} from "@green-goods/shared/hooks/client-ui/pool/usePromiseGroups";
 import {
   type CommitmentCycleRecord,
   type CommitmentPoolRecord,
@@ -68,7 +71,7 @@ const COUNT_IDS: Record<GardenPoolLiveness, string> = {
  * gutter. The header row carries the count, the pool's agreement behind the ⓘ
  * beside it (D33), and Status and Kind as two compact selects (D9, D27); Settled
  * is the history. The explanation of promises lives in Help, reached from the
- * Offer or Request sheet (D10).
+ * Offer or Ask sheet (D10).
  */
 export function GardenPool({ pool }: GardenPoolProps) {
   const intl = useIntl();
@@ -90,6 +93,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
     () => controller.rows.map(({ commitment }) => commitment),
     [controller.rows]
   );
+  // An untaken promise past its due date says so on its row, as the cockpit's rows do (DL-110).
+  const pastDueIds = usePastDuePromises({
+    chainId: controller.chainId,
+    poolId: pool.poolId,
+    commitments: serviceOffers,
+  });
   const serviceLines = useServiceOfferLines({ chainId: controller.chainId, offers: serviceOffers });
   const [charterOpen, setCharterOpen] = useState(false);
   // The last cycle stays drawn while its sheet closes.
@@ -277,6 +286,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
                       intl,
                       serviceLines.get(entry.row.commitment.commitmentId.toString())
                     )}
+                    pastDue={pastDueIds.has(entry.row.commitment.id)}
                     onOpen={(id) => navigate(`commitments/${id.toString()}`)}
                   />
                 ) : (
