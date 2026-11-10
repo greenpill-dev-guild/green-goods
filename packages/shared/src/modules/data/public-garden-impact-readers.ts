@@ -1,3 +1,5 @@
+import { Domain } from "../../types/domain";
+import { DOMAIN_ACTION_DOMAIN } from "../../utils/domain";
 import {
   getPublicGardenImpactChainConfig,
   isPublicGardenImpactChainSupported,
@@ -116,19 +118,9 @@ function defaultChainReader(chainId: number, signal?: AbortSignal): PublicGarden
   }) as unknown as PublicGardenImpactChainReader;
 }
 
-function toDomain(domain: unknown): PublicGardenImpactDomain | null {
-  switch (domain) {
-    case "SOLAR":
-      return "solar";
-    case "AGRO":
-      return "agroforestry";
-    case "EDU":
-      return "education";
-    case "WASTE":
-      return "waste";
-    default:
-      return null;
-  }
+function toDomain(value: unknown): PublicGardenImpactDomain | null {
+  const domain = typeof value === "string" ? Domain[value as keyof typeof Domain] : undefined;
+  return typeof domain === "number" ? (DOMAIN_ACTION_DOMAIN[domain] ?? null) : null;
 }
 
 export function createPublicGardenImpactReaders(
