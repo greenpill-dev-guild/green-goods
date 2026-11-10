@@ -11,7 +11,8 @@ import {
 } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import { createConfig, custom, WagmiProvider } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { arbitrum, sepolia } from "wagmi/chains";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { useErc20Balance } from "../../../hooks/blockchain/useErc20Balance";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
@@ -54,9 +55,29 @@ function setup({ failBalance = false, bytes32Symbol = false } = {}) {
       }),
     });
   });
+  const readChains: number[] = [];
   const config = createConfig({
-    chains: [sepolia],
-    transports: { [sepolia.id]: custom({ request }, { retryCount: 0 }) },
+    chains: [sepolia, arbitrum],
+    transports: {
+      [sepolia.id]: custom(
+        {
+          request: (...args: Parameters<typeof request>) => {
+            readChains.push(sepolia.id);
+            return request(...args);
+          },
+        },
+        { retryCount: 0 }
+      ),
+      [arbitrum.id]: custom(
+        {
+          request: (...args: Parameters<typeof request>) => {
+            readChains.push(arbitrum.id);
+            return request(...args);
+          },
+        },
+        { retryCount: 0 }
+      ),
+    },
   });
   const client = createTestQueryClient();
   const wrapper = ({ children }: PropsWithChildren) => (
@@ -64,12 +85,12 @@ function setup({ failBalance = false, bytes32Symbol = false } = {}) {
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </WagmiProvider>
   );
-  return { request, wrapper, client };
+  return { request, wrapper, client, config, readChains };
 }
 
 describe("useErc20Balance", () => {
   it("reads the owner's token amount and metadata with token decimals", async () => {
-    const { wrapper, request, client } = setup();
+    const { wrapper, request, client, readChains } = setup();
     const { result, unmount } = renderHook(
       () => useErc20Balance({ address: owner, token, chainId: sepolia.id }),
       { wrapper }
@@ -86,9 +107,24 @@ describe("useErc20Balance", () => {
       },
       { timeout: 5000 }
     );
+    expect(new Set(readChains)).toEqual(new Set([sepolia.id]));
     expect(
       request.mock.calls.some(([call]) => JSON.stringify(call.params).includes(owner.slice(2)))
     ).toBe(true);
+    unmount();
+    client.clear();
+  });
+
+  it("uses the application chain when the wallet selects another network", async () => {
+    const { wrapper, client, config, readChains } = setup();
+    const walletChain = DEFAULT_CHAIN_ID === sepolia.id ? arbitrum.id : sepolia.id;
+    config.setState((state) => ({ ...state, chainId: walletChain }));
+    const { result, unmount } = renderHook(() => useErc20Balance({ address: owner, token }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.data?.value).toBe(1_234_567n));
+    expect(readChains.length).toBeGreaterThan(0);
+    expect(new Set(readChains)).toEqual(new Set([DEFAULT_CHAIN_ID]));
     unmount();
     client.clear();
   });

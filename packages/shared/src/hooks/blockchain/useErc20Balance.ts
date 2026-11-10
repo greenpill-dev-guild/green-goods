@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { readContracts } from "@wagmi/core";
 import { readContractsQueryOptions } from "@wagmi/core/query";
 import { formatUnits, hexToString, trim, zeroAddress } from "viem";
-import { useChainId, useConfig } from "wagmi";
+import { useConfig } from "wagmi";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import {
   ERC20_BALANCE_ABI,
@@ -25,8 +26,7 @@ const BYTES32_SYMBOL_ABI = [
 // together so deposit callers never interpret token amounts using native decimals.
 export function useErc20Balance({ address, token, chainId, query }: Erc20BalanceOptions) {
   const config = useConfig();
-  const connectedChainId = useChainId();
-  const selectedChainId = chainId ?? connectedChainId;
+  const selectedChainId = chainId ?? DEFAULT_CHAIN_ID;
   const contracts = [
     {
       address: token ?? zeroAddress,
