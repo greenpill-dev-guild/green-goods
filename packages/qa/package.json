@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",
-    "viem": "^2.55.0"
+    "viem": "^2.55.19"
   }
 }
