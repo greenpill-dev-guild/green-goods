@@ -18,14 +18,14 @@ const ROUTE_GARDEN = "0x2222222222222222222222222222222222222222" as const;
 
 function detail(overrides: Partial<CommitmentDetail> = {}): CommitmentDetail {
   return {
-    commitment: {
+    commitment: commitmentFixture({
       commitmentId: 9n,
       leadProvider: ACCOUNT,
       commitmentType: "DOMAIN_IMPACT",
       contributorsFrozen: false,
       derivedState: "ACCEPTED",
-    } as CommitmentDetail["commitment"],
-    contributors: [{ contributor: ACCOUNT, active: true }] as CommitmentDetail["contributors"],
+    }),
+    contributors: [contributorFixture({ commitmentId: 9n, contributor: ACCOUNT, active: true })],
     workAttributions: [],
     requirements: [],
     assignments: [],

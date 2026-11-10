@@ -6,6 +6,7 @@ import {
 } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useErc20Balance } from "@green-goods/shared/hooks/blockchain/useErc20Balance";
 import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
@@ -24,7 +25,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { useBalance } from "wagmi";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
@@ -119,7 +119,7 @@ export function CookieJarDepositModal({
 
   const depositDecimals = selectedDepositJar?.decimals ?? 18;
 
-  const { data: walletBalance } = useBalance({
+  const { data: walletBalance } = useErc20Balance({
     address: primaryAddress as Address | undefined,
     token: selectedDepositJar?.assetAddress as Address | undefined,
     // This dialog stays mounted on every Community tab, so a closed one reads nothing.

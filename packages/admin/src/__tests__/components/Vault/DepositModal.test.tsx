@@ -33,8 +33,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
   }),
 }));
 
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: (...args: unknown[]) => mockUseBalance(...args),
+}));
+
 vi.mock("wagmi", () => ({
-  useBalance: (...args: unknown[]) => mockUseBalance(...args),
   useEstimateGas: (...args: unknown[]) => mockUseEstimateGas(...args),
   useGasPrice: (...args: unknown[]) => mockUseGasPrice(...args),
 }));

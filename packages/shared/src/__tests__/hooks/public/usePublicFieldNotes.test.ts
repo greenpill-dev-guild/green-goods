@@ -5,6 +5,7 @@
 
 import { type QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
+import type { Address } from "../../../types/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   approveEveryWork,
@@ -67,8 +68,8 @@ describe("usePublicFieldNotes", () => {
     const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockResolvedValue([
-      createMockWork({ id: "approved", gardenAddress: garden.id }),
-      createMockWork({ id: "pending", gardenAddress: garden.id }),
+      createMockWork({ id: "approved", gardenAddress: garden.id as Address }),
+      createMockWork({ id: "pending", gardenAddress: garden.id as Address }),
     ]);
     mockReadWorkApprovalsForWorks.mockResolvedValue(approveEveryWork(["approved"]));
 
@@ -83,7 +84,9 @@ describe("usePublicFieldNotes", () => {
   it("says the feed may be missing work when a decision cannot be read", async () => {
     const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ id: "unread", gardenAddress: garden.id })]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "unread", gardenAddress: garden.id as Address }),
+    ]);
     mockReadWorkApprovalsForWorks.mockResolvedValue({ approvals: [], failedWorkUIDs: ["unread"] });
 
     const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), { queryClient });
@@ -161,7 +164,7 @@ describe("usePublicFieldNotes", () => {
     ]);
 
     const { result } = renderHookWithQueryClient(
-      () => usePublicFieldNotes({ gardenAddress: garden.id }),
+      () => usePublicFieldNotes({ gardenAddress: garden.id as Address }),
       {
         queryClient,
       }

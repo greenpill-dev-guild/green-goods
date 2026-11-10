@@ -13,6 +13,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
+import type { Address } from "../../types/domain";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -358,7 +359,7 @@ describe("providers/WorkProvider", () => {
       // Garden with uppercase gardener address
       const garden = createMockGarden({
         id: "mixed-case-garden",
-        gardeners: [userAddress.toUpperCase()],
+        gardeners: [userAddress.toUpperCase() as Address],
         stewards: [],
       });
 

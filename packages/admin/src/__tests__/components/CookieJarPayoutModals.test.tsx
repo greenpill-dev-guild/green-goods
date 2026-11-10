@@ -1,8 +1,8 @@
-import { act, fireEvent } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Address } from "@green-goods/shared/types/domain";
 import { getCampaignCookieJarPayoutAsset } from "@green-goods/shared/utils/cookie-jar-campaign";
+import { act, fireEvent } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
 const QUIET_PLAN = {
@@ -124,8 +124,8 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
   }),
 }));
 
-vi.mock("wagmi", () => ({
-  useBalance: () => ({
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: () => ({
     data: {
       value: 10_000_000n,
       decimals: 6,

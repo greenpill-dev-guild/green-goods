@@ -94,6 +94,7 @@ describe("createJobQueue", () => {
       commitmentId: 1n,
       kind: 0,
       gardenContext: "0x2222222222222222222222222222222222222222",
+      gardenAddress: "0x2222222222222222222222222222222222222222",
     } as JobKindMap["claim"];
     const { queue } = setup();
     const first = await queue.addJob("claim", claim, USER);
@@ -115,6 +116,7 @@ describe("createJobQueue", () => {
       commitmentId: 1n,
       kind: 1,
       gardenContext: "0x2222222222222222222222222222222222222222",
+      gardenAddress: "0x2222222222222222222222222222222222222222",
     } as JobKindMap["claim"];
     const { deps, queue } = setup();
     const first = await queue.addJob("claim", claim, USER);

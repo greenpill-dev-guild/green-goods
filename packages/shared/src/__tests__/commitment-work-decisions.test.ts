@@ -110,7 +110,7 @@ describe("commitment Work decision classification", () => {
   });
 
   it("requires a fresh review when the current approval recipient is not the provider garden", async () => {
-    const mismatched = {
+    const mismatched: EASWorkApproval = {
       ...decision(APPROVAL, true),
       gardenerAddress: `0x${"55".repeat(20)}`,
     };

@@ -1,4 +1,5 @@
 import { MAX_RETRIES } from "../../modules/job-queue/queue-policy";
+import type { Address } from "../../types/domain";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import {
   AwaitingWorkConfirmation,
@@ -643,7 +644,7 @@ describe("hooks/work/useWorkMutation", () => {
       ({ address }) =>
         useWorkMutation({ ...defaultOptions, userAddress: address, onSuccess, onError }),
       {
-        initialProps: { address: MOCK_ADDRESSES.user as string },
+        initialProps: { address: MOCK_ADDRESSES.user as Address },
         wrapper: createWrapper(),
       }
     );

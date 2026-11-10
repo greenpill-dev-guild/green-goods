@@ -1,4 +1,4 @@
-// jsdom pin (happy-dom A/B): asserts the authored inline z-index calc(var(--z-modal) + 1); happy-dom's computed style substitutes the undefined custom property with nothing.
+// Assert the authored z-index token directly; computed style can resolve custom properties.
 /**
  * @vitest-environment jsdom
  */
@@ -326,9 +326,9 @@ describe("CreateAssessment dialog", () => {
     fireEvent.click(startTrigger);
 
     const startDay = await screen.findByRole("button", { name: /Monday, July 27th, 2026/i });
-    expect(startDay.closest('[data-component="DatePickerPopover"]')).toHaveStyle({
-      zIndex: "calc(var(--z-modal) + 1)",
-    });
+    expect(
+      startDay.closest<HTMLElement>('[data-component="DatePickerPopover"]')?.style.zIndex
+    ).toBe("calc(var(--z-modal) + 1)");
     fireEvent.click(startDay);
 
     expect(useCreateAssessmentStore.getState().form.reportingPeriodStart).toBe("2026-07-27");

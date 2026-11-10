@@ -420,7 +420,9 @@ describe("useHypercertDraft", () => {
       {
         field: "allowlist",
         value: {
-          allowlist: [{ address: "0x1234567890123456789012345678901234567890", units: 100n }],
+          allowlist: [
+            { address: "0x1234567890123456789012345678901234567890" as const, units: 100n },
+          ],
         },
       },
     ])("detects meaningful progress when $field is set", async ({ value }) => {

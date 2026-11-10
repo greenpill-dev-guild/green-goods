@@ -5,6 +5,7 @@
 
 import { type QueryClient } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react";
+import type { Address } from "../../../types/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   approveEveryWork,
@@ -87,7 +88,7 @@ describe("usePublicGardens", () => {
 
     queryClient.setQueryData(["greengoods", "public", "gardens", 11155111], []);
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ gardenAddress: garden.id })]);
+    mockGetWorks.mockResolvedValue([createMockWork({ gardenAddress: garden.id as Address })]);
 
     const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
       queryClient,
@@ -113,7 +114,7 @@ describe("usePublicGardens", () => {
     });
 
     mockGetGardens.mockResolvedValue([realGarden, placeholderGarden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ gardenAddress: realGarden.id })]);
+    mockGetWorks.mockResolvedValue([createMockWork({ gardenAddress: realGarden.id as Address })]);
 
     const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
       queryClient,
@@ -141,7 +142,7 @@ describe("usePublicGardens", () => {
     mockGetGardens.mockResolvedValue([namedGarden, unnamedGarden]);
     mockGetWorks.mockResolvedValue(
       [namedGarden, unnamedGarden].map((garden) =>
-        createMockWork({ id: garden.id, gardenAddress: garden.id })
+        createMockWork({ id: garden.id, gardenAddress: garden.id as Address })
       )
     );
 
@@ -232,7 +233,10 @@ describe("usePublicGardens", () => {
     mockGetGardens.mockResolvedValue([garden, quietGarden]);
     // One approved work, by one of the first garden's four people.
     mockGetWorks.mockResolvedValue([
-      createMockWork({ gardenAddress: garden.id, gardenerAddress: MOCK_ADDRESSES.gardener }),
+      createMockWork({
+        gardenAddress: garden.id as Address,
+        gardenerAddress: MOCK_ADDRESSES.gardener,
+      }),
     ]);
 
     const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
@@ -255,14 +259,22 @@ describe("usePublicGardens", () => {
     });
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockResolvedValue([
-      createMockWork({ id: "approved", gardenAddress: garden.id, createdAt: 1_700_000_000 }),
+      createMockWork({
+        id: "approved",
+        gardenAddress: garden.id as Address,
+        createdAt: 1_700_000_000,
+      }),
       createMockWork({
         id: "pending",
-        gardenAddress: garden.id,
+        gardenAddress: garden.id as Address,
         gardenerAddress: MOCK_ADDRESSES.user,
         createdAt: 1_700_001_000,
       }),
-      createMockWork({ id: "rejected", gardenAddress: garden.id, createdAt: 1_700_002_000 }),
+      createMockWork({
+        id: "rejected",
+        gardenAddress: garden.id as Address,
+        createdAt: 1_700_002_000,
+      }),
     ]);
     mockReadWorkApprovalsForWorks.mockResolvedValue({
       approvals: [
@@ -293,7 +305,7 @@ describe("usePublicGardens", () => {
     mockGetWorks.mockResolvedValue(
       gardens
         .slice(1)
-        .map((garden) => createMockWork({ id: garden.name, gardenAddress: garden.id }))
+        .map((garden) => createMockWork({ id: garden.name, gardenAddress: garden.id as Address }))
     );
     mockReadWorkApprovalsForWorks.mockResolvedValue({
       approvals: [createMockWorkApproval({ workUID: "rejected", approved: false })],

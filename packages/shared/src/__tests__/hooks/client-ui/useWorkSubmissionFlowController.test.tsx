@@ -318,7 +318,10 @@ import {
   TakeUpNotSent,
   TakeUpAgreementRequired,
 } from "../../../modules/commitment-pooling/take-up";
-import { writeWorkLinkIntent } from "../../../modules/commitment-pooling/work-link-intent";
+import {
+  type WorkLinkChoice,
+  writeWorkLinkIntent,
+} from "../../../modules/commitment-pooling/work-link-intent";
 import { useSubmissionFlowController } from "../../../hooks/client-ui/submission/useSubmissionFlowController";
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
@@ -1810,7 +1813,7 @@ describe("useWorkSubmissionFlowController", () => {
     actionUID: 9,
     approvedCount: 0,
     requiredCount: 4,
-  };
+  } satisfies WorkLinkChoice;
 
   it("moves on once an action or a promise's action is chosen and saved, and opens evidence for its promise", async () => {
     solarGarden();
@@ -1991,7 +1994,7 @@ describe("useWorkSubmissionFlowController", () => {
       actionUID: 9,
       requiredCount: 2,
       takesUp: true as const,
-    };
+    } satisfies WorkLinkChoice;
     const ask = { ...promiseOwed([choice], false), commitmentId: 31n, state: "REQUESTED" };
     mocks.takeUpAsks = [ask];
     mocks.takeUpChoices = [choice];

@@ -181,7 +181,7 @@ describe("useMyGardens", () => {
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
     const key = gardensKeys.byChain(DEFAULT_CHAIN_ID);
-    const listed = { ...openJoined, gardeners: [ACCOUNT] };
+    const listed: Garden = { ...openJoined, gardeners: [ACCOUNT] };
     savePendingJoins({ [openJoined.id]: { address: ACCOUNT, timestamp: Date.now() } });
     client.setQueryData(key, [markOwnJoinEntry(listed, ACCOUNT)]);
     await waitFor(() => expect(result.current.gardens[0]?.membership.roles).toEqual(["gardener"]));

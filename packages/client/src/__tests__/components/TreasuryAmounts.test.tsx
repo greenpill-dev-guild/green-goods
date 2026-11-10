@@ -1,10 +1,11 @@
 /** @vitest-environment happy-dom */
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import userEvent from "@testing-library/user-event";
-import { act, within } from "@testing-library/react";
-import { renderWithProviders as render, screen } from "../test-utils";
+
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
+import { act, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render, screen } from "../test-utils";
 
 const QUIET_PLAN = {
   signatures: null as number | null,
@@ -104,9 +105,8 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultDeposits", () => ({
 vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
   useGardenCookieJars: () => ({ jars: [], isLoading: false, error: null }),
 }));
-vi.mock("wagmi", async (importOriginal) => ({
-  ...(await importOriginal()),
-  useBalance: () => ({ data: { value: 5_000_000n, decimals: 6, symbol: "USDC" } }),
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: () => ({ data: { value: 5_000_000n, decimals: 6, symbol: "USDC" } }),
 }));
 vi.mock("@green-goods/shared/hooks/vault/useVaultWithdraw", () => ({
   useVaultWithdraw: () => ({ mutate: mocks.withdraw, isPending: mocks.pending }),
@@ -120,10 +120,10 @@ vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) =>
   getVaultAssetSymbol: () => "USDC",
 }));
 
+import { CookieJarRow } from "../../components/Features/Garden/CookieJarRow";
 import { EndowmentSheet } from "../../components/Sheets/EndowmentSheet";
 import { MyDepositRow } from "../../components/Sheets/EndowmentSheet/MyDepositRow";
 import { TreasuryTabContent } from "../../components/Sheets/EndowmentSheet/TreasuryTabContent";
-import { CookieJarRow } from "../../components/Features/Garden/CookieJarRow";
 
 beforeEach(() => {
   vi.clearAllMocks();

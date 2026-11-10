@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useGardenDerivedState } from "../../../hooks/garden/useGardenDerivedState";
 import type { CookieJar } from "../../../types/cookie-jar";
+import type { Address } from "../../../types/domain";
 
 const roleMembers = {
   owner: [],
@@ -264,7 +265,7 @@ describe("useGardenDerivedState", () => {
       members: {
         ...roleMembers,
         owner: [steward],
-        steward: [steward.toLowerCase()],
+        steward: [steward.toLowerCase() as Address],
         gardener: ["0x1111111111111111111111111111111111111111"],
       },
     });

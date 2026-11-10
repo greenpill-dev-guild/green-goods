@@ -236,8 +236,13 @@ describe("route-zero earned voucher boundary", () => {
     });
     const snapshot = await readServiceAccess(key, undefined, {
       read,
-      contracts: () =>
-        ({ commitmentPoolingModule: key.coreModule, settlementModule: ZERO }) as NetworkContracts,
+      contracts: () => {
+        const configured: Partial<NetworkContracts> = {
+          commitmentPoolingModule: key.coreModule,
+          settlementModule: ZERO,
+        };
+        return configured as NetworkContracts;
+      },
     });
     expect(snapshot.complete).toBe(false);
     expect(read).toHaveBeenCalledWith(

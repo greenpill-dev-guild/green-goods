@@ -75,7 +75,7 @@ vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
   }),
 }));
 
-function roles(routeGarden: string = HOST, poolGarden: string = HOST) {
+function roles(routeGarden: string = HOST, poolGarden: Address = HOST) {
   return renderHook(() =>
     useCommitmentViewerRoles({
       chainId: 42161,

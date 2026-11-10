@@ -1,5 +1,6 @@
 // TEST-QUALITY: allow-small-test-file - This bounded policy has two identity and classification decisions.
 import { describe, expect, it } from "vitest";
+import type { Address } from "../../types/domain";
 import {
   publicRehearsalCycles,
   publicWorkReviewStatus,
@@ -19,14 +20,14 @@ describe("reviewed public record policy", () => {
   it("keeps uncertainty distinct from test activity and scopes work by chain and garden", () => {
     expect(
       publicWorkReviewStatus(
-        { id: testId.toUpperCase(), gardenAddress: gardenAddress.toUpperCase() },
+        { id: testId.toUpperCase(), gardenAddress: gardenAddress.toUpperCase() as Address },
         42161
       )
     ).toBe("test");
     expect(publicWorkReviewStatus({ id: pendingId, gardenAddress }, 42161)).toBe("pending-review");
     expect(publicWorkReviewStatus({ id: testId, gardenAddress }, 11155111)).toBeUndefined();
     expect(
-      publicWorkReviewStatus({ id: testId, gardenAddress: "0x" + "1".repeat(40) }, 42161)
+      publicWorkReviewStatus({ id: testId, gardenAddress: `0x${"1".repeat(40)}` }, 42161)
     ).toBeUndefined();
     expect(
       publicWorkReviewStatus({ id: "0x" + "a".repeat(64), gardenAddress }, 42161)

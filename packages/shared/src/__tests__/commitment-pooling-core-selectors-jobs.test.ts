@@ -252,7 +252,11 @@ describe("commitment job authority and recovery boundary", () => {
     // the way they were queued (job-types.ts); the contract is their gate.
     const hasMembership = vi.fn().mockResolvedValue(false);
     const send = vi.fn().mockResolvedValue(`0x${"90".repeat(32)}`);
-    const legacy = { commitmentId: 9n, kind: 0, gardenContext: GARDEN } as ClaimJobPayload;
+    const legacy = {
+      commitmentId: 9n,
+      kind: 0,
+      gardenContext: GARDEN,
+    } as unknown as ClaimJobPayload;
     const result = await executeCommitmentJob(
       {
         id: "claim-job",

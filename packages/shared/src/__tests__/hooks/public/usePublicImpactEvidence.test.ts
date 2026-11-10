@@ -68,7 +68,7 @@ describe("usePublicImpactEvidence", () => {
       gardens.map((garden, index) =>
         createMockWork({
           id: `0x${(1000 + index).toString(16).padStart(64, "0")}`,
-          gardenAddress: garden.id,
+          gardenAddress: garden.id as Address,
         })
       )
     );
@@ -103,7 +103,7 @@ describe("usePublicImpactEvidence", () => {
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockResolvedValue(
       ["approved", "pending", "rejected"].map((id) =>
-        createMockWork({ id, gardenAddress: garden.id })
+        createMockWork({ id, gardenAddress: garden.id as Address })
       )
     );
     mockReadWorkApprovalsForWorks.mockResolvedValue({
@@ -134,7 +134,9 @@ describe("usePublicImpactEvidence", () => {
   ])("says the ledger is partial when %s", async (_case, fail) => {
     const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ id: "work", gardenAddress: garden.id })]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "work", gardenAddress: garden.id as Address }),
+    ]);
     fail();
 
     const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });
@@ -169,7 +171,9 @@ describe("usePublicImpactEvidence", () => {
   ])("leaves the certificate count unknown when %s", async (_case, arrange, flags) => {
     const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([createMockWork({ id: "work", gardenAddress: garden.id })]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "work", gardenAddress: garden.id as Address }),
+    ]);
     arrange();
 
     const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });

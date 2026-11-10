@@ -7,6 +7,7 @@
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useReviewBatch } from "../../../hooks/work/useReviewBatch";
+import type { Address } from "../../../types/domain";
 import type { OverlayWork } from "../../../modules/work/local-status-overlay";
 import type { ReviewBatchOutcome } from "../../../modules/work/review-batch";
 import type { ProvenReview } from "../../../modules/work/review-hold";
@@ -53,7 +54,7 @@ vi.mock("../../../hooks/work/useBatchWorkApproval", () => ({
 }));
 
 const GARDEN = "0xA000000000000000000000000000000000000001";
-const SCOPE = () => reviewBatchScope(42161, auth.primaryAddress as string, GARDEN);
+const SCOPE = () => reviewBatchScope(42161, auth.primaryAddress as Address, GARDEN);
 
 const decide = (workUID: string, approved = true): WorkApprovalDraft => ({
   actionUID: 1,

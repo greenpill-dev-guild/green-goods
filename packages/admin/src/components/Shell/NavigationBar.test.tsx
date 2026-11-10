@@ -1,4 +1,4 @@
-// jsdom pin (happy-dom A/B): asserts authored inline values (a var() grid template, calc() with rem); happy-dom's computed style substitutes var() and converts rem to px.
+// Assert authored CSS tokens directly; computed styles can resolve custom properties and units.
 /**
  * @vitest-environment jsdom
  */
@@ -63,11 +63,11 @@ describe("NavigationBar", () => {
     );
 
     expect(screen.getByText("Comunidade")).toBeVisible();
-    expect(screen.getByRole("navigation")).toHaveStyle({
-      gridTemplateColumns:
-        "repeat(3, minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content))",
-      width: "fit-content",
-    });
+    const navigation = screen.getByRole("navigation");
+    expect(navigation.style.gridTemplateColumns).toBe(
+      "repeat(3, minmax(var(--admin-nav-item-width-desktop, 5.875rem), max-content))"
+    );
+    expect(navigation).toHaveStyle({ width: "fit-content" });
   });
 
   it("renders a usable desktop dock with only Hub and Garden", () => {

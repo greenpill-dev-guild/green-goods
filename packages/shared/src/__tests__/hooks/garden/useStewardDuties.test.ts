@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useOpenStewardDuty, useStewardDuties } from "../../../hooks/garden/useStewardDuties";
 import { useUIStore } from "../../../stores/useUIStore";
-import type { Garden, Work } from "../../../types/domain";
+import type { Address, Garden, Work } from "../../../types/domain";
 import { createMockGarden, createMockWork } from "../../test-utils/mock-factories";
 
 const ME = "0xa11ce00000000000000000000000000000000001";
@@ -143,7 +143,11 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentsToConfirm", () => ({
   },
 }));
 
-function garden(roles: { stewards?: string[]; owners?: string[]; gardeners?: string[] }): Garden {
+function garden(roles: {
+  stewards?: Address[];
+  owners?: Address[];
+  gardeners?: Address[];
+}): Garden {
   return createMockGarden({
     id: GARDEN,
     stewards: roles.stewards ?? [],
@@ -206,7 +210,7 @@ describe("useStewardDuties", () => {
 
   it("reads and lists nothing for a gardener or an evaluator, whatever waits", () => {
     everythingWaits();
-    const record = { ...garden({ gardeners: [ME] }), evaluators: [ME] };
+    const record: Garden = { ...garden({ gardeners: [ME] }), evaluators: [ME] };
 
     const duties = render(record);
 

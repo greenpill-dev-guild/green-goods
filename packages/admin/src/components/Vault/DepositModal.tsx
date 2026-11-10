@@ -6,6 +6,7 @@ import {
 import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useErc20Balance } from "@green-goods/shared/hooks/blockchain/useErc20Balance";
 import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
 import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import { useDepositForm } from "@green-goods/shared/hooks/vault/useDepositForm";
@@ -23,7 +24,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
-import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
+import { useEstimateGas, useGasPrice } from "wagmi";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ConnectButton } from "@/components/ConnectButton";
@@ -71,7 +72,7 @@ export function DepositModal({
     ? getVaultAssetSymbol(selectedVault.asset, selectedVault.chainId)
     : "";
 
-  const { data: balance } = useBalance({
+  const { data: balance } = useErc20Balance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
     chainId: selectedVault?.chainId,
