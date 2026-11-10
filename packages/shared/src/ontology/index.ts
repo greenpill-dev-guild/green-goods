@@ -11,6 +11,10 @@ import type { GreenGoodsOntology } from "./types";
 
 export type * from "./types";
 
+// PRD-745: Decline a `satisfies` check on this imported JSON: TypeScript widens its
+// strings, so it cannot check the literal unions without generated literal typings.
+// Keep this cast internal; CI checks the declared runtime invariants independently.
+// Generating and maintaining a complete schema/type source remains separate work.
 const ontology = ontologyJson as unknown as GreenGoodsOntology;
 
 /** The canonical, drift-gated Green Goods ontology. */

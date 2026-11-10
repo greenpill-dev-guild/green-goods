@@ -6064,6 +6064,7 @@
   "public.fund.vaults.kicker": "§ 01: Motor de provisión",
   "public.fund.vaults.lede": "Proveer coloca un depósito a largo plazo en el vault de un jardín. Donar envía apoyo directo al fondo compartido de un jardín.",
   "public.fund.vaults.liveYieldUnavailable": "Rendimiento no disponible",
+  "public.fund.vaults.loading": "Cargando...",
   "public.fund.vaults.metricsEmpty": "Aún no hay actividad de provisión en esta red.",
   "public.fund.vaults.metricsError": "No pudimos cargar estas métricas de provisión. Actualiza para reintentar.",
   "public.fund.vaults.readyToHarvest": "Rendimiento listo para jardines",

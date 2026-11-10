@@ -69,10 +69,16 @@ export interface OntologyPlannedAnchor {
   symbol: string;
 }
 
+export interface OntologyEntityAnchor extends OntologyAnchor {
+  symbol: string;
+  /** Defaults to a type declaration; explicit value anchors name an implementation function or constant. */
+  kind?: "type" | "value";
+}
+
 export interface EntityLayerAnchors {
-  solidity?: string[];
+  solidity?: OntologyEntityAnchor[];
   indexer?: { file: string; type: string };
-  shared?: string[];
+  shared?: OntologyEntityAnchor[];
   docs?: string;
 }
 
@@ -106,7 +112,7 @@ export interface OntologyPersona {
 
 export interface VocabularyCanonical {
   ordered: boolean;
-  value_scheme: "index" | "explicit" | "none";
+  value_scheme: "index" | "explicit" | "none" | "string";
   members: string[];
   /**
    * Human label for a canonical member whose wire name differs from what people read.
@@ -135,6 +141,7 @@ export interface VocabularyRepresentation {
 
 export interface VocabularyMapping {
   id: string;
+  /** A representation id, or "canonical" for an explicit bridge from conceptual spelling. */
   from: string;
   to: string;
   kind: "explicit" | "identity";
@@ -171,6 +178,11 @@ export interface OntologySchema {
   check?: "existence-only";
   /** Constant name holding the registration schema string (existence-only). */
   source_symbol?: string;
+  registration?: {
+    name_symbol: string;
+    revocable_symbol: string;
+    resolver_argument: string;
+  };
   name: string;
   /** Canonical entity this schema records. Absent when no entity covers it yet — see `note`. */
   entity?: string;

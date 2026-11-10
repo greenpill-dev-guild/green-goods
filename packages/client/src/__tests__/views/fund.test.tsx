@@ -56,13 +56,13 @@ const mockGardens = [
 const {
   mockUseInViewReveal,
   mockUsePublicGardens,
-  mockUsePublicVaultSummary,
+  mockUsePublicVaultCatalogSummary,
   mockPrimaryAddress,
   mockLastEndowmentExitComplete,
 } = vi.hoisted(() => ({
   mockUseInViewReveal: vi.fn(),
   mockUsePublicGardens: vi.fn(),
-  mockUsePublicVaultSummary: vi.fn(),
+  mockUsePublicVaultCatalogSummary: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
   mockLastEndowmentExitComplete: { current: null as (() => void) | null },
 }));
@@ -127,12 +127,8 @@ vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
 }));
 
-vi.mock("@green-goods/shared/hooks/public/usePublicVaultSummary", () => ({
-  usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
-}));
-
 vi.mock("@green-goods/shared/hooks/public/usePublicVaultCatalogSummary", () => ({
-  usePublicVaultCatalogSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+  usePublicVaultCatalogSummary: (...args: unknown[]) => mockUsePublicVaultCatalogSummary(...args),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
@@ -279,7 +275,7 @@ describe("FundPage", () => {
     mockPrimaryAddress.current = null;
     mockUseInViewReveal.mockReturnValue({ ref: { current: null }, revealed: true });
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
-    mockUsePublicVaultSummary.mockReturnValue({
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
       hasVaults: true,
       isLoading: false,
       isError: false,
@@ -650,11 +646,13 @@ describe("FundPage", () => {
   });
 
   it("shows live yield unavailable instead of a false zero", () => {
-    const defaultSummary = mockUsePublicVaultSummary();
-    mockUsePublicVaultSummary.mockReturnValue({
+    const defaultSummary = mockUsePublicVaultCatalogSummary();
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
       ...defaultSummary,
       assets: defaultSummary.assets.map((asset: (typeof defaultSummary.assets)[number]) =>
-        asset.symbol === "DAI" ? { ...asset, accruingYield: undefined } : asset
+        asset.symbol === "DAI"
+          ? { ...asset, accruingYield: undefined, apr: undefined, isAprError: true }
+          : asset
       ),
     });
 
@@ -662,8 +660,28 @@ describe("FundPage", () => {
 
     const daiCard = screen.getByText("DAI endowment balance").closest("article");
     expect(daiCard).toHaveTextContent("Live yield unavailable");
+    expect(daiCard).toHaveTextContent("APR unavailable");
     expect(daiCard).not.toHaveTextContent("Yield ready 0 DAI");
     expect(screen.queryByText("Accruing now 0 DAI")).toBeNull();
+  });
+
+  it("shows loading for both live metrics while keeping indexed balances visible", () => {
+    const summary = mockUsePublicVaultCatalogSummary();
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
+      ...summary,
+      isYieldLoading: true,
+      assets: summary.assets.map((asset: Record<string, unknown>) => ({
+        ...asset,
+        accruingYield: undefined,
+        apr: undefined,
+        isAprLoading: true,
+      })),
+    });
+    renderView();
+    const card = screen.getByText("DAI endowment balance").closest("article")!;
+    expect(within(card).getAllByText("Loading...")).toHaveLength(2);
+    expect(card).toHaveTextContent("2,005 DAI");
+    expect(card).not.toHaveTextContent("unavailable");
   });
 
   it("shows DAI, ETH, and yield accrued inside Garden cards", () => {
@@ -681,13 +699,13 @@ describe("FundPage", () => {
   // Most Gardens' Vaults hold nothing yet; a row of zeros read as noise once the line was visible.
   it("says None yet for a Garden whose Vaults hold nothing, instead of listing zeros", () => {
     // The summary beforeEach set up, with the first Garden's Vaults emptied.
-    const summary = mockUsePublicVaultSummary();
+    const summary = mockUsePublicVaultCatalogSummary();
     const emptyAssets = summary.assets.map((asset: Record<string, unknown>) => ({
       ...asset,
       currentValue: 0n,
       accruedYield: 0n,
     }));
-    mockUsePublicVaultSummary.mockReturnValue({
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
       ...summary,
       gardensByAddress: {
         "0x1111111111111111111111111111111111111111": {
@@ -708,7 +726,7 @@ describe("FundPage", () => {
   });
 
   it("keeps DAI and ETH endowment cards visible (empty state) when no indexed vaults exist", () => {
-    mockUsePublicVaultSummary.mockReturnValue({
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
       hasVaults: false,
       isLoading: false,
       isError: false,
@@ -738,7 +756,7 @@ describe("FundPage", () => {
   });
 
   it("uses editorial skeletons while endowment metrics load", () => {
-    mockUsePublicVaultSummary.mockReturnValue({
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
       hasVaults: false,
       isLoading: true,
       isError: false,
@@ -776,7 +794,7 @@ describe("FundPage", () => {
   });
 
   it("says the endowment is unavailable, in the cards and on each row, when the metrics fetch fails", () => {
-    mockUsePublicVaultSummary.mockReturnValue({
+    mockUsePublicVaultCatalogSummary.mockReturnValue({
       hasVaults: false,
       isLoading: false,
       isError: true,
