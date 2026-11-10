@@ -16,7 +16,9 @@ import {
   STORY_GARDEN,
   STORY_GROUP_COPIES,
   STORY_GROUP_METADATA,
+  STORY_MARIA,
   STORY_ROOT_GARDEN,
+  STORY_STEWARD,
   STORY_TO_CONFIRM,
 } from "../../Garden/Pool/poolStoryFixtures";
 import { HubConfirmQueue } from "./HubConfirmQueue";
@@ -29,7 +31,7 @@ const meta: Meta<typeof HubConfirmQueue> = {
     docs: {
       description: {
         component:
-          "W13, the Hub's Confirm stage for the garden in the header: commitments waiting on its stewards with who committed, the title, the pool a commitment lives in when that is another garden's, N-of-group progress, the eligibility badge and the decision row. Confirm Kept opens a review first. Community → Coordination renders the same queue for the Green Goods team's rows. Loading and read-error never render as an empty queue.",
+          "W13, the Hub's Confirm stage for the garden in the header: commitments waiting on its stewards, and promises in its pool waiting on the steward's own confirmation (Yours to confirm), with who committed, the title, the pool a commitment lives in when that is another garden's, N-of-group progress, the eligibility badge and the decision row. Confirm Kept opens a review first. Community → Coordination renders the same queue for the Green Goods team's rows. Loading and read-error never render as an empty queue.",
       },
     },
   },
@@ -129,6 +131,45 @@ export const ConfirmKeptReview: Story = {
   args: { toConfirm: { ...STORY_TO_CONFIRM, fallback: [], count: 1 } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Confirm Kept…" }, ROWS));
+    const review = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
+    await expect(review).toHaveTextContent("This closes the promise as kept, for everyone.");
+  },
+};
+
+/**
+ * A promise in this garden's pool waiting on the steward's own confirmation:
+ * they asked for it, so the contract asks them, not the garden. Admin has no
+ * Live tab, so the Hub lists it, counts it and confirms it through the review.
+ */
+export const YoursToConfirm: Story = {
+  args: {
+    toConfirm: {
+      ...STORY_TO_CONFIRM,
+      groups: [],
+      fallback: [],
+      own: [
+        {
+          commitment: {
+            ...ownRow!.commitment,
+            direction: "REQUEST",
+            creator: STORY_STEWARD,
+            leadProvider: STORY_MARIA,
+            counterparty: STORY_MARIA,
+            counterpartyKind: "INDIVIDUAL",
+            confirmationThreshold: 1,
+            confirmationCount: 0,
+          },
+          garden: STORY_GARDEN,
+          gardenName: ownGroup!.gardenName,
+        },
+      ],
+      count: 1,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Yours to confirm", {}, ROWS)).toBeVisible();
     await userEvent.click(await canvas.findByRole("button", { name: "Confirm Kept…" }, ROWS));
     const review = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
     await expect(review).toHaveTextContent("This closes the promise as kept, for everyone.");

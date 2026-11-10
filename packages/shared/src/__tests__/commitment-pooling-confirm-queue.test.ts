@@ -44,27 +44,39 @@ const input = toConfirmFixture({
   disputed: [{ commitment: disputed, garden: DEMO_GARDEN, gardenName: "Orchard Garden" }],
 });
 
+// The Hub's read, which also lists what waits on the reader's own confirmation.
+const own = commitmentFixture({ commitmentId: 44n, metadataCID: "own" });
+const hubInput = {
+  ...input,
+  own: [{ commitment: own, garden: TUNDE, gardenName: "River Garden" }],
+};
+
 const metadata = new Map([
   ["ordinary", { title: "Repair tool handles" }],
+  ["own", { title: "Water the seedlings" }],
   ["fallback", { title: "Restore the tool shed" }],
 ]);
 
 describe("selectConfirmQueueRows", () => {
-  it("projects ordinary, fallback, and disputed rows with their authority facts", () => {
-    const rows = selectConfirmQueueRows({ toConfirm: input, byCID: metadata, search: "" });
+  it("projects ordinary, own, fallback, and disputed rows with their authority facts", () => {
+    const rows = selectConfirmQueueRows({ toConfirm: hubInput, byCID: metadata, search: "" });
 
     expect(rows.map((row) => row.eligibility)).toEqual([
       "ORDINARY",
+      "OWN",
       "PROTOCOL_FALLBACK",
       "DISPUTED",
     ]);
     expect(rows.map((row) => row.title)).toEqual([
       "Repair tool handles",
+      "Water the seedlings",
       "Restore the tool shed",
       null,
     ]);
     expect(rows[0]).toMatchObject({ garden: TUNDE, poolGarden: MARIA, canDispute: false });
-    expect(rows[2]).toMatchObject({
+    // An own row lives in the pool of the garden it names, which the reader stewards.
+    expect(rows[1]).toMatchObject({ garden: TUNDE, poolGarden: TUNDE, canDispute: true });
+    expect(rows[3]).toMatchObject({
       garden: DEMO_GARDEN,
       poolGarden: DEMO_GARDEN,
       canDispute: true,
@@ -84,10 +96,10 @@ describe("selectConfirmQueueRows", () => {
     ).toEqual(ids);
   });
 
-  it("lets the client request only ordinary rows", () => {
+  it("lets the client request only ordinary rows, never the reader's own", () => {
     expect(
       selectConfirmQueueRows({
-        toConfirm: input,
+        toConfirm: hubInput,
         byCID: metadata,
         search: "",
         include: ["ORDINARY"],

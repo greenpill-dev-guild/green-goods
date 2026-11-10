@@ -2,13 +2,15 @@
  * useHubConfirmQueueController Hook
  *
  * The Hub's Confirm stage (W13, uiux-spec §6.9) as rows and acts: the
- * ordinary rows (what the reader's gardens must confirm) and the fallback
- * rows (what only a steward's reasoned step-in can still confirm), each with
- * its title, its garden and its eligibility, plus the disputed rows of the
- * reader's own pools, which carry Resolve rather than a confirmation. Confirm
- * on an ordinary row enqueues the confirmation, Not yet raises a reasoned
- * dispute. A fallback row's confirmation lives in the commitment dialog, which
- * names the garden whose authority it uses.
+ * ordinary rows (what the reader's gardens must confirm), the own rows (what
+ * waits on the reader's own confirmation in those gardens' pools) and the
+ * fallback rows (what only a steward's reasoned step-in can still confirm),
+ * each with its title, its garden and its eligibility, plus the disputed rows
+ * of the reader's own pools, which carry Resolve rather than a confirmation.
+ * Confirm on an ordinary or own row enqueues the same confirmation, sent from
+ * the reader's account; Not yet raises a reasoned dispute. A fallback row's
+ * confirmation lives in the commitment dialog, which names the garden whose
+ * authority it uses.
  *
  * Each row states the garden that owns its pool beside the garden whose
  * authority confirms. They are different questions: a garden confirms as a
@@ -104,10 +106,11 @@ export function useHubConfirmQueueController(input: {
   const commitments = useMemo(
     () => [
       ...toConfirm.groups.flatMap((group) => group.rows.map((row) => row.commitment)),
+      ...(toConfirm.own ?? []).map((row) => row.commitment),
       ...toConfirm.fallback.map((row) => row.commitment),
       ...(toConfirm.disputed ?? []).map((row) => row.commitment),
     ],
-    [toConfirm.groups, toConfirm.fallback, toConfirm.disputed]
+    [toConfirm.groups, toConfirm.own, toConfirm.fallback, toConfirm.disputed]
   );
   const metadata = useCommitmentMetadata(commitments);
   const live = useMemo(
@@ -152,6 +155,10 @@ export function useHubConfirmQueueController(input: {
           act: "confirm",
           commitmentId: row.commitment.commitmentId,
           gardenAddress: row.garden,
+          // The reader's own confirmation is authorized by their account, not by a
+          // hat in this garden, so a role lost before the queue sends it must not
+          // hold it (CreditLib.isOrdinaryConfirmer).
+          ...(row.eligibility === "OWN" ? { membershipNotRequired: true } : {}),
           report: (event) => {
             if (event.stage === "landed") landed = true;
           },

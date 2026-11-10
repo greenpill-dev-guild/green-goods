@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:16ae5851636c4413dfc38746dbbbe5e32dd17645ccfab7042bcaa8ec8354a0a7"
+source_digest: "sha256:89fb331ad6566628fb423cbe6669acf95f5288b9f72bcd7d7dd23d454568ef00"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -358,7 +358,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## Admin Dashboard
 
-### P0: run these first (46) {#admin-dashboard-p0}
+### P0: run these first (47) {#admin-dashboard-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -405,9 +405,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
 | `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test garden can deliver | Screenshot of the Request in the protocol pool |
 | `ADM-140` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
-| `ADM-144` | Journey | Hub · Confirm | Hub → Confirm lists only what the garden in the header confirms | Screenshots of Hub → Confirm with each garden selected |
+| `ADM-144` | Journey | Hub · Confirm | Hub → Confirm lists only what the garden in the header confirms, or what waits on you in its pool | Screenshots of Hub → Confirm with each garden selected |
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
 | `ADM-157` | Journey | Garden · Pool | A declared G$ reward is typed and reviewed in G$ | Screenshots of the field and of the review |
+| `ADM-200` | Transaction | Hub · Confirm | A promise waiting on your own confirmation is listed in Hub → Confirm and confirmed there | Screenshots of the row and the tab count, the review, and the promise afterwards |
 
 ### P1 (94) {#admin-dashboard-p1}
 

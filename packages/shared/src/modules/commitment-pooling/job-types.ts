@@ -94,9 +94,10 @@ export interface MembershipGatedJobPayload {
   gardenAddress: Address;
   /**
    * True when the chain authorizes this act by identity rather than by hat: a
-   * confirmer named on the commitment (setConfirmerRule) confirms without any
-   * garden role, and isOrdinaryConfirmer checks the list, not Hats. The
-   * preflight then stays out of the way; the contract is the only gate.
+   * confirmer named on the commitment (setConfirmerRule), or with nobody named
+   * the Request's creator or the person who took up the Offer, confirms without
+   * any garden role, because isOrdinaryConfirmer checks the account, not Hats.
+   * The preflight then stays out of the way; the contract is the only gate.
    */
   membershipNotRequired?: boolean;
 }

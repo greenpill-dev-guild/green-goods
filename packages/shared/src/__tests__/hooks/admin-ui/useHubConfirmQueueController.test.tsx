@@ -193,6 +193,30 @@ describe("useHubConfirmQueueController", () => {
     });
   });
 
+  it("queues the reader's own confirmation as authorized by their account, never by a garden role", async () => {
+    const own = commitmentFixture({ commitmentId: 1004n, onchainState: "READY_FOR_CONFIRMATION" });
+    const toConfirm = {
+      ...confirmationInput(),
+      own: [{ commitment: own, garden: TUNDE, gardenName: "River Garden" }],
+    };
+    const { result } = renderHook(() =>
+      useHubConfirmQueueController({ chainId: DEMO_CHAIN_ID, toConfirm, search: "" })
+    );
+    const row = result.current.rows.find((entry) => entry.eligibility === "OWN")!;
+
+    await act(async () => {
+      await result.current.acts.confirm(row);
+    });
+
+    expect(mocks.enqueue).toHaveBeenCalledWith({
+      act: "confirm",
+      commitmentId: own.commitmentId,
+      gardenAddress: TUNDE,
+      membershipNotRequired: true,
+      report: expect.any(Function),
+    });
+  });
+
   it("holds a row confirmed here as its outcome for the visit, and one settled elsewhere as gone", async () => {
     mocks.enqueue.mockImplementation(async (input) => {
       (input as { report?: (event: { stage: string }) => void }).report?.({ stage: "landed" });
