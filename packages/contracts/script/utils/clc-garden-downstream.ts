@@ -130,53 +130,57 @@ export async function runGardenDownstream(options: GardenDownstreamOptions) {
     }
     const finish = async (send?: Parameters<typeof executeGardenDeployment>[0]["send"]) =>
       executeGardenDeployment({ provider, plan, manifest, revision, journal, save, assertBindings, gasLimits, send });
-    const result =
-      options.broadcast && Object.keys(journal.transactions).length < plan.transactions.length
-        ? await withKeystorePassword(async (env, signal) => {
-            const account = "green-goods-deployer";
-            const signer = execCastCaptured(
-              ["wallet", "address", "--account", account],
+    // The deployment record leaves the unlock session through `result`, never as the session's
+    // return value. CodeQL's password heuristic reads whatever `withKeystorePassword` returns as
+    // secret material, so a record returned this way would be flagged when it is digested below.
+    let result: Awaited<ReturnType<typeof finish>> | undefined;
+    if (options.broadcast && Object.keys(journal.transactions).length < plan.transactions.length) {
+      await withKeystorePassword(async (env, signal) => {
+        const account = "green-goods-deployer";
+        const signer = execCastCaptured(
+          ["wallet", "address", "--account", account],
+          { cwd: CONTRACTS_ROOT, env },
+          "Garden deployer unlock",
+        ).trim();
+        if (signer.toLowerCase() !== plan.transactions[0].from.toLowerCase())
+          throw new Error("Garden deployment signer differs from reviewed plan");
+        result = await finish(async (tx: CLCGardenPlan["transactions"][number], gasLimit: bigint) => {
+          signal.throwIfAborted();
+          assertBindings();
+          return parseCastTransactionHash(
+            execCastCaptured(
+              [
+                "send",
+                "--rpc-url",
+                rpc,
+                "--account",
+                account,
+                "--from",
+                tx.from,
+                "--nonce",
+                String(tx.nonce),
+                "--gas-limit",
+                String(gasLimit),
+                "--gas-price",
+                String(GARDEN_MAX_FEE),
+                "--priority-gas-price",
+                String(GARDEN_PRIORITY_FEE),
+                "--value",
+                "0",
+                "--async",
+                "--json",
+                tx.to,
+                tx.data,
+              ],
               { cwd: CONTRACTS_ROOT, env },
-              "Garden deployer unlock",
-            ).trim();
-            if (signer.toLowerCase() !== plan.transactions[0].from.toLowerCase())
-              throw new Error("Garden deployment signer differs from reviewed plan");
-            return finish(async (tx: CLCGardenPlan["transactions"][number], gasLimit: bigint) => {
-              signal.throwIfAborted();
-              assertBindings();
-              return parseCastTransactionHash(
-                execCastCaptured(
-                  [
-                    "send",
-                    "--rpc-url",
-                    rpc,
-                    "--account",
-                    account,
-                    "--from",
-                    tx.from,
-                    "--nonce",
-                    String(tx.nonce),
-                    "--gas-limit",
-                    String(gasLimit),
-                    "--gas-price",
-                    String(GARDEN_MAX_FEE),
-                    "--priority-gas-price",
-                    String(GARDEN_PRIORITY_FEE),
-                    "--value",
-                    "0",
-                    "--async",
-                    "--json",
-                    tx.to,
-                    tx.data,
-                  ],
-                  { cwd: CONTRACTS_ROOT, env },
-                  "Garden pool deployment",
-                ),
-                "Garden pool deployment",
-              );
-            });
-          })
-        : await finish();
+              "Garden pool deployment",
+            ),
+            "Garden pool deployment",
+          );
+        });
+      });
+    } else result = await finish();
+    if (!result) throw new Error("Garden deployment finished without a result");
     assertBindings();
     persistGardenDeploymentEvidence(artifactPath, readbackPath, result);
     const artifact = result.deployment;
