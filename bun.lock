@@ -293,7 +293,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@vercel/blob": "^2.8.2",
-        "viem": "^2.57.16",
+        "viem": "^2.55.19",
       },
     },
     "packages/shared": {
