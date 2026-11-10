@@ -255,7 +255,8 @@ const LAPSED_SET = storyGroup({
 /**
  * A set past its due date that nobody has expired yet. Its untaken copies are still requested on
  * chain, but anyone may expire them, so the row counts them as ended and none as available, as
- * the group's page does (PRD-1347).
+ * the group's page does (PRD-1347), and its pill says Past due, as a single past-due promise's
+ * does (DL-176).
  */
 export const LapsedSet: Story = {
   tags: ["storybook-ci"],
@@ -279,7 +280,9 @@ export const LapsedSet: Story = {
     const row = within(canvasElement).getByRole("button", {
       name: /A group of 4 separate promises/,
     });
-    await expect(row).toHaveTextContent(/None available.*1 in progress, 3 ended/);
+    await expect(within(row).getByRole("status")).toHaveTextContent("Past due");
+    await expect(row).toHaveTextContent(/1 in progress, 3 ended/);
+    await expect(row).not.toHaveTextContent("None available");
   },
 };
 
