@@ -284,7 +284,7 @@ export function extractQuotedConstant(source, symbol) {
   const declarations = [...maskNonCode(code).matchAll(new RegExp(`\\bstring\\b[^;{}]*\\bconstant\\s+${escapeRegExp(symbol)}\\s*=`, "g"))];
   if (declarations.length !== 1) return null;
   const declaration = declarations[0];
-  const value = /^\s*"((?:\\.|[^"\\])*)"/.exec(code.slice(declaration.index + declaration[0].length));
+  const value = /^\s*"((?:\\.|[^"\\])*)"\s*;/.exec(code.slice(declaration.index + declaration[0].length));
   return value ? value[1] : null;
 }
 

@@ -1357,6 +1357,16 @@ test("standalone schema checking fails closed for missing constants, ambiguous c
   }
 });
 
+test("standalone schema checking rejects composed constant initializers", () => {
+  for (const [from, to, symbol] of [
+    ['"string badgeType, address recipient";', '"string badgeType, address recipient" "uint256 extra";', "BADGE_SCHEMA"],
+    ['"GreenGoodsBadge";', '"GreenGoodsBadge" "Other";', "BADGE_NAME"],
+  ]) {
+    const checked = checkStandaloneSchemaRegistration(standaloneSchema, standaloneRegistration.replace(from, to));
+    assert.ok(checked.fatal.some((error) => error.includes(`quoted constant ${symbol}`)), symbol);
+  }
+});
+
 test("a null schema resolver cannot be paired with a nonzero registration declaration", () => {
   const changed = structuredClone(miniOntology);
   changed.schemas.badge = { ...standaloneSchema, check: "existence-only", source_status: "implemented", source: "badge.sol", note: "A standalone badge." };
