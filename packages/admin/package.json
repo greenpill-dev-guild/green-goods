@@ -39,7 +39,7 @@
     "recharts": "3.10.1",
     "tailwind-merge": "3.7.0",
     "tailwind-variants": "4.0.1",
-    "viem": "2.57.16",
+    "viem": "2.55.19",
     "wagmi": "^3.7.11",
     "xstate": "5.33.3",
     "zod": "4.6.7",

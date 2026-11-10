@@ -1,4 +1,5 @@
 import { extractErrorMessage } from "./extract-message";
+import { HATS_COOKIE_JAR_ERRORS } from "./hats-cookie-jar-errors";
 import { offlineFailure, parseUnsentFailure } from "./unsent-failures";
 import { VOUCHER_ENTITLEMENT_ERRORS } from "./voucher-entitlement-errors";
 
@@ -6,18 +7,12 @@ export interface ErrorInfo {
   name: string;
   message?: string;
   action?: string;
+  titleKey?: string;
   messageKey?: string;
   actionKey?: string;
   recoverable: boolean;
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
 }
-
-const LOCALIZED_ERROR_FALLBACKS = {
-  SelfAttestation: {
-    message: "You cannot review your own work submission",
-    action: "Ask another garden steward to approve or reject this work",
-  },
-} as const;
 
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // Garden role errors (HatsModule and GardenAccount).
@@ -246,7 +241,9 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
 
   "0x9bce3284": {
     name: "SelfAttestation",
+    message: "You cannot review your own work submission",
     messageKey: "app.errors.contract.selfAttestation.message",
+    action: "Ask another garden steward to approve or reject this work",
     actionKey: "app.errors.contract.selfAttestation.action",
     recoverable: false,
   },
@@ -329,6 +326,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     suggestedAction: "check-wallet",
   },
   ...VOUCHER_ENTITLEMENT_ERRORS,
+  ...HATS_COOKIE_JAR_ERRORS,
   // ============================================================================
   // Common ERC-721 / OpenZeppelin errors
   // ============================================================================
@@ -385,16 +383,12 @@ export interface ParsedContractError {
 }
 
 function parseKnownError(raw: string, errorInfo: ErrorInfo): ParsedContractError {
-  const fallback =
-    errorInfo.name in LOCALIZED_ERROR_FALLBACKS
-      ? LOCALIZED_ERROR_FALLBACKS[errorInfo.name as keyof typeof LOCALIZED_ERROR_FALLBACKS]
-      : undefined;
-
   return {
     raw,
     name: errorInfo.name,
-    message: errorInfo.message ?? fallback?.message ?? "Transaction failed. Please try again.",
-    action: errorInfo.action ?? fallback?.action,
+    message: errorInfo.message ?? "Transaction failed. Please try again.",
+    action: errorInfo.action,
+    titleKey: errorInfo.titleKey,
     messageKey: errorInfo.messageKey,
     actionKey: errorInfo.actionKey,
     isKnown: true,

@@ -602,7 +602,7 @@
     "react-hot-toast": "^2.4.1",
     "react-intl": "^12.1.6",
     "react-select": "^5.8.0",
-    "viem": "2.57.16",
+    "viem": "2.55.19",
     "wagmi": "^3.7.11",
     "xstate": "^5.33.3",
     "zod": "^4.6.7",

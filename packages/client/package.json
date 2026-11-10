@@ -44,7 +44,7 @@
     "tailwind-merge": "3.7.0",
     "tailwind-variants": "4.0.1",
     "thirdweb": "5.122.1",
-    "viem": "2.57.16",
+    "viem": "2.55.19",
     "wagmi": "^3.7.11",
     "zod": "4.6.7",
     "zustand": "5.1.0"
