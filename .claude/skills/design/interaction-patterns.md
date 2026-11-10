@@ -182,7 +182,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   is the same promise under a filter.
 - **The review card is always there (DL-067).** While a pool is open, Review Promises sits at
   the top of the Promises tab's rail whether or not anyone is waiting, with one quiet "Nothing
-  to review." line when empty, so asks arriving and leaving never move Offers and Requests, the
+  to review." line when empty, so take-up requests arriving and leaving never move Offers and Asks, the
   list beside it (the names are DL-077's). Its rows are decision rows of one height (who and
   when, then what for, one line each; the name keeps its length and the age gives way first),
   with Decline… and Approve. A decided row keeps its place with its outcome until the steward
@@ -262,7 +262,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   state's own words lead it instead. This replaces the record row's chips and meta for
   promises: who is involved and how much live in the promise's dialog, except on a promise
   still on the device, which has no dialog yet and keeps its units on its row. Proof: the
-  shared `CommitmentRow`, which Offers and Requests and the app's lists render.
+  shared `CommitmentRow`, which Offers and Asks and the app's lists render.
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect: encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)
