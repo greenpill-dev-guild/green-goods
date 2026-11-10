@@ -33,24 +33,30 @@ export function subscribeToPendingJoins(listener: () => void): () => void {
 // stops counting and no reader comes back to it, until a write that lands drops it for good.
 const refusedRemovals = new Set<string>();
 
+// Joins storage refused to save (full or blocked). Each counts in this tab as a saved one would,
+// since the chain holds the join, until a write that lands carries it or it is removed.
+const unsavedJoins = new Map<string, { address: string; timestamp: number }>();
+
 function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
   if (typeof window === "undefined") return {};
+  let saved: Record<string, { address: string; timestamp: number }> = {};
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(PENDING_JOINS_KEY) || "{}");
-    const saved =
-      parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? (parsed as Record<string, { address: string; timestamp: number }>)
-        : {};
-    for (const gardenId of refusedRemovals) delete saved[gardenId];
-    return saved;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      saved = parsed as Record<string, { address: string; timestamp: number }>;
+    }
   } catch {
-    return {};
+    // Storage that cannot be read holds nothing; the joins this tab could not save still count.
   }
+  for (const gardenId of refusedRemovals) delete saved[gardenId];
+  for (const [gardenId, record] of unsavedJoins) saved[gardenId] = record;
+  return saved;
 }
 
 function savePendingJoins(pending: Record<string, { address: string; timestamp: number }>) {
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
   refusedRemovals.clear();
+  unsavedJoins.clear();
 }
 
 export function addPendingJoin(gardenId: string, userAddress: string, submittedAt?: number) {
@@ -67,7 +73,13 @@ export function addPendingJoin(gardenId: string, userAddress: string, submittedA
     return;
   }
   pending[gardenId] = { address: userAddress, timestamp };
-  savePendingJoins(pending);
+  try {
+    savePendingJoins(pending);
+  } catch (error) {
+    logger.warn("Could not save a pending join", { source: "addPendingJoin", error });
+    refusedRemovals.delete(gardenId);
+    unsavedJoins.set(gardenId, pending[gardenId]);
+  }
   notifyPendingJoinsChanged();
 }
 
@@ -89,7 +101,10 @@ export function removePendingJoin(gardenId: string, account?: string, submittedB
     savePendingJoins(pending);
   } catch (error) {
     logger.warn("Could not forget a settled pending join", { source: "removePendingJoin", error });
-    for (const id of matching) refusedRemovals.add(id);
+    for (const id of matching) {
+      refusedRemovals.add(id);
+      unsavedJoins.delete(id);
+    }
   }
   notifyPendingJoinsChanged();
 }

@@ -103,12 +103,15 @@ export function useGardenJoinRequestSession(
   function noteOnDevice(request: GardenJoinRequestSelfRecord | null) {
     if (kind !== "garden_membership" || garden === "none" || account === "none") return;
     const scope = awaitingJoinRequestScope(chainId, account);
-    if (scope) {
-      useAwaitingJoinRequestsStore.getState().noteRequest(scope, garden, request, Date.now());
-    }
-    // A welcome is on chain before the indexer lists the account. It stands in for the gardener
-    // role as an open join does, timed from the welcome, so an old one never hides a later removal.
-    const welcomedAt = request?.state === "welcomed" ? Date.parse(request.resolvedAt ?? "") : NaN;
+    const awaiting = useAwaitingJoinRequestsStore.getState();
+    // Read before the note, which forgets an answered request.
+    const wasWaiting = Boolean(scope && awaiting.requestsByScope[scope]?.[garden.toLowerCase()]);
+    if (scope) awaiting.noteRequest(scope, garden, request, Date.now());
+    // A welcome is on chain before the indexer lists the account. For a request this device was
+    // waiting on, it stands in for the gardener role as an open join does, timed from the welcome.
+    // The same welcome read again after the member left or was removed stands in for nothing.
+    const welcomedAt =
+      wasWaiting && request?.state === "welcomed" ? Date.parse(request.resolvedAt ?? "") : NaN;
     if (Number.isFinite(welcomedAt)) addPendingJoin(garden, account, welcomedAt);
   }
   return {

@@ -1060,19 +1060,29 @@ describe("useAwaitingJoinRequests", () => {
     expect(result.current.size).toBe(0);
   });
 
-  // A welcome is on chain before the indexer lists the account (PRD-1209): it stands in for the
-  // gardener role from the moment the steward gave it, as an open join does. A decline, or a
-  // welcome older than the stand-in's limit, grants nothing.
+  // A welcome is on chain before the indexer lists the account (PRD-1209): for a request this
+  // device was waiting on, it stands in for the gardener role from the moment the steward gave
+  // it, as an open join does. A decline, a welcome older than the stand-in's limit, or a welcome
+  // read again once the wait ended (the member may have left since) grants nothing.
   it.each([
-    { answer: "a welcome just given", state: "welcomed", age: 0, standsIn: true },
-    { answer: "an older welcome", state: "welcomed", age: 16 * 60_000, standsIn: false },
-    { answer: "a decline", state: "declined", age: 0, standsIn: false },
+    { answer: "a welcome just given", state: "welcomed", age: 0, waiting: true, standsIn: true },
+    {
+      answer: "an older welcome",
+      state: "welcomed",
+      age: 16 * 60_000,
+      waiting: true,
+      standsIn: false,
+    },
+    { answer: "a decline", state: "declined", age: 0, waiting: true, standsIn: false },
+    { answer: "a welcome read again", state: "welcomed", age: 0, waiting: false, standsIn: false },
   ] as const)("lets $answer stand in for the gardener role: $standsIn", async ({
     state,
     age,
+    waiting,
     standsIn,
   }) => {
     const dialog = await sendRequest(GARDEN_A);
+    if (!waiting) useAwaitingJoinRequestsStore.getState().forgetRequests(scope(), [GARDEN_A]);
     mocks.mine.mockResolvedValue({
       ok: true,
       request: {

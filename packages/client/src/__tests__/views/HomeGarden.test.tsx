@@ -126,12 +126,12 @@ vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
 }));
 
 // The evaluator check reads yes, so every viewer reviews. The gardener check reads what a test
-// says the chain holds, and nothing without a garden to ask about.
-let mockChainHoldsGardener = false;
+// says the chain answers, and nothing without a garden to ask about.
+const NO_ROLE = { hasRole: false, isLoading: false };
+let mockGardenerRead = NO_ROLE;
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
-  useHasRole: (garden?: string, _account?: string, role?: string) => ({
-    hasRole: role === "gardener" ? Boolean(garden) && mockChainHoldsGardener : true,
-  }),
+  useHasRole: (garden?: string, _account?: string, role?: string) =>
+    role !== "gardener" ? { hasRole: true, isLoading: false } : garden ? mockGardenerRead : NO_ROLE,
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
@@ -240,7 +240,7 @@ vi.mock("@/components/Navigation", () => ({
 import { Garden } from "../../views/Home/Garden";
 
 afterEach(() => {
-  mockChainHoldsGardener = false;
+  mockGardenerRead = NO_ROLE;
 });
 
 describe("Home garden route", () => {
@@ -537,14 +537,15 @@ describe("Home garden route", () => {
   });
 
   // The roster lags the chain after a steward welcomes a request (PRD-1209): the page asks the
-  // chain before offering the request again.
+  // chain before offering the request again, and offers nothing until it answers.
   it.each([
-    { chain: "holds no gardener role", holds: false, offered: true },
-    { chain: "holds the gardener role", holds: true, offered: false },
-  ])("offers a closed-garden join request only when the chain $chain", ({ holds, offered }) => {
+    { chain: "holds no gardener role", read: { hasRole: false, isLoading: false }, offered: true },
+    { chain: "holds the gardener role", read: { hasRole: true, isLoading: false }, offered: false },
+    { chain: "has not answered yet", read: { hasRole: false, isLoading: true }, offered: false },
+  ])("offers a closed-garden join request when the chain $chain: $offered", ({ read, offered }) => {
     const gardenId = "0x5000000000000000000000000000000000000005";
     mockPrimaryAddress = "0x00000000000000000000000000000000000000aa";
-    mockChainHoldsGardener = holds;
+    mockGardenerRead = read;
     mockUseGardens.mockReturnValue({
       data: [
         {
