@@ -1300,6 +1300,25 @@ test("entity comments, strings, GraphQL descriptions and imported names never st
   assert.equal(fixture.check().errors.length, 3);
 });
 
+test("type-only imports cannot satisfy an entity's local declaration anchor", () => {
+  for (const imported of [
+    'import type Garden from "elsewhere";',
+    'import\n type Garden from "elsewhere";',
+    'import type Garden = require("elsewhere");',
+    'import { type Garden } from "elsewhere";',
+    'import { type Garden as ImportedGarden } from "elsewhere";',
+  ]) {
+    const fixture = entityAnchorFixture();
+    fixture.sources.set("a.ts", `${imported}\nexport interface RenamedGarden {}`);
+    assert.equal(fixture.check().errors.length, 1, imported);
+    fixture.sources.set("a.ts", `${imported.replace(/Garden/g, "OtherGarden")}\nexport interface Garden {}`);
+    assert.equal(fixture.check().errors.length, 0, imported);
+  }
+  const fixture = entityAnchorFixture();
+  fixture.sources.set("a.ts", 'import "./setup"\ntype Garden = { id: string };');
+  assert.equal(fixture.check().errors.length, 0);
+});
+
 test("entity anchors require declared symbols rather than bare surviving paths", () => {
   const fixture = entityAnchorFixture();
   fixture.ontology.entities[0].layers.shared = ["a.ts"];
@@ -1327,6 +1346,25 @@ test("standalone schema registration pins fields, name, revocability and the act
   assert.deepEqual(checkStandaloneSchemaRegistration(standaloneSchema, standaloneRegistration), { fatal: [], diffs: [] });
   const formatted = standaloneRegistration.replace('address(0), REVOCABLE', 'address( /* no resolver */ 0 ),\n REVOCABLE');
   assert.deepEqual(checkStandaloneSchemaRegistration(standaloneSchema, formatted), { fatal: [], diffs: [] });
+});
+
+test("standalone schema checking preserves comment markers inside constant values", () => {
+  for (const marker of ["/*changed*/", "//changed"]) {
+    for (const [original, diagnostic] of [
+      ["string badgeType, address recipient", "registration string"],
+      ["GreenGoodsBadge", "name expected"],
+    ]) {
+      const changed = standaloneRegistration.replace(`"${original}"`, `"${original}${marker}"`);
+      const checked = checkStandaloneSchemaRegistration(standaloneSchema, changed);
+      assert.deepEqual(checked.fatal, [], `${original}${marker}`);
+      assert.ok(checked.diffs.some((diff) => diff.includes(diagnostic)), `${original}${marker}`);
+    }
+  }
+  assert.equal(extractQuotedConstant('string constant URL = "https://example.test/*path*/";', "URL"), "https://example.test/*path*/");
+});
+
+test("object vocabulary extraction preserves quoted comment markers and strips real comments", () => {
+  assert.deepEqual(parseTsObjectValues('const TOKENS: { value: string } = { value: "solar/*panel*/ // roof" /* comment */ };', "TOKENS"), ["solar/*panel*/ // roof"]);
 });
 
 test("standalone schema metadata and actual registration arguments cannot drift independently", () => {

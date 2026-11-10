@@ -68,13 +68,10 @@ export function evalNumericToken(token) {
   return null;
 }
 
-// Comments are stripped from the WHOLE source before any declaration regex
-// runs: a commented-out legacy declaration must never win the non-greedy
-// match, and a `;` inside a trailing comment must never terminate a union
-// capture early. Vocabulary declarations never contain string literals with
-// comment markers, so whole-source stripping is safe for these extractors.
+// Remove comments before declaration extraction without changing quoted bytes:
+// schema UIDs and registration names depend on the complete literal value.
 function stripCode(source) {
-  return stripLineComments(stripBlockComments(source), "//");
+  return maskNonCode(source, { preserveStrings: true });
 }
 
 function escapeRegExp(value) {
@@ -85,10 +82,11 @@ export function sourceContainsSymbol(source, symbol) {
   return new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}(?![\\w$])`).test(stripCode(source));
 }
 
-function maskNonCode(source, lineComment = "//") {
+function maskNonCode(source, { lineComment = "//", preserveStrings = false } = {}) {
   const masked = source.split("");
   for (let index = 0; index < source.length; index += 1) {
     let end = index;
+    let literal = false;
     if (source.startsWith(lineComment, index)) {
       end = source.indexOf("\n", index);
       if (end === -1) end = source.length;
@@ -96,13 +94,19 @@ function maskNonCode(source, lineComment = "//") {
       end = source.indexOf("*/", index + 2);
       end = end === -1 ? source.length : end + 2;
     } else if (source.startsWith('"""', index)) {
+      literal = true;
       end = source.indexOf('"""', index + 3);
       while (end !== -1 && source[end - 1] === "\\") end = source.indexOf('"""', end + 3);
       end = end === -1 ? source.length : end + 3;
-    } else if ('"\'`'.includes(source[index])) end = skipQuoted(source, index) + 1;
+    } else if ('"\'`'.includes(source[index])) {
+      literal = true;
+      end = skipQuoted(source, index) + 1;
+    }
     if (end === index) continue;
-    for (let cursor = index; cursor < Math.min(end, source.length); cursor += 1) {
-      if (masked[cursor] !== "\n") masked[cursor] = " ";
+    if (!literal || !preserveStrings) {
+      for (let cursor = index; cursor < Math.min(end, source.length); cursor += 1) {
+        if (masked[cursor] !== "\n") masked[cursor] = " ";
+      }
     }
     index = end - 1;
   }
@@ -124,10 +128,14 @@ export function checkEntityAnchorSymbols(ontology, sourceOf) {
       const source = sourceOf(anchor.file);
       if (source === null) continue; // sourceOf records missing-file infrastructure failures.
       checked += 1;
-      const code = maskNonCode(source, anchor.layer === "indexer" ? "#" : "//");
+      const code = maskNonCode(source, { lineComment: anchor.layer === "indexer" ? "#" : "//" });
       const declaration = anchor.layer === "indexer" ? "type" : anchor.kind === "value"
         ? "(?:function|const|let)" : "(?:interface|type|class|enum|contract|struct|library)";
-      if (!new RegExp(`\\b${declaration}\\s+${escapeRegExp(anchor.symbol)}(?![\\w$])`).test(code)) {
+      const body = anchor.layer === "indexer" ? "(?=\\s*(?:\\{|@|implements\\b))"
+        : anchor.kind === "value" ? "" : "(?=\\s*(?:[<{=]|extends\\b|implements\\b|is\\b))";
+      const matches = [...code.matchAll(new RegExp(`\\b${declaration}\\s+${escapeRegExp(anchor.symbol)}(?![\\w$])${body}`, "g"))];
+      if (!matches.some((match) => anchor.layer !== "shared" ||
+          !/\bimport\s*$/.test(stripCode(source).slice(0, match.index)))) {
         errors.push(`[anchor-symbol] entity "${entity.id}" no longer declares ${anchor.symbol} in ${anchor.file}`);
       }
     }
