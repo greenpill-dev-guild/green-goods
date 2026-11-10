@@ -80,6 +80,11 @@ export interface GardenCommitmentController {
    * expire it; the app says so, and expiring stays the cockpit's act (DL-110 as amended).
    */
   pastDue: boolean;
+  /**
+   * Someone asked to take it up and a steward's yes is still to come; null until the take-up
+   * requests are read, so no surface claims that none waits before the read answers.
+   */
+  takeUpPending: boolean | null;
   canAskAgain: boolean;
   claimNeedsContext: boolean;
   /**

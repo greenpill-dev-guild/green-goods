@@ -54,6 +54,8 @@ export interface PromiseGroupRowProps {
   title?: string | null;
   /** The last read of the pool failed, so the counts may be out of date. */
   availabilityUnknown?: boolean;
+  /** No copy is left to take up and the untaken ones are past due: the pill says Past due. */
+  pastDue?: boolean;
   onOpen?: () => void;
 }
 
@@ -69,6 +71,7 @@ export function PromiseGroupRow({
   group,
   title,
   availabilityUnknown = false,
+  pastDue = false,
   onOpen,
 }: PromiseGroupRowProps) {
   const intl = useIntl();
@@ -88,10 +91,16 @@ export function PromiseGroupRow({
       data-availability={availabilityUnknown ? "unknown" : "known"}
       direction={sample?.direction}
       title={primary}
-      status={{
-        label: availability,
-        tone: !availabilityUnknown && group.counts.available > 0 ? "info" : "neutral",
-      }}
+      // Past due takes the availability's place, as on a single promise's row (DL-176); counts
+      // that cannot be read say so instead.
+      status={
+        pastDue && !availabilityUnknown
+          ? { label: formatMessage({ id: "app.commitments.state.pastDue" }), tone: "warning" }
+          : {
+              label: availability,
+              tone: !availabilityUnknown && group.counts.available > 0 ? "info" : "neutral",
+            }
+      }
       due={promiseDueDetail(intl, sample?.dueDate)}
       group={{
         size: group.counts.published,
