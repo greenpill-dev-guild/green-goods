@@ -2,7 +2,13 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
-import { decodeFunctionData, encodeAbiParameters, encodeFunctionResult, multicall3Abi } from "viem";
+import {
+  decodeFunctionData,
+  encodeAbiParameters,
+  encodeFunctionResult,
+  multicall3Abi,
+  stringToHex,
+} from "viem";
 import { describe, expect, it, vi } from "vitest";
 import { createConfig, custom, WagmiProvider } from "wagmi";
 import { sepolia } from "wagmi/chains";
@@ -12,7 +18,7 @@ import { createTestQueryClient } from "../../test-utils/query-client";
 const owner = "0x1111111111111111111111111111111111111111";
 const token = "0x2222222222222222222222222222222222222222";
 
-function setup({ failBalance = false } = {}) {
+function setup({ failBalance = false, bytes32Symbol = false } = {}) {
   const request = vi.fn(async ({ method, params }: { method: string; params?: unknown[] }) => {
     if (method === "eth_chainId") return "0xaa36a7";
     if (method !== "eth_call") throw new Error(`Unexpected RPC method: ${method}`);
@@ -23,7 +29,10 @@ function setup({ failBalance = false } = {}) {
         return encodeAbiParameters([{ type: "uint256" }], [1_234_567n]);
       }
       if (data === "0x313ce567") return encodeAbiParameters([{ type: "uint8" }], [6]);
-      if (data === "0x95d89b41") return encodeAbiParameters([{ type: "string" }], ["USDC"]);
+      if (data === "0x95d89b41")
+        return bytes32Symbol
+          ? encodeAbiParameters([{ type: "bytes32" }], [stringToHex("USDC", { size: 32 })])
+          : encodeAbiParameters([{ type: "string" }], ["USDC"]);
       throw new Error(`Unexpected token call: ${data}`);
     };
     if (call.to.toLowerCase() === token) return readToken(call.data);
@@ -80,6 +89,18 @@ describe("useErc20Balance", () => {
     expect(
       request.mock.calls.some(([call]) => JSON.stringify(call.params).includes(owner.slice(2)))
     ).toBe(true);
+    unmount();
+    client.clear();
+  });
+
+  it("preserves bytes32 symbols from older ERC-20 contracts", async () => {
+    const { wrapper, client } = setup({ bytes32Symbol: true });
+    const { result, unmount } = renderHook(() => useErc20Balance({ address: owner, token }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.data?.symbol).toBe("USDC"), { timeout: 5000 });
+    expect(result.current.data?.value).toBe(1_234_567n);
+    expect(result.current.data?.formatted).toBe("1.234567");
     unmount();
     client.clear();
   });
