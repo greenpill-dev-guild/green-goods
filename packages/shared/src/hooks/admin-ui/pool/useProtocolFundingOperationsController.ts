@@ -51,24 +51,21 @@ type FundingAct =
 
 /**
  * What a proposal will change once it runs, against the read it was sent from: a
- * new funding transfer numbered above every transfer that read listed, one transfer
- * moving on from where it stood, or a resend of a transfer that stays dispatched.
+ * new funding transfer numbered above every transfer that read listed, or one
+ * transfer leaving the state it stood in.
  */
 type ProposedEffect =
   | { kind: "new-transfer"; garden: Address; amount: bigint; after: bigint }
-  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null }
-  | { kind: "resend"; disbursementId: bigint };
+  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null };
 
-/** Where one transfer stands, its Celo execution included; null when the read doesn't list it. */
-function transferProgress(read: FundingRead, disbursementId: bigint): string | null {
-  const row = read?.disbursements.find((entry) => entry.disbursementId === disbursementId);
-  if (!row) return null;
-  const key = row.executionKey?.toLowerCase();
-  const execution = key
-    ? read?.executions.find((entry) => entry.executionKey.toLowerCase() === key)
-    : undefined;
-  return [row.state, key ?? "", execution?.status ?? "", execution?.acknowledgmentSent ?? ""].join(
-    ":"
+/**
+ * The state one transfer stands in; null when the read doesn't list it. Its Celo
+ * execution is left out: Celo can update that while a proposal waits, and only a
+ * new state ends any repeat of the act.
+ */
+function transferState(read: FundingRead, disbursementId: bigint): string | null {
+  return (
+    read?.disbursements.find((entry) => entry.disbursementId === disbursementId)?.state ?? null
   );
 }
 
@@ -80,11 +77,10 @@ function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
     );
     return { kind: "new-transfer", garden: act.garden, amount: act.amount, after };
   }
-  if (act.action === "retryCommand") return { kind: "resend", disbursementId: act.disbursementId };
   return {
     kind: "transfer-moves",
     disbursementId: act.disbursementId,
-    from: transferProgress(read, act.disbursementId),
+    from: transferState(read, act.disbursementId),
   };
 }
 
@@ -104,14 +100,8 @@ const PROPOSAL_RECHECK_MS = 30_000;
 function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
   if (!read) return false;
   if (effect.kind === "transfer-moves") {
-    const now = transferProgress(read, effect.disbursementId);
+    const now = transferState(read, effect.disbursementId);
     return now !== null && now !== effect.from;
-  }
-  if (effect.kind === "resend") {
-    // Celo can update a dispatched transfer's execution while the resend waits, so the
-    // read shows only what ends any resend: the transfer leaving DISPATCHED.
-    const row = read.disbursements.find((entry) => entry.disbursementId === effect.disbursementId);
-    return row !== undefined && row.state !== "DISPATCHED";
   }
   const source = read.safe?.toLowerCase();
   return read.disbursements.some(
@@ -126,17 +116,15 @@ function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
 
 /**
  * Whether a proposal is done holding sends, so the same act can't be proposed twice:
- * it reverted, or its own change shows. Once a dispatch, requeue or cancel moves its
- * transfer, the chain refuses the same act on it. A new transfer like the one queued
- * could be another steward's, so it also waits for the wallet to say this proposal
- * ran. A resend leaves its transfer dispatched, so the wallet's word settles it, or
- * the transfer leaving DISPATCHED, after which no resend is offered.
+ * the wallet says it reverted or ran, or its own change shows. A dispatch, resend,
+ * requeue or cancel settles when the wallet says it ran or its transfer leaves the
+ * state it stood in, after which the act is no longer offered. A new transfer like
+ * the one queued could be another steward's, so it needs both.
  */
 function proposalSettled(proposal: Proposal, outcome: ProposalOutcome, read: FundingRead) {
   if (outcome === "reverted") return true;
   const { effect } = proposal;
-  if (effect.kind === "transfer-moves") return effectShown(effect, read);
-  if (effect.kind === "resend") return outcome === "confirmed" || effectShown(effect, read);
+  if (effect.kind === "transfer-moves") return outcome === "confirmed" || effectShown(effect, read);
   return outcome === "confirmed" && effectShown(effect, read);
 }
 

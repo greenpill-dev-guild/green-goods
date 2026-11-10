@@ -249,6 +249,11 @@ export interface PoolFundingSnapshot {
   feeQuotes: PoolFundingFeeQuote[];
   /** The Celo executor's fee ceiling, which each sent transfer's own quote has to fit under. */
   feePolicy: PoolFundingFeePolicy | null;
+  /**
+   * Whether the Celo executor is paused, as read; null when it couldn't be read. It is
+   * all that refuses a resend of a command Celo has already recorded.
+   */
+  executorPaused: boolean | null;
   available: bigint | null;
   shortfall: bigint | null;
   suggestedTopUp: bigint | null;

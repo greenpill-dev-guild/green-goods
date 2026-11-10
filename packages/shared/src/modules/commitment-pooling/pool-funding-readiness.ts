@@ -1,5 +1,6 @@
 import type {
   PoolFundingCalculationInput,
+  PoolFundingDisbursement,
   PoolFundingSnapshot,
   PoolFundingTransferBlock,
   PoolFundingTransferLimit,
@@ -241,6 +242,11 @@ const SAFE_WIDE_UNREAD = [
  * read's own quote for the transfer. Celo debits the amount plus any sender-paid
  * G$ fee, and refuses a fee the receiver would pay or one over its fee policy. No
  * quote, or one Celo would refuse, leaves nothing to show the transfer fits.
+ *
+ * A resend of a command Celo has already recorded is the exception. Celo takes it
+ * down its duplicate-message branch, which skips the transfer preflight and debits
+ * nothing, and sends again only an acknowledgment it still owes. A paused executor
+ * is all that refuses that message, so nothing else holds it.
  */
 export function selectQueuedTransferBlock(
   funding: Omit<TransferFundingRead, "snapshot"> & {
@@ -249,6 +255,8 @@ export function selectQueuedTransferBlock(
       | "balance"
       | "limits"
       | "disbursements"
+      | "executions"
+      | "executorPaused"
       | "feeQuotes"
       | "feePolicy"
       | "settlementUnavailableReasons"
@@ -257,21 +265,25 @@ export function selectQueuedTransferBlock(
   transfer: { disbursementId: bigint; amount: bigint }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
-  // A refusal the current read shows outranks anything it couldn't read. A snapshot
-  // kept from a failed refresh is not current, so it names none.
-  const refusal =
-    snapshot && !funding.isError
-      ? SAFE_WIDE_REFUSALS.find((reason) => snapshot.settlementUnavailableReasons.includes(reason))
-      : undefined;
+  // A snapshot kept from a failed refresh is not current, so it shows nothing.
+  if (!snapshot || funding.isError) return "limits_unread";
+  const row = snapshot.disbursements.find(
+    (entry) => entry.disbursementId === transfer.disbursementId
+  );
+  if (row && celoRecorded(snapshot, row)) {
+    if (snapshot.executorPaused === null) return "executor_unreadable";
+    return snapshot.executorPaused ? "executor_paused" : null;
+  }
+  // A refusal the current read shows outranks anything it couldn't read.
+  const refusal = SAFE_WIDE_REFUSALS.find((reason) =>
+    snapshot.settlementUnavailableReasons.includes(reason)
+  );
   if (refusal) return refusal;
-  if (!snapshot || !selectTransferLimitsRead(funding)) return "limits_unread";
+  if (!selectTransferLimitsRead(funding)) return "limits_unread";
   const unread = SAFE_WIDE_UNREAD.find((reason) =>
     snapshot.settlementUnavailableReasons.includes(reason)
   );
   if (unread) return unread;
-  const row = snapshot.disbursements.find(
-    (entry) => entry.disbursementId === transfer.disbursementId
-  );
   const quote = row && snapshot.feeQuotes.find((entry) => entry.id === row.id);
   if (!quote || quote.fee === null || quote.senderPays === null) return "limits_unread";
   if (quote.fee > 0n && !quote.senderPays) return "limits_unread";
@@ -281,6 +293,17 @@ export function selectQueuedTransferBlock(
     return "fee_policy_breach";
   }
   return selectExceededTransferLimit(funding, transfer.amount, quote.fee);
+}
+
+/** Whether Celo has recorded an execution of the transfer's current command. */
+function celoRecorded(
+  snapshot: Pick<PoolFundingSnapshot, "executions">,
+  row: Pick<PoolFundingDisbursement, "executionKey">
+): boolean {
+  const key = row.executionKey?.toLowerCase();
+  return (
+    Boolean(key) && snapshot.executions.some((entry) => entry.executionKey.toLowerCase() === key)
+  );
 }
 
 /**

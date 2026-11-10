@@ -649,11 +649,16 @@ describe("selectExceededTransferLimit", () => {
     limits = {},
     reasons = [],
     feePolicy = { maxFeeBps: 10_000, maxFeeAmount: 2_000n },
+    recordedOnCelo = false,
+    executorPaused = false,
   }: {
     quote?: { fee: bigint | null; senderPays: boolean | null } | null;
     limits?: Parameters<typeof fundingRead>[0];
     reasons?: readonly SettlementUnavailableReason[];
     feePolicy?: PoolFundingFeePolicy | null;
+    /** Celo has stored a failed execution of the transfer's current command. */
+    recordedOnCelo?: boolean;
+    executorPaused?: boolean | null;
   }) {
     const read = fundingRead({
       cap: 2_000n,
@@ -662,11 +667,18 @@ describe("selectExceededTransferLimit", () => {
       balance: 2_000n,
       ...limits,
     });
+    const executionKey = `0x${"cd".repeat(32)}` as const;
     return {
       ...read,
       snapshot: {
         ...read.snapshot!,
-        disbursements: [{ id: "42161-8", disbursementId: 8n }] as PoolFundingDisbursement[],
+        disbursements: [
+          { id: "42161-8", disbursementId: 8n, executionKey: recordedOnCelo ? executionKey : null },
+        ] as PoolFundingDisbursement[],
+        executions: recordedOnCelo
+          ? [{ executionKey, status: "FAILED", createdAt: 1, acknowledgmentSent: false }]
+          : [],
+        executorPaused,
         feeQuotes: quote ? [{ id: "42161-8", amount: 900n, recipient: null, ...quote }] : [],
         feePolicy,
         settlementUnavailableReasons: [...reasons],
@@ -798,6 +810,30 @@ describe("selectExceededTransferLimit", () => {
     expect(selectQueuedTransferBlock(queuedRead(read), { disbursementId: 8n, amount: 900n })).toBe(
       expected
     );
+  });
+
+  // Celo answers a command it already recorded without a preflight or a debit, so a
+  // resend there only waits on the executor, which refuses every message while paused.
+  it.each([
+    [
+      "a fee over the policy",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n } },
+      null,
+    ],
+    ["an inactive route", { reasons: ["inactive_route"] }, null],
+    ["a paused token", { reasons: ["token_paused"] }, null],
+    ["a limit the amount is over", { limits: { cap: 500n } }, null],
+    ["a limit nobody could read", { limits: { period: null } }, null],
+    ["a paused executor", { executorPaused: true }, "executor_paused"],
+    ["an executor nobody could read", { executorPaused: null }, "executor_unreadable"],
+    ["a snapshot kept from a failed refresh", { limits: { isError: true } }, "limits_unread"],
+  ] as const)("selectQueuedTransferBlock, for a command Celo already recorded: %s", (_name, read, expected) => {
+    expect(
+      selectQueuedTransferBlock(queuedRead({ ...read, recordedOnCelo: true }), {
+        disbursementId: 8n,
+        amount: 900n,
+      })
+    ).toBe(expected);
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {

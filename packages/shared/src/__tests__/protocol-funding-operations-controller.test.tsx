@@ -78,6 +78,7 @@ function snapshot(
     quotedFees: 0n,
     feeQuotes: [{ id: "42161-8", amount: 2n, fee: 0n, senderPays: false, recipient: TARGET_SAFE }],
     feePolicy: { maxFeeBps: 10_000, maxFeeAmount: 100n },
+    executorPaused: false,
     available: 0n,
     shortfall: 0n,
     suggestedTopUp: 0n,
@@ -341,6 +342,39 @@ describe("useProtocolFundingOperationsController", () => {
       await result.current.refetch();
     });
     await waitFor(() => expect(result.current.lastAct?.phase).toBe("submitted"));
+  });
+
+  it("holds a requeue through execution updates until its transfer leaves Failed", async () => {
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const key = `0x${"ef".repeat(32)}` as const;
+    const failed = (acknowledgmentSent: boolean, state: "FAILED" | "QUEUED" = "FAILED") => {
+      const read = transfers({ disbursementId: 8n, state, executionKey: key });
+      read.executions = [{ executionKey: key, status: "FAILED", createdAt: 1, acknowledgmentSent }];
+      return read;
+    };
+    mocks.sourceSnapshot = failed(false);
+    const { result, rerender } = renderController();
+    expect(result.current.rows[0]?.canRequeue).toBe(true);
+
+    await act(async () => {
+      await result.current.requeue(8n);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "requeue", phase: "proposed" });
+
+    // The execution's projection moves while the requeue waits; the transfer is still failed.
+    mocks.sourceSnapshot = failed(true);
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows[0]?.canRequeue).toBe(false);
+
+    mocks.sourceSnapshot = failed(true, "QUEUED");
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("submitted");
   });
 
   it("reopens sends when the Safe runs the proposal and it reverts", async () => {
