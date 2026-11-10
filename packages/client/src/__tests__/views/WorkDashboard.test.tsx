@@ -474,7 +474,7 @@ describe("WorkDashboard", () => {
       commitment: null,
       title,
       savedAt: Date.now(),
-      contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+      contents: { photos: 1, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
       waitingReason: null,
       failed: false,
       sending: false,
@@ -774,7 +774,7 @@ describe("WorkDashboard", () => {
 
     const uploadAll = screen.getByTestId("upload-all");
     expect(uploadAll).toHaveTextContent("Upload all");
-    const actions = screen.getByTestId("work-list-actions");
+    const actions = screen.getByTestId("sheet-list-actions");
     expect(within(actions).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(within(actions).getByTestId("upload-all")).toBe(uploadAll);
     expect(within(actions).queryByRole("combobox", { name: "Pending work filter" })).toBeNull();
@@ -1036,7 +1036,7 @@ describe("WorkDashboard", () => {
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),
-        contents: { photos: 2, videos: 0, voiceNotes: 0, links: 0, words: false },
+        contents: { photos: 2, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
         waitingReason: null,
         failed: false,
         sending: false,
@@ -1081,7 +1081,7 @@ describe("WorkDashboard", () => {
         commitment: null,
         title: "Repair the north fence panel",
         savedAt: Date.now(),
-        contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+        contents: { photos: 1, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
         waitingReason: null,
         failed: false,
         sending: false,

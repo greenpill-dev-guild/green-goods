@@ -8,7 +8,7 @@ import { useIntl } from "react-intl";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatGdollar, shortAddress } from "../poolFundingPresentation";
 import { type TransferAct, TransferReviewDialog } from "../TransferReviewDialog";
-import { displayChip } from "./commitmentSettlementPresentation";
+import { blockerMessage, displayChip } from "./commitmentSettlementPresentation";
 
 type RowAct = TransferAct;
 type OpenDialog = { act: RowAct | "cancel"; disbursementId: bigint } | null;
@@ -159,6 +159,11 @@ export function CommitmentSettlementDisbursements({
                   {chip.label}
                 </StatusBadge>
               </div>
+              {view.retryBlocker ? (
+                <p className="type-meta text-text-soft" data-testid="settlement-resend-block">
+                  {blockerMessage(view.retryBlocker, intl)}
+                </p>
+              ) : null}
               {rowActions(view)}
             </li>
           );

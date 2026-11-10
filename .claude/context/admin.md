@@ -46,27 +46,47 @@ packages/admin/src/
 
 ### Role-Based Access Control
 
-Three user roles:
+`useRole` answers three separate questions, and one account can hold any mix of the answers:
 
-| Role | Access | Source |
-|------|--------|--------|
-| **Deployer (Admin)** | Full access, create gardens | Hardcoded allowlist |
-| **Steward** | Assigned gardens only | Indexer query |
-| **User** | Unauthorized | Default |
+| Role | Who | What it opens | Read it as |
+|------|-----|---------------|------------|
+| **Steward** | An owner or steward of a garden (indexer query) | That garden in the cockpit | `isSteward`, `stewardGardens` |
+| **Garden creator** | The deployment registry's owner, or an account on its allowlist | Create Garden, and nothing else | `isDeployer`, `role === "deployer"` |
+| **Protocol team** | The registry's owner, or an owner or steward of the Green Goods Community Garden | The protocol's surfaces, such as the Actions workspace and the Campaign Cookie Jars card | `isProtocolTeam` |
+
+The code keeps the name `deployer` for a garden creator; copy, docs, and these guides say
+"garden creator", as the Profile does. The list of garden creators is managed from the
+**Garden Creators** card on the Community Garden's Community → Coordination tab, by whoever the
+registry lets manage it: its owner and the Community Garden's owners and stewards. The card
+asks the registry (`useGardenCreators`, which reads `canManageAllowlist`) instead of reading
+`isProtocolTeam`, so it shows for the accounts the contract would accept, as of the registry's
+last answer, which may be cached. With no answer (a registry too old to have the read, or a read
+that fails) the card stays hidden, even from an account that may manage the list. Being a garden
+creator never makes an account part of the protocol team.
+
+Evaluators reach the cockpit through `useEligibleAdminGardens`, not `useRole`. It lists the
+gardens the account owns, stewards, or evaluates from the base list, which holds a chain's newest
+50 gardens; adds owned and stewarded gardens the role query finds beyond it; and adds the
+Community Garden for the protocol team. No role sees every garden.
 
 ### useRole Hook
 
 ```typescript
-import { useRole } from "@green-goods/shared";
+import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
 
 const {
-  role,           // "deployer" | "steward" | "user"
-  isDeployer,     // true if deployer
-  isSteward,     // true if steward OR deployer
-  stewardGardens, // Gardens this user operates
+  role,           // "deployer" | "steward" | "user": the first that applies, in that order
+  isDeployer,     // garden creator: may create gardens
+  isProtocolTeam, // the registry's owner or a Community Garden owner or steward
+  isSteward,      // owns or stewards at least one garden
+  stewardGardens, // the gardens this account owns or stewards
+  gardensError,   // the steward-gardens read failed: offer a retry, not "no access"
   loading,
 } = useRole();
 ```
+
+Test the flag a surface needs, not `role`: a steward who is also a garden creator has
+`role === "deployer"`.
 
 ### Permission Checks (MANDATORY)
 
@@ -85,7 +105,7 @@ if (!permissions.canRemoveMembers(garden)) {
 
 ### Route Guards
 
-`routes/` contains exactly two route components: `CanvasShell.tsx` (the canvas shell route wrapper) and `RequireRole.tsx` (the role guard). `router.tsx` composes them — check it for the live nesting. The legacy `RequireAuth` / `DashboardShell` / `RequireDeployer` / `RequireOperatorOrDeployer` guards are deleted.
+`router.tsx` wraps the in-app routes in `routes/CanvasShell.tsx` and takes the route table from `routes/views.tsx`, which places the role guards: `RequireRole` checks `role` (Create Garden takes `["deployer"]`, so only garden creators open it), `RequireProtocolTeam` checks `isProtocolTeam` (the Actions workspace and the `/cookies` redirects), and `RequireCommunityAccess` sends anyone the Community workspace is closed to back to the Hub. Check `views.tsx` for the live nesting. The legacy `RequireAuth` / `DashboardShell` / `RequireDeployer` / `RequireOperatorOrDeployer` guards are deleted.
 
 ### Toast for All Transactions (MANDATORY)
 
@@ -150,24 +170,30 @@ const { register, handleSubmit, formState } = useForm({
 
 ### Conditional Rendering by Role
 
+Gate a surface on the capability it needs. A protocol surface tests the team and the garden
+together, never the garden-creator allowlist:
+
 ```typescript
-function GardensList() {
-  const { isDeployer, stewardGardens } = useRole();
-  const { data: allGardens } = useQuery({
-    queryKey: ['gardens'],
-    queryFn: getGardens,
-    enabled: isDeployer,  // Only fetch all if admin
-  });
+import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
+import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import type { Address } from "@green-goods/shared/types/domain";
 
-  const gardensToShow = isDeployer ? allGardens : stewardGardens;
+const { isProtocolTeam } = useRole();
+const { isProtocolGarden } = useIsProtocolGarden({
+  chainId: garden.chainId,
+  gardenId: garden.id as Address,
+});
+const showCampaignJars = isProtocolTeam && isProtocolGarden;
+```
 
-  return (
-    <div>
-      {isDeployer && <CreateGardenButton />}
-      {gardensToShow?.map(garden => <GardenCard key={garden.id} garden={garden} />)}
-    </div>
-  );
-}
+The Garden Creators card asks the registry instead, so it renders for exactly the accounts that
+may change the list:
+
+```typescript
+import { useGardenCreators } from "@green-goods/shared/hooks/gardener/useRole";
+
+const creators = useGardenCreators();
+if (!creators.canManage) return null;
 ```
 
 ## Anti-Patterns
@@ -177,13 +203,14 @@ function GardensList() {
 ```typescript
 // ❌ Wrong
 if (address === '0x123...') {
-  return <AdminPanel />;
+  return <CampaignCookieJarPanel />;
 }
 
-// ✅ Correct
-const { isDeployer } = useRole();
-if (isDeployer) {
-  return <AdminPanel />;
+// ✅ Correct: the team, in the protocol garden (see Conditional Rendering by Role)
+const { isProtocolTeam } = useRole();
+const { isProtocolGarden } = useIsProtocolGarden({ chainId, gardenId });
+if (isProtocolTeam && isProtocolGarden) {
+  return <CampaignCookieJarPanel />;
 }
 ```
 
@@ -208,12 +235,12 @@ async function removeSteward(garden, address) {
 ### Never Expose All Data to Stewards
 
 ```typescript
-// ❌ Wrong — showing all gardens to stewards
+// ❌ Wrong — showing every garden
 <GardensList gardens={allGardens} />
 
-// ✅ Correct — filter by permission
-const { isDeployer, stewardGardens } = useRole();
-<GardensList gardens={isDeployer ? allGardens : stewardGardens} />
+// ✅ Correct — only the gardens this account may open
+const { eligibleGardens } = useEligibleAdminGardens();
+<GardensList gardens={eligibleGardens} />
 ```
 
 ### Never Create Hooks in Admin
@@ -236,36 +263,50 @@ import { useRole, useGardenPermissions } from "@green-goods/shared";
 
 ### Role-Based Testing
 
+Mock the `useRole` leaf with the flags the surface reads, and flip them per case.
+`views/Community/components/CommunityPayoutsTab.test.tsx` is the working example:
+
 ```typescript
-describe("Gardens View", () => {
-  it("shows all gardens for deployer", async () => {
-    const { screen } = renderWithProviders(<Gardens />, {
-      userRole: "deployer",
-    });
+const access = vi.hoisted(() => ({ isProtocolTeam: false, isProtocolGarden: false }));
 
-    await waitFor(() => {
-      expect(screen.getByText("All Gardens")).toBeInTheDocument();
-    });
-  });
+vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
+  useRole: () => ({ isProtocolTeam: access.isProtocolTeam, loading: false }),
+}));
 
-  it("shows only assigned gardens for steward", async () => {
-    const { screen } = renderWithProviders(<Gardens />, {
-      userRole: "steward",
-      stewardGardens: ["garden-1"],
-    });
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", () => ({
+  useIsProtocolGarden: () => ({ isProtocolGarden: access.isProtocolGarden }),
+}));
 
-    await waitFor(() => {
-      expect(screen.queryByText("Garden 2")).not.toBeInTheDocument();
-    });
-  });
+const campaignJars = () => screen.queryByRole("region", { name: "Campaign Cookie Jars" });
+
+it("holds the campaign cookie jars for the team in the protocol garden", () => {
+  Object.assign(access, { isProtocolTeam: true, isProtocolGarden: true });
+  renderPayouts();
+
+  expect(campaignJars()).toBeInTheDocument();
+});
+
+it.each([
+  { isProtocolTeam: true, isProtocolGarden: false },
+  { isProtocolTeam: false, isProtocolGarden: true },
+])("shows no campaign cookie jars elsewhere (%o)", (who) => {
+  Object.assign(access, who);
+  renderPayouts();
+
+  expect(campaignJars()).not.toBeInTheDocument();
 });
 ```
+
+The Garden Creators card takes its `GardenCreators` value as a prop, so its tests pass
+`canManage` and the list directly (`GardenCreatorsCard.test.tsx`).
 
 ## Reference Files
 
 - Role hooks: `@green-goods/shared` → `hooks/gardener/useRole.ts`
+- Garden creators: `@green-goods/shared` → `hooks/blockchain/useDeploymentRegistry.ts` (`useGardenCreators`); the card is `views/Community/components/GardenCreatorsCard.tsx`
 - Permission hooks: `@green-goods/shared` → `hooks/garden/useGardenPermissions.ts`
-- Route guards: `routes/CanvasShell.tsx`, `routes/RequireRole.tsx`
+- Garden scope: `@green-goods/shared` → `hooks/garden/useEligibleAdminGardens.ts`
+- Route guards: `routes/views.tsx` (the route table), `routes/RequireRole.tsx`, `routes/RequireProtocolTeam.tsx`, `routes/RequireCommunityAccess.tsx`
 - Toast action: `@green-goods/shared` → `hooks/app/useToastAction.ts`
 
 ## Documentation References (on-demand)

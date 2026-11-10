@@ -1,4 +1,4 @@
-// Command Surface: the garden's sections as tall sheets over Home (DL-128).
+// Command Surface: the garden's sections as full sheets over Home (DL-128, DL-164).
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { type GardenAccess, GardenTab } from "@green-goods/shared/hooks/garden/useGardenTabs";
@@ -38,7 +38,8 @@ export interface GardenSheetsProps {
 
 /**
  * The sheets Home's About section owns (DL-128): the garden's Work, Insights or Gardeners as
- * one `tall` sheet with the section's content under the shared header and the garden named
+ * one `full` sheet, the height of the other workspaces over Home (DL-164), with the section's
+ * content under the shared header and the garden named
  * beneath the title, plus the garden page's Endowment and governance sheets. The sections are
  * the garden page's own (`GardenSection`), not copies: the Work sheet lists pending work first
  * as the Work tab does and sends a work's page back to Home, the Insights sheet opens with the
@@ -62,7 +63,7 @@ export function GardenSheets({ garden, access, endowment, governance }: GardenSh
       <AppSheet
         isOpen={gardenSheet !== null}
         onClose={closeGardenSheet}
-        size="tall"
+        size="full"
         header={{
           title: formatMessage({ id: SECTION_TITLE_IDS[shown] }),
           description: formatMessage({ id: "app.common.inGarden" }, { garden: gardenName }),

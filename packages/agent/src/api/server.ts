@@ -235,6 +235,8 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 export async function startServer(app: AgentServer, config: ServerConfig): Promise<void> {
   try {
     const server = Bun.serve({
+      // Public impact snapshots have a 20-second budget; allow time to return their fallback.
+      idleTimeout: 30,
       port: config.port,
       hostname: config.host || "0.0.0.0",
       fetch(request, bunServer) {

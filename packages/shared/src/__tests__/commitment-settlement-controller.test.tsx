@@ -198,6 +198,10 @@ describe("useCommitmentSettlementController", () => {
       feeQuotes: [
         { id: "42161-40", amount: 250n * G, fee: 0n, senderPays: false, recipient: PROVIDER_SAFE },
       ],
+      feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
+      executorPaused: false,
+      executions: [],
+      settlementUnavailableReasons: [],
     }) as unknown as PoolFundingSnapshot;
 
   it("holds a queued payout until the paying Safe's limits and the transfer's fee are read", async () => {

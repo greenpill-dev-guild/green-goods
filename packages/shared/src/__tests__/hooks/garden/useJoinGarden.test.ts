@@ -247,6 +247,33 @@ describe("usePendingJoinsVersion at a join's limit", () => {
     addPendingJoin(gardenId, user);
     expect(isGardenMember(user, [], [], gardenId)).toBe(true);
   });
+
+  // A welcome lands from a status check and from an effect, so a refused write must not throw
+  // there, and the join the chain holds keeps counting in this tab until a write lands.
+  it("keeps counting a join storage refused to save, until a write lands", () => {
+    const gardenId = "garden-refused-save";
+    let stored = "{}";
+    let refuses = true;
+    vi.stubGlobal("localStorage", {
+      getItem: () => stored,
+      setItem: (_key: string, value: string) => {
+        if (refuses) throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+        stored = value;
+      },
+    });
+
+    expect(() => addPendingJoin(gardenId, user)).not.toThrow();
+    expect(isGardenMember(user, [], [], gardenId)).toBe(true);
+    expect(pendingJoinGardenIds(user).has(gardenId)).toBe(true);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Could not save a pending join",
+      expect.objectContaining({ source: "addPendingJoin" })
+    );
+
+    refuses = false;
+    addPendingJoin("garden-next", user);
+    expect(Object.keys(JSON.parse(stored)).sort()).toEqual(["garden-next", gardenId]);
+  });
 });
 
 describe("forgetListedPendingJoins", () => {

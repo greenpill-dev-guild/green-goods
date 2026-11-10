@@ -339,7 +339,7 @@ describe("GardenPool", () => {
 
     const row = screen.getByRole("button", { name: /A group of 10 separate promises/ });
     // What is still available is the row's one pill; the rest of the counts are a detail.
-    expect(row).toHaveTextContent(/4 available.*3 in progress, 3 kept/);
+    expect(row).toHaveTextContent(/4 available.*10 promises, 3 in progress, 3 kept/);
     expect(screen.queryAllByRole("progressbar")).toHaveLength(0);
     await user.click(row);
     // The link names its first copy, so a reload still finds this group if its id ever splits.
@@ -486,6 +486,31 @@ describe("GardenPool", () => {
     expect(mockRetryAndSend).toHaveBeenCalledWith("job-1");
     expect(mockFlush).not.toHaveBeenCalled();
 
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
+  });
+
+  it.each([
+    ["action-closed", "One of its actions closed before it was sent"],
+    ["cycle-ended", "Its season or campaign ended before it was sent"],
+  ])("says why the queue refused a promise (%s), and offers only Discard", async (refusal, why) => {
+    const user = userEvent.setup();
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 1,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: false,
+      pendingCreates: [creation({ failed: true, refusal })],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Didn't send")).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(why))).toBeInTheDocument();
+    // Sending it again cannot help, so nothing offers to.
+    expect(screen.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
   });

@@ -3,10 +3,11 @@ import { EditorialHeading, EditorialLede, EditorialLinkArrow } from "@/component
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { publicCuration } from "@/content/publicCuration";
+import { CONTACT_ANCHORS } from "./contactAnchors";
 
 const contactRequests = [
   {
-    anchor: "account-deletion",
+    anchor: CONTACT_ANCHORS.deletion,
     subject: "Delete my Green Goods account",
     title: {
       id: "public.contact.deletion.title",
@@ -23,7 +24,7 @@ const contactRequests = [
     },
   },
   {
-    anchor: "report-a-concern",
+    anchor: CONTACT_ANCHORS.report,
     subject: "Report a Green Goods concern",
     title: {
       id: "public.contact.report.title",
@@ -80,12 +81,22 @@ export default function Contact() {
                 "Green Goods operates this service. Afolabi and Matt monitor this mailbox. Email contact@greengoods.app for human support with the app, messaging reports, partnerships and privacy. Tell us what you need; never send passwords, private keys or recovery phrases.",
             })}
           </EditorialLede>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-x-8 gap-y-4">
             <EditorialLinkArrow
               className="border-primary-on-surface/35 text-primary-on-surface hover:border-primary-on-surface hover:text-primary-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-on-surface"
               to="mailto:contact@greengoods.app"
             >
               contact@greengoods.app
+            </EditorialLinkArrow>
+            {/* The site's menus leave Strategy out; partners reach it from here or a shared link. */}
+            <EditorialLinkArrow
+              className="border-primary-on-surface/35 text-primary-on-surface hover:border-primary-on-surface hover:text-primary-on-surface focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-on-surface"
+              to="/strategy"
+            >
+              {formatMessage({
+                id: "public.contact.strategy.link",
+                defaultMessage: "Read Our Strategy",
+              })}
             </EditorialLinkArrow>
           </div>
           <div className="mt-10 border-t border-stroke-soft-200 pt-7">

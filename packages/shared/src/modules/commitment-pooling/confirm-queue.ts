@@ -1,8 +1,14 @@
 import type { Address } from "../../types/domain";
 import type { CommitmentReadModel } from "./types";
 
+/**
+ * How the reader acts on a row: confirming for the garden (`ORDINARY`), as
+ * themselves on a promise in a pool they steward (`OWN`), by a reasoned
+ * step-in, or as the pool's steward resolving a dispute.
+ */
 export type ConfirmQueueEligibility =
   | "ORDINARY"
+  | "OWN"
   | "POOL_FALLBACK"
   | "PROTOCOL_FALLBACK"
   | "DISPUTED";
@@ -31,6 +37,12 @@ export interface ConfirmQueueProjectionInput {
       canDispute?: boolean;
     }>;
   }>;
+  /** The reader's own confirmations, each in the pool of the garden it names. */
+  own?: ReadonlyArray<{
+    commitment: CommitmentReadModel;
+    garden: Address;
+    gardenName: string;
+  }>;
   fallback?: ReadonlyArray<{
     commitment: CommitmentReadModel;
     path: "POOL_FALLBACK" | "PROTOCOL_FALLBACK";
@@ -45,6 +57,16 @@ export interface ConfirmQueueProjectionInput {
     garden: Address;
     gardenName: string;
   }>;
+}
+
+/** The Confirm tab's badge: every row the queue lists, of every kind. */
+export function countConfirmQueue(toConfirm: ConfirmQueueProjectionInput): number {
+  return (
+    toConfirm.groups.reduce((sum, group) => sum + group.rows.length, 0) +
+    (toConfirm.own?.length ?? 0) +
+    (toConfirm.fallback?.length ?? 0) +
+    (toConfirm.disputed?.length ?? 0)
+  );
 }
 
 type MetadataTitleMap = ReadonlyMap<string, { title?: string | null }>;
@@ -71,6 +93,17 @@ export function selectConfirmQueueRows(input: {
       canDispute: row.canDispute,
     }))
   );
+  // The pool is the reader's own garden's, so its steward may dispute it there.
+  const own = (toConfirm.own ?? []).map((row) => ({
+    commitment: row.commitment,
+    garden: row.garden,
+    gardenName: row.gardenName,
+    eligibility: "OWN" as const,
+    title: titleOf(row.commitment),
+    poolGarden: row.garden,
+    poolGardenName: row.gardenName,
+    canDispute: true,
+  }));
   const fallback = (toConfirm.fallback ?? []).map((row) => ({
     commitment: row.commitment,
     garden: row.garden,
@@ -92,7 +125,7 @@ export function selectConfirmQueueRows(input: {
     canDispute: true,
   }));
   const included = include ? new Set(include) : null;
-  const rows = [...ordinary, ...fallback, ...disputed].filter(
+  const rows = [...ordinary, ...own, ...fallback, ...disputed].filter(
     (row) => !included || included.has(row.eligibility)
   );
   return rows.filter((row) => matchesConfirmSearch(row, search));

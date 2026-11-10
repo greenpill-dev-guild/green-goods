@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { WORK_DOCUMENT_ACCEPT } from "@green-goods/shared/modules/work/media-processing";
 import { useIntl } from "react-intl";
 import type { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 
@@ -33,7 +34,11 @@ export function DraftStatus({
             <input
               type="file"
               className="sr-only"
-              accept={attachment.kind === "audio" ? "audio/*" : "image/*,video/mp4,video/webm"}
+              accept={
+                attachment.kind === "audio"
+                  ? "audio/*"
+                  : `image/*,video/mp4,video/webm,${WORK_DOCUMENT_ACCEPT}`
+              }
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
                 event.currentTarget.value = "";

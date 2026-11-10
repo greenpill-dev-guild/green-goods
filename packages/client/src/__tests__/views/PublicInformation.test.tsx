@@ -8,6 +8,7 @@ import pt from "@green-goods/shared/i18n/pt.json";
 import Strategy from "../../views/Public/Strategy";
 import Privacy from "../../views/Public/Privacy";
 import Contact from "../../views/Public/Contact";
+import Terms from "../../views/Public/Terms";
 
 const CATALOGS = { en, es, pt };
 type Locale = keyof typeof CATALOGS;
@@ -30,6 +31,7 @@ describe("public information pages", () => {
     [Strategy, "Growing with care"],
     [Privacy, "Your information, with care"],
     [Contact, "A person to talk to"],
+    [Terms, "Share work with care"],
   ] as const)("renders English copy while the async catalogue is loading: %s", (Page, title) => {
     const onError = vi.fn();
     render(
@@ -40,7 +42,10 @@ describe("public information pages", () => {
       </IntlProvider>
     );
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/public\.(strategy|privacy|contact)\./);
+    // Terms reuses footer and Contact messages for its kicker and closing links.
+    expect(document.body.textContent).not.toMatch(
+      /public\.(strategy|privacy|contact|terms|footer)\./
+    );
     expect(onError).not.toHaveBeenCalled();
   });
   it("opens the full privacy policy from the human support page", () => {
@@ -136,9 +141,14 @@ describe("public information pages", () => {
     expect(document.body.textContent).toMatch(/30/);
     expect(document.body.textContent).toMatch(/IPFS/);
     expect(document.body.textContent).toMatch(/Sentry/);
-    expect(screen.getByRole("link", { name: "contact@greengoods.app" })).toHaveAttribute(
+    // The policy ends on one act: an email to the support mailbox with its subject filled in.
+    const policy = screen.getByRole("article");
+    expect(within(policy).getAllByRole("link")).toHaveLength(1);
+    expect(
+      within(policy).getByRole("link", { name: messages["public.privacy.request"] })
+    ).toHaveAttribute(
       "href",
-      "mailto:contact@greengoods.app"
+      "mailto:contact@greengoods.app?subject=Green%20Goods%20privacy%20request"
     );
   });
 
@@ -146,7 +156,7 @@ describe("public information pages", () => {
     "en",
     "es",
     "pt",
-  ] as const)("offers a person, the support mailbox and the privacy policy in %s", (locale) => {
+  ] as const)("offers a person, the support mailbox, the strategy and the privacy policy in %s", (locale) => {
     const messages = renderPage(Contact, locale);
     expect(
       screen.getByRole("heading", { level: 1, name: messages["public.contact.title"] })
@@ -158,6 +168,10 @@ describe("public information pages", () => {
       "href",
       "mailto:contact@greengoods.app"
     );
+    // The site's menus leave Strategy out, so Contact links to it for partners.
+    expect(
+      screen.getByRole("link", { name: messages["public.contact.strategy.link"] })
+    ).toHaveAttribute("href", "/strategy");
     expect(
       screen.getByRole("link", { name: messages["public.contact.privacy.link"] })
     ).toHaveAttribute("href", "/privacy");

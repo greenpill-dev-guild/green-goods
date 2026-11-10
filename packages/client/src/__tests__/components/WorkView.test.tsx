@@ -189,6 +189,24 @@ describe("WorkView", () => {
       expect(players[0]).toHaveAttribute("data-src", "https://gateway.test/ipfs/bafyabc123");
       expect(players[1]).toHaveAttribute("data-src", "https://gateway.test/ipfs/bafydef456");
     });
+
+    it("opens a document online, and offline only from a copy kept on this device", () => {
+      const documents = [
+        { cid: "bafkreicertificate", type: "application/pdf", name: "Certificate.pdf", size: 0 },
+      ];
+      const { unmount } = render(createElement(WorkView, { ...defaultProps, documents }));
+      expect(screen.getByRole("link", { name: /Certificate\.pdf/ })).toHaveAttribute(
+        "href",
+        "https://gateway.test/ipfs/bafkreicertificate"
+      );
+      unmount();
+
+      offlineState.online = false;
+      render(createElement(WorkView, { ...defaultProps, documents }));
+      expect(screen.queryByRole("link", { name: /Certificate\.pdf/ })).not.toBeInTheDocument();
+      expect(screen.getByText("Certificate.pdf")).toBeInTheDocument();
+      expect(screen.getByText("Not downloaded for offline use")).toBeInTheDocument();
+    });
   });
 
   describe("details", () => {

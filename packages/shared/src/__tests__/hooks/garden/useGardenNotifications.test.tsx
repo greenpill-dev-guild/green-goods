@@ -37,12 +37,18 @@ type ReadCall = { input: Record<string, unknown>; options: { enabled?: boolean }
 const reads = vi.hoisted(() => ({
   account: null as string | null,
   gardens: [] as Garden[],
+  /** Whether the garden list's read fails, and how many times it was read. */
+  gardensFailed: false,
+  gardenReads: 0,
   works: [] as Work[],
   worksFailed: false,
   worksPartial: false,
   activity: { rows: [] as EASWorkListRow[], complete: true },
   /** Accounts the chain's steward read answers yes for, as the claim panel reads it. */
   chainStewards: [] as string[],
+  /** Whether the chain's steward read failed; asking it again answers. */
+  stewardRoleFailed: false,
+  stewardRoleFetching: false,
   pools: [] as CommitmentPoolRecord[],
   commitments: [] as CommitmentReadModel[],
   takeUps: [] as PoolClaimRequestRow[],
@@ -53,14 +59,23 @@ const reads = vi.hoisted(() => ({
   /** Whether this browser holds a count grant for the garden. */
   joinRequestsHasGrant: true,
   joinRequestsFailed: false,
+  /** Whether the count grant's read is running. */
+  joinRequestsFetching: false,
   joinRequestReads: [] as Array<{ enabled?: boolean; kind?: string }>,
+  /** The sources a refresh read again, in the order it asked. */
+  readAgain: [] as string[],
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => reads.account,
 }));
 vi.mock("../../../modules/data/greengoods", () => ({
-  getGardens: () => Promise.resolve(reads.gardens),
+  getGardens: () => {
+    reads.gardenReads += 1;
+    return reads.gardensFailed
+      ? Promise.reject(new Error("The garden list could not be read"))
+      : Promise.resolve(reads.gardens);
+  },
   getActions: vi.fn(),
   getGardeners: vi.fn(),
 }));
@@ -72,6 +87,7 @@ vi.mock("../../../hooks/work/useWorks", () => ({
     isError: reads.worksFailed,
     refreshWarning: reads.worksPartial,
     hasUnknownStatuses: false,
+    refetch: () => reads.readAgain.push("works"),
   }),
 }));
 // The week's activity, however far back each work began.
@@ -80,9 +96,17 @@ vi.mock("../../../modules/work/work-list", () => ({
 }));
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: (_garden: string, user: string | undefined, role: string) => ({
-    hasRole: role === "steward" && reads.chainStewards.includes(String(user).toLowerCase()),
+    hasRole:
+      !reads.stewardRoleFailed &&
+      role === "steward" &&
+      reads.chainStewards.includes(String(user).toLowerCase()),
     isLoading: false,
-    error: null,
+    error: reads.stewardRoleFailed ? new Error("The steward role could not be read") : null,
+    isFetching: reads.stewardRoleFetching,
+    refetch: async () => {
+      reads.readAgain.push("stewardRole");
+      reads.stewardRoleFailed = false;
+    },
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
@@ -90,6 +114,8 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
     pools: reads.pools.filter((pool) => pool.garden === input.garden),
     isLoading: false,
     isError: false,
+    isEnabled: true,
+    refetch: async () => reads.readAgain.push("pools"),
   }),
   // A disabled query still answers from the cache. A read with no pool id has the same key as a
   // chain-wide one, so these answer whatever was cached, enabled or not.
@@ -100,6 +126,8 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
       commitments: reads.commitments,
       isLoading: false,
       isError: false,
+      isEnabled: options.enabled !== false,
+      refetch: async () => reads.readAgain.push("commitments"),
     };
   },
 }));
@@ -113,14 +141,24 @@ vi.mock("../../../hooks/garden/useJoinRequestCount", () => ({
       hasGrant: reads.joinRequestsHasGrant,
       isLoading: false,
       isError: enabled && reads.joinRequestsFailed,
-      refetch: () => {},
+      isFetching: enabled && reads.joinRequestsFetching,
+      refetch: () => {
+        if (enabled) reads.readAgain.push("joinRequests");
+      },
     };
   },
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
   usePoolClaimRequests: (input: Record<string, unknown>, options: { enabled?: boolean } = {}) => {
     reads.takeUpReads.push({ input, options });
-    return { data: reads.takeUps, rows: reads.takeUps, isLoading: false, isError: false };
+    return {
+      data: reads.takeUps,
+      rows: reads.takeUps,
+      isLoading: false,
+      isError: false,
+      isEnabled: options.enabled !== false,
+      refetch: async () => reads.readAgain.push("takeUps"),
+    };
   },
 }));
 
@@ -202,15 +240,21 @@ beforeEach(() => {
   localStorage.clear();
   useGardenNotificationsSeenStore.setState({ seenByScope: {}, joinRequestsByScope: {} });
   reads.account = ALICE;
+  reads.gardensFailed = false;
+  reads.gardenReads = 0;
+  reads.stewardRoleFailed = false;
+  reads.stewardRoleFetching = false;
   reads.joinRequestsWaiting = undefined;
   reads.joinRequestsHasGrant = true;
   reads.joinRequestsFailed = false;
+  reads.joinRequestsFetching = false;
   reads.joinRequestReads = [];
   reads.worksFailed = false;
   reads.worksPartial = false;
   reads.activity = { rows: [], complete: true };
   reads.commitmentReads = [];
   reads.takeUpReads = [];
+  reads.readAgain = [];
 });
 
 afterEach(() => {
@@ -280,6 +324,28 @@ describe("useGardenNotifications", () => {
     );
     const kinds = result.current.notifications.map(({ kind }) => kind);
     expect(kinds).toEqual(expect.arrayContaining(["workApproved", "promiseTakenUp"]));
+  });
+
+  it("reads again only the sources that are on: with no pool known, no promise or take-up read (DL-168)", async () => {
+    seedGarden({ stewards: [ALICE] });
+    reads.pools = [];
+    const { result, rerender } = renderNotifications();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.refresh());
+    // Without a pool id the take-up read would cover every request on the chain.
+    expect(reads.readAgain).toEqual(["works", "joinRequests", "pools"]);
+    // Refresh shows progress until the last source answers, the join-request count included.
+    reads.joinRequestsFetching = true;
+    rerender({ id: GARDEN });
+    expect(result.current.isFetching).toBe(true);
+
+    reads.readAgain = [];
+    reads.pools = [poolFixture({ garden: GARDEN })];
+    const pooled = renderNotifications();
+    await waitFor(() => expect(pooled.result.current.isLoading).toBe(false));
+    act(() => pooled.result.current.refresh());
+    expect(reads.readAgain).toEqual(["works", "joinRequests", "pools", "commitments", "takeUps"]);
   });
 
   it("lists no promises until it knows the garden's pool, whatever the cache holds", async () => {
@@ -442,6 +508,38 @@ describe("useGardenNotifications", () => {
     await waitFor(() =>
       expect(result.current.notifications.map(({ kind }) => kind)).toContain("promiseTakenUp")
     );
+  });
+
+  it("asks a failed roster or steward-role read again on refresh, so the steward events come back", async () => {
+    seedGarden({ stewards: [ALICE] });
+    reads.joinRequestsWaiting = 2;
+    reads.gardensFailed = true;
+    reads.stewardRoleFailed = true;
+    const { result, rerender } = renderNotifications();
+    const stewardKinds = () =>
+      result.current.notifications
+        .map(({ kind }) => kind)
+        .filter((kind) => STEWARD_KINDS.includes(kind));
+
+    // Once the garden list's read has failed too, the bell lists no steward event and says so.
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isError).toBe(true);
+    expect(stewardKinds()).toEqual([]);
+
+    // The garden list answers again; Refresh asks both role reads once more.
+    reads.gardensFailed = false;
+    const gardenReads = reads.gardenReads;
+    act(() => result.current.refresh());
+    expect(reads.gardenReads).toBe(gardenReads + 1);
+    expect(reads.readAgain).toContain("stewardRole");
+    await waitFor(() => expect(stewardKinds()).toEqual(STEWARD_KINDS));
+    expect(result.current.isError).toBe(false);
+
+    // Refresh shows progress while a role read runs, as it does for the events' own reads.
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    reads.stewardRoleFetching = true;
+    rerender({ id: GARDEN });
+    expect(result.current.isFetching).toBe(true);
   });
 
   it("lists the week's events in a garden with more works than its page holds", async () => {

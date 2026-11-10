@@ -5722,10 +5722,10 @@
       "priority": "P0",
       "kind": "journey",
       "area": "Hub · Confirm",
-      "scenario": "Hub → Confirm lists only what the garden in the header confirms",
+      "scenario": "Hub → Confirm lists only what the garden in the header confirms, or what waits on you in its pool",
       "preconditions": [
         "Steward of two gardens",
-        "At least one commitment waiting for the first garden's confirmation, and no ordinary, garden-fallback, or disputed row eligible for the second garden"
+        "At least one commitment waiting for the first garden's confirmation; for the second garden, no ordinary, garden-fallback, or disputed row, and no promise in its pool waiting on your own confirmation"
       ],
       "steps": [
         "Select the first garden with the header chip and open Hub → Confirm (/hub/confirm)",
@@ -5790,6 +5790,32 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-200",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hub · Confirm",
+      "scenario": "A promise waiting on your own confirmation is listed in Hub → Confirm and confirmed there",
+      "preconditions": [
+        "Steward of the garden selected in the header",
+        "In that garden's pool, a promise you asked for that another member took up, added proof to, and sent for confirmation; you are not on its team"
+      ],
+      "steps": [
+        "Read the count on the Confirm tab, then open Hub → Confirm (/hub/confirm) and find the promise's row",
+        "Press Confirm Kept… on the row and read the review",
+        "Press Confirm Kept and confirm in the wallet",
+        "Read Hub → Confirm and the promise afterwards"
+      ],
+      "expected": "The row reads Yours to confirm and the Confirm tab's count includes it; Confirm Kept… opens the same review as a garden's row; confirming is one transaction from your account; the promise then reads Kept and leaves the queue",
+      "evidence": "Screenshots of the row and the tab count, the review, and the promise afterwards",
+      "role": "steward",
+      "tags": ["commitment", "confirm", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-1204"
     },
     {
       "id": "ADM-042",
@@ -6460,10 +6486,10 @@
       ],
       "steps": [
         "Open Community, then Members, and read Total members in the rail",
-        "Count the people in the directory, then open Manage Members and read its count and rows",
+        "Count the people in the directory, then open Manage Roles and read its count and rows",
         "At phone width, read the role filter"
       ],
-      "expected": "Total members, the directory, and Manage Members agree on the number of people; a member with several roles is one row with a chip per role; role counts appear only in the role filter, which is a select at phone width",
+      "expected": "Total members, the directory, and Manage Roles agree on the number of people; a member with several roles is one row with a check chip per role; role counts appear only in the Members rail, and the role filter, which is a select at phone width, shows none",
       "evidence": "Screenshots of the rail, the dialog, and the phone filter",
       "role": "steward",
       "tags": ["garden"],
@@ -8570,12 +8596,12 @@
       "scenario": "Remove one role from a member, with confirmation",
       "preconditions": ["Steward with manage rights", "A member who is not a steward"],
       "steps": [
-        "Open Manage Members and find a member who holds two roles",
-        "Press the remove on one of their role chips and cancel",
-        "Press it again and confirm"
+        "Open Manage Roles and find a member who holds two roles",
+        "Check one of their role chips, press Review Removal, then press Back",
+        "Press Review Removal again, then the red Remove 1 Role"
       ],
-      "expected": "The member has one row with a chip per role, each with its own remove named for the role ('Remove Gardener'); removal asks for confirmation naming the member and the role; Cancel changes nothing; Confirm sends one transaction and only that role leaves the row, which stays listed with the member's other role",
-      "evidence": "Screenshots of the confirmation and the directory afterwards",
+      "expected": "The member has one row with a check chip per role, each named for the role and the member ('Remove Gardener from …'); Review names the garden under its title, the role going and the roles the member keeps, and asks for one signature; Back returns with the chip still checked and nothing sent; Remove 1 Role sends one transaction and only that role leaves the row, which stays listed with the member's other role",
+      "evidence": "Screenshots of the review and the directory afterwards",
       "role": "steward",
       "tags": ["members", "tx"],
       "requiresProduction": false,

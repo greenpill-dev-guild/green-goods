@@ -2,6 +2,7 @@ import { useOfflineAssetAvailability } from "@green-goods/shared/hooks/offline/u
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { PublishedWorkDocument } from "@green-goods/shared/modules/work/media-processing";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
@@ -11,6 +12,7 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import { gardenMemberCount } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
 import { FormCard, FormInfo } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
+import { WorkDocumentRow } from "./WorkDocumentRow";
 
 export type WorkViewAction = {
   id: string;
@@ -33,6 +35,8 @@ type WorkViewProps = {
   mediaTypes?: string[];
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
+  /** Documents the work's metadata lists; each opens from its gateway address. */
+  documents?: PublishedWorkDocument[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
   /**
    * What follows the heading card: why queued work is still on this phone
@@ -114,6 +118,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   media = [],
   mediaTypes = [],
   audioNoteCids,
+  documents = [],
   details,
   afterHeading = null,
   afterDetails = null,
@@ -133,7 +138,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
     /^(blob:|data:|https?:)/.test(url) ? url : resolveIPFSUrl(url)
   );
   const audioUrls = (audioNoteCids ?? []).map((cid) => resolveIPFSUrl(cid));
-  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls]);
+  const documentUrls = documents.map((document) => resolveIPFSUrl(document.cid));
+  const offlineAssets = useOfflineAssetAvailability([...mediaUrls, ...audioUrls, ...documentUrls]);
   const missingOriginals =
     !isOnline && [...mediaUrls, ...audioUrls].some((url) => !offlineAssets[url]);
 
@@ -242,6 +248,38 @@ export const WorkView: React.FC<WorkViewProps> = ({
                 </p>
               )
             )}
+          </div>
+        </>
+      )}
+
+      {documents.length > 0 && (
+        <>
+          <h6 className="text-base font-semibold">
+            {intl.formatMessage({ id: "app.work.documents" })}
+          </h6>
+          <div className="flex flex-col gap-2">
+            {documents.map((document, index) => {
+              // Offline, a document opens only from a copy kept on this device, as a voice note plays.
+              const available = isOnline || offlineAssets[documentUrls[index]];
+              return (
+                <div key={`${index}:${document.cid}`} className="flex flex-col gap-1">
+                  <WorkDocumentRow
+                    name={document.name}
+                    type={document.type}
+                    size={document.size}
+                    href={available ? documentUrls[index] : undefined}
+                  />
+                  {available ? null : (
+                    <p className="text-sm text-text-sub-600">
+                      {intl.formatMessage({
+                        id: "app.offline.attachmentUnavailable",
+                        defaultMessage: "Not downloaded for offline use",
+                      })}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

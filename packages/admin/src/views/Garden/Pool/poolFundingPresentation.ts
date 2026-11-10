@@ -72,6 +72,14 @@ export function readinessReasonMessage(
   reason: SettlementUnavailableReason,
   intl: IntlShape
 ): string {
+  return intl.formatMessage(readinessReasonDescriptor(reason));
+}
+
+/** The words for a settlement readiness reason, wherever a view names one. */
+export function readinessReasonDescriptor(reason: SettlementUnavailableReason): {
+  id: string;
+  defaultMessage: string;
+} {
   const messages: Record<SettlementUnavailableReason, { id: string; defaultMessage: string }> = {
     missing_account: {
       id: "cockpit.garden.pool.funding.reason.missingAccount",
@@ -202,5 +210,5 @@ export function readinessReasonMessage(
       defaultMessage: "The Celo acknowledgment reserve status could not be read.",
     },
   };
-  return intl.formatMessage(messages[reason]);
+  return messages[reason];
 }

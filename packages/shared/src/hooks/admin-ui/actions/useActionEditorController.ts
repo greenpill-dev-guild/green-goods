@@ -19,10 +19,7 @@ import {
   type ActionEditChange,
   actionEditArgs,
 } from "../../../modules/action/action-edit";
-import {
-  fingerprintActionArguments,
-  type ActionOperationResult,
-} from "../../../modules/action/action-operation-command";
+import { fingerprintActionArguments } from "../../../modules/action/action-operation-command";
 import { TransactionConfirmationPendingError } from "../../../modules/transactions/types";
 import { useActionEditBatch } from "../../action/useActionEditBatch";
 import { useActionOperations } from "../../action/useActionOperations";
@@ -144,6 +141,10 @@ export function useActionEditorController() {
   useAsyncEffect(
     async ({ isMounted }) => {
       if (!action) return;
+      if (restoredDraftPathRef.current === draftPath && saveAttempt.current?.scope === editScope) {
+        setIsLoadingInstructions(false);
+        return;
+      }
       const fallbackConfig = cloneInstructionConfig(
         instructionTemplates[action.slug] ?? defaultTemplate
       );
@@ -220,7 +221,7 @@ export function useActionEditorController() {
         }
       }
     },
-    [action?.id, action?.instructions, draftPath]
+    [action?.id, action?.instructions, draftPath, editScope]
   );
 
   useEffect(() => {
@@ -320,11 +321,12 @@ export function useActionEditorController() {
   /** Whether this save attempt has seen this exact write land. */
   const landed = (change: ActionEditChange) =>
     completedWrites.current.get(ACTION_EDIT_WRITES[change.field]) === fingerprintOf(change);
-  const markLanded = (changes: readonly ActionEditChange[]) => {
+  const markLanded = (changes: readonly ActionEditChange[], data?: EditActionFormData) => {
     for (const change of changes) {
       const fingerprint = fingerprintOf(change);
       if (fingerprint) completedWrites.current.set(ACTION_EDIT_WRITES[change.field], fingerprint);
     }
+    persistAttempt(data);
   };
 
   /** Whether everything the form holds has landed in this save attempt. */
@@ -349,16 +351,15 @@ export function useActionEditorController() {
   };
 
   const sendOne = (change: ActionEditChange) => {
-    const target = actionUID!;
     switch (change.field) {
       case "title":
-        return operations.updateActionTitle(target, change.value);
+        return operations.updateActionTitle(actionUID!, change.value);
       case "startTime":
-        return operations.updateActionStartTime(target, change.value);
+        return operations.updateActionStartTime(actionUID!, change.value);
       case "endTime":
-        return operations.updateActionEndTime(target, change.value);
+        return operations.updateActionEndTime(actionUID!, change.value);
       case "instructions":
-        return operations.updateActionInstructions(target, change.value);
+        return operations.updateActionInstructions(actionUID!, change.value);
     }
   };
 
@@ -379,10 +380,6 @@ export function useActionEditorController() {
       await operations.assertReady();
       saveAttempt.current ??= { id: crypto.randomUUID(), scope: editScope, completedWrites: {} };
       persistAttempt(data);
-      const requireSuccess = (result: ActionOperationResult) => {
-        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
-        if (!result.success) throw new Error(result.error?.message ?? "Action update failed");
-      };
       const inScope = () => mounted.current && activeEditScope.current === editScope;
       const changes = formChanges(data);
       // The instructions go up before anything is written, so a failed upload saves nothing.
@@ -401,20 +398,25 @@ export function useActionEditorController() {
       }
       const remaining = changes.filter((change) => !landed(change));
       if (!inScope()) throw new Error("Action editor scope changed");
-      if (remaining.length > 0 && batch.available) {
-        const outcome = await batch.send(remaining);
+      if (remaining.length > 0 && (batch.available || batch.journaled)) {
+        const onSaved = (saved: ActionEditChange[]) => {
+          if (inScope()) markLanded(saved, data);
+        };
+        let outcome = await batch.send(remaining, { onSaved });
+        if (inScope() && batch.journaled && outcome.status === "not-batchable")
+          outcome = await batch.send(remaining, { atomic: false, onSaved });
         if (!inScope()) return;
         if (outcome.status === "saved") return finishSave();
         // An unknown outcome is held and shown, and a failure is explained where it was sent.
-        if (outcome.status !== "not-batchable") return;
+        if (batch.journaled || outcome.status !== "not-batchable") return;
       }
       const perform = async (change: ActionEditChange) => {
         if (!inScope()) throw new Error("Action editor scope changed");
         const result = await sendOne(change);
         if (!inScope()) throw new Error("Action editor scope changed");
-        requireSuccess(result);
-        markLanded([change]);
-        persistAttempt(data);
+        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
+        if (!result.success) throw new Error(result.error?.message ?? "Action update failed");
+        markLanded([change], data);
       };
       if (remaining.length > 0)
         for (const change of await batch.order(remaining)) await perform(change);
@@ -440,7 +442,6 @@ export function useActionEditorController() {
     lastAppliedRead.current = batch.lastReadAt;
     if (batch.saved.length === 0 || !saveAttempt.current) return;
     markLanded(batch.saved);
-    persistAttempt();
     if (!batch.hold)
       void everythingLanded(form.getValues()).then((done) => {
         if (done) finishSave();

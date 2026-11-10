@@ -1,7 +1,7 @@
 /**
  * Commitment evidence documents
  *
- * What a member attached as proof: a note, links, photos, a voice note. The
+ * What a member attached as proof: a note, links, photos, a voice note, documents. The
  * contract stores one CID per attachment (`attachEvidence(commitmentId, cid,
  * creditedContributors)`), so everything composed in the field becomes one
  * JSON document whose media entries name their own CIDs. The shape follows the
@@ -33,18 +33,35 @@ export interface CommitmentEvidenceAudio {
   durationSeconds?: number;
 }
 
+/**
+ * A PDF, Markdown, text or Word file attached as proof. Listed apart from
+ * `media`, which readers draw as photos and videos; a reader that predates it
+ * skips it, as it skips any field it does not know.
+ */
+export interface CommitmentEvidenceDocumentFile {
+  cid: string;
+  mime: string;
+  name: string;
+  /** Bytes, when the publisher said. */
+  size?: number;
+}
+
 export interface CommitmentEvidenceDocumentV1 {
   version: number;
   note?: string;
   links?: CommitmentMetadataLink[];
   media?: CommitmentEvidenceMedia[];
   audio?: CommitmentEvidenceAudio[];
+  documents?: CommitmentEvidenceDocumentFile[];
 }
 
 const MAX_NOTE = 2000;
 export const MAX_EVIDENCE_LINKS = 10;
 const MAX_LINKS = MAX_EVIDENCE_LINKS;
 const MAX_LINK_LABEL = 120;
+/** As many documents as a work may carry (`WORK_DOCUMENT_MAX_COUNT`), which the composer enforces. */
+const MAX_DOCUMENTS = 5;
+const MAX_DOCUMENT_NAME = 120;
 
 function cleanLine(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
@@ -119,6 +136,33 @@ function cleanAudio(value: unknown): CommitmentEvidenceAudio[] {
   return audio;
 }
 
+/**
+ * Documents with a content identifier a gateway can serve: anyone can pin an
+ * evidence document, so a name is cleaned and a CID that is not one is dropped.
+ */
+function cleanDocuments(value: unknown): CommitmentEvidenceDocumentFile[] {
+  if (!Array.isArray(value)) return [];
+  const documents: CommitmentEvidenceDocumentFile[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Record<string, unknown>;
+    const cid = typeof record.cid === "string" ? record.cid.trim() : "";
+    if (!/^[A-Za-z0-9]{20,120}$/.test(cid)) continue;
+    const size =
+      typeof record.size === "number" && Number.isFinite(record.size) && record.size > 0
+        ? Math.round(record.size)
+        : undefined;
+    documents.push({
+      cid,
+      mime: typeof record.mime === "string" ? record.mime.slice(0, 120) : "",
+      name: cleanLine(record.name, MAX_DOCUMENT_NAME) ?? "document",
+      ...(size !== undefined ? { size } : {}),
+    });
+    if (documents.length === MAX_DOCUMENTS) break;
+  }
+  return documents;
+}
+
 /** Kind of a media file, by its MIME type. Anything that is not video is a photo. */
 export function evidenceMediaKind(mime: string): CommitmentEvidenceMedia["kind"] {
   return mime.startsWith("video/") ? "video" : "photo";
@@ -130,12 +174,20 @@ export function buildCommitmentEvidenceDocument(input: {
   links?: CommitmentMetadataLink[];
   media?: CommitmentEvidenceMedia[];
   audio?: CommitmentEvidenceAudio[];
+  documents?: CommitmentEvidenceDocumentFile[];
 }): CommitmentEvidenceDocumentV1 {
   const note = cleanNote(input.note, MAX_NOTE);
   const links = cleanLinks(input.links);
   const media = cleanMedia(input.media);
   const audio = cleanAudio(input.audio);
-  if (!note && links.length === 0 && media.length === 0 && audio.length === 0) {
+  const documents = cleanDocuments(input.documents);
+  if (
+    !note &&
+    links.length === 0 &&
+    media.length === 0 &&
+    audio.length === 0 &&
+    documents.length === 0
+  ) {
     throw new Error("Proof needs at least one item");
   }
   return {
@@ -144,6 +196,7 @@ export function buildCommitmentEvidenceDocument(input: {
     ...(links.length > 0 ? { links } : {}),
     ...(media.length > 0 ? { media } : {}),
     ...(audio.length > 0 ? { audio } : {}),
+    ...(documents.length > 0 ? { documents } : {}),
   };
 }
 
@@ -155,7 +208,15 @@ export function parseCommitmentEvidenceDocument(raw: unknown): CommitmentEvidenc
   const links = cleanLinks(record.links);
   const media = cleanMedia(record.media);
   const audio = cleanAudio(record.audio);
-  if (!note && links.length === 0 && media.length === 0 && audio.length === 0) return null;
+  const documents = cleanDocuments(record.documents);
+  if (
+    !note &&
+    links.length === 0 &&
+    media.length === 0 &&
+    audio.length === 0 &&
+    documents.length === 0
+  )
+    return null;
   const version =
     typeof record.version === "number" && Number.isFinite(record.version)
       ? record.version
@@ -166,5 +227,6 @@ export function parseCommitmentEvidenceDocument(raw: unknown): CommitmentEvidenc
     ...(links.length > 0 ? { links } : {}),
     ...(media.length > 0 ? { media } : {}),
     ...(audio.length > 0 ? { audio } : {}),
+    ...(documents.length > 0 ? { documents } : {}),
   };
 }

@@ -361,9 +361,9 @@ export function formatGoodDollarsCompact(wei: bigint, locale: string): string {
 }
 
 /**
- * The Confirm queue's eligibility chip: ordinary, this garden's fallback, or
- * the Green Goods team's. Kept beside the other pool chips so the queue and
- * the commitment dialog read the same words.
+ * The Confirm queue's eligibility chip: ordinary, the reader's own, this
+ * garden's fallback, or the Green Goods team's. Kept beside the other pool
+ * chips so the queue and the commitment dialog read the same words.
  */
 export function confirmEligibilityChip(
   eligibility: ConfirmQueueEligibility,
@@ -375,6 +375,15 @@ export function confirmEligibilityChip(
       label: formatMessage({
         id: "cockpit.hub.confirm.eligibility.ordinary",
         defaultMessage: "Ready to confirm",
+      }),
+    };
+  }
+  if (eligibility === "OWN") {
+    return {
+      variant: "success",
+      label: formatMessage({
+        id: "cockpit.hub.confirm.eligibility.own",
+        defaultMessage: "Yours to confirm",
       }),
     };
   }

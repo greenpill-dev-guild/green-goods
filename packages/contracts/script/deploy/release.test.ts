@@ -37,6 +37,7 @@ const CANONICAL_FILES = [
   CELO_ARTIFACT,
   path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.json"),
   path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json"),
+  path.join(CONTRACTS_ROOT, "config/karma-gap-module-pin.json"),
 ];
 let temporaryWorkspace: string;
 let cliRoot: string;
@@ -58,7 +59,11 @@ beforeAll(() => {
     dereference: true,
   });
   fs.mkdirSync(path.join(cliRoot, "config"), { recursive: true });
-  for (const name of ["commitment-pooling-release.json", "commitment-pooling-release.lock.json"]) {
+  for (const name of [
+    "commitment-pooling-release.json",
+    "commitment-pooling-release.lock.json",
+    "karma-gap-module-pin.json",
+  ]) {
     fs.copyFileSync(path.join(CONTRACTS_ROOT, "config", name), path.join(cliRoot, "config", name));
   }
   const artifactPaths = new Set([

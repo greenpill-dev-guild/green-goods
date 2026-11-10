@@ -10,7 +10,7 @@
  */
 
 import type { Address } from "../../types/domain";
-import type { PoolFundingTransferBlock } from "./pool-funding";
+import type { PoolFundingTransferBlock, PoolFundingTransferRefusal } from "./pool-funding";
 import type { IndexedDisbursementState } from "./settlement";
 import type { SettlementPayoutKind } from "./settlement-eligibility";
 
@@ -39,7 +39,9 @@ export type SettlementActionBlocker =
   | "acting"
   | "proposal-pending"
   | "funding-unread"
-  | "funding-over-limit";
+  | "funding-over-limit"
+  // What Celo would refuse apart from the Safe's limits, named as the funding read names it.
+  | PoolFundingTransferRefusal;
 
 export type SettlementPlanStatus = "DRAFT" | "PENDING" | "PARTIAL" | "COMPLETE" | "FAILED";
 
@@ -151,6 +153,11 @@ export interface SettlementDisbursementView {
   display: SettlementDisplayState;
   retryable: boolean;
   actions: { dispatch: boolean; retry: boolean; requeue: boolean; cancel: boolean };
+  /**
+   * Why a dispatched transfer can't be resent yet, when the reader could otherwise
+   * resend it. A queued transfer's dispatch is explained by the dispatch step.
+   */
+  retryBlocker: SettlementActionBlocker | null;
 }
 
 export interface SettlementWorkflow {

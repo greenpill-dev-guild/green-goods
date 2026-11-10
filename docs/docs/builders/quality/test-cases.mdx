@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:90b0353a3b9fc9f83895c9543ec9aaaa9c3bdc969875afde18b012bb55d7794f"
+source_digest: "sha256:84bec050a4a769a247f1cab9f8e6f7dfb156f56dff1086a4177ffac4917d0fd2"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -358,7 +358,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## Admin Dashboard
 
-### P0: run these first (46) {#admin-dashboard-p0}
+### P0: run these first (47) {#admin-dashboard-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -380,7 +380,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-046` | Transaction | Hub · Assessments | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
 | `ADM-048` | Transaction | Garden · Settings | Save garden name, description, and location: one wallet confirmation each on a plain wallet, one signature on a listed passkey, and resume a stopped save | Screenshots of the plain wallet's mid-run error, the passkey footer, and the saved state |
 | `ADM-052` | Transaction | Community · Members | Batch-add members by address, ENS name, and clipboard paste, under one signature on Arbitrum | Screenshots of the staged list and the updated directory |
-| `ADM-053` | Transaction | Community · Members | Remove one role from a member, with confirmation | Screenshots of the confirmation and the directory afterwards |
+| `ADM-053` | Transaction | Community · Members | Remove one role from a member, with confirmation | Screenshots of the review and the directory afterwards |
 | `ADM-054` | Transaction | Community · Members | Welcome a join request from the admin | Screenshots of the request and the welcomed state |
 | `ADM-055` | Transaction | Community · Members | Decline a join request with a reason from the admin | Screenshots of the decline dialog and the gardener's view |
 | `ADM-056` | Transaction | Garden · Pool | Set up commitments for a registered NotReady pool | Screenshots of the checklist and the configured pool |
@@ -405,9 +405,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
 | `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test garden can deliver | Screenshot of the Request in the protocol pool |
 | `ADM-140` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
-| `ADM-144` | Journey | Hub · Confirm | Hub → Confirm lists only what the garden in the header confirms | Screenshots of Hub → Confirm with each garden selected |
+| `ADM-144` | Journey | Hub · Confirm | Hub → Confirm lists only what the garden in the header confirms, or what waits on you in its pool | Screenshots of Hub → Confirm with each garden selected |
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
 | `ADM-157` | Journey | Garden · Pool | A declared G$ reward is typed and reviewed in G$ | Screenshots of the field and of the review |
+| `ADM-200` | Transaction | Hub · Confirm | A promise waiting on your own confirmation is listed in Hub → Confirm and confirmed there | Screenshots of the row and the tab count, the review, and the promise afterwards |
 
 ### P1 (94) {#admin-dashboard-p1}
 

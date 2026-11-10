@@ -1,3 +1,4 @@
+import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
@@ -101,6 +102,14 @@ function reviewChipFor(
   }
   const staged = reviewBatch?.reviewFor(workId);
   if (!staged) return undefined;
+  if (staged.confirmed) {
+    return {
+      label: formatMessage({
+        id: staged.draft.approved ? "app.admin.work.filter.approved" : "app.work.status.rejected",
+      }),
+      tone: staged.draft.approved ? "success" : "error",
+    };
+  }
   if (staged.refusal) {
     return { label: formatMessage({ id: "app.work.batch.chip.blocked" }), tone: "error" };
   }
@@ -192,9 +201,15 @@ function HubWorkQueueItem({
 
 export function HubWorkQueue(props: HubWorkQueueProps) {
   const { reviewBatch } = props;
+  const { formatMessage } = useIntl();
   return (
     <>
       {reviewBatch?.holdFeedback ? <TxHoldFeedback {...reviewBatch.holdFeedback} /> : null}
+      {props.hasDataError && props.items.length > 0 ? (
+        <Alert variant="error" title={formatMessage({ id: "cockpit.hub.error.title" })}>
+          {formatMessage({ id: "cockpit.hub.error.description" })}
+        </Alert>
+      ) : null}
       <HubWorkQueueList {...props} />
       {reviewBatch ? (
         <HubReviewBatchBar batch={reviewBatch} gardenName={props.selectedGardenName} />
@@ -233,7 +248,7 @@ function HubWorkQueueList({
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const cardLayout: MediaCardLayout = isDesktop ? "wide" : "stacked";
 
-  if (hasDataError) {
+  if (hasDataError && items.length === 0) {
     return (
       <EmptyStateShell>
         <EmptyState
@@ -247,8 +262,7 @@ function HubWorkQueueList({
             id: "cockpit.hub.error.description",
             defaultMessage: "Refresh the workspace and try again.",
           })}
-          // Any failed work read replaces the list, so a page of older work
-          // that failed to load is asked for again from here.
+          // Without loaded work, the retry belongs in the empty error state.
           action={
             older?.onShowOlder ? <HubShowOlderButton older={older} label={olderLabel} /> : undefined
           }

@@ -345,6 +345,7 @@ export function submitWorkControllerFixture(
     authMode: "passkey",
     brokenMediaIds: new Set<string>(),
     cameraClickRef: { current: null },
+    documentClickRef: { current: null },
     canProceed: true,
     changeTab: noop,
     control: {},

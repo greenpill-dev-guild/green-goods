@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
 import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
+import { GardenCreatorsPanel } from "./GardenCreatorsCard";
 import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
 import { SettlementOperationsPanel } from "./SettlementOperationsCard";
 import { VoucherIssuerOnboarding } from "./VoucherIssuerOnboarding";
@@ -39,11 +40,11 @@ export interface CommunityPoolsProps {
  * Community → Coordination's pooling section. It only ever speaks for the
  * garden selected in the header: that garden's pool, one tap from its console
  * in the Garden workspace. The protocol's own work (settlement, protocol
- * funding, the confirmations the team was asked to step into) appears here
- * only when the selected garden is the Green Goods Community Garden, whose
- * pool the protocol pool is. No other garden's Community tab can reach it, so
- * no setup, edit, or pause of the protocol pool starts from a garden that
- * isn't it.
+ * funding, the confirmations the team was asked to step into, who may create
+ * a garden) appears here only when the selected garden is the Green Goods
+ * Community Garden, whose pool the protocol pool is. No other garden's
+ * Community tab can reach it, so no setup, edit, or pause of the protocol pool
+ * starts from a garden that isn't it.
  */
 export function CommunityPools({ chainId, garden, canManage, railContent }: CommunityPoolsProps) {
   const { isProtocolGarden, protocolPool, ownPool, ownPoolsLoading } = useIsProtocolGarden({
@@ -67,12 +68,15 @@ export function CommunityPools({ chainId, garden, canManage, railContent }: Comm
       data-tone="community"
     >
       {isProtocolGarden ? (
-        <ProtocolOperations
-          chainId={chainId}
-          protocolPool={protocolPool}
-          gardenPool={gardenPool}
-          railContent={railContent}
-        />
+        <>
+          <ProtocolOperations
+            chainId={chainId}
+            protocolPool={protocolPool}
+            gardenPool={gardenPool}
+            railContent={railContent}
+          />
+          <GardenCreatorsPanel />
+        </>
       ) : (
         <>
           {gardenPool}

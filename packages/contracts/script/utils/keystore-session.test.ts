@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync, spawn } from "node:child_process";
-import { Wallet } from "ethers";
+import { encryptKeystoreJson, Wallet } from "ethers";
 import { describe, expect, it, vi } from "vitest";
 import { withKeystorePassword } from "./keystore-session";
 
@@ -20,7 +20,10 @@ describe("operator keystore password lifetime", () => {
     const readPassword = vi.fn(async () => password);
     let leasePath = "";
     try {
-      const encrypted = JSON.parse(await wallet.encrypt(password));
+      // Low scrypt cost on purpose: 23 default-cost decryptions overran the limit on a loaded machine.
+      // Cast still derives the key from the leased password and checks the MAC on every call.
+      const account = { address: wallet.address, privateKey: wallet.privateKey };
+      const encrypted = JSON.parse(await encryptKeystoreJson(account, password, { scrypt: { N: 1 << 10 } }));
       encrypted.crypto = encrypted.Crypto;
       delete encrypted.Crypto;
       fs.writeFileSync(keystore, JSON.stringify(encrypted), { mode: 0o600 });
@@ -35,6 +38,9 @@ describe("operator keystore password lifetime", () => {
               env: environment,
               encoding: "utf8",
               stdio: ["ignore", "pipe", "pipe"],
+              // Vitest cannot interrupt a synchronous call, so a hung Cast call needs its own limit.
+              timeout: 15_000,
+              killSignal: "SIGKILL",
             }).trim();
             expect(address.toLowerCase()).toBe(wallet.address.toLowerCase());
           }

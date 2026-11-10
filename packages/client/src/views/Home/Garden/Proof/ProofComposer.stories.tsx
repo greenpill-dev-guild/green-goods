@@ -152,7 +152,7 @@ const recoveryInLocale =
     }
   };
 
-/** Nothing added yet: no tap box; the bar's photo, camera and voice tools add proof (O1). */
+/** Nothing added yet: no tap box; the bar's photo, camera, voice and document tools add proof (O1). */
 export const Media: Story = {
   tags: ["storybook-ci"],
   beforeEach: atStage("media"),
@@ -171,7 +171,13 @@ export const Media: Story = {
     await expect(
       heading.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    for (const tool of ["Choose from Your Photos", "Take a Photo", "Record a voice note"]) {
+    const tools = [
+      "Choose from Your Photos",
+      "Take a Photo",
+      "Record a voice note",
+      "Choose Documents",
+    ];
+    for (const tool of tools) {
       await expect(canvas.getByRole("button", { name: tool })).toBeVisible();
     }
     await expect(canvas.getByRole("button", { name: "Details" })).toBeEnabled();
@@ -277,6 +283,20 @@ export const ReviewSend: Story = {
     await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeVisible();
     await expect(
       canvas.getByText("You'll be asked to sign twice: once for the proof, once to send it.")
+    ).toBeVisible();
+  },
+};
+
+/** The proof and confirmation can go together under one signature. */
+export const ReviewSendTogether: Story = {
+  tags: ["storybook-ci"],
+  beforeEach: atStage("reviewSendTogether"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeEnabled();
+    await expect(
+      canvas.getByText("Sign once to add the proof and send it for confirmation.")
     ).toBeVisible();
   },
 };

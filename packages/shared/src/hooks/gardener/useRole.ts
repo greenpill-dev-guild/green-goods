@@ -62,6 +62,9 @@ async function fetchStewardGardens(address: Address, chainId: number): Promise<S
   return gardens;
 }
 
+// The allowlist behind `isDeployer`. Admin reaches the managing hook through this declared leaf.
+export { useGardenCreators, type GardenCreators } from "../blockchain/useDeploymentRegistry";
+
 export type UserRole = "deployer" | "steward" | "user";
 
 export interface RoleInfo {

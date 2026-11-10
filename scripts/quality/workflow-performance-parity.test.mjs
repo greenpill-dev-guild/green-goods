@@ -540,7 +540,10 @@ test("CI coverage drops HTML generation without weakening local reports or thres
   assert.equal(indexerCoverage.steps.length, 1);
   const coverageArgs = indexerCoverage.steps[0].args;
   assert.deepEqual(coverageArgs.slice(1, 6), ["c8", "--reporter", "text", "--reporter", "json"]);
-  assert.deepEqual(coverageArgs.slice(8), ["mocha", "--require", "tsx", "--timeout", "30000", "test/**/*.ts"]);
+  assert.deepEqual(coverageArgs.slice(8), [
+    "mocha", "--node-option", "no-experimental-require-module", "--node-option", "import=tsx",
+    "--timeout", "30000", "test/**/*.ts",
+  ]);
   assert.match(
     read(".github/workflows/indexer.yml"),
     /run:\s*bun run test --scope handlers --coverage --reporter text --reporter json/,

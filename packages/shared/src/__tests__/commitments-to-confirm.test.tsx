@@ -106,6 +106,7 @@ function answerWith(gardenRows: unknown[], ownRows: unknown[] = []) {
 async function toConfirm(
   options: {
     includeProtocolFallback?: boolean;
+    includeOwn?: boolean;
     inScope?: (gardens: readonly (string | null | undefined)[]) => boolean;
   } = {}
 ) {
@@ -279,6 +280,59 @@ describe("useCommitmentsToConfirm", () => {
     expect(mocks.getConfirmedIds).toHaveBeenCalledWith({ chainId: 42161, viewer: VIEWER });
     expect(result.current.groups[0]?.rows.map((row) => row.commitment.id)).toEqual(["42161-10"]);
     expect(result.current.count).toBe(1);
+  });
+
+  it("lists the reader's own confirmations in a pool they steward only when the Hub asks", async () => {
+    // Admin has no Live tab, so the Hub asks for what waits on the steward's own
+    // account (PRD-1204). The PWA does not: Live already carries it there.
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { stewards: [VIEWER] })];
+    answerWith([]);
+    const request = (
+      id: bigint,
+      overrides: Record<string, unknown>,
+      roster: readonly string[] = [OTHER]
+    ) => ({
+      commitment: commitment({
+        id: `42161-${id}`,
+        commitmentId: id,
+        direction: "REQUEST",
+        creator: CONTRIBUTOR,
+        leadProvider: OTHER,
+        counterparty: OTHER,
+        counterpartyKind: "INDIVIDUAL",
+        ...overrides,
+      }),
+      activeContributors: roster,
+    });
+    mocks.getFallbackCandidates.mockResolvedValue([
+      // The steward asked for it, so the contract's default confirmer is them.
+      request(20n, { creator: VIEWER }),
+      // Theirs as well, but already signed: a repeat reverts AlreadyConfirmed.
+      request(21n, { creator: VIEWER }),
+      // Named to confirm, but on the team too: SelfConfirmation.
+      request(22n, { confirmers: [VIEWER] }, [OTHER, VIEWER]),
+      // Named to confirm someone else's request.
+      request(23n, { confirmers: [VIEWER] }),
+      // Someone else asked for it, so it waits on them.
+      request(24n, {}),
+      // A garden took this Offer up, so its Hat confirms it, not one account.
+      {
+        commitment: commitment({ id: "42161-25", commitmentId: 25n }),
+        activeContributors: [OTHER],
+      },
+    ]);
+    mocks.getConfirmedIds.mockResolvedValue(["21"]);
+
+    const pwa = await toConfirm();
+    expect(pwa.current.own).toEqual([]);
+    expect(pwa.current.count).toBe(0);
+
+    const hub = await toConfirm({ includeOwn: true });
+    expect(hub.current.own?.map((row) => [row.commitment.id, row.garden])).toEqual([
+      ["42161-23", GARDEN_A],
+      ["42161-20", GARDEN_A],
+    ]);
+    expect(hub.current.count).toBe(2);
   });
 
   it("treats the reader's own confirmations failing as the tab failing", async () => {
@@ -488,6 +542,28 @@ describe("useCommitmentsToConfirm fallback group", () => {
     const result = await toConfirm();
 
     expect(result.current.fallback).toEqual([]);
+  });
+
+  it("does not offer fallback when take-up removed the sole named confirmer and the creator can confirm", async () => {
+    mocks.getFallbackCandidates.mockResolvedValue([
+      {
+        commitment: commitment({
+          direction: "REQUEST",
+          leadProvider: CONTRIBUTOR,
+          counterparty: CONTRIBUTOR,
+          counterpartyKind: "INDIVIDUAL",
+          confirmers: [CONTRIBUTOR],
+          confirmationThreshold: 1,
+          protocolFallbackEnabled: true,
+        }),
+        activeContributors: [CONTRIBUTOR],
+      },
+    ]);
+
+    const result = await toConfirm();
+
+    expect(result.current.fallback).toEqual([]);
+    expect(result.current.count).toBe(0);
   });
 
   it("keeps a row out of the fallback group when the garden can confirm it ordinarily", async () => {

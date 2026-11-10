@@ -348,6 +348,11 @@ function stubMatchMedia(widthPx = 1024) {
   });
 }
 
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  ENDOWMENT_DEPOSITS_ENABLED: true,
+}));
+
 describe("VaultsPage", () => {
   beforeEach(() => {
     sharedHookMocks.loginWithWallet.mockReset();

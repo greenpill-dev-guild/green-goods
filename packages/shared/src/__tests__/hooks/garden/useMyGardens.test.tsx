@@ -1,8 +1,8 @@
 /**
  * useMyGardens tests: the account's gardens read from the gardens list, with loaded, error and
  * stale flags that keep "could not read" apart from "none", an open join counted until the
- * roster shows it, and a join request waiting for a steward counted for nothing and forgotten
- * once the roster lists the account.
+ * roster shows it, a join request waiting for a steward counted for nothing and forgotten once
+ * the roster lists the account, and a request the chain shows welcomed counted until then.
  */
 
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { gardensKeys } from "../../../config/query-keys/garden";
 import { gardenJoinRequestKeys } from "../../../config/query-keys/garden-join-requests";
+import { roleKeys } from "../../../config/query-keys/identity";
 import { useMyGardens } from "../../../hooks/garden/useMyGardens";
 import { markOwnJoinEntry } from "../../../modules/garden/pending-joins";
 import {
@@ -22,7 +23,11 @@ import type { Garden } from "../../../types/domain";
 import { createMockGarden } from "../../test-utils/mock-factories";
 import { createTestQueryClient } from "../../test-utils/query-client";
 
-const { getGardens } = vi.hoisted(() => ({ getGardens: vi.fn<() => Promise<Garden[]>>() }));
+const { getGardens, readGardenRole } = vi.hoisted(() => ({
+  getGardens: vi.fn<() => Promise<Garden[]>>(),
+  readGardenRole:
+    vi.fn<(garden: string, account: string, role: string, chainId: number) => Promise<boolean>>(),
+}));
 
 // The indexer read is the edge; the list hook, its cache and the membership rules run for real.
 vi.mock("../../../modules/data/greengoods", () => ({
@@ -31,9 +36,17 @@ vi.mock("../../../modules/data/greengoods", () => ({
   getGardeners: vi.fn(),
 }));
 
+// The chain is the other edge: whether the account holds a role, read with no signature.
+vi.mock("../../../utils/blockchain/garden-role-reads", () => ({ readGardenRole }));
+
 const PENDING_JOINS_KEY = "greengoods:pending-joins";
 const ACCOUNT = "0xa11ce00000000000000000000000000000000001";
 const OTHER = "0xb0b0000000000000000000000000000000000002";
+/** What the join request service says of a request a steward has not answered yet. */
+const WAITING = {
+  state: "pending" as const,
+  expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+};
 
 function garden(suffix: string, overrides: Partial<Garden>): Garden {
   return createMockGarden({
@@ -70,6 +83,8 @@ beforeEach(() => {
   localStorage.clear();
   useAwaitingJoinRequestsStore.setState({ requestsByScope: {} });
   getGardens.mockReset();
+  readGardenRole.mockReset();
+  readGardenRole.mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -195,14 +210,10 @@ describe("useMyGardens", () => {
   it("forgets a join request once the roster lists the account", async () => {
     const scope = awaitingJoinRequestScope(DEFAULT_CHAIN_ID, ACCOUNT)!;
     const otherScope = awaitingJoinRequestScope(DEFAULT_CHAIN_ID, OTHER)!;
-    const waiting = {
-      state: "pending" as const,
-      expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
-    };
     const { noteRequest } = useAwaitingJoinRequestsStore.getState();
-    noteRequest(scope, stewarded.id, waiting, Date.now());
-    noteRequest(scope, requested.id, waiting, Date.now());
-    noteRequest(otherScope, stewarded.id, waiting, Date.now());
+    noteRequest(scope, stewarded.id, WAITING, Date.now());
+    noteRequest(scope, requested.id, WAITING, Date.now());
+    noteRequest(otherScope, stewarded.id, WAITING, Date.now());
     getGardens.mockResolvedValue([stewarded, requested]);
 
     const { result } = renderMyGardens();
@@ -216,6 +227,74 @@ describe("useMyGardens", () => {
       Object.keys(useAwaitingJoinRequestsStore.getState().requestsByScope[otherScope])
     ).toEqual([stewarded.id.toLowerCase()]);
     expect(result.current.gardens.map(({ garden }) => garden.id)).toEqual([stewarded.id]);
+  });
+
+  // A steward's welcome is on chain at once and in the roster only once the indexer catches up
+  // (PRD-1209). Where this device asked to join, the chain's answer stands in until then.
+  it("counts a garden the chain says welcomed the account, until the roster lists it", async () => {
+    const scope = awaitingJoinRequestScope(DEFAULT_CHAIN_ID, ACCOUNT)!;
+    useAwaitingJoinRequestsStore.getState().noteRequest(scope, requested.id, WAITING, Date.now());
+    readGardenRole.mockResolvedValue(true);
+    getGardens.mockResolvedValue([visited, requested]);
+
+    const { result } = renderMyGardens();
+
+    await waitFor(() =>
+      expect(result.current.gardens).toEqual([
+        { garden: requested, membership: { roles: [], pendingJoin: true } },
+      ])
+    );
+    // Only the garden this device asked to join is read, for the role a welcome grants.
+    expect(readGardenRole).toHaveBeenCalledOnce();
+    expect(readGardenRole).toHaveBeenCalledWith(
+      requested.id,
+      ACCOUNT,
+      "gardener",
+      DEFAULT_CHAIN_ID
+    );
+    expect(useAwaitingJoinRequestsStore.getState().requestsByScope[scope]).toBeUndefined();
+
+    getGardens.mockResolvedValue([visited, { ...requested, gardeners: [ACCOUNT] }]);
+    await act(() => client.invalidateQueries({ queryKey: gardensKeys.byChain(DEFAULT_CHAIN_ID) }));
+    await waitFor(() => expect(localStorage.getItem(PENDING_JOINS_KEY)).toBe("{}"));
+    expect(result.current.gardens[0]?.membership).toEqual({
+      roles: ["gardener"],
+      pendingJoin: false,
+    });
+  });
+
+  // A yes kept from an earlier session counts for nothing: the account may have left the garden
+  // or been removed since.
+  it.each([
+    ["the chain says no", () => readGardenRole.mockResolvedValue(false)],
+    ["the chain cannot be read", () => readGardenRole.mockRejectedValue(new Error("RPC down"))],
+    [
+      "only an earlier session's answer says yes",
+      () =>
+        client.setQueryData(roleKeys.hasRole(requested.id, ACCOUNT, "gardener"), true, {
+          updatedAt: Date.now() - 10 * 60_000,
+        }),
+    ],
+  ])("keeps a request waiting when %s", async (_case, arrange) => {
+    const scope = awaitingJoinRequestScope(DEFAULT_CHAIN_ID, ACCOUNT)!;
+    useAwaitingJoinRequestsStore.getState().noteRequest(scope, requested.id, WAITING, Date.now());
+    arrange();
+    // The list is in hand from the first render, so a kept answer is seen before the chain is asked.
+    client.setQueryData(gardensKeys.byChain(DEFAULT_CHAIN_ID), [requested]);
+
+    const { result } = renderMyGardens();
+
+    await waitFor(() => expect(readGardenRole).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        client.getQueryState(roleKeys.hasRole(requested.id, ACCOUNT, "gardener"))?.fetchStatus
+      ).toBe("idle")
+    );
+    expect(result.current.gardens).toEqual([]);
+    expect(Object.keys(useAwaitingJoinRequestsStore.getState().requestsByScope[scope])).toEqual([
+      requested.id.toLowerCase(),
+    ]);
+    expect(localStorage.getItem(PENDING_JOINS_KEY)).toBeNull();
   });
 
   it("keeps the last good list, flagged stale, when a refresh fails", async () => {

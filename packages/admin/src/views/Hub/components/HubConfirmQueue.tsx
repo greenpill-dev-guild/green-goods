@@ -35,9 +35,10 @@ export interface HubConfirmQueueProps {
 
 /**
  * W13, the Hub's Confirm stage (uiux-spec §6.9, C.48): commitments waiting on
- * the steward, each with who committed, the title, the pool it lives in when
- * that is not the acting garden's own, N-of-group progress, a visible
- * eligibility badge and the decision row. Confirm on an ordinary row opens the
+ * the steward, for the garden or as themselves (Yours to confirm), each with
+ * who committed, the title, the pool it lives in when that is not the acting
+ * garden's own, N-of-group progress, a visible eligibility badge and the
+ * decision row. Confirm on an ordinary or own row opens the
  * Confirm Kept review, which enqueues the confirmation; on a fallback row it
  * opens the commitment dialog, where the reasoned fallback lives; Not yet opens the
  * reasoned dispute dialog, and appears only where the pool's own steward
@@ -125,7 +126,7 @@ export function HubConfirmQueue({
               : formatMessage({
                   id: "cockpit.hub.confirm.empty.description",
                   defaultMessage:
-                    "Promises kept and sent for this garden's confirmation will wait here.",
+                    "Promises kept and sent for this garden's confirmation, or yours, will wait here.",
                 })
           }
         />
@@ -263,7 +264,8 @@ export function HubConfirmQueue({
                         })}
                       </Button>
                     )}
-                    {row.eligibility === "ORDINARY" ? (
+                    {/* Both send the one ordinary confirmation from the reader's account. */}
+                    {row.eligibility === "ORDINARY" || row.eligibility === "OWN" ? (
                       <Button
                         type="button"
                         emphasis="primary"

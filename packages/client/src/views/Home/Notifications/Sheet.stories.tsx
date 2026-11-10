@@ -79,6 +79,8 @@ const meta: Meta<typeof NotificationsSheet> = {
     isIncomplete: false,
     markSeen: fn(),
     clearAll: fn(),
+    refresh: fn(),
+    isFetching: false,
   },
 };
 

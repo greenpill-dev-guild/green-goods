@@ -35,8 +35,8 @@ const fakes = vi.hoisted(() => ({
 vi.mock("@wagmi/core", () => ({
   simulateContract: fakes.simulate,
   getPublicClient: () => ({ getCode: async () => "0x6000" }),
-  waitForTransactionReceipt: fakes.receipt,
 }));
+vi.mock("../../modules/transactions/receipt-wait", () => ({ waitForReceipt: fakes.receipt }));
 vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: fakes.sender,
 }));

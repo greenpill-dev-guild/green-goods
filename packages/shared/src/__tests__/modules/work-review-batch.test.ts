@@ -3,10 +3,14 @@ import { readContract } from "@wagmi/core";
 import { type Hex, toHex, zeroAddress } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getWorkApprovalsForWork } from "../../modules/data/eas";
+import { quoteUserOperation } from "../../modules/transactions/batch-budget";
 import {
+  type BatchBudget,
   BatchNotSubmittedError,
   type BatchExecution,
 } from "../../modules/transactions/batch-types";
+import { withGasHeadroom } from "../../modules/transactions/gas-headroom";
+import type { ContractCall } from "../../modules/transactions/types";
 import {
   prepareReviewBatch,
   type ReviewDecision,
@@ -22,9 +26,14 @@ import {
 } from "../../modules/work/review-chain";
 import type { Address, WorkApprovalDraft } from "../../types/domain";
 import { Confidence, VerificationMethod } from "../../types/domain";
+import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { encodeWorkApprovalData } from "../../utils/eas/encoders";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { createMockWorkApproval } from "../test-utils/mock-factories";
-import { createFakeBatchingSender } from "../test-utils/transaction-fakes";
+import {
+  createFakeBatchingSender,
+  fakePreparedUserOperation,
+} from "../test-utils/transaction-fakes";
 
 // What `createReviewChain` reads: the chain through wagmi, and EAS's index.
 vi.mock("@wagmi/core", async (importOriginal) => ({
@@ -32,6 +41,7 @@ vi.mock("@wagmi/core", async (importOriginal) => ({
   readContract: vi.fn(),
 }));
 vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: vi.fn() }));
 vi.mock("../../modules/data/eas", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getWorkApprovalsForWork: vi.fn(),
@@ -323,6 +333,27 @@ describe("sendReviewBatch", () => {
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 
+  it("keeps a refusal it proved when another decision's own check cannot run", async () => {
+    const { sender, decide, chain, send } = setup();
+    const [bad, unread, good] = [decide(), decide(), decide()];
+    const failure = new Error("Transaction failed with error code: 0xf17325e7");
+    chain.refusal.mockImplementation(async ({ args }) => {
+      const call = JSON.stringify(args, (_key, value) =>
+        typeof value === "bigint" ? String(value) : value
+      );
+      if (call.includes(encodeWorkApprovalData(bad.draft, chainId))) return "ActionExpired";
+      if (call.includes(encodeWorkApprovalData(unread.draft, chainId))) throw failure;
+      return null;
+    });
+
+    const outcome = await send([bad, unread, good]);
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.refused).toEqual([{ workUID: bad.draft.workUID, reason: "ActionExpired" }]);
+    expect(outcome.notSent).toEqual([unread.draft.workUID, good.draft.workUID]);
+    expect(outcome.failure).toBe(failure);
+  });
+
   it("checks again right before signing, since a role or an action's end can pass", async () => {
     const { sender, decide, chain, send } = setup();
     const decision = decide();
@@ -397,37 +428,71 @@ describe("sendReviewBatch", () => {
     expect(outcome.unknown).toEqual([]);
   });
 
-  it("takes a signature per review when asked, for a list too big to send together", async () => {
-    const { sender, decide, landed, input } = setup();
-    const decisions = Array.from({ length: 3 }, () => decide());
-    decisions.forEach((decision) => landed(decision));
+  describe("on an Arbitrum passkey", () => {
+    /**
+     * The bundler's call gas for one and five decisions, measured on a fork of Arbitrum One on
+     * 10 November 2026 with 55-character work descriptions. Open-source Alto quotes the least gas
+     * the call runs on; Pimlico's hosted bundler quoted 1.131 times the gas used on 2 November.
+     */
+    const OPEN_SOURCE_ALTO = { 5: 9_970_414n };
+    const HOSTED = { 1: 2_367_214n, 5: 10_946_022n };
 
-    const outcome = await sendReviewBatch({
-      ...input,
-      rail: "passkey",
-      decisions,
-      perSignature: 1,
+    /** The passkey sender's preflight, against a bundler that quotes `callGas`. */
+    const bundlerQuoting =
+      (callGas: Partial<Record<number, bigint>>) =>
+      async (calls: readonly ContractCall[], budget: BatchBudget) => {
+        const [{ functionName, args, account }] = calls;
+        const reviews =
+          functionName === "attest" ? 1 : (args as [[{ data: unknown[] }]])[0][0].data.length;
+        return quoteUserOperation(
+          {
+            ...fakePreparedUserOperation(account!),
+            // What a Green Goods passkey UserOperation adds to its call.
+            verificationGasLimit: 605_410n,
+            preVerificationGas: 79_162n,
+            paymasterVerificationGasLimit: 46_456n,
+            paymasterPostOpGasLimit: 1n,
+            callGasLimit: withGasHeadroom(callGas[reviews]!, calls),
+          },
+          budget
+        );
+      };
+
+    it("turns away five reviews quoted past 16M before any prompt, then takes a signature each", async () => {
+      const { sender, decide, landed, input, send } = setup();
+      const decisions = Array.from({ length: 5 }, () => decide());
+      decisions.forEach((decision) => landed(decision));
+      // 17.15M together: past 16M, though under the 20M this ceiling allowed before.
+      sender.preflightBatch = bundlerQuoting(HOSTED);
+
+      const together = await send(decisions);
+
+      expect(together.notBatchable).toEqual(decisions.map(({ draft }) => draft.workUID));
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+
+      const apart = await sendReviewBatch({
+        ...input,
+        rail: "passkey",
+        decisions,
+        perSignature: 1,
+      });
+
+      expect(sender.sendContractCall).toHaveBeenCalledTimes(5);
+      expect(apart.sent).toHaveLength(5);
     });
 
-    expect(sender.sendContractCall).toHaveBeenCalledTimes(3);
-    expect(outcome.sent).toHaveLength(3);
-  });
+    it("keeps five reviews under one signature when the bundler quotes them under 16M", async () => {
+      const { sender, decide, landed, send } = setup();
+      const decisions = Array.from({ length: 5 }, () => decide());
+      decisions.forEach((decision) => landed(decision));
+      // 15.69M together.
+      sender.preflightBatch = bundlerQuoting(OPEN_SOURCE_ALTO);
 
-  it("reports a list past its ceilings without sending anything for it", async () => {
-    const { sender, decide, send } = setup();
-    const decision = decide();
-    sender.preflightBatch = async () => ({
-      gas: "90000000",
-      maxFeePerGas: "10000000",
-      maxFee: "900000000000000",
-      sponsored: true,
-      authority: "user-operation",
+      const outcome = await send(decisions);
+
+      expect(sender.sendContractCall).toHaveBeenCalledOnce();
+      expect(outcome.sent).toHaveLength(5);
     });
-
-    const outcome = await send([decision]);
-
-    expect(outcome.notBatchable).toEqual([decision.draft.workUID]);
-    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
 
@@ -457,6 +522,67 @@ describe("reading who has decided", () => {
   beforeEach(() => {
     vi.mocked(readContract).mockReset();
     vi.mocked(getWorkApprovalsForWork).mockReset().mockResolvedValue([]);
+    vi.mocked(simulateTransaction).mockReset();
+  });
+
+  it("keeps a whole-group refusal recognizable through simulation, batching and display", async () => {
+    const { sender, decide, input } = setup();
+    const decisions = [decide(), decide()];
+    chainHolds();
+    vi.mocked(simulateTransaction)
+      .mockResolvedValueOnce({
+        success: false,
+        error: {
+          name: "ActionExpired",
+          message: "This action has ended.",
+          raw: "ActionExpired",
+          reverted: true,
+        },
+      })
+      .mockResolvedValue({ success: true });
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      chain: createReviewChain(chainId),
+      rail: "passkey",
+      decisions,
+    });
+
+    expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    const { parsed } = parseAndFormatError(outcome.failure);
+    expect(parsed.isKnown).toBe(true);
+    expect(parsed.name).toBe("ActionExpired");
+  });
+
+  it("refuses and signs nothing when a simulation fails without a revert", async () => {
+    const { sender, decide, input } = setup();
+    const decisions = [decide(), decide()];
+    chainHolds();
+    // What an RPC's 503 parses to: the code is multiAttest's own selector, read from the request.
+    vi.mocked(simulateTransaction).mockResolvedValue({
+      success: false,
+      error: {
+        name: "UnknownError",
+        message: "Transaction failed with error code: 0x44adc90e",
+        raw: "0x44adc90e",
+        reverted: false,
+      },
+    });
+
+    const outcome = await sendReviewBatch({
+      ...input,
+      chain: createReviewChain(chainId),
+      rail: "passkey",
+      decisions,
+    });
+
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(outcome.refused).toEqual([]);
+    expect(outcome.notSent).toEqual(decisions.map(({ draft }) => draft.workUID));
+    expect(outcome.failure).toEqual(
+      expect.objectContaining({ message: "Transaction failed with error code: 0x44adc90e" })
+    );
   });
 
   it("stops a send at a decision the resolver counted, without asking EAS", async () => {

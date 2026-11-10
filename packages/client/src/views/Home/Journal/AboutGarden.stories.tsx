@@ -250,14 +250,14 @@ export const Depositor: Story = {
   },
 };
 
-/** Insights opens as a tall sheet over Home, named for the garden, with its banner; Close hands focus back to the row. */
+/** Insights opens as a full sheet over Home, named for the garden, with its banner; Close hands focus back to the row. */
 export const OpensInsights: Story = {
   play: async ({ canvasElement }) => {
     const row = within(canvasElement).getByRole("button", { name: /Insights/ });
     await userEvent.click(row);
     // The sheets load on first use, so the first opening waits for their chunk.
     const sheet = await screen.findByRole("dialog", { name: "Insights" }, { timeout: 10_000 });
-    await expect(sheet).toHaveAttribute("data-sheet-size", "tall");
+    await expect(sheet).toHaveAttribute("data-sheet-size", "full");
     await expect(sheet).toHaveAccessibleDescription("In Riverside Commons Garden");
     const banner = within(sheet).getByTestId("garden-sheet-banner");
     await expect(Math.round(banner.getBoundingClientRect().height)).toBe(144);

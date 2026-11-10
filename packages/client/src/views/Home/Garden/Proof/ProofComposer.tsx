@@ -11,7 +11,11 @@ import {
 } from "@green-goods/shared/hooks/client-ui/submission/useSubmissionFlowController";
 import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
-import { isHeicFile, isVideoFile } from "@green-goods/shared/modules/work/media-processing";
+import {
+  isHeicFile,
+  isVideoFile,
+  isWorkDocument,
+} from "@green-goods/shared/modules/work/media-processing";
 import { RiCheckboxCircleFill, RiFileFill, RiImageFill } from "@remixicon/react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -144,14 +148,26 @@ export function ProofComposer() {
     { words: "never", type: "conjunction" }
   );
   const noteHint: NoteHint =
-    contents.photos + contents.videos + contents.voiceNotes > 0 && attachedSummary
+    contents.photos + contents.videos + contents.documents + contents.voiceNotes > 0 &&
+    attachedSummary
       ? { kind: "alreadyAdded", summary: attachedSummary }
       : contents.links > 0
         ? { kind: "linkEnough", count: contents.links }
         : { kind: "needed" };
 
   const pick = async (files: FileList | null) => {
-    const { rejectedCount } = await controller.pick(files);
+    const { rejectedCount, overLimit } = await controller.pick(files);
+    if (overLimit) {
+      toastService.error({
+        title: formatMessage(
+          { id: "app.garden.upload.truncatedTitle" },
+          { dropped: files?.length ?? 0 }
+        ),
+        message: formatMessage({ id: "app.garden.attachments.invalid" }),
+        context: "mediaUpload",
+      });
+      return;
+    }
     if (rejectedCount === 0) return;
     toastService.info({
       title: formatMessage({ id: "app.garden.upload.unsupportedMediaTitle" }),
@@ -235,7 +251,9 @@ export function ProofComposer() {
               setPreviewIndex(
                 controller.media
                   .slice(0, index)
-                  .filter((file) => !isVideoFile(file) && !isHeicFile(file)).length
+                  .filter(
+                    (file) => !isVideoFile(file) && !isHeicFile(file) && !isWorkDocument(file)
+                  ).length
               )
             }
             heicStateOf={controller.heicStateOf}
@@ -270,6 +288,7 @@ export function ProofComposer() {
             isOnline={controller.isOnline}
             canSendToo={controller.canSendToo}
             sendToo={controller.sendToo}
+            sendsProofWithItsSend={controller.sendsProofWithItsSend}
             onSendToo={controller.setSendToo}
             heicStateOf={controller.heicStateOf}
           />

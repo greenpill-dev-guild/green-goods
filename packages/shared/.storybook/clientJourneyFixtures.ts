@@ -531,7 +531,7 @@ export function promisePageFixture(stage: PromiseStage): {
         : null,
     proofSending: stage === "sending",
     proofOnItsWay:
-      stage === "sending" ? { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true } : null,
+      stage === "sending" ? { photos: 2, videos: 0, documents: 0, voiceNotes: 1, links: 1, words: true } : null,
   };
 
   const taken = [
@@ -594,6 +594,7 @@ export type ProofStage =
   | "detailsLink"
   | "review"
   | "reviewSend"
+  | "reviewSendTogether"
   | "reviewTeammate"
   | "reviewOffline"
   | "signing"
@@ -642,6 +643,7 @@ export function proofFlowFixture(stage: ProofStage): ProofComposerController {
     recordingElapsed: stage === "recording" ? 12 : 0,
     isPending: stage === "signing" || stage === "signingSend",
     canSendToo: reviewing && !teammate,
-    sendToo: stage === "reviewSend" || stage === "signingSend",
+    sendToo: stage === "reviewSend" || stage === "reviewSendTogether" || stage === "signingSend",
+    sendsProofWithItsSend: stage === "reviewSendTogether",
   });
 }

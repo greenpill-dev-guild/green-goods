@@ -263,6 +263,19 @@ describe("ProtocolFundingOperationsCard", () => {
               canCancel: true,
               sendBlock: "limits_unread",
             },
+            {
+              id: "42161-11",
+              disbursementId: 11n,
+              recipient: RECIPIENT,
+              amount: 2n * G,
+              state: "queued",
+              executionKey: null,
+              canDispatch: false,
+              canRetry: false,
+              canRequeue: false,
+              canCancel: true,
+              sendBlock: "executor_paused",
+            },
           ],
         })}
         gardens={gardens}
@@ -271,12 +284,15 @@ describe("ProtocolFundingOperationsCard", () => {
       />
     );
 
-    expect(screen.getByTestId("protocol-funding-status")).toHaveTextContent(/Sent to your Safe/);
+    expect(screen.getByTestId("protocol-funding-status")).toHaveTextContent(
+      "Queuing and dispatching stay closed until the chain shows it ran."
+    );
     expect(screen.getByRole("button", { name: "Review Seed or Top-Up…" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Dispatch…" })).not.toBeInTheDocument();
     const held = screen.getAllByTestId("protocol-funding-send-block");
     expect(held[0]).toHaveTextContent("More than the protocol Safe holds.");
     expect(held[1]).toHaveTextContent("Can't be sent until the protocol Safe's limits are read.");
+    expect(held[2]).toHaveTextContent("The Celo settlement executor is paused.");
   });
 
   it("keeps deployer-only funding read-only", () => {

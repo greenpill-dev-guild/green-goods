@@ -4,9 +4,10 @@ import { withAppPage } from "../../../../shared/.storybook/decorators";
 import { ProfileHelp } from "./Help";
 
 /**
- * Profile › Help: where to get in touch, then the questions by category. Promises
- * have their own category, where How Promises Work in the Offer or Request sheet
- * leads.
+ * Profile › Help: guides and socials under Learn & Connect, the policies and support
+ * requests under Privacy & Safety, then the questions by category. A question that a
+ * gardener guide walks through ends with a link to it. Promises have their own
+ * category, where How Promises Work in the Offer or Request sheet leads.
  */
 const meta: Meta<typeof ProfileHelp> = {
   title: "Client/Profile/Help",

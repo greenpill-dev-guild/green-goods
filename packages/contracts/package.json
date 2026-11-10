@@ -32,11 +32,11 @@
     "@ethereum-attestation-service/eas-contracts": "1.9.0",
     "@openzeppelin/contracts-5.0.2": "npm:@openzeppelin/contracts@5.0.2",
     "@openzeppelin/contracts-upgradeable": "4.9.6",
-    "dotenv": "^16.4.5",
-    "js-yaml": "5.4.1"
+    "dotenv": "^18.0.9",
+    "js-yaml": "5.5.0"
   },
   "devDependencies": {
     "bun-types": "1.4.4",
-    "solhint": "^6.0.1"
+    "solhint": "^6.2.5"
   }
 }

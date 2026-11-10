@@ -9,6 +9,7 @@ import type {
   SettlementStepId,
 } from "@green-goods/shared/modules/commitment-pooling/settlement-workflow";
 import type { IntlShape } from "react-intl";
+import { readinessReasonDescriptor } from "../poolFundingPresentation";
 
 type Message = { id: string; defaultMessage: string };
 
@@ -228,6 +229,14 @@ const BLOCKER_MESSAGES: Record<SettlementActionBlocker, Message> = {
     defaultMessage:
       "This is more than the paying garden's Celo Safe can send right now. Add funds or wait for its allowance to reset.",
   },
+  // What Celo would refuse a transfer for, in the words the funding facts use.
+  inactive_route: readinessReasonDescriptor("inactive_route"),
+  executor_paused: readinessReasonDescriptor("executor_paused"),
+  token_paused: readinessReasonDescriptor("token_paused"),
+  executor_unreadable: readinessReasonDescriptor("executor_unreadable"),
+  token_unreadable: readinessReasonDescriptor("token_unreadable"),
+  fee_policy_unavailable: readinessReasonDescriptor("fee_policy_unavailable"),
+  fee_policy_breach: readinessReasonDescriptor("fee_policy_breach"),
 };
 
 export function blockerMessage(blocker: SettlementActionBlocker, intl: IntlShape): string {

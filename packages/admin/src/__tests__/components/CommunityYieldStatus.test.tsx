@@ -53,7 +53,6 @@ function wiringResult(status: WiringState["status"], repairHref?: string): Wirin
     refetch: vi.fn(),
     status: "success",
     fetchStatus: "idle",
-    promise: Promise.resolve(wiringState),
     wiringStatus: status,
     wiringState,
     repairHref,

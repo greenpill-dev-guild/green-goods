@@ -20,7 +20,10 @@ export interface ReviewAttestation {
 
 /** How a send of reviews reads the chain. */
 export interface ReviewChain {
-  /** Why the chain would refuse this call from `account`, or null when it would go through. */
+  /**
+   * Why the chain would refuse this call from `account`, or null when it would go through. Throws
+   * when it cannot tell, and nothing is signed on it.
+   */
   refusal(call: ContractCall, account: Address): Promise<string | null>;
   /**
    * Whether anyone has decided this work. The resolver counts a decision the moment it lands;
@@ -65,8 +68,12 @@ export function createReviewChain(chainId: number): ReviewChain {
         account,
         chainId
       );
+      if (success) return null;
+      // Only a revert is the chain refusing. Any other failure, such as an RPC's error page, says
+      // nothing about the call: the check fails, and nothing is signed on it.
+      if (!error?.reverted) throw new Error(error?.message ?? "Transaction simulation failed");
       // The raw revert, so whoever shows it can still name the contract's error.
-      return success ? null : (error?.raw ?? "Transaction simulation failed");
+      return error.raw;
     },
     isDecided: async (workUID) => {
       if (countedSince !== undefined) {
@@ -140,16 +147,20 @@ const ARBITRUM_CEILINGS = {
 
 /**
  * Ceilings for one signature, on the chains they were sized for, checked against the gas each rail
- * asks for. On forks of Arbitrum, five decisions in one `multiAttest` used 7.0M gas with the
- * current Karma module and 9.9M with its upgrade, whose Project Updates are larger. A wallet asks
- * for the node's estimate plus `APPROVAL_GAS_HEADROOM_PERCENT`, about 14.8M for those five; a
- * passkey asks for the bundler's call gas plus the same, and a Green Goods passkey UserOperation
- * adds about 730k. So five fit 20M on either. Past them a list goes one review at a time. The first
- * live batch on each rail confirms them before it is listed.
+ * asks for. On a fork of Arbitrum on 10 November 2026, five decisions in one `multiAttest` used
+ * 9.7M gas with the live Karma module, whose Project Update grows by about 2,900 gas for each
+ * character of a work's description. A wallet asks for the node's estimate plus
+ * `APPROVAL_GAS_HEADROOM_PERCENT`, about 15M for those five, under 20M. A passkey asks for the
+ * bundler's call gas plus the same, and a Green Goods passkey UserOperation adds about 730k: 15.7M
+ * at open-source Alto's estimate, 17.2M with the margin Pimlico's hosted bundler added. Alto's
+ * default limit for one operation is 16M and the hosted bundler's is unconfirmed, so a passkey
+ * group stops at 16M. One past it is turned away before the prompt, rather than by the bundler
+ * after the signature. Past its ceiling a list goes one review at a time. The first live batch on
+ * each rail confirms them before it is listed.
  */
 const REVIEW_BUDGETS: Partial<Record<number, Record<BatchRail, BatchBudget>>> = {
   42161: {
-    passkey: { ...ARBITRUM_CEILINGS, maxGas: "20000000", sponsorship: "required" },
+    passkey: { ...ARBITRUM_CEILINGS, maxGas: "16000000", sponsorship: "required" },
     wallet: { ...ARBITRUM_CEILINGS, maxGas: "20000000", sponsorship: "wallet" },
   },
 };

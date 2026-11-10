@@ -2,7 +2,7 @@
  * SiteHeader Component Tests
  *
  * Tests the public website header for the editorial public browser:
- * - Desktop: nav order Gardens / Impact / Vaults / Fund / Actions + Install/Open App CTA
+ * - Desktop: nav order Gardens / Impact / Fund / Actions + Install/Open App CTA
  * - Mobile: hamburger button (aria-expanded toggling)
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
@@ -66,7 +66,6 @@ import { SiteHeader } from "../../components/Navigation/SiteHeader";
 const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
-  "public.nav.strategy": "Strategy",
   "public.nav.impact": "Impact",
   "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
@@ -144,17 +143,20 @@ describe("SiteHeader", () => {
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("nav order is Gardens / Impact / Fund / Actions / Strategy", () => {
+  it("nav lists only Gardens / Impact / Fund / Actions, in that order", () => {
     renderHeader();
-    const navs = screen.getAllByRole("navigation");
-    const desktopNav = navs[0];
-    const links = Array.from(desktopNav.querySelectorAll("a")).map(
-      (link) => link.textContent ?? ""
-    );
-    const navOrder = links.filter((label) =>
-      ["Gardens", "Impact", "Fund", "Actions", "Strategy"].includes(label)
-    );
-    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions", "Strategy"]);
+    const desktopNav = screen.getByRole("navigation", { name: "Main navigation" });
+    // Strategy is shared by direct link, so the header does not list it.
+    expect(
+      within(desktopNav)
+        .getAllByRole("link")
+        .map((link) => [link.textContent, link.getAttribute("href")])
+    ).toEqual([
+      ["Gardens", "/gardens"],
+      ["Impact", "/impact"],
+      ["Fund", "/fund"],
+      ["Actions", "/actions"],
+    ]);
   });
 
   it("renders Open App when the PWA is already installed", () => {
@@ -243,10 +245,12 @@ describe("SiteHeader", () => {
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
-    expect(within(drawer).getByRole("link", { name: "Strategy" })).toHaveAttribute(
+    // The drawer mirrors the header's links, so it leaves Strategy out too.
+    expect(within(drawer).getByRole("link", { name: "Actions" })).toHaveAttribute(
       "href",
-      "/strategy"
+      "/actions"
     );
+    expect(within(drawer).queryByRole("link", { name: "Strategy" })).not.toBeInTheDocument();
     expect(document.documentElement).toHaveClass("modal-open");
     expect(document.body.style.position).toBe("fixed");
     // Drawer mirrors the install CTA, not Connect Wallet.

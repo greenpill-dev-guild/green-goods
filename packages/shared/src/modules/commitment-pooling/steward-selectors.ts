@@ -1,12 +1,13 @@
 /**
  * The steward side of the pool console: who may act, what is past due and
- * still live, and whether an ordinary confirmer can still be reached. Split
- * out of `selectors.ts`, which is at its source-structure cap.
+ * still live, whether an ordinary confirmer can still be reached, and which
+ * ready commitments wait on the steward's own confirmation. Split out of
+ * `selectors.ts`, which is at its source-structure cap.
  */
 import type { Address } from "../../types/domain";
 import { type CycleEndTimes, effectiveDueDate, isPastDue } from "./due-dates";
-import { isSameAccount } from "./selectors";
-import type { CommitmentReadModel } from "./types";
+import { isSameAccount, selectCommitmentSeat } from "./selectors";
+import type { CommitmentReadModel, FallbackConfirmationCandidate } from "./types";
 
 /**
  * The garden roles that make someone a pool steward: the steward or owner
@@ -67,6 +68,15 @@ export function selectNextDueBoundary<
     if (next === null || due < next) next = due;
   }
   return next;
+}
+
+/** Take-up removes the lead without emitting a new ConfirmerRuleSet event. */
+export function withEffectiveConfirmers(commitment: CommitmentReadModel): CommitmentReadModel {
+  const { confirmers, leadProvider } = commitment;
+  const effective = confirmers.filter((confirmer) => !isSameAccount(leadProvider, confirmer));
+  return effective.length === confirmers.length
+    ? commitment
+    : { ...commitment, confirmers: effective };
 }
 
 /**
@@ -132,6 +142,61 @@ export function selectOrdinaryConfirmer(input: {
     isSameAccount(contributor, account)
   );
   return joined ? null : account;
+}
+
+/**
+ * Whether the reader is personally a party. Without the roster this answers
+ * for the named parties only, which is what the personal inbox lists.
+ */
+export function isPersonalParty(commitment: CommitmentReadModel, viewer: Address): boolean {
+  const seat = selectCommitmentSeat({ commitment, contributors: [], viewer });
+  return seat !== null && seat !== "bystander";
+}
+
+/**
+ * The ready commitments among a pool's candidates that wait on the reader's own
+ * account, newest first, by the contract's ordinary rule (CreditLib.sol
+ * `isOrdinaryConfirmer`) after take-up's effective confirmers: the reader is
+ * named, or with nobody named is the Request's creator or the person who took
+ * up the Offer. Left out: the team (`SelfConfirmation`), an Offer a garden took
+ * up (its Hat confirms, not one account), what the reader already confirmed
+ * (`AlreadyConfirmed`), and what the queue already lists.
+ */
+export function selectOwnConfirmations(input: {
+  candidates: readonly FallbackConfirmationCandidate[];
+  viewer: Address;
+  /** Commitment ids, in decimal, this reader has already confirmed. */
+  confirmed: ReadonlySet<string>;
+  /** Commitment entity ids the queue already lists elsewhere. */
+  listed: ReadonlySet<string>;
+}): CommitmentReadModel[] {
+  const { viewer, confirmed, listed } = input;
+  return input.candidates
+    .flatMap(({ commitment: indexed, activeContributors }) => {
+      const commitment = withEffectiveConfirmers(indexed);
+      if (commitment.onchainState !== "READY_FOR_CONFIRMATION") return [];
+      if (listed.has(commitment.id) || confirmed.has(commitment.commitmentId.toString())) {
+        return [];
+      }
+      if (activeContributors.some((contributor) => isSameAccount(contributor, viewer))) return [];
+      const { confirmers, direction, counterpartyKind, creator, counterparty } = commitment;
+      const own =
+        confirmers.length > 0
+          ? confirmers.some((confirmer) => isSameAccount(confirmer, viewer))
+          : isSameAccount(
+              selectOrdinaryConfirmer({
+                confirmers,
+                direction,
+                counterpartyKind,
+                creator,
+                counterparty,
+                activeContributors,
+              }),
+              viewer
+            );
+      return own ? [commitment] : [];
+    })
+    .sort((left, right) => Number(right.commitmentId - left.commitmentId));
 }
 
 // The act-permission half lives beside this one for file-length reasons; it

@@ -146,7 +146,7 @@ function proof(overrides: Partial<PendingProof>): PendingProof {
     commitment: null,
     title: FENCE_TITLE,
     savedAt: todayAt(10, 24),
-    contents: { photos: 2, videos: 0, voiceNotes: 1, links: 1, words: true },
+    contents: { photos: 2, videos: 0, documents: 0, voiceNotes: 1, links: 1, words: true },
     waitingReason: null,
     failed: false,
     sending: false,
@@ -163,7 +163,7 @@ const WORKSHOP_PROOF_DRAFT = proof({
   commitmentId: 9n,
   title: "Teach the composting basics workshop for new members",
   savedAt: Date.now() - 24 * HOUR,
-  contents: { photos: 2, videos: 0, voiceNotes: 0, links: 0, words: false },
+  contents: { photos: 2, videos: 0, documents: 0, voiceNotes: 0, links: 0, words: false },
   firstPhoto: null,
 });
 

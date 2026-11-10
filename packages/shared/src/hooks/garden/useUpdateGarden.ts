@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useBatchCapability } from "../blockchain/useBatchCapability";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
-import { useAccount } from "wagmi";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
@@ -281,7 +281,6 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
   const chainId = useCurrentChain();
   const sender = useTransactionSender();
   const { primaryAddress: account, passkeyAccountProfile } = useUser();
-  const { connector } = useAccount();
   const handleError = createMutationErrorHandler({
     source: "useGardenSettingsBatch",
     toastContext: "save garden settings",
@@ -302,11 +301,11 @@ export function useGardenSettingsBatch(gardenAddress: Address) {
   );
 
   // Asked only once listed: until then no wallet hears from this hook.
-  const { data: atomic } = useQuery({
-    queryKey: batchKeys.capability(account ?? "", chainId, connector?.uid ?? ""),
-    queryFn: async () => (await sender!.getBatchCapability!({ account: account!, chainId })).atomic,
+  const { data: atomic } = useBatchCapability({
+    sender,
+    account,
+    chainId,
     enabled: listed,
-    retry: false,
   });
 
   const domain = gardenSettingsDomain(gardenAddress);

@@ -7,11 +7,13 @@ import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
+import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGAP } from "../../src/mocks/GAP.sol";
 
-// The pinned forge-std predates this cheatcode supported by the pinned Foundry runtime.
+// The pinned forge-std predates these cheatcodes supported by the pinned Foundry runtime.
 interface VmJsonString {
     function parseJsonString(string calldata json, string calldata key) external pure returns (string memory);
+    function keyExistsJson(string calldata json, string calldata key) external view returns (bool);
 }
 
 /// @title KarmaModuleTest
@@ -21,6 +23,7 @@ interface VmJsonString {
 contract KarmaModuleTest is Test {
     KarmaGAPModule internal module;
     MockGAP internal mockGAP;
+    MockEAS internal mockEAS;
 
     address internal constant OWNER = address(0xA1);
     address internal constant GARDEN_TOKEN = address(0xA2);
@@ -34,6 +37,8 @@ contract KarmaModuleTest is Test {
 
     /// @dev KarmaLib.getGapContract() returns this for chainId 11155111 (Sepolia)
     address internal constant GAP_ADDRESS = 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28;
+    /// @dev KarmaLib.getEAS() returns this for chainId 11155111 (Sepolia)
+    address internal constant EAS_ADDRESS = 0xC2679fBD37d54388Ce493F1DB75320D236e1815e;
     bytes32 internal constant GAP_PROJECT_SCHEMA_SEPOLIA =
         0xec77990a252b54b17673955c774b9712766de5eecb22ca5aa2c440e0e93257fb;
     bytes32 internal constant GAP_DETAILS_SCHEMA_SEPOLIA =
@@ -280,6 +285,8 @@ contract KarmaModuleTest is Test {
         MockGAP impl = new MockGAP();
         vm.etch(GAP_ADDRESS, address(impl).code);
         mockGAP = MockGAP(GAP_ADDRESS);
+        vm.etch(EAS_ADDRESS, address(new MockEAS()).code);
+        mockEAS = MockEAS(EAS_ADDRESS);
     }
 
     function testKarma_createProjectRecordsExpectedWireFields() public {
@@ -406,9 +413,40 @@ contract KarmaModuleTest is Test {
         string memory payload =
             abi.decode(_assertGAPWire(impactUID, GAP_DETAILS_SCHEMA_SEPOLIA, module.getProjectUID(GARDEN)), (string));
         VmJsonString jsonVm = VmJsonString(address(vm));
-        assertEq(jsonVm.parseJsonString(payload, ".title"), "Tree Planting");
+        assertEq(jsonVm.parseJsonString(payload, ".title"), "Tree Planting (00000000)");
         assertEq(jsonVm.parseJsonString(payload, ".type"), "project-update");
         assertEq(jsonVm.parseJsonString(payload, ".deliverables[0].description"), "Planted 50 trees");
+    }
+
+    function testKarma_projectUpdateIsDatedByWorkSubmission() public {
+        _setupSupportedChain();
+        vm.prank(GARDEN_TOKEN);
+        module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
+
+        // The gardener submits the Work; a steward approves it weeks later.
+        vm.warp(1_700_000_000);
+        bytes32 submitted = mockEAS.attest(
+            AttestationRequest({
+                schema: bytes32(uint256(1)),
+                data: AttestationRequestData({
+                    recipient: GARDEN, expirationTime: 0, revocable: false, refUID: bytes32(0), data: "", value: 0
+                })
+            })
+        );
+        vm.warp(1_702_000_000);
+
+        // A Work EAS doesn't know is dated by its approval instead of losing its update.
+        bytes32[2] memory works = [submitted, bytes32(uint256(0xDEAD))];
+        string[2] memory dates = ["2023-11-14T22:13:20.000Z", "2023-12-08T01:46:40.000Z"];
+        VmJsonString jsonVm = VmJsonString(address(vm));
+        for (uint256 i = 0; i < works.length; i++) {
+            vm.prank(WORK_APPROVAL_RESOLVER);
+            bytes32 updateUID = module.createProjectUpdate(GARDEN, "Tree Planting", "Planted", "proof", works[i], "");
+            string memory payload =
+                abi.decode(_assertGAPWire(updateUID, GAP_DETAILS_SCHEMA_SEPOLIA, module.getProjectUID(GARDEN)), (string));
+            assertEq(jsonVm.parseJsonString(payload, ".startDate"), dates[i]);
+            assertFalse(jsonVm.keyExistsJson(payload, ".endDate"));
+        }
     }
 
     function test_createImpact_emitsFailedOnUnsupportedChainAfterProjectCreated() public {

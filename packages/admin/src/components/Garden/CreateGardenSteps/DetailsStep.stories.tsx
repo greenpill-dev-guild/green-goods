@@ -1,6 +1,9 @@
+import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
+import { expect, mocked, waitFor, within } from "storybook/test";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { DetailsStep } from "./DetailsStep";
 
 /**
@@ -84,6 +87,14 @@ export const WithValidationErrors: Story = {
   ],
 };
 
+const RIO_GARDEN = {
+  name: "Rio Rainforest Lab",
+  slug: "rio-rainforest-lab",
+  description:
+    "A community-driven regenerative effort to document and protect native species in the Atlantic Forest biome near Rio de Janeiro.",
+  location: "Rio de Janeiro, Brazil",
+};
+
 /**
  * Pre-filled form showing a realistic garden in progress.
  */
@@ -93,19 +104,70 @@ export const Prefilled: Story = {
   },
   decorators: [
     (Story) => (
-      <WithStoreState
-        overrides={{
-          name: "Rio Rainforest Lab",
-          slug: "rio-rainforest-lab",
-          description:
-            "A community-driven regenerative effort to document and protect native species in the Atlantic Forest biome near Rio de Janeiro.",
-          location: "Rio de Janeiro, Brazil",
-        }}
-      >
+      <WithStoreState overrides={RIO_GARDEN}>
         <Story />
       </WithStoreState>
     ),
   ],
+};
+
+/** Answers the Web name check the way the chain, or a failed read, settles it. */
+function settleWebNameCheck(state: { data: boolean | undefined; isError: boolean }) {
+  mocked(useSlugAvailability).mockReturnValue({ ...state, isFetching: false } as ReturnType<
+    typeof useSlugAvailability
+  >);
+  return resetHookMocks(useSlugAvailability);
+}
+
+/**
+ * The chain says the web name is already held, so the field says it is taken.
+ */
+export const WebNameTaken: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    showValidation: false,
+  },
+  beforeEach: () => settleWebNameCheck({ data: false, isError: false }),
+  decorators: [
+    (Story) => (
+      <WithStoreState overrides={RIO_GARDEN}>
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const webName = within(canvasElement).getByRole("textbox", { name: "Web name" });
+    await waitFor(() => expect(webName).toHaveAccessibleDescription("This name is already taken"));
+    await expect(webName).toHaveAttribute("aria-invalid", "true");
+  },
+};
+
+/**
+ * The check couldn't reach the chain, so the field says the name wasn't checked. It does not
+ * call the name taken: submit asks again, and the mint has the final say.
+ */
+export const WebNameUnchecked: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    showValidation: false,
+  },
+  beforeEach: () => settleWebNameCheck({ data: undefined, isError: true }),
+  decorators: [
+    (Story) => (
+      <WithStoreState overrides={RIO_GARDEN}>
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const webName = within(canvasElement).getByRole("textbox", { name: "Web name" });
+    await waitFor(() =>
+      expect(webName).toHaveAccessibleDescription(
+        "We couldn't check this name. We'll check it again when you create the garden."
+      )
+    );
+    await expect(webName).not.toHaveAttribute("aria-invalid");
+  },
 };
 
 /**

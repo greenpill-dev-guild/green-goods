@@ -1,10 +1,10 @@
 import { TransactionRevertedError } from "../../transactions/types";
 export { TransactionRevertedError } from "../../transactions/types";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { getWagmiConfig } from "../../../config/appkit";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../../utils/blockchain/polling";
+import { waitForReceipt } from "../../transactions/receipt-wait";
 
-type Receipt = Awaited<ReturnType<typeof waitForTransactionReceipt>>;
+type Receipt = Awaited<ReturnType<typeof waitForReceipt>>;
 
 export class TransactionReceiptTimeoutError extends Error {
   constructor(timeoutMs: number) {
@@ -18,11 +18,11 @@ export class TransactionReceiptTimeoutError extends Error {
 /**
  * Wait for a receipt, or fail loudly.
  *
- * `waitForTransactionReceipt` resolves with the receipt even when the
- * transaction reverted — it only rejects on timeout, replacement, or RPC
- * failure. Callers that treat "a receipt arrived" as "the write succeeded"
- * would record a decision that never landed, so the reverted case is raised
- * here rather than left to each call site to remember.
+ * `waitForReceipt` resolves with the receipt even when the transaction
+ * reverted, and rejects only when the wait itself fails. Callers that treat
+ * "a receipt arrived" as "the write succeeded" would record a decision that
+ * never landed, so the reverted case is raised here rather than left to each
+ * call site to remember.
  */
 export async function waitForReceiptWithTimeout(
   hash: `0x${string}`,
@@ -36,7 +36,7 @@ export async function waitForReceiptWithTimeout(
     }, timeoutMs);
   });
 
-  const receiptPromise = waitForTransactionReceipt(getWagmiConfig(), { hash, chainId });
+  const receiptPromise = waitForReceipt(getWagmiConfig(), { hash, chainId });
 
   try {
     const receipt = await Promise.race([receiptPromise, timeoutPromise]);

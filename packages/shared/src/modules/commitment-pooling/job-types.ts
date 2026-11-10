@@ -1,6 +1,7 @@
 import type { Hex } from "viem";
 import type { Address, WorkUploadConsent } from "../../types/domain";
 import type { CommitmentMetadataV1 } from "./metadata";
+import type { CommitmentCycleRecord } from "./types-core";
 
 export const COMMITMENT_JOB_KINDS = [
   "commitmentSeries",
@@ -93,9 +94,10 @@ export interface MembershipGatedJobPayload {
   gardenAddress: Address;
   /**
    * True when the chain authorizes this act by identity rather than by hat: a
-   * confirmer named on the commitment (setConfirmerRule) confirms without any
-   * garden role, and isOrdinaryConfirmer checks the list, not Hats. The
-   * preflight then stays out of the way; the contract is the only gate.
+   * confirmer named on the commitment (setConfirmerRule), or with nobody named
+   * the Request's creator or the person who took up the Offer, confirms without
+   * any garden role, because isOrdinaryConfirmer checks the account, not Hats.
+   * The preflight then stays out of the way; the contract is the only gate.
    */
   membershipNotRequired?: boolean;
 }
@@ -181,6 +183,14 @@ export interface CommitmentJob<K extends CommitmentJobKind = CommitmentJobKind> 
   submittedTxHash?: Hex;
 }
 
+/**
+ * Why the queue refuses a promise before its first send: an action it names has closed, or its
+ * season or campaign has ended (creation-standing).
+ */
+export const CREATION_REFUSALS = ["action-closed", "cycle-ended"] as const;
+
+export type CreationRefusal = (typeof CREATION_REFUSALS)[number];
+
 export type CommitmentJobExecutionResult =
   | { status: "recovered"; entityId?: bigint }
   | { status: "sent"; txHash: Hex }
@@ -193,8 +203,11 @@ export type CommitmentJobExecutionResult =
         | "membership-unavailable"
         | "pending-first-send"
         | "evidence-unpublished"
+        | "windows-unavailable"
         | "work-not-indexed";
     }
+  /** The chain can no longer keep this promise, so it is never sent: sending again cannot help. */
+  | { status: "refused"; reason: CreationRefusal }
   | {
       status: "identity-conflict";
       reason:
@@ -234,6 +247,15 @@ export interface CommitmentJobExecutionDependencies {
    * read. A reward promise is held unless this says true: absent means no.
    */
   readSettlementAccountActive?(garden: Address): Promise<boolean | null>;
+  /**
+   * An action's window as the registry holds it, in Unix seconds. An action the registry doesn't
+   * hold reads as zeros, so as closed.
+   */
+  readActionWindow(actionUID: bigint): Promise<{ startTime: bigint; endTime: bigint }>;
+  /** A season's or campaign's state and last second, as the module holds them. */
+  readCycleWindow(cycleId: bigint): Promise<Pick<CommitmentCycleRecord, "state" | "endTime">>;
+  /** The chain's latest block and its time in seconds. Without it a promise's windows can't be read. */
+  readChainHead?(): Promise<{ number: bigint; timestamp: number }>;
   hasMembership?(garden: Address, account: Address): Promise<boolean | null>;
   send(input: {
     kind: CommitmentJobKind;

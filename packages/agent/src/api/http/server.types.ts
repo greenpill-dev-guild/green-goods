@@ -70,6 +70,7 @@ export interface ServerDeps {
     chainId: number;
     gardenAddress: Address;
     recentLimit: number;
+    signal?: AbortSignal;
   }) => Promise<PublicGardenImpactResponseV1>;
   providerProofRegistry?: ReturnType<typeof createProviderProofRegistry>;
   allowedOrigins?: Set<string>;

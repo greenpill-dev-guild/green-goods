@@ -1,4 +1,3 @@
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { encodeFunctionData, formatEther, parseEventLogs } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import type { CreateGardenParams } from "../../types/contracts";
@@ -14,6 +13,7 @@ import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
 import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
 import { withGasHeadroom } from "../transactions/gas-headroom";
+import { waitForReceipt } from "../transactions/receipt-wait";
 import { assertWalletCanFundTransaction } from "../transactions/wallet-funding";
 import type {
   BroadcastReference,
@@ -303,7 +303,7 @@ export function createDefaultCreateGardenPorts(input: {
         ),
       waitForReceipt: async (hash, chainId) => {
         if (confirmed.has(hash)) return;
-        const receipt = await waitForTransactionReceipt(getWagmiConfig(), {
+        const receipt = await waitForReceipt(getWagmiConfig(), {
           hash,
           chainId,
           timeout: TX_RECEIPT_TIMEOUT_MS,

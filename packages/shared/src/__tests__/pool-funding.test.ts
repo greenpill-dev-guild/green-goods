@@ -6,6 +6,8 @@ import {
   calculateUnknownSplitFeeBuffer,
   type PoolFundingCalculationInput,
   type PoolFundingDisbursement,
+  type PoolFundingFeePolicy,
+  type SettlementUnavailableReason,
   selectExceededTransferLimit,
   selectPoolFundingSnapshot,
   selectQueuedTransferBlock,
@@ -638,6 +640,52 @@ describe("selectExceededTransferLimit", () => {
     };
   }
 
+  /**
+   * Queued transfer #8 of 900 and a whole read of it: every limit at 2,000, no fee,
+   * a policy that allows any fee up to the amount, and nothing holding the Safe.
+   */
+  function queuedRead({
+    quote = { fee: 0n, senderPays: true },
+    limits = {},
+    reasons = [],
+    feePolicy = { maxFeeBps: 10_000, maxFeeAmount: 2_000n },
+    recordedOnCelo = false,
+    executorPaused = false,
+  }: {
+    quote?: { fee: bigint | null; senderPays: boolean | null } | null;
+    limits?: Parameters<typeof fundingRead>[0];
+    reasons?: readonly SettlementUnavailableReason[];
+    feePolicy?: PoolFundingFeePolicy | null;
+    /** Celo has stored a failed execution of the transfer's current command. */
+    recordedOnCelo?: boolean;
+    executorPaused?: boolean | null;
+  }) {
+    const read = fundingRead({
+      cap: 2_000n,
+      period: 2_000n,
+      roles: 2_000n,
+      balance: 2_000n,
+      ...limits,
+    });
+    const executionKey = `0x${"cd".repeat(32)}` as const;
+    return {
+      ...read,
+      snapshot: {
+        ...read.snapshot!,
+        disbursements: [
+          { id: "42161-8", disbursementId: 8n, executionKey: recordedOnCelo ? executionKey : null },
+        ] as PoolFundingDisbursement[],
+        executions: recordedOnCelo
+          ? [{ executionKey, status: "FAILED", createdAt: 1, acknowledgmentSent: false }]
+          : [],
+        executorPaused,
+        feeQuotes: quote ? [{ id: "42161-8", amount: 900n, recipient: null, ...quote }] : [],
+        feePolicy,
+        settlementUnavailableReasons: [...reasons],
+      },
+    };
+  }
+
   it.each([
     ["lets an amount equal to every limit through", {}, 1_000n, null],
     ["names the per-transfer cap", { cap: 500n }, 501n, "transfer_cap"],
@@ -704,30 +752,93 @@ describe("selectExceededTransferLimit", () => {
     ["unread fee terms", { fee: 1n, senderPays: null }, {}, "limits_unread"],
     ["no quote", null, {}, "limits_unread"],
   ] as const)("selectQueuedTransferBlock: %s", (_name, quote, limits, expected) => {
-    const read = fundingRead({
-      cap: 2_000n,
-      period: 2_000n,
-      roles: 2_000n,
-      balance: 2_000n,
-      ...limits,
-    });
-    const funding = {
-      ...read,
-      snapshot: {
-        ...read.snapshot!,
-        disbursements: [{ id: "42161-8", disbursementId: 8n }] as PoolFundingDisbursement[],
-        feeQuotes: quote ? [{ id: "42161-8", amount: 900n, recipient: null, ...quote }] : [],
-      },
-    };
-    expect(selectQueuedTransferBlock(funding, { disbursementId: 8n, amount: 900n })).toBe(expected);
+    expect(
+      selectQueuedTransferBlock(queuedRead({ quote, limits }), { disbursementId: 8n, amount: 900n })
+    ).toBe(expected);
+  });
+
+  // Celo refuses these apart from any limit, and only after the CCIP fee is spent.
+  it.each([
+    ["an inactive route", { reasons: ["inactive_route"] }, "inactive_route"],
+    ["a paused executor", { reasons: ["executor_paused"] }, "executor_paused"],
+    ["a paused token", { reasons: ["token_paused"] }, "token_paused"],
+    ["an executor nobody could read", { reasons: ["executor_unreadable"] }, "executor_unreadable"],
+    ["a token nobody could read", { reasons: ["token_unreadable"] }, "token_unreadable"],
+    [
+      "a pause ahead of a limit the amount is over",
+      { reasons: ["token_paused"], limits: { cap: 500n } },
+      "token_paused",
+    ],
+    [
+      "a pause the read shows beside a limit it couldn't read",
+      { reasons: ["executor_paused"], limits: { cap: null } },
+      "executor_paused",
+    ],
+    [
+      "an inactive route the read shows beside a stale balance",
+      { reasons: ["inactive_route"], limits: { hasStaleBalance: true } },
+      "inactive_route",
+    ],
+    [
+      "nothing a snapshot kept from a failed refresh says, not even a pause",
+      { reasons: ["token_paused"], limits: { isError: true } },
+      "limits_unread",
+    ],
+    [
+      "a fee over the policy's share of the amount",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n } },
+      "fee_policy_breach",
+    ],
+    [
+      "a fee over the policy's flat ceiling",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 10_000, maxFeeAmount: 9n } },
+      "fee_policy_breach",
+    ],
+    [
+      "a fee exactly at the policy",
+      { quote: { fee: 9n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 9n } },
+      null,
+    ],
+    [
+      "no fee under a policy that allows none",
+      { feePolicy: { maxFeeBps: 0, maxFeeAmount: 0n } },
+      null,
+    ],
+    ["an unread fee policy", { feePolicy: null }, "fee_policy_unavailable"],
+    ["another transfer's fee over the policy", { reasons: ["fee_policy_breach"] }, null],
+  ] as const)("selectQueuedTransferBlock holds %s", (_name, read, expected) => {
+    expect(selectQueuedTransferBlock(queuedRead(read), { disbursementId: 8n, amount: 900n })).toBe(
+      expected
+    );
+  });
+
+  // Celo answers a command it already recorded without a preflight or a debit, so a
+  // resend there only waits on the executor, which refuses every message while paused.
+  it.each([
+    [
+      "a fee over the policy",
+      { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n } },
+      null,
+    ],
+    ["an inactive route", { reasons: ["inactive_route"] }, null],
+    ["a paused token", { reasons: ["token_paused"] }, null],
+    ["a limit the amount is over", { limits: { cap: 500n } }, null],
+    ["a limit nobody could read", { limits: { period: null } }, null],
+    ["a paused executor", { executorPaused: true }, "executor_paused"],
+    ["an executor nobody could read", { executorPaused: null }, "executor_unreadable"],
+    ["a snapshot kept from a failed refresh", { limits: { isError: true } }, "limits_unread"],
+  ] as const)("selectQueuedTransferBlock, for a command Celo already recorded: %s", (_name, read, expected) => {
+    expect(
+      selectQueuedTransferBlock(queuedRead({ ...read, recordedOnCelo: true }), {
+        disbursementId: 8n,
+        amount: 900n,
+      })
+    ).toBe(expected);
   });
 
   it("selectQueuedTransferBlock: holds a transfer the read doesn't list", () => {
-    const read = fundingRead({});
-    const funding = {
-      ...read,
-      snapshot: { ...read.snapshot!, disbursements: [], feeQuotes: [] },
-    };
+    const funding = queuedRead({});
+    funding.snapshot.disbursements = [];
     expect(selectQueuedTransferBlock(funding, { disbursementId: 8n, amount: 1n })).toBe(
       "limits_unread"
     );

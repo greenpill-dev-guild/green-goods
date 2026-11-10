@@ -5,7 +5,9 @@ import {
   validateWorkAttachments,
   hashWorkBytes,
   identifyWorkFile,
+  isWorkDocument,
   publishableWorkFile,
+  publishedWorkFiles,
   roundWorkLocation,
 } from "../../modules/work/work-attachments";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
@@ -62,8 +64,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
   // Use dummy CID for simulation to avoid IPFS uploads
   const DUMMY_CID = "QmSimulationDummyHashForValidation000000000000";
 
-  // Map media files to dummy CIDs - strictly maintaining array length
-  const media = data.media.map(() => DUMMY_CID);
+  // One dummy CID per photo or video; documents publish in the metadata instead.
+  const media = data.media.filter((file) => !isWorkDocument(file)).map(() => DUMMY_CID);
 
   // Use dummy CID for metadata JSON
   const metadataCID = DUMMY_CID;
@@ -261,13 +263,13 @@ export async function encodeWorkData(
   const uploadResults = await pooledSettled(uploadTasks, concurrency);
 
   // Process results and handle any failures
-  const media: string[] = [];
+  const cids: string[] = [];
   const errors: Array<{ index: number; error: unknown }> = [];
 
   for (let i = 0; i < uploadResults.length; i++) {
     const result = uploadResults[i];
     if (result.status === "fulfilled") {
-      media[result.value.index] = result.value.cid;
+      cids[result.value.index] = result.value.cid;
     } else {
       failedFiles++;
       const maybeFile = data.media[i];
@@ -317,6 +319,9 @@ export async function encodeWorkData(
     throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
+  const { media, attachments, documents } = publishedWorkFiles(
+    normalizedFiles.map((file, i) => ({ file, cid: cids[i], type: data.media[i].type }))
+  );
   // Upload audio notes to IPFS (if any)
   let audioNoteCids: string[] = [];
   if (data.audioNotes && data.audioNotes.length > 0) {
@@ -369,7 +374,8 @@ export async function encodeWorkData(
       tags: data.tags,
       audioNoteCids,
       submittedAt: checkpoint.submittedAt,
-      attachments: media.map((cid, index) => ({ cid, type: data.media[index].type })),
+      attachments,
+      documents,
       clientWorkId: options.clientWorkId,
       draftClientWorkId: (data as unknown as Record<string, unknown>).clientWorkId as
         | string

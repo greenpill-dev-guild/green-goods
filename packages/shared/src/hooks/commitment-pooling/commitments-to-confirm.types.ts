@@ -1,7 +1,8 @@
 /**
  * The shapes the confirmation queue is read in: a garden's own group, the
- * rows only a steward's fallback can still confirm, and the disputed records
- * of the reader's pools, each with the pool it actually lives in. Split out of
+ * reader's own confirmations in their pools, the rows only a steward's
+ * fallback can still confirm, and the disputed records of the reader's pools,
+ * each with the pool it actually lives in. Split out of
  * `useCommitmentsToConfirm`, which is at its source-structure cap; the hook
  * re-exports every name.
  */
@@ -49,6 +50,21 @@ export interface ToConfirmGroup {
   rows: ToConfirmRow[];
 }
 
+/**
+ * A commitment in the pool of a garden the reader stewards that waits on the
+ * reader's own confirmation, not the garden's. Only the Hub asks for these
+ * (`includeOwn`), because it has no Live tab to carry them.
+ */
+export interface ToConfirmOwnRow {
+  commitment: CommitmentReadModel;
+  /**
+   * The pool's garden, which the reader stewards: the Hub scope the row
+   * belongs to, and the authority a dispute on it would use.
+   */
+  garden: Address;
+  gardenName: string;
+}
+
 /** A commitment only a steward's reasoned fallback can still confirm. */
 export interface ToConfirmFallbackRow extends ToConfirmPoolAuthority {
   commitment: CommitmentReadModel;
@@ -69,13 +85,18 @@ export interface ToConfirmDisputedRow {
 
 export interface CommitmentsToConfirm {
   groups: ToConfirmGroup[];
+  /**
+   * The reader's own confirmations, read only when the caller asks
+   * (`includeOwn`). Optional so a fixture may leave it out.
+   */
+  own?: ToConfirmOwnRow[];
   fallback: ToConfirmFallbackRow[];
   /**
    * Disputed records in the reader's own pools. Optional so a fixture may
    * leave it out; this hook always answers with an array.
    */
   disputed?: ToConfirmDisputedRow[];
-  /** Rows across every garden asked — ordinary, fallback and disputed: the badge. */
+  /** Rows across every garden asked — ordinary, own, fallback and disputed: the badge. */
   count: number;
   /**
    * The reader stewards at least one garden, or the active one when the queue is scoped.

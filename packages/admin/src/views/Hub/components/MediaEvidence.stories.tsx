@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { AdminDialog } from "@/components/AdminDialog";
 import { MediaEvidence } from "./MediaEvidence";
@@ -50,6 +50,63 @@ export const WithAudioNotes: Story = {
     // contract here.
     audioNoteCids: ["bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"],
     actionTitle: "Species survey",
+  },
+};
+
+/**
+ * Work whose action needs no photo, sent with a certificate alone. The document is the
+ * evidence, so no "No media attached" line contradicts it.
+ */
+export const DocumentsOnly: Story = {
+  args: {
+    media: [],
+    documents: [
+      {
+        cid: "bafkreigh2akiscaildcqabsyg3dfr6chu3fgpregiymsck7e7aqa4s52zy",
+        type: "application/pdf",
+        name: "Installation certificate.pdf",
+        size: 1_258_291,
+      },
+    ],
+    actionTitle: "Solar installation",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("link", { name: /Installation certificate\.pdf/ })).toBeVisible();
+    await expect(canvas.queryByText("No media attached")).not.toBeInTheDocument();
+  },
+};
+
+/**
+ * The work's metadata file could not be read, so its voice notes and documents are not known
+ * yet. The photos still show, and the rest offers another try instead of "No media attached".
+ */
+export const EvidenceUnavailable: Story = {
+  args: {
+    media: FIXTURE_WORK_MEDIA.slice(0, 1),
+    evidenceState: "failed",
+    onRetryEvidence: fn(),
+    actionTitle: "Solar installation",
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Try Again" }));
+    await expect(args.onRetryEvidence).toHaveBeenCalledTimes(1);
+  },
+};
+
+/** Offline, the read waits for the connection, so the review offers no retry that cannot run. */
+export const EvidenceOffline: Story = {
+  args: {
+    media: FIXTURE_WORK_MEDIA.slice(0, 1),
+    evidenceState: "offline",
+    onRetryEvidence: fn(),
+    actionTitle: "Solar installation",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText(/load when you're back online/)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
   },
 };
 
