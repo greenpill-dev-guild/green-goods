@@ -1,14 +1,15 @@
 /**
  * Failures the app raises itself before anything reaches the chain: the queue
  * already holds an earlier version of the act, the wallet is on another
- * network, the phone is offline, or a send that needs a connection had none.
- * Their words are the app's own, never a contract's, so each names the
- * translated copy its reader should see.
+ * network, the phone is offline, a send that needs a connection had none, or a
+ * jar review no longer matches the jar. Their words are the app's own, never a
+ * contract's, so each names the translated copy its reader should see.
  *
  * @module utils/errors/unsent-failures
  */
 
 import type { ParsedContractError } from "./contract-errors";
+import { JarReviewChangedError, jarReviewChangedFailure } from "./hats-cookie-jar-errors";
 import { wrongWalletNetwork } from "./wallet-network-refusal";
 
 /**
@@ -31,13 +32,14 @@ export class ConnectionNeededError extends Error {
 const QUEUE_IDENTITY_CONFLICT = "offline_job_identity_conflict:";
 
 /**
- * The queue's refusal, a send that needed a connection, or a wallet-network
- * failure, read before any single word in its message ("offline",
- * "connection", "rejected") is taken for something else. Null for every other
- * error.
+ * The queue's refusal, a send that needed a connection, an out-of-date jar
+ * review, or a wallet-network failure, read before any single word in its
+ * message ("offline", "connection", "rejected") is taken for something else.
+ * Null for every other error.
  */
 export function parseUnsentFailure(error: unknown, message: string): ParsedContractError | null {
   if (error instanceof ConnectionNeededError) return connectionNeededFailure(message);
+  if (error instanceof JarReviewChangedError) return jarReviewChangedFailure(error);
   if (message.includes(QUEUE_IDENTITY_CONFLICT)) {
     return {
       raw: message,
