@@ -391,7 +391,7 @@ function voucherBookingRow(
 }
 
 /**
- * How a voucher offer's row in Offers and Requests reads: its booking under
+ * How a voucher offer's row in Offers and Asks reads: its booking under
  * way, else how far the bookings asked on it have come. Null for a promise
  * that isn't a voucher offer, which keeps its ordinary row.
  */

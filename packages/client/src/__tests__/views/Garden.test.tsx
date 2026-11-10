@@ -267,7 +267,6 @@ import { createTestQueryClient } from "../test-utils";
 
 const messages = {
   "app.garden.selectYourAction": "Select Your Action",
-  "app.garden.whatTypeOfWork": "What type of work?",
   "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden?",
   "app.garden.upload.title": "Upload Media",

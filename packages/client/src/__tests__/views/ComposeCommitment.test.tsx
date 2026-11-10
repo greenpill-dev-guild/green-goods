@@ -354,7 +354,7 @@ describe("ComposeCommitment", () => {
     const user = userEvent.setup();
     render("request");
 
-    expect(screen.getByText("Make a request")).toBeInTheDocument();
+    expect(screen.getByText("Make an ask")).toBeInTheDocument();
     expect(screen.getByText("What are you asking for?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Help or a service/ })).toHaveAttribute(
       "aria-pressed",
@@ -370,7 +370,7 @@ describe("ComposeCommitment", () => {
     await user.click(next());
     await user.click(next());
     expect(reviewedWhoCanTakeItUp()).toHaveTextContent("A neighbor your stewards choose");
-    await place(user, "Make This Request");
+    await place(user, "Make This Ask");
 
     // Placed approval-gated, taking it up records a pending claim for the
     // stewards to decide rather than accepting it (ClaimsLib.requestClaim).
@@ -390,7 +390,7 @@ describe("ComposeCommitment", () => {
     await user.click(next());
     await user.click(next());
     expect(reviewedWhoCanTakeItUp()).toHaveTextContent("Any neighbor in this garden");
-    await place(user, "Make This Request");
+    await place(user, "Make This Ask");
 
     const call = mockEnqueue.mock.calls[0]?.[0] as { payload: { claimMode: number } };
     expect(call.payload.claimMode).toBe(0);
