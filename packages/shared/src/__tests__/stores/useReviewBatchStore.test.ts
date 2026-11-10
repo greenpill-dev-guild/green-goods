@@ -10,7 +10,12 @@ import {
   reviewBatchScope,
   useReviewBatchStore,
 } from "../../stores/useReviewBatchStore";
-import { Confidence, VerificationMethod, type WorkApprovalDraft } from "../../types/domain";
+import {
+  Confidence,
+  VerificationMethod,
+  type Address,
+  type WorkApprovalDraft,
+} from "../../types/domain";
 
 const ALICE = "0xA11CE00000000000000000000000000000000001";
 const BOB = "0xB0B0000000000000000000000000000000000002";
@@ -41,7 +46,11 @@ afterEach(() => {
 describe("stores/useReviewBatchStore", () => {
   it("keeps a list per chain, account, and garden, whatever the address's case", () => {
     expect(reviewBatchScope(42161, ALICE, GARDEN_A)).toBe(
-      reviewBatchScope(42161, ALICE.toLowerCase(), GARDEN_A.toUpperCase().replace("0X", "0x"))
+      reviewBatchScope(
+        42161,
+        ALICE.toLowerCase() as Address,
+        GARDEN_A.toUpperCase().replace("0X", "0x") as Address
+      )
     );
     const others = [
       reviewBatchScope(1, ALICE, GARDEN_A),

@@ -10,7 +10,7 @@ import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useYourWorkOnPhone } from "../../../hooks/work/useYourWorkOnPhone";
-import type { Work } from "../../../types/domain";
+import type { Address, Work } from "../../../types/domain";
 import { createMockWork } from "../../test-utils/mock-factories";
 
 const ME = "0xa11ce00000000000000000000000000000000001";
@@ -138,7 +138,7 @@ function queuedWork(id: string, overrides: Partial<Work> = {}): Work {
 }
 
 /** A review this phone made, queued: its work, and the garden its job writes to. */
-function queueReview(id: string, gardenAddress: string) {
+function queueReview(id: string, gardenAddress: Address) {
   mocks.waitingDecisionWorkIds = new Set([...mocks.waitingDecisionWorkIds, id.toLowerCase()]);
   mocks.waitingDecisionGardenIds = [...new Set([...mocks.waitingDecisionGardenIds, gardenAddress])];
   mocks.decidedHere = [

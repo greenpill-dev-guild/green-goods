@@ -104,7 +104,7 @@ function setup(
   };
   const renderDeposit = (errorMode: "inline" | "toast" = "inline") =>
     renderHookWithProviders(() => useCookieJarDeposit(garden, { errorMode }), { queryClient });
-  const renderPlan = (gardenAddress?: string) =>
+  const renderPlan = (gardenAddress?: Address) =>
     renderHookWithProviders(
       () => useDepositPlan({ target, amount: 100n, decimals: 0, symbol: "DAI", gardenAddress }),
       { queryClient }

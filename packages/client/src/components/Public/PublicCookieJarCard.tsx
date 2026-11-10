@@ -1,35 +1,35 @@
-import type { Address } from "@green-goods/shared/types/domain";
 import { Button } from "@green-goods/shared/components/Button";
-import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
-import { cn } from "@green-goods/shared/utils/styles/cn";
-import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import {
   FormattedAmountInput,
   useFormattedAmountInput,
 } from "@green-goods/shared/components/Form/FormattedAmountInput";
-import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
-import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
-import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
 import {
   TxHoldFeedback,
   TxInlineFeedback,
 } from "@green-goods/shared/components/feedback/TxInlineFeedback";
-import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
-import { useDepositPlan } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useErc20Balance } from "@green-goods/shared/hooks/blockchain/useErc20Balance";
 import {
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
 } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useDepositPlan } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
-import { useBalance } from "wagmi";
 import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
-import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import {
   EDITORIAL_COOKIE_JAR_CARD_FRAME,
   EditorialCookieJarActionsSkeleton,
@@ -37,7 +37,7 @@ import {
   EditorialStatSkeleton,
 } from "@/components/Public/atoms";
 import { ClaimEligibilityNote } from "@/components/Public/ClaimEligibilityNote";
-import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
+import { type CookieJarStatus, classifyCookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 const STRICT_PURPOSE_MIN_LENGTH = 27;
 const FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE = "Green Goods campaign cookie claim";
@@ -478,7 +478,7 @@ function CampaignCookieJarInlineActions({
     depositMutation.isPending ||
     plan.isPaused;
 
-  const { data: walletBalance } = useBalance({
+  const { data: walletBalance } = useErc20Balance({
     chainId,
     address: primaryAddress as Address | undefined,
     token: jar.assetAddress,

@@ -84,7 +84,7 @@ describe("prepared batch intent", () => {
 
 it("freezes reviewed fee ceilings into the intent fingerprint", () => {
   const limits = createMockBatchBudget();
-  const input = {
+  const input: Parameters<typeof prepareBatch>[0] = {
     id: "budgeted",
     domain: "settings",
     account: "0x1111111111111111111111111111111111111111",

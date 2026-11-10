@@ -493,7 +493,11 @@ describe("PWA durable submission boundary", () => {
   ])("rejects a mismatched dependent target before admitting or signing Work: %s", async (change) => {
     const { command, ports, send } = fixture();
     command.chainId = 42161;
-    command.linkIntent = { ...LINK, ...change };
+    // Persisted intents can carry malformed fields despite the compile-time contract.
+    command.linkIntent = {
+      ...LINK,
+      ...change,
+    } as unknown as ResolvedSubmitWorkCommand["linkIntent"];
     await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
     expect(send).not.toHaveBeenCalled();
     expect(
