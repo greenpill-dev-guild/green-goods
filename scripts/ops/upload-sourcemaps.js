@@ -443,8 +443,8 @@ async function uploadSourceMapsForApp(appName) {
 
   if (config.dryRun) {
     printWarning("DRY RUN - Would upload source maps with:");
-    console.log(`  ${posthogCliBin} sourcemap inject --directory ${appConfig.dist} --project ${appConfig.project} --version ${version}`);
-    console.log(`  ${posthogCliBin} sourcemap upload --directory ${appConfig.dist}${config.keepMaps ? "" : " --delete-after"}`);
+    console.log(`  ${posthogCliBin} sourcemap inject --directory ${appConfig.dist} --project ${appConfig.project} --version ${version} --release-mode symbol-set`);
+    console.log(`  ${posthogCliBin} sourcemap upload --directory ${appConfig.dist}${config.keepMaps ? "" : " --delete-after"} --release-mode symbol-set`);
     return true;
   }
 
@@ -458,11 +458,12 @@ async function uploadSourceMapsForApp(appName) {
     cliEnv.POSTHOG_CLI_PROJECT_ID = envId;
   }
 
+  // Keep release IDs attached to symbol sets, as in the previous CLI version.
   // Step 1: Inject source map metadata
   printInfo("Injecting source map metadata...");
   try {
     await runCommand(
-      `${shellQuote(posthogCliBin)} sourcemap inject --directory "${appConfig.dist}" --project "${appConfig.project}" --version "${version}"`,
+      `${shellQuote(posthogCliBin)} sourcemap inject --directory "${appConfig.dist}" --project "${appConfig.project}" --version "${version}" --release-mode symbol-set`,
       { env: cliEnv }
     );
     printSuccess("Metadata injected");
@@ -475,7 +476,7 @@ async function uploadSourceMapsForApp(appName) {
   printInfo("Uploading source maps to PostHog...");
   try {
     const deleteFlag = config.keepMaps ? "" : " --delete-after";
-    await runCommand(`${shellQuote(posthogCliBin)} sourcemap upload --directory "${appConfig.dist}"${deleteFlag}`, {
+    await runCommand(`${shellQuote(posthogCliBin)} sourcemap upload --directory "${appConfig.dist}"${deleteFlag} --release-mode symbol-set`, {
       env: cliEnv,
     });
     printSuccess("Source maps uploaded");
