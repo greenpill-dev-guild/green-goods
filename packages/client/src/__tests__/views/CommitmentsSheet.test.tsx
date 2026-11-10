@@ -301,13 +301,13 @@ describe("CommitmentsSheet", () => {
       expect(copies).toContainElement(document.activeElement as HTMLElement);
       expect(copies.dataset.entryMotion).toBe("instant");
       // The sheet under it is what's hidden from assistive tech, not the list.
-      expect(screen.queryByRole("dialog", { name: "Promises" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Your Promises" })).not.toBeInTheDocument();
 
       fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Escape" });
       await waitFor(() =>
         expect(screen.queryByRole("dialog", { name: HUB_DAY })).not.toBeInTheDocument()
       );
-      expect(screen.getByRole("dialog", { name: "Promises" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "Your Promises" })).toBeInTheDocument();
     });
   });
 
@@ -333,7 +333,7 @@ describe("CommitmentsSheet", () => {
       render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
 
       // The garden line takes the description's place, so the header keeps its height.
-      const sheet = screen.getByRole("dialog", { name: "Promises" });
+      const sheet = screen.getByRole("dialog", { name: "Your Promises" });
       expect(sheet).toHaveAccessibleDescription("In Rocinha Community Garden");
       expect(screen.queryByText("Offered, asked for, taken up.")).not.toBeInTheDocument();
       // Both reads take the active garden's scope, so the tabs and the launcher agree.

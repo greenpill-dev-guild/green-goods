@@ -117,7 +117,7 @@ const meta: Meta<typeof GardenPoolTab> = {
     docs: {
       description: {
         component:
-          "W7, the steward's pool console over the shared controller. On the left, what needs the steward, the season and its campaigns, and Offers and Requests under Open · Confirmed · Past; on the right, 37.5% of the width, Review Promises, Pool Status and Pool Funding (PRD-1025 D8–D10, named by DL-077). On narrow screens the right column comes last. Seeded through the registry keys the controller reads.",
+          "W7, the steward's pool console over the shared controller. On the left, what needs the steward, the season and its campaigns, and Offers and Asks under Open · Confirmed · Past; on the right, 37.5% of the width, Review Promises, Pool Status and Pool Funding (PRD-1025 D8–D10, named by DL-077). On narrow screens the right column comes last. Seeded through the registry keys the controller reads.",
       },
     },
   },
@@ -166,7 +166,7 @@ export const ReaderView: Story = {
 /**
  * Tech and Sun's Promises console with the voucher pilot read in: two hub days
  * asked in Review Promises (one waits on the Safe's approval, one can be
- * accepted), Mara's visit under way in Offers and Requests, and Tech and Sun's
+ * accepted), Mara's visit under way in Offers and Asks, and Tech and Sun's
  * reserve in the rail. Fictional people, working pilot terms.
  */
 export const TechAndSunVouchers: Story = {

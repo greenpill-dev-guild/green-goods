@@ -445,8 +445,8 @@ describe("Home journal", () => {
       expect(screen.getByRole("heading", { level: 2, name: "Take Part" })).toBeVisible();
       const ask = screen.getByRole("button", { name: /Two hours sorting the seed library/ });
       expect(ask).toHaveAttribute("data-component", "CommitmentRow");
-      expect(within(ask).getByRole("img", { name: "Request" })).toBeInTheDocument();
-      expect(ask).toHaveTextContent("Asked for");
+      expect(within(ask).getByRole("img", { name: "Ask" })).toBeInTheDocument();
+      expect(within(ask).getByRole("status")).toHaveTextContent("Ask");
 
       await user.click(ask);
       expect(mocks.navigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/20`);

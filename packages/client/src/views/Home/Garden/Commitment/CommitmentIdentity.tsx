@@ -101,7 +101,8 @@ export function CommitmentIdentity({
     price: price.state,
     payout: promisePayoutOf(commitment),
   });
-  const state = presentState(commitment.derivedState);
+  // The band says when an untaken promise is past due, and the pill says it with it.
+  const state = presentState(commitment.derivedState, { pastDue: band?.pastDue });
   // A booking's stage can wait on others while the promise itself waits on the reader (Confirm
   // It Was Kept while a transfer is on its way): either one needing the reader says so.
   const needsYou = Boolean(serviceBand?.needsYou) || commitmentNeedsSeat({ commitment, seat });

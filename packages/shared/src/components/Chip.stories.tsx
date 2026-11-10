@@ -52,7 +52,7 @@ export const Selected: Story = {
 };
 
 function FilterRow() {
-  const filters = ["All", "Offers", "Requests"];
+  const filters = ["All", "Offers", "Asks"];
   const [active, setActive] = useState("All");
   return (
     <div className="flex gap-2">
@@ -73,8 +73,8 @@ export const FilterToggle: Story = {
       "aria-pressed",
       "true"
     );
-    await userEvent.click(canvas.getByRole("button", { name: "Requests" }));
-    await expect(canvas.getByRole("button", { name: "Requests" })).toHaveAttribute(
+    await userEvent.click(canvas.getByRole("button", { name: "Asks" }));
+    await expect(canvas.getByRole("button", { name: "Asks" })).toHaveAttribute(
       "aria-pressed",
       "true"
     );

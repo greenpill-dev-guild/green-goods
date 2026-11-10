@@ -23,7 +23,7 @@ const meta: Meta<typeof PoolGroupRow> = {
     docs: {
       description: {
         component:
-          "Copies made together, as one row in Offers and Requests (PRD-1022 D3), on the shared commitment row: the direction's icon carries the number of copies, the pill says how many are still available, and the details give the shared due date and the rest of the counts. While a copy still waits in the steward's queue, the pill says how many didn't send, the details what was created, and Finish Creating (n) takes the right slot, in place of a separate queued row. The row opens the group's inspector.",
+          "Copies made together, as one row in Offers and Asks (PRD-1022 D3), on the shared commitment row: the direction's icon carries the number of copies, the pill says how many are still available, and the details give the shared due date and the rest of the counts. While a copy still waits in the steward's queue, the pill says how many didn't send, the details what was created, and Finish Creating (n) takes the right slot, in place of a separate queued row. The row opens the group's inspector.",
       },
     },
   },

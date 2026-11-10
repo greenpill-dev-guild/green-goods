@@ -109,25 +109,50 @@ export const LongTitleNeedsYou: Story = {
   },
 };
 
-/** A request leads with the helping hand, named for screen readers; its edge follows its pill. */
-export const Request: Story = {
-  args: {
-    row: row({
-      commitment: commitment({
-        direction: "REQUEST",
-        derivedState: "REQUESTED",
-        onchainState: "REQUESTED",
-        unitLabel: "rides",
-      }),
-      needsYou: false,
+const openAsk = () =>
+  row({
+    commitment: commitment({
+      direction: "REQUEST",
+      derivedState: "REQUESTED",
+      onchainState: "REQUESTED",
+      unitLabel: "rides",
     }),
-  },
+    needsYou: false,
+  });
+
+/**
+ * An ask leads with the helping hand, named for screen readers, and its pill says Ask: "request"
+ * is kept for what waits on a steward's yes (DL-175). Its edge follows its pill.
+ */
+export const Ask: Story = {
+  args: { row: openAsk() },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const rowElement = canvas.getByRole("button", { name: /3 rides/ });
     await expect(rowElement).toHaveAttribute("data-direction", "REQUEST");
-    await expect(within(rowElement).getByRole("img", { name: "Request" })).toBeVisible();
+    await expect(within(rowElement).getByRole("img", { name: "Ask" })).toBeVisible();
+    await expect(within(rowElement).getByRole("status")).toHaveTextContent("Ask");
     await expect(rowElement).toHaveAttribute("data-edge", "info");
+  },
+};
+
+/** An untaken ask past its due date says so in its pill; expiring it is the cockpit's act. */
+export const PastDue: Story = {
+  args: { row: openAsk(), pastDue: true },
+  play: async ({ canvasElement }) => {
+    const rowElement = within(canvasElement).getByRole("button", { name: /3 rides/ });
+    await expect(within(rowElement).getByRole("status")).toHaveTextContent("Past due");
+    await expect(rowElement).toHaveAttribute("data-edge", "warning");
+    await expect(within(rowElement).queryByRole("button", { name: /expire/i })).toBeNull();
+  },
+};
+
+/** The reader asked to take it up, and the row says it waits on a steward's yes. */
+export const TakeUpRequested: Story = {
+  args: { row: { ...openAsk(), seat: "bystander" }, takeUpRequested: true },
+  play: async ({ canvasElement }) => {
+    const rowElement = within(canvasElement).getByRole("button", { name: /3 rides/ });
+    await expect(within(rowElement).getByRole("status")).toHaveTextContent("Waiting for review");
   },
 };
 

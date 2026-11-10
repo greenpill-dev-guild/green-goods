@@ -157,7 +157,7 @@ function renderAdd() {
         gardenAddress: GARDEN,
       }}
       counts={{ published: 10, available: 4, inProgress: 3, kept: 2, ended: 1 }}
-      terms={[["Each asks for", "1 survey · The pool requests"]]}
+      terms={[["Each asks for", "1 survey · The pool asks"]]}
       rewardCents={500n}
     />
   );

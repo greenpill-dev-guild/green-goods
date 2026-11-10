@@ -221,10 +221,12 @@ export const GardenWork: React.FC = () => {
                   id="approval-feedback-input"
                   value={inlineFeedback}
                   onChange={(e) => setInlineFeedback(e.target.value)}
+                  // The description above says whether a note is needed; the placeholder asks for it.
                   placeholder={intl.formatMessage({
-                    id: "app.home.workApproval.feedbackPlaceholder",
-                    defaultMessage:
-                      "Add feedback for the gardener (optional for approval, required for rejection)...",
+                    id:
+                      feedbackMode === "reject"
+                        ? "app.home.workApproval.feedbackPlaceholderReject"
+                        : "app.home.workApproval.feedbackPlaceholderApprove",
                   })}
                   className="min-h-[120px] resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]"
                 />

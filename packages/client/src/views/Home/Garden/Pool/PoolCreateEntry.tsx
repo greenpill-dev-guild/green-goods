@@ -49,7 +49,7 @@ function Choice({
 }
 
 /**
- * The way into a new promise: the floating + opens the Offer or Request sheet,
+ * The way into a new promise: the floating + opens the Offer or Ask sheet,
  * whose two cards are the two doors (D10). Direction is fixed by the door and
  * never asked again inside the form, so a member who wanted the other one
  * leaves and comes back through it. The sheet links to Help, where promises are
