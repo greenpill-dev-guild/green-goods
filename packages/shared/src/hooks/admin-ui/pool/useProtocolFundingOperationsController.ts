@@ -51,12 +51,13 @@ type FundingAct =
 
 /**
  * What a proposal will change once it runs, against the read it was sent from: a
- * new funding transfer numbered above every transfer that read listed, or one
- * transfer moving on from where it stood.
+ * new funding transfer numbered above every transfer that read listed, one transfer
+ * moving on from where it stood, or a resend of a transfer that stays dispatched.
  */
 type ProposedEffect =
   | { kind: "new-transfer"; garden: Address; amount: bigint; after: bigint }
-  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null };
+  | { kind: "transfer-moves"; disbursementId: bigint; from: string | null }
+  | { kind: "resend"; disbursementId: bigint };
 
 /** Where one transfer stands, its Celo execution included; null when the read doesn't list it. */
 function transferProgress(read: FundingRead, disbursementId: bigint): string | null {
@@ -79,6 +80,7 @@ function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
     );
     return { kind: "new-transfer", garden: act.garden, amount: act.amount, after };
   }
+  if (act.action === "retryCommand") return { kind: "resend", disbursementId: act.disbursementId };
   return {
     kind: "transfer-moves",
     disbursementId: act.disbursementId,
@@ -98,12 +100,18 @@ type ProposalOutcome = BroadcastConfirmation["status"];
 /** How often a held panel asks the wallet again, on the funding read's own cadence. */
 const PROPOSAL_RECHECK_MS = 30_000;
 
-/** Whether the read lists what the proposal will change. A resend shows only once Celo answers it. */
+/** Whether the read lists what the proposal will change. */
 function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
   if (!read) return false;
   if (effect.kind === "transfer-moves") {
     const now = transferProgress(read, effect.disbursementId);
     return now !== null && now !== effect.from;
+  }
+  if (effect.kind === "resend") {
+    // Celo can update a dispatched transfer's execution while the resend waits, so the
+    // read shows only what ends any resend: the transfer leaving DISPATCHED.
+    const row = read.disbursements.find((entry) => entry.disbursementId === effect.disbursementId);
+    return row !== undefined && row.state !== "DISPATCHED";
   }
   const source = read.safe?.toLowerCase();
   return read.disbursements.some(
@@ -118,14 +126,18 @@ function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
 
 /**
  * Whether a proposal is done holding sends, so the same act can't be proposed twice:
- * it reverted, or the read shows its own change. A transfer moving belongs to that
- * transfer alone. A new transfer like the one queued could be another steward's, so
- * that one also waits for the wallet to say this proposal ran.
+ * it reverted, or its own change shows. Once a dispatch, requeue or cancel moves its
+ * transfer, the chain refuses the same act on it. A new transfer like the one queued
+ * could be another steward's, so it also waits for the wallet to say this proposal
+ * ran. A resend leaves its transfer dispatched, so the wallet's word settles it, or
+ * the transfer leaving DISPATCHED, after which no resend is offered.
  */
 function proposalSettled(proposal: Proposal, outcome: ProposalOutcome, read: FundingRead) {
   if (outcome === "reverted") return true;
-  if (!effectShown(proposal.effect, read)) return false;
-  return proposal.effect.kind === "transfer-moves" || outcome === "confirmed";
+  const { effect } = proposal;
+  if (effect.kind === "transfer-moves") return effectShown(effect, read);
+  if (effect.kind === "resend") return outcome === "confirmed" || effectShown(effect, read);
+  return outcome === "confirmed" && effectShown(effect, read);
 }
 
 function fundingView(query: ReturnType<typeof usePoolFunding>): PoolFundingControllerView {

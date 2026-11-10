@@ -308,6 +308,41 @@ describe("useProtocolFundingOperationsController", () => {
     });
   });
 
+  it("holds a resend through Celo-side updates until the wallet says its proposal ran", async () => {
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const key = `0x${"ab".repeat(32)}` as const;
+    const failedOnCelo = (acknowledgmentSent: boolean) => {
+      const read = transfers({ disbursementId: 8n, state: "DISPATCHED", executionKey: key });
+      read.executions = [{ executionKey: key, status: "FAILED", createdAt: 1, acknowledgmentSent }];
+      return read;
+    };
+    mocks.sourceSnapshot = failedOnCelo(false);
+    const { result, rerender } = renderController();
+    expect(result.current.rows[0]?.canRetry).toBe(true);
+
+    await act(async () => {
+      await result.current.retry(8n);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "retry", phase: "proposed" });
+
+    // Celo sends the failure's acknowledgment: the transfer stays dispatched, and this resend hasn't run.
+    mocks.sourceSnapshot = failedOnCelo(true);
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows[0]?.canRetry).toBe(false);
+
+    mocks.reconcile.mockResolvedValue({ status: "confirmed", transactionHash: "0xexecuted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("submitted"));
+  });
+
   it("reopens sends when the Safe runs the proposal and it reverts", async () => {
     mocks.capabilities = dispatcher;
     mocks.mutateAsync.mockResolvedValue({
