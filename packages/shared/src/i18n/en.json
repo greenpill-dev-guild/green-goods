@@ -4626,7 +4626,7 @@
   "cockpit.community.protocolFunding.status.failed": "The transaction failed or was rejected. Nothing changed on chain.",
   "cockpit.community.protocolFunding.status.signing": "Waiting for wallet approval…",
   "cockpit.community.protocolFunding.status.submitted": "Submitted. Refresh to follow the indexed settlement state.",
-  "cockpit.community.protocolFunding.status.proposed": "Sent to your Safe. Queuing and dispatching stay closed until the transfer list changes. If your Safe rejected it, reload this page.",
+  "cockpit.community.protocolFunding.status.proposed": "Sent to your Safe. Queuing and dispatching stay closed until the chain shows it ran. If your Safe rejected it, reload this page.",
   "cockpit.community.protocolFunding.submitted": "Transaction submitted",
   "cockpit.community.protocolFunding.title": "Fund a Garden",
   "cockpit.community.protocolFunding.unavailable": "Only a protocol steward or the settlement module owner can queue garden funding.",

@@ -1,10 +1,13 @@
 /** @vitest-environment happy-dom */
 
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProtocolFundingOperationsController } from "../hooks/admin-ui/pool/useProtocolFundingOperationsController";
-import type { PoolFundingSnapshot } from "../modules/commitment-pooling/pool-funding";
+import type {
+  PoolFundingDisbursement,
+  PoolFundingSnapshot,
+} from "../modules/commitment-pooling/pool-funding";
 import type { Address } from "../types/domain";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 
@@ -22,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     isLoading: false,
   },
   mutateAsync: vi.fn(),
+  reconcile: vi.fn(),
   pinReason: vi.fn(),
   sourceSnapshot: null as PoolFundingSnapshot | null,
   sourceIsError: false,
@@ -35,6 +39,10 @@ vi.mock("../hooks/commitment-pooling/useSettlement", () => ({
   useSettlementOperationsCapabilities: () => mocks.capabilities,
   useSettlementMutation: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
 }));
+vi.mock("../hooks/blockchain/useTransactionSender", () => {
+  const sender = { reconcileBroadcast: (...args: unknown[]) => mocks.reconcile(...args) };
+  return { useTransactionSender: () => sender };
+});
 vi.mock("../modules/commitment-pooling/reasons", () => ({
   pinCommitmentReason: (...args: unknown[]) => mocks.pinReason(...args),
 }));
@@ -69,6 +77,8 @@ function snapshot(
     feeBuffer: 0n,
     quotedFees: 0n,
     feeQuotes: [{ id: "42161-8", amount: 2n, fee: 0n, senderPays: false, recipient: TARGET_SAFE }],
+    feePolicy: { maxFeeBps: 10_000, maxFeeAmount: 100n },
+    executorPaused: false,
     available: 0n,
     shortfall: 0n,
     suggestedTopUp: 0n,
@@ -107,6 +117,27 @@ function snapshot(
   };
 }
 
+/** A read listing these funding transfers from the protocol Safe, each queued for 2 unless set. */
+function transfers(
+  ...rows: (Partial<PoolFundingDisbursement> & { disbursementId: bigint })[]
+): PoolFundingSnapshot {
+  const read = snapshot();
+  const [listed] = read.disbursements;
+  read.disbursements = rows.map((row) => ({
+    ...listed!,
+    ...row,
+    id: `42161-${row.disbursementId}`,
+  }));
+  read.feeQuotes = read.disbursements.map((row) => ({
+    id: row.id,
+    amount: row.amount,
+    fee: 0n,
+    senderPays: false,
+    recipient: TARGET_SAFE,
+  }));
+  return read;
+}
+
 describe("useProtocolFundingOperationsController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -124,6 +155,7 @@ describe("useProtocolFundingOperationsController", () => {
       isError: mocks.sourceIsError,
     }));
     mocks.mutateAsync.mockResolvedValue({ hash: "0xsubmitted", sponsored: false });
+    mocks.reconcile.mockResolvedValue({ status: "unresolved" });
     mocks.pinReason.mockResolvedValue("ipfs://reason");
   });
 
@@ -204,28 +236,166 @@ describe("useProtocolFundingOperationsController", () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("closes every send after a Safe proposal, until the transfers read differently", async () => {
+  it("holds every send after a Safe proposal until that transfer moves, not another", async () => {
     mocks.capabilities = dispatcher;
     mocks.mutateAsync.mockResolvedValue({
       hash: "safe-proposal",
       sponsored: false,
       confirmation: "pending",
     });
+    mocks.sourceSnapshot = transfers({ disbursementId: 8n }, { disbursementId: 9n });
     const { result, rerender } = renderController();
-    expect(result.current.rows[0]?.canDispatch).toBe(true);
+    expect(result.current.rows.every((row) => row.canDispatch)).toBe(true);
 
     await act(async () => {
       await result.current.dispatch(8n);
     });
     expect(result.current.lastAct).toMatchObject({ kind: "dispatch", phase: "proposed" });
-    expect(result.current.rows[0]).toMatchObject({
-      canDispatch: false,
-      canCancel: false,
-    });
+    expect(result.current.rows.some((row) => row.canDispatch || row.canCancel)).toBe(false);
 
-    mocks.sourceSnapshot = snapshot("DISPATCHED");
+    // Another steward dispatches #9: the list moved, but the proposal for #8 hasn't run.
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n },
+      { disbursementId: 9n, state: "DISPATCHED" }
+    );
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows.find((row) => row.disbursementId === 8n)?.canDispatch).toBe(false);
+
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n, state: "DISPATCHED" },
+      { disbursementId: 9n, state: "DISPATCHED" }
+    );
     rerender();
     expect(result.current.lastAct?.phase).toBe("submitted");
+  });
+
+  it("holds queuing after a Safe proposal until the wallet says it ran and its transfer is listed", async () => {
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    mocks.sourceSnapshot = transfers({ disbursementId: 8n });
+    const { result, rerender } = renderController();
+
+    await act(async () => {
+      await result.current.queueFunding(TARGET, 2n);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "queue-funding", phase: "proposed" });
+
+    // Another steward queues the same top-up: it looks like this proposal's, but this one hasn't run.
+    mocks.sourceSnapshot = transfers(
+      { disbursementId: 8n, garden: TARGET },
+      { disbursementId: 9n, garden: TARGET }
+    );
+    rerender();
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows.some((row) => row.canDispatch || row.canCancel)).toBe(false);
+
+    mocks.reconcile.mockResolvedValue({ status: "confirmed", transactionHash: "0xexecuted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("submitted"));
+    expect(mocks.reconcile).toHaveBeenCalledWith({
+      kind: "transaction",
+      hash: "safe-proposal",
+      chainId: 42161,
+      account: PROTOCOL,
+    });
+  });
+
+  it("holds a resend through Celo-side updates until the wallet says its proposal ran", async () => {
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const key = `0x${"ab".repeat(32)}` as const;
+    const failedOnCelo = (acknowledgmentSent: boolean) => {
+      const read = transfers({ disbursementId: 8n, state: "DISPATCHED", executionKey: key });
+      read.executions = [{ executionKey: key, status: "FAILED", createdAt: 1, acknowledgmentSent }];
+      return read;
+    };
+    mocks.sourceSnapshot = failedOnCelo(false);
+    const { result, rerender } = renderController();
+    expect(result.current.rows[0]?.canRetry).toBe(true);
+
+    await act(async () => {
+      await result.current.retry(8n);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "retry", phase: "proposed" });
+
+    // Celo sends the failure's acknowledgment: the transfer stays dispatched, and this resend hasn't run.
+    mocks.sourceSnapshot = failedOnCelo(true);
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows[0]?.canRetry).toBe(false);
+
+    mocks.reconcile.mockResolvedValue({ status: "confirmed", transactionHash: "0xexecuted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("submitted"));
+  });
+
+  it("holds a requeue through execution updates until its transfer leaves Failed", async () => {
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const key = `0x${"ef".repeat(32)}` as const;
+    const failed = (acknowledgmentSent: boolean, state: "FAILED" | "QUEUED" = "FAILED") => {
+      const read = transfers({ disbursementId: 8n, state, executionKey: key });
+      read.executions = [{ executionKey: key, status: "FAILED", createdAt: 1, acknowledgmentSent }];
+      return read;
+    };
+    mocks.sourceSnapshot = failed(false);
+    const { result, rerender } = renderController();
+    expect(result.current.rows[0]?.canRequeue).toBe(true);
+
+    await act(async () => {
+      await result.current.requeue(8n);
+    });
+    expect(result.current.lastAct).toMatchObject({ kind: "requeue", phase: "proposed" });
+
+    // The execution's projection moves while the requeue waits; the transfer is still failed.
+    mocks.sourceSnapshot = failed(true);
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows[0]?.canRequeue).toBe(false);
+
+    mocks.sourceSnapshot = failed(true, "QUEUED");
+    rerender();
+    expect(result.current.lastAct?.phase).toBe("submitted");
+  });
+
+  it("reopens sends when the Safe runs the proposal and it reverts", async () => {
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const { result } = renderController();
+    await act(async () => {
+      await result.current.dispatch(8n);
+    });
+    expect(result.current.rows[0]?.canDispatch).toBe(false);
+
+    mocks.reconcile.mockResolvedValue({ status: "reverted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("failed"));
+    expect(result.current.rows[0]?.canDispatch).toBe(true);
   });
 
   it("lets module-owner funding authority queue without exposing dispatch or recovery", async () => {

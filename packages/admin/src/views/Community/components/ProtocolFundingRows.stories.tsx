@@ -39,6 +39,31 @@ export const Queued: Story = {
   },
 };
 
+/** Transfers Celo would refuse right now: no dispatch or resend, and each row says why. */
+export const HeldByCelo: Story = {
+  args: {
+    operations: storyProtocolFundingOperations({
+      rows: storyProtocolFundingOperations().rows.flatMap((row) => [
+        {
+          ...row,
+          id: `${row.id}-resend`,
+          disbursementId: row.disbursementId + 1n,
+          state: "dispatched",
+          canDispatch: false,
+          canRetry: false,
+          canCancel: false,
+          sendBlock: "fee_policy_breach",
+        },
+        { ...row, canDispatch: false, sendBlock: "executor_paused" },
+      ]),
+    }),
+    gardenName: (garden) =>
+      garden?.toLowerCase() === STORY_FUNDED_GARDEN.toLowerCase() ? "Aiyeloja" : null,
+    onReview: () => undefined,
+    onCancel: () => undefined,
+  },
+};
+
 export const AcknowledgmentPending: Story = {
   args: {
     operations: storyProtocolFundingOperations({

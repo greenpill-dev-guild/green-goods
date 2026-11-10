@@ -168,8 +168,31 @@ export type PoolFundingTransferLimit =
   | "roles_allowance"
   | "balance";
 
-/** Why a transfer can't go yet: a limit it is over, or limits nobody could read. */
-export type PoolFundingTransferBlock = PoolFundingTransferLimit | "limits_unread";
+/**
+ * What Celo would refuse a queued transfer for apart from the Safe's limits: an
+ * inactive route, a paused executor or token, or a G$ fee over the executor's fee
+ * policy. The unreadable ones say the read can't show one of those. Each keeps the
+ * name the Safe's settlement readiness gives it.
+ */
+export type PoolFundingTransferRefusal = Extract<
+  SettlementUnavailableReason,
+  | "inactive_route"
+  | "executor_paused"
+  | "token_paused"
+  | "executor_unreadable"
+  | "token_unreadable"
+  | "fee_policy_unavailable"
+  | "fee_policy_breach"
+>;
+
+/**
+ * Why a transfer can't go yet: something Celo would refuse it for, a limit it is
+ * over, or limits nobody could read.
+ */
+export type PoolFundingTransferBlock =
+  | PoolFundingTransferRefusal
+  | PoolFundingTransferLimit
+  | "limits_unread";
 
 export interface PoolFundingReadinessInput {
   accountConfigured: boolean;
@@ -224,6 +247,13 @@ export interface PoolFundingSnapshot {
   feeBuffer: bigint | null;
   quotedFees: bigint | null;
   feeQuotes: PoolFundingFeeQuote[];
+  /** The Celo executor's fee ceiling, which each sent transfer's own quote has to fit under. */
+  feePolicy: PoolFundingFeePolicy | null;
+  /**
+   * Whether the Celo executor is paused, as read; null when it couldn't be read. It is
+   * all that refuses a resend of a command Celo has already recorded.
+   */
+  executorPaused: boolean | null;
   available: bigint | null;
   shortfall: bigint | null;
   suggestedTopUp: bigint | null;

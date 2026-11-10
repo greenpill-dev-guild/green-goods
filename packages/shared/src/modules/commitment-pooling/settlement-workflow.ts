@@ -15,6 +15,7 @@
  * @module modules/commitment-pooling/settlement-workflow
  */
 
+import type { PoolFundingTransferBlock } from "./pool-funding";
 import { selectSettlementActions } from "./settlement";
 import type {
   SettlementActionBlocker,
@@ -119,8 +120,10 @@ function disbursementView(
     !input.proposalPending &&
     input.chainRead === "ready";
   // A dispatch or resend spends the CCIP fee before Celo can refuse, so it needs a
-  // read that says the Safe can send this. A requeue or a cancel moves nothing.
-  const sendable = input.transferBlock(disbursement) === null;
+  // read that says the Safe can send this and Celo would take it. A requeue or a
+  // cancel moves nothing.
+  const block = input.transferBlock(disbursement);
+  const sendable = block === null;
   const actions = selectSettlementActions({
     state: disbursement.state,
     isBatch: false,
@@ -145,7 +148,23 @@ function disbursementView(
       requeue: actions.startNewAttempt,
       cancel: actions.cancelIndividual,
     },
+    retryBlocker: actions.retrySameCommand && block !== null ? fundingBlocker(block) : null,
   };
+}
+
+/** How a step names a transfer block: limits unread, a limit it is over, or what Celo refuses. */
+function fundingBlocker(block: PoolFundingTransferBlock): SettlementActionBlocker {
+  switch (block) {
+    case "limits_unread":
+      return "funding-unread";
+    case "transfer_cap":
+    case "period_allowance":
+    case "roles_allowance":
+    case "balance":
+      return "funding-over-limit";
+    default:
+      return block;
+  }
 }
 
 function kindOf(
@@ -254,8 +273,7 @@ export function selectSettlementWorkflow(input: SettlementWorkflowInput): Settle
   const fundingBlockers = views.flatMap((view): SettlementActionBlocker[] => {
     if (view.disbursement.state !== "QUEUED") return [];
     const block = input.transferBlock(view.disbursement);
-    if (block === null) return [];
-    return [block === "limits_unread" ? "funding-unread" : "funding-over-limit"];
+    return block === null ? [] : [fundingBlocker(block)];
   });
   const dispatchBlockers = anyToDispatch
     ? unique([

@@ -40,6 +40,8 @@ function snapshot(overrides: Partial<PoolFundingSnapshot> = {}): PoolFundingSnap
     feeBuffer: 3n * G,
     quotedFees: 2n * G,
     feeQuotes: [],
+    feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n * G },
+    executorPaused: false,
     available: 697n * G,
     shortfall: 0n,
     suggestedTopUp: 0n,

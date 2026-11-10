@@ -4,12 +4,19 @@ import type {
   ProtocolFundingOperationsController,
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import type { PoolFundingTransferLimit } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
+import type {
+  PoolFundingTransferBlock,
+  PoolFundingTransferLimit,
+} from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { AdminCardTitle } from "@/components/AdminCard";
-import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
+import {
+  formatGdollar,
+  readinessReasonMessage,
+  shortAddress,
+} from "@/views/Garden/Pool/poolFundingPresentation";
 import type { TransferAct } from "@/views/Garden/Pool/TransferReviewDialog";
 
 /** What the amount field and a held transfer say for each limit, in the words of the facts listed. */
@@ -40,6 +47,21 @@ const LIMITS_UNREAD_ROW = {
   defaultMessage: "Can't be sent until the protocol Safe's limits are read.",
 };
 
+/** Why a held transfer can't be sent: limits unread, a limit it is over, or what Celo refuses. */
+function sendBlockMessage(block: PoolFundingTransferBlock, intl: IntlShape): string {
+  switch (block) {
+    case "limits_unread":
+      return intl.formatMessage(LIMITS_UNREAD_ROW);
+    case "transfer_cap":
+    case "period_allowance":
+    case "roles_allowance":
+    case "balance":
+      return intl.formatMessage(OVER_LIMIT_MESSAGES[block]);
+    default:
+      return readinessReasonMessage(block, intl);
+  }
+}
+
 function rowVariant(state: ProtocolFundingRow["state"]) {
   if (state === "confirmed") return "success" as const;
   if (state === "failed" || state === "cancelled") return "error" as const;
@@ -67,7 +89,8 @@ export function ProtocolFundingRows({
   onCancel: (disbursementId: bigint) => void;
   onRefresh?: () => void;
 }) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, locale } = intl;
   const statusLabel = (state: ProtocolFundingRow["state"]) => {
     const labels: Record<ProtocolFundingRow["state"], string> = {
       queued: formatMessage({
@@ -166,11 +189,7 @@ export function ProtocolFundingRows({
                 </div>
                 {row.sendBlock ? (
                   <p className="type-meta text-text-soft" data-testid="protocol-funding-send-block">
-                    {formatMessage(
-                      row.sendBlock === "limits_unread"
-                        ? LIMITS_UNREAD_ROW
-                        : OVER_LIMIT_MESSAGES[row.sendBlock]
-                    )}
+                    {sendBlockMessage(row.sendBlock, intl)}
                   </p>
                 ) : null}
                 {/* End-aligned, two weights, the affirmative act rightmost: a queued

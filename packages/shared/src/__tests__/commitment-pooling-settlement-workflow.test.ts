@@ -507,15 +507,35 @@ describe("authority and connection gates", () => {
     );
     expect(over.blockers).toEqual(["funding-over-limit"]);
 
-    // A resend spends the fee too; a new attempt on a failed one moves nothing until it's dispatched.
-    const dispatched = selectSettlementWorkflow(
+    // Celo would refuse it whatever the Safe's limits say, so the step names that, not a limit.
+    const paused = selectSettlementWorkflow(
       input({
         plan: prepared,
-        disbursements: [disbursement({ state: "DISPATCHED", dispatchedAt: 1_755_999_000 })],
-        transferBlock: () => "limits_unread",
+        disbursements: [disbursement()],
+        transferBlock: () => "executor_paused",
       })
     );
-    expect(dispatched.disbursements[0]?.actions.retry).toBe(false);
+    expect(paused.blockers).toEqual(["executor_paused"]);
+    expect(paused.disbursements[0]?.actions.dispatch).toBe(false);
+
+    // A resend spends the fee too, and says why it is held to a reader who could send it.
+    const dispatchedInput = input({
+      plan: prepared,
+      disbursements: [disbursement({ state: "DISPATCHED", dispatchedAt: 1_755_999_000 })],
+      transferBlock: () => "fee_policy_breach",
+    });
+    const dispatched = selectSettlementWorkflow(dispatchedInput);
+    expect(dispatched.disbursements[0]).toMatchObject({
+      actions: { retry: false },
+      retryBlocker: "fee_policy_breach",
+    });
+    const watching = selectSettlementWorkflow({
+      ...dispatchedInput,
+      authority: { ...dispatchedInput.authority, canDispatchOrRetry: false },
+    });
+    expect(watching.disbursements[0]?.retryBlocker).toBeNull();
+
+    // A new attempt on a failed one moves nothing until it's dispatched.
     const failed = selectSettlementWorkflow(
       input({
         plan: prepared,
@@ -524,7 +544,10 @@ describe("authority and connection gates", () => {
       })
     );
     expect(failed.blockers).toEqual([]);
-    expect(failed.disbursements[0]?.actions).toMatchObject({ requeue: true, cancel: true });
+    expect(failed.disbursements[0]).toMatchObject({
+      actions: { requeue: true, cancel: true },
+      retryBlocker: null,
+    });
   });
 
   it("keys a read on what a step changes, not on when it was read", () => {

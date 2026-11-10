@@ -4626,7 +4626,7 @@
   "cockpit.community.protocolFunding.status.failed": "A transação falhou ou foi rejeitada. Nada mudou na cadeia.",
   "cockpit.community.protocolFunding.status.signing": "Aguardando a aprovação da carteira…",
   "cockpit.community.protocolFunding.status.submitted": "Enviada. Atualize para acompanhar o estado indexado da liquidação.",
-  "cockpit.community.protocolFunding.status.proposed": "Enviada ao seu Safe. Colocar na fila e despachar ficam fechados até a lista de transferências mudar. Se o seu Safe a rejeitou, recarregue esta página.",
+  "cockpit.community.protocolFunding.status.proposed": "Enviada ao seu Safe. Colocar na fila e despachar ficam fechados até a cadeia mostrar que foi executada. Se o seu Safe a rejeitou, recarregue esta página.",
   "cockpit.community.protocolFunding.submitted": "Transação enviada",
   "cockpit.community.protocolFunding.title": "Financiar um jardim",
   "cockpit.community.protocolFunding.unavailable": "Somente um responsável do protocolo ou o proprietário do módulo de liquidação pode enfileirar fundos para jardins.",
