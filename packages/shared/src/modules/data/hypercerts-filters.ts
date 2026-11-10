@@ -1,4 +1,4 @@
-import { Domain, type GardenAssessment } from "../../types/domain";
+import type { Domain, GardenAssessment } from "../../types/domain";
 import type { EASGardenAssessment } from "../../types/eas-responses";
 import {
   type ActionDomain,
@@ -6,22 +6,13 @@ import {
   type HypercertAttestation,
 } from "../../types/hypercerts";
 import { toUtcDay } from "../../utils/calendar-date";
-
-/**
- * Maps numeric Domain enum values to ActionDomain strings used in hypercert attestations.
- */
-const DOMAIN_TO_ACTION_DOMAIN: Record<number, ActionDomain> = {
-  [Domain.SOLAR]: "solar",
-  [Domain.AGRO]: "agroforestry",
-  [Domain.EDU]: "education",
-  [Domain.WASTE]: "waste",
-};
+import { DOMAIN_ACTION_DOMAIN } from "../../utils/domain";
 
 /**
  * Converts a numeric Domain enum to its ActionDomain string equivalent.
  */
 export function domainToActionDomain(domain: Domain): ActionDomain | undefined {
-  return DOMAIN_TO_ACTION_DOMAIN[domain];
+  return DOMAIN_ACTION_DOMAIN[domain];
 }
 
 export function applyAttestationFilters(

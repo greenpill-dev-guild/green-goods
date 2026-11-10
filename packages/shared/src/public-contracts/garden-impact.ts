@@ -1,16 +1,15 @@
 import type { Address } from "./funding-types";
+import type { ActionDomain } from "../types/hypercerts";
+import { ALL_DOMAINS, DOMAIN_ACTION_DOMAIN } from "../utils/domain";
 
 export const PUBLIC_GARDEN_IMPACT_VERSION = 1 as const;
 export const PUBLIC_GARDEN_IMPACT_DEFAULT_RECENT_LIMIT = 3;
 export const PUBLIC_GARDEN_IMPACT_MAX_RECENT_LIMIT = 12;
-export const PUBLIC_GARDEN_IMPACT_DOMAINS = [
-  "solar",
-  "agroforestry",
-  "education",
-  "waste",
-] as const;
+export const PUBLIC_GARDEN_IMPACT_DOMAINS: readonly ActionDomain[] = ALL_DOMAINS.map(
+  (domain) => DOMAIN_ACTION_DOMAIN[domain]
+);
 
-export type PublicGardenImpactDomain = (typeof PUBLIC_GARDEN_IMPACT_DOMAINS)[number];
+export type PublicGardenImpactDomain = ActionDomain;
 export type PublicGardenImpactSource =
   | "works"
   | "approvals"

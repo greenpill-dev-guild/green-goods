@@ -6084,6 +6084,7 @@
   "public.fund.vaults.kicker": "§ 01: Endowment engine",
   "public.fund.vaults.lede": "Endow places a long-term deposit in a garden's vault. Donate sends support straight to a garden's shared fund.",
   "public.fund.vaults.liveYieldUnavailable": "Live yield unavailable",
+  "public.fund.vaults.loading": "Loading...",
   "public.fund.vaults.metricsEmpty": "No endowment activity on this network yet.",
   "public.fund.vaults.metricsError": "We couldn't load these endowment metrics. Refresh to try again.",
   "public.fund.vaults.readyToHarvest": "Yield ready for gardens",

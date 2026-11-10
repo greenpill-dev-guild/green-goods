@@ -1,6 +1,6 @@
 import type { GardenSettingsChange } from "@green-goods/shared/hooks/garden/useUpdateGarden";
 import { Domain } from "@green-goods/shared/types/domain";
-import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { DOMAIN_LABELS, expandDomainMask } from "@green-goods/shared/utils/domain";
 
 /**
  * The garden settings a save writes, in the order it sends them. Each is its
@@ -35,30 +35,30 @@ export interface GardenSettingsValues {
 export const DOMAIN_OPTIONS = [
   {
     value: Domain.SOLAR,
-    labelId: "app.garden.create.domain.solar",
-    defaultLabel: "Solar",
-    descriptionId: "app.garden.create.domain.solar.description",
+    labelId: DOMAIN_LABELS[Domain.SOLAR].gardenLabelId,
+    defaultLabel: DOMAIN_LABELS[Domain.SOLAR].defaultMessage,
+    descriptionId: `${DOMAIN_LABELS[Domain.SOLAR].gardenLabelId}.description`,
     defaultDescription: "Track solar panel installations, kWh generated, and maintenance",
   },
   {
     value: Domain.AGRO,
-    labelId: "app.garden.create.domain.agro",
-    defaultLabel: "Agroforestry",
-    descriptionId: "app.garden.create.domain.agro.description",
+    labelId: DOMAIN_LABELS[Domain.AGRO].gardenLabelId,
+    defaultLabel: DOMAIN_LABELS[Domain.AGRO].defaultMessage,
+    descriptionId: `${DOMAIN_LABELS[Domain.AGRO].gardenLabelId}.description`,
     defaultDescription: "Document tree planting, harvests, and land stewardship",
   },
   {
     value: Domain.EDU,
-    labelId: "app.garden.create.domain.edu",
-    defaultLabel: "Education",
-    descriptionId: "app.garden.create.domain.edu.description",
+    labelId: DOMAIN_LABELS[Domain.EDU].gardenLabelId,
+    defaultLabel: DOMAIN_LABELS[Domain.EDU].defaultMessage,
+    descriptionId: `${DOMAIN_LABELS[Domain.EDU].gardenLabelId}.description`,
     defaultDescription: "Record workshops, trainings, and knowledge sharing",
   },
   {
     value: Domain.WASTE,
-    labelId: "app.garden.create.domain.waste",
-    defaultLabel: "Waste",
-    descriptionId: "app.garden.create.domain.waste.description",
+    labelId: DOMAIN_LABELS[Domain.WASTE].gardenLabelId,
+    defaultLabel: DOMAIN_LABELS[Domain.WASTE].defaultMessage,
+    descriptionId: `${DOMAIN_LABELS[Domain.WASTE].gardenLabelId}.description`,
     defaultDescription: "Log waste collection, recycling, and composting activities",
   },
 ] as const;
