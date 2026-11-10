@@ -731,7 +731,9 @@ describe("processJob", () => {
     };
     const { deps, queue } = setup({ store, executors });
     await queue.processJob("job-1", { transactionSender: {} as never });
-    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledOnce();
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ attempts: 1, lastError: "work-transaction-reverted" })
+    );
     expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
   });
 

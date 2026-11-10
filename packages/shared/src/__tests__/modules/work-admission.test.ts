@@ -1163,15 +1163,14 @@ describe("PWA durable submission boundary", () => {
     await expect(submitWork(reverted.command, reverted.ports)).rejects.toBeInstanceOf(
       WorkTransactionReverted
     );
-    expect(tracked("offline_job_permanently_failed")).toEqual([
-      expect.objectContaining({ job_kind: "work" }),
-    ]);
+    const firstTryFailure = expect.objectContaining({ job_kind: "work", attempts: 1 });
+    expect(tracked("offline_job_permanently_failed")).toEqual([firstTryFailure]);
 
     const refused = fixture();
     const failure = new WorkSubmissionError("Cannot encode work", "transaction");
     refused.ports.direct.submitWork = vi.fn().mockRejectedValue(failure);
     await expect(submitWork(refused.command, refused.ports)).rejects.toBe(failure);
-    expect(tracked("offline_job_permanently_failed")).toHaveLength(2);
+    expect(tracked("offline_job_permanently_failed")).toEqual([firstTryFailure, firstTryFailure]);
     expect(tracked("offline_job_processed")).toHaveLength(1);
   });
   it("allows only one immediate sender for two simultaneous submissions", async () => {

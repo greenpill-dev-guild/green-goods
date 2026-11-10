@@ -321,7 +321,12 @@ async function admitAndSend(
         if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
         await jobQueueDB.updateJob(job);
         await jobQueueDB.markJobTerminalFailed(job.id, "work-transaction-reverted");
-        trackJobPermanentlyFailed({ ...job, lastError: "work-transaction-reverted" });
+        // The stored job's count moved, not this copy's: count the try that ended it.
+        trackJobPermanentlyFailed({
+          ...job,
+          lastError: "work-transaction-reverted",
+          attempts: job.attempts + 1,
+        });
         throw error;
       }
       const cause = error instanceof Error && error.cause ? error.cause : error;
@@ -361,7 +366,7 @@ async function admitAndSend(
       }
       const lastError = error instanceof Error ? error.message : "submission-failed";
       await jobQueueDB.markJobTerminalFailed(job.id, lastError);
-      trackJobPermanentlyFailed({ ...job, lastError });
+      trackJobPermanentlyFailed({ ...job, lastError, attempts: job.attempts + 1 });
       if (failure.kind === "not-sent") input.onTerminalUnsentFailure?.();
       throw error;
     }
