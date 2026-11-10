@@ -35,7 +35,10 @@ interface AwaitingJoinRequestsState {
     request: Pick<GardenJoinRequestSelfRecord, "state" | "expiresAt"> | null,
     now: number
   ) => void;
-  /** Forget the account's requests to these gardens: withdrawn, or the roster lists the account. */
+  /**
+   * Forget the account's requests to these gardens: withdrawn, welcomed as the chain shows it, or
+   * the roster lists the account.
+   */
   forgetRequests: (scope: string, gardenIds: readonly string[]) => void;
 }
 
@@ -113,8 +116,9 @@ function parseRequestsByScope(value: unknown, now: number): RequestsByScope {
  * device keeps what it sent: Home, the switcher and Explore can mark a garden Awaiting review after
  * a relaunch without asking for a signature. It is keyed by `chainId:address`, so it stays when
  * another account signs in and is never read for one, and it holds no proof, nonce or signature,
- * only a garden id and the request's expiry. A record goes once the request is answered,
- * withdrawn, lapsed, or the garden's roster lists the account.
+ * only a garden id and the request's expiry. A record goes once the request is answered (the
+ * service says so, or the chain shows the account welcomed), withdrawn, lapsed, or the garden's
+ * roster lists the account.
  */
 export const useAwaitingJoinRequestsStore = create<AwaitingJoinRequestsState>()(
   persist(

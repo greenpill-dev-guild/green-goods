@@ -185,9 +185,10 @@ describe("HubConfirmQueue (W13)", () => {
     expect(screen.queryByText(/nothing to confirm/i)).not.toBeInTheDocument();
   });
 
-  it("renders the empty stage when nothing waits", () => {
+  it("renders the empty stage when nothing waits, saying the steward's own confirmations land here too", () => {
     renderQueue();
     expect(screen.getByText(/nothing to confirm/i)).toBeInTheDocument();
+    expect(screen.getByText(/this garden's confirmation, or yours/i)).toBeInTheDocument();
   });
 
   it("shows who committed, the title, the progress and the eligibility, and confirms an ordinary row only from its review", async () => {
@@ -348,6 +349,23 @@ describe("HubConfirmQueue (W13)", () => {
       screen.queryByRole("dialog", { name: /confirm this promise kept/i })
     ).not.toBeInTheDocument();
     expect(mocks.queue!.acts.confirm).not.toHaveBeenCalled();
+  });
+
+  it("marks a promise waiting on the steward's own confirmation and confirms it from the same review", async () => {
+    mocks.queue = queue({ rows: [row({ eligibility: "OWN" })] });
+    const { onOpen } = renderQueue();
+    const item = screen.getByTestId("hub-confirm-9");
+    expect(within(item).getByText(/^yours to confirm$/i)).toBeInTheDocument();
+
+    fireEvent.click(within(item).getByRole("button", { name: /^confirm kept…$/i }));
+    expect(onOpen).not.toHaveBeenCalled();
+    const review = screen.getByRole("dialog", { name: /confirm this promise kept/i });
+    fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
+    await waitFor(() =>
+      expect(mocks.queue!.acts.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({ eligibility: "OWN" })
+      )
+    );
   });
 
   it("raises a reasoned dispute from Not yet", async () => {
