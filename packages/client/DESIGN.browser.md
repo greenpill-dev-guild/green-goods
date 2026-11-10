@@ -35,7 +35,7 @@ dialect: public-browser
 - **Keyboard focus brings the page to its top.** The header's controls stay in the tab order and in the accessibility tree while it is faded. When the keyboard reaches one, the page goes to its top, where the header is fully shown over the hero, as a header that scrolls with the page would be. A pointer press on a part-faded header does not move the page.
 - **The footer does not repeat the routes** (Afo, 2026-10-12). A visitor at the foot of a page returns to the header, and keyboard focus brings the page to its top (below). Do not move route links into the footer to solve wayfinding; that was tried and reverted.
 - Logo links home. **Nav order:** Gardens, Impact, Fund, Actions.
-- **Strategy is shared by direct link** (Afo, 2026-11-09). `/strategy` stays live, but neither the header, the drawer nor the footer links to it.
+- **Strategy is shared by direct link** (Afo, 2026-11-09). `/strategy` stays live, and the Contact page links to it beside the support email, but neither the header, the drawer nor the footer does.
 - **Primary CTA:** `Install App` (or `Open App` when `useInstallGuidance` reports already-installed). The CTA carries `data-install-action` from the guidance hook so the install logic stays one source of truth.
 - **No wallet connect in the header.** Wallet connect appears only at the wallet-required step inside funding flows.
 - Mobile drawer mirrors the desktop nav and footers with the same `Install App` / `Open App` CTA.
