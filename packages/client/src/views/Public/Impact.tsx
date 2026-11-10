@@ -1,3 +1,5 @@
+import { DOMAIN_TOKEN_SLUG } from "@green-goods/shared/types/domain";
+import { ALL_DOMAINS, DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
 import { Button } from "@green-goods/shared/components/Button";
 import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import {
@@ -74,21 +76,13 @@ interface DomainEntry {
 
 const DOMAIN_FILTERS: readonly DomainEntry[] = [
   { id: "all", filterId: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
-  { id: "solar", filterId: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  {
-    id: "agro",
-    filterId: "1",
-    labelId: "app.domain.tab.agro",
-    defaultLabel: "Agroforestry",
-  },
-  {
-    id: "education",
-    filterId: "2",
-    labelId: "app.domain.tab.education",
-    defaultLabel: "Education",
-  },
-  { id: "waste", filterId: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
-] as const;
+  ...ALL_DOMAINS.map((domain) => ({
+    id: DOMAIN_TOKEN_SLUG[domain],
+    filterId: String(domain),
+    labelId: DOMAIN_LABELS[domain].id,
+    defaultLabel: DOMAIN_LABELS[domain].defaultMessage,
+  })),
+];
 
 function recordMatchesDomain(record: PublicImpactEvidenceRecord, filterId: string): boolean {
   if (filterId === "all") return true;

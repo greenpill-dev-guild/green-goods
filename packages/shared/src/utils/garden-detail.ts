@@ -5,7 +5,8 @@ import type {
   TabBadgeSeverity,
   TabBadgeState,
 } from "../types/garden-detail";
-import { Domain } from "../types/domain";
+import type { Domain } from "../types/domain";
+import { ALL_DOMAINS, DOMAIN_LABELS } from "./domain";
 
 export function toMs(timestamp: number): number {
   return timestamp < 1e12 ? timestamp * 1000 : timestamp;
@@ -166,9 +167,6 @@ export const RANGE_TO_MS: Record<GardenRange, number> = {
   "90d": 90 * 24 * 60 * 60 * 1000,
 };
 
-export const DOMAIN_LABEL_IDS: Record<Domain, string> = {
-  [Domain.SOLAR]: "app.domain.tab.solar",
-  [Domain.AGRO]: "app.domain.tab.agro",
-  [Domain.EDU]: "app.domain.tab.education",
-  [Domain.WASTE]: "app.domain.tab.waste",
-};
+export const DOMAIN_LABEL_IDS = Object.fromEntries(
+  ALL_DOMAINS.map((domain) => [domain, DOMAIN_LABELS[domain].id])
+) as Record<Domain, string>;

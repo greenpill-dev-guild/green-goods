@@ -4,7 +4,7 @@ import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePu
 import type {
   PublicGardenVaultSummary,
   PublicVaultSummaryAsset,
-} from "@green-goods/shared/hooks/public/usePublicVaultSummary";
+} from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

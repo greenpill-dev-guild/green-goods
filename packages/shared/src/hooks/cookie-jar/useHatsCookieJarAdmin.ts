@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useIntl } from "react-intl";
 import { type Address, type Hex, keccak256, parseAbi, toHex, zeroAddress, zeroHash } from "viem";
 import { usePublicClient, useReadContracts } from "wagmi";
@@ -10,9 +10,14 @@ import {
   sendCheckpointedCall,
 } from "../../modules/transactions/confirmation";
 import { type TxResult, TransactionRevertedError } from "../../modules/transactions/types";
+import {
+  hatsJarSubmissionKey,
+  useHatsJarSubmissionStore,
+} from "../../stores/useHatsJarSubmissionStore";
 import type { CookieJar } from "../../types/cookie-jar";
 import { COOKIE_JAR_ABI, COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { JarReviewChangedError } from "../../utils/errors/hats-cookie-jar-errors";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -68,6 +73,20 @@ export type HatsCookieJarAction =
 const isOperatorAction = (action: HatsCookieJarAction) =>
   action.functionName === "pause" || action.functionName === "setOperationalLimits";
 
+/** The pending policy hash a policy action was reviewed against; a proposal needs none pending. */
+function reviewedPendingHash(action: HatsCookieJarAction): Hex | undefined {
+  switch (action.functionName) {
+    case "proposePolicy":
+      return zeroHash;
+    case "cancelPolicy":
+      return action.pendingHash;
+    case "executePolicy":
+      return action.args[0];
+    default:
+      return undefined;
+  }
+}
+
 function unpackPolicy([maxClaimCeiling, minCooldown, dailyBudget, recoveryRecipient]: readonly [
   bigint,
   bigint,
@@ -86,16 +105,18 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
   const sender = useTransactionSender();
   const client = usePublicClient({ chainId });
   const queryClient = useQueryClient();
-  const pendingRef = useRef<TxResult | undefined>(undefined);
-  const [submission, setSubmission] = useState<TxResult>();
+  // An accepted send is kept per tab session, so a reload or remount cannot reopen the writes.
+  const scope = account ? hatsJarSubmissionKey(account, chainId, address) : undefined;
+  const submission = useHatsJarSubmissionStore((state) =>
+    scope ? state.pending[scope] : undefined
+  );
   const signing = useRef(false);
-  const recordSubmission = (result: TxResult | undefined) => {
-    pendingRef.current = result;
-    setSubmission(result);
-  };
   const handleError = createMutationErrorHandler({
     source: "useHatsCookieJarAdmin",
     toastContext: "cookie jar Hats administration",
+    formatMessage,
+    getFallbackTitle: () => formatMessage({ id: "app.txFeedback.failed.title" }),
+    getFallbackMessage: () => formatMessage({ id: "app.errors.blockchain.unknown.message" }),
   });
   const target = { address, chainId, abi: HATS_JAR_ABI } as const;
 
@@ -177,7 +198,7 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
         args: [address],
       }))
     )
-      throw new Error("The active jar or your Hat permission changed");
+      throw new JarReviewChangedError("jarOrHat");
 
     if ("recipient" in action) {
       const currentPolicy = await client.readContract({
@@ -186,16 +207,16 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
         functionName: "policy",
       });
       if (currentPolicy[3].toLowerCase() !== action.recipient.toLowerCase())
-        throw new Error("The recovery recipient changed");
+        throw new JarReviewChangedError("recipient");
     }
-    if (action.functionName === "proposePolicy" || action.functionName === "cancelPolicy") {
+    const expectedHash = reviewedPendingHash(action);
+    if (expectedHash !== undefined) {
       const currentHash = await client.readContract({
         address,
         abi: HATS_JAR_ABI,
         functionName: "pendingPolicyHash",
       });
-      const expectedHash = action.functionName === "cancelPolicy" ? action.pendingHash : zeroHash;
-      if (currentHash !== expectedHash) throw new Error("The pending policy changed");
+      if (currentHash !== expectedHash) throw new JarReviewChangedError("pendingPolicy");
     }
 
     const call = {
@@ -206,19 +227,27 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
       args: action.args,
     };
     await client.simulateContract(call);
+    const key = hatsJarSubmissionKey(account, chainId, address);
+    const submissions = useHatsJarSubmissionStore.getState();
+    // Forget only this send's record, never one that took its place.
+    const forget = (sent: TxResult) => {
+      const held = useHatsJarSubmissionStore.getState().pending[key];
+      if (held?.hash === (sent.broadcastReference?.hash ?? sent.hash)) submissions.clear(key);
+    };
     const result = await sendCheckpointedCall(
       sender,
       { ...call, chainId },
-      recordSubmission,
-      () => recordSubmission(undefined),
+      (checkpoint) => submissions.record(key, checkpoint),
+      forget,
       { assertOwnership: () => sender.assertOwnership?.(account, chainId) }
     );
-    recordSubmission(result.confirmation === "pending" ? result : undefined);
+    if (result.confirmation === "pending") submissions.record(key, result);
+    else forget(result);
     return result;
   };
   const mutation = useMutation({
     mutationFn: async (action: HatsCookieJarAction) => {
-      if (signing.current || pendingRef.current)
+      if (signing.current || (scope && useHatsJarSubmissionStore.getState().pending[scope]))
         throw new Error("A jar transaction is already pending");
       signing.current = true;
       try {
@@ -232,17 +261,26 @@ export function useHatsCookieJarAdmin(jar: CookieJar) {
       await refresh();
       toastService.success({ title: formatMessage({ id: "app.cookieJar.hats.submitted" }) });
     },
-    onError: (error) => handleError(error),
+    onError: (error) => {
+      handleError(error);
+      // A refused review reopens with the jar's current policy, recipient and Hats.
+      void refresh();
+    },
   });
   const confirmation = useMutation({
     mutationFn: async () => {
-      const transaction = pendingRef.current;
-      if (!sender || !client || !transaction || signing.current) return;
+      const submissions = useHatsJarSubmissionStore.getState();
+      const transaction = scope ? submissions.pending[scope] : undefined;
+      if (!sender || !client || !scope || !transaction || signing.current) return;
       const outcome = await reconcileTransaction(sender, transaction, (hash) =>
         client.getTransactionReceipt({ hash })
       );
-      if (outcome.status === "unresolved" || pendingRef.current !== transaction) return;
-      recordSubmission(undefined);
+      if (
+        outcome.status === "unresolved" ||
+        useHatsJarSubmissionStore.getState().pending[scope] !== transaction
+      )
+        return;
+      submissions.clear(scope);
       await refresh();
       if (outcome.status === "reverted") throw new TransactionRevertedError(transaction.hash);
     },

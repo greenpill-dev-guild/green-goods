@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
 import { HatsCookieJarControls } from "./HatsCookieJarControls";
 
@@ -60,8 +60,10 @@ export const OwnerRecovery: Story = {
     await userEvent.type(canvas.getByRole("textbox", { name: "Amount to recover" }), "1.25");
     await userEvent.click(canvas.getByRole("button", { name: "Recover payout funds" }));
     const dialog = within(await within(canvasElement.ownerDocument.body).findByRole("alertdialog"));
-    await expect(dialog.getByText("1.25 USDC")).toBeVisible();
-    await expect(dialog.getByText("Recovery recipient")).toBeVisible();
+    await waitFor(async () => {
+      await expect(dialog.getByText("1.25 USDC")).toBeVisible();
+      await expect(dialog.getByText("Recovery recipient")).toBeVisible();
+    });
   },
 };
 

@@ -182,8 +182,8 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   is the same promise under a filter.
 - **The review card is always there (DL-067).** While a pool is open, Review Promises sits at
   the top of the Promises tab's rail whether or not anyone is waiting, with one quiet "Nothing
-  to review." line when empty, so asks arriving and leaving never move Offers and Requests, the
-  list beside it (the names are DL-077's). Its rows are decision rows of one height (who and
+  to review." line when empty, so take-up requests arriving and leaving never move Offers and Asks, the
+  list beside it (the names are DL-077's, the list's as DL-175 amends it). Its rows are decision rows of one height (who and
   when, then what for, one line each; the name keeps its length and the age gives way first),
   with Decline… and Approve. A decided row keeps its place with its outcome until the steward
   leaves the tab, here and wherever a steward decides in a list (a commitment's waiting list,
@@ -252,8 +252,8 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   and the rows and review of `ManageMembersDialog`. Three counts that disagree teach stewards to trust none
   of them.
 - **A promise leads with its direction (DL-110).** Every promise in a list is the shared
-  commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or a
-  request's helping hand, named for screen readers, so direction never rests on color and no
+  commitment row, the item row of DL-102: the 56px tile carries an offer's seedling or an
+  ask's helping hand, named for screen readers, so direction never rests on color and no
   detail repeats it. Its one pill is the state, or what takes the state's place: "Needs you"
   when the row waits on the reader, "Past due" when a steward can expire it, and while a
   queue or act state lasts, "Confirming…", "Not sent" or "Didn't send". The 2px edge follows
@@ -262,7 +262,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   state's own words lead it instead. This replaces the record row's chips and meta for
   promises: who is involved and how much live in the promise's dialog, except on a promise
   still on the device, which has no dialog yet and keeps its units on its row. Proof: the
-  shared `CommitmentRow`, which Offers and Requests and the app's lists render.
+  shared `CommitmentRow`, which Offers and Asks and the app's lists render.
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,
   lapsed) as info banners is a defect: encode them in chips + meta. Reserve banners for one-time
   context the user genuinely lacks. (Refactoring UI: emphasis is a budget.)

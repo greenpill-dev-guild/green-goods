@@ -1,3 +1,4 @@
+import { getDomainStyle } from "@green-goods/shared/config/domain";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { Button } from "@green-goods/shared/components/Button";
@@ -9,48 +10,6 @@ import { type IntlShape, useIntl } from "react-intl";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 import { evidenceRecordTitle } from "./evidenceTitle";
 import { PublicRecordDrawer } from "./PublicRecordDrawer";
-
-const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {
-  solar: "text-domain-solar",
-  agro: "text-domain-agro",
-  education: "text-domain-education",
-  waste: "text-domain-waste",
-};
-
-const DOMAIN_DOT: Record<"solar" | "agro" | "education" | "waste", string> = {
-  solar: "bg-domain-solar",
-  agro: "bg-domain-agro",
-  education: "bg-domain-education",
-  waste: "bg-domain-waste",
-};
-
-const DOMAIN_LABELS: Record<"solar" | "agro" | "education" | "waste", string> = {
-  solar: "Solar",
-  agro: "Agroforestry",
-  education: "Education",
-  waste: "Waste",
-};
-
-function resolveDomainSlug(domain: string | number | undefined | null) {
-  if (domain === undefined || domain === null) return null;
-  if (typeof domain === "string") {
-    const lower = domain.toLowerCase();
-    if (lower in DOMAIN_INK) return lower as keyof typeof DOMAIN_INK;
-    return null;
-  }
-  switch (domain) {
-    case 0:
-      return "solar" as const;
-    case 1:
-      return "agro" as const;
-    case 2:
-      return "education" as const;
-    case 3:
-      return "waste" as const;
-    default:
-      return null;
-  }
-}
 
 /**
  * Attested seconds are untrusted input: a value past what `Date` can hold
@@ -120,7 +79,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
 
   if (!open) return null;
 
-  const domainSlug = resolveDomainSlug(record.domain);
+  const domainStyle = getDomainStyle(record.domain);
   const kindLabel = formatMessage(EVIDENCE_KIND_LABELS[record.kind]);
   const recordIdShort = record.easUid
     ? shortHex(record.easUid)
@@ -189,18 +148,18 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
         { id: recordIdShort }
       )}
     >
-      {domainSlug ? (
+      {domainStyle ? (
         <p
           className={cn(
             "mb-5 inline-flex items-center gap-2 font-mono text-[10.5px] font-medium uppercase tracking-[0.16em]",
-            DOMAIN_INK[domainSlug]
+            domainStyle.colors.text
           )}
         >
           <span
             aria-hidden="true"
-            className={cn("h-1.5 w-1.5 rounded-full", DOMAIN_DOT[domainSlug])}
+            className={cn("h-1.5 w-1.5 rounded-full", domainStyle.colors.fill)}
           />
-          {DOMAIN_LABELS[domainSlug]}
+          {domainStyle.defaultLabel}
         </p>
       ) : null}
 
