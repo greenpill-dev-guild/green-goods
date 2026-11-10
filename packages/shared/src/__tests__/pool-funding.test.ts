@@ -758,6 +758,21 @@ describe("selectExceededTransferLimit", () => {
       "token_paused",
     ],
     [
+      "a pause the read shows beside a limit it couldn't read",
+      { reasons: ["executor_paused"], limits: { cap: null } },
+      "executor_paused",
+    ],
+    [
+      "an inactive route the read shows beside a stale balance",
+      { reasons: ["inactive_route"], limits: { hasStaleBalance: true } },
+      "inactive_route",
+    ],
+    [
+      "nothing a snapshot kept from a failed refresh says, not even a pause",
+      { reasons: ["token_paused"], limits: { isError: true } },
+      "limits_unread",
+    ],
+    [
       "a fee over the policy's share of the amount",
       { quote: { fee: 10n, senderPays: true }, feePolicy: { maxFeeBps: 100, maxFeeAmount: 50n } },
       "fee_policy_breach",

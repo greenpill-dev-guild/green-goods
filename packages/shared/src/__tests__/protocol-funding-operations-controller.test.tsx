@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProtocolFundingOperationsController } from "../hooks/admin-ui/pool/useProtocolFundingOperationsController";
@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     isLoading: false,
   },
   mutateAsync: vi.fn(),
+  reconcile: vi.fn(),
   pinReason: vi.fn(),
   sourceSnapshot: null as PoolFundingSnapshot | null,
   sourceIsError: false,
@@ -38,6 +39,10 @@ vi.mock("../hooks/commitment-pooling/useSettlement", () => ({
   useSettlementOperationsCapabilities: () => mocks.capabilities,
   useSettlementMutation: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
 }));
+vi.mock("../hooks/blockchain/useTransactionSender", () => {
+  const sender = { reconcileBroadcast: (...args: unknown[]) => mocks.reconcile(...args) };
+  return { useTransactionSender: () => sender };
+});
 vi.mock("../modules/commitment-pooling/reasons", () => ({
   pinCommitmentReason: (...args: unknown[]) => mocks.pinReason(...args),
 }));
@@ -149,6 +154,7 @@ describe("useProtocolFundingOperationsController", () => {
       isError: mocks.sourceIsError,
     }));
     mocks.mutateAsync.mockResolvedValue({ hash: "0xsubmitted", sponsored: false });
+    mocks.reconcile.mockResolvedValue({ status: "unresolved" });
     mocks.pinReason.mockResolvedValue("ipfs://reason");
   });
 
@@ -263,7 +269,7 @@ describe("useProtocolFundingOperationsController", () => {
     expect(result.current.lastAct?.phase).toBe("submitted");
   });
 
-  it("holds queuing after a Safe proposal until that garden's new transfer is listed", async () => {
+  it("holds queuing after a Safe proposal until the wallet says it ran and its transfer is listed", async () => {
     mocks.mutateAsync.mockResolvedValue({
       hash: "safe-proposal",
       sponsored: false,
@@ -277,21 +283,50 @@ describe("useProtocolFundingOperationsController", () => {
     });
     expect(result.current.lastAct).toMatchObject({ kind: "queue-funding", phase: "proposed" });
 
-    // A transfer that was already listed, and another top-up of a different amount, aren't it.
+    // Another steward queues the same top-up: it looks like this proposal's, but this one hasn't run.
     mocks.sourceSnapshot = transfers(
-      { disbursementId: 8n, state: "DISPATCHED", garden: TARGET },
-      { disbursementId: 9n, garden: TARGET, amount: 3n }
+      { disbursementId: 8n, garden: TARGET },
+      { disbursementId: 9n, garden: TARGET }
     );
     rerender();
+    await act(async () => {
+      await result.current.refetch();
+    });
     expect(result.current.lastAct?.phase).toBe("proposed");
+    expect(result.current.rows.some((row) => row.canDispatch || row.canCancel)).toBe(false);
 
-    mocks.sourceSnapshot = transfers(
-      { disbursementId: 8n, state: "DISPATCHED", garden: TARGET },
-      { disbursementId: 9n, garden: TARGET, amount: 3n },
-      { disbursementId: 10n, garden: TARGET }
-    );
-    rerender();
-    expect(result.current.lastAct?.phase).toBe("submitted");
+    mocks.reconcile.mockResolvedValue({ status: "confirmed", transactionHash: "0xexecuted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("submitted"));
+    expect(mocks.reconcile).toHaveBeenCalledWith({
+      kind: "transaction",
+      hash: "safe-proposal",
+      chainId: 42161,
+      account: PROTOCOL,
+    });
+  });
+
+  it("reopens sends when the Safe runs the proposal and it reverts", async () => {
+    mocks.capabilities = dispatcher;
+    mocks.mutateAsync.mockResolvedValue({
+      hash: "safe-proposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const { result } = renderController();
+    await act(async () => {
+      await result.current.dispatch(8n);
+    });
+    expect(result.current.rows[0]?.canDispatch).toBe(false);
+
+    mocks.reconcile.mockResolvedValue({ status: "reverted" });
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.lastAct?.phase).toBe("failed"));
+    expect(result.current.rows[0]?.canDispatch).toBe(true);
   });
 
   it("lets module-owner funding authority queue without exposing dispatch or recovery", async () => {

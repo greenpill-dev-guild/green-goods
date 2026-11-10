@@ -10,6 +10,7 @@
  * @module hooks/admin-ui/pool/useProtocolFundingOperationsController
  */
 
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
@@ -24,13 +25,16 @@ import {
   selectQueuedTransferBlock,
   selectTransferBlock,
 } from "../../../modules/commitment-pooling/pool-funding";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { selectSettlementActions } from "../../../modules/commitment-pooling/settlement";
 import { pinCommitmentReason } from "../../../modules/commitment-pooling/reasons";
 import type { HexString } from "../../../modules/commitment-pooling/types-core";
+import type { BroadcastConfirmation } from "../../../modules/transactions/types";
 import type { Address } from "../../../types/domain";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
+import { useTransactionSender } from "../../blockchain/useTransactionSender";
 import { usePoolFunding } from "../../commitment-pooling/usePoolFunding";
 import {
   useSettlementMutation,
@@ -82,11 +86,19 @@ function proposedEffect(act: FundingAct, read: FundingRead): ProposedEffect {
   };
 }
 
-/**
- * Whether the read shows the proposal's own effect. Until it does, the same act could
- * be proposed again and both could run, so another transfer moving changes nothing.
- * A resend shows only once Celo answers it.
- */
+/** A proposal a Safe took, by the identifier its wallet returned, and what it will change. */
+interface Proposal {
+  hash: HexString;
+  effect: ProposedEffect;
+}
+
+/** Whether the wallet has run a proposal, as `reconcileBroadcast` reads it. */
+type ProposalOutcome = BroadcastConfirmation["status"];
+
+/** How often a held panel asks the wallet again, on the funding read's own cadence. */
+const PROPOSAL_RECHECK_MS = 30_000;
+
+/** Whether the read lists what the proposal will change. A resend shows only once Celo answers it. */
 function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
   if (!read) return false;
   if (effect.kind === "transfer-moves") {
@@ -102,6 +114,18 @@ function effectShown(effect: ProposedEffect, read: FundingRead): boolean {
       row.amount === effect.amount &&
       row.disbursementId > effect.after
   );
+}
+
+/**
+ * Whether a proposal is done holding sends, so the same act can't be proposed twice:
+ * it reverted, or the read shows its own change. A transfer moving belongs to that
+ * transfer alone. A new transfer like the one queued could be another steward's, so
+ * that one also waits for the wallet to say this proposal ran.
+ */
+function proposalSettled(proposal: Proposal, outcome: ProposalOutcome, read: FundingRead) {
+  if (outcome === "reverted") return true;
+  if (!effectShown(proposal.effect, read)) return false;
+  return proposal.effect.kind === "transfer-moves" || outcome === "confirmed";
 }
 
 function fundingView(query: ReturnType<typeof usePoolFunding>): PoolFundingControllerView {
@@ -143,12 +167,35 @@ export function useProtocolFundingOperationsController(input: {
     isProtocolTeam,
   });
   const mutation = useSettlementMutation({ chainId });
+  const sender = useTransactionSender();
   const [lastAct, setLastAct] = useState<SettlementActStatus | null>(null);
-  // What an act a Safe took as a proposal will change. Sends stay closed until the
-  // read shows that change, so the act can't be proposed twice. This lasts as long
-  // as the panel: reloading is how a rejected proposal is sent again.
-  const [proposed, setProposed] = useState<ProposedEffect | null>(null);
-  const proposalPending = proposed !== null && !effectShown(proposed, sourceQuery.snapshot);
+  // An act a Safe took as a proposal. Sends stay closed until it settles, so the act
+  // can't be proposed twice. This lasts as long as the panel: reloading is how a
+  // proposal the Safe never runs is sent again.
+  const [proposed, setProposed] = useState<Proposal | null>(null);
+  const asksWallet = proposed !== null && Boolean(sender?.reconcileBroadcast);
+  const outcomeQuery = useQuery({
+    queryKey: commitmentPoolingKeys.settlementProposal(chainId, proposed?.hash ?? ""),
+    queryFn: async (): Promise<ProposalOutcome> => {
+      if (!proposed || !sender?.reconcileBroadcast) return "unresolved";
+      const outcome = await sender.reconcileBroadcast({
+        kind: "transaction",
+        hash: proposed.hash,
+        chainId,
+        ...(viewer ? { account: viewer } : {}),
+      });
+      return outcome.status;
+    },
+    enabled: asksWallet,
+    refetchInterval: (query) =>
+      query.state.data === undefined || query.state.data === "unresolved"
+        ? PROPOSAL_RECHECK_MS
+        : false,
+    retry: false,
+  });
+  const outcome: ProposalOutcome = outcomeQuery.data ?? "unresolved";
+  const proposalPending =
+    proposed !== null && !proposalSettled(proposed, outcome, sourceQuery.snapshot);
   // From the first tap: a send reads the Safe again before the wallet is asked.
   const isActing = mutation.isPending || lastAct?.phase === "signing";
   const canAct = Boolean(viewer) && isOnline && !isActing && !capabilities.isLoading;
@@ -215,9 +262,14 @@ export function useProtocolFundingOperationsController(input: {
     sourceQuery.hasStaleBalance,
   ]);
 
+  // A refresh also asks the wallet again about a proposal it is holding for.
   const refetch = useCallback(async () => {
-    return Promise.all([sourceQuery.refetch(), targetQuery.refetch()]);
-  }, [sourceQuery, targetQuery]);
+    return Promise.all([
+      sourceQuery.refetch(),
+      targetQuery.refetch(),
+      ...(asksWallet ? [outcomeQuery.refetch()] : []),
+    ]);
+  }, [asksWallet, outcomeQuery, sourceQuery, targetQuery]);
 
   const run = useCallback(
     async (
@@ -245,7 +297,7 @@ export function useProtocolFundingOperationsController(input: {
         const result = await mutation.mutateAsync(action);
         const hash = result.hash as HexString;
         if (result.confirmation === "pending") {
-          setProposed(proposedEffect(action, before));
+          setProposed({ hash, effect: proposedEffect(action, before) });
           setLastAct({ kind, phase: "proposed", hash });
         } else {
           setLastAct({ kind, phase: "submitted", hash });
@@ -285,10 +337,16 @@ export function useProtocolFundingOperationsController(input: {
     sourceFunding: fundingView(sourceQuery),
     targetFunding: fundingView(targetQuery),
     rows,
-    // Once the read shows the proposal's own change, it ran and the indexed rows say how it went.
+    // Once a proposal settles, it either reverted on chain or ran, and the indexed rows say how.
     lastAct:
       lastAct?.phase === "proposed" && !proposalPending
-        ? { ...lastAct, phase: "submitted" }
+        ? outcome === "reverted"
+          ? {
+              kind: lastAct.kind,
+              phase: "failed",
+              error: new Error("The Safe ran the proposal and it reverted"),
+            }
+          : { ...lastAct, phase: "submitted" }
         : lastAct,
     isActing,
     queueFunding: (garden, amount) =>

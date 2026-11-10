@@ -219,14 +219,17 @@ export function selectTransferBlock(
 }
 
 /**
- * What holds every transfer out of this Safe, whatever its amount, in the order a
- * steward should hear it: what Celo refuses outright before what the read couldn't
- * show. The Safe's settlement readiness derives each one from the read.
+ * What Celo refuses every transfer out of this Safe for, whatever its amount. The
+ * Safe's settlement readiness derives each one from the read.
  */
 const SAFE_WIDE_REFUSALS = [
   "inactive_route",
   "executor_paused",
   "token_paused",
+] as const satisfies readonly PoolFundingTransferRefusal[];
+
+/** What the read couldn't show about the route, which holds every transfer just the same. */
+const SAFE_WIDE_UNREAD = [
   "executor_unreadable",
   "token_unreadable",
 ] as const satisfies readonly PoolFundingTransferRefusal[];
@@ -254,11 +257,18 @@ export function selectQueuedTransferBlock(
   transfer: { disbursementId: bigint; amount: bigint }
 ): PoolFundingTransferBlock | null {
   const { snapshot } = funding;
+  // A refusal the current read shows outranks anything it couldn't read. A snapshot
+  // kept from a failed refresh is not current, so it names none.
+  const refusal =
+    snapshot && !funding.isError
+      ? SAFE_WIDE_REFUSALS.find((reason) => snapshot.settlementUnavailableReasons.includes(reason))
+      : undefined;
+  if (refusal) return refusal;
   if (!snapshot || !selectTransferLimitsRead(funding)) return "limits_unread";
-  const refusal = SAFE_WIDE_REFUSALS.find((reason) =>
+  const unread = SAFE_WIDE_UNREAD.find((reason) =>
     snapshot.settlementUnavailableReasons.includes(reason)
   );
-  if (refusal) return refusal;
+  if (unread) return unread;
   const row = snapshot.disbursements.find(
     (entry) => entry.disbursementId === transfer.disbursementId
   );
