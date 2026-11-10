@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { useCallback, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { parseEventLogs, type Hex } from "viem";
+import { parseEventLogs, type Hex, type TransactionReceipt } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
@@ -10,6 +9,8 @@ import { INDEXER_LAG_SCHEDULE_MS, STALE_TIME_MEDIUM } from "../../config/query-k
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { cookieJarKeys } from "../../config/query-keys/vault";
 import { logger } from "../../modules/app/logger";
+import { waitForReceipt } from "../../modules/transactions/receipt-wait";
+import { TransactionRevertedError } from "../../modules/transactions/types";
 import type {
   CampaignCookieJar,
   CookieJarWithdrawParams,
@@ -91,6 +92,28 @@ function campaignInvalidationKeys(
   chainId: number
 ) {
   return queryInvalidation.onCampaignCookieJarChanged(jarAddress, userAddress, chainId);
+}
+
+/**
+ * The jar a creation made, from its receipt on the app chain. A creation that reverted made no jar,
+ * so it fails. A creation whose receipt cannot be read went out all the same: it stays unconfirmed,
+ * returned without an address for the steward to supply.
+ */
+async function readCreatedJar(hash: Hex, chainId: number): Promise<Address | undefined> {
+  let receipt: TransactionReceipt;
+  try {
+    receipt = await waitForReceipt(getWagmiConfig(), { hash, chainId });
+  } catch (error) {
+    logger.warn("[CampaignCookieJar] Could not read the creation receipt", { error });
+    return undefined;
+  }
+  if (receipt.status === "reverted") throw new TransactionRevertedError(hash);
+  const [created] = parseEventLogs({
+    abi: COOKIE_JAR_FACTORY_ABI,
+    eventName: "JarCreated",
+    logs: receipt.logs,
+  });
+  return created?.args.jarAddress as Address | undefined;
 }
 
 export function useCampaignCookieJar(
@@ -366,20 +389,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
         ],
       });
 
-      let jarAddress: Address | undefined;
-      if (isCanonicalTxHash(hash)) {
-        try {
-          const receipt = await waitForTransactionReceipt(getWagmiConfig(), { hash, chainId });
-          const logs = parseEventLogs({
-            abi: COOKIE_JAR_FACTORY_ABI,
-            eventName: "JarCreated",
-            logs: receipt.logs,
-          });
-          jarAddress = logs[0]?.args.jarAddress as Address | undefined;
-        } catch (error) {
-          logger.warn("[CampaignCookieJar] Could not parse created jar event", { error });
-        }
-      }
+      const jarAddress = isCanonicalTxHash(hash) ? await readCreatedJar(hash, chainId) : undefined;
 
       return { hash, jarAddress, metadata };
     },
