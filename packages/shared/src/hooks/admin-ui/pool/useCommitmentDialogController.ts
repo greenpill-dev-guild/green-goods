@@ -27,6 +27,7 @@ import {
   selectConfirmationEligibility,
 } from "../../../modules/commitment-pooling/selectors";
 import {
+  isConfirmerByAccount,
   isPoolSteward,
   selectCommitmentActPermissions,
   selectCommitmentDisputeAuthority,
@@ -46,7 +47,10 @@ import { useCommitmentMetadataFor } from "../../commitment-pooling/useCommitment
 import { isResolvableMetadataCID } from "../../../modules/commitment-pooling/metadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import { useTxActPhase } from "../../blockchain/useTxActPhase";
-import { claimantStanding } from "../../../modules/commitment-pooling/waiting-for-approval";
+import {
+  claimantStanding,
+  pendingAskAt,
+} from "../../../modules/commitment-pooling/waiting-for-approval";
 import { useClaimDecisions } from "./useClaimDecisions";
 import {
   actPhaseFor,
@@ -68,7 +72,6 @@ import { useGardenRoles } from "../../roles/useGardenRoles";
 import { useProgressiveInvalidation } from "../../utils/useTimeout";
 import { reviewRefreshOptions } from "../../commitment-pooling/review-refresh";
 import { useExpiryClock } from "../../commitment-pooling/useExpiryClock";
-import type { CommitmentClaimRequestRecord } from "../../../modules/commitment-pooling/types-core";
 
 /** `ICommitmentPoolingModule.DisputeResolution`, by code. */
 const DISPUTE_RESOLUTION_CODE = {
@@ -77,16 +80,6 @@ const DISPUTE_RESOLUTION_CODE = {
   CANCELLED: 2,
   EXPIRED: 3,
 } as const;
-
-/** When a person's pending ask was made, so the decision on it holds for that ask alone. */
-function pendingAskAt(
-  asks: readonly CommitmentClaimRequestRecord[] | undefined,
-  claimant: Address
-): number | undefined {
-  return asks?.find(
-    (ask) => ask.state === "PENDING" && ask.claimant.toLowerCase() === claimant.toLowerCase()
-  )?.requestedAt;
-}
 
 export function useCommitmentDialogController(input: {
   chainId: number;
@@ -268,6 +261,7 @@ export function useCommitmentDialogController(input: {
         isPoolSteward: isLocalSteward,
       })
     : false;
+  const membershipNotRequired = isConfirmerByAccount(commitment, viewer);
 
   // Twelve plain booleans off already-derived state: cheaper to recompute than
   // to memoise behind a fifteen-entry dependency list.
@@ -354,7 +348,13 @@ export function useCommitmentDialogController(input: {
           gardenAddress: garden,
         }),
       expire: () => mutation.mutateAsync({ action: "expireCommitment", commitmentId }),
-      confirmOrdinary: () => jobs.enqueue({ act: "confirm", commitmentId, gardenAddress: garden }),
+      confirmOrdinary: () =>
+        jobs.enqueue({
+          act: "confirm",
+          commitmentId,
+          gardenAddress: garden,
+          membershipNotRequired,
+        }),
       /** The reason goes on chain as plain text: the contract stores it itself. */
       confirmFallback: (reason: string) =>
         mutation.mutateAsync({ action: "confirmFulfillmentAsFallback", commitmentId, reason }),
@@ -407,6 +407,7 @@ export function useCommitmentDialogController(input: {
       jobs,
       commitmentId,
       garden,
+      membershipNotRequired,
       reconciliationDecisionUIDs,
       detailQuery,
       activity,

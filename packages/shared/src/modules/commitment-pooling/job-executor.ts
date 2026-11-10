@@ -135,8 +135,9 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
     }
   }
 
-  // A named confirmer is authorized by the list on the commitment, not by any
-  // hat, so a membership wait would hold an act the chain already accepts.
+  // A confirmer the chain takes by account (named, or the Request's creator or the
+  // Offer's taker: isConfirmerByAccount) needs no hat, so a membership wait would
+  // hold an act the chain already accepts.
   const byIdentity =
     "membershipNotRequired" in job.payload && job.payload.membershipNotRequired === true;
   if (dependencies.hasMembership && !byIdentity) {
