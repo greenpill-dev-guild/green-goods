@@ -145,6 +145,13 @@ test("production navigation cache restores the anonymous shell offline and is re
   // Block worker-originated fetches too; page offline emulation alone can leave them reachable.
   await context.route("**/*", (route) => route.abort("internetdisconnected"));
   await context.setOffline(true);
+  // Chromium exposes page connectivity separately from request emulation.
+  await cdp.send("Network.overrideNetworkState", {
+    offline: true,
+    latency: 0,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+  });
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("login-button")).toHaveText("Continue with Passkey");
   await expectStableLogoHandoff(page, 177);
@@ -253,6 +260,12 @@ test("production navigation cache restores the anonymous shell offline and is re
     })
   ).rejects.toThrow();
   await context.setOffline(false);
+  await cdp.send("Network.overrideNetworkState", {
+    offline: false,
+    latency: 0,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+  });
   await context.unroute("**/*");
   await cdp.detach();
   await expectEvidenceFailureContained(page);
