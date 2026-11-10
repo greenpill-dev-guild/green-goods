@@ -59,9 +59,10 @@ The code keeps the name `deployer` for a garden creator; copy, docs, and these g
 **Garden Creators** card on the Community Garden's Community → Coordination tab, by whoever the
 registry lets manage it: its owner and the Community Garden's owners and stewards. The card
 asks the registry (`useGardenCreators`, which reads `canManageAllowlist`) instead of reading
-`isProtocolTeam`. On a registry that answers that read, the card shows exactly when the contract
-would accept the change; on an older one the read fails and the card stays hidden, even from the
-registry's owner. Being a garden creator never makes an account part of the protocol team.
+`isProtocolTeam`, so it shows for the accounts the contract would accept, as of the registry's
+last answer, which may be cached. With no answer (a registry too old to have the read, or a read
+that fails) the card stays hidden, even from an account that may manage the list. Being a garden
+creator never makes an account part of the protocol team.
 
 Evaluators reach the cockpit through `useEligibleAdminGardens`, not `useRole`. It lists the
 gardens the account owns, stewards, or evaluates from the base list, which holds a chain's newest
