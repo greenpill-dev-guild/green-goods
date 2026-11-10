@@ -112,6 +112,8 @@ const mocks = vi.hoisted(() => ({
   }>,
   managedGardens: new Set<string>(),
   claimRequests: [] as CommitmentClaimRequestRecord[],
+  /** Whether the take-up request read has answered. */
+  claimsAnswered: true,
   actions: [] as Action[],
   linked: new Set<string>(),
   worksGarden: null as string | null,
@@ -174,7 +176,10 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitment: () => mocks.commitmentQuery,
   useCommitmentPool: () => ({ pool: mocks.pool, isError: false, refetch: vi.fn() }),
   useCommitmentCycles: () => ({ data: mocks.cycles, isError: false, refetch: vi.fn() }),
-  useCommitmentClaimRequests: () => ({ claimRequests: mocks.claimRequests }),
+  useCommitmentClaimRequests: () => ({
+    claimRequests: mocks.claimRequests,
+    isSuccess: mocks.claimsAnswered,
+  }),
   useLinkedWorkUIDs: () => ({ linked: mocks.linked }),
 }));
 
@@ -255,6 +260,7 @@ beforeEach(() => {
     },
   ];
   mocks.managedGardens = new Set();
+  mocks.claimsAnswered = true;
   mocks.claimRequests = [
     claimFixture({ requestedBy: TUNDE, claimant: TUNDE, requestedAt: 1, state: "DECLINED" }),
     claimFixture({ requestedBy: TUNDE, claimant: TUNDE, requestedAt: 2, state: "DECLINED" }),
@@ -294,6 +300,25 @@ describe("useGardenCommitmentController", () => {
     mocks.commitmentQuery.isError = false;
     rerender({ commitmentId: 1001n });
     expect(result.current.status).toBe("ready");
+  });
+
+  it("says whether a take-up request waits only once the requests have been read", () => {
+    const takeUpPending = () =>
+      renderHook(() =>
+        useGardenCommitmentController({
+          chainId: DEMO_CHAIN_ID,
+          commitmentId: 1001n,
+          routeGarden: DEMO_GARDEN,
+        })
+      ).result.current.takeUpPending;
+
+    // The fixture holds one pending request among the declined ones.
+    expect(takeUpPending()).toBe(true);
+    mocks.claimRequests = mocks.claimRequests.filter((request) => request.state !== "PENDING");
+    expect(takeUpPending()).toBe(false);
+    // An unanswered or failed read proves nothing either way.
+    mocks.claimsAnswered = false;
+    expect(takeUpPending()).toBeNull();
   });
 
   it("derives the seat, act, claim state, and eligible unlinked work with real selectors", () => {

@@ -211,8 +211,11 @@ export function selectStatusBand(input: {
   actKind?: CommitmentActKind | null;
   /** Nobody took it up and the chain's clock is past its due date. */
   pastDue?: boolean;
-  /** Someone asked to take it up and a steward's yes is still to come. */
-  takeUpPending?: boolean;
+  /**
+   * Someone asked to take it up and a steward's yes is still to come; null while the take-up
+   * requests are unread, when no sentence may claim that nobody asked.
+   */
+  takeUpPending?: boolean | null;
 }): StatusBand | null {
   const { commitment, seat } = input;
   const phase = commitment.derivedState;
@@ -231,6 +234,11 @@ export function selectStatusBand(input: {
     }
     if (input.takeUpPending) {
       return { bodyId: "app.commitment.band.any.takeUpPending.b", tone: "waiting" };
+    }
+    // Until the requests are read, an ask's bystander hears only what its state proves: that
+    // nobody has taken it on, never that nobody has offered to.
+    if (input.takeUpPending === null && seat === "bystander" && phase === "REQUESTED") {
+      return { bodyId: "app.commitment.band.bystander.offered.b", tone: "neutral" };
     }
   }
   if (

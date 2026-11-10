@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -48,6 +49,8 @@ export interface LiveTabProps {
   waiting?: InboxCommitment[];
   /** Ids of the listed promises that nobody took up and that are past due on the chain's clock. */
   pastDueIds?: ReadonlySet<string>;
+  /** Where the read behind `waiting` stands, so an unanswered read never passes for none. */
+  waitingRead?: { isLoading: boolean; isError: boolean; retry: () => void };
 }
 
 /** The copies a folded row opens: drawn while they close, and already in place on the way back. */
@@ -84,6 +87,7 @@ export function LiveTab({
   covered,
   waiting = [],
   pastDueIds,
+  waitingRead,
 }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
@@ -177,23 +181,30 @@ export function LiveTab({
         entry.rows.some((row) => openCopies.ids.has(row.commitment.commitmentId))
     );
 
+  // A commitment still waiting to send, or one that gave up, has no row to
+  // appear in — so the emptiest list is exactly when those notices matter
+  // most. Treating the tab as empty would hide the only thing saying so.
+  const listsNothing =
+    inbox.live.length === 0 &&
+    waiting.length === 0 &&
+    !inbox.hasPendingCreate &&
+    inbox.unlistedFailureCount === 0 &&
+    !inbox.queueUnavailable;
+  // With nothing else to show, the take-up requests still unread keep the tab loading, and a
+  // read of them that failed is the tab's failure, so it never says nothing is moving.
+  const waitingUnsure = listsNothing && waitingRead !== undefined;
+
   return (
     <CommitmentStateLadder
       availability={inbox.availability}
-      isLoading={inbox.isLoading}
-      isError={inbox.isError}
+      isLoading={inbox.isLoading || (waitingUnsure && waitingRead.isLoading)}
+      isError={inbox.isError || (waitingUnsure && waitingRead.isError)}
       isOnline={isOnline}
-      // A commitment still waiting to send, or one that gave up, has no row to
-      // appear in — so the emptiest list is exactly when those notices matter
-      // most. Treating the tab as empty would hide the only thing saying so.
-      isEmpty={
-        inbox.live.length === 0 &&
-        waiting.length === 0 &&
-        !inbox.hasPendingCreate &&
-        inbox.unlistedFailureCount === 0 &&
-        !inbox.queueUnavailable
-      }
-      onRetry={() => void inbox.refetch()}
+      isEmpty={listsNothing}
+      onRetry={() => {
+        void inbox.refetch();
+        waitingRead?.retry();
+      }}
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.live.loading",
@@ -309,6 +320,18 @@ export function LiveTab({
             {shownWaiting.map((row) => promiseRow(row, undefined, { takeUpRequested: true }))}
           </div>
         </section>
+      ) : null}
+
+      {/* Beside a list, a failed read of the take-up requests says so where they would be. */}
+      {waitingRead?.isError && !waitingUnsure ? (
+        <Alert variant="warning" className="p-3">
+          <div className="flex flex-col items-start gap-2">
+            <p>{formatMessage({ id: "app.commitments.waiting.error" })}</p>
+            <Button type="button" emphasis="secondary" size="sm" onClick={waitingRead.retry}>
+              {formatMessage({ id: "app.commitments.retry" })}
+            </Button>
+          </div>
+        </Alert>
       ) : null}
 
       {copiesOnScreen && !covered && !wasCovered ? (

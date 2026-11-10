@@ -1773,6 +1773,7 @@
   "app.commitments.tab.toConfirm": "A confirmar",
   "app.commitments.title": "Suas promessas",
   "app.commitments.waiting.title": "Aguardando um responsável",
+  "app.commitments.waiting.error": "Não foi possível verificar suas solicitações que aguardam um responsável.",
   "app.commitments.toConfirm.captured": "Registrado",
   "app.commitments.toConfirm.emptyDescription": "Quando alguém assumir algo que o jardim ofereceu, ou uma promessa nomear o jardim para confirmá-la, aparecerá aqui.",
   "app.commitments.toConfirm.emptyTitle": "Nada aguardando o jardim",

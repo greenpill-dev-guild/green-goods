@@ -1773,6 +1773,7 @@
   "app.commitments.tab.toConfirm": "To confirm",
   "app.commitments.title": "Your Promises",
   "app.commitments.waiting.title": "Waiting on a Steward",
+  "app.commitments.waiting.error": "Your requests waiting on a steward couldn't be checked.",
   "app.commitments.toConfirm.captured": "Recorded",
   "app.commitments.toConfirm.emptyDescription": "When a member takes up something the garden offered, or a promise names the garden to confirm it, it shows here.",
   "app.commitments.toConfirm.emptyTitle": "Nothing waiting for the garden",

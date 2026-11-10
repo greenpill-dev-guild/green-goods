@@ -135,6 +135,9 @@ export function useGardenCommitmentController(input: {
   const pendingClaimRequests = claimsQuery.claimRequests.filter(
     (request) => request.state === "PENDING"
   );
+  // Whether a take-up request waits is only known once the read answered; until then no
+  // surface may say that none does.
+  const takeUpPending = claimsQuery.isSuccess ? pendingClaimRequests.length > 0 : null;
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
   const untaken = Boolean(
     commitment && (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED")
@@ -356,6 +359,7 @@ export function useGardenCommitmentController(input: {
     pendingClaimRequests,
     takeUpOpen,
     pastDue,
+    takeUpPending,
     canAskAgain:
       // Asking again is a take-up: never past due, and not before the due date is known.
       takeUpOpen &&

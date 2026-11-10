@@ -147,7 +147,7 @@ export function GardenCommitment() {
     hasLinkedWork: detail.workAttributions.some((row) => row.linked),
     requiredWorkApproved,
     pastDue: controller.pastDue,
-    takeUpPending: controller.pendingClaimRequests.length > 0,
+    takeUpPending: controller.takeUpPending,
   });
   const isPending = controller.isQueueing || controller.isSending;
   const proofOnPhone = proofOnPhoneLine(controller.queue, formatMessage);
