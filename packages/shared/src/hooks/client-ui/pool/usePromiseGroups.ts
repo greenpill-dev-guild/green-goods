@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 
 import { groupCommitmentsForDisplay } from "../../../modules/commitment-pooling/display-groups";
+import { fallsDueWithItsCycle, isPastDue } from "../../../modules/commitment-pooling/due-dates";
 import {
   groupCountsOnClock,
   isViewerCopy,
@@ -67,6 +68,44 @@ export function usePoolPromiseEntries<R extends { commitment: CommitmentReadMode
     entry.kind === "group"
       ? { ...entry, group: { ...entry.group, counts: groupCountsOnClock(entry.group, due.clock) } }
       : entry
+  );
+}
+
+/**
+ * The listed promises that are past due on the chain's clock, by id, for the app's "Past due"
+ * pill (DL-110 as amended): nobody took them up and the chain is past their due date, so anyone
+ * may expire them, which stays the cockpit's act. A promise whose due date is still unread, a
+ * cycle's end not yet read or the chain's time not yet known, is never called past due.
+ */
+export function usePastDuePromises(input: {
+  chainId: number;
+  /** The pool whose cycles date the promises that fall due with a cycle; null while unknown. */
+  poolId: bigint | null;
+  commitments: readonly CommitmentReadModel[];
+}): ReadonlySet<string> {
+  const { chainId, poolId, commitments } = input;
+  // Cycle ids belong to their pool, so a promise that falls due with its cycle is dated only by
+  // this pool's cycles; one from another pool keeps no due date here rather than a wrong one.
+  const datable = useMemo(
+    () =>
+      commitments.filter(
+        (commitment) => !fallsDueWithItsCycle(commitment) || commitment.poolId === poolId
+      ),
+    [commitments, poolId]
+  );
+  const due = useDueClock({ chainId, poolId, commitments: datable });
+  return useMemo(
+    () =>
+      new Set(
+        datable
+          .filter(
+            (commitment) =>
+              (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
+              isPastDue(commitment, due.clock)
+          )
+          .map((commitment) => commitment.id)
+      ),
+    [datable, due.clock]
   );
 }
 

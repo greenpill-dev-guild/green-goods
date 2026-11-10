@@ -156,7 +156,12 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
         <h3
           className={cn(
             "gg-media-title text-text-strong",
-            titleLines === 2 ? "line-clamp-2 min-h-[2lh] [overflow-wrap:anywhere]" : "truncate"
+            // A long word breaks where its language hyphenates it (the page's lang follows the
+            // locale): only words of ten letters or more, keeping four on each side, so a short
+            // word moves to the next line whole. A word with no such point breaks where it must.
+            titleLines === 2
+              ? "line-clamp-2 min-h-[2lh] hyphens-auto [hyphenate-limit-chars:10_4_4] [overflow-wrap:break-word]"
+              : "truncate"
           )}
           title={title}
         >

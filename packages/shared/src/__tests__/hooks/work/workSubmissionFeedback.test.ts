@@ -33,6 +33,7 @@ const context = {
         "app.work.sendCancelled.message": "Nothing was sent. Your work is saved in To Uploads.",
         "app.home.work.retryError": "Try again",
         "app.home.work.retryFailedMessage": "Work saved",
+        "app.toast.queue.jobFailed.title": "Didn't send",
       },
     },
     createIntlCache()
@@ -119,6 +120,23 @@ describe("showWorkSubmissionFailure", () => {
   ])("says of %s only what a queue holds", (_case, allowOfflineQueue, error, message) => {
     showWorkSubmissionFailure(error, { ...context, allowOfflineQueue });
     expect(toastService.error).toHaveBeenCalledWith(expect.objectContaining({ message }));
+  });
+
+  it("never tells a passkey account to reconnect a wallet it does not have", () => {
+    const sessionLost = new Error("Wallet session expired");
+    showWorkSubmissionFailure(sessionLost, context);
+    const [shown] = vi.mocked(toastService.error).mock.calls[0];
+    // The failure has the app's one name for it, and its words never mention a wallet.
+    expect(shown).toMatchObject({ title: "Didn't send", message: "Try again" });
+    expect(`${shown.title} ${shown.message} ${shown.description ?? ""}`).not.toMatch(/wallet/i);
+
+    vi.clearAllMocks();
+    showWorkSubmissionFailure(sessionLost, { ...context, authMode: "wallet" });
+    // A wallet account still gets the wallet's own advice.
+    expect(walletProgressToasts.error).toHaveBeenCalledWith(
+      expect.stringContaining("reconnect your wallet"),
+      true
+    );
   });
 
   it("keeps an unclassified failure out of the cancellation branch", () => {

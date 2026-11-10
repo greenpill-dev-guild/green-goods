@@ -168,7 +168,7 @@ describe("CommitmentRow", () => {
 
     const row = screen.getByRole("button");
     expect(row).toHaveAccessibleName(
-      /^Request A group of 10 separate promises Water the seedlings weekly In progress due 24 Oct\s*3 in progress, 3 kept$/
+      /^Ask A group of 10 separate promises Water the seedlings weekly In progress due 24 Oct\s*3 in progress, 3 kept$/
     );
   });
 

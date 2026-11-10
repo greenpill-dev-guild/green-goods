@@ -415,10 +415,10 @@ describe("GardenCommitment", () => {
     mockUseServiceAccess.mockReturnValue({ data: state, refetch: vi.fn() });
     render();
     if (kind === "unknown") {
-      expect(screen.getByRole("button", { name: "Ask to take this up" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Request to Take Up" })).toBeInTheDocument();
       expect(screen.queryByRole("region", { name: "Service Access" })).not.toBeInTheDocument();
     } else {
-      expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Request to Take Up" })).not.toBeInTheDocument();
       expect(screen.getByText("Earned voucher consent")).toBeInTheDocument();
     }
   });
@@ -561,7 +561,7 @@ describe("GardenCommitment", () => {
     });
     render();
     expect(screen.getByRole("region", { name: "Service Access" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request to Take Up" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Accept/ })).not.toBeInTheDocument();
     expect(mockActs.claimPersonal).not.toHaveBeenCalled();
     expect(mockActs.acceptClaim).not.toHaveBeenCalled();
@@ -889,7 +889,7 @@ describe("GardenCommitment", () => {
     render();
 
     expect(screen.getByText("Waiting for a steward")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request to Take Up" })).not.toBeInTheDocument();
   });
 
   it("opens provider context and delegates the chosen claim", async () => {
@@ -2218,7 +2218,7 @@ describe("a promise whose service read hasn't answered", () => {
       refetch: vi.fn(),
     });
     render();
-    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Request to Take Up" })).toBeNull();
     expect(screen.queryByText(/couldn't check how this promise/i)).toBeNull();
   });
 
@@ -2232,7 +2232,7 @@ describe("a promise whose service read hasn't answered", () => {
       refetch,
     });
     render();
-    expect(screen.queryByRole("button", { name: "Ask to take this up" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Request to Take Up" })).toBeNull();
     expect(screen.getByText(/couldn't check how this promise is taken up/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);
