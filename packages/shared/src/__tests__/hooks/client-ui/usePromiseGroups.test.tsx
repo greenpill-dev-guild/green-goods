@@ -144,8 +144,10 @@ describe("usePastDuePromises", () => {
         derivedState: "ACTIVE",
         leadProvider: OMAR,
       }),
-      // Falls due when season 5 ends, which is still unread.
-      copy(34, "cid-season", { cycleId: 5n }),
+      // Falls due when this pool's season 5 ends, which is still unread.
+      copy(34, "cid-season", { cycleId: 5n, poolId: 7n }),
+      // Another pool's season 5 is a different season: this pool's cycles never date it.
+      copy(35, "cid-season", { cycleId: 5n, poolId: 8n }),
     ];
     const { result, rerender } = renderHookWithProviders(() =>
       usePastDuePromises({ chainId: 42161, poolId: 7n, commitments })

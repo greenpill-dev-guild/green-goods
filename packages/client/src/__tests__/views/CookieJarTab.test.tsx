@@ -80,12 +80,6 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOrigin
   };
 });
 
-// No garden is active unless a case enters one, so the other cases list every garden's jars.
-let mockActiveGardenId: string | null = null;
-vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
-  useActiveGarden: () => ({ gardenId: mockActiveGardenId, garden: null, inScope: () => true }),
-}));
-
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) => {
   return {
     ...(await importOriginal()),
@@ -106,7 +100,6 @@ describe("CookieJarTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsOnline = true;
-    mockActiveGardenId = null;
     mockUseAccessibleCookieJars.mockReturnValue({
       jars: [testJar],
       isLoading: false,
@@ -138,7 +131,6 @@ describe("CookieJarTab", () => {
 
   it("leads with the chip's garden and keeps the other gardens behind one row", async () => {
     const elsewhere = "0x4444444444444444444444444444444444444444" as const;
-    mockActiveGardenId = TEST_GARDEN;
     mockUseAccessibleCookieJars.mockReturnValue({
       jars: [
         {
@@ -156,7 +148,7 @@ describe("CookieJarTab", () => {
       eligibilityErrorCount: 0,
       hasEligibilityReadFailure: false,
     });
-    render(<CookieJarTab />);
+    render(<CookieJarTab activeGardenId={TEST_GARDEN} />);
 
     // The active garden's jars show first; the other garden waits behind one row.
     expect(screen.getByText("Garden Alpha")).toBeInTheDocument();

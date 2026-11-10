@@ -360,7 +360,7 @@ export function SeedStepReview({
             {
               id: "cockpit.garden.pool.seed.tray.roomOver",
               defaultMessage:
-                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's promise limit of {cap} per person. Remove an offer, change it to a request, or raise the limit in the pool settings.",
+                "These offers are more than you can hold at once. You have room for {room, plural, =0 {no more} other {# more}} under the pool's promise limit of {cap} per person. Remove an offer, change it to an ask, or raise the limit in the pool settings.",
             },
             { room: capacity.room ?? 0, cap: capacity.cap ?? 0 }
           )}

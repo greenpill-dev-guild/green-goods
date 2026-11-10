@@ -5,7 +5,6 @@ import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
-import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
@@ -28,7 +27,10 @@ function compareClaimableFirst(left: CookieJar, right: CookieJar) {
   return leftClaimable ? -1 : 1;
 }
 
-export const CookieJarTab: React.FC = () => {
+export const CookieJarTab: React.FC<{
+  /** The garden in Home's chip, whose jars lead; null lists every garden as it comes. */
+  activeGardenId?: string | null;
+}> = ({ activeGardenId = null }) => {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const {
@@ -46,7 +48,6 @@ export const CookieJarTab: React.FC = () => {
     hasDecimalsReadFailure,
   } = useAccessibleCookieJars();
   const { data: gardens = [] } = useGardens();
-  const { gardenId: activeGardenId } = useActiveGarden();
   const [showOtherGardens, setShowOtherGardens] = useState(false);
 
   // Group jars by garden

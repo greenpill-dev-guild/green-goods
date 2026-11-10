@@ -89,12 +89,25 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
     { chainId, poolId: gardenPool?.poolId ?? 0n, state: "PENDING" },
     { enabled: isOpen && Boolean(gardenPool && viewer) }
   );
+  // On the protocol pool a take-up goes through a garden of the reader's (its garden context),
+  // so the requests made through the chip's garden belong here too.
+  const protocolPool = pools.find(
+    (pool) => pool.poolType === "PROTOCOL" && pool.poolId !== gardenPool?.poolId
+  );
+  const protocolClaims = usePoolClaimRequests(
+    { chainId, poolId: protocolPool?.poolId ?? 0n, state: "PENDING" },
+    { enabled: isOpen && Boolean(protocolPool && viewer && gardenId) }
+  );
   const waiting = useMemo<InboxCommitment[]>(() => {
     if (!viewer) return [];
     const listed = new Set(inbox.live.map((row) => row.commitment.id));
     const seen = new Set<string>();
     const rows: InboxCommitment[] = [];
-    for (const { claim, commitment } of pendingClaims.rows) {
+    const claims = [
+      ...pendingClaims.rows,
+      ...protocolClaims.rows.filter(({ claim }) => compareAddresses(claim.gardenContext, gardenId)),
+    ];
+    for (const { claim, commitment } of claims) {
       const theirs =
         compareAddresses(claim.requestedBy, viewer) || compareAddresses(claim.claimant, viewer);
       if (!theirs || listed.has(commitment.id) || seen.has(commitment.id)) continue;
@@ -102,7 +115,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
       rows.push({ commitment, seat: "bystander", needsYou: false });
     }
     return rows;
-  }, [pendingClaims.rows, inbox.live, viewer]);
+  }, [pendingClaims.rows, protocolClaims.rows, gardenId, inbox.live, viewer]);
   // An untaken promise past its due date says so on its row (DL-110 as amended).
   const listedCommitments = useMemo(
     () => [...inbox.live, ...waiting].map((row) => row.commitment),

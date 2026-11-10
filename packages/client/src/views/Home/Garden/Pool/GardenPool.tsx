@@ -71,7 +71,7 @@ const COUNT_IDS: Record<GardenPoolLiveness, string> = {
  * gutter. The header row carries the count, the pool's agreement behind the ⓘ
  * beside it (D33), and Status and Kind as two compact selects (D9, D27); Settled
  * is the history. The explanation of promises lives in Help, reached from the
- * Offer or Request sheet (D10).
+ * Offer or Ask sheet (D10).
  */
 export function GardenPool({ pool }: GardenPoolProps) {
   const intl = useIntl();

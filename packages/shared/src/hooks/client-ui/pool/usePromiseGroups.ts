@@ -14,7 +14,7 @@
 import { useMemo } from "react";
 
 import { groupCommitmentsForDisplay } from "../../../modules/commitment-pooling/display-groups";
-import { isPastDue } from "../../../modules/commitment-pooling/due-dates";
+import { fallsDueWithItsCycle, isPastDue } from "../../../modules/commitment-pooling/due-dates";
 import {
   groupCountsOnClock,
   isViewerCopy,
@@ -84,11 +84,20 @@ export function usePastDuePromises(input: {
   commitments: readonly CommitmentReadModel[];
 }): ReadonlySet<string> {
   const { chainId, poolId, commitments } = input;
-  const due = useDueClock({ chainId, poolId, commitments });
+  // Cycle ids belong to their pool, so a promise that falls due with its cycle is dated only by
+  // this pool's cycles; one from another pool keeps no due date here rather than a wrong one.
+  const datable = useMemo(
+    () =>
+      commitments.filter(
+        (commitment) => !fallsDueWithItsCycle(commitment) || commitment.poolId === poolId
+      ),
+    [commitments, poolId]
+  );
+  const due = useDueClock({ chainId, poolId, commitments: datable });
   return useMemo(
     () =>
       new Set(
-        commitments
+        datable
           .filter(
             (commitment) =>
               (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
@@ -96,7 +105,7 @@ export function usePastDuePromises(input: {
           )
           .map((commitment) => commitment.id)
       ),
-    [commitments, due.clock]
+    [datable, due.clock]
   );
 }
 

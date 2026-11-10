@@ -261,7 +261,7 @@ export function commitmentStateChip(
   }
 }
 
-/** Offer or Request, the row's first chip. */
+/** Offer or Ask, the row's first chip. */
 export function directionLabel(
   direction: CommitmentReadModel["direction"],
   formatMessage: FormatMessage
