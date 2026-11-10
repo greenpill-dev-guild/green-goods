@@ -9,13 +9,15 @@ import { selectToConfirmForGarden } from "./hub.filters";
 
 /**
  * The Hub's Confirm stage (uiux-spec §6.9): what the garden in the header must
- * confirm, plus the garden fallbacks only its steward can still confirm. Like
- * every other Hub stage it acts for that one garden (decision 24 in the
+ * confirm, what waits on the reader's own confirmation in that garden's pool,
+ * and the garden fallbacks only its steward can still confirm. Like every
+ * other Hub stage it stays within that one garden (decisions 24 and 50 in the
  * commitment-pooling QA readiness plan); a row whose commitment lives in
- * another garden's pool names that pool. The tab exists for the selected
- * garden's stewards, and a row opens in place (`/hub/confirm/:commitmentId`)
- * the way the other stages deep-link. Split out of `useHubWorkbenchController`,
- * which is at its source-structure cap.
+ * another garden's pool names that pool. Admin has no Live tab, so the
+ * reader's own confirmations are listed here rather than nowhere (PRD-1204).
+ * The tab exists for the selected garden's stewards, and a row opens in place
+ * (`/hub/confirm/:commitmentId`) the way the other stages deep-link. Split out
+ * of `useHubWorkbenchController`, which is at its source-structure cap.
  */
 export function useHubConfirmStage(input: {
   navigate: NavigateFunction;
@@ -33,6 +35,7 @@ export function useHubConfirmStage(input: {
   const everyGarden = useCommitmentsToConfirm({
     chainId,
     viewer,
+    includeOwn: true,
     refreshWhileOpen: active && canManage,
   });
   const toConfirm = useMemo(

@@ -1,3 +1,4 @@
+import { countConfirmQueue } from "../../../modules/commitment-pooling/confirm-queue";
 import type { Address, Work } from "../../../types/domain";
 import type { CommitmentsToConfirm } from "../../commitment-pooling/commitments-to-confirm.types";
 import { formatAddress } from "../../../utils/app/text";
@@ -74,14 +75,18 @@ export function filterHypercerts<T extends HypercertLike>(hypercerts: T[], searc
     .sort((a, b) => b.mintedAt - a.mintedAt);
 }
 
-type ConfirmQueueScope = Pick<CommitmentsToConfirm, "groups" | "fallback" | "disputed" | "count">;
+type ConfirmQueueScope = Pick<
+  CommitmentsToConfirm,
+  "groups" | "own" | "fallback" | "disputed" | "count"
+>;
 
 /**
  * The Confirm stage for the garden in the header, like every other Hub stage:
- * what that garden's authority confirms (wherever the commitment lives), the
- * garden fallbacks it may step into, and the disputes in its own pool. The
- * protocol team's queue has its own home in Community → Coordination, so a
- * protocol fallback row never appears here. No garden selected, nothing listed.
+ * what that garden's authority confirms (wherever the commitment lives), what
+ * waits on the reader's own confirmation in its pool (decision 50), the garden
+ * fallbacks it may step into, and the disputes in its own pool. The protocol
+ * team's queue has its own home in Community → Coordination, so a protocol
+ * fallback row never appears here. No garden selected, nothing listed.
  */
 export function selectToConfirmForGarden<T extends ConfirmQueueScope>(
   toConfirm: T,
@@ -90,11 +95,11 @@ export function selectToConfirmForGarden<T extends ConfirmQueueScope>(
   const isSelected = (address: Address) =>
     garden !== null && address.toLowerCase() === garden.toLowerCase();
   const groups = toConfirm.groups.filter((group) => isSelected(group.garden));
+  const own = (toConfirm.own ?? []).filter((row) => isSelected(row.garden));
   const fallback = toConfirm.fallback.filter(
     (row) => row.path === "POOL_FALLBACK" && isSelected(row.garden)
   );
   const disputed = (toConfirm.disputed ?? []).filter((row) => isSelected(row.garden));
-  const count =
-    groups.reduce((sum, group) => sum + group.rows.length, 0) + fallback.length + disputed.length;
-  return { ...toConfirm, groups, fallback, disputed, count };
+  const count = countConfirmQueue({ groups, own, fallback, disputed });
+  return { ...toConfirm, groups, own, fallback, disputed, count };
 }

@@ -5722,10 +5722,10 @@
       "priority": "P0",
       "kind": "journey",
       "area": "Hub · Confirm",
-      "scenario": "Hub → Confirm lists only what the garden in the header confirms",
+      "scenario": "Hub → Confirm lists only what the garden in the header confirms, or what waits on you in its pool",
       "preconditions": [
         "Steward of two gardens",
-        "At least one commitment waiting for the first garden's confirmation, and no ordinary, garden-fallback, or disputed row eligible for the second garden"
+        "At least one commitment waiting for the first garden's confirmation; for the second garden, no ordinary, garden-fallback, or disputed row, and no promise in its pool waiting on your own confirmation"
       ],
       "steps": [
         "Select the first garden with the header chip and open Hub → Confirm (/hub/confirm)",
@@ -5790,6 +5790,32 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-design-audit-wave-1-2026-09-23"
+    },
+    {
+      "id": "ADM-200",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hub · Confirm",
+      "scenario": "A promise waiting on your own confirmation is listed in Hub → Confirm and confirmed there",
+      "preconditions": [
+        "Steward of the garden selected in the header",
+        "In that garden's pool, a promise you asked for that another member took up, added proof to, and sent for confirmation; you are not on its team"
+      ],
+      "steps": [
+        "Read the count on the Confirm tab, then open Hub → Confirm (/hub/confirm) and find the promise's row",
+        "Press Confirm Kept… on the row and read the review",
+        "Press Confirm Kept and confirm in the wallet",
+        "Read Hub → Confirm and the promise afterwards"
+      ],
+      "expected": "The row reads Yours to confirm and the Confirm tab's count includes it; Confirm Kept… opens the same review as a garden's row; confirming is one transaction from your account; the promise then reads Kept and leaves the queue",
+      "evidence": "Screenshots of the row and the tab count, the review, and the promise afterwards",
+      "role": "steward",
+      "tags": ["commitment", "confirm", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-1204"
     },
     {
       "id": "ADM-042",

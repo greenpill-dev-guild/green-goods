@@ -106,6 +106,12 @@ describe("selectToConfirmForGarden", () => {
     garden,
     gardenName: garden === ROCINHA ? "Rocinha" : "Aiyeloja",
   });
+  // A promise in the garden's pool that waits on the reader's own confirmation.
+  const own = (id: bigint, garden: Address) => ({
+    commitment: commitmentFixture({ commitmentId: id, onchainState: "READY_FOR_CONFIRMATION" }),
+    garden,
+    gardenName: garden === ROCINHA ? "Rocinha" : "Aiyeloja",
+  });
   // What the reader's stewardship spans: two gardens, and a protocol fallback
   // whose acting authority happens to be the garden in the header.
   const everyGarden = toConfirmFixture({
@@ -113,16 +119,18 @@ describe("selectToConfirmForGarden", () => {
       { garden: ROCINHA, gardenName: "Rocinha", rows: [row(1n, ROCINHA), row(2n, AIYELOJA)] },
       { garden: AIYELOJA, gardenName: "Aiyeloja", rows: [row(3n, AIYELOJA)] },
     ],
+    own: [own(9n, ROCINHA), own(10n, AIYELOJA)],
     fallback: [
       fallback(4n, ROCINHA),
       fallback(5n, AIYELOJA),
       fallback(6n, ROCINHA, "PROTOCOL_FALLBACK"),
     ],
     disputed: [disputed(7n, ROCINHA), disputed(8n, AIYELOJA)],
-    count: 8,
+    count: 10,
   });
   const ids = (scoped: typeof everyGarden) => ({
     groups: scoped.groups.flatMap((group) => group.rows.map((r) => r.commitment.commitmentId)),
+    own: (scoped.own ?? []).map((r) => r.commitment.commitmentId),
     fallback: scoped.fallback.map((r) => r.commitment.commitmentId),
     disputed: (scoped.disputed ?? []).map((r) => r.commitment.commitmentId),
     count: scoped.count,
@@ -134,17 +142,17 @@ describe("selectToConfirmForGarden", () => {
       garden: ROCINHA.toUpperCase().replace("0X", "0x") as Address,
       // Row 2 lives in Aiyeloja's pool but is Rocinha's to confirm, so it stays;
       // the protocol fallback belongs to Community → Coordination, never here.
-      expected: { groups: [1n, 2n], fallback: [4n], disputed: [7n], count: 4 },
+      expected: { groups: [1n, 2n], own: [9n], fallback: [4n], disputed: [7n], count: 5 },
     },
     {
       header: "Aiyeloja",
       garden: AIYELOJA,
-      expected: { groups: [3n], fallback: [5n], disputed: [8n], count: 3 },
+      expected: { groups: [3n], own: [10n], fallback: [5n], disputed: [8n], count: 4 },
     },
     {
       header: "no garden",
       garden: null,
-      expected: { groups: [], fallback: [], disputed: [], count: 0 },
+      expected: { groups: [], own: [], fallback: [], disputed: [], count: 0 },
     },
   ])("lists only what $header confirms, and counts only that", ({ garden, expected }) => {
     expect(ids(selectToConfirmForGarden(everyGarden, garden))).toEqual(expected);
