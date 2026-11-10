@@ -55,7 +55,6 @@ const connectedWiringResult: ReturnType<typeof useGardenYieldWiringState> = {
   refetch: vi.fn(),
   status: "success",
   fetchStatus: "idle",
-  promise: Promise.resolve(connectedWiringState),
   wiringStatus: "connected",
   wiringState: connectedWiringState,
   repairHref: undefined,
