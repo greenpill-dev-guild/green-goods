@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQuery, useQueryClient, type Query } from "@tanstack/react-query";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
+import { addPendingJoin } from "../../modules/garden/pending-joins";
 import type {
   GardenJoinProofEnvelope,
   GardenJoinRequestSelfRecord,
@@ -105,6 +106,10 @@ export function useGardenJoinRequestSession(
     if (scope) {
       useAwaitingJoinRequestsStore.getState().noteRequest(scope, garden, request, Date.now());
     }
+    // A welcome is on chain before the indexer lists the account. It stands in for the gardener
+    // role as an open join does, timed from the welcome, so an old one never hides a later removal.
+    const welcomedAt = request?.state === "welcomed" ? Date.parse(request.resolvedAt ?? "") : NaN;
+    if (Number.isFinite(welcomedAt)) addPendingJoin(garden, account, welcomedAt);
   }
   return {
     ...observed.data,

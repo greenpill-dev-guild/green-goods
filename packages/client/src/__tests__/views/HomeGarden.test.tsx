@@ -125,8 +125,13 @@ vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
   useGardenVaults: () => ({ vaults: [] }),
 }));
 
+// The evaluator check reads yes, so every viewer reviews. The gardener check reads what a test
+// says the chain holds, and nothing without a garden to ask about.
+let mockChainHoldsGardener = false;
 vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
-  useHasRole: () => ({ hasRole: true }),
+  useHasRole: (garden?: string, _account?: string, role?: string) => ({
+    hasRole: role === "gardener" ? Boolean(garden) && mockChainHoldsGardener : true,
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
@@ -233,6 +238,10 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 import { Garden } from "../../views/Home/Garden";
+
+afterEach(() => {
+  mockChainHoldsGardener = false;
+});
 
 describe("Home garden route", () => {
   beforeEach(() => {
@@ -525,6 +534,53 @@ describe("Home garden route", () => {
     );
 
     expect(screen.getByTestId("join-garden-button")).toHaveTextContent("Open Garden");
+  });
+
+  // The roster lags the chain after a steward welcomes a request (PRD-1209): the page asks the
+  // chain before offering the request again.
+  it.each([
+    { chain: "holds no gardener role", holds: false, offered: true },
+    { chain: "holds the gardener role", holds: true, offered: false },
+  ])("offers a closed-garden join request only when the chain $chain", ({ holds, offered }) => {
+    const gardenId = "0x5000000000000000000000000000000000000005";
+    mockPrimaryAddress = "0x00000000000000000000000000000000000000aa";
+    mockChainHoldsGardener = holds;
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: gardenId,
+          name: "Closed Garden",
+          bannerImage: "/banner.png",
+          location: "Test Location",
+          createdAt: Date.now(),
+          description: "Garden description",
+          assessments: [],
+          gardeners: [],
+          stewards: [],
+          openJoining: false,
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: [`/home/${gardenId}`] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, { path: "/home/:id", element: createElement(Garden) })
+          )
+        )
+      )
+    );
+
+    expect(Boolean(screen.queryByTestId("join-request-dialog"))).toBe(offered);
   });
 });
 

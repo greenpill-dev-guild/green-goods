@@ -14,6 +14,7 @@ import {
   isGardenMember,
   usePendingJoinsVersion,
 } from "@green-goods/shared/hooks/garden/useJoinGarden";
+import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
 import { useElementHeight } from "@green-goods/shared/hooks/utils/useElementHeight";
 import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -79,11 +80,20 @@ export function GardenPage({ garden, onBack, showHeader = true, children }: Gard
   // The version counter refreshes membership as in-tab joins confirm or expire,
   // so the header does not keep showing stale join controls.
   const pendingJoinsVersion = usePendingJoinsVersion();
-  const isMember = useMemo(() => {
+  const isListedMember = useMemo(() => {
     const { gardeners, stewards, id } = garden;
     return canManageRequests || isGardenMember(primaryAddress, gardeners, stewards, id);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [primaryAddress, garden, canManageRequests, pendingJoinsVersion]);
+  // A steward's welcome, or a member added from the admin, is on chain before the indexer lists
+  // it. Before offering a join, the chain says whether the account already holds the gardener
+  // role, which a steward or owner holds too.
+  const { hasRole: holdsGardenerRole } = useHasRole(
+    isListedMember ? undefined : validGardenAddress,
+    primaryAddress,
+    "gardener"
+  );
+  const isMember = isListedMember || holdsGardenerRole;
 
   // Determine if join button should be shown
   const showJoinButton = useMemo(() => {

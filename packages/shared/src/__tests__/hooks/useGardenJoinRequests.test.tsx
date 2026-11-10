@@ -85,6 +85,7 @@ import {
   useGardenJoinRequests,
 } from "../../hooks/garden/useGardenJoinRequests";
 import { GardenJoinRequestTransportError } from "../../modules/garden-join-requests";
+import { pendingJoinGardenIds } from "../../modules/garden/pending-joins";
 import {
   AWAITING_JOIN_REQUESTS_STORAGE_KEY,
   awaitingJoinRequestScope,
@@ -1057,6 +1058,35 @@ describe("useAwaitingJoinRequests", () => {
     const { result } = renderHook(() => useAwaitingJoinRequests([GARDEN_A]));
 
     expect(result.current.size).toBe(0);
+  });
+
+  // A welcome is on chain before the indexer lists the account (PRD-1209): it stands in for the
+  // gardener role from the moment the steward gave it, as an open join does. A decline, or a
+  // welcome older than the stand-in's limit, grants nothing.
+  it.each([
+    { answer: "a welcome just given", state: "welcomed", age: 0, standsIn: true },
+    { answer: "an older welcome", state: "welcomed", age: 16 * 60_000, standsIn: false },
+    { answer: "a decline", state: "declined", age: 0, standsIn: false },
+  ] as const)("lets $answer stand in for the gardener role: $standsIn", async ({
+    state,
+    age,
+    standsIn,
+  }) => {
+    const dialog = await sendRequest(GARDEN_A);
+    mocks.mine.mockResolvedValue({
+      ok: true,
+      request: {
+        ...openResponse.request!,
+        state,
+        resolvedAt: new Date(Date.now() - age).toISOString(),
+      },
+    });
+
+    await act(async () => {
+      await dialog.result.current.checkStatus();
+    });
+
+    expect(pendingJoinGardenIds(mocks.accountAddress).has(GARDEN_A.toLowerCase())).toBe(standsIn);
   });
 
   it("lets a check made this session outrank a record the device kept", async () => {

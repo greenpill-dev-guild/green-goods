@@ -1,8 +1,9 @@
 /**
- * This device's record of the open joins it sent: a join on-chain that the garden's roster may not
- * show yet. A record stands in for the gardener role until a read of the roster lists the account
- * (`forgetListedPendingJoins`) or its time runs out. A join request waiting for a steward never
- * lands here: it grants nothing.
+ * This device's record of the joins on-chain that the garden's roster may not show yet: an open
+ * join it sent, or its request to join once a steward welcomed it (the request's own answer, or the
+ * chain's, read by `useMyGardens`). A record stands in for the gardener role until a read of the
+ * roster lists the account (`forgetListedPendingJoins`) or its time runs out. A request still
+ * waiting for a steward never lands here: it grants nothing.
  */
 
 import { logger } from "../app/logger";
