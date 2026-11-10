@@ -5,6 +5,7 @@
  * `selectors.ts`, which is at its source-structure cap.
  */
 import type { Address } from "../../types/domain";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { type CycleEndTimes, effectiveDueDate, isPastDue } from "./due-dates";
 import { isSameAccount, selectCommitmentSeat } from "./selectors";
 import type { CommitmentReadModel, FallbackConfirmationCandidate } from "./types";
@@ -70,10 +71,16 @@ export function selectNextDueBoundary<
   return next;
 }
 
-/** Take-up removes the lead without emitting a new ConfirmerRuleSet event. */
+/**
+ * The confirmer group as take-up leaves it. `normalizeConfirmers` (AcceptanceLib.sol)
+ * drops the lead and the zero address without emitting a new ConfirmerRuleSet event,
+ * so the indexed group can still list them.
+ */
 export function withEffectiveConfirmers(commitment: CommitmentReadModel): CommitmentReadModel {
   const { confirmers, leadProvider } = commitment;
-  const effective = confirmers.filter((confirmer) => !isSameAccount(leadProvider, confirmer));
+  const effective = confirmers.filter(
+    (confirmer) => confirmer !== ZERO_ADDRESS && !isSameAccount(leadProvider, confirmer)
+  );
   return effective.length === confirmers.length
     ? commitment
     : { ...commitment, confirmers: effective };

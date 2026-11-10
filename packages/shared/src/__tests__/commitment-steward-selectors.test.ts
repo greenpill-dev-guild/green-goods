@@ -169,9 +169,11 @@ describe("selectOrdinaryConfirmer", () => {
 
 describe("isConfirmerByAccount", () => {
   const STEWARD = "0x5555555555555555555555555555555555555555" as const;
+  const ZERO = "0x0000000000000000000000000000000000000000" as const;
 
   // CreditLib.isOrdinaryConfirmer: the named group when there is one, else the
   // Request's creator or the Offer's taker; an Offer a garden took up goes by Hat.
+  // The group is the one take-up's normalizeConfirmers leaves: no lead, no zero address.
   it.each<[boolean, string, Partial<CommitmentReadModel>, Address]>([
     [true, "a named confirmer", { direction: "REQUEST", confirmers: [NAMED_A] }, NAMED_A],
     [
@@ -191,6 +193,18 @@ describe("isConfirmerByAccount", () => {
       true,
       "the person who took up an Offer",
       { direction: "OFFER", counterpartyKind: "INDIVIDUAL", counterparty: TAKER },
+      TAKER,
+    ],
+    [
+      true,
+      "an Offer's taker once take-up dropped the lead and a zero address",
+      {
+        direction: "OFFER",
+        counterpartyKind: "INDIVIDUAL",
+        counterparty: TAKER,
+        leadProvider: CREATOR,
+        confirmers: [CREATOR, ZERO],
+      },
       TAKER,
     ],
     [
