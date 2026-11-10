@@ -71,7 +71,7 @@ dialect: installed-pwa
 3. Garden activity: what others are contributing
 4. Your impact: personal contribution history
 
-**Words:** the app calls commitments promises: the garden's Promises tab, Home's Promises launcher and sheet, and every string that names them ("Promesas", "Promessas"). Offers and requests are both promises; "pool" names only the container (its agreement, a paused or closed pool). Code identifiers, routes, the ontology, and the docs keep "commitment" (DL-059).
+**Words:** the app calls commitments promises: the garden's Promises tab, Home's Promises launcher and sheet, and every string that names them ("Promesas", "Promessas"). Offers and asks are both promises, and "request" names only what waits on a steward's yes (DL-175); "pool" names only the container (its agreement, a paused or closed pool). Code identifiers, routes, the ontology, and the docs keep "commitment" (DL-059).
 
 **Offline behavior:**
 - Warm, reassuring offline indicators, not error-red
