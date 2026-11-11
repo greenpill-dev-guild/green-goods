@@ -5,6 +5,7 @@
  * `selectors.ts`, which is at its source-structure cap.
  */
 import type { Address } from "../../types/domain";
+import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { type CycleEndTimes, effectiveDueDate, isPastDue } from "./due-dates";
 import { isSameAccount, selectCommitmentSeat } from "./selectors";
 import type { CommitmentReadModel, FallbackConfirmationCandidate } from "./types";
@@ -70,10 +71,16 @@ export function selectNextDueBoundary<
   return next;
 }
 
-/** Take-up removes the lead without emitting a new ConfirmerRuleSet event. */
+/**
+ * The confirmer group as take-up leaves it. `normalizeConfirmers` (AcceptanceLib.sol)
+ * drops the lead and the zero address without emitting a new ConfirmerRuleSet event,
+ * so the indexed group can still list them.
+ */
 export function withEffectiveConfirmers(commitment: CommitmentReadModel): CommitmentReadModel {
   const { confirmers, leadProvider } = commitment;
-  const effective = confirmers.filter((confirmer) => !isSameAccount(leadProvider, confirmer));
+  const effective = confirmers.filter(
+    (confirmer) => confirmer !== ZERO_ADDRESS && !isSameAccount(leadProvider, confirmer)
+  );
   return effective.length === confirmers.length
     ? commitment
     : { ...commitment, confirmers: effective };
@@ -145,6 +152,30 @@ export function selectOrdinaryConfirmer(input: {
 }
 
 /**
+ * Whether the chain takes this account's ordinary confirmation on the account
+ * itself rather than on a garden role (CreditLib.sol `isOrdinaryConfirmer`),
+ * after take-up's effective confirmers: the account is named, or with nobody
+ * named it is the Request's creator or the person who took up the Offer. An
+ * Offer a garden took up is confirmed through that garden's steward or owner
+ * Hat, so no account qualifies there. A queued confirmation that passes needs
+ * no membership wait (`membershipNotRequired`). Whether the account is on the
+ * team (`SelfConfirmation`) is a separate check, left to the caller.
+ */
+export function isConfirmerByAccount(
+  commitment: CommitmentReadModel | null | undefined,
+  account: Address | null | undefined
+): boolean {
+  if (!commitment || !account) return false;
+  const { confirmers, direction, counterpartyKind, creator, counterparty } =
+    withEffectiveConfirmers(commitment);
+  if (confirmers.length > 0) {
+    return confirmers.some((confirmer) => isSameAccount(confirmer, account));
+  }
+  if (direction === "REQUEST") return isSameAccount(creator, account);
+  return counterpartyKind !== "GARDEN" && isSameAccount(counterparty, account);
+}
+
+/**
  * Whether the reader is personally a party. Without the roster this answers
  * for the named parties only, which is what the personal inbox lists.
  */
@@ -155,11 +186,10 @@ export function isPersonalParty(commitment: CommitmentReadModel, viewer: Address
 
 /**
  * The ready commitments among a pool's candidates that wait on the reader's own
- * account, newest first, by the contract's ordinary rule (CreditLib.sol
- * `isOrdinaryConfirmer`) after take-up's effective confirmers: the reader is
- * named, or with nobody named is the Request's creator or the person who took
- * up the Offer. Left out: the team (`SelfConfirmation`), an Offer a garden took
- * up (its Hat confirms, not one account), what the reader already confirmed
+ * account, newest first (`isConfirmerByAccount`): the reader is named, or with
+ * nobody named is the Request's creator or the person who took up the Offer.
+ * Left out: the team (`SelfConfirmation`), an Offer a garden took up (its Hat
+ * confirms, not one account), what the reader already confirmed
  * (`AlreadyConfirmed`), and what the queue already lists.
  */
 export function selectOwnConfirmations(input: {
@@ -179,22 +209,7 @@ export function selectOwnConfirmations(input: {
         return [];
       }
       if (activeContributors.some((contributor) => isSameAccount(contributor, viewer))) return [];
-      const { confirmers, direction, counterpartyKind, creator, counterparty } = commitment;
-      const own =
-        confirmers.length > 0
-          ? confirmers.some((confirmer) => isSameAccount(confirmer, viewer))
-          : isSameAccount(
-              selectOrdinaryConfirmer({
-                confirmers,
-                direction,
-                counterpartyKind,
-                creator,
-                counterparty,
-                activeContributors,
-              }),
-              viewer
-            );
-      return own ? [commitment] : [];
+      return isConfirmerByAccount(commitment, viewer) ? [commitment] : [];
     })
     .sort((left, right) => Number(right.commitmentId - left.commitmentId));
 }

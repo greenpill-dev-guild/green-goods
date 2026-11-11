@@ -150,6 +150,16 @@ export function askState(
   return onTheLine(input.phase) ?? { status: "waiting", isNew: false };
 }
 
+/** When a person's pending ask was made, so the decision on it holds for that ask alone. */
+export function pendingAskAt(
+  asks: readonly CommitmentClaimRequestRecord[] | undefined,
+  claimant: Address
+): number | undefined {
+  return asks?.find(
+    (ask) => ask.state === "PENDING" && ask.claimant.toLowerCase() === claimant.toLowerCase()
+  )?.requestedAt;
+}
+
 /** What an asker already does in a pool: open promises they lead, against the limit, and kept ones. */
 export interface ClaimantStanding {
   holding: number;

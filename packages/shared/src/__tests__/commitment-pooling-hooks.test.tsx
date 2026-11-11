@@ -983,6 +983,44 @@ describe("useCommitmentDialogController", () => {
     expect(again.result.current.can.confirmOrdinary).toBe(false);
   });
 
+  // CreditLib.isOrdinaryConfirmer takes a Request's creator by account while nobody
+  // is named, so a garden role lost before the queue sends must not hold it. Once a
+  // group is named the creator is not taken by account, and the membership check stays.
+  it("queues the ordinary Confirm free of the membership wait only for a confirmer by account", async () => {
+    const NAMED = "0x6666666666666666666666666666666666666666";
+    for (const [confirmers, byAccount] of [
+      [[], true],
+      [[NAMED], false],
+    ] as const) {
+      mocks.getCommitmentDetail.mockResolvedValue(
+        detail({
+          onchainState: "READY_FOR_CONFIRMATION",
+          state: "READY_FOR_CONFIRMATION",
+          derivedState: "READY_FOR_CONFIRMATION",
+          direction: "REQUEST",
+          creator: STEWARD,
+          leadProvider: TAKER,
+          counterparty: TAKER,
+          confirmers: [...confirmers],
+          contributorsFrozen: true,
+        })
+      );
+      const { result, unmount } = render();
+      await waitFor(() => expect(result.current.commitment?.confirmers).toEqual(confirmers));
+
+      await act(async () => {
+        await result.current.acts.confirmOrdinary();
+      });
+      expect(mocks.jobs.enqueue).toHaveBeenLastCalledWith({
+        act: "confirm",
+        commitmentId: 9n,
+        gardenAddress: ACCOUNT,
+        membershipNotRequired: byAccount,
+      });
+      unmount();
+    }
+  });
+
   it("uses the effective confirmer rule in the inspector without changing the indexed terms", async () => {
     const indexed = detail({
       onchainState: "READY_FOR_CONFIRMATION",

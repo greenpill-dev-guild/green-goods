@@ -8,12 +8,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isConfirmerByAccount,
   isPoolSteward,
   selectDueLiveCommitments,
   selectNextDueBoundary,
   selectOrdinaryConfirmationReachable,
   selectOrdinaryConfirmer,
 } from "../modules/commitment-pooling/steward-selectors";
+import type { CommitmentReadModel } from "../modules/commitment-pooling/types";
+import type { Address } from "../types/domain";
+import { commitmentFixture } from "./test-utils/commitment-pooling-fixtures";
 
 const CREATOR = "0x1111111111111111111111111111111111111111" as const;
 const TAKER = "0x2222222222222222222222222222222222222222" as const;
@@ -160,6 +164,58 @@ describe("selectOrdinaryConfirmer", () => {
         activeContributors: [TAKER, CREATOR.toUpperCase() as typeof CREATOR],
       })
     ).toBeNull();
+  });
+});
+
+describe("isConfirmerByAccount", () => {
+  const STEWARD = "0x5555555555555555555555555555555555555555" as const;
+  const ZERO = "0x0000000000000000000000000000000000000000" as const;
+
+  // CreditLib.isOrdinaryConfirmer: the named group when there is one, else the
+  // Request's creator or the Offer's taker; an Offer a garden took up goes by Hat.
+  // The group is the one take-up's normalizeConfirmers leaves: no lead, no zero address.
+  it.each<[boolean, string, Partial<CommitmentReadModel>, Address]>([
+    [true, "a named confirmer", { direction: "REQUEST", confirmers: [NAMED_A] }, NAMED_A],
+    [
+      false,
+      "a Request's creator the named group leaves out",
+      { direction: "REQUEST", confirmers: [NAMED_A] },
+      CREATOR,
+    ],
+    [true, "a Request's creator with nobody named", { direction: "REQUEST" }, CREATOR],
+    [
+      true,
+      "a Request's creator once take-up dropped the only named confirmer",
+      { direction: "REQUEST", leadProvider: TAKER, counterparty: TAKER, confirmers: [TAKER] },
+      CREATOR,
+    ],
+    [
+      true,
+      "the person who took up an Offer",
+      { direction: "OFFER", counterpartyKind: "INDIVIDUAL", counterparty: TAKER },
+      TAKER,
+    ],
+    [
+      true,
+      "an Offer's taker once take-up dropped the lead and a zero address",
+      {
+        direction: "OFFER",
+        counterpartyKind: "INDIVIDUAL",
+        counterparty: TAKER,
+        leadProvider: CREATOR,
+        confirmers: [CREATOR, ZERO],
+      },
+      TAKER,
+    ],
+    [
+      false,
+      "a steward of the garden that took up an Offer",
+      { direction: "OFFER", counterpartyKind: "GARDEN", counterparty: GARDEN },
+      STEWARD,
+    ],
+  ])("is %s for %s", (byAccount, _who, terms, account) => {
+    const commitment = commitmentFixture({ creator: CREATOR, ...terms });
+    expect(isConfirmerByAccount(commitment, account)).toBe(byAccount);
   });
 });
 

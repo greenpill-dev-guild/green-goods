@@ -559,6 +559,39 @@ describe("useGardenCommitmentController", () => {
     });
   });
 
+  // With nobody named, CreditLib.isOrdinaryConfirmer takes these two by account,
+  // so a garden role lost before the queue sends must not hold the confirmation.
+  it.each([
+    ["a Request's creator", { direction: "REQUEST" as const, creator: TUNDE }],
+    [
+      "the person who took up an Offer",
+      { direction: "OFFER" as const, counterpartyKind: "INDIVIDUAL" as const, counterparty: TUNDE },
+    ],
+  ])("queues %s's confirmation free of the membership wait", async (_who, terms) => {
+    mocks.commitmentQuery.detail = commitmentDetailFixture({
+      commitment: commitmentFixture({ onchainState: "READY_FOR_CONFIRMATION", ...terms }),
+    });
+
+    const { result } = renderHook(() =>
+      useGardenCommitmentController({
+        chainId: DEMO_CHAIN_ID,
+        commitmentId: 1001n,
+        routeGarden: DEMO_GARDEN,
+      })
+    );
+    expect(result.current.confirmation.membershipNotRequired).toBe(true);
+
+    await act(async () => {
+      await result.current.acts.confirm();
+    });
+    expect(mocks.enqueue).toHaveBeenLastCalledWith({
+      act: "confirm",
+      commitmentId: 1001n,
+      gardenAddress: DEMO_GARDEN,
+      membershipNotRequired: true,
+    });
+  });
+
   it("rejects an act when the record is no longer ready", () => {
     mocks.commitmentQuery.detail = null;
     const { result } = renderHook(() =>
