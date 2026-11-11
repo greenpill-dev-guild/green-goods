@@ -26,7 +26,8 @@ interface Props {
  * signing step. An issuer's own acts are named on their service instead.
  */
 export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, onQuote }: Props) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
   const id = useId();
   const [kind, setKind] = useState("approveExchange");
@@ -106,7 +107,7 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
       {needsAmount ? (
         <label htmlFor={`${id}-amount`} className="block space-y-1 text-sm">
           <span>
-            {text("amount")} ({asset.symbol})
+            {text("amount")} ({formatMessage({ id: "app.voucher.unitPlain" }, { count: 2 })})
           </span>
           <TextInput
             id={`${id}-amount`}
@@ -141,7 +142,7 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
                 .filter((a) => a.id !== asset.id)
                 .map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} ({a.symbol})
+                    {a.name}
                   </option>
                 ))}
             </NativeSelect>
@@ -174,25 +175,20 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
           {reviewedQuote && output ? (
             <div className="space-y-1 text-sm">
               <p>
-                {text("estimatedOutput")}:{" "}
-                {issuerAmount(reviewedQuote.quotedOutput, output, locale)}
+                {text("estimatedOutput")}: {issuerAmount(reviewedQuote.quotedOutput, output, intl)}
               </p>
               <p>
                 {text("estimatedFees")}:{" "}
-                {issuerAmount(
-                  reviewedQuote.grossOutput - reviewedQuote.quotedOutput,
-                  output,
-                  locale
-                )}
+                {issuerAmount(reviewedQuote.grossOutput - reviewedQuote.quotedOutput, output, intl)}
               </p>
               <p>
-                {text("minimum")}: {issuerAmount(reviewedQuote.quotedOutput, output, locale)}
+                {text("minimum")}: {issuerAmount(reviewedQuote.quotedOutput, output, intl)}
               </p>
               {"intermediateResidue" in reviewedQuote &&
               typeof reviewedQuote.intermediateResidue === "bigint" ? (
                 <p>
                   {formatMessage({ id: "app.voucher.exchange.residue" })}:{" "}
-                  {issuerAmount(reviewedQuote.intermediateResidue, asset, locale)}
+                  {issuerAmount(reviewedQuote.intermediateResidue, asset, intl)}
                 </p>
               ) : null}
               <p>{text("exactOutput")}</p>

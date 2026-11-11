@@ -10,7 +10,6 @@ import { type ReactNode, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   issuerAmount,
-  issuerAmountWords,
   issuerBooks,
   issuerCount,
   issuerPlainAmount,
@@ -71,7 +70,7 @@ export function ServiceIssuerReview({
   const [agreed, setAgreed] = useState(false);
   const id = useId();
   const action = review.action;
-  const amount = (value: bigint) => issuerAmount(value, asset, locale);
+  const amount = (value: bigint) => issuerAmount(value, asset, intl);
   const moment = (seconds: bigint) =>
     formatDate(Number(seconds) * 1000, { dateStyle: "medium", timeStyle: "short" });
   const output =
@@ -130,7 +129,7 @@ export function ServiceIssuerReview({
       }
     );
   } else if (action.kind !== "exchange") {
-    facts.push({ label: text("asset"), value: `${asset.name} (${asset.symbol})` });
+    facts.push({ label: text("asset"), value: asset.name });
   }
   if ("amount" in action && action.kind !== "exchange")
     facts.push({ label: text("amount"), value: amount(action.amount) });
@@ -143,14 +142,14 @@ export function ServiceIssuerReview({
     facts.push(
       {
         label: formatMessage({ id: "app.voucher.ex.spend" }),
-        value: issuerAmountWords(action.amount, asset, intl),
+        value: issuerAmount(action.amount, asset, intl),
       },
       {
         label: formatMessage({ id: "app.voucher.ex.receive" }),
         value:
           action.minimumOutput < action.quotedOutput
             ? detailed(
-                issuerAmountWords(action.quotedOutput, output, intl),
+                issuerAmount(action.quotedOutput, output, intl),
                 formatMessage(
                   { id: "app.voucher.ex.sh.atLeast" },
                   {
@@ -159,7 +158,7 @@ export function ServiceIssuerReview({
                   }
                 )
               )
-            : issuerAmountWords(action.quotedOutput, output, intl),
+            : issuerAmount(action.quotedOutput, output, intl),
       },
       {
         label: formatMessage({ id: "app.voucher.ex.f.fees" }),
@@ -167,7 +166,7 @@ export function ServiceIssuerReview({
           fee === null
             ? text("feesUnknown")
             : fee > 0n
-              ? issuerAmountWords(fee, output, intl)
+              ? issuerAmount(fee, output, intl)
               : formatMessage({ id: "app.voucher.ex.f.feesZero" }),
       },
       ...(books.length > 0

@@ -188,7 +188,7 @@ describe("a member's own service", () => {
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(screen.getByText("Rewards can't draw on your reserve")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Approve for Rewards" }));
-    await userEvent.type(screen.getByLabelText("How many (EHELP)"), "0.75");
+    await userEvent.type(screen.getByLabelText("How many (vouchers)"), "0.75");
     await userEvent.click(screen.getByRole("button", { name: "Review" }));
     expect(h.onReview).toHaveBeenCalledWith({ kind: "approveReserve", amount: 750_000n });
     const sheet = await reviewSheet();
@@ -204,21 +204,23 @@ describe("a member's own service", () => {
     const view = renderWithProviders(<ServiceIssuerPanel {...h} />);
     await userEvent.click(screen.getByRole("button", { name: "Issue More" }));
     expect(screen.getByText("Promised 6 · 5 issued · 1 more can be issued")).toBeInTheDocument();
-    const field = screen.getByLabelText("How many (EHELP)");
+    const field = screen.getByLabelText("How many (vouchers)");
     await userEvent.type(field, "2");
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
     await userEvent.clear(field);
     await userEvent.type(field, "1");
     await userEvent.click(screen.getByRole("button", { name: "Review" }));
     expect(h.onReview).toHaveBeenCalledWith({ kind: "issue", amount: 1_000_000n });
-    expect((await reviewSheet()).getByRole("button", { name: "Issue 1 EHELP" })).toBeDisabled();
+    expect(
+      (await reviewSheet()).getByRole("button", { name: "Issue 1 Fictional engineer help voucher" })
+    ).toBeDisabled();
     view.unmount();
     renderWithProviders(<ServiceIssuerPanel {...harness(issuerServiceStory("full"))} />);
     await userEvent.click(screen.getByRole("button", { name: "Issue More" }));
     expect(
       screen.getByText("Issuing more would promise more than you can deliver.")
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText("How many (EHELP)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("How many (vouchers)")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
   });
 
@@ -281,7 +283,7 @@ describe("a member's own service", () => {
     const active = h.snapshot.bookings.records[1]!;
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     await userEvent.click(screen.getByRole("button", { name: "Propose Return" }));
-    const field = screen.getByLabelText("Most that can come back (EHELP)");
+    const field = screen.getByLabelText("Most that can come back (vouchers)");
     fireEvent.change(field, { target: { value: "1.1" } });
     expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
     fireEvent.change(field, { target: { value: "0.5" } });
@@ -381,8 +383,12 @@ describe("a member's own service", () => {
     };
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(screen.getByText("Settling")).toBeInTheDocument();
-    expect(screen.getByText("0.5 EHELP to your reserve")).toBeInTheDocument();
-    expect(screen.getByText("0.5 EHELP back to the holder")).toBeInTheDocument();
+    expect(
+      screen.getByText("0.5 Fictional engineer help vouchers to your reserve")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("0.5 Fictional engineer help vouchers back to the holder")
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Propose Return" })).not.toBeInTheDocument();
     expect(h.onExecute).not.toHaveBeenCalled();
   });
@@ -408,7 +414,7 @@ describe("a holder of another member's vouchers", () => {
   it("keeps the holder's vouchers apart from the issuer's acts and invents no services owed", () => {
     const h = holder();
     renderWithProviders(<ServiceIssuerPanel {...h} />);
-    expect(fact("Vouchers You Hold")).toHaveTextContent("0.5 EHELP");
+    expect(fact("Vouchers You Hold")).toHaveTextContent("0.5 Fictional engineer help vouchers");
     expect(screen.queryByText(/Total services owed: unknown/)).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Issue Vouchers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Issue More" })).not.toBeInTheDocument();
@@ -421,11 +427,13 @@ describe("a holder of another member's vouchers", () => {
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     const user = userEvent.setup();
     await user.selectOptions(screen.getByLabelText("Action"), "exchange");
-    await user.type(screen.getByLabelText("Quantity (EHELP)"), "1");
+    await user.type(screen.getByLabelText("Quantity (vouchers)"), "1");
     await user.selectOptions(screen.getByLabelText("Receive"), "analyst-help");
     expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Get Exchange Quote" }));
-    expect(await screen.findByText(/Minimum Received: 2 AHELP/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Minimum Received: 2 Fictional analyst coaching vouchers/)
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review Action" }));
     expect(h.onReview).toHaveBeenCalledWith({
       kind: "exchange",
@@ -452,7 +460,7 @@ describe("a holder of another member's vouchers", () => {
     expect(sheet.getByRole("button", { name: "Exchange 1 voucher" })).toBeDisabled();
     expect(body.lastElementChild).toContainElement(sheet.getByRole("checkbox"));
     await user.click(sheet.getByRole("button", { name: "Cancel" }));
-    await user.type(screen.getByLabelText("Quantity (EHELP)"), "0");
+    await user.type(screen.getByLabelText("Quantity (vouchers)"), "0");
     expect(screen.queryByText(/Minimum Received:/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();
     expect(h.onExecute).not.toHaveBeenCalled();
@@ -480,7 +488,9 @@ describe("a holder of another member's vouchers", () => {
     });
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     await userEvent.click(screen.getByRole("button", { name: "Check Transaction Status" }));
-    expect(await screen.findByText("Actually Delivered: 2.1 AHELP")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Actually Delivered: 2.1 Fictional analyst coaching vouchers")
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/Current balances or approvals have changed since its receipt/)
     ).toBeInTheDocument();

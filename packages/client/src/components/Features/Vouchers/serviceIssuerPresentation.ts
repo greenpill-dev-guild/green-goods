@@ -19,8 +19,13 @@ export function parseIssuerAmount(value: string, decimals: number): bigint | nul
   return amount > 0n && amount < (1n << 256n) - 1n ? amount : null;
 }
 
-export function issuerAmount(value: bigint, asset: ServiceIssuerAsset, locale: string) {
-  return `${issuerCount(value, asset.decimals, locale)} ${asset.symbol}`;
+/** A quantity in the issuer's own words, never a symbol: "0.5 Fictional engineer help vouchers". */
+export function issuerAmount(
+  value: bigint,
+  asset: Pick<ServiceIssuerAsset, "name" | "decimals">,
+  intl: Pick<IntlShape, "formatMessage" | "locale">
+) {
+  return `${issuerCount(value, asset.decimals, intl.locale)} ${issuerUnitWords(value, asset, intl)}`;
 }
 
 /** A quantity without its unit, every decimal kept: the capacity and location numbers. */
@@ -41,15 +46,6 @@ export function issuerUnitWords(
     { id: "app.voucher.unit" },
     { count: issuerPlural(value, asset.decimals), issuer: asset.name, gender: "other" }
   );
-}
-
-/** A quantity with that unit: "0.5 Fictional engineer help vouchers". */
-export function issuerAmountWords(
-  value: bigint,
-  asset: Pick<ServiceIssuerAsset, "name" | "decimals">,
-  intl: Pick<IntlShape, "formatMessage" | "locale">
-) {
-  return `${issuerCount(value, asset.decimals, intl.locale)} ${issuerUnitWords(value, asset, intl)}`;
 }
 
 /** The quantity with the plain unit, for an act's own label: "Exchange 0.5 vouchers". */

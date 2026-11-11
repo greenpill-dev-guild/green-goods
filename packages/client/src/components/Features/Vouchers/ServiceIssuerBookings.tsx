@@ -59,10 +59,11 @@ export function ServiceIssuerBookings({
   onApprove,
   onPropose,
 }: Props) {
-  const { formatMessage, formatDate, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage, formatDate } = intl;
   const t = (id: string, values?: Record<string, string>) =>
     formatMessage({ id: `app.voucher.ms.${id}` }, values);
-  const amount = (value: bigint) => issuerAmount(value, asset, locale);
+  const amount = (value: bigint) => issuerAmount(value, asset, intl);
   const details = (
     b: ServiceIssuerBooking,
     state: IssuerBookingState
