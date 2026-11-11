@@ -20,6 +20,7 @@ import {
   resolveDeferredWorkIdentity,
 } from "../commitment-pooling/work-identity";
 import type { TransactionSender } from "../transactions/types";
+import { refusedByChain } from "../work/simulation-rejected";
 import type { StrandedCommitmentLookup } from "../work/stranded-intent";
 import {
   AwaitingWorkConfirmation,
@@ -31,7 +32,7 @@ import { type CommitmentChainReads, createCommitmentChainReads } from "./commitm
 import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
 import { jobQueueDB } from "./db";
 import { publishPendingEvidence } from "./evidence-publisher";
-import { hasRecordedSend, recordsSends } from "./queue-policy";
+import { ActRefusedByChain, hasRecordedSend, recordsSends } from "./queue-policy";
 import { observeTransactionNonce } from "./send-guards";
 
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
@@ -299,7 +300,9 @@ export async function executeCommitmentQueueJob(
         } catch (simulationError) {
           // Reward state may have changed since preflight. Only that dependency waits.
           await beforeBroadcast?.();
-          throw simulationError;
+          throw refusedByChain(simulationError)
+            ? new ActRefusedByChain(simulationError)
+            : simulationError;
         }
         // Read after the simulation, and again just before the intent, after any
         // prompt: nothing this send does can land in that block or before, so an

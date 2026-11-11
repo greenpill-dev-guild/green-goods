@@ -1,3 +1,5 @@
+import { BaseError, ContractFunctionRevertedError, ExecutionRevertedError } from "viem";
+
 /**
  * A simulation that failed. `definitive` when the chain itself refused, so the
  * same send would revert; otherwise the answer never arrived and a later check
@@ -16,4 +18,17 @@ export class SimulationRejected extends Error {
     super(message, options);
     this.name = "SimulationRejected";
   }
+}
+
+/** Whether the chain itself refused the call, so the same send would revert. */
+export function refusedByChain(error: unknown): boolean {
+  return (
+    error instanceof BaseError &&
+    Boolean(
+      error.walk(
+        (cause) =>
+          cause instanceof ContractFunctionRevertedError || cause instanceof ExecutionRevertedError
+      )
+    )
+  );
 }
