@@ -491,6 +491,8 @@ describe("Home journal", () => {
             "21",
             {
               promisedBy: "Tech and Sun",
+              gender: "feminine",
+              takes: { units: 1_000_000n, decimals: 6 },
               booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
             },
           ],
@@ -512,7 +514,7 @@ describe("Home journal", () => {
         name: /Teach the composting basics workshop/,
       });
       expect(inSheet).toHaveAttribute("data-service", "offer");
-      expect(inSheet).toHaveTextContent(/You hold 9.*Tech and Sun/);
+      expect(inSheet).toHaveTextContent(/Takes 1 Tech and Sun voucher.*You hold 9/);
       // Only the sheet asks for lines, with the garden's whole list.
       expect(mocks.serviceLines).toHaveBeenCalledWith({
         chainId: expect.any(Number),

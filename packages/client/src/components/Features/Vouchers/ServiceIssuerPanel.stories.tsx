@@ -134,6 +134,14 @@ export const Holder: Story = {
     },
   },
 };
+/** A holder's panel opens on the exchange; the pool's permission waits under Manage permission. */
+export const HolderManagesPermission: Story = {
+  args: Holder.args,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByText("Manage permission"));
+    await expect(within(canvasElement).getByLabelText(/Let the pool spend up to/)).toBeVisible();
+  },
+};
 export const Unconfigured: Story = {
   args: { snapshot: { evidence: "unavailable", reason: "unconfigured" } },
 };

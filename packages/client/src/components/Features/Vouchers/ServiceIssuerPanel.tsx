@@ -56,7 +56,8 @@ export function ServiceIssuerPanel({
   onReconcile,
   onQuote,
 }: Props) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
   const ms = (key: string, values?: Record<string, string>) =>
     formatMessage({ id: `app.voucher.ms.${key}` }, values);
@@ -164,7 +165,7 @@ export function ServiceIssuerPanel({
       setReviewed(null);
     });
   const amount = (value: bigint | null) =>
-    value === null ? text("unknown") : issuerAmount(value, asset, locale);
+    value === null ? text("unknown") : issuerAmount(value, asset, intl);
   const deliveredAsset =
     sentAction?.kind === "exchange"
       ? assets.find((a) => a.id === sentAction.outputAssetId)

@@ -11,23 +11,43 @@ const REASON = {
 } as const;
 
 /**
- * A service offer's detail line (PRD-1299, surface 5): what booking takes first, in whole
- * vouchers as the wallet writes them ("9", "0.99"), then who promises delivery. An issuer that
- * paused bookings, or whose vouchers left the exchange pool, says so in the booking's place.
- * Only the lists that read services import it, so Home's own sections and startup never carry it.
+ * A service offer's detail line (PRD-1299, surface 5): what a booking takes, in the issuer's
+ * vouchers ("Takes 10 Green Goods vouchers"), then what booking takes first, in whole vouchers as
+ * the wallet writes them ("You hold 9", "0.99"). An issuer that paused bookings, or whose vouchers
+ * left the exchange pool, says so in the booking's place. The price names who promises delivery,
+ * so the row no longer needs the issuer in the person's place. Only the lists that read services
+ * import it, so Home's own sections and startup never carry it.
  */
 export function serviceOfferDetail(
   intl: Pick<IntlShape, "formatMessage" | "locale">,
   line: ServiceOfferLine | undefined
 ): CommitmentRowProps["service"] {
   if (!line) return null;
-  const { booking } = line;
+  const { booking, takes } = line;
+  const count = (units: bigint, decimals: number) =>
+    formatTokenAmount(units, decimals, 2, intl.locale, true);
   return {
+    // The price keeps every decimal the terms set, as the booking facts write it: a row that
+    // rounds 1.239999 to 1.23 misstates what booking takes.
+    takes: intl.formatMessage(
+      { id: "app.commitments.row.service.takes" },
+      {
+        n: formatTokenAmount(takes.units, takes.decimals, takes.decimals, intl.locale, true),
+        unit: intl.formatMessage(
+          { id: "app.voucher.unit" },
+          {
+            count: takes.units === 10n ** BigInt(takes.decimals) ? 1 : 2,
+            issuer: line.promisedBy,
+            gender: line.gender ?? "other",
+          }
+        ),
+      }
+    ),
     booking:
       booking.kind === "hold"
         ? intl.formatMessage(
             { id: "app.commitments.row.service.hold" },
-            { count: formatTokenAmount(booking.held, booking.decimals, 2, intl.locale, true) }
+            { count: count(booking.held, booking.decimals) }
           )
         : booking.kind === "exchange"
           ? intl.formatMessage({ id: "app.commitments.row.service.exchange" })

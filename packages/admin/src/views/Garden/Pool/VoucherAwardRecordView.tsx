@@ -153,7 +153,10 @@ export function VoucherAwardRecordView({
             : null
         }
       />
-      {!confirmed ? (
+      {confirmed ? (
+        // Where the recipient sees the delivered award, so the steward can say so when asked.
+        <p className="type-meta text-text-soft">{t("recipientFinds")}</p>
+      ) : (
         <>
           <p className="type-meta text-text-soft">{t("handoffHelp")}</p>
           <div className="flex flex-wrap justify-end gap-2">
@@ -222,7 +225,7 @@ export function VoucherAwardRecordView({
             </Button>
           </div>
         </>
-      ) : null}
+      )}
     </div>
   );
 }

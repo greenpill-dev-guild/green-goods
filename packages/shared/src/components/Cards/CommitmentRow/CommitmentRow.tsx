@@ -9,7 +9,7 @@
  * send gave up. The 2px edge follows the pill. The detail line gives the due date, then the
  * other person, named as the shared address display names them; a queue or act state's own
  * words lead the line instead, and a group gives its counts in the person's place. A service
- * offer says what booking takes first, then who promises delivery (PRD-1299). A promise
+ * offer says what a booking takes, then what booking takes first (PRD-1299). A promise
  * still on the device has no page yet to show its units, so they lead its line, unless
  * something stops its send: then what stops it leads and the units follow.
  *
@@ -86,11 +86,15 @@ export interface CommitmentRowProps
   /** Copies made together: how many, marked on the tile, and their counts in the person's place. */
   group?: { size: number; counts: ItemRowDetail } | null;
   /**
-   * A service offer (PRD-1299, surface 5): what booking it takes first ("You hold 9", "Exchange
-   * first") leads the line in the due date's place, as what kind of ask a row is does, and who
-   * promises delivery follows in the person's place. A queue or act state's note still leads.
+   * A service offer (PRD-1299, surface 5): what a booking takes, naming the issuer's vouchers
+   * ("Takes 10 Green Goods vouchers"), leads the line in the due date's place, as what kind of
+   * ask a row is does, and what booking takes first ("You hold 9", "Exchange first") follows.
+   * A reason no booking can start ("Bookings paused"), given as a detail with a tone, leads
+   * instead, since it is what the reader acts on, and the price follows it. A line with no
+   * price keeps the booking first and who promises delivery in the person's place. A queue or
+   * act state's note still leads, and a fold keeps its count second (DL-166).
    */
-  service?: { booking: ItemRowDetail; promisedBy: string } | null;
+  service?: { booking: ItemRowDetail; promisedBy: string; takes?: ItemRowDetail } | null;
 }
 
 type Detail = ItemRowDetail | null | undefined;
@@ -128,12 +132,23 @@ const RowView = React.forwardRef<HTMLElement, RowViewProps>(function RowView(
     : status;
   const count = group ? Math.max(group.size, 0) : 0;
   const noteLeads = Boolean(note) && (blocked || !units);
+  // A service line: the price, then what booking takes first, unless the booking is a reason
+  // none can start, which leads so a narrow line never drops it; without a price, the booking,
+  // then who promises it. A fold's count takes the second place either way.
+  const reasonLeads = typeof service?.booking === "object" && service.booking.tone !== undefined;
+  const serviceLine = service
+    ? service.takes
+      ? reasonLeads
+        ? [service.booking, group ? group.counts : service.takes]
+        : [service.takes, group ? group.counts : service.booking]
+      : [service.booking, group ? group.counts : service.promisedBy]
+    : null;
   const details = noteLeads
-    ? detailLine(note, units ?? service?.booking ?? due)
+    ? detailLine(note, units ?? serviceLine?.[0] ?? due)
     : units
       ? detailLine(units, note ?? due)
-      : service
-        ? detailLine(service.booking, service.promisedBy)
+      : serviceLine
+        ? detailLine(serviceLine[0], serviceLine[1])
         : detailLine(due, group ? group.counts : personName);
 
   return (

@@ -95,9 +95,11 @@ describe("VouchersTab", () => {
   it("loads award receipts only after an explicit action, separately from current holdings", async () => {
     render(<VouchersTab wallet={wallet()} onClose={vi.fn()} />);
     expect(awards.load.mutate).not.toHaveBeenCalled();
+    // The section and what it holds are there to be found before anything is loaded.
+    expect(screen.getByText("Awards for Past Contributions")).toBeInTheDocument();
+    expect(screen.getByText(/awarded you for past contributions show here/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Load My Award Receipts" }));
     expect(awards.load.mutate).toHaveBeenCalledOnce();
-    expect(screen.getByText("Awards for Past Contributions")).toBeInTheDocument();
   });
   beforeEach(() => vi.clearAllMocks());
 
