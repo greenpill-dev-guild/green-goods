@@ -21,6 +21,7 @@ import {
   isCommitmentCreator,
   selectCommitmentSeat,
 } from "../../../modules/commitment-pooling/selectors";
+import { isConfirmerByAccount } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
@@ -209,16 +210,19 @@ export function useGardenCommitmentController(input: {
       (work.status === "approved" || work.status === "pending") &&
       !linkedElsewhere.has(work.id.toLowerCase())
   );
-  const membershipNotRequired = Boolean(
+  const named = Boolean(
     viewer && commitment?.confirmers?.some((entry) => entry.toLowerCase() === viewer.toLowerCase())
   );
+  // A named confirmer, a Request's creator or an Offer's taker confirms on their
+  // own account, so a garden role lost before the queue sends must not hold it.
+  const membershipNotRequired = isConfirmerByAccount(commitment, viewer);
   const confirmationGarden = roles.counterpartyGarden ?? routeGarden;
   const canNotYet = Boolean(
     viewer &&
       commitment &&
       (commitment.creator?.toLowerCase() === viewer.toLowerCase() ||
         commitment.counterparty?.toLowerCase() === viewer.toLowerCase() ||
-        membershipNotRequired ||
+        named ||
         roles.stewardsPoolGarden)
   );
   const confirmed =

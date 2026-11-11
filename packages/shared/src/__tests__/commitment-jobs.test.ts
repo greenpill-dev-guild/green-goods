@@ -64,6 +64,9 @@ import {
   type CommitmentSeriesJobPayload,
   type WorkLinkJobPayload,
 } from "../modules/commitment-pooling/jobs";
+import { isConfirmerByAccount } from "../modules/commitment-pooling/steward-selectors";
+import type { CommitmentReadModel } from "../modules/commitment-pooling/types";
+import { commitmentFixture } from "./test-utils/commitment-pooling-fixtures";
 
 const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a" as const;
 const HOLDER = "0x1111111111111111111111111111111111111111" as const;
@@ -902,18 +905,32 @@ describe("membership preflight covers every membership-gated act", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  it("sends a confirmation the chain authorizes by account even after the garden role is gone", async () => {
-    // The reader's own confirmation (named, or the Request's creator or the
-    // Offer's taker) passes isOrdinaryConfirmer by address, so a role lost after
-    // it was queued must not hold it as the gated confirmation above is held.
-    const own = {
-      id: "job-own-confirmation",
+  // The app's Confirm, the admin promise dialog's ordinary Confirm and the Hub's own
+  // rows all queue the flag isConfirmerByAccount gives. A confirmation the chain takes
+  // by account (CreditLib.isOrdinaryConfirmer) must not wait on a role lost after it
+  // was queued; one it takes through the garden's Hat keeps the gated wait above.
+  it.each<[string, "sends" | "waits", Partial<CommitmentReadModel>]>([
+    ["a Request's creator", "sends", { direction: "REQUEST", creator: HOLDER }],
+    [
+      "the person who took up an Offer",
+      "sends",
+      { direction: "OFFER", counterpartyKind: "INDIVIDUAL", counterparty: HOLDER },
+    ],
+    ["a named confirmer", "sends", { confirmers: [HOLDER] }],
+    [
+      "a steward of the garden that took up an Offer",
+      "waits",
+      { direction: "OFFER", counterpartyKind: "GARDEN", counterparty: GARDEN },
+    ],
+  ])("after the garden role is gone, %s's queued confirmation %s", async (_who, outcome, terms) => {
+    const confirmation = {
+      id: "job-confirmation",
       kind: "confirmation",
       payload: {
         action: "confirm",
         commitmentId: 9n,
         gardenAddress: GARDEN,
-        membershipNotRequired: true,
+        membershipNotRequired: isConfirmerByAccount(commitmentFixture(terms), HOLDER),
       },
       chainId: 42161,
       moduleAddress: MODULE,
@@ -922,10 +939,14 @@ describe("membership preflight covers every membership-gated act", () => {
     const send = vi.fn().mockResolvedValue(SENT);
     const hasMembership = vi.fn().mockResolvedValue(false);
 
-    const result = await executeCommitmentJob(own, dependencies({ hasMembership, send }));
+    const result = await executeCommitmentJob(confirmation, dependencies({ hasMembership, send }));
 
-    expect(result).toEqual({ status: "sent", txHash: SENT });
-    expect(hasMembership).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      outcome === "sends"
+        ? { status: "sent", txHash: SENT }
+        : { status: "waiting", reason: "membership-unavailable" }
+    );
+    expect(hasMembership).toHaveBeenCalledTimes(outcome === "sends" ? 0 : 1);
   });
 
   it("still sends a job queued before the garden rode along, rather than stranding it", async () => {
