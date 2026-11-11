@@ -132,7 +132,10 @@ export function ServiceIssuerReview({
     facts.push({ label: text("asset"), value: asset.name });
   }
   if ("amount" in action && action.kind !== "exchange")
-    facts.push({ label: text("amount"), value: amount(action.amount) });
+    facts.push({
+      label: text(action.kind === "approveExchange" ? "allowUpTo" : "amount"),
+      value: amount(action.amount),
+    });
   if (action.kind === "authorizeReturn")
     facts.push({ label: ms("fl.back"), value: amount(action.ceiling) });
   if (action.kind === "exchange" && output) {
@@ -220,7 +223,13 @@ export function ServiceIssuerReview({
             ? text("exchangeCta", {
                 amount: issuerPlainAmount(action.amount, asset.decimals, intl),
               })
-            : text("confirm"),
+            : action.kind === "approveExchange"
+              ? text("approveExchangeCta", {
+                  amount: issuerPlainAmount(action.amount, asset.decimals, intl),
+                })
+              : action.kind === "revokeExchange"
+                ? text("revokeExchangeCta")
+                : text("confirm"),
         check: text("consent"),
         note: null,
       };

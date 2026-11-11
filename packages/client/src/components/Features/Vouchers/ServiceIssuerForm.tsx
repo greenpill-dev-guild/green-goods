@@ -23,91 +23,64 @@ interface Props {
 
 /**
  * A holder's exchange in the curated pool: quantity entry, separate from the exact review and
- * signing step. An issuer's own acts are named on their service instead.
+ * signing step. The form opens on the exchange, the act a holder came for. The pool's permission
+ * to spend their vouchers, which the exchange needs and the review asks for in its turn, waits
+ * under Manage permission in plain words, for the holder who sets or takes it back themselves.
+ * An issuer's own acts are named on their service instead.
  */
 export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, onQuote }: Props) {
   const intl = useIntl();
   const { formatMessage } = intl;
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
+  const vouchers = formatMessage({ id: "app.voucher.unitPlain" }, { count: 2 });
   const id = useId();
-  const [kind, setKind] = useState("approveExchange");
   const [amount, setAmount] = useState("");
   const [outputAssetId, setOutput] = useState("");
+  const [allowance, setAllowance] = useState("");
   const [quote, setQuote] = useState<{ key: string; value: ServiceIssuerExchangeQuote } | null>(
     null
   );
   const [quoting, setQuoting] = useState(false);
   const [failed, setFailed] = useState(false);
-  const inputKey = `${poolId}:${asset.id}:${kind}:${amount}:${outputAssetId}`;
+  const inputKey = `${poolId}:${asset.id}:${amount}:${outputAssetId}`;
   const current = useRef(inputKey);
   current.current = inputKey;
   const value = parseIssuerAmount(amount, asset.decimals);
+  const allowed = parseIssuerAmount(allowance, asset.decimals);
   const output = assets.find((a) => a.id === outputAssetId && a.id !== asset.id);
   const reviewedQuote = quote?.key === inputKey ? quote.value : null;
-  const needsAmount = kind === "approveExchange" || kind === "exchange";
   const locked = disabled || quoting;
-  const commands = ["approveExchange", "revokeExchange", "exchange"];
   const changed = () => {
     setQuote(null);
     setFailed(false);
   };
-  const action = (): ServiceIssuerAction | null => {
-    if (!commands.includes(kind)) return null;
-    if (needsAmount && value === null) return null;
-    switch (kind) {
-      case "approveExchange":
-        return { kind, amount: value! };
-      case "revokeExchange":
-        return { kind };
-      case "exchange":
-        return reviewedQuote && output
-          ? {
-              kind,
-              outputAssetId: output.id,
-              amount: value!,
-              quotedOutput: reviewedQuote.quotedOutput,
-              minimumOutput: reviewedQuote.quotedOutput,
-              deadline: reviewedQuote.expiresAt,
-            }
-          : null;
-      default:
-        return null;
-    }
-  };
+  const exchange = (): ServiceIssuerAction | null =>
+    reviewedQuote && output && value !== null
+      ? {
+          kind: "exchange",
+          outputAssetId: output.id,
+          amount: value,
+          quotedOutput: reviewedQuote.quotedOutput,
+          minimumOutput: reviewedQuote.quotedOutput,
+          deadline: reviewedQuote.expiresAt,
+        }
+      : null;
   return (
-    <form
-      className="space-y-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const prepared = action();
-        if (!locked && prepared) onReview(prepared);
-      }}
-    >
-      <label htmlFor={`${id}-action`} className="block space-y-1 text-sm">
-        <span>{text("action")}</span>
-        <NativeSelect
-          id={`${id}-action`}
-          value={kind}
-          disabled={locked}
-          onChange={(e) => {
-            setKind(e.target.value);
-            changed();
-          }}
-        >
-          {commands.map((command) => (
-            <option key={command} value={command}>
-              {text(`actions.${command}`)}
-            </option>
-          ))}
-        </NativeSelect>
-      </label>
-      <p id={`${id}-help`} className="text-xs text-text-sub-600">
-        {text("finiteHelp")}
-      </p>
-      {needsAmount ? (
+    <div className="space-y-3" data-component="ServiceIssuerForm">
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const prepared = exchange();
+          if (!locked && prepared) onReview(prepared);
+        }}
+      >
+        <p id={`${id}-help`} className="text-xs text-text-sub-600">
+          {text("finiteHelp")}
+        </p>
         <label htmlFor={`${id}-amount`} className="block space-y-1 text-sm">
           <span>
-            {text("amount")} ({formatMessage({ id: "app.voucher.unitPlain" }, { count: 2 })})
+            {text("amount")} ({vouchers})
           </span>
           <TextInput
             id={`${id}-amount`}
@@ -122,88 +95,124 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
             }}
           />
         </label>
-      ) : null}
-      {kind === "exchange" ? (
-        <>
-          <label htmlFor={`${id}-output`} className="block space-y-1 text-sm">
-            <span>{text("receiveAsset")}</span>
-            <NativeSelect
-              id={`${id}-output`}
-              value={outputAssetId}
-              disabled={locked}
-              required
-              onChange={(e) => {
-                setOutput(e.target.value);
-                changed();
-              }}
-            >
-              <option value="">{text("chooseAsset")}</option>
-              {assets
-                .filter((a) => a.id !== asset.id)
-                .map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-            </NativeSelect>
-          </label>
-          <Button
-            type="button"
-            emphasis="secondary"
-            loading={quoting}
-            disabled={disabled || value === null || !output}
-            onClick={async () => {
-              if (locked || value === null || !output) return;
-              const key = inputKey;
-              setQuoting(true);
-              setFailed(false);
-              setQuote(null);
-              try {
-                const result = await onQuote({ amount: value, outputAssetId: output.id });
-                if (current.current === key && result.poolId === poolId)
-                  setQuote({ key, value: result });
-                else if (current.current === key) setFailed(true);
-              } catch {
-                if (current.current === key) setFailed(true);
-              } finally {
-                setQuoting(false);
-              }
+        <label htmlFor={`${id}-output`} className="block space-y-1 text-sm">
+          <span>{text("receiveAsset")}</span>
+          <NativeSelect
+            id={`${id}-output`}
+            value={outputAssetId}
+            disabled={locked}
+            required
+            onChange={(e) => {
+              setOutput(e.target.value);
+              changed();
             }}
           >
-            {text("getQuote")}
-          </Button>
-          {reviewedQuote && output ? (
-            <div className="space-y-1 text-sm">
+            <option value="">{text("chooseAsset")}</option>
+            {assets
+              .filter((a) => a.id !== asset.id)
+              .map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+          </NativeSelect>
+        </label>
+        <Button
+          type="button"
+          emphasis="secondary"
+          loading={quoting}
+          disabled={disabled || value === null || !output}
+          onClick={async () => {
+            if (locked || value === null || !output) return;
+            const key = inputKey;
+            setQuoting(true);
+            setFailed(false);
+            setQuote(null);
+            try {
+              const result = await onQuote({ amount: value, outputAssetId: output.id });
+              if (current.current === key && result.poolId === poolId)
+                setQuote({ key, value: result });
+              else if (current.current === key) setFailed(true);
+            } catch {
+              if (current.current === key) setFailed(true);
+            } finally {
+              setQuoting(false);
+            }
+          }}
+        >
+          {text("getQuote")}
+        </Button>
+        {reviewedQuote && output ? (
+          <div className="space-y-1 text-sm">
+            <p>
+              {text("estimatedOutput")}: {issuerAmount(reviewedQuote.quotedOutput, output, intl)}
+            </p>
+            <p>
+              {text("estimatedFees")}:{" "}
+              {issuerAmount(reviewedQuote.grossOutput - reviewedQuote.quotedOutput, output, intl)}
+            </p>
+            <p>
+              {text("minimum")}: {issuerAmount(reviewedQuote.quotedOutput, output, intl)}
+            </p>
+            {"intermediateResidue" in reviewedQuote &&
+            typeof reviewedQuote.intermediateResidue === "bigint" ? (
               <p>
-                {text("estimatedOutput")}: {issuerAmount(reviewedQuote.quotedOutput, output, intl)}
+                {formatMessage({ id: "app.voucher.exchange.residue" })}:{" "}
+                {issuerAmount(reviewedQuote.intermediateResidue, asset, intl)}
               </p>
-              <p>
-                {text("estimatedFees")}:{" "}
-                {issuerAmount(reviewedQuote.grossOutput - reviewedQuote.quotedOutput, output, intl)}
-              </p>
-              <p>
-                {text("minimum")}: {issuerAmount(reviewedQuote.quotedOutput, output, intl)}
-              </p>
-              {"intermediateResidue" in reviewedQuote &&
-              typeof reviewedQuote.intermediateResidue === "bigint" ? (
-                <p>
-                  {formatMessage({ id: "app.voucher.exchange.residue" })}:{" "}
-                  {issuerAmount(reviewedQuote.intermediateResidue, asset, intl)}
-                </p>
-              ) : null}
-              <p>{text("exactOutput")}</p>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-      {failed ? (
-        <p role="alert" className="text-sm text-error-base">
-          {text("quoteFailed")}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={locked || action() === null}>
-        {text("review")}
-      </Button>
-    </form>
+            ) : null}
+            <p>{text("exactOutput")}</p>
+          </div>
+        ) : null}
+        {failed ? (
+          <p role="alert" className="text-sm text-error-base">
+            {text("quoteFailed")}
+          </p>
+        ) : null}
+        <Button type="submit" disabled={locked || exchange() === null}>
+          {formatMessage({ id: "app.voucher.ex.a.review" })}
+        </Button>
+      </form>
+      <details className="space-y-3 text-sm" data-component="ServiceIssuerPermission">
+        <summary className="min-h-11 cursor-pointer py-3 font-medium">
+          {text("managePermission")}
+        </summary>
+        <p className="text-xs text-text-sub-600">{text("permissionHelp")}</p>
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!locked && allowed !== null) onReview({ kind: "approveExchange", amount: allowed });
+          }}
+        >
+          <label htmlFor={`${id}-allowance`} className="block space-y-1 text-sm">
+            <span>
+              {text("allowUpTo")} ({vouchers})
+            </span>
+            <TextInput
+              id={`${id}-allowance`}
+              value={allowance}
+              inputMode="decimal"
+              required
+              disabled={locked}
+              onChange={(e) => setAllowance(e.target.value)}
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" emphasis="secondary" disabled={locked || allowed === null}>
+              {text("reviewPermission")}
+            </Button>
+            <Button
+              type="button"
+              emphasis="secondary"
+              disabled={locked}
+              onClick={() => onReview({ kind: "revokeExchange" })}
+            >
+              {text("actions.revokeExchange")}
+            </Button>
+          </div>
+        </form>
+      </details>
+    </div>
   );
 }

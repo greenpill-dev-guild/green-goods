@@ -80,7 +80,9 @@ describe("a member's own service", () => {
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(screen.getByRole("heading", { name: "Services I Offer" })).toBeInTheDocument();
     await userEvent.click(screen.getByText("Vouchers I Hold"));
-    expect(screen.getByLabelText("Action")).toBeInTheDocument();
+    // The exchange is the act the section opens on; the pool's permission waits under it.
+    expect(screen.getByLabelText("Quantity (vouchers)")).toBeInTheDocument();
+    expect(screen.getByText("Manage permission")).toBeInTheDocument();
   });
   it("approves a booking only through its exact review, with the booking's own consent", async () => {
     const h = harness(issuerServiceStory("approve"));
@@ -426,15 +428,14 @@ describe("a holder of another member's vouchers", () => {
     const h = holder();
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText("Action"), "exchange");
     await user.type(screen.getByLabelText("Quantity (vouchers)"), "1");
     await user.selectOptions(screen.getByLabelText("Receive"), "analyst-help");
-    expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review Exchange" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Get Exchange Quote" }));
     expect(
       await screen.findByText(/Minimum Received: 2 Fictional analyst coaching vouchers/)
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Review Action" }));
+    await user.click(screen.getByRole("button", { name: "Review Exchange" }));
     expect(h.onReview).toHaveBeenCalledWith({
       kind: "exchange",
       amount: 1_000_000n,
@@ -462,7 +463,30 @@ describe("a holder of another member's vouchers", () => {
     await user.click(sheet.getByRole("button", { name: "Cancel" }));
     await user.type(screen.getByLabelText("Quantity (vouchers)"), "0");
     expect(screen.queryByText(/Minimum Received:/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review Exchange" })).toBeDisabled();
+    expect(h.onExecute).not.toHaveBeenCalled();
+  });
+
+  it("opens on the exchange, with the pool's permission under Manage permission in plain words", async () => {
+    const h = holder();
+    renderWithProviders(<ServiceIssuerPanel {...h} />);
+    const user = userEvent.setup();
+    expect(screen.queryByLabelText("Action")).not.toBeInTheDocument();
+    expect(fact("The pool may spend")).toHaveTextContent("0 Fictional engineer help vouchers");
+    expect(screen.getByLabelText("Quantity (vouchers)")).toBeInTheDocument();
+    await user.click(screen.getByText("Manage permission"));
+    await user.type(screen.getByLabelText("Let the pool spend up to (vouchers)"), "2");
+    await user.click(screen.getByRole("button", { name: "Review the Permission" }));
+    expect(h.onReview).toHaveBeenLastCalledWith({ kind: "approveExchange", amount: 2_000_000n });
+    const allow = await reviewSheet();
+    expect(allow.getByText("Let the Pool Spend Your Vouchers")).toBeInTheDocument();
+    expect(allow.getByText("Let the pool spend up to")).toBeInTheDocument();
+    expect(allow.getByRole("button", { name: "Let the Pool Spend 2 vouchers" })).toBeDisabled();
+    await user.click(allow.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Take That Permission Back" }));
+    expect(h.onReview).toHaveBeenLastCalledWith({ kind: "revokeExchange" });
+    const revoke = await reviewSheet();
+    expect(revoke.getByRole("button", { name: "Take That Permission Back" })).toBeDisabled();
     expect(h.onExecute).not.toHaveBeenCalled();
   });
 
