@@ -3,8 +3,10 @@
  */
 
 import { act, renderHook } from "@testing-library/react";
-import { type Address, encodeEventTopics } from "viem";
+import { type Address, encodeEventTopics, type Hex } from "viem";
+import { mainnet, sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createReceiptRpc } from "../../test-utils/receipt-rpc";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const {
@@ -23,7 +25,6 @@ const {
   mockUserAddress,
   mockUseReadContract,
   mockUseReadContracts,
-  mockWaitForTransactionReceipt,
 } = vi.hoisted(() => ({
   TEST_CHAIN_ID: 11155111,
   TEST_JAR: "0x1111111111111111111111111111111111111111" as Address,
@@ -48,7 +49,6 @@ const {
   mockSendContractTx: vi.fn(),
   mockUseReadContract: vi.fn(),
   mockUseReadContracts: vi.fn(),
-  mockWaitForTransactionReceipt: vi.fn(),
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({
@@ -84,12 +84,12 @@ vi.mock("wagmi", () => ({
   },
 }));
 
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
   readContract: mockReadContract,
-  waitForTransactionReceipt: mockWaitForTransactionReceipt,
 }));
 
-vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../../config/appkit", () => ({ getWagmiConfig: () => receiptRpc.config }));
 
 vi.mock("../../../hooks/blockchain/useContractTxSender", () => ({
   useContractTxSender: () => mockSendContractTx,
@@ -116,7 +116,15 @@ import {
   useCampaignCookieJarDeposit,
   useCreateCampaignCookieJar,
 } from "../../../hooks/cookie-jar/useCampaignCookieJar";
+import { TransactionRevertedError } from "../../../modules/transactions/types";
 import { COOKIE_JAR_FACTORY_ABI } from "../../../utils/blockchain/abis/cookie-jar";
+
+const TX_HASH = `0x${"a".repeat(64)}` as const;
+
+/** The jar creation, mined on the app chain (Sepolia); each test sets how its receipt reads. */
+const receiptRpc = createReceiptRpc(sepolia, { hash: TX_HASH, from: TEST_USER, to: TEST_FACTORY });
+// The wallet sits on another network, so only a read that names the app chain finds the receipt.
+receiptRpc.config.setState((state) => ({ ...state, chainId: mainnet.id }));
 
 function campaignJarDetails() {
   return [
@@ -226,7 +234,6 @@ describe("useCampaignCookieJar", () => {
 });
 
 describe("campaign cookie jar mutations", () => {
-  const TX_HASH = `0x${"a".repeat(64)}` as const;
   const deposit = { jarAddress: TEST_JAR, assetAddress: TEST_TOKEN, amount: 10n };
 
   /**
@@ -274,27 +281,12 @@ describe("campaign cookie jar mutations", () => {
     expect(mockSendContractTx).not.toHaveBeenCalled();
   });
 
-  it("reads the creation receipt on the app chain and returns the new jar", async () => {
-    mockWaitForTransactionReceipt.mockImplementation(
-      onAppChain(() => ({
-        logs: [
-          {
-            address: TEST_FACTORY,
-            data: "0x",
-            topics: encodeEventTopics({
-              abi: COOKIE_JAR_FACTORY_ABI,
-              eventName: "JarCreated",
-              args: { jarAddress: TEST_JAR, creator: TEST_USER },
-            }),
-          },
-        ],
-      }))
-    );
+  /** Sends a jar creation and settles it inside act, so the mutation's state updates land. */
+  async function createJar() {
     const { result } = renderHookWithProviders(() => useCreateCampaignCookieJar());
-
-    let created: { jarAddress?: Address } | undefined;
+    let created!: Promise<{ hash: Hex; jarAddress?: Address }>;
     await act(async () => {
-      created = await result.current.mutateAsync({
+      created = result.current.mutateAsync({
         factoryAddress: TEST_FACTORY,
         title: "Seed fund",
         slug: "seed-fund",
@@ -311,8 +303,41 @@ describe("campaign cookie jar mutations", () => {
         strictPurpose: false,
         withdrawalType: "fixed",
       });
+      await created.catch(() => undefined);
+    });
+    return created;
+  }
+
+  it("reads the creation receipt on the app chain and returns the new jar", async () => {
+    receiptRpc.answerReceiptPoll({
+      status: "success",
+      logs: [
+        {
+          address: TEST_FACTORY,
+          data: "0x",
+          topics: encodeEventTopics({
+            abi: COOKIE_JAR_FACTORY_ABI,
+            eventName: "JarCreated",
+            args: { jarAddress: TEST_JAR, creator: TEST_USER },
+          }) as Hex[],
+        },
+      ],
     });
 
-    expect(created?.jarAddress).toBe(TEST_JAR);
+    await expect(createJar()).resolves.toMatchObject({ hash: TX_HASH, jarAddress: TEST_JAR });
+  });
+
+  it("reports a creation whose receipt reverted as failed, not as created", async () => {
+    receiptRpc.answerReceiptPoll({ status: "reverted" });
+
+    await expect(createJar()).rejects.toBeInstanceOf(TransactionRevertedError);
+  });
+
+  it("leaves a creation whose receipt could not be read unconfirmed: sent, with no jar yet", async () => {
+    receiptRpc.answerReceiptPoll("unavailable");
+
+    const created = await createJar();
+    expect(created.hash).toBe(TX_HASH);
+    expect(created.jarAddress).toBeUndefined();
   });
 });
