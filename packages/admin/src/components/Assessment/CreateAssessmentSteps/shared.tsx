@@ -1,64 +1,18 @@
+import { DOMAIN_LABELS, DOMAIN_SLUG_PREFIX } from "@green-goods/shared/utils/domain";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
 import { type ReactNode } from "react";
 import type { IntlShape } from "react-intl";
 
-// ─── Domain Display Constants ────────────────────────────
-
-/** Domain icon and color (stable), labels resolved via i18n */
-export const DOMAIN_ICON_CONFIG: Record<Domain, { icon: string; color: string; labelId: string }> =
-  {
-    [Domain.SOLAR]: {
-      icon: "ri-sun-line",
-      color: "amber",
-      labelId: "app.admin.assessment.domainAction.domain.solar",
-    },
-    [Domain.AGRO]: {
-      icon: "ri-plant-line",
-      color: "green",
-      labelId: "app.admin.assessment.domainAction.domain.agroforestry",
-    },
-    [Domain.EDU]: {
-      icon: "ri-book-open-line",
-      color: "blue",
-      labelId: "app.admin.assessment.domainAction.domain.education",
-    },
-    [Domain.WASTE]: {
-      icon: "ri-recycle-line",
-      color: "orange",
-      labelId: "app.admin.assessment.domainAction.domain.waste",
-    },
-  };
-
-const DOMAIN_LABEL_DEFAULTS: Record<string, string> = {
-  "app.admin.assessment.domainAction.domain.solar": "Solar",
-  "app.admin.assessment.domainAction.domain.agroforestry": "Agroforestry",
-  "app.admin.assessment.domainAction.domain.education": "Education",
-  "app.admin.assessment.domainAction.domain.waste": "Waste",
-};
-
 export function resolveDomainLabel(intl: IntlShape, domain: Domain): string {
-  const config = DOMAIN_ICON_CONFIG[domain];
-  return intl.formatMessage({
-    id: config.labelId,
-    defaultMessage: DOMAIN_LABEL_DEFAULTS[config.labelId],
-  });
+  const label = DOMAIN_LABELS[domain];
+  return intl.formatMessage({ id: label.assessmentLabelId, defaultMessage: label.defaultMessage });
 }
 
-/** All domains for when no mask is provided */
-export const ALL_DOMAINS = [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE];
-
-// ─── Domain Guidance ─────────────────────────────────────
-
-const DOMAIN_SLUGS: Record<Domain, string> = {
-  [Domain.SOLAR]: "solar",
-  [Domain.AGRO]: "agro",
-  [Domain.EDU]: "edu",
-  [Domain.WASTE]: "waste",
-};
+export { ALL_DOMAINS } from "@green-goods/shared/utils/domain";
 
 /** Resolve a domain-specific i18n key */
-export function domainKey(base: string, domain: Domain): string {
-  return `${base}.${DOMAIN_SLUGS[domain]}`;
+function domainKey(base: string, domain: Domain): string {
+  return `${base}.${DOMAIN_SLUG_PREFIX[domain]}`;
 }
 
 /**
@@ -67,7 +21,9 @@ export function domainKey(base: string, domain: Domain): string {
  * text instead of falling back to one domain's examples.
  */
 export function knownDomain(domain: Domain | null | undefined): Domain | null {
-  return domain !== null && domain !== undefined && domain in DOMAIN_SLUGS ? domain : null;
+  return domain !== null && domain !== undefined && Object.hasOwn(DOMAIN_SLUG_PREFIX, domain)
+    ? domain
+    : null;
 }
 
 /** A domain's placeholder or example text; undefined until a known domain is chosen. */

@@ -346,6 +346,45 @@ describe("GardenPool", () => {
     expect(mockNavigate).toHaveBeenCalledWith("commitments/group/set-1?copy=20");
   });
 
+  it("says Past due on a group row once none is left to take up and its copies are past due", () => {
+    const lapsed = BigInt(Math.floor(Date.now() / 1000)) - 60n;
+    const copies = [30, 31, 32].map((id) =>
+      commitment({
+        id: `42161-${id}`,
+        commitmentId: BigInt(id),
+        direction: "REQUEST",
+        onchainState: "REQUESTED",
+        derivedState: "REQUESTED",
+        metadataCID: "lapsed-cid",
+        dueDate: lapsed,
+        requirements: [],
+      })
+    );
+    const [group] = groupCommitmentsForDisplay({
+      commitments: copies as never,
+      metadataByCID: new Map([
+        [
+          "lapsed-cid",
+          { version: 1, title: "Sort the seed library", displayGroup: { version: 1, id: "set-2" } },
+        ],
+      ]),
+    });
+    if (group?.kind !== "group") throw new Error("expected the copies to fold into one group");
+    // On the chain's clock the copies have ended, as the entries hook counts them.
+    const onClock = {
+      ...group,
+      counts: { ...group.counts, available: 0, ended: group.counts.published },
+    };
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: copies }));
+    mockUsePoolPromiseEntries.mockReturnValue([{ kind: "group", group: onClock }]);
+
+    render(<GardenPool pool={pool()} />);
+
+    const row = screen.getByRole("button", { name: /A group of 3 separate promises/ });
+    expect(within(row).getByRole("status")).toHaveTextContent("Past due");
+    expect(row).not.toHaveTextContent("None available");
+  });
+
   const creation = (overrides: Record<string, unknown> = {}) => ({
     jobId: "job-1",
     chainId: 42161,

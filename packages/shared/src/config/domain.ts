@@ -1,12 +1,16 @@
 import type { ComponentType } from "react";
 import { RiBookOpenLine, RiPlantLine, RiRecycleLine, RiSunLine } from "@remixicon/react";
-import { Domain } from "../types/domain";
+import { DOMAIN_TOKEN_SLUG, Domain, type DomainTokenSlug } from "../types/domain";
+import { ALL_DOMAINS, DOMAIN_LABELS, resolveDisplayDomain } from "../utils/domain";
 
 export interface DomainStyle {
   icon: ComponentType<{ className?: string }>;
+  iconClass: string;
   labelId: string;
+  defaultLabel: string;
   colors: {
     bg: string;
+    fill: string;
     text: string;
     border: string;
   };
@@ -16,12 +20,13 @@ export interface DomainStyle {
   };
 }
 
-export const DOMAIN_CONFIG: Record<Domain, DomainStyle> = {
-  [Domain.SOLAR]: {
+const DOMAIN_PALETTE = {
+  solar: {
     icon: RiSunLine,
-    labelId: "app.domain.tab.solar",
+    iconClass: "ri-sun-line",
     colors: {
       bg: "bg-domain-solar-soft",
+      fill: "bg-domain-solar",
       text: "text-domain-solar",
       border: "border-domain-solar/30",
     },
@@ -30,11 +35,12 @@ export const DOMAIN_CONFIG: Record<Domain, DomainStyle> = {
       to: "to-domain-solar-soft",
     },
   },
-  [Domain.AGRO]: {
+  agro: {
     icon: RiPlantLine,
-    labelId: "app.domain.tab.agro",
+    iconClass: "ri-plant-line",
     colors: {
       bg: "bg-domain-agro-soft",
+      fill: "bg-domain-agro",
       text: "text-domain-agro",
       border: "border-domain-agro/30",
     },
@@ -43,11 +49,12 @@ export const DOMAIN_CONFIG: Record<Domain, DomainStyle> = {
       to: "to-domain-agro-soft",
     },
   },
-  [Domain.EDU]: {
+  education: {
     icon: RiBookOpenLine,
-    labelId: "app.domain.tab.education",
+    iconClass: "ri-book-open-line",
     colors: {
       bg: "bg-domain-education-soft",
+      fill: "bg-domain-education",
       text: "text-domain-education",
       border: "border-domain-education/30",
     },
@@ -56,11 +63,12 @@ export const DOMAIN_CONFIG: Record<Domain, DomainStyle> = {
       to: "to-domain-education-soft",
     },
   },
-  [Domain.WASTE]: {
+  waste: {
     icon: RiRecycleLine,
-    labelId: "app.domain.tab.waste",
+    iconClass: "ri-recycle-line",
     colors: {
       bg: "bg-domain-waste-soft",
+      fill: "bg-domain-waste",
       text: "text-domain-waste",
       border: "border-domain-waste/30",
     },
@@ -69,7 +77,23 @@ export const DOMAIN_CONFIG: Record<Domain, DomainStyle> = {
       to: "to-domain-waste-soft",
     },
   },
-};
+} satisfies Record<DomainTokenSlug, Omit<DomainStyle, "labelId" | "defaultLabel">>;
+
+export const DOMAIN_CONFIG = Object.fromEntries(
+  ALL_DOMAINS.map((domain) => [
+    domain,
+    {
+      ...DOMAIN_PALETTE[DOMAIN_TOKEN_SLUG[domain]],
+      labelId: DOMAIN_LABELS[domain].id,
+      defaultLabel: DOMAIN_LABELS[domain].defaultMessage,
+    },
+  ])
+) as Record<Domain, DomainStyle>;
+
+export function getDomainStyle(value: number | string | null | undefined): DomainStyle | undefined {
+  const domain = resolveDisplayDomain(value);
+  return domain === null ? undefined : DOMAIN_CONFIG[domain];
+}
 
 /** A measure an assessment's outcome can be counted in, with the copy that names it and its unit. */
 export interface DomainMetric {

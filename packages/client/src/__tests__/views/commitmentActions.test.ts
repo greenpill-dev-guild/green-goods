@@ -391,6 +391,13 @@ describe("selectStatusBand", () => {
     expect(selectStatusBand({ commitment: ask, seat: "bystander" })?.bodyId).toBe(
       "app.commitment.band.bystander.requested.b"
     );
+    // While the requests are unread, or their read failed, it says only that nobody took it on.
+    expect(
+      selectStatusBand({ commitment: ask, seat: "bystander", takeUpPending: null })?.bodyId
+    ).toBe("app.commitment.band.bystander.offered.b");
+    expect(
+      selectStatusBand({ commitment: ask, seat: "bystander", takeUpPending: false })?.bodyId
+    ).toBe("app.commitment.band.bystander.requested.b");
     // A pending request is a fact every seat reads the same way.
     for (const seat of ["bystander", "confirmer", null] as const) {
       expect(selectStatusBand({ commitment: ask, seat, takeUpPending: true })).toEqual({

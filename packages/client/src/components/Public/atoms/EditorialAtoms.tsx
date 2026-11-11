@@ -1,3 +1,5 @@
+import { getDomainStyle } from "@green-goods/shared/config/domain";
+import type { DomainTokenSlug } from "@green-goods/shared/types/domain";
 import { Button, type ButtonProps, type ButtonSize } from "@green-goods/shared/components/Button";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -401,7 +403,7 @@ export function EditorialLinkArrow({
 // Domain chip — filter affordance with optional domain ink
 // ============================================================================
 
-export type EditorialDomain = "all" | "solar" | "agro" | "education" | "waste";
+export type EditorialDomain = "all" | DomainTokenSlug;
 
 export interface EditorialDomainChipProps {
   domain: EditorialDomain;
@@ -411,14 +413,6 @@ export interface EditorialDomainChipProps {
   count?: number;
   className?: string;
 }
-
-const ACTIVE_DOMAIN_CLASSES: Record<EditorialDomain, string> = {
-  all: "bg-text-strong-950 text-static-white border-text-strong-950",
-  solar: "bg-domain-solar-soft text-domain-solar border-domain-solar/30",
-  agro: "bg-domain-agro-soft text-domain-agro border-domain-agro/30",
-  education: "bg-domain-education-soft text-domain-education border-domain-education/30",
-  waste: "bg-domain-waste-soft text-domain-waste border-domain-waste/30",
-};
 
 /**
  * Filter chip for /actions, /impact, /gardens: the shared Chip with the
@@ -434,13 +428,16 @@ export function EditorialDomainChip({
   className,
 }: EditorialDomainChipProps) {
   const isEmpty = count === 0 && !active;
+  const style = getDomainStyle(domain);
   return (
     <Chip
       selected={active}
       onClick={onClick}
       className={cn(
         active
-          ? ACTIVE_DOMAIN_CLASSES[domain]
+          ? style
+            ? cn(style.colors.bg, style.colors.text, style.colors.border)
+            : "bg-text-strong-950 text-static-white border-text-strong-950"
           : isEmpty && "border-stroke-soft-200/60 bg-bg-weak-50 text-text-soft-400",
         className
       )}

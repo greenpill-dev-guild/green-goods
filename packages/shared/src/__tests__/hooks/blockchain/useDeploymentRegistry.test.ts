@@ -349,9 +349,11 @@ describe("useDeploymentRegistry", () => {
     it("returns all-false when registry is zero address", async () => {
       // Override getNetworkContracts to return zero address via vi.spyOn
       const contractsMock = await import("../../../utils/blockchain/contracts");
+      const configuredContracts = contractsMock.getNetworkContracts(11155111);
       const spy = vi.spyOn(contractsMock, "getNetworkContracts").mockReturnValue({
+        ...configuredContracts,
         deploymentRegistry: "0x0000000000000000000000000000000000000000",
-      } as ReturnType<typeof contractsMock.getNetworkContracts>);
+      });
 
       const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 

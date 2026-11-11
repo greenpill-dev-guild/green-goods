@@ -1,3 +1,6 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import initializationEvidence from "../../config/celo-garden-accounts/garden-account-initializers-42161-494723355.json";
@@ -5,6 +8,8 @@ import dependencyEvidence from "../../config/celo-garden-accounts/deterministic-
 import rawDependencyEvidence from "../../config/celo-garden-accounts/celo-dependency-init-code-2026-08-15.json";
 import {
   buildAccountInitializations,
+  parseArguments,
+  readReviewedPlan,
   validateRawDependencies,
   type GardenInitializationEntry,
 } from "./celo-garden-accounts";
@@ -63,5 +68,33 @@ describe("Celo GardenAccount deployment planning", () => {
         gardenToken: "0x0000000000000000000000000000000000000001",
       }),
     ).toThrow("frozen identity tuple");
+  });
+
+  it("keeps a fork-proof plan apart from the plan deploy and verify act on", () => {
+    const proof = parseArguments(["plan", "--proof-block", "74938820"]);
+    expect(proof.proofBlock).toBe(74_938_820);
+    expect(path.basename(proof.planPath)).toBe("42220-celo-garden-accounts-proof.json");
+    expect(path.basename(parseArguments(["plan"]).planPath)).toBe("42220-celo-garden-accounts.json");
+    expect(() =>
+      parseArguments([
+        "plan",
+        "--proof-block",
+        "74938820",
+        "--plan",
+        ".generated/runtime/42220-celo-garden-accounts.json",
+      ]),
+    ).toThrow(/drop --plan/);
+    expect(() => parseArguments(["plan", "--proof-block", "finalized"])).toThrow(/positive block number/);
+    expect(() => parseArguments(["verify", "--proof-block", "74938820"])).toThrow(/valid only for plan/);
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "1", "--proof-block", "74938820"])).toThrow(
+      /valid only for plan/,
+    );
+
+    // deploy and verify read through this guard, so a proof plan passed by path stops there.
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "celo-proof-plan-"));
+    const proofPlan = path.join(directory, "42220-celo-garden-accounts-proof.json");
+    fs.writeFileSync(proofPlan, JSON.stringify({ proofBlock: 74_938_820 }));
+    expect(() => readReviewedPlan(proofPlan)).toThrow(/fork-proof plan for Celo block 74938820/);
+    fs.rmSync(directory, { recursive: true, force: true });
   });
 });

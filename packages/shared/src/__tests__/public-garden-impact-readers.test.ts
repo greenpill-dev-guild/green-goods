@@ -1,3 +1,4 @@
+import { PUBLIC_GARDEN_IMPACT_DOMAINS } from "../public-contracts/garden-impact";
 import { ContractFunctionExecutionError, ContractFunctionZeroDataError } from "viem";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "../public-contracts";
@@ -19,6 +20,24 @@ function reader(query: GraphQLReader["query"]): GraphQLReader {
 }
 
 describe("public garden impact source readers", () => {
+  it("maps indexer domains to the published API words and leaves unknown values untagged", async () => {
+    const domains = ["SOLAR", "AGRO", "EDU", "WASTE", "UNKNOWN", null, 0, "constructor"];
+    const indexerQuery = vi.fn().mockResolvedValue({
+      data: { Action: domains.map((domain, index) => ({ id: String(index), domain })) },
+    });
+    const rows = await createPublicGardenImpactReaders({
+      indexerReader: reader(indexerQuery as GraphQLReader["query"]),
+    }).readActions(42161);
+
+    expect(rows.map((row) => row.domain)).toEqual([
+      ...PUBLIC_GARDEN_IMPACT_DOMAINS,
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();

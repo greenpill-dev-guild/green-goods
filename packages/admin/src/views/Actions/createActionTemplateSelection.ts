@@ -1,12 +1,6 @@
-import { type ActionInstructionConfig, Domain } from "@green-goods/shared/types/domain";
+import { ALL_DOMAINS, DOMAIN_SLUG_PREFIX } from "@green-goods/shared/utils/domain";
+import type { ActionInstructionConfig, Domain } from "@green-goods/shared/types/domain";
 import { instructionTemplates } from "@green-goods/shared/utils/action/templates";
-
-const TEMPLATE_DOMAIN_BY_PREFIX: Record<string, Domain> = {
-  solar: Domain.SOLAR,
-  agro: Domain.AGRO,
-  edu: Domain.EDU,
-  waste: Domain.WASTE,
-};
 
 function cloneInstructionTemplate(template: ActionInstructionConfig): ActionInstructionConfig {
   return typeof structuredClone === "function"
@@ -27,7 +21,7 @@ export function resolveCreateActionTemplateSelection(
   if (!template) return null;
 
   const prefix = slug.split(".")[0];
-  const domain = TEMPLATE_DOMAIN_BY_PREFIX[prefix];
+  const domain = ALL_DOMAINS.find((value) => DOMAIN_SLUG_PREFIX[value] === prefix);
   if (domain === undefined) return null;
 
   return {

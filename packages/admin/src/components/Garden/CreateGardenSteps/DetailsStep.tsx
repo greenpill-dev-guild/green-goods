@@ -1,3 +1,4 @@
+import { DOMAIN_OPTIONS } from "../gardenSettingsDraft";
 import { useAdminUploadPolicy } from "@green-goods/shared/hooks/admin-ui/useAdminUploadPolicy";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
 import { IconButton } from "@green-goods/shared/components/IconButton";
@@ -8,7 +9,7 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
-import { DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
+import { DOMAIN_COLORS, type Domain } from "@green-goods/shared/types/domain";
 import { suggestSlug, validateSlug } from "@green-goods/shared/utils/blockchain/ens";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
@@ -20,37 +21,6 @@ import { AdminSelectableCard } from "../../AdminSelectableCard";
 import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 
 type DetailField = "name" | "slug" | "description" | "location";
-
-const DOMAIN_OPTIONS = [
-  {
-    value: Domain.SOLAR,
-    labelId: "app.garden.create.domain.solar",
-    defaultLabel: "Solar",
-    descriptionId: "app.garden.create.domain.solar.description",
-    defaultDescription: "Track solar panel installations, kWh generated, and maintenance",
-  },
-  {
-    value: Domain.AGRO,
-    labelId: "app.garden.create.domain.agro",
-    defaultLabel: "Agroforestry",
-    descriptionId: "app.garden.create.domain.agro.description",
-    defaultDescription: "Document tree planting, harvests, and land stewardship",
-  },
-  {
-    value: Domain.EDU,
-    labelId: "app.garden.create.domain.edu",
-    defaultLabel: "Education",
-    descriptionId: "app.garden.create.domain.edu.description",
-    defaultDescription: "Record workshops, trainings, and knowledge sharing",
-  },
-  {
-    value: Domain.WASTE,
-    labelId: "app.garden.create.domain.waste",
-    defaultLabel: "Waste",
-    descriptionId: "app.garden.create.domain.waste.description",
-    defaultDescription: "Log waste collection, recycling, and composting activities",
-  },
-] as const;
 
 interface DetailsStepProps {
   showValidation: boolean;

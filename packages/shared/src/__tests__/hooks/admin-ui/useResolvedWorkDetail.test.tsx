@@ -42,8 +42,9 @@ vi.mock("../../../hooks/work/useWorkMetadata", () => ({
   useWorkMetadata: (raw: string | undefined) => mockUseWorkMetadata(raw),
 }));
 
-const work = createMockWork({ id: "work-1", gardenAddress: "garden-1" });
-const garden = createMockGarden({ id: "garden-1", works: [work] });
+const gardenAddress = "0x1111111111111111111111111111111111111111";
+const work = createMockWork({ id: "work-1", gardenAddress });
+const garden = createMockGarden({ id: gardenAddress, works: [work] });
 
 describe("useResolvedWorkDetail", () => {
   beforeEach(() => {
@@ -117,7 +118,7 @@ describe("useResolvedWorkDetail", () => {
       error: null,
     });
     mockUseWorks.mockReturnValue({
-      works: [createMockWork({ id: "unrelated-work", gardenAddress: garden.id })],
+      works: [createMockWork({ id: "unrelated-work", gardenAddress })],
       isLoading: false,
       isFetching: false,
       isError: false,

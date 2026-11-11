@@ -95,7 +95,7 @@ async function fixture() {
       } as never,
     },
   });
-  const operation = {
+  const operation: Parameters<typeof signGrantedKernelActivation>[0]["operation"] = {
     sender: account,
     nonce,
     callData: await kernel.encodeCalls([

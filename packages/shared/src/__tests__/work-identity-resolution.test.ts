@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { resolveDeferredWorkIdentity } from "../modules/commitment-pooling/work-identity";
 import type { EASWork } from "../types/eas-responses";
+import type { Address } from "../types/domain";
+import type { WorkCompletion } from "../modules/job-queue/db-schema";
 
 const CALLER = "0x1111111111111111111111111111111111111111";
 const GARDEN = "0x2222222222222222222222222222222222222222";
 const OTHER_GARDEN = "0x3333333333333333333333333333333333333333";
 const UID = `0x${"44".repeat(32)}`;
 
-function work(id = UID, gardenAddress = GARDEN, metadata = "bafy-meta"): EASWork {
+function work(id = UID, gardenAddress: Address = GARDEN, metadata = "bafy-meta"): EASWork {
   return {
     id,
     gardenerAddress: CALLER,
@@ -67,7 +69,7 @@ describe("deferred Work identity resolution", () => {
 
   it("recovers on a later retry after a transient metadata failure", async () => {
     let attempt = 0;
-    const input = {
+    const input: Parameters<typeof resolveDeferredWorkIdentity>[0] = {
       clientWorkId: "client-1",
       chainId: 42161,
       garden: GARDEN,
@@ -102,7 +104,7 @@ describe("deferred Work identity resolution", () => {
   });
 
   it("links receipt-verified Work before indexing, including after snapshot retirement", async () => {
-    const completion = {
+    const completion: WorkCompletion = {
       scope: `42161:${CALLER}:client-1`,
       clientWorkId: "client-1",
       userAddress: CALLER,
@@ -138,7 +140,7 @@ describe("deferred Work identity resolution", () => {
   });
 
   it("refuses local completion identities from another account, chain, garden or client id", async () => {
-    const completion = {
+    const completion: WorkCompletion = {
       scope: `42161:${CALLER}:client-1`,
       clientWorkId: "client-1",
       userAddress: CALLER,
@@ -161,7 +163,7 @@ describe("deferred Work identity resolution", () => {
           status: "pending" as const,
         },
       },
-    ]) {
+    ] as const) {
       await expect(
         resolveDeferredWorkIdentity({
           clientWorkId: "client-1",

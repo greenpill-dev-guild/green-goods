@@ -35,8 +35,8 @@ vi.mock("react-intl", () => ({
 }));
 
 import {
-  NavigationBar,
   type FabConfig,
+  NavigationBar,
   type ToolbarSlot,
 } from "../../components/Canvas/NavigationBar";
 
@@ -434,7 +434,8 @@ describe("NavigationBar", () => {
     expect(disabledAction).toHaveAttribute("aria-disabled", "true");
     expect(disabledAction).toHaveAccessibleDescription("Nothing to fund yet.");
     expect(within(disabledAction).getByText("Nothing to fund yet.")).toBeInTheDocument();
-    expect(enabledAction.style.maxWidth).toBe("calc(100vw - 2rem)");
+    // jsdom 31 canonicalizes the equivalent calc() expression.
+    expect(enabledAction.style.maxWidth).toBe("calc(-2rem + 100vw)");
 
     await user.click(disabledAction);
     expect(onAction).not.toHaveBeenCalled();

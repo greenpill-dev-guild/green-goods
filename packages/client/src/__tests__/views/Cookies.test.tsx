@@ -74,8 +74,8 @@ vi.mock("@/routes/WalletRuntimeProviders", () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("wagmi", () => ({
-  useBalance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
 }));
 
 vi.mock("@green-goods/shared/components/Alert", async () => {

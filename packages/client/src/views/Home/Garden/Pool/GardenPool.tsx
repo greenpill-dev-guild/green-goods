@@ -93,11 +93,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
     () => controller.rows.map(({ commitment }) => commitment),
     [controller.rows]
   );
-  // An untaken promise past its due date says so on its row, as the cockpit's rows do (DL-110).
+  // An untaken promise past its due date says so on its row, as the cockpit's rows do (DL-110),
+  // and so does a group's row: every copy in scope is read, folded or not.
   const pastDueIds = usePastDuePromises({
     chainId: controller.chainId,
     poolId: pool.poolId,
-    commitments: serviceOffers,
+    commitments: controller.commitments.commitments,
   });
   const serviceLines = useServiceOfferLines({ chainId: controller.chainId, offers: serviceOffers });
   const [charterOpen, setCharterOpen] = useState(false);
@@ -295,6 +296,12 @@ export function GardenPool({ pool }: GardenPoolProps) {
                     group={entry.group}
                     title={controller.titleOf(entry.group.children[0]?.metadataCID)}
                     availabilityUnknown={controller.commitments.isError}
+                    // None is left to take up and the untaken ones are past due: the group
+                    // says so, as a single past-due promise's row does.
+                    pastDue={
+                      entry.group.counts.available === 0 &&
+                      entry.group.children.some((child) => pastDueIds.has(child.id))
+                    }
                     onOpen={() =>
                       navigate(
                         `commitments/group/${encodeURIComponent(entry.group.displayGroupId)}?copy=${entry.group.children[0]?.commitmentId.toString() ?? ""}`

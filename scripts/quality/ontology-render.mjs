@@ -170,6 +170,8 @@ function renderStateMachine(machine, headingLevel) {
 }
 
 export function renderOntologyMdx(ontology, projections) {
+  const schemas = Object.entries(ontology.schemas).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
+  const digestOntology = { ...ontology, schemas: Object.fromEntries(schemas) };
   const capabilityByRef = new Map(
     projections.capabilities.map((capability) => [capability.ref, capability])
   );
@@ -188,7 +190,7 @@ export function renderOntologyMdx(ontology, projections) {
   lines.push("  - packages/shared/src/ontology/green-goods-projections.json");
   lines.push(
     `source_digest: "${semanticSourceDigest([
-      ["packages/shared/src/ontology/green-goods-ontology.json", ontology],
+      ["packages/shared/src/ontology/green-goods-ontology.json", digestOntology],
       ["packages/shared/src/ontology/green-goods-projections.json", projections],
     ])}"`,
   );
@@ -299,7 +301,7 @@ export function renderOntologyMdx(ontology, projections) {
 
   lines.push("## EAS Schemas");
   lines.push("");
-  for (const [key, schema] of Object.entries(ontology.schemas)) {
+  for (const [key, schema] of schemas) {
     lines.push(`### \`${key}\` — ${schema.name}`);
     lines.push("");
     const meta = [
@@ -428,6 +430,8 @@ export function renderEntityMatrixMdx(
 ) {
   const { protocols, rows } = ontology.integration_matrix;
   const KIND_LABELS = { entity: "Entity", schema: "Schema", persona: "Persona", concept: "Concept" };
+  // Mapping counts and first-mapping sections derive from integration_matrix. A nonempty
+  // mapping never implies an active integration: the catalog owns code status.
   // Status is data: the catalog says which columns have code, the artifacts say where it is
   // recorded, and the sidecar's column notes explain every column without code.
   const byColumn = new Map(

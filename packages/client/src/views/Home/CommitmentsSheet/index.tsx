@@ -98,6 +98,16 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
     { chainId, poolId: protocolPool?.poolId ?? 0n, state: "PENDING" },
     { enabled: isOpen && Boolean(protocolPool && viewer && gardenId) }
   );
+  // The waiting section is only as sure as both reads: until they answer, a tab with nothing
+  // else cannot say nothing waits, and a read that failed is tried again with the list.
+  const claimReads = [pendingClaims, protocolClaims];
+  const waitingRead = {
+    isLoading: claimReads.some((read) => read.isLoading),
+    isError: claimReads.some((read) => read.isError),
+    retry: () => {
+      for (const read of claimReads) if (read.isError) void read.refetch();
+    },
+  };
   const waiting = useMemo<InboxCommitment[]>(() => {
     if (!viewer) return [];
     const listed = new Set(inbox.live.map((row) => row.commitment.id));
@@ -270,6 +280,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
               onOpenCommitment={openCommitment}
               covered={dashboardNavigation.isDashboardCovered}
               waiting={waiting}
+              waitingRead={waitingRead}
               pastDueIds={pastDueIds}
             />
           )}

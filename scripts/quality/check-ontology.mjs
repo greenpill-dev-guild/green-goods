@@ -68,13 +68,10 @@ export function evalNumericToken(token) {
   return null;
 }
 
-// Comments are stripped from the WHOLE source before any declaration regex
-// runs: a commented-out legacy declaration must never win the non-greedy
-// match, and a `;` inside a trailing comment must never terminate a union
-// capture early. Vocabulary declarations never contain string literals with
-// comment markers, so whole-source stripping is safe for these extractors.
+// Remove comments before declaration extraction without changing quoted bytes:
+// schema UIDs and registration names depend on the complete literal value.
 function stripCode(source) {
-  return stripLineComments(stripBlockComments(source), "//");
+  return maskNonCode(source, { preserveStrings: true });
 }
 
 function escapeRegExp(value) {
@@ -83,6 +80,67 @@ function escapeRegExp(value) {
 
 export function sourceContainsSymbol(source, symbol) {
   return new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}(?![\\w$])`).test(stripCode(source));
+}
+
+function maskNonCode(source, { lineComment = "//", preserveStrings = false } = {}) {
+  const masked = source.split("");
+  for (let index = 0; index < source.length; index += 1) {
+    let end = index;
+    let literal = false;
+    if (source.startsWith(lineComment, index)) {
+      end = source.indexOf("\n", index);
+      if (end === -1) end = source.length;
+    } else if (source.startsWith("/*", index)) {
+      end = source.indexOf("*/", index + 2);
+      end = end === -1 ? source.length : end + 2;
+    } else if (source.startsWith('"""', index)) {
+      literal = true;
+      end = source.indexOf('"""', index + 3);
+      while (end !== -1 && source[end - 1] === "\\") end = source.indexOf('"""', end + 3);
+      end = end === -1 ? source.length : end + 3;
+    } else if ('"\'`'.includes(source[index])) {
+      literal = true;
+      end = skipQuoted(source, index) + 1;
+    }
+    if (end === index) continue;
+    if (!literal || !preserveStrings) {
+      for (let cursor = index; cursor < Math.min(end, source.length); cursor += 1) {
+        if (masked[cursor] !== "\n") masked[cursor] = " ";
+      }
+    }
+    index = end - 1;
+  }
+  return masked.join("");
+}
+
+export function checkEntityAnchorSymbols(ontology, sourceOf) {
+  const errors = [];
+  let checked = 0;
+  for (const entity of ontology.entities) {
+    const anchors = [
+      ...(entity.layers?.solidity ?? []).map((anchor) => ({ ...anchor, layer: "solidity" })),
+      ...(entity.layers?.shared ?? []).map((anchor) => ({ ...anchor, layer: "shared" })),
+      ...(entity.layers?.indexer ? [{
+        file: entity.layers.indexer.file, symbol: entity.layers.indexer.type, layer: "indexer",
+      }] : []),
+    ];
+    for (const anchor of anchors) {
+      const source = sourceOf(anchor.file);
+      if (source === null) continue; // sourceOf records missing-file infrastructure failures.
+      checked += 1;
+      const code = maskNonCode(source, { lineComment: anchor.layer === "indexer" ? "#" : "//" });
+      const declaration = anchor.layer === "indexer" ? "type" : anchor.kind === "value"
+        ? "(?:function|const|let)" : "(?:interface|type|class|enum|contract|struct|library)";
+      const body = anchor.layer === "indexer" ? "(?=\\s*(?:\\{|@|implements\\b))"
+        : anchor.kind === "value" ? "" : "(?=\\s*(?:[<{=]|extends\\b|implements\\b|is\\b))";
+      const matches = [...code.matchAll(new RegExp(`\\b${declaration}\\s+${escapeRegExp(anchor.symbol)}(?![\\w$])${body}`, "g"))];
+      if (!matches.some((match) => anchor.layer !== "shared" ||
+          !/\bimport\s*$/.test(stripCode(source).slice(0, match.index)))) {
+        errors.push(`[anchor-symbol] entity "${entity.id}" no longer declares ${anchor.symbol} in ${anchor.file}`);
+      }
+    }
+  }
+  return { errors, checked };
 }
 
 export function parseSolidityEnum(source, symbol) {
@@ -162,9 +220,44 @@ export function parseTsInterfaceKeys(source, symbol) {
   return keys;
 }
 
+function skipQuoted(source, start) {
+  const quote = source[start];
+  for (let index = start + 1; index < source.length; index += 1) {
+    if (source[index] === "\\") index += 1;
+    else if (source[index] === quote) return index;
+  }
+  return source.length;
+}
+
+function closingDelimiter(source, start, opening, closing) {
+  let depth = 0;
+  for (let index = start; index < source.length; index += 1) {
+    if ('"\'`'.includes(source[index])) index = skipQuoted(source, index);
+    else if (source[index] === opening) depth += 1;
+    else if (source[index] === closing && --depth === 0) return index;
+  }
+  return -1;
+}
+
 function extractObjectBody(source, symbol) {
-  const match = new RegExp(`const ${symbol}[^={]*=\\s*\\{([\\s\\S]*?)\\}`).exec(stripCode(source));
-  return match ? match[1] : null;
+  const code = stripCode(source);
+  const declaration = new RegExp(`\\bconst\\s+${escapeRegExp(symbol)}(?![\\w$])`).exec(maskNonCode(code));
+  if (!declaration) return null;
+  let depth = 0;
+  for (let index = declaration.index + declaration[0].length; index < code.length; index += 1) {
+    const character = code[index];
+    if ('"\'`'.includes(character)) index = skipQuoted(code, index);
+    else if ("{[(".includes(character)) depth += 1;
+    else if ("}])".includes(character)) depth -= 1;
+    else if (character === ";" && depth === 0) return null;
+    else if (character === "=" && code[index + 1] !== ">" && depth === 0) {
+      const start = index + 1 + /^\s*/.exec(code.slice(index + 1))[0].length;
+      if (code[start] !== "{") return null;
+      const end = closingDelimiter(code, start, "{", "}");
+      return end === -1 ? null : code.slice(start + 1, end);
+    }
+  }
+  return null;
 }
 
 export function parseTsObjectKeys(source, symbol) {
@@ -195,8 +288,74 @@ export function parseTsReadonlyArray(source, symbol) {
 }
 
 export function extractQuotedConstant(source, symbol) {
-  const match = new RegExp(`${symbol}\\s*=\\s*"([^"]*)"`).exec(stripCode(source));
-  return match ? match[1] : null;
+  const code = stripCode(source);
+  const declarations = [...maskNonCode(code).matchAll(new RegExp(`\\bstring\\b[^;{}]*\\bconstant\\s+${escapeRegExp(symbol)}\\s*=`, "g"))];
+  if (declarations.length !== 1) return null;
+  const declaration = declarations[0];
+  const value = /^\s*"((?:\\.|[^"\\])*)"\s*;/.exec(code.slice(declaration.index + declaration[0].length));
+  return value ? value[1] : null;
+}
+
+export function checkStandaloneSchemaRegistration(schema, source) {
+  const fatal = [];
+  const diffs = [];
+  const code = stripCode(source);
+  const compact = (value) => value.replace(/\s+/g, "");
+  const fields = extractQuotedConstant(code, schema.source_symbol);
+  if (fields === null) fatal.push(`could not extract quoted constant ${schema.source_symbol}`);
+  else {
+    // The registry hashes the schema bytes, including separator whitespace.
+    const expected = schema.fields.map((field) => `${field.type} ${field.name}`).join(", ");
+    if (fields !== expected) diffs.push(`registration string expected "${expected}" found "${fields}"`);
+  }
+  const registration = schema.registration;
+  if (!registration) return { fatal: [...fatal, "missing registration metadata"], diffs };
+  const name = extractQuotedConstant(code, registration.name_symbol);
+  if (name === null) fatal.push(`could not extract quoted constant ${registration.name_symbol}`);
+  else if (name !== schema.name) diffs.push(`name expected "${schema.name}" found "${name}"`);
+  const revocableConstants = [...maskNonCode(code).matchAll(new RegExp(`\\bbool\\b[^;{}]*\\bconstant\\s+${escapeRegExp(registration.revocable_symbol)}\\s*=\\s*(true|false)\\s*;`, "g"))];
+  const revocable = revocableConstants[0];
+  if (revocableConstants.length !== 1) fatal.push(`expected one boolean constant ${registration.revocable_symbol}; found ${revocableConstants.length}`);
+  else if ((revocable[1] === "true") !== schema.revocable) {
+    diffs.push(`revocable expected ${schema.revocable} found ${revocable[1]}`);
+  }
+
+  // Standalone schema sources register exactly one declared schema. Additional
+  // registrations require an explicit extension, rather than selecting a lucky match.
+  const calls = [...maskNonCode(code).matchAll(/\.register\s*\(/g)];
+  if (calls.length !== 1) fatal.push(`expected one register call; found ${calls.length}`);
+  else {
+    const start = code.indexOf("(", calls[0].index);
+    const end = closingDelimiter(code, start, "(", ")");
+    if (end === -1) fatal.push("could not parse register call arguments");
+    else {
+      const args = [];
+      let argumentStart = start + 1;
+      let depth = 0;
+      for (let index = argumentStart; index < end; index += 1) {
+        const character = code[index];
+        if ('"\'`'.includes(character)) index = skipQuoted(code, index);
+        else if ("{[(".includes(character)) depth += 1;
+        else if ("}])".includes(character)) depth -= 1;
+        else if (character === "," && depth === 0) {
+          args.push(compact(code.slice(argumentStart, index)));
+          argumentStart = index + 1;
+        }
+      }
+      args.push(compact(code.slice(argumentStart, end)));
+      if (args.length !== 3) fatal.push(`register call requires three arguments; found ${args.length}`);
+      else {
+        for (const [index, label, expected] of [
+          [0, "schema", schema.source_symbol],
+          [1, "resolver", compact(registration.resolver_argument)],
+          [2, "revocable", registration.revocable_symbol],
+        ]) {
+          if (args[index] !== expected) diffs.push(`registration ${label} argument expected "${expected}" found "${args[index]}"`);
+        }
+      }
+    }
+  }
+  return { fatal, diffs };
 }
 
 export function parseTsPropertyUnion(source, container, property) {
@@ -480,9 +639,9 @@ export function collectAnchorFiles(ontology) {
     for (const file of integration.additional_sources ?? []) files.add(file);
   }
   for (const entity of ontology.entities) {
-    for (const file of entity.layers?.solidity ?? []) files.add(file);
+    for (const anchor of entity.layers?.solidity ?? []) if (typeof anchor?.file === "string") files.add(anchor.file);
     if (entity.layers?.indexer) files.add(entity.layers.indexer.file);
-    for (const file of entity.layers?.shared ?? []) files.add(file);
+    for (const anchor of entity.layers?.shared ?? []) if (typeof anchor?.file === "string") files.add(anchor.file);
     if (entity.layers?.docs) files.add(entity.layers.docs);
     if (entity.spec_source) files.add(entity.spec_source);
   }
@@ -739,6 +898,35 @@ export function checkQaCatalogRoles(ontology, catalog) {
   return errors;
 }
 
+function vocabularyRepresentation(vocabulary, id) {
+  return id === "canonical"
+    ? { ...vocabulary.canonical, id, file: SIDECAR_PATH }
+    : vocabulary.representations.find((representation) => representation.id === id);
+}
+
+function hasCanonicalRepresentation(vocabulary) {
+  const canonical = vocabulary.canonical;
+  if (vocabulary.representations.some((representation) => compareMembers(
+    canonical.members, representation.members,
+    { ordered: canonical.ordered && representation.ordered }
+  ).length === 0)) return true;
+
+  // A conceptual spelling may have no verbatim live representation. It must then
+  // declare a complete one-to-one bridge, including any target-only sentinels.
+  return (vocabulary.mappings ?? []).some((mapping) => {
+    if (mapping.from !== "canonical" || mapping.kind !== "explicit" ||
+        !mapping.total_from || !mapping.bijective || mapping.unmapped_from?.length) return false;
+    const target = vocabulary.representations.find((representation) => representation.id === mapping.to);
+    if (!target) return false;
+    const keys = Object.keys(mapping.pairs ?? {});
+    const values = Object.values(mapping.pairs ?? {});
+    return compareMembers(canonical.members, keys, { ordered: false }).length === 0 &&
+      new Set(values).size === values.length &&
+      values.every((value) => target.members.includes(value)) &&
+      target.members.every((member) => values.includes(member) || mapping.unmapped_to?.includes(member));
+  });
+}
+
 export function checkSidecarIntegrity(ontology, fileExists) {
   const errors = [];
   const validSymbol = (symbol) => typeof symbol === "string" && /^[A-Za-z_$][\w$]*$/.test(symbol);
@@ -874,6 +1062,10 @@ export function checkSidecarIntegrity(ontology, fileExists) {
 
   for (const vocabulary of ontology.vocabularies) {
     if (vocabulary.canonical.members.length === 0) errors.push(`vocabulary ${vocabulary.id}: empty canonical member list`);
+    uniq(`vocabulary ${vocabulary.id} canonical members`, vocabulary.canonical.members);
+    if (vocabulary.source_status !== "specified" && !hasCanonicalRepresentation(vocabulary)) {
+      errors.push(`vocabulary ${vocabulary.id}: canonical members must match a live representation or a total bijective canonical mapping`);
+    }
     // Display labels are the wire-vs-human seam: a member whose deployed name is not
     // the name people read. Every key must be a real member, and the divergence must
     // carry its reason so the split never degrades back into folklore.
@@ -917,6 +1109,7 @@ export function checkSidecarIntegrity(ontology, fileExists) {
     }
     const repIds = new Set();
     for (const rep of vocabulary.representations) {
+      if (rep.id === "canonical") errors.push(`vocabulary ${vocabulary.id}: representation id "canonical" is reserved`);
       if (repIds.has(rep.id)) errors.push(`vocabulary ${vocabulary.id}: duplicate representation id "${rep.id}"`);
       repIds.add(rep.id);
       if (rep.extract === "ts-property-union" && !rep.property) {
@@ -927,8 +1120,8 @@ export function checkSidecarIntegrity(ontology, fileExists) {
       }
     }
     for (const mapping of vocabulary.mappings ?? []) {
-      const from = vocabulary.representations.find((r) => r.id === mapping.from);
-      const to = vocabulary.representations.find((r) => r.id === mapping.to);
+      const from = vocabularyRepresentation(vocabulary, mapping.from);
+      const to = vocabularyRepresentation(vocabulary, mapping.to);
       if (!from) errors.push(`vocabulary ${vocabulary.id}/mapping ${mapping.id}: unknown "from" rep ${mapping.from}`);
       if (!to) errors.push(`vocabulary ${vocabulary.id}/mapping ${mapping.id}: unknown "to" rep ${mapping.to}`);
     }
@@ -1019,6 +1212,18 @@ export function checkSidecarIntegrity(ontology, fileExists) {
   }
 
   for (const entity of ontology.entities) {
+    const indexer = entity.layers?.indexer;
+    if (indexer && (!validSymbol(indexer.type) || typeof indexer.file !== "string" || !indexer.file)) {
+      errors.push(`entity ${entity.id}: indexer anchor requires a file and type identifier`);
+    }
+    for (const layer of ["solidity", "shared"]) {
+      for (const anchor of entity.layers?.[layer] ?? []) {
+        if (typeof anchor?.file !== "string" || !anchor.file || !validSymbol(anchor.symbol) ||
+            (anchor.kind !== undefined && !["type", "value"].includes(anchor.kind))) {
+          errors.push(`entity ${entity.id}: ${layer} anchor requires a file and symbol identifier`);
+        }
+      }
+    }
     for (const relationship of entity.relationships ?? []) {
       if (!entityIds.has(relationship.to)) {
         errors.push(`entity ${entity.id}: relationship targets unknown entity "${relationship.to}"`);
@@ -1027,8 +1232,18 @@ export function checkSidecarIntegrity(ontology, fileExists) {
   }
 
   for (const [key, schema] of Object.entries(ontology.schemas)) {
-    if (schema.check === "existence-only" && !schema.source_symbol) {
+    if (schema.check === "existence-only" && !validSymbol(schema.source_symbol)) {
       errors.push(`schema ${key}: existence-only check requires source_symbol`);
+    }
+    if (schema.check === "existence-only") {
+      const registration = schema.registration;
+      if (!registration || !validSymbol(registration.name_symbol) ||
+          !validSymbol(registration.revocable_symbol) || typeof registration.resolver_argument !== "string" ||
+          !registration.resolver_argument.trim()) {
+        errors.push(`schema ${key}: existence-only check requires registration name, revocable and resolver metadata`);
+      } else if (schema.resolver === null && registration.resolver_argument.replace(/\s/g, "") !== "address(0)") {
+        errors.push(`schema ${key}: a null resolver requires registration resolver_argument address(0)`);
+      }
     }
   }
 
@@ -1369,27 +1584,12 @@ function runGuards(ontology, projections) {
           schemaChecked += 1;
           const declSource = sourceOf(schema.source);
           if (declSource !== null) {
-            // Exact equality against the full quoted registration constant —
-            // an infix test would let fields ADDED around the declared list
-            // (which change the schema UID) pass silently.
-            const quoted = extractQuotedConstant(declSource, schema.source_symbol);
-            if (quoted === null) {
-              fatal.push(
-                `schema ${key}: could not extract quoted constant ${schema.source_symbol} from ${schema.source}`
-              );
-            } else {
-              const expectedSchemaString = schema.fields.map((f) => `${f.type} ${f.name}`).join(",");
-              const squash = (text) => text.replace(/\s+/g, "");
-              if (squash(quoted) !== squash(expectedSchemaString)) {
-                findings.push({
-                  guard: "eas-schemas",
-                  subject: `schema:${key}`,
-                  file: schema.source,
-                  detail: `registration string expected "${expectedSchemaString}" found "${quoted}"`,
-                  message: `schema ${key} deviates from its registration source`,
-                });
-              }
-            }
+            const checked = checkStandaloneSchemaRegistration(schema, declSource);
+            fatal.push(...checked.fatal.map((error) => `schema ${key}: ${error} in ${schema.source}`));
+            if (checked.diffs.length) findings.push({
+              guard: "eas-schemas", subject: `schema:${key}`, file: schema.source,
+              detail: checked.diffs.join("; "), message: `schema ${key} deviates from its registration source`,
+            });
           }
           continue;
         }
@@ -1510,8 +1710,8 @@ function runGuards(ontology, projections) {
   for (const vocabulary of ontology.vocabularies) {
     for (const mapping of vocabulary.mappings ?? []) {
       mappingCount += 1;
-      const from = vocabulary.representations.find((r) => r.id === mapping.from);
-      const to = vocabulary.representations.find((r) => r.id === mapping.to);
+      const from = vocabularyRepresentation(vocabulary, mapping.from);
+      const to = vocabularyRepresentation(vocabulary, mapping.to);
       if (!from || !to) continue; // reported by integrity
       const diffs = [];
       if (mapping.kind === "explicit") {
@@ -1576,7 +1776,9 @@ function runGuards(ontology, projections) {
       }
     }
   }
-  counts["anchor-symbols"] = anchorSymbolCount;
+  const entityAnchors = checkEntityAnchorSymbols(ontology, sourceOf);
+  errors.push(...entityAnchors.errors);
+  counts["anchor-symbols"] = anchorSymbolCount + entityAnchors.checked;
 
   let arrivalWatched = 0;
   for (const { kind, id, anchor } of collectPlannedAnchors(ontology)) {

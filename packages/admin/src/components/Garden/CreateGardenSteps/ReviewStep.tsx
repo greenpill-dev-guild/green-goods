@@ -1,17 +1,11 @@
+import { DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
-import { type Address, DOMAIN_COLORS, Domain } from "@green-goods/shared/types/domain";
+import { type Address, DOMAIN_COLORS } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";
-
-const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {
-  [Domain.SOLAR]: { id: "app.garden.create.domain.solar", defaultMessage: "Solar" },
-  [Domain.AGRO]: { id: "app.garden.create.domain.agro", defaultMessage: "Agroforestry" },
-  [Domain.EDU]: { id: "app.garden.create.domain.edu", defaultMessage: "Education" },
-  [Domain.WASTE]: { id: "app.garden.create.domain.waste", defaultMessage: "Waste" },
-};
 
 export interface ReviewStepCost {
   estimate?: ReturnType<typeof useCreateGardenController>["costEstimate"];
@@ -103,7 +97,10 @@ export function ReviewStep({ cost = {} }: { cost?: ReviewStepCost }) {
                       className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: DOMAIN_COLORS[domain] }}
                     />
-                    {formatMessage(DOMAIN_LABELS[domain])}
+                    {formatMessage({
+                      id: DOMAIN_LABELS[domain].gardenLabelId,
+                      defaultMessage: DOMAIN_LABELS[domain].defaultMessage,
+                    })}
                   </span>
                 ))}
               </span>

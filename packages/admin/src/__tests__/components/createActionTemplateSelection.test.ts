@@ -1,14 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared/types/domain", () => ({
-  Domain: {
-    SOLAR: 0,
-    AGRO: 1,
-    EDU: 2,
-    WASTE: 3,
-  },
-}));
-
 vi.mock("@green-goods/shared/utils/action/templates", () => ({
   instructionTemplates: {
     "waste.repair_event": {
