@@ -7,7 +7,6 @@ import {
   useServiceAccessMutation,
   useVoucherIssuerApproval,
   useVoucherWallet,
-  type VoucherWalletSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiExchangeLine, RiQuestionLine } from "@remixicon/react";
@@ -50,7 +49,12 @@ import {
   exchangeStep,
   smallerExchangeInput,
 } from "./serviceExchange";
-import { promiseVoucherIssuer, servicePromiseViews } from "./servicePromiseViews";
+import {
+  promiseVoucherIssuer,
+  type RetainedVoucherWallet,
+  retainedVoucherWallet,
+  servicePromiseViews,
+} from "./servicePromiseViews";
 import { VoucherPilotJourney } from "./VoucherPilotJourney";
 
 /**
@@ -90,17 +94,14 @@ export function ServicePromise({
   const read = walletQuery.data;
   // A read that answered "unavailable" names nothing and counts nothing: not a wallet to draw from.
   const readUsable = read !== undefined && read.evidence !== "unavailable";
-  // The last wallet that did answer, kept through a refresh that fails, so the issuer's name and
-  // the reader's holdings never vanish mid-page; the page says the refresh failed instead.
-  const [lastGood, setLastGood] = useState<VoucherWalletSnapshot | null>(null);
+  // The last wallet that did answer, with the route it answered for, kept through a refresh that
+  // fails so the issuer's name and the reader's holdings never vanish mid-page; the page says the
+  // refresh failed instead. Another route's wallet never stands in, even for the same account.
+  const [lastGood, setLastGood] = useState<RetainedVoucherWallet | null>(null);
   useEffect(() => {
-    if (readUsable) setLastGood(read);
-  }, [read, readUsable]);
-  const wallet = readUsable
-    ? read
-    : lastGood && walletAccount && lastGood.account.toLowerCase() === walletAccount.toLowerCase()
-      ? lastGood
-      : undefined;
+    if (readUsable && walletScope) setLastGood({ scope: walletScope, wallet: read });
+  }, [read, readUsable, walletScope]);
+  const wallet = readUsable ? read : retainedVoucherWallet(lastGood, walletScope);
   const walletUnavailable =
     walletScope !== null && (walletQuery.isError || (read !== undefined && !readUsable));
   const liveExchangeChoices = serviceIssuerExchangeChoices(snapshot, wallet);

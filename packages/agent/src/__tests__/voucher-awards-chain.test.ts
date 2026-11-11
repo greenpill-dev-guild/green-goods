@@ -175,6 +175,17 @@ describe("award chain verification", () => {
       code: "transaction_unverified",
     });
   });
+  it("refuses every kind of receipt once the token's code changed after the award was prepared", async () => {
+    const f = fixture();
+    expect(await f.chain.prepare(f.record.award)).toEqual(f.record.safe);
+    f.client.getCode.mockResolvedValue("0x4321");
+    await expect(f.chain.reconcile(f.record, hash)).rejects.toMatchObject({
+      code: "issuer_configuration_changed",
+    });
+    // Neither the successful receipt nor a pending transaction is even consulted.
+    expect(f.client.getTransactionReceipt).not.toHaveBeenCalled();
+    expect(f.client.getTransaction).not.toHaveBeenCalled();
+  });
   it("proves the reviewed nonce-bound signatures before recording a reverted or pending attempt", async () => {
     const f = fixture();
     f.client.getTransactionReceipt.mockResolvedValue({ status: "reverted", logs: [] });

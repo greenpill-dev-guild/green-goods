@@ -1,6 +1,14 @@
+import type {
+  ServiceAccessSnapshot,
+  VoucherWalletSnapshot,
+} from "@green-goods/shared/commitment-pooling";
+import type { Address } from "@green-goods/shared/types/domain";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { bookingStorySnapshot } from "../../../../shared/.storybook/voucherBookingFixtures";
+import {
+  bookingStorySnapshot,
+  bookingStoryWallet,
+} from "../../../../shared/.storybook/voucherBookingFixtures";
 import { ServiceLiveExchange } from "../../views/Home/Garden/Commitment/ServiceLiveExchange";
 import {
   issuerStoryAssets,
@@ -9,21 +17,27 @@ import {
 import { ServicePromise } from "../../views/Home/Garden/Commitment/ServicePromise";
 import { renderWithProviders, screen, userEvent } from "../test-utils";
 
-const mocks = vi.hoisted(() => ({ send: vi.fn(), issuer: vi.fn(), walletRefetch: vi.fn() }));
+const mocks = vi.hoisted(() => {
+  const walletRefetch = vi.fn();
+  // The wallet read's default answer: nothing yet, nothing wrong.
+  const walletRead = (..._args: unknown[]) => ({
+    data: undefined as VoucherWalletSnapshot | undefined,
+    isError: false,
+    refetch: walletRefetch,
+  });
+  return { send: vi.fn(), issuer: vi.fn(), walletRefetch, walletRead, wallet: vi.fn(walletRead) };
+});
 vi.mock("@green-goods/shared/commitment-pooling", async (original) => ({
   ...(await original<typeof import("@green-goods/shared/commitment-pooling")>()),
   useServiceIssuerOperations: (...args: unknown[]) => mocks.issuer(...args),
   useServiceAccessMutation: () => ({ isPending: false, mutateAsync: mocks.send }),
-  useVoucherWallet: () => ({ data: undefined, isError: false, refetch: mocks.walletRefetch }),
+  useVoucherWallet: (...args: unknown[]) => mocks.wallet(...args),
   useVoucherIssuerApproval: () => ({ data: undefined }),
 }));
 
-function page(options: { online?: boolean; failed?: boolean; checking?: boolean } = {}) {
-  const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
-  snapshot.voucherSetups[0]!.destination!.result.phase = "none";
-  snapshot.voucherSetups[0]!.source.authorizationMessageId = snapshot.voucherSetups[0]!.setupId;
-  const refetch = vi.fn();
-  renderWithProviders(
+type PageOptions = { online?: boolean; failed?: boolean; checking?: boolean };
+function promise(snapshot: ServiceAccessSnapshot, refetch: () => void, options: PageOptions = {}) {
+  return (
     <MemoryRouter>
       <ServicePromise
         serviceKey={snapshot.key}
@@ -46,6 +60,13 @@ function page(options: { online?: boolean; failed?: boolean; checking?: boolean 
       </ServicePromise>
     </MemoryRouter>
   );
+}
+function page(options: PageOptions = {}) {
+  const snapshot = bookingStorySnapshot("hubDay", "waitingApproval");
+  snapshot.voucherSetups[0]!.destination!.result.phase = "none";
+  snapshot.voucherSetups[0]!.source.authorizationMessageId = snapshot.voucherSetups[0]!.setupId;
+  const refetch = vi.fn();
+  renderWithProviders(promise(snapshot, refetch, options));
   return refetch;
 }
 
@@ -73,6 +94,34 @@ describe("checking a voucher promise's remote status", () => {
     const link = screen.getByText("Track Request in CCIP Explorer");
     expect(link.closest("details")).not.toBeNull();
     expect(link).toHaveAttribute("href", expect.stringContaining("https://ccip.chain.link/msg/0x"));
+  });
+});
+
+describe("the wallet kept through a refresh that fails", () => {
+  it("stands in on the route it was read for, never on another route the same account opens", async () => {
+    const first = bookingStorySnapshot("hubDay", "open");
+    const elsewhere: ServiceAccessSnapshot = {
+      ...first,
+      key: { ...first.key, coreModule: "0x000000000000000000000000000000000000beef" as Address },
+    };
+    let read: { data: VoucherWalletSnapshot | undefined; isError: boolean } = {
+      data: bookingStoryWallet(first, { techAndSun: 9, greenGoods: 2 }),
+      isError: false,
+    };
+    mocks.wallet.mockImplementation(() => ({ ...read, refetch: mocks.walletRefetch }));
+    const view = renderWithProviders(promise(first, vi.fn()));
+    await userEvent.click(screen.getByRole("button", { name: "Review and Redeem" }));
+    // The sheet counts what the reader holds of the offer's voucher, from the wallet.
+    const holds = "You hold 9.";
+    expect(screen.getByText(holds)).toBeInTheDocument();
+    // The same route, refreshed and failed: the last wallet that answered still does.
+    read = { data: undefined, isError: true };
+    view.rerender(promise(first, vi.fn()));
+    expect(screen.getByText(holds)).toBeInTheDocument();
+    // Another commitment's route for the same account, its own read still out: nothing stands in.
+    view.rerender(promise(elsewhere, vi.fn()));
+    expect(screen.queryByText(holds)).toBeNull();
+    mocks.wallet.mockImplementation(mocks.walletRead);
   });
 });
 

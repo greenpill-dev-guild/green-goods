@@ -148,7 +148,9 @@ export function createVoucherAwardChain(input: {
       return envelope;
     },
     async reconcile(record, transactionHash) {
-      issuer(record.award.reserve, record.award.token);
+      // The pinned token code must still be in place before any evidence counts: a replaced proxy
+      // or implementation could run the reviewed calldata and emit the expected Transfer anyway.
+      await assertToken(issuer(record.award.reserve, record.award.token));
       let receipt;
       try {
         receipt = await client.getTransactionReceipt({ hash: transactionHash });

@@ -5,6 +5,7 @@ import {
   type ServiceAccessSnapshot,
   type VoucherIssuer,
   type VoucherIssuerApproval,
+  type VoucherWalletScope,
   type VoucherWalletSnapshot,
 } from "@green-goods/shared/commitment-pooling";
 import type { Address } from "@green-goods/shared/types/domain";
@@ -35,6 +36,29 @@ export function promiseVoucherIssuer(
 ): { matched: VoucherIssuer | null; issuer: ServiceBookingInput["issuer"] } {
   const matched = bookingVoucherIssuer(snapshot, wallet?.issuers);
   return { matched, issuer: matched ?? catalogVoucherIssuer(bookingVoucherPair(snapshot)) };
+}
+
+/** The wallet kept from the last read that answered, with the route it answered for. */
+export interface RetainedVoucherWallet {
+  scope: VoucherWalletScope;
+  wallet: VoucherWalletSnapshot;
+}
+
+/**
+ * The retained wallet stands in for a read that hasn't answered only on the exact route it was
+ * read for: the same account, source chain and core module. Another commitment's route reads its
+ * own wallet, so holdings read elsewhere never make this one look bookable.
+ */
+export function retainedVoucherWallet(
+  retained: RetainedVoucherWallet | null,
+  scope: VoucherWalletScope | null
+): VoucherWalletSnapshot | undefined {
+  if (!retained || !scope) return undefined;
+  const sameRoute =
+    retained.scope.sourceChainId === scope.sourceChainId &&
+    retained.scope.coreModule.toLowerCase() === scope.coreModule.toLowerCase() &&
+    retained.scope.account.toLowerCase() === scope.account.toLowerCase();
+  return sameRoute ? retained.wallet : undefined;
 }
 
 export interface ServicePromiseViewsInput {
