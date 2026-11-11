@@ -48,6 +48,23 @@ describe("serviceOfferDetail", () => {
       booking: "Exchange first",
       promisedBy: "Teo Alves",
     });
+    // The price keeps every decimal the terms set; the holding keeps the wallet's two, cut short.
+    expect(
+      serviceOfferDetail(
+        intl,
+        line(
+          "Teo Alves",
+          { kind: "hold", held: 1_999_999n, decimals: 6 },
+          {
+            takes: { units: 1_239_999n, decimals: 6 },
+          }
+        )
+      )
+    ).toEqual({
+      takes: "Takes 1.239999 Teo Alves vouchers",
+      booking: "You hold 1.99",
+      promisedBy: "Teo Alves",
+    });
     expect(serviceOfferDetail(createIntl({ locale: "es", messages: es }), claude)?.takes).toBe(
       "Requiere 10 vales de Green Goods"
     );

@@ -79,19 +79,25 @@ const STORY_ROUTE = {
     },
   ],
 };
-const operations = () => ({
-  snapshot: {
-    data: issuerServiceStory("overview"),
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  },
-  review: { mutateAsync: vi.fn() },
-  execute: { mutateAsync: vi.fn() },
-  reconcile: { mutateAsync: vi.fn() },
-  quote: { mutateAsync: vi.fn() },
-  lastExchange: { data: null },
-});
+const refetch = vi.fn().mockResolvedValue(undefined);
+const reconcile = vi.fn().mockResolvedValue(null);
+/** A read with a pool sees the listing; one without, as the real hook answers, sees none. */
+const operations = (actor?: { poolId?: string }, state: "overview" | "pending" = "overview") => {
+  const snapshot = issuerServiceStory(state);
+  return {
+    snapshot: {
+      data: actor?.poolId ? snapshot : { ...snapshot, pool: null, poolStatus: "unselected" },
+      isLoading: false,
+      isError: false,
+      refetch,
+    },
+    review: { mutateAsync: vi.fn() },
+    execute: { mutateAsync: vi.fn() },
+    reconcile: { mutateAsync: reconcile },
+    quote: { mutateAsync: vi.fn() },
+    lastExchange: { data: null },
+  };
+};
 const issuer = (name: string, token: `0x${string}`): VoucherIssuer => ({
   account: "0x3333333333333333333333333333333333333333",
   kind: "individual",
@@ -128,9 +134,11 @@ function reset() {
   state.wallet = { data: undefined, isError: false, refetch: vi.fn() };
   state.drafts.mockReturnValue({ data: { status: "unavailable" } });
   state.operations.mockReset();
-  state.operations.mockReturnValue(operations());
+  state.operations.mockImplementation((actor: { poolId?: string }) => operations(actor));
   state.load.mutate.mockClear();
   state.load.isError = false;
+  refetch.mockClear();
+  reconcile.mockClear();
 }
 
 describe("Your Services", () => {
@@ -169,6 +177,9 @@ describe("Your Services", () => {
     await userEvent.click(screen.getByRole("button", { name: "Decline" }));
     expect(state.decline.mutate).toHaveBeenCalledExactlyOnceWith(own);
     expect(state.operations).not.toHaveBeenCalled();
+    // This build reads no vouchers: no holdings list, and no claim that the account holds none.
+    expect(screen.queryByText("Vouchers you hold")).not.toBeInTheDocument();
+    expect(screen.queryByText("No vouchers yet")).not.toBeInTheDocument();
   });
 
   it("reads the member's own service as a row with its standing, and opens its panel from the active identity", async () => {
@@ -179,12 +190,14 @@ describe("Your Services", () => {
     expect(rows("service")).toHaveLength(1);
     const row = within(rows("service")[0]!).getByRole("button", { expanded: false });
     expect(row).toHaveTextContent("Fictional engineer help");
+    // The row reads with the pool that lists the asset: without one, no listing is known.
     expect(row).toHaveTextContent("Listed");
     expect(row).toHaveTextContent("2 booked, 3 left to deliver");
     expect(state.operations).toHaveBeenCalledWith({
       address: ISSUER_STORY_ADDRESS,
       routeId: "fictional-story",
       assetId: "engineer-help",
+      poolId: "fictional-local",
     });
     await userEvent.click(row);
     expect(screen.getByText("Services I Offer")).toBeInTheDocument();
@@ -221,6 +234,69 @@ describe("Your Services", () => {
       routeId: "fictional-story",
       assetId: "analyst-help",
     });
+  });
+
+  it("keeps an open holding's row and panel through a refresh that empties it, until it is closed", async () => {
+    reset();
+    state.routes = [STORY_ROUTE];
+    state.walletRoute = true;
+    state.wallet = { data: wallet(), isError: false, refetch: vi.fn() };
+    const view = renderWithProviders(<ServiceAssets />);
+    const row = () => within(rows("holding")[0]!).getByRole("button", { expanded: false });
+    await userEvent.click(row());
+    expect(screen.getByText("Vouchers I Hold")).toBeInTheDocument();
+    // The exchange of the whole balance refreshed the wallet: the open row stays with its panel.
+    state.wallet = {
+      data: { ...wallet(), holdings: [{ issuer: COACHING, available: 0n }] },
+      isError: false,
+      refetch: vi.fn(),
+    };
+    view.rerender(<ServiceAssets />);
+    expect(rows("holding")).toHaveLength(1);
+    expect(screen.getByText("Vouchers I Hold")).toBeInTheDocument();
+    expect(rows("holding")[0]).toHaveTextContent("0");
+    await userEvent.click(within(rows("holding")[0]!).getByRole("button", { expanded: true }));
+    expect(rows("holding")).toHaveLength(0);
+    expect(screen.getByText("No vouchers yet")).toBeInTheDocument();
+  });
+
+  it("keeps a holding a record when no exchange pool lists its asset", () => {
+    reset();
+    state.routes = [
+      {
+        ...STORY_ROUTE,
+        pools: [{ ...STORY_ROUTE.pools[0], listings: [{ assetId: "engineer-help" }] }],
+      },
+    ];
+    state.walletRoute = true;
+    state.wallet = { data: wallet(), isError: false, refetch: vi.fn() };
+    renderWithProviders(<ServiceAssets />);
+    const [coaching] = rows("holding");
+    expect(coaching).toHaveTextContent("Fictional analyst coaching vouchers");
+    expect(coaching).toHaveAttribute("data-listed", "false");
+    expect(within(coaching!).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("reads the service row again after the panel confirms an act", async () => {
+    reset();
+    state.routes = [STORY_ROUTE];
+    state.operations.mockImplementation((actor: { poolId?: string }) =>
+      operations(actor, "pending")
+    );
+    reconcile.mockResolvedValue({
+      status: "confirmed",
+      transactionHash: `0x${"ab".repeat(32)}`,
+      currentStateMatchesReceipt: true,
+    });
+    state.walletRoute = true;
+    state.wallet = { data: { ...wallet(), holdings: [] }, isError: false, refetch: vi.fn() };
+    renderWithProviders(<ServiceAssets />);
+    await userEvent.click(within(rows("service")[0]!).getByRole("button", { expanded: false }));
+    expect(refetch).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Check Transaction Status" }));
+    expect(reconcile).toHaveBeenCalledOnce();
+    expect(state.wallet.refetch).toHaveBeenCalledOnce();
+    expect(refetch).toHaveBeenCalled();
   });
 
   it("says the wallet could not be read, and reads it again on request", async () => {

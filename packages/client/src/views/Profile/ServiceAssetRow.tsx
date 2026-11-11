@@ -19,6 +19,7 @@ import {
   draftState,
   type HeldVoucherRow,
   LISTING_PILL,
+  listingPoolId,
 } from "./serviceAssetRows";
 
 /** The opened panel's frame under its row, as the wallet opens a holding (DL-113). */
@@ -89,29 +90,33 @@ export function DraftRow({
 }
 
 /**
- * A service the member lists: where its token stands in the pool, read from the chain, and
- * what is booked and left to deliver once the bookings are verified. The read is the panel's
- * own, so opening the row adds nothing to it.
+ * A service the member lists: where its token stands in the exchange pool that lists it, read
+ * from the chain, and what is booked and left to deliver once the bookings are verified. The
+ * panel under it reads with the pool the member selects, so a confirmed act there also reads the
+ * row again, and the row never shows yesterday's capacity beside today's booking.
  */
 export function OwnServiceRow({
   member,
   entry,
   open,
   onToggle,
-  children,
+  panel,
 }: {
   member: Address;
   entry: CatalogAsset;
   open: boolean;
   onToggle: () => void;
-  children: ReactNode;
+  /** The opened panel, handed the row's own refresh for the acts it confirms. */
+  panel: (refreshRow: () => Promise<unknown>) => ReactNode;
 }) {
   const intl = useIntl();
   const panelId = useId();
+  const poolId = listingPoolId(entry);
   const operations = useServiceIssuerOperations({
     address: member,
     routeId: entry.route.service.id,
     assetId: entry.asset.id,
+    ...(poolId ? { poolId } : {}),
   });
   const snapshot = operations.snapshot.data;
   const onchain = snapshot?.evidence === "onchain" ? snapshot : null;
@@ -141,7 +146,7 @@ export function OwnServiceRow({
       />
       {open ? (
         <div id={panelId} className={PANEL_CLASS}>
-          {children}
+          {panel(() => operations.snapshot.refetch())}
         </div>
       ) : null}
     </li>
@@ -150,7 +155,7 @@ export function OwnServiceRow({
 
 /**
  * What the member holds of one issuer, as the wallet writes it, with its amount in the right
- * slot (DL-113). A holding the live routes list opens its exchange; one they don't is a record.
+ * slot (DL-113). A holding an exchange pool lists opens its exchange; one none lists is a record.
  */
 export function HeldRow({
   row,

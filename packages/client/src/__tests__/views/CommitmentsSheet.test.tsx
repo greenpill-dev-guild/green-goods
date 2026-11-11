@@ -296,6 +296,34 @@ describe("CommitmentsSheet", () => {
       );
     });
 
+    it("names no price on a fold whose copies price differently, and each copy its own", async () => {
+      const user = userEvent.setup();
+      const priced = (units: bigint) => ({
+        promisedBy: "Tech and Sun",
+        gender: "feminine",
+        takes: { units, decimals: 6 },
+        booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+      });
+      mockUseServiceOfferLines.mockReturnValue(
+        new Map(
+          tenOffers.map((row, index) => [
+            row.commitment.commitmentId.toString(),
+            priced(index === 0 ? 1_000_000n : 2_000_000n),
+          ])
+        )
+      );
+      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+      const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
+      const foldLine = fold.querySelector(".gg-item-row-details");
+      expect(foldLine).not.toHaveTextContent("Takes");
+      expect(foldLine).toHaveTextContent("You hold 2");
+      expect(foldLine).toHaveTextContent("10 promises");
+      await user.click(fold);
+      expect(copyRows()[0]).toHaveTextContent("Takes 1 Tech and Sun voucher");
+      expect(copyRows()[1]).toHaveTextContent("Takes 2 Tech and Sun vouchers");
+    });
+
     it("keeps the list open when the copies' words arrive after it opened", async () => {
       const user = userEvent.setup();
       mockMetadata = new Map();
@@ -613,6 +641,53 @@ describe("CommitmentsSheet", () => {
       expect(screen.getByText(/Could not load the garden's queue/)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /try again/i }));
       expect(refetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("gives a take-up request waiting on a steward its service line too", () => {
+    const offer = commitmentFixture({
+      id: "42161-70",
+      commitmentId: 70n,
+      poolId: 7n,
+      creator: OTHER,
+      direction: "OFFER",
+      onchainState: "OFFERED",
+      derivedState: "OFFERED",
+      metadataCID: HUB_DAY_CID,
+    });
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [
+        {
+          claim: { requestedBy: VIEWER, claimant: VIEWER, gardenContext: GARDEN },
+          commitment: offer,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof mockUsePoolClaimRequests>);
+    mockUseServiceOfferLines.mockReturnValue(
+      new Map([
+        [
+          "70",
+          {
+            promisedBy: "Tech and Sun",
+            gender: "feminine",
+            takes: { units: 1_000_000n, decimals: 6 },
+            booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+          },
+        ],
+      ])
+    );
+    render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+
+    const row = screen.getByRole("button", { name: new RegExp(HUB_DAY) });
+    expect(row).toHaveTextContent("Waiting for review");
+    expect(row).toHaveTextContent("Takes 1 Tech and Sun voucher");
+    // The waiting request is read for its line with the live list, not left out of it.
+    expect(mockUseServiceOfferLines).toHaveBeenCalledWith({
+      chainId: expect.any(Number),
+      offers: [offer],
     });
   });
 

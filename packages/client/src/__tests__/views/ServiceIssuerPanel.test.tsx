@@ -13,7 +13,12 @@ import {
   issuerStorySnapshot,
   ISSUER_STORY_HASH,
 } from "../../views/Profile/serviceIssuerStoryFixtures";
-import { parseIssuerAmount } from "@/components/Features/Vouchers/serviceIssuerPresentation";
+import en from "@green-goods/shared/i18n/en";
+import { createIntl } from "react-intl";
+import {
+  issuerAmount,
+  parseIssuerAmount,
+} from "@/components/Features/Vouchers/serviceIssuerPresentation";
 import { renderWithProviders, screen, userEvent, within } from "../test-utils";
 
 // A booking row names its holder; these tests read no profile, ENS or Green Goods name.
@@ -519,6 +524,34 @@ describe("a holder of another member's vouchers", () => {
       screen.getByText(/Current balances or approvals have changed since its receipt/)
     ).toBeInTheDocument();
     expect(h.onExecute).not.toHaveBeenCalled();
+  });
+});
+
+describe("issuer amounts in words", () => {
+  const intl = createIntl({ locale: "en", messages: en });
+  // The live tokens are named "Green Goods Service Voucher" and "Tech and Sun Service Voucher":
+  // the catalog names the issuer, and an uncatalogued name loses its own voucher noun.
+  it("names a live token by its issuer and never doubles the voucher noun", () => {
+    const live = {
+      name: "Green Goods Service Voucher",
+      decimals: 6,
+      token: { address: "0xbaF8c6f7c0cA8310Df725D90023C188FA8f1B590" as const },
+    };
+    expect(issuerAmount(500_000n, live, intl)).toBe("0.5 Green Goods vouchers");
+    expect(
+      issuerAmount(
+        1_000_000n,
+        {
+          ...live,
+          name: "Fictional Service Voucher",
+          token: { address: "0x9999999999999999999999999999999999999999" },
+        },
+        intl
+      )
+    ).toBe("1 Fictional voucher");
+    expect(issuerAmount(2_000_000n, issuerStoryAssets[0]!, intl)).toBe(
+      "2 Fictional engineer help vouchers"
+    );
   });
 });
 

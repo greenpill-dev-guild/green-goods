@@ -30,6 +30,12 @@ export function catalogAssets(
 
 const same = (left: string, right: string) => left.toLowerCase() === right.toLowerCase();
 
+/** The first exchange pool of the route that lists the asset, where its standing is read. */
+export function listingPoolId({ route, asset }: CatalogAsset): string | undefined {
+  return route.pools.find((pool) => pool.listings.some((listing) => listing.assetId === asset.id))
+    ?.id;
+}
+
 /** Where a draft stands, as its row and its onboarding card both read it. */
 export type DraftState = "review" | "approved" | "changed" | "declined";
 
@@ -68,24 +74,24 @@ export interface HeldVoucherRow {
 }
 
 /**
- * The wallet's holdings as rows, an issuer the account holds none of left out as the wallet
- * leaves it out. A holding of a token in no live route is a record: it opens nothing here.
+ * The wallet's holdings as rows, zero balances included: the view leaves an issuer the account
+ * holds none of out, as the wallet does, except the row the member has open, which an exchange
+ * of the whole balance would otherwise unmount before its receipt. A holding opens its exchange
+ * only when a live route lists its token in an exchange pool; otherwise it is a record.
  */
 export function heldVoucherRows(
   wallet: VoucherWalletSnapshot | undefined,
   assets: readonly CatalogAsset[]
 ): HeldVoucherRow[] {
   if (!wallet || wallet.evidence === "unavailable") return [];
-  return wallet.holdings
-    .filter((holding) => holding.available > 0n)
-    .map((holding) => {
-      const { chainId, token } = holding.issuer.asset;
-      return {
-        key: `holding:${chainId}:${token.toLowerCase()}`,
-        holding,
-        listed: assets.find(({ asset }) => same(asset.token.address, token)) ?? null,
-      };
-    });
+  return wallet.holdings.map((holding) => {
+    const { chainId, token } = holding.issuer.asset;
+    const listed =
+      assets.find(
+        (entry) => same(entry.asset.token.address, token) && listingPoolId(entry) !== undefined
+      ) ?? null;
+    return { key: `holding:${chainId}:${token.toLowerCase()}`, holding, listed };
+  });
 }
 
 /** A draft's pill: what waits on the member, or where the setup stands. */

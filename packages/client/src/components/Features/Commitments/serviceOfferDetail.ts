@@ -27,10 +27,12 @@ export function serviceOfferDetail(
   const count = (units: bigint, decimals: number) =>
     formatTokenAmount(units, decimals, 2, intl.locale, true);
   return {
+    // The price keeps every decimal the terms set, as the booking facts write it: a row that
+    // rounds 1.239999 to 1.23 misstates what booking takes.
     takes: intl.formatMessage(
       { id: "app.commitments.row.service.takes" },
       {
-        n: count(takes.units, takes.decimals),
+        n: formatTokenAmount(takes.units, takes.decimals, takes.decimals, intl.locale, true),
         unit: intl.formatMessage(
           { id: "app.voucher.unit" },
           {

@@ -5,7 +5,9 @@ import type {
 } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { NativeSelect, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
-import { useId, useRef, useState } from "react";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { issuerAmount, parseIssuerAmount } from "./serviceIssuerPresentation";
 
@@ -43,8 +45,12 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
   const [quoting, setQuoting] = useState(false);
   const [failed, setFailed] = useState(false);
   const inputKey = `${poolId}:${asset.id}:${amount}:${outputAssetId}`;
+  // The key the inputs had when a quote was asked for, kept after each render commits, so a
+  // quote that lands after the inputs changed is dropped and one for inputs still on screen kept.
   const current = useRef(inputKey);
-  current.current = inputKey;
+  useEffect(() => {
+    current.current = inputKey;
+  }, [inputKey]);
   const value = parseIssuerAmount(amount, asset.decimals);
   const allowed = parseIssuerAmount(allowance, asset.decimals);
   const output = assets.find((a) => a.id === outputAssetId && a.id !== asset.id);
@@ -75,28 +81,24 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
           if (!locked && prepared) onReview(prepared);
         }}
       >
-        <p id={`${id}-help`} className="text-xs text-text-sub-600">
-          {text("finiteHelp")}
-        </p>
-        <label htmlFor={`${id}-amount`} className="block space-y-1 text-sm">
-          <span>
-            {text("amount")} ({vouchers})
-          </span>
+        <FormField
+          label={`${text("amount")} (${vouchers})`}
+          htmlFor={`${id}-amount`}
+          hint={text("finiteHelp")}
+        >
           <TextInput
             id={`${id}-amount`}
             value={amount}
             inputMode="decimal"
             required
             disabled={locked}
-            aria-describedby={`${id}-help`}
             onChange={(e) => {
               setAmount(e.target.value);
               changed();
             }}
           />
-        </label>
-        <label htmlFor={`${id}-output`} className="block space-y-1 text-sm">
-          <span>{text("receiveAsset")}</span>
+        </FormField>
+        <FormField label={text("receiveAsset")} htmlFor={`${id}-output`}>
           <NativeSelect
             id={`${id}-output`}
             value={outputAssetId}
@@ -116,7 +118,7 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
                 </option>
               ))}
           </NativeSelect>
-        </label>
+        </FormField>
         <Button
           type="button"
           emphasis="secondary"
@@ -133,7 +135,9 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
               if (current.current === key && result.poolId === poolId)
                 setQuote({ key, value: result });
               else if (current.current === key) setFailed(true);
-            } catch {
+            } catch (error) {
+              // The failure is shown under the act and recorded; nothing was sent.
+              logger.error("Exchange quote failed", { error, assetId: asset.id, poolId });
               if (current.current === key) setFailed(true);
             } finally {
               setQuoting(false);
@@ -185,10 +189,7 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
             if (!locked && allowed !== null) onReview({ kind: "approveExchange", amount: allowed });
           }}
         >
-          <label htmlFor={`${id}-allowance`} className="block space-y-1 text-sm">
-            <span>
-              {text("allowUpTo")} ({vouchers})
-            </span>
+          <FormField label={`${text("allowUpTo")} (${vouchers})`} htmlFor={`${id}-allowance`}>
             <TextInput
               id={`${id}-allowance`}
               value={allowance}
@@ -197,7 +198,7 @@ export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, o
               disabled={locked}
               onChange={(e) => setAllowance(e.target.value)}
             />
-          </label>
+          </FormField>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" emphasis="secondary" disabled={locked || allowed === null}>
               {text("reviewPermission")}

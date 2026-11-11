@@ -1,5 +1,6 @@
 import {
   issuerPoolStatus,
+  liveVoucherIssuerName,
   serviceIssuerIssuanceLimit,
   type ServiceIssuerAction,
   type ServiceIssuerAsset,
@@ -19,10 +20,27 @@ export function parseIssuerAmount(value: string, decimals: number): bigint | nul
   return amount > 0n && amount < (1n << 256n) - 1n ? amount : null;
 }
 
+/** What names an amount's unit: the asset's name and decimals, and its token for the catalog. */
+export type IssuerUnitAsset = Pick<ServiceIssuerAsset, "name" | "decimals"> & {
+  token: Pick<ServiceIssuerAsset["token"], "address">;
+};
+
+/**
+ * The issuer's name for a voucher phrase: the live catalog's ("Green Goods" for the token named
+ * "Green Goods Service Voucher"), else the asset's own name with a trailing voucher noun taken
+ * off, so no phrase reads "Service Voucher vouchers". A name with no such noun stands as it is.
+ */
+function issuerStem(asset: IssuerUnitAsset): string {
+  return (
+    liveVoucherIssuerName(asset.token.address) ??
+    asset.name.replace(/\s+(service\s+)?vouchers?\s*$/i, "").trim()
+  );
+}
+
 /** A quantity in the issuer's own words, never a symbol: "0.5 Fictional engineer help vouchers". */
 export function issuerAmount(
   value: bigint,
-  asset: Pick<ServiceIssuerAsset, "name" | "decimals">,
+  asset: IssuerUnitAsset,
   intl: Pick<IntlShape, "formatMessage" | "locale">
 ) {
   return `${issuerCount(value, asset.decimals, intl.locale)} ${issuerUnitWords(value, asset, intl)}`;
@@ -39,12 +57,12 @@ export const issuerPlural = (value: bigint, decimals: number) =>
 /** The unit in the issuer's own words, never a symbol: "Fictional engineer help vouchers". */
 export function issuerUnitWords(
   value: bigint,
-  asset: Pick<ServiceIssuerAsset, "name" | "decimals">,
+  asset: IssuerUnitAsset,
   intl: Pick<IntlShape, "formatMessage">
 ) {
   return intl.formatMessage(
     { id: "app.voucher.unit" },
-    { count: issuerPlural(value, asset.decimals), issuer: asset.name, gender: "other" }
+    { count: issuerPlural(value, asset.decimals), issuer: issuerStem(asset), gender: "other" }
   );
 }
 

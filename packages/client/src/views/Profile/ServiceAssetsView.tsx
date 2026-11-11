@@ -31,7 +31,7 @@ export interface ServiceAssetsViewProps {
   };
   /** The member's own listed services, from the live routes. */
   services: readonly CatalogAsset[];
-  /** What the member's wallet holds, each with the reviewed asset it exchanges as. */
+  /** What the member's wallet holds, zero balances included, each with the asset it exchanges as. */
   holdings: readonly HeldVoucherRow[];
   /** The wallet read behind the holdings, or none where this build reads no vouchers. */
   wallet: "reading" | "failed" | "ready" | "none";
@@ -46,7 +46,8 @@ export interface ServiceAssetsViewProps {
  * counted per issuer as the wallet counts them. A row opens its panel in place: a draft's
  * terms to approve, a service's bookings and acts, a holding's exchange. Nothing is read before
  * the member asks for drafts, since the desk signs to answer; the wallet is read as the wallet
- * sheet reads it.
+ * sheet reads it, and where this build reads no vouchers the holdings list is not drawn at all,
+ * so an unread wallet never reads as an empty one.
  */
 export function ServiceAssetsView({
   member,
@@ -68,6 +69,9 @@ export function ServiceAssetsView({
     setOpen((current) => (current === key ? null : key));
     setContinuing(false);
   };
+  // The wallet leaves out an issuer the account holds none of; the open row stays through the
+  // refresh an exchange of the whole balance triggers, until the member closes or continues it.
+  const shown = holdings.filter((row) => row.holding.available > 0n || row.key === open);
   /** A delivered voucher's own row, when the catalog lists it: a second exchange opens there. */
   const continueWith = (routeId: string, assetId: string) => {
     const row =
@@ -79,7 +83,12 @@ export function ServiceAssetsView({
     setOpen(row.key);
     setContinuing(true);
   };
-  const panel = (key: string, { route, asset }: CatalogAsset, account: Address) => (
+  const panel = (
+    key: string,
+    { route, asset }: CatalogAsset,
+    account: Address,
+    onRefresh: () => Promise<unknown> = onRefreshWallet
+  ) => (
     <ServiceAssetPanel
       key={`${identity}:${key}`}
       actor={{ address: account, routeId: route.service.id, assetId: asset.id }}
@@ -87,7 +96,7 @@ export function ServiceAssetsView({
       pools={route.pools}
       continuing={continuing}
       onContinue={(assetId) => continueWith(route.service.id, assetId)}
-      onRefresh={onRefreshWallet}
+      onRefresh={onRefresh}
     />
   );
   const lead = (
@@ -136,9 +145,13 @@ export function ServiceAssetsView({
             entry={entry}
             open={open === entry.key}
             onToggle={() => toggle(entry.key)}
-          >
-            {panel(entry.key, entry, member)}
-          </OwnServiceRow>
+            panel={(refreshRow) =>
+              panel(entry.key, entry, member, async () => {
+                await onRefreshWallet();
+                await refreshRow();
+              })
+            }
+          />
         ))}
       </RowGroup>
       {nothingOffered ? (
@@ -162,18 +175,25 @@ export function ServiceAssetsView({
           {formatMessage({ id: "app.voucher.exchange.loadServices" })}
         </Button>
       </div>
-      <RowGroup id={heldId} label={text("holding")}>
-        {wallet === "reading" ? (
-          <li aria-busy="true">
-            <ItemRowSkeleton lead="icon" amount />
-          </li>
-        ) : null}
-        {holdings.map((row) => (
-          <HeldRow key={row.key} row={row} open={open === row.key} onToggle={() => toggle(row.key)}>
-            {row.listed ? panel(row.key, row.listed, member) : null}
-          </HeldRow>
-        ))}
-      </RowGroup>
+      {wallet === "none" ? null : (
+        <RowGroup id={heldId} label={text("holding")}>
+          {wallet === "reading" ? (
+            <li aria-busy="true">
+              <ItemRowSkeleton lead="icon" amount />
+            </li>
+          ) : null}
+          {shown.map((row) => (
+            <HeldRow
+              key={row.key}
+              row={row}
+              open={open === row.key}
+              onToggle={() => toggle(row.key)}
+            >
+              {row.listed ? panel(row.key, row.listed, member) : null}
+            </HeldRow>
+          ))}
+        </RowGroup>
+      )}
       {wallet === "failed" ? (
         <Alert variant="warning">
           <div className="flex flex-col items-start gap-2">
@@ -189,7 +209,7 @@ export function ServiceAssetsView({
           </div>
         </Alert>
       ) : null}
-      {wallet !== "reading" && wallet !== "failed" && holdings.length === 0 ? (
+      {wallet === "ready" && shown.length === 0 ? (
         <p className="type-meta text-text-soft-400">
           {formatMessage({ id: "app.voucher.wl.empty" })}
         </p>

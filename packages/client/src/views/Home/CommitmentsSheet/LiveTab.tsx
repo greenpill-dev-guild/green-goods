@@ -102,10 +102,27 @@ export function LiveTab({
   const { byCID } = useCommitmentMetadata(
     useMemo(() => [...inbox.live, ...waiting].map((row) => row.commitment), [inbox.live, waiting])
   );
-  const listed = useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live]);
+  // A take-up request waiting on a steward lives only in `waiting`; its row keeps its line too.
+  const listed = useMemo(
+    () => [...inbox.live, ...waiting].map((row) => row.commitment),
+    [inbox.live, waiting]
+  );
   const serviceLines = useServiceOfferLines({ chainId: DEFAULT_CHAIN_ID, offers: listed });
   const serviceOf = (row: InboxCommitment) =>
     serviceOfferDetail(intl, serviceLines.get(row.commitment.commitmentId.toString()));
+  /**
+   * A fold's line: its first copy's, with the price only when every copy's line says the same.
+   * Copies fold on their visible terms, and a voucher price is read per promise, so a fold whose
+   * copies price differently names no price rather than the first copy's.
+   */
+  const serviceOfFold = (rows: readonly InboxCommitment[]) => {
+    const lines = rows.map(serviceOf);
+    const first = lines[0];
+    if (!first) return first;
+    return lines.every((line) => line?.takes === first.takes)
+      ? first
+      : { ...first, takes: undefined };
+  };
   const [openCopies, setOpenCopies] = useState<OpenCopies>({
     ids: new Set(),
     open: false,
@@ -305,7 +322,7 @@ export function LiveTab({
                     key={first.commitment.id}
                     row={first}
                     title={titleOf(first)}
-                    service={serviceOf(first)}
+                    service={serviceOfFold(entry.rows)}
                     copies={entry.rows.length}
                     pastDue={pastDueIds?.has(first.commitment.id) ?? false}
                     onOpen={() =>
