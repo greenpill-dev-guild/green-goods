@@ -111,17 +111,16 @@ export function LiveTab({
   const serviceOf = (row: InboxCommitment) =>
     serviceOfferDetail(intl, serviceLines.get(row.commitment.commitmentId.toString()));
   /**
-   * A fold's line: its first copy's, with the price only when every copy's line says the same.
-   * Copies fold on their visible terms, and a voucher price is read per promise, so a fold whose
-   * copies price differently names no price rather than the first copy's.
+   * A fold's service line: its copies' one line when every copy says the same, else none, so the
+   * fold keeps its plain line of due date and count. Copies fold on their visible terms, while a
+   * voucher price and what booking takes first are read per promise, so a fold whose copies
+   * price differently or stand differently says neither the first copy's price nor its booking.
    */
   const serviceOfFold = (rows: readonly InboxCommitment[]) => {
-    const lines = rows.map(serviceOf);
+    const lines = rows.map((row) => JSON.stringify(serviceOf(row) ?? null));
     const first = lines[0];
-    if (!first) return first;
-    return lines.every((line) => line?.takes === first.takes)
-      ? first
-      : { ...first, takes: undefined };
+    if (!first || first === "null") return null;
+    return lines.every((line) => line === first) ? serviceOf(rows[0]!) : null;
   };
   const [openCopies, setOpenCopies] = useState<OpenCopies>({
     ids: new Set(),

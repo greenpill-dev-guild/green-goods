@@ -4,7 +4,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiCoupon3Line } from "@remixicon/react";
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
@@ -69,9 +69,19 @@ export function ServiceAssetsView({
     setOpen((current) => (current === key ? null : key));
     setContinuing(false);
   };
-  // The wallet leaves out an issuer the account holds none of; the open row stays through the
-  // refresh an exchange of the whole balance triggers, until the member closes or continues it.
-  const shown = holdings.filter((row) => row.holding.available > 0n || row.key === open);
+  // A holding's row shows itself while its balance, the pool's permission to spend it, or the
+  // member's opening it says so (the open row stays through the refresh an exchange of the whole
+  // balance triggers). The rows report the permission, which only their reads know, so the empty
+  // line is drawn only when no row is shown.
+  const [permitted, setPermitted] = useState<Record<string, boolean>>({});
+  const onPermitted = useCallback(
+    (key: string, value: boolean) =>
+      setPermitted((current) => (current[key] === value ? current : { ...current, [key]: value })),
+    []
+  );
+  const anyHeld = holdings.some(
+    (row) => row.holding.available > 0n || row.key === open || permitted[row.key]
+  );
   /** A delivered voucher's own row, when the catalog lists it: a second exchange opens there. */
   const continueWith = (routeId: string, assetId: string) => {
     const row =
@@ -182,12 +192,14 @@ export function ServiceAssetsView({
               <ItemRowSkeleton lead="icon" amount />
             </li>
           ) : null}
-          {shown.map((row) => (
+          {holdings.map((row) => (
             <HeldRow
               key={row.key}
+              member={member}
               row={row}
               open={open === row.key}
               onToggle={() => toggle(row.key)}
+              onPermitted={onPermitted}
             >
               {row.listed ? panel(row.key, row.listed, member) : null}
             </HeldRow>
@@ -209,7 +221,7 @@ export function ServiceAssetsView({
           </div>
         </Alert>
       ) : null}
-      {wallet === "ready" && shown.length === 0 ? (
+      {wallet === "ready" && !anyHeld ? (
         <p className="type-meta text-text-soft-400">
           {formatMessage({ id: "app.voucher.wl.empty" })}
         </p>

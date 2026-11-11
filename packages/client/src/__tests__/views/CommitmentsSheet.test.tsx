@@ -296,32 +296,46 @@ describe("CommitmentsSheet", () => {
       );
     });
 
-    it("names no price on a fold whose copies price differently, and each copy its own", async () => {
+    it("folds to its plain line when the copies' prices or bookings differ, each copy keeping its own", async () => {
       const user = userEvent.setup();
-      const priced = (units: bigint) => ({
+      const line = (units: bigint, booking: "hold" | "exchange") => ({
         promisedBy: "Tech and Sun",
         gender: "feminine",
         takes: { units, decimals: 6 },
-        booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+        booking:
+          booking === "hold"
+            ? { kind: "hold", held: 2_000_000n, decimals: 6 }
+            : { kind: "exchange" },
       });
+      const lines = (of: (index: number) => ReturnType<typeof line>) =>
+        new Map(tenOffers.map((row, index) => [row.commitment.commitmentId.toString(), of(index)]));
+      // Prices differ: the fold says neither the first copy's price nor its booking.
       mockUseServiceOfferLines.mockReturnValue(
-        new Map(
-          tenOffers.map((row, index) => [
-            row.commitment.commitmentId.toString(),
-            priced(index === 0 ? 1_000_000n : 2_000_000n),
-          ])
-        )
+        lines((index) => line(index === 0 ? 1_000_000n : 2_000_000n, "hold"))
       );
-      render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
-
-      const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
-      const foldLine = fold.querySelector(".gg-item-row-details");
-      expect(foldLine).not.toHaveTextContent("Takes");
-      expect(foldLine).toHaveTextContent("You hold 2");
-      expect(foldLine).toHaveTextContent("10 promises");
-      await user.click(fold);
+      const view = render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      const fold = () => screen.getByRole("button", { name: /A group of 10 separate promises/ });
+      const foldLine = () => fold().querySelector(".gg-item-row-details");
+      expect(fold()).not.toHaveAttribute("data-service");
+      expect(foldLine()).not.toHaveTextContent("Takes");
+      expect(foldLine()).not.toHaveTextContent("You hold");
+      expect(foldLine()).toHaveTextContent("10 promises");
+      // The same price, but one copy the reader can book and the rest to exchange for: the same.
+      mockUseServiceOfferLines.mockReturnValue(
+        lines((index) => line(1_000_000n, index === 0 ? "hold" : "exchange"))
+      );
+      view.rerender(
+        <MemoryRouter initialEntries={["/home"]}>
+          <CommitmentsSheet isOpen onClose={vi.fn()} />
+        </MemoryRouter>
+      );
+      expect(fold()).not.toHaveAttribute("data-service");
+      expect(foldLine()).not.toHaveTextContent("You hold");
+      expect(foldLine()).toHaveTextContent("10 promises");
+      await user.click(fold());
       expect(copyRows()[0]).toHaveTextContent("Takes 1 Tech and Sun voucher");
-      expect(copyRows()[1]).toHaveTextContent("Takes 2 Tech and Sun vouchers");
+      expect(copyRows()[0]).toHaveTextContent("You hold 2");
+      expect(copyRows()[1]).toHaveTextContent("Exchange first");
     });
 
     it("keeps the list open when the copies' words arrive after it opened", async () => {

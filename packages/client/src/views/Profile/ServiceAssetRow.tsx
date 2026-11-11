@@ -5,9 +5,10 @@ import {
 import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiCoupon3Line, RiHandHeartLine } from "@remixicon/react";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useEffect, useId } from "react";
 import { useIntl } from "react-intl";
 import {
+  issuerAmount,
   issuerCapacity,
   issuerCount,
   issuerListing,
@@ -156,22 +157,52 @@ export function OwnServiceRow({
 /**
  * What the member holds of one issuer, as the wallet writes it, with its amount in the right
  * slot (DL-113). A holding an exchange pool lists opens its exchange; one none lists is a record.
+ * A listed holding also reads what the pool may still spend of it, so a member who spent their
+ * vouchers another way keeps the way to that permission, which would cover vouchers they receive:
+ * the row stays while the balance, the permission or the member's opening it says so, and tells
+ * the view when the permission alone keeps it, so the empty line never sits above a row.
  */
 export function HeldRow({
+  member,
   row,
   open,
   onToggle,
+  onPermitted,
   children,
 }: {
+  member: Address;
   row: HeldVoucherRow;
   open: boolean;
   onToggle: () => void;
+  /** Whether the pool may spend this holding, as the row reads it; the view counts it as shown. */
+  onPermitted: (key: string, permitted: boolean) => void;
   children: ReactNode;
 }) {
   const intl = useIntl();
   const panelId = useId();
   const { issuer, available } = row.holding;
-  const listed = row.listed !== null;
+  const { listed } = row;
+  const operations = useServiceIssuerOperations(
+    listed
+      ? {
+          address: member,
+          routeId: listed.route.service.id,
+          assetId: listed.asset.id,
+          poolId: listingPoolId(listed),
+        }
+      : null
+  );
+  const snapshot = operations.snapshot.data;
+  const allowance = snapshot?.evidence === "onchain" ? snapshot.poolAllowance : 0n;
+  const permitted = allowance > 0n;
+  useEffect(() => {
+    onPermitted(row.key, permitted);
+  }, [onPermitted, row.key, permitted]);
+  if (available === 0n && !permitted && !open) return null;
+  const permission =
+    permitted && listed
+      ? `${intl.formatMessage({ id: "app.profile.issuer.exchangeAllowance" })} ${issuerAmount(allowance, listed.asset, intl)}`
+      : null;
   return (
     <li className="flex flex-col gap-2" data-row="holding" data-listed={listed ? "true" : "false"}>
       <ItemRow
@@ -180,7 +211,7 @@ export function HeldRow({
           { id: "app.voucher.wl.unitMany" },
           { issuer: issuer.name, gender: issuer.gender ?? "other" }
         )}
-        details={[issuer.name]}
+        details={permission ? [issuer.name, permission] : [issuer.name]}
         amount={{
           value: formatVouchers(available, issuer.asset.decimals, intl.locale),
           caption: intl.formatMessage({ id: "app.voucher.wl.avail" }),

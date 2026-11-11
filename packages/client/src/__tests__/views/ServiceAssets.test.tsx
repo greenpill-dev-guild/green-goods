@@ -227,9 +227,17 @@ describe("Your Services", () => {
     expect(stranger).toHaveAttribute("data-listed", "false");
     expect(within(stranger!).queryByRole("button")).not.toBeInTheDocument();
     expect(stranger).toHaveTextContent("2");
+    // The listed row reads what the pool may spend, with its pool; the unlisted one reads nothing.
+    expect(state.operations).toHaveBeenCalledWith({
+      address: ISSUER_STORY_ADDRESS,
+      routeId: "fictional-story",
+      assetId: "analyst-help",
+      poolId: "fictional-local",
+    });
+    expect(state.operations).toHaveBeenCalledWith(null);
     await userEvent.click(within(coaching!).getByRole("button", { expanded: false }));
     expect(screen.getByText("Vouchers I Hold")).toBeInTheDocument();
-    expect(state.operations).toHaveBeenLastCalledWith({
+    expect(state.operations).toHaveBeenCalledWith({
       address: ISSUER_STORY_ADDRESS,
       routeId: "fictional-story",
       assetId: "analyst-help",
@@ -256,6 +264,35 @@ describe("Your Services", () => {
     expect(screen.getByText("Vouchers I Hold")).toBeInTheDocument();
     expect(rows("holding")[0]).toHaveTextContent("0");
     await userEvent.click(within(rows("holding")[0]!).getByRole("button", { expanded: true }));
+    expect(rows("holding")).toHaveLength(0);
+    expect(screen.getByText("No vouchers yet")).toBeInTheDocument();
+  });
+
+  it("keeps a listed holding reachable at zero balance while the pool may still spend it", () => {
+    reset();
+    state.routes = [STORY_ROUTE];
+    state.walletRoute = true;
+    state.wallet = {
+      data: { ...wallet(), holdings: [{ issuer: COACHING, available: 0n }] },
+      isError: false,
+      refetch: vi.fn(),
+    };
+    // The pool may spend 2 of the coaching vouchers the member spent another way.
+    state.operations.mockImplementation((actor: { poolId?: string }) => {
+      const read = operations(actor);
+      if (actor?.poolId) read.snapshot.data.poolAllowance = 2_000_000n;
+      return read;
+    });
+    const view = renderWithProviders(<ServiceAssets />);
+    const [coaching] = rows("holding");
+    expect(coaching).toHaveAttribute("data-listed", "true");
+    expect(coaching).toHaveTextContent("Fictional analyst coaching vouchers");
+    expect(coaching).toHaveTextContent("The pool may spend 2 Fictional analyst coaching vouchers");
+    expect(within(coaching!).getByRole("button", { expanded: false })).toBeInTheDocument();
+    expect(screen.queryByText("No vouchers yet")).not.toBeInTheDocument();
+    // With nothing left for the pool to spend, the empty holding leaves the list, as the wallet's.
+    state.operations.mockImplementation((actor: { poolId?: string }) => operations(actor));
+    view.rerender(<ServiceAssets />);
     expect(rows("holding")).toHaveLength(0);
     expect(screen.getByText("No vouchers yet")).toBeInTheDocument();
   });
