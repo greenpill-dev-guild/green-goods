@@ -146,35 +146,20 @@ describe("a request rewarded with a member's voucher", () => {
     );
   });
 
-  it("says a single voucher that arrived is in the reader's account", () => {
-    expect(rewards("received").band.sentence).toBe("Your Teo Alves voucher is in your account.");
+  it("says a single voucher that arrived is in the reader's account, and drops the set-aside fact", () => {
+    const received = rewards("received");
+    expect(received.band.sentence).toBe("Your Teo Alves voucher is in your account.");
+    expect(received.facts.map((fact) => fact.id)).toEqual(["arrive"]);
+    expect(rewards("open").facts.map((fact) => fact.id)).toEqual(["arrive", "aside"]);
   });
 });
 
 describe("voucher service and arrival details", () => {
   it.each([
-    [
-      "en",
-      en,
-      "Integration lesson: 60 minutes for 1 voucher",
-      "Arrived",
-      "Arrival time unavailable",
-    ],
-    [
-      "es",
-      es,
-      "Clase de integración: 60 minutos por 1 vale",
-      "Llegó el",
-      "Fecha de llegada no disponible",
-    ],
-    [
-      "pt",
-      pt,
-      "Aula de integração: 60 minutos por 1 vale",
-      "Chegou em",
-      "Data de chegada indisponível",
-    ],
-  ] as const)("formats reviewed service terms and the received reward's time in %s", (locale, messages, description, arrived, unknown) => {
+    ["en", en, "Integration lesson: 60 minutes for 1 voucher", "Arrived"],
+    ["es", es, "Clase de integración: 60 minutos por 1 vale", "Llegó el"],
+    ["pt", pt, "Aula de integração: 60 minutos por 1 vale", "Chegou em"],
+  ] as const)("formats reviewed service terms and the received reward's time in %s", (locale, messages, description, arrived) => {
     const snapshot = memberRewardStorySnapshot("received");
     const reward = requestRewardDeliveries(snapshot)![0]!;
     delete snapshot.pilot;
@@ -191,11 +176,10 @@ describe("voucher service and arrival details", () => {
     expect(row.services).toEqual([description]);
     expect(row.arrival?.label).toContain(arrived);
     expect(row.arrival?.dateTime).toBe(new Date(1792862400 * 1000).toISOString());
+    // An arrival the receipt doesn't date, or terms the wallet hasn't named, draw no line at all.
     snapshot.earnedReward.receivedAt = null;
-    expect(serviceRewardsView(input, local)!.rows[0]?.arrival).toEqual({
-      label: unknown,
-      dateTime: null,
-    });
+    expect(serviceRewardsView(input, local)!.rows[0]?.arrival).toBeNull();
+    expect(serviceRewardsView({ ...input, issuer: null }, local)!.rows[0]?.services).toEqual([]);
     snapshot.earnedReward.status = "on-the-way";
     expect(serviceRewardsView(input, local)!.rows[0]?.arrival).toBeNull();
   });

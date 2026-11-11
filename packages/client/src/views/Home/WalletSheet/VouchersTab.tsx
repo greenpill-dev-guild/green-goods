@@ -318,6 +318,10 @@ function VoucherAwardReceipts({ wallet }: { wallet: VoucherWalletSnapshot }) {
   return (
     <section className="space-y-2">
       <h3 className="text-sm font-semibold">{t("awardHistory")}</h3>
+      {/* What the section holds, before anything is loaded, so a recipient told to look here finds it. */}
+      {awards.load.isSuccess ? null : (
+        <p className="type-meta text-text-soft-400">{t("awardsHere")}</p>
+      )}
       <Button
         type="button"
         emphasis="secondary"

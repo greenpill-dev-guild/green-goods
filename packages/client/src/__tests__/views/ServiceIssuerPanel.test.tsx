@@ -435,7 +435,23 @@ describe("a holder of another member's vouchers", () => {
       minimumOutput: 2_000_000n,
       deadline: 1_900_000_300n,
     });
-    await user.click((await reviewSheet()).getByRole("button", { name: "Cancel" }));
+    // The review reads as the exchange sheet does, in the issuers' own words: no symbol, no epoch
+    // number, the pool by name, and the addresses and signing account under Transaction details,
+    // with the consent last, right above the acts.
+    const sheet = await reviewSheet();
+    const body = document.querySelector<HTMLElement>('[data-component="ServiceIssuerReview"]')!;
+    const facts = within(body.querySelector<HTMLElement>('[data-component="FactList"]')!);
+    const row = (label: string) => facts.getByText(label).closest("[data-component=FactRow]");
+    expect(row("You spend")).toHaveTextContent("1 Fictional engineer help voucher");
+    expect(row("You receive")).toHaveTextContent("2 Fictional analyst coaching vouchers");
+    expect(row("Fees")).toHaveTextContent("Not quoted");
+    expect(row("Exchange Deadline")).not.toHaveTextContent("1900000300");
+    expect(facts.queryByText(/0x7777/)).not.toBeInTheDocument();
+    expect(facts.queryByText("Signing Account")).not.toBeInTheDocument();
+    expect(facts.queryByText(/EHELP|AHELP/)).not.toBeInTheDocument();
+    expect(sheet.getByRole("button", { name: "Exchange 1 voucher" })).toBeDisabled();
+    expect(body.lastElementChild).toContainElement(sheet.getByRole("checkbox"));
+    await user.click(sheet.getByRole("button", { name: "Cancel" }));
     await user.type(screen.getByLabelText("Quantity (EHELP)"), "0");
     expect(screen.queryByText(/Minimum Received:/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review Action" })).toBeDisabled();

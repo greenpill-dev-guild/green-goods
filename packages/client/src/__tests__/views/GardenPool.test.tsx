@@ -422,9 +422,22 @@ describe("GardenPool", () => {
       new Map([
         [
           "31",
-          { promisedBy: "Tech and Sun", booking: { kind: "hold", held: 9_000_000n, decimals: 6 } },
+          {
+            promisedBy: "Tech and Sun",
+            gender: "feminine",
+            takes: { units: 1_000_000n, decimals: 6 },
+            booking: { kind: "hold", held: 9_000_000n, decimals: 6 },
+          },
         ],
-        ["32", { promisedBy: "Green Goods", booking: { kind } }],
+        [
+          "32",
+          {
+            promisedBy: "Green Goods",
+            gender: "masculine",
+            takes: { units: 10_000_000n, decimals: 6 },
+            booking: { kind },
+          },
+        ],
       ])
     );
 
@@ -435,9 +448,10 @@ describe("GardenPool", () => {
       .filter((row) => row.getAttribute("data-component") === "CommitmentRow");
     const [first, second, other] = rows;
     expect(first).toHaveAttribute("data-service", "offer");
-    expect(first).toHaveTextContent(/You hold 9.*Tech and Sun/);
+    // The price leads and names the issuer; what booking takes first follows.
+    expect(first).toHaveTextContent(/Takes 1 Tech and Sun voucher.*You hold 9/);
+    expect(second).toHaveTextContent(/Takes 10 Green Goods vouchers/);
     expect(second).toHaveTextContent(label);
-    expect(second).toHaveTextContent("Green Goods");
     expect(other).not.toHaveAttribute("data-service");
     // The tab hands the hook its listed promises; the hook keeps only possible services.
     expect(mockUseServiceOfferLines).toHaveBeenLastCalledWith({

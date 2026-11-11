@@ -67,6 +67,8 @@ function serviceLines(state: ServicesState): ReadonlyMap<string, ServiceOfferLin
       "61",
       {
         promisedBy: "Teo Alves",
+        gender: null,
+        takes: { units: VOUCHER, decimals: 6 },
         booking:
           state === "issuerPaused"
             ? { kind: "paused" }
@@ -77,6 +79,8 @@ function serviceLines(state: ServicesState): ReadonlyMap<string, ServiceOfferLin
       "62",
       {
         promisedBy: "Maya Ruiz",
+        gender: null,
+        takes: { units: VOUCHER, decimals: 6 },
         booking:
           state === "setup"
             ? { kind: "setup" }
@@ -87,7 +91,12 @@ function serviceLines(state: ServicesState): ReadonlyMap<string, ServiceOfferLin
     ],
     [
       "63",
-      { promisedBy: "Tech and Sun", booking: { kind: "hold", held: 9n * VOUCHER, decimals: 6 } },
+      {
+        promisedBy: "Tech and Sun",
+        gender: "feminine",
+        takes: { units: VOUCHER, decimals: 6 },
+        booking: { kind: "hold", held: 9n * VOUCHER, decimals: 6 },
+      },
     ],
   ]);
 }

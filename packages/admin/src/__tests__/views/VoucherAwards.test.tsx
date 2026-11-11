@@ -166,6 +166,9 @@ describe("steward awards", () => {
     expect(open).toHaveAttribute("aria-current", "true");
     expect(screen.getAllByText("Delivered")).toHaveLength(2);
     expect(screen.getByText("2 Hub days vouchers")).toBeInTheDocument();
+    // The delivered record says where the recipient finds it; a pending one still talks Safe.
+    expect(screen.getByText(/The recipient finds this under Your Wallet/)).toBeInTheDocument();
+    expect(screen.queryByText(/Use the exact Safe details/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View the transaction" })).toHaveAttribute(
       "href",
       `https://gnosisscan.io/tx/0x${"c".repeat(64)}`

@@ -172,6 +172,26 @@ describe("CommitmentRow", () => {
     );
   });
 
+  it("leads a service line with what a booking takes, then what booking takes first, or a fold's count", () => {
+    const service = {
+      takes: "Takes 10 Green Goods vouchers",
+      booking: "You hold 2",
+      promisedBy: "Green Goods",
+    };
+    const line = () =>
+      [...document.querySelectorAll(".gg-item-row-detail")].map((detail) => detail.textContent);
+    const view = renderRow({ service });
+    expect(line()).toEqual(["Takes 10 Green Goods vouchers", "You hold 2"]);
+    // A fold keeps its count in the second place, so the tile's number is still said (DL-166).
+    view.rerender(
+      <CommitmentRow {...base} service={service} group={{ size: 10, counts: "10 promises" }} />
+    );
+    expect(line()).toEqual(["Takes 10 Green Goods vouchers", "10 promises"]);
+    // Without a price the line keeps its older shape: the booking, then who promises it.
+    view.rerender(<CommitmentRow {...base} service={{ ...service, takes: undefined }} />);
+    expect(line()).toEqual(["You hold 2", "Green Goods"]);
+  });
+
   it("claims no direction for a record not read yet", () => {
     renderRow({ direction: null });
 

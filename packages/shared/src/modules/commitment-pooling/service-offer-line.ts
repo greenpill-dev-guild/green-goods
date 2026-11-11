@@ -1,6 +1,7 @@
 /**
- * A service offer on a garden's list of promises (PRD-1299, surface 5): what booking it takes
- * first, and who promises delivery, for the shared commitment row's detail line (DL-110).
+ * A service offer on a garden's list of promises (PRD-1299, surface 5): what a booking takes,
+ * what booking takes first, and who promises delivery, for the shared commitment row's detail
+ * line (DL-110).
  *
  * A garden's voucher offer and a member's own service read alike: the issuer's name says who
  * delivers, a garden or a person. Anything the reads cannot establish leaves the row an ordinary
@@ -21,6 +22,10 @@ import type {
 export interface ServiceOfferLine {
   /** The issuer's name from its reviewed metadata: who promises delivery. */
   promisedBy: string;
+  /** The issuer's gender, for a language whose voucher phrase agrees with it. */
+  gender: VoucherIssuer["gender"];
+  /** What one booking takes, in the issuer's vouchers: the price a row names first. */
+  takes: { units: bigint; decimals: number };
   /**
    * What booking takes first: the reader holds enough of the issuer's vouchers, or exchanges for
    * them. A paused issuer takes no new bookings, whatever the reader holds; a delisted issuer's
@@ -70,6 +75,8 @@ export function serviceOfferLine(
   if (!booking) return null;
   return {
     promisedBy: issuer.name,
+    gender: issuer.gender,
+    takes: { units: voucher.units, decimals },
     booking,
   };
 }

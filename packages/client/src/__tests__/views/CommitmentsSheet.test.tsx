@@ -41,6 +41,8 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 const mockUseCommitmentsInbox = vi.fn();
 const mockUseCommitmentsToConfirm = vi.fn();
+/** What each listed service offer's booking takes; the reads are proven in Shared. */
+const mockUseServiceOfferLines = vi.fn();
 const mockUseCommitmentCycles = vi.fn();
 const mockUseOffline = vi.fn();
 /** The garden the chip on Home has chosen; null before a member has one. */
@@ -186,6 +188,7 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentMetadata: () => ({ byCID: mockMetadata, isLoading: false }),
   useCommitmentsInbox: (...args: unknown[]) => mockUseCommitmentsInbox(...args),
   useCommitmentsToConfirm: (...args: unknown[]) => mockUseCommitmentsToConfirm(...args),
+  useServiceOfferLines: (...args: unknown[]) => mockUseServiceOfferLines(...args),
 }));
 
 // The launcher reads the same two hooks from their own leaves.
@@ -216,6 +219,7 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox());
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
+    mockUseServiceOfferLines.mockReturnValue(new Map());
     mockUsePoolClaimRequests.mockReturnValue({
       rows: [],
       isLoading: false,
@@ -249,6 +253,20 @@ describe("CommitmentsSheet", () => {
 
     beforeEach(() => {
       mockUseCommitmentsInbox.mockReturnValue(inbox({ live: tenOffers }));
+      // Each hub day is a service that takes one Tech and Sun voucher, and the reader holds two.
+      mockUseServiceOfferLines.mockReturnValue(
+        new Map(
+          tenOffers.map((row) => [
+            row.commitment.commitmentId.toString(),
+            {
+              promisedBy: "Tech and Sun",
+              gender: "feminine",
+              takes: { units: 1_000_000n, decimals: 6 },
+              booking: { kind: "hold", held: 2_000_000n, decimals: 6 },
+            },
+          ])
+        )
+      );
     });
 
     it("lists ten as one row with a count that opens the ten, each into its own page", async () => {
@@ -258,13 +276,19 @@ describe("CommitmentsSheet", () => {
       const fold = screen.getByRole("button", { name: /A group of 10 separate promises/ });
       expect(fold).toHaveTextContent(HUB_DAY);
       expect(fold).toHaveTextContent("Offered");
-      // The tile's number is said in the line too, not only to screen readers (DL-166).
-      expect(fold.querySelector(".gg-item-row-details")).toHaveTextContent("10 promises");
+      // The price leads the line and the tile's number is still said in it, not only to screen
+      // readers (DL-166); what the reader holds waits for the copies' own rows.
+      const foldLine = fold.querySelector(".gg-item-row-details");
+      expect(foldLine).toHaveTextContent("Takes 1 Tech and Sun voucher");
+      expect(foldLine).toHaveTextContent("10 promises");
+      expect(foldLine).not.toHaveTextContent("You hold");
       expect(screen.getAllByRole("button", { name: new RegExp(HUB_DAY) })).toHaveLength(1);
       await user.click(fold);
 
       expect(copiesSheet()).toHaveAccessibleDescription("A group of 10 separate promises");
       expect(copyRows()).toHaveLength(10);
+      expect(copyRows()[0]).toHaveTextContent("Takes 1 Tech and Sun voucher");
+      expect(copyRows()[0]).toHaveTextContent("You hold 2");
       await user.click(copyRows()[2] as HTMLElement);
       expect(mockNavigate).toHaveBeenCalledWith(
         `/home/${GARDEN}/commitments/65`,

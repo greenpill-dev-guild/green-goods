@@ -3,6 +3,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
@@ -10,6 +11,7 @@ import {
   type CommitmentsInbox,
   type InboxCommitment,
   useCommitmentMetadata,
+  useServiceOfferLines,
 } from "@green-goods/shared/commitment-pooling";
 import { RiFilterOffLine } from "@remixicon/react";
 import { type ReactNode, useLayoutEffect, useMemo, useState } from "react";
@@ -17,6 +19,7 @@ import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useU
 import { useIntl } from "react-intl";
 
 import { CommitmentStateLadder, PromiseRow } from "@/components/Features/Commitments";
+import { serviceOfferDetail } from "@/components/Features/Commitments/serviceOfferDetail";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { AppSheet } from "@/components/Sheets/AppSheet";
 import { foldIdenticalCopies, gardenAddressFor, groupByGarden, type LiveEntry } from "./grouping";
@@ -72,6 +75,10 @@ interface OpenCopies {
  * Identical open copies are one row with their number on the tile (DL-150), and
  * tapping it lists them in a half sheet, as a cycle's details open over this
  * sheet. Each copy is its own row into its own page; Back returns to the list.
+ *
+ * A service offer's row says what a booking takes and what booking takes first,
+ * read as the garden's own Promises tab reads them (PRD-1299 surface 5); a fold
+ * keeps its count beside the price (DL-166).
  */
 export function LiveTab({
   inbox,
@@ -89,11 +96,16 @@ export function LiveTab({
   pastDueIds,
   waitingRead,
 }: LiveTabProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
     useMemo(() => [...inbox.live, ...waiting].map((row) => row.commitment), [inbox.live, waiting])
   );
+  const listed = useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live]);
+  const serviceLines = useServiceOfferLines({ chainId: DEFAULT_CHAIN_ID, offers: listed });
+  const serviceOf = (row: InboxCommitment) =>
+    serviceOfferDetail(intl, serviceLines.get(row.commitment.commitmentId.toString()));
   const [openCopies, setOpenCopies] = useState<OpenCopies>({
     ids: new Set(),
     open: false,
@@ -159,6 +171,7 @@ export function LiveTab({
         key={row.commitment.id}
         row={row}
         title={titleOf(row)}
+        service={serviceOf(row)}
         takeUpRequested={options.takeUpRequested}
         pastDue={pastDueIds?.has(row.commitment.id) ?? false}
         sendFailed={inbox.failedCommitmentIds.has(row.commitment.commitmentId.toString())}
@@ -292,6 +305,7 @@ export function LiveTab({
                     key={first.commitment.id}
                     row={first}
                     title={titleOf(first)}
+                    service={serviceOf(first)}
                     copies={entry.rows.length}
                     pastDue={pastDueIds?.has(first.commitment.id) ?? false}
                     onOpen={() =>

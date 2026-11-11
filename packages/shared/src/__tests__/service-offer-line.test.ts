@@ -63,9 +63,11 @@ describe("serviceOfferLine", () => {
     ).toBe("hold");
     expect(serviceOfferLine(hubDay(ONE), wallet(0n, { issuers: [unavailable] }))).toBeNull();
   });
-  it("says the reader holds enough of the issuer's vouchers, and names the issuer", () => {
+  it("says what a booking takes and that the reader holds enough, and names the issuer", () => {
     expect(serviceOfferLine(hubDay(ONE), wallet(9n * ONE))).toEqual({
       promisedBy: "Tech and Sun",
+      gender: "feminine",
+      takes: { units: ONE, decimals: 6 },
       booking: { kind: "hold", held: 9n * ONE, decimals: 6 },
     });
   });
@@ -76,6 +78,8 @@ describe("serviceOfferLine", () => {
     });
     expect(serviceOfferLine(hubDay(ONE), wallet(0n, { holdings: [] }))).toEqual({
       promisedBy: "Tech and Sun",
+      gender: "feminine",
+      takes: { units: ONE, decimals: 6 },
       booking: { kind: "exchange" },
     });
   });
@@ -121,6 +125,8 @@ describe("serviceOfferLine", () => {
     it("reads as a garden's does, naming the member who promises delivery", () => {
       expect(serviceOfferLine(coaching, holding(maya(), ONE))).toEqual({
         promisedBy: "Maya Ruiz",
+        gender: "feminine",
+        takes: { units: ONE, decimals: 6 },
         booking: { kind: "hold", held: ONE, decimals: 6 },
       });
       expect(serviceOfferLine(coaching, holding(maya(), 0n))?.booking).toEqual({
@@ -134,6 +140,8 @@ describe("serviceOfferLine", () => {
 
       expect(serviceOfferLine(coaching, holding(paused, 2n * ONE))).toEqual({
         promisedBy: "Maya Ruiz",
+        gender: "feminine",
+        takes: { units: ONE, decimals: 6 },
         booking: { kind: "paused" },
       });
       expect(serviceOfferLine(coaching, holding(paused, 0n))?.booking).toEqual({ kind: "paused" });

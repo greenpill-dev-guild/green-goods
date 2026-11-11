@@ -8,7 +8,14 @@ import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow"
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { type ReactNode, useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { issuerAmount } from "./serviceIssuerPresentation";
+import {
+  issuerAmount,
+  issuerAmountWords,
+  issuerBooks,
+  issuerCount,
+  issuerPlainAmount,
+  issuerUnitWords,
+} from "./serviceIssuerPresentation";
 
 /** The member's named act a review was prepared for; a holder's exchange acts have none. */
 export type IssuerIntent =
@@ -32,9 +39,17 @@ interface Props {
   onConfirm: (review: Review) => void;
 }
 
+/** The acts that name a pool: the exchange runs in it, and an approval is for it. */
+const POOL_ACTS = ["exchange", "approveExchange", "revokeExchange"];
+
 /**
  * Command Surface: one immutable review with its five-minute expiry, the exact account and the
  * exact call, under the member's own words for the act. Signing waits for explicit consent.
+ *
+ * An exchange reads as the exchange sheet does: what you spend and receive in the issuers' own
+ * words, the fee, what the received voucher books, the pool and the deadline. Contract addresses,
+ * the signing account and the review's own expiry fold under Transaction details, and the consent
+ * sits last, right above the acts, so a disabled act is explained where the eye lands.
  */
 export function ServiceIssuerReview({
   review,
@@ -47,8 +62,10 @@ export function ServiceIssuerReview({
   onClose,
   onConfirm,
 }: Props) {
-  const { formatMessage, formatDate, locale } = useIntl();
-  const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
+  const intl = useIntl();
+  const { formatMessage, formatDate, locale } = intl;
+  const text = (key: string, values?: Record<string, string>) =>
+    formatMessage({ id: `app.profile.issuer.${key}` }, values);
   const ms = (key: string, values?: Record<string, string>) =>
     formatMessage({ id: `app.voucher.ms.${key}` }, values);
   const [agreed, setAgreed] = useState(false);
@@ -72,6 +89,14 @@ export function ServiceIssuerReview({
       <span className="mt-0.5 block text-xs font-normal leading-4 text-text-sub-600">{detail}</span>
     </>
   );
+  // The pool an act names: the exchange's own contract, or the one an approval is for.
+  const poolArg = POOL_ACTS.includes(action.kind)
+    ? action.kind === "exchange"
+      ? review.call.address
+      : review.call.args[0]
+    : null;
+  const poolContract = typeof poolArg === "string" ? poolArg : null;
+  const pool = poolName ?? review.actor.poolId ?? text("unknown");
   if (booking) {
     facts.push(
       {
@@ -104,44 +129,72 @@ export function ServiceIssuerReview({
           : text("historicalTerms"),
       }
     );
-  } else facts.push({ label: text("asset"), value: `${asset.name} (${asset.symbol})` });
-  if ("amount" in action) facts.push({ label: text("amount"), value: amount(action.amount) });
+  } else if (action.kind !== "exchange") {
+    facts.push({ label: text("asset"), value: `${asset.name} (${asset.symbol})` });
+  }
+  if ("amount" in action && action.kind !== "exchange")
+    facts.push({ label: text("amount"), value: amount(action.amount) });
   if (action.kind === "authorizeReturn")
     facts.push({ label: ms("fl.back"), value: amount(action.ceiling) });
-  if (action.kind === "exchange" && output)
+  if (action.kind === "exchange" && output) {
+    const gross = review.expected.grossOutput;
+    const fee = typeof gross === "bigint" ? gross - action.quotedOutput : null;
+    const books = issuerBooks(output, intl);
     facts.push(
-      { label: text("estimatedOutput"), value: issuerAmount(action.quotedOutput, output, locale) },
-      { label: text("minimum"), value: issuerAmount(action.minimumOutput, output, locale) },
-      { label: text("deadline"), value: `${moment(action.deadline)} (${action.deadline})` }
+      {
+        label: formatMessage({ id: "app.voucher.ex.spend" }),
+        value: issuerAmountWords(action.amount, asset, intl),
+      },
+      {
+        label: formatMessage({ id: "app.voucher.ex.receive" }),
+        value:
+          action.minimumOutput < action.quotedOutput
+            ? detailed(
+                issuerAmountWords(action.quotedOutput, output, intl),
+                formatMessage(
+                  { id: "app.voucher.ex.sh.atLeast" },
+                  {
+                    min: issuerCount(action.minimumOutput, output.decimals, locale),
+                    outUnit: issuerUnitWords(action.minimumOutput, output, intl),
+                  }
+                )
+              )
+            : issuerAmountWords(action.quotedOutput, output, intl),
+      },
+      {
+        label: formatMessage({ id: "app.voucher.ex.f.fees" }),
+        value:
+          fee === null
+            ? text("feesUnknown")
+            : fee > 0n
+              ? issuerAmountWords(fee, output, intl)
+              : formatMessage({ id: "app.voucher.ex.f.feesZero" }),
+      },
+      ...(books.length > 0
+        ? [
+            {
+              label: formatMessage({ id: "app.voucher.service.books" }),
+              value: (
+                <ul className="space-y-1">
+                  {books.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ),
+            },
+          ]
+        : []),
+      { label: formatMessage({ id: "app.voucher.exchange.pool" }), value: pool },
+      { label: text("deadline"), value: moment(action.deadline) }
     );
-  if (["exchange", "approveExchange", "revokeExchange"].includes(action.kind)) {
-    const poolAddress = action.kind === "exchange" ? review.call.address : review.call.args[0];
-    facts.push({
-      label: formatMessage({ id: "app.voucher.exchange.pool" }),
-      value: (
-        <>
-          {poolName ?? review.actor.poolId ?? text("unknown")}
-          <span className="mt-1 block break-all text-xs text-text-sub-600">
-            {typeof poolAddress === "string" ? poolAddress : text("unknown")}
-          </span>
-        </>
-      ),
-    });
+  } else if (poolContract !== null) {
+    facts.push({ label: formatMessage({ id: "app.voucher.exchange.pool" }), value: pool });
   }
   if (review.continuation)
     facts.push({
       label: formatMessage({ id: "app.voucher.exchange.residue" }),
       value: amount(review.continuation.intermediateResidue),
     });
-  if (action.kind === "exchange" && output && typeof review.expected.grossOutput === "bigint")
-    facts.push({
-      label: text("estimatedFees"),
-      value: issuerAmount(review.expected.grossOutput - action.quotedOutput, output, locale),
-    });
-  facts.push(
-    { label: text("signingAccount"), value: review.actor.address },
-    { label: text("expires"), value: `${moment(review.expiresAt)} (${review.expiresAt})` }
-  );
   const named = intent
     ? {
         title: ms(`rv.t.${intent}`),
@@ -161,7 +214,49 @@ export function ServiceIssuerReview({
                   ? ms("sh.proposeNote")
                   : null,
       }
-    : { title: text(`actions.${kind}`), cta: text("confirm"), check: text("consent"), note: null };
+    : {
+        title: text(`actions.${kind}`),
+        cta:
+          action.kind === "exchange"
+            ? text("exchangeCta", {
+                amount: issuerPlainAmount(action.amount, asset.decimals, intl),
+              })
+            : text("confirm"),
+        check: text("consent"),
+        note: null,
+      };
+  // The exact call, for anyone checking it: addresses, hashes and the review's own expiry.
+  const details: [string, string][] = [
+    [text("network"), "Gnosis (100)"],
+    [text("token"), asset.token.address],
+    [text("destination"), review.call.address],
+    ...(poolContract !== null && poolContract !== review.call.address
+      ? [[text("poolContract"), poolContract] as [string, string]]
+      : []),
+    [text("method"), review.call.functionName],
+    [text("nativeValue"), (review.call.value ?? 0n).toString()],
+    ...("setupId" in action
+      ? [
+          [text("setup"), action.setupId] as [string, string],
+          [text("authorization"), action.authorizationHash] as [string, string],
+        ]
+      : []),
+    ...(booking
+      ? [
+          [text("terms"), booking.authorization.serviceTermsRef] as [string, string],
+          [text("unitHash"), booking.authorization.unitLabelHash] as [string, string],
+          [text("remedy"), booking.authorization.remedyTermsRef] as [string, string],
+        ]
+      : [
+          [
+            text("terms"),
+            `${asset.service.terms.reference ?? text("unknown")} (${asset.service.terms.digest ?? text("unknown")})`,
+          ] as [string, string],
+        ]),
+    [text("signingAccount"), review.actor.address],
+    [text("expires"), moment(review.expiresAt)],
+    [text("reviewId"), review.fingerprint],
+  ];
   return (
     <DialogShell
       open
@@ -206,32 +301,7 @@ export function ServiceIssuerReview({
         <details className="text-sm">
           <summary className="min-h-11 cursor-pointer py-3">{text("transactionDetails")}</summary>
           <dl className="space-y-2 break-all">
-            {[
-              [text("network"), "Gnosis (100)"],
-              [text("token"), asset.token.address],
-              [text("destination"), review.call.address],
-              [text("method"), review.call.functionName],
-              [text("nativeValue"), (review.call.value ?? 0n).toString()],
-              ...("setupId" in action
-                ? [
-                    [text("setup"), action.setupId],
-                    [text("authorization"), action.authorizationHash],
-                  ]
-                : []),
-              ...(booking
-                ? [
-                    [text("terms"), booking.authorization.serviceTermsRef],
-                    [text("unitHash"), booking.authorization.unitLabelHash],
-                    [text("remedy"), booking.authorization.remedyTermsRef],
-                  ]
-                : [
-                    [
-                      text("terms"),
-                      `${asset.service.terms.reference ?? text("unknown")} (${asset.service.terms.digest ?? text("unknown")})`,
-                    ],
-                  ]),
-              [text("reviewId"), review.fingerprint],
-            ].map(([label, value]) => (
+            {details.map(([label, value]) => (
               <div key={label}>
                 <dt className="text-xs text-text-sub-600">{label}</dt>
                 <dd>{value}</dd>
@@ -239,6 +309,9 @@ export function ServiceIssuerReview({
             ))}
           </dl>
         </details>
+        <p className="text-xs text-text-sub-600">
+          {formatMessage({ id: "app.voucher.c.passkey" })}
+        </p>
         <label htmlFor={id} className="flex min-h-11 items-start gap-3 text-sm">
           <input
             id={id}
@@ -250,9 +323,6 @@ export function ServiceIssuerReview({
           />
           <span>{named.check}</span>
         </label>
-        <p className="text-xs text-text-sub-600">
-          {formatMessage({ id: "app.voucher.c.passkey" })}
-        </p>
       </div>
     </DialogShell>
   );

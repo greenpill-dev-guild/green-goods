@@ -19,7 +19,8 @@ export interface ServiceRewardRow {
   status: { label: string; tone: ItemRowTone };
   detail: string;
   services: string[];
-  arrival: { label: string; dateTime: string | null } | null;
+  /** When the vouchers arrived, once the receipt dates it; nothing is drawn while it doesn't. */
+  arrival: { label: string; dateTime: string } | null;
 }
 
 export interface ServiceRewardsView {
@@ -141,29 +142,27 @@ export function serviceRewardsView(
       title: d.kind === "voucher" ? vouchers : t("rw.gd", { amt: amount(d) }),
       status: { label: t(status.id), tone: status.tone },
       detail,
+      // What the voucher books is drawn once the wallet names the issuer's terms, and when it
+      // arrived once the receipt dates it. A line saying either is unavailable told the reader
+      // nothing and read as an error between the reward rows, so neither is drawn until known.
       services:
-        d.kind === "voucher"
+        d.kind === "voucher" && input.issuer?.services?.length && d.asset.decimals !== null
           ? voucherServiceDescriptions(input.issuer, d.asset.decimals, intl)
           : [],
       arrival:
-        d.kind === "voucher" && d.status === "received"
-          ? d.receivedAt
-            ? {
-                label: intl.formatMessage(
-                  { id: "app.voucher.reward.receivedAt" },
-                  {
-                    date: new Intl.DateTimeFormat(intl.locale, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(d.receivedAt * 1000),
-                  }
-                ),
-                dateTime: new Date(d.receivedAt * 1000).toISOString(),
-              }
-            : {
-                label: intl.formatMessage({ id: "app.voucher.reward.arrivalUnknown" }),
-                dateTime: null,
-              }
+        d.kind === "voucher" && d.status === "received" && d.receivedAt
+          ? {
+              label: intl.formatMessage(
+                { id: "app.voucher.reward.receivedAt" },
+                {
+                  date: new Intl.DateTimeFormat(intl.locale, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(d.receivedAt * 1000),
+                }
+              ),
+              dateTime: new Date(d.receivedAt * 1000).toISOString(),
+            }
           : null,
     };
   });
@@ -225,7 +224,9 @@ export function serviceRewardsView(
         value: t("rw.arriveV"),
         detail: gd ? t("rw.arriveS") : t("rw.arriveSV"),
       },
-      ...(!input.snapshot.earnedReward
+      // Whether anything is set aside matters while the vouchers are still to come; once they
+      // arrived, the row says so and the question is moot.
+      ...(!input.snapshot.earnedReward && voucher?.status !== "received"
         ? [
             {
               id: "aside",
