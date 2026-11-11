@@ -267,7 +267,7 @@ describe("one final allocation and independent fixed legs", () => {
       { allocation: { ...allocation, approvedDeliveredServiceUnits: 11n } },
       { allocation: { ...allocation, approvedDeliveredServiceUnits: 0n } },
       { allocation: { ...allocation, releaseVoucherUnits: 39n, refundVoucherUnits: 61n } },
-    ])
+    ] as const)
       await expect(adapter.execute(key, { ...action, ...patch })).rejects.toThrow();
     await expect(
       adapter.execute(key, {

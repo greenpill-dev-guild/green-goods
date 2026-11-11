@@ -9,10 +9,11 @@ import {
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { isJarClaimLimitLow } from "@green-goods/shared/utils/cookie-jar-claim-limit";
 import { RiCookieLine, RiHandCoinLine, RiLockLine, RiWalletLine } from "@remixicon/react";
-import { useEffect, useId, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { cooldownLabel, JarCooldownEditor, JarLimitEditor } from "./CookieJarSettingEditors";
+import { HatsCookieJarControls } from "./HatsCookieJarControls";
 
 export type JarSettingField = "limit" | "cooldown";
 
@@ -33,6 +34,7 @@ interface CookieJarPayoutCardProps {
   /** The payout history could not be read, so the page states nothing about it. */
   allocationCountUnread?: boolean;
   signer: JarSigner;
+  hatsAdmin?: ComponentProps<typeof HatsCookieJarControls>["admin"];
   /** Which of this jar's settings is open for editing, if any. */
   editingField: JarSettingField | null;
   onEdit: (field: JarSettingField | null) => void;
@@ -57,6 +59,7 @@ export function CookieJarPayoutCard({
   allocationCountAtLeast = false,
   allocationCountUnread = false,
   signer,
+  hatsAdmin,
   editingField,
   onEdit,
   onDeposit,
@@ -67,7 +70,8 @@ export function CookieJarPayoutCard({
   const pageId = useId();
   const symbol = getVaultAssetSymbol(jar.assetAddress, undefined);
   // Disabled, never hidden, so the page keeps one stable set of acts; the note says who can act.
-  const restricted = signer.isResolved && !signer.canSign;
+  const legacy = !hatsAdmin || hatsAdmin.kind === "legacy";
+  const restricted = legacy && signer.isResolved && !signer.canSign;
 
   // An editor opens with the page: the low-limit alert's link and the deposit dialog's
   // "Fix Limit First" land on the limit editor with the jar's page open around it.
@@ -101,7 +105,7 @@ export function CookieJarPayoutCard({
       type="button"
       emphasis="tertiary"
       size="compact"
-      disabled={!signer.canSign}
+      disabled={!legacy || !signer.canSign}
       aria-label={label}
       aria-describedby={restricted ? restrictionId : undefined}
       onClick={() => onEdit(field)}
@@ -118,7 +122,11 @@ export function CookieJarPayoutCard({
           {formatTokenAmount(jar.maxWithdrawal, jar.decimals)} {symbol}
         </span>
       }
-      action={editButton("limit", formatMessage({ id: "app.cookieJar.editClaimLimit" }))}
+      action={
+        legacy
+          ? editButton("limit", formatMessage({ id: "app.cookieJar.editClaimLimit" }))
+          : undefined
+      }
     />
   );
   const cooldownRow = (
@@ -127,7 +135,11 @@ export function CookieJarPayoutCard({
       value={
         <span className="tabular-nums">{cooldownLabel(formatMessage, jar.withdrawalInterval)}</span>
       }
-      action={editButton("cooldown", formatMessage({ id: "app.cookieJar.editWithdrawalCooldown" }))}
+      action={
+        legacy
+          ? editButton("cooldown", formatMessage({ id: "app.cookieJar.editWithdrawalCooldown" }))
+          : undefined
+      }
     />
   );
 
@@ -168,12 +180,12 @@ export function CookieJarPayoutCard({
 
           {/* One fact per setting; the setting being changed shows its editor in its place. */}
           <div className="space-y-2">
-            {editingField === "limit" ? (
+            {legacy && editingField === "limit" ? (
               <>
                 <JarLimitEditor {...editorProps} />
                 <FactList frame="inset">{cooldownRow}</FactList>
               </>
-            ) : editingField === "cooldown" ? (
+            ) : legacy && editingField === "cooldown" ? (
               <>
                 <FactList frame="inset">{limitRow}</FactList>
                 <JarCooldownEditor {...editorProps} />
@@ -185,6 +197,17 @@ export function CookieJarPayoutCard({
               </FactList>
             )}
           </div>
+
+          {hatsAdmin?.kind === "hats" ? (
+            <HatsCookieJarControls
+              jar={jar}
+              symbol={symbol}
+              admin={hatsAdmin}
+              openLimits={editingField === "limit"}
+            />
+          ) : hatsAdmin?.kind === "unknown" ? (
+            <p role="status">{formatMessage({ id: "app.cookieJar.hats.profileUnavailable" })}</p>
+          ) : null}
 
           <FactList frame="inset">
             <FactRow

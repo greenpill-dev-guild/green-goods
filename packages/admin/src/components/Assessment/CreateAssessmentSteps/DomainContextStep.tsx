@@ -1,3 +1,4 @@
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { Domain } from "@green-goods/shared/types/domain";
 import { expandDomainMask } from "@green-goods/shared/utils/domain";
@@ -8,7 +9,6 @@ import { AdminChoiceGroup } from "../../AdminChoiceGroup";
 import { AdminTextArea, AdminTextField } from "../../AdminTextField";
 import {
   ALL_DOMAINS,
-  DOMAIN_ICON_CONFIG,
   formatDomainGuidance,
   knownDomain,
   resolveDomainLabel,
@@ -131,7 +131,7 @@ export function DomainContextStep({
             label: resolveDomainLabel(intl, domain),
             leadingVisual: (
               <i
-                className={cn(DOMAIN_ICON_CONFIG[domain].icon, "type-title-md font-normal")}
+                className={cn(DOMAIN_CONFIG[domain].iconClass, "type-title-md font-normal")}
                 aria-hidden="true"
               />
             ),

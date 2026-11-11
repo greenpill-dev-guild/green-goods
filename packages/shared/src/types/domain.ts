@@ -57,22 +57,20 @@ export enum Domain {
   WASTE = 3,
 }
 
-/**
- * CSS color values for each action domain, referencing the shared domain
- * palette in `packages/shared/src/styles/theme.css`. Single source of truth
- * for solar=amber, agro=moss, edu=harbour blue, waste=terracotta across
- * public editorial, client PWA, and admin work filters.
- *
- * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`.
- * For Tailwind utilities, prefer the matching `bg-domain-*`, `text-domain-*`,
- * and `border-domain-*` classes generated from the same tokens.
- */
-export const DOMAIN_COLORS: Record<Domain, string> = {
-  [Domain.SOLAR]: "rgb(var(--domain-solar-rgb))",
-  [Domain.AGRO]: "rgb(var(--domain-agro-rgb))",
-  [Domain.EDU]: "rgb(var(--domain-education-rgb))",
-  [Domain.WASTE]: "rgb(var(--domain-waste-rgb))",
-};
+/** Design-token spelling; distinct from action slug prefixes and hypercert words. */
+export const DOMAIN_TOKEN_SLUG = {
+  [Domain.SOLAR]: "solar",
+  [Domain.AGRO]: "agro",
+  [Domain.EDU]: "education",
+  [Domain.WASTE]: "waste",
+} as const satisfies Record<Domain, string>;
+
+export type DomainTokenSlug = (typeof DOMAIN_TOKEN_SLUG)[Domain];
+
+/** Inline CSS colors from the shared palette in styles/theme.css. */
+export const DOMAIN_COLORS = Object.fromEntries(
+  Object.entries(DOMAIN_TOKEN_SLUG).map(([id, slug]) => [id, `rgb(var(--domain-${slug}-rgb))`])
+) as Record<Domain, string>;
 
 /**
  * Cynefin complexity framework phase — classifies the operating environment

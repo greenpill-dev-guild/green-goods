@@ -93,7 +93,7 @@ const withController = (fixture: ReturnType<typeof gardenPoolControllerFixture>)
 /**
  * A garden's promises: the seasons and campaigns, one header row (the count, the
  * pool's agreement behind its ⓘ, Status and Kind), then the 88px rows, and the +
- * that opens Offer or Request for members. Fictional data from the design frames.
+ * that opens Offer or Ask for members. Fictional data from the design frames.
  */
 const meta: Meta<typeof GardenPool> = {
   title: "Client/Commitments/GardenPool",
@@ -255,7 +255,8 @@ const LAPSED_SET = storyGroup({
 /**
  * A set past its due date that nobody has expired yet. Its untaken copies are still requested on
  * chain, but anyone may expire them, so the row counts them as ended and none as available, as
- * the group's page does (PRD-1347).
+ * the group's page does (PRD-1347), and its pill says Past due, as a single past-due promise's
+ * does (DL-176).
  */
 export const LapsedSet: Story = {
   tags: ["storybook-ci"],
@@ -279,7 +280,9 @@ export const LapsedSet: Story = {
     const row = within(canvasElement).getByRole("button", {
       name: /A group of 4 separate promises/,
     });
-    await expect(row).toHaveTextContent(/None available.*1 in progress, 3 ended/);
+    await expect(within(row).getByRole("status")).toHaveTextContent("Past due");
+    await expect(row).toHaveTextContent(/1 in progress, 3 ended/);
+    await expect(row).not.toHaveTextContent("None available");
   },
 };
 
@@ -304,7 +307,7 @@ export const Visitor: Story = {
   beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES, { canCreate: false })),
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).queryByRole("button", { name: "Offer or Request" })
+      within(canvasElement).queryByRole("button", { name: "Offer or Ask" })
     ).not.toBeInTheDocument();
   },
 };
@@ -333,7 +336,7 @@ export const Loading: Story = {
     );
     // No ⓘ while loading: it would slide as the line becomes the count. No + either.
     await expect(canvas.queryByRole("button", { name: "What this pool is for" })).toBeNull();
-    await expect(canvas.queryByRole("button", { name: "Offer or Request" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Offer or Ask" })).toBeNull();
     // The item row's own frame, led by the icon tile the promises arrive with.
     const rows = canvasElement.querySelectorAll("[data-skeleton=item-row]");
     await expect(rows).toHaveLength(4);
@@ -351,7 +354,7 @@ export const Empty: Story = {
     await expect(canvas.getByText("0 live")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "What this pool is for" })).toBeVisible();
     await expect(canvas.queryByRole("combobox")).toBeNull();
-    await expect(canvas.getByRole("button", { name: "Offer or Request" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Offer or Ask" })).toBeVisible();
   },
 };
 
@@ -366,7 +369,7 @@ export const LoadError: Story = {
     const alert = canvas.getByRole("alert");
     await expect(alert).toHaveTextContent("Couldn't load promises");
     await expect(within(alert).getByRole("button", { name: "Try Again" })).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: "Offer or Request" })).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Offer or Ask" })).toBeNull();
   },
 };
 
@@ -396,11 +399,11 @@ export const Agreement: Story = {
   },
 };
 
-/** The + opens Offer or Request: two choice cards and a way to Help. */
+/** The + opens Offer or Ask: two choice cards and a way to Help. */
 export const Chooser: Story = {
   beforeEach: withController(gardenPoolControllerFixture(LIVE_PROMISES)),
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("button", { name: "Offer or Request" }));
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Offer or Ask" }));
     await waitFor(() =>
       expect(within(document.body).getByTestId("app-sheet")).toHaveTextContent("How Promises Work")
     );

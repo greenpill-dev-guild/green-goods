@@ -52,7 +52,7 @@ export const TakeUp: Story = {
 export const AskToTakeUp: Story = {
   args: { approvalGated: true },
   play: async () => {
-    await expect(await screen.findByRole("button", { name: "Ask to take this up" })).toBeVisible();
+    await expect(await screen.findByRole("button", { name: "Request to Take Up" })).toBeVisible();
     await expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
   },
 };

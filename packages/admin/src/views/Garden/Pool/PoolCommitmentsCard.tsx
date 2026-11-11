@@ -55,7 +55,7 @@ export interface PoolCommitmentsCardProps {
 }
 
 /**
- * Offers and Requests, the card's title since DL-077.
+ * Offers and Asks, the card's title since DL-077.
  * One commitments card for the whole pool (uiux-spec §6.2 section 3, 2026-07-18
  * addendum): search, the Open · Confirmed · Past chips, a Past due chip for
  * the live rows the chain would let anyone expire, a Needs recovery chip for
@@ -161,7 +161,7 @@ export function PoolCommitmentsCard({
           <AdminCardTitle>
             {formatMessage({
               id: "cockpit.garden.pool.promises.title",
-              defaultMessage: "Offers and Requests",
+              defaultMessage: "Offers and Asks",
             })}
           </AdminCardTitle>
           <Button
@@ -271,7 +271,7 @@ export function PoolCommitmentsCard({
             description={formatMessage({
               id: "cockpit.garden.pool.commitments.emptyBody",
               defaultMessage:
-                "Offers and requests between neighbors show up here. Seed the first one to begin.",
+                "Offers and asks between neighbors show up here. Seed the first one to begin.",
             })}
           />
         ) : rows.length === 0 ? (

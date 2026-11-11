@@ -129,6 +129,38 @@ describe("CookieJarTab", () => {
     expect(screen.getByText("Up to 0.1 USDC per claim, once an hour")).toBeInTheDocument();
   });
 
+  it("leads with the chip's garden and keeps the other gardens behind one row", async () => {
+    const elsewhere = "0x4444444444444444444444444444444444444444" as const;
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [
+        {
+          ...testJar,
+          jarAddress: "0x6666666666666666666666666666666666666666",
+          gardenAddress: elsewhere,
+        },
+        testJar,
+      ],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 2,
+      confirmedGardenCount: 2,
+      unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
+    });
+    render(<CookieJarTab activeGardenId={TEST_GARDEN} />);
+
+    // The active garden's jars show first; the other garden waits behind one row.
+    expect(screen.getByText("Garden Alpha")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /USDC a claim/ })).toHaveLength(1);
+    const others = screen.getByRole("button", { name: "Other Gardens (1)" });
+    expect(others).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.setup().click(others);
+    expect(others).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("button", { name: /USDC a claim/ })).toHaveLength(2);
+  });
+
   it("caps the claimable-now figure at the jar's remaining balance", () => {
     mockUseAccessibleCookieJars.mockReturnValue({
       jars: [{ ...testJar, balance: 50000n }],

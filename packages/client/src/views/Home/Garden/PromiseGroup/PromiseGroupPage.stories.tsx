@@ -108,7 +108,7 @@ export const StewardReviewed: Story = {
   args: page({ available: 4, inProgress: 3, kept: 3 }, { bar: { act: "askToTakeUp", hold: null } }),
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).getByRole("button", { name: "Ask to Take Up One" })
+      within(canvasElement).getByRole("button", { name: "Request to Take Up One" })
     ).toBeEnabled();
   },
 };

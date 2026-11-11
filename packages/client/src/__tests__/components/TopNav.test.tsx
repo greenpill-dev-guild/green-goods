@@ -1,8 +1,8 @@
 /**
  * TopNav Component Tests
  *
- * Tests for TopNav component focusing on notification visibility based on steward status.
- * Verifies BUG-012: Non-stewards should not see the notification bell.
+ * The garden page's bar: its back button, its banner actions in their order, and no bell of its
+ * own, since Home's bell carries the garden's events (DL-130).
  */
 
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -10,7 +10,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock shared barrel (TopNav imports cn, useOffline, Garden, Work from @green-goods/shared)
+// Mock shared barrel (TopNav imports cn, useOffline, Garden from @green-goods/shared)
 vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: vi.fn(() => ({
     syncStatus: "idle",
@@ -33,20 +33,6 @@ vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   })),
 }));
 
-// Mock the GardenNotifications component
-vi.mock("@/views/Home/Garden/Notifications", async () => {
-  const React = await import("react");
-  return {
-    GardenNotifications: ({ notifications }: any) =>
-      React.createElement(
-        "div",
-        { "data-testid": "garden-notifications" },
-        `Notifications: ${notifications?.length ?? 0}`
-      ),
-  };
-});
-
-import type { Work } from "@green-goods/shared/types/domain";
 import { TopNav } from "../../components/Navigation/TopNav";
 
 const renderWithIntl = (element: React.ReactElement) =>
@@ -70,33 +56,6 @@ const mockGarden = {
   createdAt: Date.now(),
 };
 
-const mockWorks: Work[] = [
-  {
-    id: "work-1",
-    title: "Test Work 1",
-    actionUID: 1,
-    gardenerAddress: "0xGardener1",
-    gardenAddress: "0xGarden123",
-    feedback: "",
-    metadata: JSON.stringify({ plantCount: 5, plantSelection: ["tree"] }),
-    media: [],
-    createdAt: Date.now(),
-    status: "pending",
-  },
-  {
-    id: "work-2",
-    title: "Test Work 2",
-    actionUID: 2,
-    gardenerAddress: "0xGardener2",
-    gardenAddress: "0xGarden123",
-    feedback: "",
-    metadata: JSON.stringify({ plantCount: 3, plantSelection: ["flower"] }),
-    media: [],
-    createdAt: Date.now(),
-    status: "approved",
-  },
-];
-
 // ============================================================================
 // Tests
 // ============================================================================
@@ -104,114 +63,6 @@ const mockWorks: Work[] = [
 describe("components/Navigation/TopNav", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe("Notification visibility based on steward status (BUG-012)", () => {
-    it("shows notification bell when user is a steward", () => {
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: mockWorks as any,
-          isSteward: true,
-        })
-      );
-
-      // Notification button should be visible (uses aria-label="View notifications")
-      const notificationButton = screen.getByRole("button", { name: /view notifications/i });
-      expect(notificationButton).toBeInTheDocument();
-    });
-
-    it("opens the notifications sheet at the tall tier with one scroll owner", () => {
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: mockWorks as any,
-          isSteward: true,
-        })
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: /view notifications/i }));
-
-      const sheet = screen.getByTestId("app-sheet");
-      expect(sheet).toHaveAttribute("data-sheet-size", "tall");
-      // The shared sheet body is the single scroll owner (attribute CSS, DL-028).
-      const region = screen.getByTestId("garden-notifications").parentElement;
-      expect(region).toHaveAttribute("data-slot", "body");
-      expect(region?.querySelector(".overflow-y-auto")).toBeNull();
-    });
-
-    it("hides notification bell when user is NOT a steward", () => {
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: mockWorks as any,
-          isSteward: false,
-        })
-      );
-
-      // Notification button should NOT be visible
-      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
-    });
-
-    it("hides notification bell when isSteward is not provided (defaults to false)", () => {
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: mockWorks as any,
-          // isSteward not provided
-        })
-      );
-
-      // Notification button should NOT be visible (default isSteward = false)
-      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
-    });
-
-    it("hides notification center even with pending works when not a steward", () => {
-      const worksWithPending = [
-        ...mockWorks,
-        {
-          id: "work-3",
-          title: "Pending Work",
-          status: "pending",
-          actionUID: 3,
-          gardenerAddress: "0xGardener3",
-          gardenAddress: "0xGarden123",
-          feedback: "",
-          metadata: JSON.stringify({ plantCount: 2, plantSelection: [] }),
-          media: [],
-          createdAt: Date.now(),
-        },
-      ];
-
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: worksWithPending as any,
-          isSteward: false,
-        })
-      );
-
-      // Even with pending works, non-stewards should not see notifications
-      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
-    });
-
-    it("shows notification badge with pending count for stewards", () => {
-      const worksWithPending = [
-        { ...mockWorks[0], status: "pending" },
-        { ...mockWorks[1], status: "pending" },
-      ];
-
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: worksWithPending as any,
-          isSteward: true,
-        })
-      );
-
-      // Should show pending count badge
-      expect(screen.getByText("2")).toBeInTheDocument();
-    });
   });
 
   describe("Back button", () => {
@@ -238,15 +89,13 @@ describe("components/Navigation/TopNav", () => {
     });
   });
 
-  describe("Share action (DL-020)", () => {
-    it("keeps Share after notifications and endowment", () => {
+  describe("Banner actions (DL-020, DL-130)", () => {
+    it("keeps Share last and draws no bell of its own", () => {
       const handleShare = vi.fn();
 
       renderWithIntl(
         createElement(TopNav, {
           garden: mockGarden as any,
-          works: mockWorks as any,
-          isSteward: true,
           showEndowmentButton: true,
           onEndowmentClick: vi.fn(),
           onShareClick: handleShare,
@@ -258,28 +107,16 @@ describe("components/Navigation/TopNav", () => {
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"));
       expect(labels[labels.length - 1]).toBe("Share Garden");
-      expect(labels).toContain("View notifications");
       expect(labels).not.toContain("Garden Actions");
+      // Home's bell counts the garden's events; a second count of pending work here disagreed.
+      expect(screen.queryByRole("button", { name: /notifications/i })).not.toBeInTheDocument();
 
       fireEvent.click(share);
       expect(handleShare).toHaveBeenCalledTimes(1);
     });
 
-    it("shows Share to visitors who see no other banner actions", () => {
-      renderWithIntl(
-        createElement(TopNav, {
-          garden: mockGarden as any,
-          works: mockWorks as any,
-          onShareClick: vi.fn(),
-        })
-      );
-
-      expect(screen.getByRole("button", { name: "Share Garden" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /view notifications/i })).not.toBeInTheDocument();
-    });
-
     it("renders no Share button without a garden or a share handler", () => {
-      renderWithIntl(createElement(TopNav, { garden: mockGarden as any, works: mockWorks as any }));
+      renderWithIntl(createElement(TopNav, { garden: mockGarden as any }));
       expect(screen.queryByRole("button", { name: "Share Garden" })).not.toBeInTheDocument();
 
       renderWithIntl(createElement(TopNav, { onShareClick: vi.fn() }));

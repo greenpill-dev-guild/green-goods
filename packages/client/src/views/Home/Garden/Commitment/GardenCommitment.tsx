@@ -110,9 +110,7 @@ export function GardenCommitment() {
     }
     return <CommitmentDetailState kind={controller.status} onBack={back} />;
   }
-  if (!controller.detail) {
-    return <CommitmentDetailState kind="error" onBack={back} />;
-  }
+  if (!controller.detail) return <CommitmentDetailState kind="error" onBack={back} />;
 
   const detail = controller.detail;
   const { commitment, contributors, requirements } = detail;
@@ -148,6 +146,8 @@ export function GardenCommitment() {
     actKind: controller.actKind,
     hasLinkedWork: detail.workAttributions.some((row) => row.linked),
     requiredWorkApproved,
+    pastDue: controller.pastDue,
+    takeUpPending: controller.takeUpPending,
   });
   const isPending = controller.isQueueing || controller.isSending;
   const proofOnPhone = proofOnPhoneLine(controller.queue, formatMessage);

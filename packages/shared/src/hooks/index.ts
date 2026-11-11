@@ -391,8 +391,8 @@ export type {
   PublicVaultSummary,
   PublicVaultSummaryAsset,
   PublicVaultSummaryAssetSymbol,
-} from "./public/usePublicVaultSummary";
-export { usePublicVaultSummary } from "./public/usePublicVaultSummary";
+} from "./public/usePublicVaultCatalogSummary";
+export { usePublicVaultCatalogSummary } from "./public/usePublicVaultCatalogSummary";
 export type { PublicVolume, PublicVolumeActiveGarden } from "./public/usePublicVolume";
 export {
   SEASON_ONE_VOLUME_ID,
@@ -466,7 +466,6 @@ export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 export { useFunderLeaderboard } from "./vault/useFunderLeaderboard";
 export { useGardenVaults } from "./vault/useGardenVaults";
-export { useHarvestableYield } from "./vault/useHarvestableYield";
 export { useMyVaultDeposits } from "./vault/useMyVaultDeposits";
 export {
   type OctantVaultHarvestableYield,
@@ -503,7 +502,6 @@ export {
   type OctantVaultRedeemParams,
   useOctantVaultRedeem,
 } from "./vault/useOctantVaultWithdraw";
-export { useStrategyRate } from "./vault/useStrategyRate";
 export { useVaultDeposits } from "./vault/useVaultDeposits";
 export { useVaultEvents } from "./vault/useVaultEvents";
 export {

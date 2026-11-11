@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -44,6 +45,12 @@ export interface LiveTabProps {
   gardenHeadings: boolean;
   /** A promise's page is open over the sheet, so the list of copies waits for its return. */
   covered: boolean;
+  /** The reader's take-up requests still waiting on a steward's yes, each on its ask. */
+  waiting?: InboxCommitment[];
+  /** Ids of the listed promises that nobody took up and that are past due on the chain's clock. */
+  pastDueIds?: ReadonlySet<string>;
+  /** Where the read behind `waiting` stands, so an unanswered read never passes for none. */
+  waitingRead?: { isLoading: boolean; isError: boolean; retry: () => void };
 }
 
 /** The copies a folded row opens: drawn while they close, and already in place on the way back. */
@@ -78,11 +85,14 @@ export function LiveTab({
   cycleId,
   gardenHeadings,
   covered,
+  waiting = [],
+  pastDueIds,
+  waitingRead,
 }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
-    useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live])
+    useMemo(() => [...inbox.live, ...waiting].map((row) => row.commitment), [inbox.live, waiting])
   );
   const [openCopies, setOpenCopies] = useState<OpenCopies>({
     ids: new Set(),
@@ -131,13 +141,26 @@ export function LiveTab({
     formatMessage,
   ]);
 
-  const promiseRow = (row: InboxCommitment, beforeOpen?: () => void) => {
+  // A take-up request waits under the same chips and season as the list it heads.
+  const shownWaiting = waiting.filter(
+    (row) =>
+      (direction === "all" || row.commitment.direction === direction) &&
+      (cycleId === null || row.commitment.cycleId === cycleId)
+  );
+
+  const promiseRow = (
+    row: InboxCommitment,
+    beforeOpen?: () => void,
+    options: { takeUpRequested?: boolean } = {}
+  ) => {
     const gardenAddress = gardenAddressFor(row, pools);
     return (
       <PromiseRow
         key={row.commitment.id}
         row={row}
         title={titleOf(row)}
+        takeUpRequested={options.takeUpRequested}
+        pastDue={pastDueIds?.has(row.commitment.id) ?? false}
         sendFailed={inbox.failedCommitmentIds.has(row.commitment.commitmentId.toString())}
         onOpen={
           gardenAddress
@@ -158,22 +181,30 @@ export function LiveTab({
         entry.rows.some((row) => openCopies.ids.has(row.commitment.commitmentId))
     );
 
+  // A commitment still waiting to send, or one that gave up, has no row to
+  // appear in — so the emptiest list is exactly when those notices matter
+  // most. Treating the tab as empty would hide the only thing saying so.
+  const listsNothing =
+    inbox.live.length === 0 &&
+    waiting.length === 0 &&
+    !inbox.hasPendingCreate &&
+    inbox.unlistedFailureCount === 0 &&
+    !inbox.queueUnavailable;
+  // With nothing else to show, the take-up requests still unread keep the tab loading, and a
+  // read of them that failed is the tab's failure, so it never says nothing is moving.
+  const waitingUnsure = listsNothing && waitingRead !== undefined;
+
   return (
     <CommitmentStateLadder
       availability={inbox.availability}
-      isLoading={inbox.isLoading}
-      isError={inbox.isError}
+      isLoading={inbox.isLoading || (waitingUnsure && waitingRead.isLoading)}
+      isError={inbox.isError || (waitingUnsure && waitingRead.isError)}
       isOnline={isOnline}
-      // A commitment still waiting to send, or one that gave up, has no row to
-      // appear in — so the emptiest list is exactly when those notices matter
-      // most. Treating the tab as empty would hide the only thing saying so.
-      isEmpty={
-        inbox.live.length === 0 &&
-        !inbox.hasPendingCreate &&
-        inbox.unlistedFailureCount === 0 &&
-        !inbox.queueUnavailable
-      }
-      onRetry={() => void inbox.refetch()}
+      isEmpty={listsNothing}
+      onRetry={() => {
+        void inbox.refetch();
+        waitingRead?.retry();
+      }}
       regionClassName={PWA_SHEET_SCROLL_CLASSNAME}
       copy={{
         loadingId: "app.commitments.live.loading",
@@ -236,11 +267,14 @@ export function LiveTab({
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState
-          placement="sheet"
-          icon={<RiFilterOffLine />}
-          title={formatMessage({ id: "app.commitments.filter.noMatches" })}
-        />
+        // A take-up request under the filters still lists, so the filters matched something.
+        shownWaiting.length > 0 ? null : (
+          <EmptyState
+            placement="sheet"
+            icon={<RiFilterOffLine />}
+            title={formatMessage({ id: "app.commitments.filter.noMatches" })}
+          />
+        )
       ) : (
         groups.map((group) => (
           <div key={group.key}>
@@ -259,6 +293,7 @@ export function LiveTab({
                     row={first}
                     title={titleOf(first)}
                     copies={entry.rows.length}
+                    pastDue={pastDueIds?.has(first.commitment.id) ?? false}
                     onOpen={() =>
                       setOpenCopies({
                         ids: new Set(entry.rows.map((row) => row.commitment.commitmentId)),
@@ -273,6 +308,31 @@ export function LiveTab({
           </div>
         ))
       )}
+
+      {/* A take-up request is the reader's business too, though nothing is theirs until a
+          steward says yes, so it follows their promises under its own heading (PRD-1368). */}
+      {shownWaiting.length > 0 ? (
+        <section data-component="WaitingOnSteward">
+          <SheetHeading as="h4" className="mb-2">
+            {formatMessage({ id: "app.commitments.waiting.title" })}
+          </SheetHeading>
+          <div className="flex flex-col gap-(--gg-list-gap)">
+            {shownWaiting.map((row) => promiseRow(row, undefined, { takeUpRequested: true }))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Beside a list, a failed read of the take-up requests says so where they would be. */}
+      {waitingRead?.isError && !waitingUnsure ? (
+        <Alert variant="warning" className="p-3">
+          <div className="flex flex-col items-start gap-2">
+            <p>{formatMessage({ id: "app.commitments.waiting.error" })}</p>
+            <Button type="button" emphasis="secondary" size="sm" onClick={waitingRead.retry}>
+              {formatMessage({ id: "app.commitments.retry" })}
+            </Button>
+          </div>
+        </Alert>
+      ) : null}
 
       {copiesOnScreen && !covered && !wasCovered ? (
         <AppSheet

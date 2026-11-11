@@ -1,21 +1,7 @@
-import { RiBookOpenLine, RiPlantLine, RiRecycleLine, RiSunLine } from "@remixicon/react";
 import * as React from "react";
-import { Domain } from "../../types/domain";
+import { DOMAIN_TOKEN_SLUG, Domain } from "../../types/domain";
+import { DOMAIN_CONFIG } from "../../config/domain";
 import { cn } from "../../utils/styles/cn";
-
-/**
- * Domain → CSS token slug. Token colors live in `theme.css` as
- * `--domain-{slug}-rgb` (ink) and `--domain-{slug}-soft-rgb` (pale surface).
- * Each banner draws an ink → soft gradient; angle varies by title hash to
- * keep cards in the same domain visually distinct without leaving the
- * Warm Earth palette.
- */
-const DOMAIN_TOKEN_SLUG: Record<Domain, string> = {
-  [Domain.SOLAR]: "solar",
-  [Domain.AGRO]: "agro",
-  [Domain.EDU]: "education",
-  [Domain.WASTE]: "waste",
-};
 
 const VARIANT_ANGLES = [120, 135, 150] as const;
 
@@ -25,14 +11,6 @@ function buildDomainGradient(domain: Domain | null, variantIndex: number): strin
   const angle = VARIANT_ANGLES[variantIndex % VARIANT_ANGLES.length];
   return `linear-gradient(${angle}deg, rgb(var(--domain-${slug}-rgb)) 0%, rgb(var(--domain-${slug}-soft-rgb)) 100%)`;
 }
-
-/** Domain icon mapping — matches actions.json domainConfig */
-const DOMAIN_ICONS: Record<Domain, React.ComponentType<{ className?: string }>> = {
-  [Domain.SOLAR]: RiSunLine,
-  [Domain.AGRO]: RiPlantLine,
-  [Domain.EDU]: RiBookOpenLine,
-  [Domain.WASTE]: RiRecycleLine,
-};
 
 /**
  * Subtle dot-grid pattern overlay for texture depth.
@@ -80,7 +58,7 @@ export const ActionBannerFallback: React.FC<ActionBannerFallbackProps> = React.m
   ({ domain, title, className }) => {
     const variantIndex = hashName(title || "Action") % VARIANT_ANGLES.length;
     const gradient = buildDomainGradient(domain, variantIndex);
-    const Icon = DOMAIN_ICONS[domain ?? Domain.AGRO];
+    const Icon = DOMAIN_CONFIG[domain ?? Domain.AGRO].icon;
 
     return (
       <div className={cn("absolute inset-0", className)}>

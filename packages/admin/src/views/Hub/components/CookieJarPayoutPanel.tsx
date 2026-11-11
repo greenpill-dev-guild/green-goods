@@ -1,12 +1,13 @@
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useHatsCookieJarAdmin } from "@green-goods/shared/hooks/cookie-jar/useCookieJarAdmin";
 import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
 import { useGardenAccountSigner } from "@green-goods/shared/hooks/garden/useGardenAccountSigner";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { RiCookieLine, RiErrorWarningLine, RiWifiOffLine } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
@@ -28,6 +29,23 @@ interface CookieJarPayoutPanelProps {
   allocationCountAtLeast?: boolean;
   /** The payout history could not be read, so there is no count to state. */
   allocationCountUnread?: boolean;
+}
+
+function RegisteredJarCard({
+  amountsReady,
+  ...props
+}: ComponentProps<typeof CookieJarPayoutCard> & { amountsReady: boolean }) {
+  const admin = useHatsCookieJarAdmin(props.jar);
+  return (
+    <CookieJarPayoutCard
+      {...props}
+      hatsAdmin={{
+        ...admin,
+        canOperate: amountsReady && admin.canOperate,
+        canGovern: amountsReady && admin.canGovern,
+      }}
+    />
+  );
 }
 
 /** What the panel says while it has no jars to list. */
@@ -111,8 +129,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   });
   const { jars } = jarRead;
   const readState = resolveCookieJarReadState(jarRead);
-  // Jar settings are written by the garden account, so the gate is who can sign for it, not
-  // the garden's role list: a steward's own wallet would only produce a revert.
+  // Legacy jars still use the garden-account signer. Hats jars resolve authority per jar.
   const signer = useGardenAccountSigner(gardenAddress);
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -186,9 +203,10 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
           <AdminCardBody className="space-y-3">
             <div className="flex flex-col gap-(--gg-list-gap)">
               {jars.map((jar) => (
-                <CookieJarPayoutCard
+                <RegisteredJarCard
                   key={jar.jarAddress}
                   jar={jar}
+                  amountsReady={!jarRead.hasUnreadDecimals && !jarRead.hasDecimalsReadFailure}
                   gardenAddress={gardenAddress}
                   gardenName={gardenName}
                   allocationCount={allocationCount}

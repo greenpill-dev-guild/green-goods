@@ -26,7 +26,7 @@ const meta: Meta<typeof PoolQueuedRows> = {
     docs: {
       description: {
         component:
-          "Creations still queued on this device, above Offers and Requests' indexed rows, so a seeded promise shows up before the indexer has it. Nothing in the admin sends a queued creation on its own, so each row offers the send and, where the queue allows it, the way out (Discard), and leads its line with the act in flight, then why it cannot go, else how much it promises.",
+          "Creations still queued on this device, above Offers and Asks' indexed rows, so a seeded promise shows up before the indexer has it. Nothing in the admin sends a queued creation on its own, so each row offers the send and, where the queue allows it, the way out (Discard), and leads its line with the act in flight, then why it cannot go, else how much it promises.",
       },
     },
   },

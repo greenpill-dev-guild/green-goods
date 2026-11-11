@@ -33,6 +33,8 @@ const DEFAULTS = {
   // Gnosis' public node serves the voucher suites' pinned historical state.
   GNOSIS_RPC_URL: "https://rpc.gnosischain.com",
 };
+// Forge's default test gas limit, 1 << 30 in v1.7.1.
+const VOUCHER_GAS_LIMIT = String(2 ** 30);
 // Production-profile artifacts the Gnosis voucher journeys deploy through ERC1967 proxies.
 const VOUCHER_PRODUCTION_TARGETS = [
   "lib/tokenbound/lib/openzeppelin-contracts/contracts/governance/TimelockController.sol",
@@ -159,6 +161,11 @@ export const SHARDS = {
     // Each suite selects its own pinned Gnosis (and Arbitrum) forks, so no process fork is set.
     glob: "test/fork/{GnosisStewardSafe,GnosisVoucherPilot,GnosisVoucherPurchase,GnosisVoucherRedemption,GnosisVoucherReserve}.t.sol",
     productionTargets: VOUCHER_PRODUCTION_TARGETS,
+    // The journey and member-project setUps load about twenty production artifacts through
+    // cheatcodes in one call frame. Memory expansion takes them past the fork profile's 120M
+    // harness ceiling (MemoryOOG), so this shard runs at Forge's default ceiling, the one these
+    // suites were proven under. The ceiling bounds the test harness, not production gas.
+    testEnv: { FOUNDRY_GAS_LIMIT: VOUCHER_GAS_LIMIT },
   },
 };
 
@@ -212,8 +219,6 @@ function runForge(args, { profile = "fork", capture = false, envOverrides = {} }
 
 function commonArgs() {
   const verbosity = process.env.FORK_TEST_VERBOSITY || DEFAULT_VERBOSITY;
-  const forkRetries = process.env.FORK_TEST_RETRIES || DEFAULT_FORK_RETRIES;
-  const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF;
   const args = [
     "--no-match-test",
     NO_MATCH_TEST,
@@ -221,10 +226,6 @@ function commonArgs() {
     process.env.FORK_TEST_THREADS || DEFAULT_THREADS,
     "--suppress-successful-traces",
   ];
-  if (forkRetries && forkRetries !== "0") {
-    args.push("--fork-retries", forkRetries);
-    if (forkRetryBackoff) args.push("--fork-retry-backoff", forkRetryBackoff);
-  }
   if (verbosity) args.push(verbosity);
   return args;
 }
@@ -239,6 +240,15 @@ function forkArgsForChain(chain, profile = "fork") {
   const blockNumber = env[`${chain}_FORK_BLOCK_NUMBER`] || env[`${chain}_BLOCK_NUMBER`];
   const args = ["--fork-url", rpc];
   if (blockNumber) args.push("--fork-block-number", blockNumber);
+  // Forge accepts the retry flags only beside --fork-url, so they belong to the process fork. A
+  // shard without one (gnosis-vouchers) opens its pinned forks in Solidity, and those forks keep
+  // Forge's default retry policy (8 retries from an 800 ms backoff in v1.7.1).
+  const forkRetries = process.env.FORK_TEST_RETRIES || DEFAULT_FORK_RETRIES;
+  if (forkRetries !== "0") {
+    args.push("--fork-retries", forkRetries);
+    const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF;
+    if (forkRetryBackoff) args.push("--fork-retry-backoff", forkRetryBackoff);
+  }
   return args;
 }
 
@@ -289,28 +299,40 @@ function runShard(name) {
     if (build.error) throw build.error;
     if (build.status !== 0) process.exit(build.status ?? 1);
   }
-  const forkArgs = forkArgsForChain(shard.chain);
-  if (forkArgs.length) {
+  const [mainRun, ...extraRuns] = shardForgeRuns(name);
+  if (mainRun.args.includes("--fork-url")) {
     console.log(`[fork-shard] ${name}: using pinned ${shard.chain.toLowerCase()} process fork`);
   }
-  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()], {
-    envOverrides: shard.testEnv,
-  });
+  runForge(mainRun.args, mainRun.options);
 
-  for (const extraRun of shard.extraRuns || []) {
+  for (const extraRun of extraRuns) {
     console.log(`[fork-shard] ${name}: ${extraRun.description}`);
-    const extraForkArgs = forkArgsForChain(extraRun.chain || shard.chain, extraRun.profile || "fork");
-    const args = [
+    runForge(extraRun.args, extraRun.options);
+  }
+}
+
+/** The `forge test` runs a generic shard makes. Runner shards assemble their own commands. */
+export function shardForgeRuns(name) {
+  const shard = SHARDS[name];
+  if (shard.runner) return [];
+  const mainRun = {
+    args: ["test", "--match-path", shard.glob, ...forkArgsForChain(shard.chain), ...commonArgs()],
+    options: { envOverrides: shard.testEnv },
+  };
+  const extraRuns = (shard.extraRuns || []).map((extraRun) => ({
+    description: extraRun.description,
+    args: [
       "test",
       "--match-path",
       extraRun.glob,
       "--match-test",
       extraRun.matchTest,
-      ...extraForkArgs,
+      ...forkArgsForChain(extraRun.chain || shard.chain, extraRun.profile || "fork"),
       ...commonArgs(),
-    ];
-    runForge(args, { profile: extraRun.profile });
-  }
+    ],
+    options: { profile: extraRun.profile },
+  }));
+  return [mainRun, ...extraRuns];
 }
 
 function listShard(name) {

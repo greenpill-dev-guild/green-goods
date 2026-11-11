@@ -22,7 +22,7 @@ export interface PoolGroupRowProps {
 const plain = (chunks: string[]) => chunks.join("");
 
 /**
- * Copies made together, as one row in Offers and Requests (PRD-1022 D3), on the shared
+ * Copies made together, as one row in Offers and Asks (PRD-1022 D3), on the shared
  * commitment row: the direction's icon carries the number of copies, the pill says how many
  * are still available, and the details give the shared due date and the rest of the counts.
  * While a copy is still waiting in the steward's queue the pill says how many didn't send,

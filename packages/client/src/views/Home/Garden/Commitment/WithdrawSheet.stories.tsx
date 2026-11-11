@@ -45,10 +45,8 @@ export const Offer: Story = {
 export const Request: Story = {
   args: { direction: "REQUEST" },
   play: async () => {
-    await expect(
-      await screen.findByRole("dialog", { name: "Withdraw This Request?" })
-    ).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Withdraw This Request" })).toBeVisible();
+    await expect(await screen.findByRole("dialog", { name: "Withdraw This Ask?" })).toBeVisible();
+    await expect(screen.getByRole("button", { name: "Withdraw This Ask" })).toBeVisible();
   },
 };
 

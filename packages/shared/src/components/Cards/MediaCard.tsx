@@ -156,7 +156,14 @@ export const MediaCard = React.forwardRef<HTMLElement, MediaCardProps>(function 
         <h3
           className={cn(
             "gg-media-title text-text-strong",
-            titleLines === 2 ? "line-clamp-2 min-h-[2lh] [overflow-wrap:anywhere]" : "truncate"
+            // A long word breaks where its language hyphenates it (the page's lang follows the
+            // locale): only words of ten letters or more, keeping four on each side, so a short
+            // word moves to the next line whole. A word the dictionary doesn't know (a name, a
+            // brand) is never split between letters: it ends in an ellipsis at the tile's edge,
+            // and the full title stays in its tooltip and accessible name.
+            titleLines === 2
+              ? "line-clamp-2 min-h-[2lh] hyphens-auto text-ellipsis [hyphenate-limit-chars:10_4_4]"
+              : "truncate"
           )}
           title={title}
         >

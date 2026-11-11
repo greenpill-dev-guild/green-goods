@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   type PoolListEntry,
+  usePastDuePromises,
   usePoolPromiseEntries,
 } from "../../../hooks/client-ui/pool/usePromiseGroups";
 import type { CommitmentMetadataV1 } from "../../../modules/commitment-pooling/metadata";
@@ -124,5 +125,39 @@ describe("usePoolPromiseEntries", () => {
     mocks.cycles = [cycleFixture({ cycleId: 5n, endTime: lapsed })];
     rerender();
     expect(countsOf(result.current, "season")).toMatchObject({ available: 0, ended: 2 });
+  });
+});
+
+describe("usePastDuePromises", () => {
+  beforeEach(() => {
+    mocks.cycles = undefined;
+  });
+
+  it("marks only untaken promises whose due date has passed, once that date is known", () => {
+    const lapsed = aMinuteAgo();
+    const commitments = [
+      copy(31, "cid-dated", { dueDate: lapsed }),
+      copy(32, "cid-dated", { dueDate: lapsed + 3600n }),
+      copy(33, "cid-dated", {
+        dueDate: lapsed,
+        onchainState: "ACCEPTED",
+        derivedState: "ACTIVE",
+        leadProvider: OMAR,
+      }),
+      // Falls due when this pool's season 5 ends, which is still unread.
+      copy(34, "cid-season", { cycleId: 5n, poolId: 7n }),
+      // Another pool's season 5 is a different season: this pool's cycles never date it.
+      copy(35, "cid-season", { cycleId: 5n, poolId: 8n }),
+    ];
+    const { result, rerender } = renderHookWithProviders(() =>
+      usePastDuePromises({ chainId: 42161, poolId: 7n, commitments })
+    );
+
+    // The taken-up copy's due date is its team's business; the undated one waits for its season.
+    expect([...result.current]).toEqual([commitments[0].id]);
+
+    mocks.cycles = [cycleFixture({ cycleId: 5n, endTime: lapsed })];
+    rerender();
+    expect([...result.current].sort()).toEqual([commitments[0].id, commitments[3].id].sort());
   });
 });

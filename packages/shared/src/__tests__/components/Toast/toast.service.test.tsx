@@ -123,8 +123,8 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     expect(action).toHaveClass("gg-button");
     expect(action).toHaveAttribute("data-emphasis", "tertiary");
     expect(action).toHaveAttribute("data-size", "sm");
+    expect(action.style.color).toBe("var(--color-primary-on-surface)");
     expect(action).toHaveStyle({
-      color: "var(--color-primary-on-surface)",
       overflowWrap: "anywhere",
       whiteSpace: "normal",
     });

@@ -9,8 +9,8 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-} from "@green-goods/shared/hooks/public/usePublicVaultSummary";
-import { usePublicVaultCatalogSummary } from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
+  usePublicVaultCatalogSummary,
+} from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
@@ -90,7 +90,11 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
         {assets.length > 0 ? (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
             {assets.map((asset) => (
-              <VaultAssetCard key={`${asset.chainId}:${asset.asset}`} asset={asset} />
+              <VaultAssetCard
+                key={`${asset.chainId}:${asset.asset}`}
+                asset={asset}
+                isYieldLoading={summary.isYieldLoading}
+              />
             ))}
           </div>
         ) : showSkeleton ? (
@@ -156,17 +160,25 @@ function VaultAssetUnavailableCard({ symbol, errored }: { symbol: string; errore
   );
 }
 
-function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
+function VaultAssetCard({
+  asset,
+  isYieldLoading,
+}: {
+  asset: PublicVaultSummaryAsset;
+  isYieldLoading: boolean;
+}) {
   const { formatMessage } = useIntl();
-  const aprValue =
-    typeof asset.apr === "number"
+  const aprValue = asset.isAprLoading
+    ? formatMessage({ id: "public.fund.vaults.loading", defaultMessage: "Loading..." })
+    : typeof asset.apr === "number"
       ? formatApy(asset.apr)
       : formatMessage({
           id: "public.fund.vaults.aprUnavailable",
           defaultMessage: "APR unavailable",
         });
-  const readyToHarvestValue =
-    asset.accruingYield !== undefined
+  const readyToHarvestValue = isYieldLoading
+    ? formatMessage({ id: "public.fund.vaults.loading", defaultMessage: "Loading..." })
+    : asset.accruingYield !== undefined
       ? formatVaultAssetAmount(asset.accruingYield, asset)
       : formatMessage({
           id: "public.fund.vaults.liveYieldUnavailable",

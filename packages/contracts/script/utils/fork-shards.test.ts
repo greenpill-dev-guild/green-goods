@@ -2,9 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { MANUAL_FORK_FILES, SHARD_ORDER, SHARDS } from "./fork-shards.mjs";
+import { MANUAL_FORK_FILES, SHARD_ORDER, SHARDS, shardForgeRuns } from "./fork-shards.mjs";
 
-// TEST-QUALITY: allow-small-test-file - two structural guards keep every fork suite in a CI shard; more cases would restate them.
+// TEST-QUALITY: allow-small-test-file - three structural guards keep every fork suite in a CI shard Forge accepts; more cases would restate them.
 const contractsRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 function forkTestFiles(directory = join(contractsRoot, "test/fork")): string[] {
@@ -46,5 +46,14 @@ describe("fork shard coverage", () => {
       new RegExp(`^\\s*- shard: ${shard}\\s*$|test:shard run ${shard}\\s*$`, "m").test(workflow);
 
     expect(SHARD_ORDER.filter((shard) => !scheduled(shard))).toEqual([]);
+  });
+
+  it("hands Forge its fork retry flags only beside a process fork", () => {
+    // Forge refuses --fork-retries without --fork-url, and these shards run only after a merge.
+    const runs = SHARD_ORDER.flatMap((shard) => shardForgeRuns(shard).map(({ args }) => ({ shard, args })));
+    const retried = runs.filter(({ args }) => args.includes("--fork-retries"));
+
+    expect(retried.filter(({ args }) => !args.includes("--fork-url")).map(({ shard }) => shard)).toEqual([]);
+    expect(retried.map(({ shard }) => shard)).toContain("arbitrum");
   });
 });

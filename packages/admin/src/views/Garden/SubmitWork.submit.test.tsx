@@ -359,25 +359,6 @@ vi.mock("@green-goods/shared/providers/Auth", () => ({
   useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
 }));
 
-vi.mock("@green-goods/shared/types/domain", () => ({
-  Capital: {
-    SOCIAL: 0,
-    MATERIAL: 1,
-    FINANCIAL: 2,
-    LIVING: 3,
-    INTELLECTUAL: 4,
-    EXPERIENTIAL: 5,
-    SPIRITUAL: 6,
-    CULTURAL: 7,
-  },
-  Domain: {
-    SOLAR: 0,
-    AGRO: 1,
-    EDU: 2,
-    WASTE: 3,
-  },
-}));
-
 vi.mock("@green-goods/shared/utils/action/parsers", () => ({
   findActionByUID: (actions: Action[], uid: number | null) =>
     uid === null
@@ -407,17 +388,6 @@ vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) =
       Boolean(a && b && a.toLowerCase() === b.toLowerCase()),
   };
 });
-
-vi.mock("@green-goods/shared/utils/domain", () => ({
-  expandDomainMask: (mask: number) => {
-    const domains: number[] = [];
-    if (mask & 1) domains.push(0);
-    if (mask & 2) domains.push(1);
-    if (mask & 4) domains.push(2);
-    if (mask & 8) domains.push(3);
-    return domains;
-  },
-}));
 
 vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
   adminRoutes: {

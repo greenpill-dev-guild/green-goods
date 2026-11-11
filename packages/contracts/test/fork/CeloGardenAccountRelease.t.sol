@@ -292,8 +292,9 @@ contract CeloGardenAccountReleaseForkTest is Test {
         view
         returns (CeloGardenAccountDeploymentCoordinator.AccountInitialization[] memory values)
     {
+        // The runner's proof-block plan, kept apart from the reviewed plan the deployment reads.
         string memory json =
-            vm.readFile(string.concat(vm.projectRoot(), "/.generated/runtime/42220-celo-garden-accounts.json"));
+            vm.readFile(string.concat(vm.projectRoot(), "/.generated/runtime/42220-celo-garden-accounts-proof.json"));
         values = new CeloGardenAccountDeploymentCoordinator.AccountInitialization[](18);
         for (uint256 i; i < 18; ++i) {
             string memory root = string.concat(".accounts[", vm.toString(i), "]");

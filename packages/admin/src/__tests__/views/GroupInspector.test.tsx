@@ -59,7 +59,7 @@ function inspector(
       title="Household water survey"
       cycleName="Season of First Rains"
       chainId={42161}
-      terms={[["Asks for", "1 survey · The pool requests"]]}
+      terms={[["Asks for", "1 survey · The pool asks"]]}
       rewarded
       canEditReward={overrides.canEditReward ?? false}
       canSeedMore={overrides.canSeedMore}

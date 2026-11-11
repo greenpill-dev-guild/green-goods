@@ -1,22 +1,22 @@
+import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { ENDOWMENT_DEPOSITS_ENABLED } from "@green-goods/shared/config/app";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useErc20Balance } from "@green-goods/shared/hooks/blockchain/useErc20Balance";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import type { Address } from "@green-goods/shared/types/domain";
 import {
   getVaultAssetDecimals,
   validateDecimalInput,
 } from "@green-goods/shared/utils/blockchain/vaults";
-import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
-import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
-import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
-import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
-import { useUser } from "@green-goods/shared/hooks/auth/useUser";
-import { useDepositPlan, useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
-import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
-import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
-import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
-import { useBalance } from "wagmi";
 import { AppSheet, type AppSheetTab } from "../AppSheet";
 import { CookieJarTabContent } from "./CookieJarTabContent";
 import { TreasuryTabContent } from "./TreasuryTabContent";
@@ -92,7 +92,7 @@ export function EndowmentSheet({
     [selectedAsset, vaults]
   );
 
-  const { data: balance } = useBalance({
+  const { data: balance } = useErc20Balance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
     query: { enabled: isOpen && Boolean(primaryAddress && selectedVault) },

@@ -655,7 +655,7 @@ describe("GardenPoolTab (W7)", () => {
     );
     // A queued row leads with its direction before the index has it (DL-110).
     expect(within(rows[0]).getByRole("img", { name: "Offer" })).toBeInTheDocument();
-    expect(within(rows[1]).getByRole("img", { name: "Request" })).toBeInTheDocument();
+    expect(within(rows[1]).getByRole("img", { name: "Ask" })).toBeInTheDocument();
   });
 
   it("approves a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
@@ -990,7 +990,7 @@ describe("GardenPoolTab (W7)", () => {
     ).toContainElement(screen.getByTestId("pool-commitments"));
     expect(
       within(screen.getByTestId("pool-commitments")).getByRole("heading", {
-        name: "Offers and Requests",
+        name: "Offers and Asks",
       })
     ).toBeVisible();
   });

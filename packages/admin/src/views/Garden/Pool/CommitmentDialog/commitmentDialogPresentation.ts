@@ -75,7 +75,7 @@ export function stageLabels(
       direction === "REQUEST"
         ? formatMessage({
             id: "cockpit.garden.pool.commitment.stage.requested",
-            defaultMessage: "Requested",
+            defaultMessage: "Asked",
           })
         : formatMessage({
             id: "cockpit.garden.pool.commitment.stage.offered",

@@ -136,14 +136,17 @@ export function useGardenCommitmentController(input: {
   const pendingClaimRequests = claimsQuery.claimRequests.filter(
     (request) => request.state === "PENDING"
   );
+  // Whether a take-up request waits is only known once the read answered; until then no
+  // surface may say that none does.
+  const takeUpPending = claimsQuery.isSuccess ? pendingClaimRequests.length > 0 : null;
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
-  // Untaken and not past due on the chain's clock; never open before the due date is known.
-  const takeUpOpen = Boolean(
-    commitment &&
-      (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
-      due.known &&
-      !isPastDue(commitment, due.clock)
+  const untaken = Boolean(
+    commitment && (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED")
   );
+  // Untaken and past due on the chain's clock: only once the due date is known.
+  const pastDue = Boolean(commitment && untaken && due.known && isPastDue(commitment, due.clock));
+  // Untaken and not past due on the chain's clock; never open before the due date is known.
+  const takeUpOpen = untaken && due.known && !pastDue;
   // Who may take this up. On a garden pool the chain gates a personal claim on
   // a role in the route garden. On the protocol pool the claim goes through a
   // garden of the reader's own, the host included for a personal claim, so any
@@ -359,6 +362,8 @@ export function useGardenCommitmentController(input: {
     ownRequest,
     pendingClaimRequests,
     takeUpOpen,
+    pastDue,
+    takeUpPending,
     canAskAgain:
       // Asking again is a take-up: never past due, and not before the due date is known.
       takeUpOpen &&
