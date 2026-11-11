@@ -47,6 +47,8 @@ const DEFAULT_SAFE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-safe-final.json"
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles.json");
 const PROOF_FIXTURE = path.join(RUNTIME_ROOT, "42220-garden-roles-proof.json");
 const ENABLE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles-enable.json");
+/** Where `plan --proof-block` writes its historical plan, away from every file deploy, verify and enable read. */
+const PROOF_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles-proof-plan.json");
 /** Receipt-backed record of the 18 deployed Garden Safes; the authority on which Safes are registered. */
 const SETTLEMENT_SAFES = path.join(CONTRACTS_ROOT, "deployments/42220-settlement-safes.json");
 const CELO_DEPLOYMENTS = path.join(CONTRACTS_ROOT, "deployments/42220-latest.json");
@@ -209,10 +211,27 @@ export interface GardenRolesPlan {
   recoveryApprovals: RecoveryApproval[];
   blockers: string[];
   releaseGate: string;
+  /** Present only on a fork-proof plan: the historical Celo block it describes. */
+  proofBlock?: number;
 }
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+/**
+ * Reads the reviewed plan that verify, deploy or enable acts on. A fork-proof plan describes
+ * historical Celo state, so these commands refuse it even when its path is passed explicitly.
+ */
+export function readReviewedPlan<T>(filePath: string, label: string): T {
+  if (!fs.existsSync(filePath)) throw new Error(`Reviewed ${label} is missing: ${filePath}`);
+  const plan = readJson<T & { proofBlock?: number }>(filePath);
+  if (plan.proofBlock !== undefined) {
+    throw new Error(
+      `${filePath} is a fork-proof plan for Celo block ${plan.proofBlock}; verify, deploy and enable act only on a live plan`,
+    );
+  }
+  return plan;
 }
 
 function atomicWrite(filePath: string, value: unknown): void {
@@ -486,7 +505,12 @@ export function assertRegisteredSafes(
   }
 }
 
-async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
+/**
+ * Reads chain state at the live head, or at `proofBlock` for the pinned fork proofs: the release
+ * has since run, so the live head would refuse the state they fork.
+ */
+async function buildPlan(safePlanPath: string, proofBlock?: number): Promise<GardenRolesPlan> {
+  const blockTag = proofBlock ?? "latest";
   const safePlan = readJson<{ entries: SafePlanEntry[] }>(safePlanPath);
   // The plan path is operator-supplied, so a wrong --safe-plan must fail by name, not by TypeError.
   if (!Array.isArray(safePlan.entries)) throw new Error(`Safe plan ${safePlanPath} has no entries array`);
@@ -518,21 +542,25 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
       to: MODULE_PROXY_FACTORY,
       data: FACTORY_INTERFACE.encodeFunctionData("deployModule", [ROLES_MASTERCOPY, initializer, saltNonce]),
       from: DEPLOYMENT_OPERATOR,
+      blockTag,
     });
     const returned = getAddress(`0x${simulated.slice(26, 66)}`);
     if (returned !== predicted) {
       blockers.push(`Garden ${entry.tokenId}: factory would deploy ${returned}, predicted ${predicted}`);
     }
-    if ((await provider.getCode(predicted, "latest")) !== "0x") {
+    if ((await provider.getCode(predicted, blockTag)) !== "0x") {
       blockers.push(`Garden ${entry.tokenId}: a contract already exists at ${predicted}`);
     }
-    const liveNonce = BigInt(await provider.call({ to: entry.safe, data: SAFE_INTERFACE.encodeFunctionData("nonce") }));
+    const liveNonce = BigInt(
+      await provider.call({ to: entry.safe, data: SAFE_INTERFACE.encodeFunctionData("nonce"), blockTag }),
+    );
     if (liveNonce !== 0n) blockers.push(`Garden ${entry.tokenId}: Safe nonce is ${liveNonce}, expected 0`);
     const alreadyEnabled = SAFE_INTERFACE.decodeFunctionResult(
       "isModuleEnabled",
       await provider.call({
         to: entry.safe,
         data: SAFE_INTERFACE.encodeFunctionData("isModuleEnabled", [predicted]),
+        blockTag,
       }),
     )[0] as boolean;
     if (alreadyEnabled) blockers.push(`Garden ${entry.tokenId}: the modifier is already enabled on its Safe`);
@@ -601,6 +629,7 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     releaseGate:
       "Enabling grants live G$ authority and remains behind the value-tier gate: full audit, timelock, " +
       "CCIP live-route and dual-chain evidence, Safe/Zodiac review, rollback, and live-exit.",
+    ...(proofBlock === undefined ? {} : { proofBlock }),
   };
 }
 
@@ -671,19 +700,22 @@ export interface RolesCliOptions {
   planPath: string;
   broadcast: boolean;
   step?: number;
+  /** Plans a fork proof against this historical Celo block. Proof runs write only proof files. */
+  proofBlock?: number;
 }
 
 export function parseArguments(args: string[]): RolesCliOptions {
   const command = args[0] as RolesCliOptions["command"] | undefined;
   if (!command || !["plan", "verify", "deploy", "enable"].includes(command)) {
     throw new Error(
-      "Use: garden-roles.ts plan|verify|deploy|enable [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]",
+      "Use: garden-roles.ts plan|verify|deploy|enable [--safe-plan <path>] [--plan <path>] [--proof-block <n>] [--broadcast --step <n>]",
     );
   }
   let safePlanPath = DEFAULT_SAFE_PLAN;
-  let planPath = DEFAULT_PLAN;
+  let planPath: string | undefined;
   let broadcast = false;
   let step: number | undefined;
+  let proofBlock: number | undefined;
   for (let index = 1; index < args.length; index += 1) {
     const key = args[index];
     if (key === "--broadcast") {
@@ -698,6 +730,11 @@ export function parseArguments(args: string[]): RolesCliOptions {
     else if (key === "--step") {
       step = Number(value);
       if (!Number.isInteger(step) || step < 1) throw new Error("--step must be a positive boundary index");
+    } else if (key === "--proof-block") {
+      proofBlock = Number(value);
+      if (!Number.isSafeInteger(proofBlock) || proofBlock < 1) {
+        throw new Error("--proof-block must be a positive block number");
+      }
     } else throw new Error(`Unknown argument: ${key}`);
   }
   if (command === "deploy" || command === "enable") {
@@ -706,7 +743,12 @@ export function parseArguments(args: string[]): RolesCliOptions {
   } else if (broadcast || step !== undefined) {
     throw new Error(`${command} does not accept --broadcast or --step`);
   }
-  return { command, safePlanPath, planPath, broadcast, step };
+  if (proofBlock === undefined) return { command, safePlanPath, planPath: planPath ?? DEFAULT_PLAN, broadcast, step };
+  // A proof plan describes historical state, so it is only ever planned, and only into proof-only
+  // files: a path choice could otherwise replace the reviewed plan a ceremony is checkpointed on.
+  if (command !== "plan") throw new Error("--proof-block is valid only for plan");
+  if (planPath !== undefined) throw new Error("--proof-block always writes the proof-only plan; drop --plan");
+  return { command, safePlanPath, planPath: PROOF_PLAN, broadcast, step, proofBlock };
 }
 
 export interface RolesCheckpointEntry {
@@ -1019,43 +1061,46 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   const { command, safePlanPath, planPath } = options;
 
   if (command === "deploy") {
-    if (!fs.existsSync(planPath)) throw new Error(`Reviewed plan is missing: ${planPath}`);
-    await executeRolesBoundary(readJson<GardenRolesPlan>(planPath), options.step as number, planPath);
+    await executeRolesBoundary(readReviewedPlan<GardenRolesPlan>(planPath, "plan"), options.step as number, planPath);
     return;
   }
 
   if (command === "verify") {
-    if (!fs.existsSync(planPath)) throw new Error(`Reviewed plan is missing: ${planPath}`);
-    await verifyDeployedRoles(readJson<GardenRolesPlan>(planPath));
+    await verifyDeployedRoles(readReviewedPlan<GardenRolesPlan>(planPath, "plan"));
     return;
   }
 
   if (command === "enable") {
-    if (!fs.existsSync(ENABLE_PLAN)) throw new Error(`Reviewed enable plan is missing: ${ENABLE_PLAN}`);
-    await executeEnableBoundary(readJson<GardenRolesEnablePlan>(ENABLE_PLAN), options.step as number, ENABLE_PLAN);
+    const enablePlan = readReviewedPlan<GardenRolesEnablePlan>(ENABLE_PLAN, "enable plan");
+    await executeEnableBoundary(enablePlan, options.step as number, ENABLE_PLAN);
     return;
   }
 
-  const plan = await buildPlan(safePlanPath);
+  const { proofBlock } = options;
+  const plan = await buildPlan(safePlanPath, proofBlock);
   atomicWrite(planPath, plan);
+  // Only a live plan replaces the enable plan the enable boundaries read; a proof run leaves it alone.
+  if (proofBlock === undefined) {
+    atomicWrite(ENABLE_PLAN, {
+      schemaVersion: 1,
+      kind: "GARDEN_ROLES_ENABLE_PLAN",
+      chainId: CELO_CHAIN_ID,
+      approvers: [getAddress(GREEN_GOODS_RECOVERY_SAFE), getAddress(DEV_GUILD_RECOVERY_SAFE)],
+      recoveryApprovals: plan.recoveryApprovals,
+      blockers: plan.blockers,
+      transactions: buildEnableTransactions(plan.boundaries, [GREEN_GOODS_RECOVERY_SAFE, DEV_GUILD_RECOVERY_SAFE]),
+    });
+  }
   // The fork proof reads its fixture inside the EVM, where the full plan's 126 calldata payloads
-  // exhaust the test gas budget. This carries only what the proof executes.
-  atomicWrite(ENABLE_PLAN, {
-    schemaVersion: 1,
-    kind: "GARDEN_ROLES_ENABLE_PLAN",
-    chainId: CELO_CHAIN_ID,
-    approvers: [getAddress(GREEN_GOODS_RECOVERY_SAFE), getAddress(DEV_GUILD_RECOVERY_SAFE)],
-    recoveryApprovals: plan.recoveryApprovals,
-    blockers: plan.blockers,
-    transactions: buildEnableTransactions(plan.boundaries, [GREEN_GOODS_RECOVERY_SAFE, DEV_GUILD_RECOVERY_SAFE]),
-  });
-  // The fork proof submits these exact bytes, so the signature encoding both recovery
-  // organisations depend on is executed rather than only shape-tested.
+  // exhaust the test gas budget. This carries only what the proof executes. It submits these exact
+  // bytes, so the signature encoding both recovery organisations depend on is executed rather than
+  // only shape-tested.
   const enableTransactions = buildEnableTransactions(plan.boundaries, [
     GREEN_GOODS_RECOVERY_SAFE,
     DEV_GUILD_RECOVERY_SAFE,
   ]);
   atomicWrite(PROOF_FIXTURE, {
+    ...(proofBlock === undefined ? {} : { proofBlock }),
     enable: enableTransactions.slice(0, 2).map((transaction) => ({
       safeTxHash: transaction.safeTxHash,
       data: transaction.data,
