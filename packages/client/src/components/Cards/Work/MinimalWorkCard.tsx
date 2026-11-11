@@ -43,7 +43,7 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
       uploading: formatMessage({ id: "app.status.uploading", defaultMessage: "Uploading" }),
       sync_failed: formatMessage({
         id: "app.status.syncFailed",
-        defaultMessage: "Sync failed",
+        defaultMessage: "Didn't send",
       }),
       offline: formatMessage({ id: "app.status.offline", defaultMessage: "Offline" }),
     },

@@ -194,9 +194,7 @@ export function groupTerms(input: {
               ? "cockpit.garden.pool.group.poolOffers"
               : "cockpit.garden.pool.group.poolRequests",
           defaultMessage:
-            first.direction === "OFFER"
-              ? "{amount} · The pool offers"
-              : "{amount} · The pool requests",
+            first.direction === "OFFER" ? "{amount} · The pool offers" : "{amount} · The pool asks",
         },
         { amount }
       ),

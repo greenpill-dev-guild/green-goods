@@ -51,6 +51,18 @@ const mocks = vi.hoisted(() => ({
   useGardenCookieJars: vi.fn(),
   signer: { canSign: true, isResolved: true, owner: undefined as Address | undefined },
   updateLimit: vi.fn(),
+  hatsAdmin: {
+    kind: "legacy",
+    canOperate: false,
+    canGovern: false,
+    policy: {
+      maxClaimCeiling: 20n * 10n ** 18n,
+      minCooldown: 86_400n,
+      dailyBudget: 100n * 10n ** 18n,
+      recoveryRecipient: "0x2222222222222222222222222222222222222222",
+    },
+    mutation: { mutate: vi.fn(), isPending: false },
+  },
   depositModalProps: null as null | { onFixLimit?: (jar: Address) => void },
 }));
 
@@ -70,6 +82,7 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenAccountSigner", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarAdmin", () => ({
+  useHatsCookieJarAdmin: () => mocks.hatsAdmin,
   useCookieJarUpdateMaxWithdrawal: () => ({ mutate: mocks.updateLimit, isPending: false }),
   useCookieJarUpdateInterval: () => ({ mutate: vi.fn(), isPending: false }),
 }));
@@ -114,6 +127,34 @@ describe("CookieJarPayoutPanel", () => {
     mocks.jars = [plainJar];
     mocks.read = { ...FINISHED_READ };
     mocks.signer = { canSign: true, isResolved: true, owner: undefined };
+    mocks.hatsAdmin.kind = "legacy";
+    mocks.hatsAdmin.canOperate = false;
+    mocks.hatsAdmin.canGovern = false;
+  });
+
+  it("lets a Hat steward manage a replacement without a legacy garden signer", async () => {
+    mocks.jars = [oneCentDaiJar];
+    mocks.signer.canSign = false;
+    mocks.hatsAdmin.kind = "hats";
+    mocks.hatsAdmin.canOperate = true;
+    renderPanel();
+    await openJar(/DAI/);
+
+    expect(screen.getByText("Update payout limits", { selector: "summary" })).toBeVisible();
+    expect(screen.queryByText("Propose payout policy")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /edit claim limit/i })).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Pause payouts and deposits" }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText(/connected account that holds the required Hat/i)
+    ).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "Pause payouts and deposits" }));
+    expect(mocks.hatsAdmin.mutation.mutate).toHaveBeenCalledWith(
+      { functionName: "pause", args: [] },
+      expect.anything()
+    );
+    expect(mocks.updateLimit).not.toHaveBeenCalled();
   });
 
   it.each([

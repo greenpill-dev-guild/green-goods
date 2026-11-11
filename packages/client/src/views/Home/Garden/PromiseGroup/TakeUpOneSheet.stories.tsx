@@ -73,7 +73,7 @@ export const AskInAReviewedGroup: Story = {
     await expect(
       await screen.findByText("Asking holds nothing for you.", { exact: false })
     ).toBeVisible();
-    await expect(screen.getByRole("button", { name: "Ask to Take Up One" })).toBeEnabled();
+    await expect(screen.getByRole("button", { name: "Request to Take Up One" })).toBeEnabled();
   },
 };
 

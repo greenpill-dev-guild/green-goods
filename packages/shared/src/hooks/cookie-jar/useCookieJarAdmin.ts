@@ -118,3 +118,5 @@ export function useCookieJarUpdateInterval(gardenAddress: Address) {
       }),
   });
 }
+
+export { type HatsCookieJarAction, useHatsCookieJarAdmin } from "./useHatsCookieJarAdmin";

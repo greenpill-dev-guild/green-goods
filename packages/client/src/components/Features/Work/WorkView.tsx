@@ -10,7 +10,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { gardenMemberCount } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
-import { FormCard, FormInfo } from "@/components/Cards";
+import { FormInfo } from "@/components/Cards";
 import { Carousel, CarouselContent, CarouselItem, ImageWithFallback } from "@/components/Display";
 import { WorkDocumentRow } from "./WorkDocumentRow";
 
@@ -31,6 +31,8 @@ type WorkViewProps = {
   info: string;
   garden?: Garden;
   actionTitle: string;
+  /** The heading already names the action, as on a steward's page, so the facts leave it out. */
+  actionInTitle?: boolean;
   media?: string[];
   mediaTypes?: string[];
   /** IPFS CIDs for gardener audio notes (from work metadata) */
@@ -115,6 +117,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   info,
   garden,
   actionTitle,
+  actionInTitle = false,
   media = [],
   mediaTypes = [],
   audioNoteCids,
@@ -287,68 +290,75 @@ export const WorkView: React.FC<WorkViewProps> = ({
       <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.details", defaultMessage: "Details" })}
       </h6>
-      <FormCard
-        label={intl.formatMessage({ id: "app.home.workApproval.action", defaultMessage: "Action" })}
-        value={
-          actionTitle ||
-          intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })
-        }
-        Icon={RiExternalLinkLine}
-      />
-
-      {isDetailsLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={`detail-loading-${i}`}
-              className="h-12 bg-bg-weak-50 rounded-lg animate-pulse"
-            />
-          ))}
-        </div>
-      ) : (
-        details
-          .filter((d) => d.value && d.value.trim().length > 0)
-          .map((d) => (
-            <FormCard
-              key={d.label}
-              label={d.label}
-              value={d.value}
-              Icon={d.icon ?? RiExternalLinkLine}
-            />
-          ))
-      )}
+      {/* One list of facts, a label beside each value, as every review and detail screen
+          lists them (DL-109): the action first, then what the work recorded. */}
+      <FactList frame="card" data-component="WorkDetails">
+        {actionInTitle ? null : (
+          <FactRow
+            label={intl.formatMessage({
+              id: "app.home.workApproval.action",
+              defaultMessage: "Action",
+            })}
+            value={
+              actionTitle ||
+              intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })
+            }
+            icon={<RiExternalLinkLine className="h-4 w-4" />}
+          />
+        )}
+        {isDetailsLoading
+          ? Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={`detail-loading-${i}`}
+                aria-hidden="true"
+                className="gg-fact-row h-12 animate-pulse bg-bg-weak-50"
+              />
+            ))
+          : details
+              .filter((d) => d.value && d.value.trim().length > 0)
+              .map((d) => {
+                const Icon = d.icon ?? RiExternalLinkLine;
+                return (
+                  <FactRow
+                    key={d.label}
+                    label={d.label}
+                    value={d.value}
+                    icon={<Icon className="h-4 w-4" />}
+                  />
+                );
+              })}
+      </FactList>
 
       {afterDetails}
 
       {feedbackSection}
 
+      {/* The work's utilities share one compact row, so none of them weighs as much as the
+          decision a steward makes in the bar below. */}
       {visibleActions.length > 0 && (
-        <>
-          <h6 className="mt-2 text-base font-semibold text-text-strong-950">
-            {intl.formatMessage({ id: "app.home.work.actions", defaultMessage: "Actions" })}
-          </h6>
-          <div className="flex flex-col gap-3">
-            {visibleActions.map((a) => {
-              // Approve is the one filled action; reject and the utility actions are
-              // outlined (DL-026), reject in the error tone.
-              const isReject = a.id === "reject";
-              return (
-                <Button
-                  key={a.id}
-                  onClick={a.onClick}
-                  className="w-full touch-manipulation"
-                  emphasis={a.id === "approve" ? "primary" : "secondary"}
-                  tone={isReject ? "danger" : "default"}
-                  type="button"
-                  leadingIcon={a.icon ?? <RiDownloadLine className="h-5 w-5" aria-hidden="true" />}
-                  disabled={a.disabled}
-                >
-                  {a.label}
-                </Button>
-              );
-            })}
-          </div>
-        </>
+        <div
+          role="group"
+          aria-label={intl.formatMessage({
+            id: "app.home.work.actions",
+            defaultMessage: "Actions",
+          })}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          {visibleActions.map((a) => (
+            <Button
+              key={a.id}
+              onClick={a.onClick}
+              className="touch-manipulation"
+              emphasis="secondary"
+              size="sm"
+              type="button"
+              leadingIcon={a.icon ?? <RiDownloadLine className="h-4 w-4" aria-hidden="true" />}
+              disabled={a.disabled}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </div>
       )}
 
       {reserveFooterSpace ? (

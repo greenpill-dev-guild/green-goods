@@ -237,10 +237,6 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           id: "app.garden.details.timeSpentPlaceholder",
           defaultMessage: "e.g., 1.5 for 1h 30m",
         })}
-        helperText={intl.formatMessage({
-          id: "app.garden.details.timeSpentHint",
-          defaultMessage: "Enter hours spent on this work (decimals OK)",
-        })}
       />
 
       {inputs.map((input) => {
@@ -456,7 +452,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         id="feedback"
         label={intl.formatMessage({
           id: "app.garden.details.feedback",
-          description: "Feedback",
+          defaultMessage: "Notes",
         })}
         rows={4}
         placeholder={feedbackPlaceholder}

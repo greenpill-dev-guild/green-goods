@@ -6,10 +6,9 @@ import type { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/
 import type { Domain } from "@green-goods/shared/types/domain";
 import { parseActionUID } from "@green-goods/shared/utils/action/parsers";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
-import { RiCloseLine, RiHammerLine, RiHandHeartFill, RiRefreshLine } from "@remixicon/react";
+import { RiCloseLine, RiHammerLine, RiRefreshLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { FormInfo } from "@/components/Cards/Form/FormInfo";
 import { PromiseCard } from "@/components/Features/Commitments";
 import { StartActions } from "./StartActions";
 import { StartGardenQuestion, type StartGardenQuestionProps } from "./StartGardenQuestion";
@@ -136,12 +135,10 @@ export function WorkStart({
         />
       ) : screen.kind === "promises" ? (
         <>
-          <FormInfo
-            fit="line"
-            title={intl.formatMessage({ id: "app.garden.start.promises.title" })}
-            info={intl.formatMessage({ id: "app.garden.start.promises.info" })}
-            Icon={RiHandHeartFill}
-          />
+          {/* The list heads itself as the asks below do, with no info panel over it. */}
+          <h3 className="type-title-md text-text-strong-950">
+            {intl.formatMessage({ id: "app.garden.start.promises.title" })}
+          </h3>
           {linkNotice ?? readNotice}
           <div className="flex flex-col gap-(--gg-list-gap)">
             {start.promises.map((promise) => (
@@ -199,11 +196,10 @@ export function WorkStart({
   );
 }
 
-/** The step before its answer: the info panel's place and the tiles', as they will land. */
+/** The step before its answer: the tiles' place, as they will land. */
 export function StartSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" data-component="WorkStartSkeleton">
-      <div aria-hidden="true" className="h-20 rounded-lg bg-bg-weak-50" />
       <ActionPicker
         actions={[]}
         value={null}

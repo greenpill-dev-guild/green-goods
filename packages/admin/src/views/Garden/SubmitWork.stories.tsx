@@ -469,7 +469,8 @@ async function openDetailsStep(canvasElement: HTMLElement) {
     name: "Submit Work",
   });
   await userEvent.click(await within(flow).findByRole("button", { name: "Next" }));
-  await within(flow).findByLabelText("Time Spent (hours)");
+  // The dialog can still be fading in from opacity 0 here, so wait until the step can be seen.
+  await waitFor(() => expect(within(flow).getByLabelText("Time Spent (hours)")).toBeVisible());
   return within(flow);
 }
 

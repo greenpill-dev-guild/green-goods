@@ -63,10 +63,10 @@ export function GardenPage({ garden, onBack, showHeader = true, children }: Gard
   const { activeTab, setActiveTab } = useGardenTabs();
   const chainId = DEFAULT_CHAIN_ID;
   const { isFetching: gardensLoading } = useGardens(chainId);
-  // One read of the garden's work serves the Work tab, the rail and the reviewers' notifications.
+  // One read of the garden's work serves the Work tab and the rail.
   const workRead = useWorks(garden.id, { offline: true });
-  const { works: mergedWorks, isFetching: worksFetching } = workRead;
-  const { canReview, canManageRequests, hasEndowmentDeposits, showEndowment, showGovernance } =
+  const { isFetching: worksFetching } = workRead;
+  const { canManageRequests, hasEndowmentDeposits, showEndowment, showGovernance } =
     useGardenAccess(garden);
 
   const validGardenAddress = isAddress(garden.id) ? garden.id : undefined;
@@ -136,9 +136,7 @@ export function GardenPage({ garden, onBack, showHeader = true, children }: Gard
                 <TopNav
                   className="flex w-full justify-between items-start p-4 pt-[var(--app-top-offset)]"
                   onBackClick={onBack}
-                  works={mergedWorks}
                   garden={garden}
-                  isSteward={canReview}
                   showGovernanceButton={showGovernance}
                   onGovernanceClick={() => setIsGovernanceOpen(true)}
                   showEndowmentButton={showEndowment}

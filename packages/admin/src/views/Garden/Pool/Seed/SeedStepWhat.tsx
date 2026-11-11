@@ -129,7 +129,7 @@ export function SeedStepWhat({
                 value: "REQUEST",
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.direction.request",
-                  defaultMessage: "The pool requests",
+                  defaultMessage: "The pool asks",
                 }),
               },
             ]}

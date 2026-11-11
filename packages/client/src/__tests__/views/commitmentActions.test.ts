@@ -385,4 +385,46 @@ describe("selectStatusBand", () => {
     const band = selectStatusBand({ commitment: { derivedState: "ACTIVE" }, seat: null });
     expect(band).toBeNull();
   });
+
+  it("never says nobody offered while a take-up request waits on a steward", () => {
+    const ask = { derivedState: "REQUESTED" } as const;
+    expect(selectStatusBand({ commitment: ask, seat: "bystander" })?.bodyId).toBe(
+      "app.commitment.band.bystander.requested.b"
+    );
+    // While the requests are unread, or their read failed, it says only that nobody took it on.
+    expect(
+      selectStatusBand({ commitment: ask, seat: "bystander", takeUpPending: null })?.bodyId
+    ).toBe("app.commitment.band.bystander.offered.b");
+    expect(
+      selectStatusBand({ commitment: ask, seat: "bystander", takeUpPending: false })?.bodyId
+    ).toBe("app.commitment.band.bystander.requested.b");
+    // A pending request is a fact every seat reads the same way.
+    for (const seat of ["bystander", "confirmer", null] as const) {
+      expect(selectStatusBand({ commitment: ask, seat, takeUpPending: true })).toEqual({
+        bodyId: "app.commitment.band.any.takeUpPending.b",
+        tone: "waiting",
+      });
+    }
+  });
+
+  it("says an untaken promise is past due, and still names a waiting request", () => {
+    for (const derivedState of ["OFFERED", "REQUESTED"] as const) {
+      expect(
+        selectStatusBand({ commitment: { derivedState }, seat: "provider", pastDue: true })?.bodyId
+      ).toBe("app.commitment.band.any.pastDue.b");
+      expect(
+        selectStatusBand({
+          commitment: { derivedState },
+          seat: "bystander",
+          pastDue: true,
+          takeUpPending: true,
+        })?.bodyId
+      ).toBe("app.commitment.band.any.pastDuePending.b");
+    }
+    // Once someone took it up, its due date is the team's business, not a past-due notice.
+    expect(
+      selectStatusBand({ commitment: { derivedState: "ACTIVE" }, seat: "provider", pastDue: true })
+        ?.bodyId
+    ).toBe("app.commitment.band.provider.active.b");
+  });
 });

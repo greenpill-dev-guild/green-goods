@@ -75,6 +75,16 @@ export interface GardenCommitmentController {
   pendingClaimRequests: CommitmentClaimRequestRecord[];
   /** Someone can still take this up: nobody has, and it is known not to be past due. */
   takeUpOpen: boolean;
+  /**
+   * Nobody took it up and the chain's clock is known to be past its due date, so anyone may
+   * expire it; the app says so, and expiring stays the cockpit's act (DL-110 as amended).
+   */
+  pastDue: boolean;
+  /**
+   * Someone asked to take it up and a steward's yes is still to come; null until the take-up
+   * requests are read, so no surface claims that none waits before the read answers.
+   */
+  takeUpPending: boolean | null;
   canAskAgain: boolean;
   claimNeedsContext: boolean;
   /**

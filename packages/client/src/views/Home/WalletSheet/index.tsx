@@ -1,6 +1,7 @@
 import { hasVoucherWalletRoute, useVoucherWallet } from "@green-goods/shared/commitment-pooling";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useActiveGarden } from "@green-goods/shared/hooks/garden/useActiveGarden";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
 import type { Address } from "@green-goods/shared/types/domain";
 import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
@@ -48,6 +49,8 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
   const showVouchers = hasVoucherWalletRoute({ sourceChainId: DEFAULT_CHAIN_ID, coreModule });
   // The account's vouchers across gardens, read while the sheet is open.
   const { primaryAddress } = useUser();
+  // The Cookies tab leads with the garden in Home's chip.
+  const { gardenId: activeGardenId } = useActiveGarden();
   const voucherScope = useMemo(
     () =>
       isOpen && showVouchers && primaryAddress
@@ -85,10 +88,9 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
     <AppSheet
       isOpen={isOpen}
       onClose={onClose}
-      header={{
-        title: formatMessage({ id: "app.wallet.title" }),
-        description: formatMessage({ id: "app.wallet.subtitle" }),
-      }}
+      // The title is enough: the Cookies tab leads with the chip's garden (DL-028 keeps the
+      // description optional).
+      header={{ title: formatMessage({ id: "app.wallet.title" }) }}
       tabs={tabs}
       activeTab={tab}
       onTabChange={(id) => {
@@ -98,7 +100,7 @@ export const WalletSheet: React.FC<WalletSheetProps> = ({ isOpen, onClose, start
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       size="full"
     >
-      {tab === "cookie-jar" && <CookieJarTab />}
+      {tab === "cookie-jar" && <CookieJarTab activeGardenId={activeGardenId} />}
       {tab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {tab === "vouchers" && (
         <VouchersTab

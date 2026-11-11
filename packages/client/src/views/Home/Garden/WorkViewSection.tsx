@@ -1,4 +1,5 @@
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { useAddressDisplayName } from "@green-goods/shared/hooks/ens/useAddressDisplayName";
 import type {
   Garden,
   Work,
@@ -199,6 +200,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   const { submissionState } = queuedState;
 
   const { feedback: workFeedback, media, reviewFeedback } = work;
+  // Who sent the work, named as the app names people, for the steward who decides on it.
+  const sender = useAddressDisplayName(work.gardenerAddress);
 
   const isOfflineStatus =
     effectiveStatus === "syncing" ||
@@ -228,7 +231,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Upload didn't work",
+          defaultMessage: "Your work didn't send",
         });
       }
       return intl.formatMessage({
@@ -237,24 +240,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
 
-    if (viewingMode === "steward") {
-      if (effectiveStatus === "approved") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workApproved",
-          defaultMessage: "Work approved",
-        });
-      }
-      if (effectiveStatus === "rejected") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workRejected",
-          defaultMessage: "Work rejected",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.workApproval.evaluateWork",
-        defaultMessage: "Evaluate Work",
-      });
-    }
+    // A steward reads the work by its own name; the bar below says what was decided.
+    if (viewingMode === "steward") return actionTitle;
 
     if (viewingMode === "gardener") {
       if (effectiveStatus === "approved") {
@@ -286,23 +273,15 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         })
       );
 
+    // Who sent it and when, which the steward weighs before deciding.
     if (viewingMode === "steward") {
-      if (effectiveStatus === "approved") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workHasBeenApproved",
-          defaultMessage: "This work has been approved",
-        });
-      }
-      if (effectiveStatus === "rejected") {
-        return intl.formatMessage({
-          id: "app.home.workApproval.workHasBeenRejected",
-          defaultMessage: "This work has been rejected",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.workApproval.verifyIfTheWorkIsAcceptable",
-        defaultMessage: "Verify if the work is acceptable",
-      });
+      return intl.formatMessage(
+        { id: "app.home.workApproval.sentBy", defaultMessage: "{name} sent this on {date}." },
+        {
+          name: sender.display,
+          date: intl.formatDate(work.createdAt * 1000, { dateStyle: "medium" }),
+        }
+      );
     }
 
     if (viewingMode === "gardener") {
@@ -442,6 +421,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       info={getInfo()}
       garden={garden}
       actionTitle={actionTitle}
+      actionInTitle={viewingMode === "steward" && !notice && !isOfflineStatus}
       media={media}
       audioNoteCids={audioNoteCids}
       documents={documents}

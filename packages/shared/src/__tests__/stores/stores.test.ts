@@ -9,6 +9,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  type Garden as SelectedGarden,
   ADMIN_GARDEN_PREFERENCES_STORAGE_KEY,
   getAdminGardenScopeKey,
   useAdminStore,
@@ -377,7 +378,7 @@ describe("stores/useAdminStore", () => {
   describe("garden management", () => {
     it("sets selected garden", () => {
       const { result } = renderHook(() => useAdminStore());
-      const mockGarden = {
+      const mockGarden: SelectedGarden = {
         id: "0x123",
         chainId: 11155111,
         tokenAddress: "0x456",

@@ -117,6 +117,11 @@ vi.mock("@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars", async (i
   };
 });
 
+// The Cookies tab leads with the chip's garden; these cases enter none.
+vi.mock("@green-goods/shared/hooks/garden/useActiveGarden", () => ({
+  useActiveGarden: () => ({ gardenId: null, garden: null, inScope: () => true }),
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: ACCOUNT, authMode: "passkey" }),
 }));

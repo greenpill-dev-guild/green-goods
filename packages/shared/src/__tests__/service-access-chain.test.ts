@@ -213,13 +213,13 @@ function fixture() {
     if (!(functionName in table)) throw new Error(`Unexpected view ${functionName}`);
     return table[functionName];
   });
-  const contracts = vi.fn(
-    () =>
-      ({
-        commitmentPoolingModule: key.coreModule,
-        settlementModule: SETTLEMENT,
-      }) as NetworkContracts
-  );
+  const contracts = vi.fn(() => {
+    const configured: Partial<NetworkContracts> = {
+      commitmentPoolingModule: key.coreModule,
+      settlementModule: SETTLEMENT,
+    };
+    return configured as NetworkContracts;
+  });
   return {
     terms,
     offer,

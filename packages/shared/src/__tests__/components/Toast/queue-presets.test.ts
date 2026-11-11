@@ -35,7 +35,7 @@ describe("queue failure toast", () => {
     const [shown] = error.mock.calls[0];
     expect(shown).toMatchObject({
       id: "work-upload",
-      title: "Sync failed",
+      title: "Didn't send",
       message:
         "Your work in Vida Verde is still saved on this device. Switch to that garden to try again.",
       action: { label: "See Your Gardens", dismissOnClick: true },

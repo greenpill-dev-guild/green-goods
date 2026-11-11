@@ -18,7 +18,7 @@ import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submi
 import { GardenWork } from "./Work";
 
 /** Render the real phone review page; all write callbacks are inert story mocks. */
-const onReview = (feedbackMode: "approve" | null) => () => {
+const onReview = (feedbackMode: "approve" | "reject" | null) => () => {
   const workMetadata = {
     schemaVersion: "work_metadata_v2" as const,
     actionSlug: DOCUMENTATION_SUBMISSION.action.slug,
@@ -43,7 +43,11 @@ const onReview = (feedbackMode: "approve" | null) => () => {
     handleRejectPress: fn(),
     handleCancelFeedback: fn(),
     handleSubmitApproval: fn(),
-    inlineFeedback: "The count and note match the evidence checked at the garden.",
+    // A decline starts empty, so its sheet shows what it asks for.
+    inlineFeedback:
+      feedbackMode === "reject"
+        ? ""
+        : "The count and note match the evidence checked at the garden.",
     isActionExpired: false,
     isOfflineWork: false,
     isOnline: true,
@@ -105,3 +109,5 @@ type Story = StoryObj<typeof GardenWork>;
 
 export const EvaluateExample: Story = { beforeEach: onReview(null) };
 export const FeedbackExample: Story = { beforeEach: onReview("approve") };
+/** Declining asks what the gardener should change, where approving asks for anything to say. */
+export const DeclineExample: Story = { beforeEach: onReview("reject") };

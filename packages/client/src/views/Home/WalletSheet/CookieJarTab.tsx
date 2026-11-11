@@ -1,12 +1,13 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
 import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
 import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
-import { RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
-import React, { useMemo } from "react";
+import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiWifiOffLine } from "@remixicon/react";
+import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { CookieJarRow, getClaimableNow } from "@/components/Features/Garden/CookieJarRow";
@@ -26,7 +27,10 @@ function compareClaimableFirst(left: CookieJar, right: CookieJar) {
   return leftClaimable ? -1 : 1;
 }
 
-export const CookieJarTab: React.FC = () => {
+export const CookieJarTab: React.FC<{
+  /** The garden in Home's chip, whose jars lead; null lists every garden as it comes. */
+  activeGardenId?: string | null;
+}> = ({ activeGardenId = null }) => {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const {
@@ -44,10 +48,14 @@ export const CookieJarTab: React.FC = () => {
     hasDecimalsReadFailure,
   } = useAccessibleCookieJars();
   const { data: gardens = [] } = useGardens();
+  const [showOtherGardens, setShowOtherGardens] = useState(false);
 
   // Group jars by garden
   const groupedJars = useMemo(() => {
-    const groups = new Map<string, { gardenName: string; jars: CookieJar[] }>();
+    const groups = new Map<
+      string,
+      { gardenId: string | null; gardenName: string; jars: CookieJar[] }
+    >();
     for (const jar of jars) {
       const garden = gardens.find(
         (g) =>
@@ -60,7 +68,7 @@ export const CookieJarTab: React.FC = () => {
       if (existing) {
         existing.jars.push(jar);
       } else {
-        groups.set(key, { gardenName, jars: [jar] });
+        groups.set(key, { gardenId: garden?.id.toLowerCase() ?? null, gardenName, jars: [jar] });
       }
     }
     return Array.from(groups.values())
@@ -169,29 +177,64 @@ export const CookieJarTab: React.FC = () => {
     );
   }
 
+  // The chip's garden leads, and every other garden waits behind one row, so the wallet opens on
+  // the garden Home shows. With no jars in the chip's garden, the others list as they always did.
+  const activeKey = activeGardenId?.toLowerCase() ?? null;
+  const chipGroup = activeKey
+    ? groupedJars.find((group) => group.gardenId === activeKey)
+    : undefined;
+  const otherGroups = chipGroup ? groupedJars.filter((group) => group !== chipGroup) : [];
+
+  const renderGroup = (group: (typeof groupedJars)[number]) => (
+    <div key={group.gardenName}>
+      <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
+        {group.gardenName}
+      </SheetHeading>
+      <div className="flex flex-col gap-(--gg-list-gap)">
+        {group.jars.map((jar) => (
+          // The heading above names the garden, so the row does not restate it (Rule 17).
+          <CookieJarRow
+            key={jar.jarAddress}
+            jar={jar}
+            gardenAddress={jar.gardenAddress}
+            gardenName={group.gardenName}
+            amount="claimable"
+          />
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className={PWA_SHEET_SCROLL_CLASSNAME}>
       <div className="space-y-4 p-4">
         {diagnosticBlock}
-        {groupedJars.map((group) => (
-          <div key={group.gardenName}>
-            <SheetHeading as="h4" className="mb-2 truncate" title={group.gardenName}>
-              {group.gardenName}
-            </SheetHeading>
-            <div className="flex flex-col gap-(--gg-list-gap)">
-              {group.jars.map((jar) => (
-                // The heading above names the garden, so the row does not restate it (Rule 17).
-                <CookieJarRow
-                  key={jar.jarAddress}
-                  jar={jar}
-                  gardenAddress={jar.gardenAddress}
-                  gardenName={group.gardenName}
-                  amount="claimable"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+        {chipGroup ? (
+          <>
+            {renderGroup(chipGroup)}
+            {otherGroups.length > 0 ? (
+              <Button
+                type="button"
+                emphasis="secondary"
+                size="sm"
+                className="w-full"
+                aria-expanded={showOtherGardens}
+                onClick={() => setShowOtherGardens((shown) => !shown)}
+                trailingIcon={
+                  <RiArrowDownSLine
+                    aria-hidden="true"
+                    className={showOtherGardens ? "h-4 w-4 rotate-180" : "h-4 w-4"}
+                  />
+                }
+              >
+                {formatMessage({ id: "app.cookieJar.otherGardens" }, { count: otherGroups.length })}
+              </Button>
+            ) : null}
+            {showOtherGardens ? otherGroups.map(renderGroup) : null}
+          </>
+        ) : (
+          groupedJars.map(renderGroup)
+        )}
       </div>
     </div>
   );

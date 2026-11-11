@@ -168,8 +168,17 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
   useCommitmentJobs: () => ({ sendsFromTap: mockSendsFromTap() }),
 }));
 
+/** The pools' pending take-up requests: answered and empty unless a case says otherwise. */
+const mockUsePoolClaimRequests = vi.fn(() => ({
+  rows: [],
+  isLoading: false,
+  isError: false,
+  refetch: vi.fn(),
+}));
+
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePoolClaimRequests: () => mockUsePoolClaimRequests(),
   useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
   useCommitmentSeries: () => ({ series: [] }),
   useCommitmentCycles: (...args: unknown[]) => mockUseCommitmentCycles(...args),
@@ -207,6 +216,12 @@ describe("CommitmentsSheet", () => {
     mockUseCommitmentsInbox.mockReturnValue(inbox());
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
     mockActiveGarden = null;
     navigatesForReal = false;
     mockMetadata = HUB_DAY_METADATA;
@@ -301,13 +316,13 @@ describe("CommitmentsSheet", () => {
       expect(copies).toContainElement(document.activeElement as HTMLElement);
       expect(copies.dataset.entryMotion).toBe("instant");
       // The sheet under it is what's hidden from assistive tech, not the list.
-      expect(screen.queryByRole("dialog", { name: "Promises" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Your Promises" })).not.toBeInTheDocument();
 
       fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Escape" });
       await waitFor(() =>
         expect(screen.queryByRole("dialog", { name: HUB_DAY })).not.toBeInTheDocument()
       );
-      expect(screen.getByRole("dialog", { name: "Promises" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "Your Promises" })).toBeInTheDocument();
     });
   });
 
@@ -333,7 +348,7 @@ describe("CommitmentsSheet", () => {
       render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
 
       // The garden line takes the description's place, so the header keeps its height.
-      const sheet = screen.getByRole("dialog", { name: "Promises" });
+      const sheet = screen.getByRole("dialog", { name: "Your Promises" });
       expect(sheet).toHaveAccessibleDescription("In Rocinha Community Garden");
       expect(screen.queryByText("Offered, asked for, taken up.")).not.toBeInTheDocument();
       // Both reads take the active garden's scope, so the tabs and the launcher agree.
@@ -732,6 +747,33 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={() => {}} />);
 
     expect(screen.getByText("Nothing moving right now")).toBeInTheDocument();
+  });
+
+  it("never says nothing is moving before the take-up requests answer, and retries a failed read", async () => {
+    const refetch = vi.fn();
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [],
+      isLoading: true,
+      isError: false,
+      refetch,
+    });
+    const { unmount } = render(<CommitmentsSheet isOpen onClose={() => {}} />);
+
+    expect(screen.getByText("Gathering what is still moving…")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
+    unmount();
+
+    mockUsePoolClaimRequests.mockReturnValue({
+      rows: [],
+      isLoading: false,
+      isError: true,
+      refetch,
+    });
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
+
+    expect(screen.queryByText("Nothing moving right now")).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it("puts what needs the reader in the row's one pill, in place of its state", () => {

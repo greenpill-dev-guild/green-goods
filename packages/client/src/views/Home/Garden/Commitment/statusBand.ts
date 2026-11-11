@@ -31,6 +31,8 @@ export interface StatusBand {
    */
   named?: { bodyId: string; who: "confirmer" | "keptBy" };
   tone: BandTone;
+  /** Nobody took it up and it is past its due date, so the block's pill says Past due too. */
+  pastDue?: boolean;
 }
 
 const key = (seat: CommitmentSeat, phase: CommitmentDerivedState) => `${seat}:${phase}`;
@@ -207,9 +209,38 @@ export function selectStatusBand(input: {
    * commitment, not to whoever took up somebody else's request.
    */
   actKind?: CommitmentActKind | null;
+  /** Nobody took it up and the chain's clock is past its due date. */
+  pastDue?: boolean;
+  /**
+   * Someone asked to take it up and a steward's yes is still to come; null while the take-up
+   * requests are unread, when no sentence may claim that nobody asked.
+   */
+  takeUpPending?: boolean | null;
 }): StatusBand | null {
   const { commitment, seat } = input;
   const phase = commitment.derivedState;
+  // An untaken promise says the same two facts to every seat: that it is past due, which the
+  // cockpit acts on (DL-110 as amended), and that a take-up request still waits on a steward,
+  // which "Nobody has offered" used to hide.
+  if (phase === "OFFERED" || phase === "REQUESTED") {
+    if (input.pastDue) {
+      return {
+        bodyId: input.takeUpPending
+          ? "app.commitment.band.any.pastDuePending.b"
+          : "app.commitment.band.any.pastDue.b",
+        tone: "neutral",
+        pastDue: true,
+      };
+    }
+    if (input.takeUpPending) {
+      return { bodyId: "app.commitment.band.any.takeUpPending.b", tone: "waiting" };
+    }
+    // Until the requests are read, an ask's bystander hears only what its state proves: that
+    // nobody has taken it on, never that nobody has offered to.
+    if (input.takeUpPending === null && seat === "bystander" && phase === "REQUESTED") {
+      return { bodyId: "app.commitment.band.bystander.offered.b", tone: "neutral" };
+    }
+  }
   if (
     commitment.commitmentType === "DOMAIN_IMPACT" &&
     ["ACCEPTED", "ACTIVE", "PARTIALLY_APPROVED", "EVIDENCE_SUBMITTED"].includes(phase)

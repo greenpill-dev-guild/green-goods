@@ -1,7 +1,7 @@
 import { MediaCard, type MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
-import type { Domain, Work } from "@green-goods/shared/types/domain";
+import { DOMAIN_TOKEN_SLUG, type Domain, type Work } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { formatDateTime, normalizeTimestamp } from "@green-goods/shared/utils/time";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
@@ -94,11 +94,9 @@ function ImageCell({
 // DomainGradientFallback — shown when no images or image load fails
 // ---------------------------------------------------------------------------
 
-const DOMAIN_FALLBACK_SLUGS = ["solar", "agro", "education", "waste"] as const;
-
 function DomainGradientFallback({ domain, className }: { domain?: Domain; className?: string }) {
   const config = domain !== undefined ? DOMAIN_CONFIG[domain] : undefined;
-  const slug = domain !== undefined ? DOMAIN_FALLBACK_SLUGS[domain] : undefined;
+  const slug = domain !== undefined ? DOMAIN_TOKEN_SLUG[domain] : undefined;
   const fallbackStyle = {
     "--domain-fallback-soft-rgb": slug ? `var(--domain-${slug}-soft-rgb)` : undefined,
     "--domain-fallback-ink-rgb": slug ? `var(--domain-${slug}-rgb)` : undefined,

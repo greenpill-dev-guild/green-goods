@@ -1,4 +1,6 @@
-import type { Action } from "@green-goods/shared/types/domain";
+import { getDomainStyle } from "@green-goods/shared/config/domain";
+import { DOMAIN_TOKEN_SLUG, type Action } from "@green-goods/shared/types/domain";
+import { ALL_DOMAINS, DOMAIN_LABELS } from "@green-goods/shared/utils/domain";
 import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
@@ -32,16 +34,13 @@ interface DomainEntry {
 
 const DOMAINS: readonly DomainEntry[] = [
   { id: "all", filterId: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
-  { id: "solar", filterId: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  { id: "agro", filterId: "1", labelId: "app.domain.tab.agro", defaultLabel: "Agroforestry" },
-  {
-    id: "education",
-    filterId: "2",
-    labelId: "app.domain.tab.education",
-    defaultLabel: "Education",
-  },
-  { id: "waste", filterId: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
-] as const;
+  ...ALL_DOMAINS.map((domain) => ({
+    id: DOMAIN_TOKEN_SLUG[domain],
+    filterId: String(domain),
+    labelId: DOMAIN_LABELS[domain].id,
+    defaultLabel: DOMAIN_LABELS[domain].defaultMessage,
+  })),
+];
 
 interface DomainExplainer {
   id: Exclude<EditorialDomain, "all">;
@@ -50,10 +49,6 @@ interface DomainExplainer {
   defaultTitle: string;
   bodyId: string;
   defaultBody: string;
-  /** Tailwind utility for the top accent bar; uses domain ink tokens. */
-  accentClass: string;
-  /** Tailwind utility for the numeral tint; uses domain ink tokens. */
-  numeralClass: string;
 }
 
 interface CapitalEntry {
@@ -140,8 +135,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.solar.body",
     defaultBody:
       "Small installations, microgrid maintenance, and battery upkeep, plus the people learning to keep them running smoothly.",
-    accentClass: "bg-domain-solar",
-    numeralClass: "text-domain-solar",
   },
   {
     id: "agro",
@@ -151,8 +144,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.agro.body",
     defaultBody:
       "Tree planting, soil stewardship, and harvest records, rebuilding land while keeping it productive over growing seasons.",
-    accentClass: "bg-domain-agro",
-    numeralClass: "text-domain-agro",
   },
   {
     id: "education",
@@ -162,8 +153,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.education.body",
     defaultBody:
       "Workshops, learning circles, and shared curriculum that carry regenerative practice from one generation to the next.",
-    accentClass: "bg-domain-education",
-    numeralClass: "text-domain-education",
   },
   {
     id: "waste",
@@ -173,8 +162,6 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     bodyId: "public.actions.domains.waste.body",
     defaultBody:
       "Recycling streams, composting, and reuse projects that close material loops, keeping things out of local landfills.",
-    accentClass: "bg-domain-waste",
-    numeralClass: "text-domain-waste",
   },
 ] as const;
 
@@ -269,8 +256,11 @@ export default function ActionsGallery() {
           <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 xl:grid-cols-4">
             {DOMAIN_EXPLAINERS.map((domain) => (
               <li key={domain.id} className="flex flex-col gap-4">
-                <span aria-hidden="true" className={cn("h-[3px] w-12", domain.accentClass)} />
-                <EditorialNumeral className={domain.numeralClass}>
+                <span
+                  aria-hidden="true"
+                  className={cn("h-[3px] w-12", getDomainStyle(domain.id)?.colors.fill)}
+                />
+                <EditorialNumeral className={getDomainStyle(domain.id)?.colors.text}>
                   {domain.numeral}
                 </EditorialNumeral>
                 <h3 className="font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">
@@ -430,11 +420,8 @@ export default function ActionsGallery() {
           onClose={() => setActiveAction(null)}
           title={displayAction.title}
           subtitle={formatMessage({
-            id: `app.domain.tab.${typeof displayAction.domain === "string" ? displayAction.domain : domainSlug(displayAction.domain)}`,
-            defaultMessage:
-              typeof displayAction.domain === "string"
-                ? displayAction.domain
-                : domainSlug(displayAction.domain),
+            id: getDomainStyle(displayAction.domain)?.labelId ?? "app.domain.tab.unknown",
+            defaultMessage: getDomainStyle(displayAction.domain)?.defaultLabel ?? "unknown",
           })}
         >
           {displayAction.media[0] ? (
@@ -451,20 +438,4 @@ export default function ActionsGallery() {
       ) : null}
     </>
   );
-}
-
-function domainSlug(domain: number | null): string {
-  if (domain === null) return "unknown";
-  switch (domain) {
-    case 0:
-      return "solar";
-    case 1:
-      return "agro";
-    case 2:
-      return "education";
-    case 3:
-      return "waste";
-    default:
-      return "unknown";
-  }
 }

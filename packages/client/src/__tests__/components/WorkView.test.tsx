@@ -5,7 +5,7 @@
  * Verifies rendering of garden info, media gallery, detail cards, and action buttons.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,8 +24,6 @@ vi.mock("react-intl", () => ({
 }));
 
 vi.mock("@/components/Cards", () => ({
-  FormCard: ({ label, value }: { label: string; value: string }) =>
-    createElement("div", { "data-testid": `form-card-${label}` }, `${label}: ${value}`),
   FormInfo: ({ title, info }: { title: string; info: string }) =>
     createElement("div", { "data-testid": "form-info" }, `${title} - ${info}`),
   GardenCard: ({ garden }: { garden: { name: string } }) =>
@@ -113,10 +111,14 @@ describe("WorkView", () => {
       expect(screen.queryByTestId("garden-card")).toBeNull();
     });
 
-    it("renders action title in details", () => {
-      render(createElement(WorkView, defaultProps));
+    it("leads the work's facts with its action, unless the heading already names it", () => {
+      const { container, rerender } = render(createElement(WorkView, defaultProps));
+      const facts = () => container.querySelector('[data-component="WorkDetails"]');
+      expect(facts()).toHaveTextContent("ActionPlanting Trees");
 
-      expect(screen.getByTestId("form-card-Action")).toHaveTextContent("Action: Planting Trees");
+      // A steward's page is titled by the work, so its facts don't say it twice.
+      rerender(createElement(WorkView, { ...defaultProps, actionInTitle: true }));
+      expect(facts()).not.toHaveTextContent("Planting Trees");
     });
   });
 
@@ -210,8 +212,8 @@ describe("WorkView", () => {
   });
 
   describe("details", () => {
-    it("renders detail cards for non-empty values", () => {
-      render(
+    it("lists the values as one list of facts, never a card each (DL-109)", () => {
+      const { container } = render(
         createElement(WorkView, {
           ...defaultProps,
           details: [
@@ -221,14 +223,18 @@ describe("WorkView", () => {
         })
       );
 
-      expect(screen.getByTestId("form-card-Time Spent")).toHaveTextContent("Time Spent: 2h 30m");
-      expect(screen.getByTestId("form-card-Description")).toHaveTextContent(
-        "Description: Planted 50 trees"
-      );
+      const lists = container.querySelectorAll('[data-component="WorkDetails"]');
+      expect(lists).toHaveLength(1);
+      const rows = lists[0]?.querySelectorAll('[data-component="FactRow"]') ?? [];
+      expect(Array.from(rows, (row) => row.textContent)).toEqual([
+        "ActionPlanting Trees",
+        "Time Spent2h 30m",
+        "DescriptionPlanted 50 trees",
+      ]);
     });
 
     it("filters out empty detail values", () => {
-      render(
+      const { container } = render(
         createElement(WorkView, {
           ...defaultProps,
           details: [
@@ -239,9 +245,10 @@ describe("WorkView", () => {
         })
       );
 
-      expect(screen.getByTestId("form-card-Time Spent")).toBeInTheDocument();
-      expect(screen.queryByTestId("form-card-Empty")).not.toBeInTheDocument();
-      expect(screen.queryByTestId("form-card-Whitespace")).not.toBeInTheDocument();
+      const facts = container.querySelector('[data-component="WorkDetails"]');
+      expect(facts).toHaveTextContent("Time Spent2h");
+      expect(facts).not.toHaveTextContent("Empty");
+      expect(facts).not.toHaveTextContent("Whitespace");
     });
   });
 
@@ -249,7 +256,7 @@ describe("WorkView", () => {
     it("does not render actions section when no actions provided", () => {
       render(createElement(WorkView, defaultProps));
 
-      expect(screen.queryByText("Actions")).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: "Actions" })).not.toBeInTheDocument();
     });
 
     it("renders visible actions", () => {
@@ -263,9 +270,11 @@ describe("WorkView", () => {
         })
       );
 
-      expect(screen.getByText("Actions")).toBeInTheDocument();
-      expect(screen.getByText("Approve")).toBeInTheDocument();
-      expect(screen.getByText("Reject")).toBeInTheDocument();
+      // The utilities share one named row, none of them a full-width button.
+      const group = screen.getByRole("group", { name: "Actions" });
+      expect(within(group).getByText("Approve")).toBeInTheDocument();
+      expect(within(group).getByText("Reject")).toBeInTheDocument();
+      expect(group.querySelector("button.w-full")).toBeNull();
     });
 
     it("hides actions with visible=false", () => {

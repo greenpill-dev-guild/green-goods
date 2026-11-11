@@ -53,10 +53,6 @@ vi.mock("../../../utils/action/translations", async (importOriginal) => ({
   buildActionInstructionsV2: vi.fn(() => ({ version: 2, fields: [] })),
 }));
 
-vi.mock("../../../types/domain", () => ({
-  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
-}));
-
 vi.mock("../../../hooks/admin-ui/actions/actions.utils", () => ({
   getActionsListSearch: vi.fn(() => ({})),
 }));

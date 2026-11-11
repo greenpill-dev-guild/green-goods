@@ -62,7 +62,9 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x9999999999999999999999999999999999999999" }),
 }));
-vi.mock("wagmi", () => ({ useBalance: () => ({ data: undefined }) }));
+vi.mock("@green-goods/shared/hooks/blockchain/useErc20Balance", () => ({
+  useErc20Balance: () => ({ data: undefined }),
+}));
 
 // The governance sheets and the vault dialog have their own suites.
 vi.mock("@/components/Layout", () => ({ useRouteBackedLeftSheetConfig: vi.fn() }));
