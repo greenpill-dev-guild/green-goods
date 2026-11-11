@@ -301,7 +301,7 @@ export async function executeCommitmentQueueJob(
           // Reward state may have changed since preflight. Only that dependency waits.
           await beforeBroadcast?.();
           throw refusedByChain(simulationError)
-            ? new ActRefusedByChain(simulationError)
+            ? new ActRefusedByChain(simulationError as Error)
             : simulationError;
         }
         // Read after the simulation, and again just before the intent, after any

@@ -11,8 +11,8 @@ export const JOB_DISCARDED = "discarded";
  * Again still sends it. It keeps the refusal's own message.
  */
 export class ActRefusedByChain extends Error {
-  constructor(refusal: unknown) {
-    super(refusal instanceof Error ? refusal.message : String(refusal), { cause: refusal });
+  constructor(refusal: Error) {
+    super(refusal.message, { cause: refusal });
     this.name = "ActRefusedByChain";
   }
 }
