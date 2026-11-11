@@ -24,23 +24,6 @@ export const workApprovalSchema = z.object({
 export type WorkApprovalFormData = z.infer<typeof workApprovalSchema>;
 
 // ─────────────────────────────────────────────────────────────
-// Domain default method mapping
-// ─────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────
-// Helper: parse work metadata safely
-// ─────────────────────────────────────────────────────────────
-
-export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | null {
-  try {
-    const parsed = JSON.parse(metadataStr);
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────
 
