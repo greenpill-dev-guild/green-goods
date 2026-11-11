@@ -3,7 +3,7 @@ import { entryPoint07Abi, entryPoint07Address } from "viem/account-abstraction";
 import type { TxResult } from "../transactions/types";
 import { AdapterABI, BookingEventsABI, PoolABI } from "./service-issuer-abis";
 import type { ServiceIssuerChain } from "./service-issuer-chain";
-import { issuerAsset, issuerSame } from "./service-issuer-metadata";
+import { issuerAsset, issuerPool, issuerSame } from "./service-issuer-metadata";
 import type { ServiceIssuerReview, ServiceIssuerRoute } from "./service-issuer-types";
 
 type Log = NonNullable<Awaited<ReturnType<ServiceIssuerChain["receipt"]>>["logs"]>[number];
@@ -43,6 +43,7 @@ function verifyExchange(
 ) {
   const action = review.action;
   if (action.kind !== "exchange") return;
+  const pool = issuerPool(route, review.actor.poolId);
   const input = issuerAsset(route, review.actor.assetId, true);
   const output = issuerAsset(route, action.outputAssetId, true);
   let settlementOutput: bigint | undefined;
@@ -50,7 +51,7 @@ function verifyExchange(
   for (const log of logs) {
     if (!log.topics[0]) continue;
     try {
-      if (issuerSame(log.address, route.pool.deployment.address)) {
+      if (issuerSame(log.address, pool.deployment.address)) {
         const event = decodeEventLog({
           abi: PoolABI,
           topics: [log.topics[0], ...log.topics.slice(1)],
@@ -79,7 +80,7 @@ function verifyExchange(
         });
         if (
           event.eventName === "Transfer" &&
-          issuerSame(event.args.from, route.pool.deployment.address) &&
+          issuerSame(event.args.from, pool.deployment.address) &&
           issuerSame(event.args.to, review.actor.address)
         )
           delivered += event.args.value;
@@ -129,7 +130,9 @@ export async function verifyIssuerReceipt(
           issuerSame(event.args.owner, review.actor.address) &&
           issuerSame(
             event.args.spender,
-            action.kind.includes("Exchange") ? route.pool.deployment.address : route.adapter.address
+            action.kind.includes("Exchange")
+              ? issuerPool(route, review.actor.poolId).deployment.address
+              : route.adapter.address
           ) &&
           event.args.value === ("amount" in action ? action.amount : 0n)
         )

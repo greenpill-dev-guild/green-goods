@@ -5,7 +5,7 @@ import type {
 } from "@green-goods/shared/commitment-pooling";
 import { fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ServiceIssuerPanel } from "../../views/Profile/ServiceIssuerPanel";
+import { ServiceIssuerPanel } from "@/components/Features/Vouchers/ServiceIssuerPanel";
 import {
   issuerServiceStory,
   issuerStoryAssets,
@@ -13,7 +13,7 @@ import {
   issuerStorySnapshot,
   ISSUER_STORY_HASH,
 } from "../../views/Profile/serviceIssuerStoryFixtures";
-import { parseIssuerAmount } from "../../views/Profile/serviceIssuerPresentation";
+import { parseIssuerAmount } from "@/components/Features/Vouchers/serviceIssuerPresentation";
 import { renderWithProviders, screen, userEvent, within } from "../test-utils";
 
 // A booking row names its holder; these tests read no profile, ENS or Green Goods name.
@@ -46,6 +46,8 @@ function harness(snapshot: Onchain = issuerServiceStory("overview")) {
       async ({ amount, outputAssetId }: { amount: bigint; outputAssetId: string }) => ({
         amount,
         outputAssetId,
+        poolId: "fictional-local",
+        poolAddress: "0x7777777777777777777777777777777777777777" as const,
         quotedOutput: 2_000_000n,
         grossOutput: 2_000_000n,
         reservedOutputFees: 0n,
@@ -73,6 +75,13 @@ async function reviewSheet() {
 }
 
 describe("a member's own service", () => {
+  it("lets an issuer exchange held vouchers separately from service obligations", async () => {
+    const h = harness();
+    renderWithProviders(<ServiceIssuerPanel {...h} />);
+    expect(screen.getByRole("heading", { name: "Services I Offer" })).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Vouchers I Hold"));
+    expect(screen.getByLabelText("Action")).toBeInTheDocument();
+  });
   it("approves a booking only through its exact review, with the booking's own consent", async () => {
     const h = harness(issuerServiceStory("approve"));
     const asked = h.snapshot.bookings.records[0]!;
@@ -400,7 +409,7 @@ describe("a holder of another member's vouchers", () => {
     const h = holder();
     renderWithProviders(<ServiceIssuerPanel {...h} />);
     expect(fact("Vouchers You Hold")).toHaveTextContent("0.5 EHELP");
-    expect(screen.getByText(/Total services owed: unknown/)).toBeInTheDocument();
+    expect(screen.queryByText(/Total services owed: unknown/)).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Issue Vouchers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Issue More" })).not.toBeInTheDocument();
     expect(screen.queryByText("Bookings")).not.toBeInTheDocument();

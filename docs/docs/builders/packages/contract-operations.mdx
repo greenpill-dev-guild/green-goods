@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:2c5628eb345d7cc1cb654c89294f8725ba9a612c0c8e26a5612c8deec5ad6e46"
+source_digest: "sha256:bc52d9d4d50323838abdc7d55474f80d4c01bb12a6b8764cd32cb0537bbb1d91"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -162,11 +162,11 @@ Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--pla
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 
-No options beyond the command itself.
+Options: `--recover-lock`, `--manifest <value>`, `--plan <value>`, `--receipts <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- release downstream --mode &lt;mode&gt;" /> | not network-scoped | simulate, broadcast |
+| <CopyCommand command="bun run contracts -- release downstream --mode &lt;mode&gt;" /> | not network-scoped | simulate, broadcast, verify |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
 

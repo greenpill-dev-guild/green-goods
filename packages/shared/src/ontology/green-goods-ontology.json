@@ -839,6 +839,104 @@
       ],
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "docs"]
+    },
+    {
+      "id": "service-voucher",
+      "display": "Service Voucher",
+      "definition": "An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "layers": {
+        "shared": [
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+            "symbol": "ServiceIssuerAsset"
+          }
+        ],
+        "solidity": [
+          {
+            "file": "packages/contracts/src/modules/GnosisVoucherAdapter.sol",
+            "symbol": "GnosisVoucherAdapter"
+          },
+          {
+            "file": "packages/contracts/src/modules/GnosisVoucherEscrow.sol",
+            "symbol": "GnosisVoucherEscrow"
+          }
+        ]
+      },
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "offered-in"
+        },
+        {
+          "to": "commitment",
+          "kind": "can-reward-or-access"
+        }
+      ],
+      "note": "Voucher token identity, issuer authority, reserve, and service terms remain distinct from exchange-pool admission. A member may issue their own voucher; membership alone does not make it redeemable through Green Goods."
+    },
+    {
+      "id": "voucher-exchange-pool",
+      "display": "Voucher Exchange Pool",
+      "definition": "A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "layers": {
+        "shared": [
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+            "symbol": "ServiceIssuerPool"
+          },
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts",
+            "symbol": "serviceIssuerGovernanceDrafts",
+            "kind": "value"
+          }
+        ]
+      },
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "serves"
+        },
+        {
+          "to": "service-voucher",
+          "kind": "lists-and-exchanges"
+        }
+      ],
+      "note": "The two-pool release adopts the existing Green Goods exchange and provisions one Tech and Sun exchange with independent dependencies. The same Tech and Sun voucher can be admitted to both pools without duplicating its token or supply. A local listing does not imply Green Goods admission. A voucher exchange pool is separate from a Commitment Pool or Signal Pool."
+    },
+    {
+      "id": "voucher-award",
+      "display": "Voucher Award",
+      "definition": "A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer.",
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"],
+      "layers": {
+        "shared": [
+          {
+            "file": "packages/shared/src/public-contracts/voucher-awards.ts",
+            "symbol": "VoucherAwardRecord"
+          },
+          {
+            "file": "packages/shared/src/modules/commitment-pooling/voucher-award-send.ts",
+            "symbol": "sendVoucherAward",
+            "kind": "value"
+          }
+        ]
+      },
+      "relationships": [
+        {
+          "to": "service-voucher",
+          "kind": "transfers"
+        },
+        {
+          "to": "garden",
+          "kind": "recognizes-contribution-to"
+        }
+      ],
+      "note": "Its identity is chain, reserve, and award ID. Reusing that identity with different details is rejected. An award can recognize a past contribution without fabricating a Work Approval or fulfilling a Commitment, and it does not mint new supply."
     }
   ],
   "personas": [
@@ -3113,6 +3211,41 @@
       ],
       "mappings": [],
       "source_status": "implemented"
+    },
+    {
+      "id": "voucher-award-state",
+      "definition": "Durable status of an existing-reserve voucher award. A local form draft has no award record; awaiting_authorization means the exact transaction has been prepared, not sent.",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": [
+          "awaiting_authorization",
+          "submitted",
+          "confirmed",
+          "failed",
+          "needs_reconciliation"
+        ]
+      },
+      "representations": [
+        {
+          "id": "shared-record",
+          "layer": "shared",
+          "file": "packages/shared/src/public-contracts/voucher-awards.ts",
+          "symbol": "VoucherAwardRecord",
+          "extract": "ts-property-union",
+          "property": "state",
+          "ordered": false,
+          "members": [
+            "awaiting_authorization",
+            "submitted",
+            "confirmed",
+            "failed",
+            "needs_reconciliation"
+          ]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     }
   ],
   "schemas": {
@@ -3697,6 +3830,65 @@
       "enforced_at": [],
       "holes": [],
       "source_status": "specified"
+    },
+    {
+      "id": "voucher-pool-policy-independence",
+      "kind": "functional",
+      "source_status": "implemented",
+      "statement": "Issuer and token identity are canonical across pools. Listing admission, price, and holding cap belong to a selected pool, so local listing and delisting cannot change Green Goods policy implicitly.",
+      "enforced_at": [
+        {
+          "file": "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+          "symbol": "ServiceIssuerPool"
+        },
+        {
+          "file": "packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts",
+          "symbol": "serviceIssuerGovernanceDrafts"
+        },
+        {
+          "file": "packages/contracts/script/utils/clc-garden-release.ts",
+          "symbol": "buildCLCGardenPlan"
+        }
+      ],
+      "holes": []
+    },
+    {
+      "id": "voucher-two-pool-adoption",
+      "kind": "closed-set",
+      "source_status": "implemented",
+      "statement": "The garden-exchange release adopts the existing Green Goods pool and existing collective voucher tokens, provisions one separate Tech and Sun pool, and keeps funding and service activation explicit. Simulated deployment receipts cannot register a production pool.",
+      "enforced_at": [
+        {
+          "file": "packages/contracts/script/utils/clc-garden-release.ts",
+          "symbol": "buildCLCGardenPlan"
+        },
+        {
+          "file": "packages/contracts/script/utils/clc-garden-execution.ts",
+          "symbol": "executeGardenDeployment"
+        }
+      ],
+      "holes": []
+    },
+    {
+      "id": "voucher-award-exact-reserve-transfer",
+      "kind": "functional",
+      "source_status": "implemented",
+      "statement": "One award identity binds an immutable recipient, token, amount, reason, reference, and prepared Safe envelope. Preparation requires current reserve authority; confirmation requires the exact successful execution and transfer. A draft or submitted hash alone never establishes payment.",
+      "enforced_at": [
+        {
+          "file": "packages/agent/src/services/voucher-awards.ts",
+          "symbol": "createVoucherAwardService"
+        },
+        {
+          "file": "packages/agent/src/services/voucher-awards-chain.ts",
+          "symbol": "createVoucherAwardChain"
+        },
+        {
+          "file": "packages/shared/src/public-contracts/voucher-awards.ts",
+          "symbol": "parseVoucherAwardInput"
+        }
+      ],
+      "holes": []
     }
   ],
   "state_machines": [
@@ -4178,6 +4370,59 @@
       ],
       "source_status": "implemented",
       "kind": "executable"
+    },
+    {
+      "id": "voucher-award",
+      "vocabulary": "voucher-award-state",
+      "source_status": "implemented",
+      "kind": "executable",
+      "enforced_at": [
+        {
+          "file": "packages/agent/src/services/voucher-awards.ts",
+          "symbol": "createVoucherAwardService"
+        },
+        {
+          "file": "packages/agent/src/services/voucher-awards-chain.ts",
+          "symbol": "createVoucherAwardChain"
+        }
+      ],
+      "note": "Preparation creates awaiting_authorization after validating authority, reserve inventory, and the exact envelope. Confirmed is terminal. Failure distinguishes a reverted outer transaction from a Safe execution failure; a consumed nonce requires reconciliation, never an automatic replacement payment.",
+      "states": [
+        {
+          "name": "awaiting_authorization",
+          "storage": "off-chain"
+        },
+        {
+          "name": "submitted",
+          "storage": "off-chain"
+        },
+        {
+          "name": "confirmed",
+          "storage": "off-chain"
+        },
+        {
+          "name": "failed",
+          "storage": "off-chain"
+        },
+        {
+          "name": "needs_reconciliation",
+          "storage": "off-chain"
+        }
+      ],
+      "transitions": [
+        {
+          "from": ["awaiting_authorization", "submitted", "failed", "needs_reconciliation"],
+          "to": ["submitted", "confirmed", "failed"],
+          "layer": "off-chain",
+          "mechanism": "Reconcile the supplied transaction hash against the prepared Safe envelope and canonical receipt. Pending execution stays submitted; a verified successful execution plus exact transfer confirms; reverted or Safe-failed execution records failure. An unresolved submitted transaction cannot be replaced by another unconfirmed hash."
+        },
+        {
+          "from": ["awaiting_authorization", "failed"],
+          "to": ["needs_reconciliation"],
+          "layer": "off-chain",
+          "mechanism": "Read a prepared or outer-transaction-reverted award and observe that its Safe nonce has changed. Preserve the award and exact envelope for receipt reconciliation."
+        }
+      ]
     }
   ],
   "integration_matrix": {

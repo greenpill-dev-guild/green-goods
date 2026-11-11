@@ -22,6 +22,7 @@ export type IssuerIntent =
 
 interface Props {
   review: Review;
+  poolName?: string;
   asset: ServiceIssuerAsset;
   assets: readonly ServiceIssuerAsset[];
   busy: boolean;
@@ -37,6 +38,7 @@ interface Props {
  */
 export function ServiceIssuerReview({
   review,
+  poolName,
   asset,
   assets,
   booking,
@@ -112,6 +114,30 @@ export function ServiceIssuerReview({
       { label: text("minimum"), value: issuerAmount(action.minimumOutput, output, locale) },
       { label: text("deadline"), value: `${moment(action.deadline)} (${action.deadline})` }
     );
+  if (["exchange", "approveExchange", "revokeExchange"].includes(action.kind)) {
+    const poolAddress = action.kind === "exchange" ? review.call.address : review.call.args[0];
+    facts.push({
+      label: formatMessage({ id: "app.voucher.exchange.pool" }),
+      value: (
+        <>
+          {poolName ?? review.actor.poolId ?? text("unknown")}
+          <span className="mt-1 block break-all text-xs text-text-sub-600">
+            {typeof poolAddress === "string" ? poolAddress : text("unknown")}
+          </span>
+        </>
+      ),
+    });
+  }
+  if (review.continuation)
+    facts.push({
+      label: formatMessage({ id: "app.voucher.exchange.residue" }),
+      value: amount(review.continuation.intermediateResidue),
+    });
+  if (action.kind === "exchange" && output && typeof review.expected.grossOutput === "bigint")
+    facts.push({
+      label: text("estimatedFees"),
+      value: issuerAmount(review.expected.grossOutput - action.quotedOutput, output, locale),
+    });
   facts.push(
     { label: text("signingAccount"), value: review.actor.address },
     { label: text("expires"), value: `${moment(review.expiresAt)} (${review.expiresAt})` }

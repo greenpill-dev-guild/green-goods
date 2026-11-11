@@ -20,7 +20,11 @@ import type { ServiceAccessSnapshot, ServiceAsset } from "./service-access-types
 import { requestRewardDeliveries } from "./service-access-wallet";
 import type { RequestRewardDelivery, VoucherIssuer } from "./service-access-wallet-types";
 import { type IssuerPoolStatus, issuerPoolStatus } from "./service-issuer-pool";
-import type { ServiceIssuerAsset, ServiceIssuerPoolListing } from "./service-issuer-types";
+import type {
+  ServiceIssuerAsset,
+  ServiceIssuerPoolListing,
+  ServiceIssuerPoolPolicy,
+} from "./service-issuer-types";
 import type { CommitmentReadModel } from "./types-core";
 
 /** How a reward's issuer reads in copy; null when the directory doesn't name it. */
@@ -41,11 +45,16 @@ type IssuerPoolAdmission =
 interface IssuerPoolRead {
   routes: readonly {
     service: { id: string };
-    assets: readonly (Pick<ServiceIssuerAsset, "id" | "kind" | "ownerReserve" | "delisting"> & {
+    assets: readonly (Pick<ServiceIssuerAsset, "id" | "kind" | "ownerReserve"> & {
       token: { address: Address };
     })[];
+    pools: readonly { id: string; garden: Address; listings: readonly ServiceIssuerPoolPolicy[] }[];
   }[];
-  listing: (routeId: string, assetId: string) => ServiceIssuerPoolListing | undefined;
+  listing: (
+    routeId: string,
+    poolId: string,
+    assetId: string
+  ) => ServiceIssuerPoolListing | undefined;
 }
 
 const NO_POOL_READ: IssuerPoolRead = { routes: [], listing: () => undefined };
@@ -58,6 +67,7 @@ const sameAddress = (a: string, b: string) => a.toLowerCase() === b.toLowerCase(
  */
 function gardenerPoolAdmission(
   voucher: { asset: ServiceAsset; issuer: Address },
+  garden: Address,
   pool: IssuerPoolRead
 ): IssuerPoolAdmission | null {
   for (const route of pool.routes) {
@@ -68,9 +78,21 @@ function gardenerPoolAdmission(
     );
     if (!asset) continue;
     if (asset.kind !== "individual") return null;
-    const listing = pool.listing(route.service.id, asset.id);
+    const exchanges = route.pools.filter(
+      (entry) =>
+        sameAddress(entry.garden, garden) &&
+        entry.listings.some((policy) => policy.assetId === asset.id)
+    );
+    if (exchanges.length !== 1) return { status: "unread" };
+    const selected = exchanges[0]!;
+    const policy = selected.listings.find((entry) => entry.assetId === asset.id)!;
+    const listing = pool.listing(route.service.id, selected.id, asset.id);
     return listing
-      ? { status: issuerPoolStatus(listing, asset), limit: listing.limit, holding: listing.holding }
+      ? {
+          status: issuerPoolStatus(listing, policy),
+          limit: listing.limit,
+          holding: listing.holding,
+        }
       : { status: "unread" };
   }
   return null;
@@ -145,7 +167,7 @@ export function selectCommitmentVoucherOutcomes(
           issuerAccount: voucher.issuer,
           units: voucher.units,
           revision: snapshot.offer.revision,
-          admission: gardenerPoolAdmission(voucher, pool),
+          admission: gardenerPoolAdmission(voucher, snapshot.offer.providerGarden, pool),
         }
       : null;
   if (rewards.length === 0 && !payment) return null;

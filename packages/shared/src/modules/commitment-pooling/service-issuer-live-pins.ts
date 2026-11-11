@@ -1,5 +1,9 @@
 import { GREEN_GOODS_ACCESS_MANAGER } from "./service-access-chain-values";
-import type { ServiceIssuerProxyPin, ServiceIssuerRoute } from "./service-issuer-types";
+import type {
+  ServiceIssuerProxyPin,
+  ServiceIssuerRoute,
+  ServiceIssuerPool,
+} from "./service-issuer-types";
 
 /** Existing public pilot deployments; factory calldata and receipt identities verified on 27 October 2026 UTC.
  * Sources: contracts/deployments/{100,42161}-pilot-downstream.json and contracts/script/utils/clc-release.ts.
@@ -203,6 +207,29 @@ export const GREEN_GOODS_ISSUER_DEPLOYMENT = {
     feeAddress: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
     feesDecoupled: true,
   },
-} as const satisfies Omit<ServiceIssuerRoute, "service" | "assets"> & {
+} as const satisfies Omit<ServiceIssuerRoute, "service" | "assets" | "pools"> & {
+  pool: Omit<ServiceIssuerPool, "id" | "name" | "garden" | "chainId" | "listings">;
   token: ServiceIssuerProxyPin;
+};
+
+/** Public Gnosis transaction 0x6ea6507597f2a631092692692aecbf05ad8c5eb50543d0fbd7c24705660cf016; read back 8 November 2026 UTC.
+ * Only deployment identity is pinned. TAS service capacity and source authority activation remain separate.
+ */
+export const TECH_AND_SUN_ISSUER_TOKEN: ServiceIssuerProxyPin = {
+  address: "0xB89300F212fcbdF3D5b73eADE290b3c0d6292143",
+  owner: "0x9BE5f0D6B95Ea3735df71023F5dFED53b4c1aABf",
+  runtimeCodeHash: GREEN_GOODS_ISSUER_DEPLOYMENT.token.runtimeCodeHash,
+  implementation: GREEN_GOODS_ISSUER_DEPLOYMENT.token.implementation,
+  receipt: {
+    transactionHash: "0x6ea6507597f2a631092692692aecbf05ad8c5eb50543d0fbd7c24705660cf016",
+    blockNumber: 48925712n,
+    blockHash: "0x1f897c35019bf415cc4c93b8817a8296ce44774c515df787296b1ecc0b5589ee",
+  },
+  factoryDeployment: {
+    deployer: "0xfbaf2a9734eae75497e1695706cc45ddfa346ad6",
+    admin: "0x8118555d228944bde8Fc00c018bD364dfFFC7b02",
+    salt: "0xfbaf2a9734eae75497e1695706cc45ddfa346ad68fb52b713fb09de218d9d543",
+    initializer:
+      "0x6c94522100000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000000060000000000000000000000009be5f0d6b95ea3735df71023f5dfed53b4c1aabf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c5465636820616e642053756e205365727669636520566f75636865720000000000000000000000000000000000000000000000000000000000000000000000035453560000000000000000000000000000000000000000000000000000000000",
+  },
 };

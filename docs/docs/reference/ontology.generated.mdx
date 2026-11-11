@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:062d63cf4f19f7759a843226b86de11d659dff31e4cc12d7e11cb4591f941b09"
+source_digest: "sha256:cfbd7e32edddf29e3ad5052248eda2f47b2e4edd9916f1bbacc4f2bbe3577057"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -30,7 +30,7 @@ import TermAnchor from "@site/src/components/docs/TermAnchor";
 
 The formal specification of the Green Goods shared vocabulary: the entities the protocol tracks, the controlled vocabularies each layer spells its own way, the EAS schemas, the constraints the contracts enforce, and the lifecycle state machines. The source of truth is the machine-readable sidecar `packages/shared/src/ontology/green-goods-ontology.json`; this page is generated from it and CI fails when either drifts from the code.
 
-The ontology currently declares 21 canonical concepts. Availability does not change a term's meaning.
+The ontology currently declares 24 canonical concepts. Availability does not change a term's meaning.
 
 ## Entities
 
@@ -57,6 +57,9 @@ The ontology currently declares 21 canonical concepts. Availability does not cha
 | <TermAnchor id="commitment" />**Commitment** | canonical | available | implemented · deployed · active · integrated | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
 | <TermAnchor id="commitment-contributor" />**Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
 | <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
+| <TermAnchor id="service-voucher" />**Service Voucher** | canonical | in-build | implemented · deployed · inactive · partial | admin · client · docs | An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener. | contracts · shared |
+| <TermAnchor id="voucher-exchange-pool" />**Voucher Exchange Pool** | canonical | in-build | implemented · deployed · inactive · partial | admin · client · docs | A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services. | shared |
+| <TermAnchor id="voucher-award" />**Voucher Award** | canonical | in-build | implemented · not-deployed · inactive · partial | admin · client · docs | A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer. | shared |
 
 ## Personas
 
@@ -676,6 +679,16 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
 | shared | shared | <code>packages/shared/src/modules/commitment-pooling/types-vocabulary.ts · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> |  |
 
+### `voucher-award-state`
+
+Durable status of an existing-reserve voucher award. A local form draft has no award record; awaiting_authorization means the exact transaction has been prepared, not sent.
+
+**Canonical members:** awaiting_authorization · submitted · confirmed · failed · needs_reconciliation
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| shared-record | shared | <code>packages/shared/src/public-contracts/voucher-awards.ts · VoucherAwardRecord.state</code> | <code>awaiting_authorization, submitted, confirmed, failed, needs_reconciliation</code> |  |
+
 ## Specified vocabularies without an implemented source
 
 These vocabularies are canonical specifications whose declared implementation anchor has not arrived. The gate watches each anchor and requires the source status and representations to be updated when it lands.
@@ -840,6 +853,9 @@ Cross-layer invariants and where they are enforced. This catalog is documentatio
 - **`needs-eas-envelope-reference`** · domain-range · specified — All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need. _(specified in `.plans/backlog/community-interface/spec.md`; watches `packages/contracts/src/resolvers/Needs.sol#NeedsResolver`)_
 - **`need-signal-latest-winner`** · functional · specified — For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts. _(specified in `.plans/backlog/community-interface/spec.md`; watches `packages/shared/src/modules/community-needs/signals.ts#NeedSignal`)_
 - **`needs-resolver-trust-boundaries`** · closed-set · specified — Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Steward authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed. _(specified in `.plans/backlog/community-interface/spec.md`; watches `packages/contracts/src/resolvers/Needs.sol#NeedsResolver`)_
+- **`voucher-pool-policy-independence`** · functional · implemented — Issuer and token identity are canonical across pools. Listing admission, price, and holding cap belong to a selected pool, so local listing and delisting cannot change Green Goods policy implicitly. _(enforced at: `packages/shared/src/modules/commitment-pooling/service-issuer-types.ts#ServiceIssuerPool`, `packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts#serviceIssuerGovernanceDrafts`, `packages/contracts/script/utils/clc-garden-release.ts#buildCLCGardenPlan`)_
+- **`voucher-two-pool-adoption`** · closed-set · implemented — The garden-exchange release adopts the existing Green Goods pool and existing collective voucher tokens, provisions one separate Tech and Sun pool, and keeps funding and service activation explicit. Simulated deployment receipts cannot register a production pool. _(enforced at: `packages/contracts/script/utils/clc-garden-release.ts#buildCLCGardenPlan`, `packages/contracts/script/utils/clc-garden-execution.ts#executeGardenDeployment`)_
+- **`voucher-award-exact-reserve-transfer`** · functional · implemented — One award identity binds an immutable recipient, token, amount, reason, reference, and prepared Safe envelope. Preparation requires current reserve authority; confirmation requires the exact successful execution and transfer. A draft or submitted hash alone never establishes payment. _(enforced at: `packages/agent/src/services/voucher-awards.ts#createVoucherAwardService`, `packages/agent/src/services/voucher-awards-chain.ts#createVoucherAwardChain`, `packages/shared/src/public-contracts/voucher-awards.ts#parseVoucherAwardInput`)_
 
 ## State Machines
 
@@ -976,6 +992,25 @@ _Implementation evidence: `packages/contracts/src/registries/Credit.sol#requestL
 | Disbursed | Repaid | on-chain | recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only |
 | Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
 | Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
+
+### `voucher-award`
+
+Preparation creates awaiting_authorization after validating authority, reserve inventory, and the exact envelope. Confirmed is terminal. Failure distinguishes a reverted outer transaction from a Safe execution failure; a consumed nonce requires reconciliation, never an automatic replacement payment.
+
+_Implementation evidence: `packages/agent/src/services/voucher-awards.ts#createVoucherAwardService`, `packages/agent/src/services/voucher-awards-chain.ts#createVoucherAwardChain`._
+
+| State | Storage |
+|---|---|
+| awaiting_authorization | off-chain |
+| submitted | off-chain |
+| confirmed | off-chain |
+| failed | off-chain |
+| needs_reconciliation | off-chain |
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| awaiting_authorization · submitted · failed · needs_reconciliation | submitted · confirmed · failed | off-chain | Reconcile the supplied transaction hash against the prepared Safe envelope and canonical receipt. Pending execution stays submitted; a verified successful execution plus exact transfer confirms; reverted or Safe-failed execution records failure. An unresolved submitted transaction cannot be replaced by another unconfirmed hash. |
+| awaiting_authorization · failed | needs_reconciliation | off-chain | Read a prepared or outer-transaction-reverted award and observe that its Safe nonce has changed. Preserve the award and exact envelope for receipt reconciliation. |
 
 ## Agent query seam
 

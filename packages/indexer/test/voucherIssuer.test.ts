@@ -126,6 +126,38 @@ describe("voucher issuer configuration and exchange observations", () => {
     assert.equal((await db.VoucherPoolExchange.getAll()).length, 0);
   });
 
+  it("keeps two pools independent at the same transaction and log position", async () => {
+    const db = createTestIndexer();
+    const first = event("SwapSettlement", {
+      initiator: HOLDER,
+      tokenIn: TOKEN,
+      tokenOut: OTHER,
+      amountIn: 100n,
+      quotedAmountOut: 100n,
+      nominalAmountOut: 100n,
+      amountOut: 100n,
+      poolFee: 0n,
+      protocolFee: 0n,
+    });
+    const second = { ...first, srcAddress: OTHER };
+    await projectPoolExchange(first, db);
+    await projectPoolExchange(second, db);
+    await projectPoolExchange(first, db);
+    await projectPoolExchange(second, db);
+    const firstId = cosmoId(100, SOURCE, `${hash(10)}-${first.logIndex}`);
+    const secondId = cosmoId(100, OTHER, `${hash(10)}-${second.logIndex}`);
+    const before = await db.VoucherPoolExchange.getAll();
+    assert.equal(before.length, 2);
+    assert.notEqual(firstId, secondId);
+    assert.equal((await db.VoucherPoolExchange.get(firstId))?.amountOut, 100n);
+    assert.equal((await db.VoucherPoolExchange.get(secondId))?.amountOut, 100n);
+    await assert.rejects(
+      projectPoolExchange({ ...second, params: { ...second.params, amountOut: 99n } }, db),
+      /Conflicting/
+    );
+    assert.deepEqual(await db.VoucherPoolExchange.getAll(), before);
+  });
+
   it("discovers the source module only through the configured core's local pin event", async () => {
     const db = createTestIndexer();
     const untrusted = createTestIndexer();

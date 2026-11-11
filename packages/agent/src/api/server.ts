@@ -38,6 +38,8 @@ import { registerMessagingRoutes } from "./routes/messaging";
 import { registerReportingOpsRoutes } from "./routes/reporting-ops";
 import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
 import { registerPasskeyDirectoryRoutes } from "./routes/passkey-directory";
+import { registerVoucherAwardRoutes } from "./routes/voucher-awards";
+import { registerServiceIssuerDeskRoutes } from "./routes/service-issuer-desk";
 
 const log = loggers.api;
 
@@ -175,6 +177,8 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerUploadSignRoutes(app, routeContext);
   registerMessageRoutes(app, routeContext);
   registerSubscribeRoutes(app, routeContext);
+  registerVoucherAwardRoutes(app, routeContext);
+  registerServiceIssuerDeskRoutes(app, routeContext);
   registerPublicGardenImpactRoutes(app, routeContext);
   registerPublicCommitmentImpactRoutes(app, routeContext);
   registerProfileAvatarRoutes(app, {

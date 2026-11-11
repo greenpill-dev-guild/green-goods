@@ -32,7 +32,8 @@ import { LinkWorkSheet } from "./LinkWorkSheet";
 import { PromiseGroupNote } from "./PromiseGroupNote";
 import { proofOnPhoneLine } from "./proofOnPhone";
 import { SavedCommitment } from "./SavedCommitment";
-import { ServicePromise, type ServicePromiseParts } from "./ServicePromise";
+import { ServicePromise } from "./ServicePromise";
+import type { ServicePromiseParts } from "./servicePromiseTypes";
 import { serviceReadOutcome } from "./serviceBooking";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
@@ -222,7 +223,6 @@ export function GardenCommitment() {
       }
     }
   };
-
   const page = (service: ServicePromiseParts) => (
     <>
       <CommitmentDetailShell

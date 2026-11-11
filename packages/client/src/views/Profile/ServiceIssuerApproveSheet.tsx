@@ -8,7 +8,15 @@ import { ServiceStepStrip } from "../Home/Garden/Commitment/ServiceStepStrip";
 import { type DraftFact, factValue } from "./serviceIssuerDraftFacts";
 
 /** The settings a member most needs in view while approving; the section lists all of them. */
-const IN_SHEET = new Set(["unit", "capacity", "issue", "allowance", "rate", "pool"]);
+const IN_SHEET = new Set([
+  "exchangePool",
+  "unit",
+  "capacity",
+  "issue",
+  "allowance",
+  "rate",
+  "pool",
+]);
 
 interface Props {
   draft: ServiceIssuerDraft;

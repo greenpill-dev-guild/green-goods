@@ -25,13 +25,23 @@ describe("agent RPC address", () => {
   });
 
   it("reads through the chain's public endpoint, never Alchemy's keyless one, when nothing is set", () => {
-    for (const chainId of [1, 10, 42161, 42220, 11155111]) {
+    for (const chainId of [1, 10, 100, 42161, 42220, 11155111]) {
       const rpc = resolveAgentRpc(chainId, {});
       expect(rpc.source).toBe("public");
       expect(rpc.url).toMatch(/^https:\/\//);
       expect(rpc.url).not.toContain("alchemy");
     }
     expect(resolveAgentRpcUrl(42161, {})).toBe("https://arb1.arbitrum.io/rpc");
+  });
+
+  it("keeps Gnosis award reads on Gnosis even when a source-chain Alchemy key is set", () => {
+    expect(resolveAgentRpc(100, { ALCHEMY_API_KEY: "key" })).toEqual({
+      url: "https://rpc.gnosischain.com",
+      source: "public",
+    });
+    expect(
+      resolveAgentRpc(100, { GNOSIS_RPC_URL: "https://rpc.test/gnosis", ALCHEMY_API_KEY: "key" })
+    ).toEqual({ url: "https://rpc.test/gnosis", source: "configured" });
   });
 
   it("keeps a local Arbitrum fork ahead of a key and of the public endpoint", () => {

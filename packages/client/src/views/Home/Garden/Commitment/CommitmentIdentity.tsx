@@ -54,6 +54,11 @@ export interface CommitmentIdentityProps {
     tone: StatusBand["tone"];
     needsYou: boolean;
     pillId?: string | null;
+    /** The booking's own state beside the pill, where the pill alone would mislead. */
+    chip?: {
+      labelId: string;
+      tone: "success" | "warning" | "error" | "info" | "neutral";
+    } | null;
   } | null;
   /** What a booking of the reader's own voucher offer takes, among the facts they set. */
   serviceTakes?: string | null;
@@ -141,6 +146,16 @@ export function CommitmentIdentity({
           >
             {formatMessage({ id: serviceBand?.pillId ?? state.labelId })}
           </StatusBadge>
+          {serviceBand?.chip ? (
+            <StatusBadge
+              size="sm"
+              variant={serviceBand.chip.tone}
+              showIcon={false}
+              data-component="BookingStateChip"
+            >
+              {formatMessage({ id: serviceBand.chip.labelId })}
+            </StatusBadge>
+          ) : null}
           {needsYou ? (
             <span className="text-xs font-medium text-warning-dark">
               {formatMessage({ id: "app.commitments.row.needsYou" })}

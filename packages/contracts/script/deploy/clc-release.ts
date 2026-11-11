@@ -8,6 +8,8 @@ import { composeCLCMemberManifest } from "../utils/clc-member-inputs";
 import { buildCLCReleasePlan, inspectCLCReleaseManifest, validateCLCReleasePlan } from "../utils/clc-member-release";
 import { simulateCLCMemberPlan } from "../utils/clc-member-simulation";
 import { simulateCLCPilotPlan } from "../utils/clc-release-simulation";
+import { buildCLCGardenPlan, inspectCLCGardenManifest, validateCLCGardenPlan } from "../utils/clc-garden-release";
+import { simulateCLCGardenPlan } from "../utils/clc-garden-simulation";
 import { redactRpcUrlsInText } from "../utils/cli-parser";
 import { NetworkManager } from "../utils/network";
 import { CONFIG_ROOT, CONTRACTS_ROOT, getFoundryOutDir } from "../utils/paths";
@@ -59,6 +61,81 @@ async function main() {
   };
   if (!values.preflight) checkRevision();
   const base: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+  if ((base as { schemaVersion?: unknown })?.schemaVersion === 3) {
+    if (membersPath) throw new Error("Garden extension members belong in its manifest");
+    const inspected = inspectCLCGardenManifest(base);
+    if (values.preflight) {
+      console.log(
+        JSON.stringify(
+          {
+            state: "preflight",
+            deploymentMissing: inspected.deploymentMissing,
+            activationMissing: inspected.activationMissing,
+            adoptedPools: 1,
+            newPools: 1,
+            activationIncluded: false,
+            liveBroadcast: false,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+    if (revision === null) throw new Error("CLC garden plan requires a committed revision");
+    if (values["plan-only"]) {
+      const plan = buildCLCGardenPlan(inspected.manifest, revision);
+      const output =
+        requestedOutput ?? releaseJsonPath(directory, `.generated/clc-release/${plan.releaseId}.plan.json`);
+      checkOutput(output);
+      checkRevision();
+      writeReleaseJsonAtomic(output, plan);
+      console.log(
+        JSON.stringify(
+          {
+            state: "planned",
+            output: path.relative(CONTRACTS_ROOT, output),
+            transactions: plan.transactions.length,
+            adoptedPools: 1,
+            newPools: 1,
+            activationIncluded: false,
+            liveBroadcast: false,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+    if (planPath === null) throw new Error("CLC garden simulation requires its bound plan");
+    const plan: unknown = JSON.parse(readFileSync(planPath, "utf8"));
+    validateCLCGardenPlan(plan, inspected.manifest, revision);
+    execFileSync("bun", ["run", "check:foundry-version"], { cwd: CONTRACTS_ROOT, stdio: "pipe" });
+    const result = await simulateCLCGardenPlan(
+      plan,
+      inspected.manifest,
+      new NetworkManager().getRpcUrl("gnosis"),
+      receiptsPath ? JSON.parse(readFileSync(receiptsPath, "utf8")) : undefined,
+    );
+    checkRevision();
+    const output =
+      requestedOutput ?? releaseJsonPath(directory, `.generated/clc-release/${plan.releaseId}.simulation.json`);
+    checkOutput(output);
+    writeReleaseJsonAtomic(output, result);
+    console.log(
+      JSON.stringify(
+        {
+          state: "simulated",
+          output: path.relative(CONTRACTS_ROOT, output),
+          activationIncluded: false,
+          liveBroadcast: false,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   const inspected = inspectCLCReleaseManifest(
     membersPath ? composeCLCMemberManifest(base, JSON.parse(readFileSync(membersPath, "utf8"))) : base,
   );

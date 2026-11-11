@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { initVoucherAwardSchema } from "./voucher-awards";
+import { initServiceIssuerDeskSchema } from "./service-issuer-desk";
 
 /**
  * A directory entry. One account, its exact ID string with its key, holds one name: Kernel hashes
@@ -17,6 +19,8 @@ const PASSKEY_CREDENTIAL_COLUMNS = `
   accountProfile TEXT NOT NULL DEFAULT 'kernel-0.3.1-legacy'`;
 
 export function initSchema(db: Database): void {
+  initVoucherAwardSchema(db);
+  initServiceIssuerDeskSchema(db);
   db.run(`
       CREATE TABLE IF NOT EXISTS garden_join_requests (
         id TEXT PRIMARY KEY,
@@ -310,7 +314,7 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
   );
-  db.run("PRAGMA user_version = 10");
+  db.run("PRAGMA user_version = 11");
 }
 
 function ensureColumn(

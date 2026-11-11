@@ -12,7 +12,8 @@ import {
   http,
   isAddressEqual,
   isErc6492Signature,
-  recoverMessageAddress,
+  recoverAddress,
+  type Hex,
   serializeErc6492Signature,
 } from "viem";
 
@@ -33,17 +34,28 @@ type AccountVerificationClient = {
   call(parameters: { data: `0x${string}` }): Promise<{ data?: `0x${string}` }>;
 };
 
+export type AccountHashVerificationInput = Omit<AccountSignatureVerificationInput, "message"> & {
+  hash: Hex;
+};
 export function createViemAccountSignatureVerifier(options: {
   chain: Chain;
   rpcUrl: string;
   client?: AccountVerificationClient;
 }): AccountSignatureVerifier {
+  const verifyHash = createViemAccountHashVerifier(options);
+  return ({ message, ...input }) => verifyHash({ ...input, hash: hashMessage(message) });
+}
+
+/** The same EOA/ERC-1271/ERC-6492 authority boundary for an already hashed EIP-712 message. */
+export function createViemAccountHashVerifier(options: {
+  chain: Chain;
+  rpcUrl: string;
+  client?: AccountVerificationClient;
+}): (input: AccountHashVerificationInput) => Promise<boolean> {
   const client: AccountVerificationClient =
     options.client ?? createPublicClient({ chain: options.chain, transport: http(options.rpcUrl) });
-  return async ({ address, message, signature, factory, factoryData }) => {
-    if (await verifyEoaSignature({ address, message, signature })) return true;
-
-    const hash = hashMessage(message);
+  return async ({ address, hash, signature, factory, factoryData }) => {
+    if (await verifyEoaHash({ address, hash, signature })) return true;
     const validatorSignature =
       factory && factoryData && !isErc6492Signature(signature)
         ? serializeErc6492Signature({
@@ -71,14 +83,14 @@ export function createViemAccountSignatureVerifier(options: {
   };
 }
 
-async function verifyEoaSignature(input: {
+async function verifyEoaHash(input: {
   address: Address;
-  message: string;
+  hash: Hex;
   signature: `0x${string}`;
 }): Promise<boolean> {
   try {
-    const recoveredAddress = await recoverMessageAddress({
-      message: input.message,
+    const recoveredAddress = await recoverAddress({
+      hash: input.hash,
       signature: input.signature,
     });
     return isAddressEqual(recoveredAddress, input.address);

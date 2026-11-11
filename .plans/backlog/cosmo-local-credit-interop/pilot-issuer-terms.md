@@ -1,5 +1,12 @@
 # Pilot issuer terms — working draft
 
+**Current topology, 7 November 2026 Pacific:** the [garden exchange plan](garden-exchange-pools.md)
+supersedes the single-pool arrangement in the dated amendment below. Use TAS's local pool for
+approved member vouchers and the existing Green Goods pool for independently approved TSV/GGV
+exchange. Confirm rates, fees, caps and inventory separately for each listing. Existing numerical
+issuer terms are not an approved allocation across two pools; no additional supply, member
+consent, career-call offering or reserve earmarking is implied by this topology decision.
+
 **Member-issuer amendment, 23 October Pacific:** individual service vouchers are required in the
 pilot alongside the collective vouchers below, with one shared exchange pool. Steward assistance
 does not transfer token/reserve ownership or replace the member's exact approval. The existing

@@ -415,6 +415,63 @@
         }
       ],
       "verified_at": "2026-10-30"
+    },
+    {
+      "ref": "entity:service-voucher",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/100-pilot-downstream.json",
+          "note": "Existing Green Goods and Tech and Sun vouchers and reserve/redemption endpoints are deployed. Broader two-pool service use remains subject to reviewed inventory, service capacity, and activation."
+        },
+        {
+          "file": "packages/contracts/test/fork/GnosisVoucherPilot.t.sol",
+          "note": "Focused real-runtime fork proof passed 24 tests on 2026-11-08, including request reward, redemption, member vouchers, and separate local/Green Goods exchanges. This is implementation proof, not live activation."
+        }
+      ],
+      "verified_at": "2026-11-08"
+    },
+    {
+      "ref": "entity:voucher-exchange-pool",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/contracts/config/clc-garden-exchanges.json",
+          "note": "The two-pool configuration adopts the existing live Green Goods pool; the additional Tech and Sun pool has no approved production address. Deployer, nonce, financial policy, inventory, and one-approval Safe policy remain activation prerequisites."
+        },
+        {
+          "file": "packages/contracts/script/utils/clc-garden-execution.test.ts",
+          "note": "Focused tests cover plan and receipt binding, exact replacement recovery, immutable deployment evidence, and rejection of simulated registration evidence."
+        }
+      ],
+      "verified_at": "2026-11-08"
+    },
+    {
+      "ref": "entity:voucher-award",
+      "implementation": "implemented",
+      "deployment": "not-deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/agent/src/__tests__/voucher-awards.test.ts",
+          "note": "Service tests cover durable award identity, authorization, replay conflicts, and reconciliation. The new award service has not been promoted by this implementation task."
+        },
+        {
+          "file": "packages/agent/src/__tests__/voucher-awards-chain.test.ts",
+          "note": "Chain verification tests cover the exact reserve transfer and Safe execution; prepared records are not payments."
+        }
+      ],
+      "verified_at": "2026-11-08"
     }
   ],
   "human_concepts": [
@@ -661,6 +718,33 @@
       "example": "A resident reads the public record of approved work in a nearby garden.",
       "aliases": ["resident"],
       "not_confused_with": ["Gardener"]
+    },
+    {
+      "ref": "entity:service-voucher",
+      "plain_name": "A voucher for a promised service",
+      "why_it_matters": "You can see whose service a voucher represents and check its terms before using it.",
+      "who_touches_it": ["Gardener", "Steward"],
+      "example": "A gardener uses a Tech and Sun voucher for an available hub day. A career call may require a different voucher.",
+      "aliases": [],
+      "not_confused_with": ["Cash", "Service capacity"]
+    },
+    {
+      "ref": "entity:voucher-exchange-pool",
+      "plain_name": "A curated place to exchange vouchers",
+      "why_it_matters": "Each pool decides which vouchers it accepts and how much it can exchange. Acceptance in your garden does not mean acceptance everywhere.",
+      "who_touches_it": ["Gardener", "Steward"],
+      "example": "Tech and Sun can list a designer’s voucher locally. The Green Goods pool reviews its own list before offering exchanges for career calls or subscriptions.",
+      "aliases": [],
+      "not_confused_with": ["Commitment Pool", "Signal Pool"]
+    },
+    {
+      "ref": "entity:voucher-award",
+      "plain_name": "Vouchers awarded for a contribution",
+      "why_it_matters": "Stewards can recognize past work and keep a record of who received which vouchers and why.",
+      "who_touches_it": ["Gardener", "Steward"],
+      "example": "A steward prepares five hub vouchers for someone who helped before vouchers were available. The record shows them as sent only after the transfer is confirmed.",
+      "aliases": [],
+      "not_confused_with": ["Work Approval", "A draft payment"]
     }
   ],
   "marketing_claims": [

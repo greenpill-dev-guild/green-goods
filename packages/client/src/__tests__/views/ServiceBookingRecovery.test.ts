@@ -45,12 +45,12 @@ function view(snapshot: ServiceAccessSnapshot, stage: BookingStoryStage) {
 }
 
 describe("a voucher booking's unfinished acts", () => {
-  it("keeps Close the Booking until every transfer of an approved split is sent", () => {
+  it("offers Send the Transfers until every transfer of an approved split is sent", () => {
     // The member approved the split, then declined the transfer's prompt.
     const unsent = bookingStorySnapshot("hubDay", "transfersPending", { legsSent: false });
     expect(view(unsent, "transfersPending").primary).toEqual({
       kind: "send",
-      label: "Close the Booking",
+      label: "Send the Transfers",
     });
     expect(serviceActOffered("send", unsent, null)).toBe(true);
     // It waits on the reader now, so the band says so.

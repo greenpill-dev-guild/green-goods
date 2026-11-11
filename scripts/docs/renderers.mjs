@@ -616,6 +616,11 @@ const ERD_GROUPS = [
     members: ["hypercert", "vault", "cookie-jar"],
   },
   {
+    title: "Service vouchers",
+    intro: "Issuer promises, curated exchanges, and awards for contributions.",
+    members: ["service-voucher", "voucher-exchange-pool", "voucher-award"],
+  },
+  {
     title: "Commitment pooling",
     intro: "The commitment subsystem: pools, cycles, series, and settlement records.",
     members: [
@@ -816,6 +821,9 @@ const GLOSSARY_EVERYDAY = [
   { ref: "entity:hypercert", heading: "Impact Certificate", guide: ["Mint Impact Certificate", "/community/steward-guide/creating-impact-certificates"] },
   { ref: "entity:vault", guide: ["Endow a Garden", "/community/funder-guide/funding-a-garden"] },
   { ref: "entity:cookie-jar", guide: ["Donate to a Garden", "/community/funder-guide/donating-to-a-garden"] },
+  { ref: "entity:service-voucher", guide: ["Voucher reference", "/reference/ontology#service-voucher"] },
+  { ref: "entity:voucher-exchange-pool", guide: ["Exchange pool reference", "/reference/ontology#voucher-exchange-pool"] },
+  { ref: "entity:voucher-award", guide: ["Award reference", "/reference/ontology#voucher-award"] },
   { ref: "persona:gardener", guide: ["Gardener Guide", "/community/gardener-guide/"] },
   { ref: "persona:steward", guide: ["Steward Guide", "/community/steward-guide/"] },
   { ref: "persona:evaluator", guide: ["Evaluator Guide", "/community/evaluator-guide/"] },
@@ -909,6 +917,9 @@ const PUBLISHED_GLOSSARY_TERMS = [
   ["entity:commitment", "commitment"],
   ["entity:commitment-contributor", "commitment-contributor"],
   ["entity:commitment-payout-plan", "commitment-payout-plan"],
+  ["entity:service-voucher", "service-voucher"],
+  ["entity:voucher-exchange-pool", "voucher-exchange-pool"],
+  ["entity:voucher-award", "voucher-award"],
   ["persona:gardener", "gardener"],
   ["persona:steward", "steward"],
   ["persona:evaluator", "evaluator"],

@@ -43,17 +43,8 @@ export interface ServiceIssuerAsset {
     }[];
     approval: ServiceIssuerProvenance;
   };
-  /**
-   * The stewards' recorded decision to delist the token, as the Delist dialog copies it
-   * (`serviceIssuerDelistingRecord`). Delisting sets a zero pool holding limit, but setup passes
-   * through a zero limit too (the registry admits the token before its cap lands), so a zero limit
-   * the pool holds none under reads as delisted only with this record.
-   */
-  delisting: { reference: string; digest: Hex } | null;
   initialSupply: bigint | null;
   adapterAllowance: bigint | null;
-  poolHoldingCap: bigint | null;
-  priceIndex: bigint | null;
   upgradeControl:
     | null
     | { kind: "member"; admin: Address }
@@ -65,6 +56,29 @@ export interface ServiceIssuerCodePin {
 }
 export interface ServiceIssuerProxyPin extends ServiceDeploymentPin {
   factoryDeployment: { deployer: Address; admin: Address; salt: Hex; initializer: Hex };
+}
+/** One pool's decision about a voucher; never an issuer-wide price, capacity or suspension. */
+export interface ServiceIssuerPoolPolicy {
+  assetId: string;
+  poolHoldingCap: bigint | null;
+  priceIndex: bigint | null;
+  delisting: { reference: string; digest: Hex } | null;
+}
+export interface ServiceIssuerPool {
+  id: string;
+  name: string;
+  chainId: 100;
+  garden: Address;
+  listings: readonly ServiceIssuerPoolPolicy[];
+  proxyAdmin: Address;
+  deployment: ServiceIssuerProxyPin;
+  registry: ServiceIssuerProxyPin;
+  limiter: ServiceIssuerProxyPin;
+  quoter: ServiceIssuerProxyPin;
+  feePolicy: ServiceIssuerProxyPin;
+  protocolFee: ServiceIssuerProxyPin;
+  feeAddress: Address;
+  feesDecoupled: true;
 }
 export interface ServiceIssuerRoute {
   service: ServiceLiveRoute;
@@ -81,23 +95,15 @@ export interface ServiceIssuerRoute {
     sourceSelector: bigint;
   };
   assets: readonly ServiceIssuerAsset[];
-  pool: {
-    proxyAdmin: Address;
-    deployment: ServiceIssuerProxyPin;
-    registry: ServiceIssuerProxyPin;
-    limiter: ServiceIssuerProxyPin;
-    quoter: ServiceIssuerProxyPin;
-    feePolicy: ServiceIssuerProxyPin;
-    protocolFee: ServiceIssuerProxyPin;
-    feeAddress: Address;
-    feesDecoupled: true;
-  };
+  pools: readonly ServiceIssuerPool[];
 }
 /** A holder exchanging assets is also explicit here; no buyer key is repurposed as issuer authority. */
 export interface ServiceIssuerActor {
   address: Address;
   routeId: string;
   assetId: string;
+  /** Required for exchanges and their approvals; issuer and booking actions need no pool. */
+  poolId?: string;
 }
 export type ServiceIssuerAction =
   | { kind: "issue"; amount: bigint }
@@ -128,6 +134,13 @@ export interface ServiceIssuerReview {
   expiresAt: bigint;
   call: ContractCall;
   fingerprint: Hex;
+  /** Explicit sequential second hop, bound to a canonical first-hop receipt. Never an atomic claim. */
+  continuation?: {
+    transactionHash: Hex;
+    reviewFingerprint: Hex;
+    deliveredOutput: bigint;
+    intermediateResidue: bigint;
+  };
 }
 export interface ServiceIssuerPending {
   version: 1;
@@ -144,7 +157,29 @@ export type ServiceIssuerOutcome =
     }
   | { status: "pending"; pending: ServiceIssuerPending }
   | { status: "reverted" };
+export interface ServiceIssuerExchangeReceipt {
+  version: 1;
+  review: ServiceIssuerReview;
+  submission: TxResult;
+  transactionHash: Hex;
+  deliveredOutput: bigint;
+}
+export interface ServiceIssuerContinuationQuote extends ServiceIssuerExchangeQuote {
+  firstTransactionHash: Hex;
+  intermediateResidue: bigint;
+}
 export interface ServiceIssuerOperations {
+  /** Retained after confirmation and before pending cleanup, scoped by chain and account. */
+  lastExchange(actor: ServiceIssuerActor): ServiceIssuerExchangeReceipt | null;
+  quoteContinuation(
+    actor: ServiceIssuerActor,
+    outputAssetId: string,
+    amount: bigint
+  ): Promise<ServiceIssuerContinuationQuote>;
+  reviewContinuation(
+    actor: ServiceIssuerActor,
+    action: Extract<ServiceIssuerAction, { kind: "exchange" }>
+  ): Promise<ServiceIssuerReview>;
   read(actor: ServiceIssuerActor): Promise<ServiceIssuerSnapshot>;
   quote(
     actor: ServiceIssuerActor,
@@ -157,6 +192,8 @@ export interface ServiceIssuerOperations {
   reconcile(actor: ServiceIssuerActor): Promise<ServiceIssuerOutcome | null>;
 }
 export interface ServiceIssuerExchangeQuote {
+  poolId: string;
+  poolAddress: Address;
   outputAssetId: string;
   amount: bigint;
   quotedOutput: bigint;
@@ -179,15 +216,17 @@ export type ServiceIssuerSnapshot =
       reserveEnabled: boolean;
       configuredReserveAuthority: Address;
       registeredSourceAuthority: Address;
-      pool: ServiceIssuerPoolListing;
+      pool: ServiceIssuerPoolListing | null;
+      poolStatus: "unselected" | "observed" | "unavailable";
       pending: ServiceIssuerPending | null;
       bookings: ServiceIssuerBookings;
     };
-/** The pool's own listing of a token; `issuerPoolStatus` reads it with the asset's delisting. */
+/** The selected pool's observed state; delisting belongs to this listing, never to the issuer. */
 export interface ServiceIssuerPoolListing {
   admitted: boolean;
   limit: bigint;
   holding: bigint;
+  delisting?: ServiceIssuerPoolPolicy["delisting"];
 }
 export interface ServiceIssuerBooking {
   setupId: Hex;

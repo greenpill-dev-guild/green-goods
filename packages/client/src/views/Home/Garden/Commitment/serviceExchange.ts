@@ -1,4 +1,5 @@
 import {
+  liveVoucherIssuerName,
   type ServiceAccessAction,
   type ServiceAccessSnapshot,
   type ServiceAsset,
@@ -26,10 +27,16 @@ export function exchangeQuoteFromPilot(
     wallet.issuers.find((entry) => same(entry.asset.token, token));
   const side = (token: string, amount: bigint) => {
     const asset = assets.find((entry) => same(entry.token, token)) as ServiceAsset;
+    // The wallet names the issuer it matched; the catalog names the rest, the symbol only an
+    // asset in no catalog.
     return {
       amount,
       asset,
-      issuer: issuerOf(token) ?? { name: asset.symbol ?? "", gender: null, kind: null },
+      issuer: issuerOf(token) ?? {
+        name: liveVoucherIssuerName(asset.token) ?? asset.symbol ?? "",
+        gender: null,
+        kind: null,
+      },
     };
   };
   const spent = issuerOf(quote.inputToken);

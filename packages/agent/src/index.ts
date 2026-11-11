@@ -33,11 +33,19 @@ import {
   initBlockchain,
   readVaultShareBalanceOnChain,
 } from "./services/blockchain";
-import { closeDB, initDB } from "./services/db";
+import { closeDB, getDB, initDB } from "./services/db";
+import { gnosis } from "viem/chains";
+import { createVoucherAwardService } from "./services/voucher-awards";
+import { createVoucherAwardChain } from "./services/voucher-awards-chain";
+import { createServiceIssuerDeskService } from "./services/service-issuer-desk";
+import { createServiceIssuerDeskAuthority } from "./services/service-issuer-desk-authority";
 import { resolveAgentRpc, resolveAgentRpcUrl, rpcHost } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { createSqliteProfileAvatarStore } from "./services/profile-avatars";
-import { createViemAccountSignatureVerifier } from "./services/account-signatures";
+import {
+  createViemAccountSignatureVerifier,
+  createViemAccountHashVerifier,
+} from "./services/account-signatures";
 import {
   createSavedOfferCipher,
   createSqliteSavedOfferStore,
@@ -189,6 +197,26 @@ async function main(): Promise<void> {
   // Start HTTP server in both modes (health + API endpoints always available)
   const server = createServer({
     isAIReady: isAIModelLoaded,
+    voucherAwards: createVoucherAwardService({
+      store: getDB().voucherAwardStore(),
+      chain: createVoucherAwardChain({ rpcUrl: resolveAgentRpcUrl(100) }),
+      verify: createViemAccountSignatureVerifier({
+        chain: gnosis,
+        rpcUrl: resolveAgentRpcUrl(100),
+      }),
+    }),
+    serviceIssuerDesk: createServiceIssuerDeskService({
+      store: getDB().serviceIssuerDeskStore(),
+      authority: createServiceIssuerDeskAuthority({ rpcUrl: resolveAgentRpcUrl(100) }),
+      verify: createViemAccountSignatureVerifier({
+        chain: gnosis,
+        rpcUrl: resolveAgentRpcUrl(100),
+      }),
+      verifyApproval: createViemAccountHashVerifier({
+        chain: gnosis,
+        rpcUrl: resolveAgentRpcUrl(100),
+      }),
+    }),
     botApiToken: config.botApiToken,
     telegramBot: bot,
     subscriptionClient,

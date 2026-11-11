@@ -16,6 +16,7 @@ const TEST_TOKEN = "0x3333333333333333333333333333333333333333" as const;
 const mockUseAccessibleCookieJars = vi.fn();
 const mockUseVoucherWallet = vi.fn();
 const mockHasVoucherWalletRoute = vi.fn();
+const mockLoadVoucherAwards = vi.fn();
 const ACCOUNT = "0x6666666666666666666666666666666666666666" as const;
 
 /** A voucher wallet read: still running, or what the voucher pilot answered for the account. */
@@ -131,6 +132,16 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
     ...(await importOriginal()),
     useVoucherWallet: (...args: unknown[]) => mockUseVoucherWallet(...args),
     hasVoucherWalletRoute: () => mockHasVoucherWalletRoute(),
+    useVoucherAwards: () => ({
+      records: [],
+      isLimited: false,
+      load: {
+        mutate: mockLoadVoucherAwards,
+        isPending: false,
+        isError: false,
+        isSuccess: false,
+      },
+    }),
   };
 });
 
@@ -198,6 +209,10 @@ describe("WalletSheet", () => {
     mockUseVoucherWallet.mockReturnValue(voucherWallet("onchain"));
     view.rerender(sheet());
     expect(within(panel).getByText("No vouchers yet")).toBeInTheDocument();
+    expect(
+      within(panel).getByRole("button", { name: "Load My Award Receipts" })
+    ).toBeInTheDocument();
+    expect(mockLoadVoucherAwards).not.toHaveBeenCalled();
 
     mockUseVoucherWallet.mockReturnValue(voucherWallet("unavailable"));
     view.rerender(sheet());

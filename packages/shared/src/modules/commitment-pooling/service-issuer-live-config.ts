@@ -1,6 +1,9 @@
 import { encodeAbiParameters, keccak256 } from "viem";
 import { SERVICE_LIVE_ROUTES } from "./service-access-live-config";
-import { GREEN_GOODS_ISSUER_DEPLOYMENT } from "./service-issuer-live-pins";
+import {
+  GREEN_GOODS_ISSUER_DEPLOYMENT,
+  TECH_AND_SUN_ISSUER_TOKEN,
+} from "./service-issuer-live-pins";
 import type { ServiceIssuerAsset, ServiceIssuerRoute } from "./service-issuer-types";
 
 const revision = "pilot-2026-10-27-r2";
@@ -76,13 +79,35 @@ const service = SERVICE_LIVE_ROUTES.find(
 if (!service) throw new Error("Reviewed pilot service route unavailable");
 const deployment = GREEN_GOODS_ISSUER_DEPLOYMENT;
 
-/** Green Goods only. Confirmed service capacity is separate from issuance, allowance and pool limits. */
+/** Existing issuer identities and independently curated GG listings. No unverified TAS pool is activated. */
 export const GREEN_GOODS_ISSUER_ROUTE: ServiceIssuerRoute = {
   service,
   factory: deployment.factory,
   adapterSource: deployment.adapterSource,
   adapter: deployment.adapter,
-  pool: deployment.pool,
+  pools: [
+    {
+      ...deployment.pool,
+      id: "green-goods",
+      name: "Green Goods",
+      chainId: 100,
+      garden: "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      listings: [
+        {
+          assetId: "green-goods",
+          poolHoldingCap: 120n * voucher,
+          priceIndex: 1_000_000n,
+          delisting: null,
+        },
+        {
+          assetId: "tech-and-sun",
+          poolHoldingCap: 20n * voucher,
+          priceIndex: 1_000_000n,
+          delisting: null,
+        },
+      ],
+    },
+  ],
   assets: [
     {
       id: "green-goods",
@@ -105,13 +130,34 @@ export const GREEN_GOODS_ISSUER_ROUTE: ServiceIssuerRoute = {
         // Ten sessions at 2 GGV plus ten funded Claude seat-periods at 10 GGV.
         capacity: 120n * voucher,
       },
-      delisting: null,
       initialSupply: 120n * voucher,
       adapterAllowance: 110n * voucher,
-      poolHoldingCap: 120n * voucher,
-      priceIndex: 1_000_000n,
       // The factory admin is the existing Green Goods Safe-controlled timelock, not a replacement Safe.
       upgradeControl: { kind: "collective-safe", admin: deployment.token.factoryDeployment.admin },
+    },
+    {
+      id: "tech-and-sun",
+      kind: "collective",
+      ownerReserve: TECH_AND_SUN_ISSUER_TOKEN.owner,
+      // Existing source approval authority, distinct from the Gnosis reserve Safe.
+      sourceAuthority: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+      token: TECH_AND_SUN_ISSUER_TOKEN,
+      name: "Tech and Sun Service Voucher",
+      symbol: "TSV",
+      decimals: 6,
+      service: {
+        unit: "hub visits",
+        terms: { reference, digest: null },
+        approval: { reference: null, digest: null },
+        // Operating terms propose twenty visits; observed deliverable capacity is not confirmed.
+        capacity: null,
+      },
+      initialSupply: 20n * voucher,
+      adapterAllowance: 10n * voucher,
+      upgradeControl: {
+        kind: "collective-safe",
+        admin: TECH_AND_SUN_ISSUER_TOKEN.factoryDeployment.admin,
+      },
     },
   ],
 };

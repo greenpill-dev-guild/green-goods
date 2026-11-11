@@ -56,7 +56,9 @@ sb.mock(import("../src/hooks/commitment-pooling/useCommitmentMetadata.ts"), { sp
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useServiceAccess.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useServiceIssuerOperations.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useVoucherWallet.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useVoucherAwards.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useServiceOfferLines.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });

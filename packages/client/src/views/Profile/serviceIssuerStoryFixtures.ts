@@ -47,11 +47,8 @@ export const issuerStoryAssets: readonly ServiceIssuerAsset[] = [
       capacity: 6_000_000n,
       approval: { reference: "fictional-engineer-consent", digest: ISSUER_STORY_HASH },
     },
-    delisting: null,
     initialSupply: 6_000_000n,
     adapterAllowance: 1_000_000n,
-    poolHoldingCap: 5_000_000n,
-    priceIndex: 2_000_000n,
     upgradeControl: { kind: "member", admin: ISSUER_STORY_ADDRESS },
   },
   {
@@ -85,11 +82,8 @@ export const issuerStoryAssets: readonly ServiceIssuerAsset[] = [
       capacity: 6_000_000n,
       approval: { reference: "fictional-analyst-consent", digest: ISSUER_STORY_HASH },
     },
-    delisting: null,
     initialSupply: 6_000_000n,
     adapterAllowance: 1_000_000n,
-    poolHoldingCap: 5_000_000n,
-    priceIndex: 1_000_000n,
     upgradeControl: { kind: "member", admin: "0x3333333333333333333333333333333333333333" },
   },
 ];
@@ -97,7 +91,12 @@ export const issuerStoryAssets: readonly ServiceIssuerAsset[] = [
 export function issuerStorySnapshot(): Extract<ServiceIssuerSnapshot, { evidence: "onchain" }> {
   return {
     evidence: "onchain",
-    actor: { address: ISSUER_STORY_ADDRESS, routeId: "fictional-story", assetId: "engineer-help" },
+    actor: {
+      address: ISSUER_STORY_ADDRESS,
+      routeId: "fictional-story",
+      assetId: "engineer-help",
+      poolId: "fictional-local",
+    },
     asset: issuerStoryAssets[0],
     holdingBalance: 3_500_000n,
     issuerReserveBalance: 3_500_000n,
@@ -108,6 +107,7 @@ export function issuerStorySnapshot(): Extract<ServiceIssuerSnapshot, { evidence
     configuredReserveAuthority: ISSUER_STORY_ADDRESS,
     registeredSourceAuthority: ISSUER_STORY_ADDRESS,
     pool: { admitted: true, limit: 5_000_000n, holding: 1_000_000n },
+    poolStatus: "observed",
     pending: null,
     bookings: {
       status: "observed",
@@ -184,7 +184,13 @@ export function issuerStoryReview(action: ServiceIssuerAction): ServiceIssuerRev
       abi: [],
       value: 0n,
       functionName: action.kind,
-      args: [],
+      args:
+        action.kind === "approveExchange" || action.kind === "revokeExchange"
+          ? [
+              "0x7777777777777777777777777777777777777777",
+              action.kind === "approveExchange" ? action.amount : 0n,
+            ]
+          : [],
     },
   };
 }
@@ -301,7 +307,7 @@ export function issuerServiceStory(state: IssuerServiceStory) {
   if (state === "delisted") {
     snapshot.pool = { ...snapshot.pool, limit: 0n };
     const delisting = { reference: "fictional-delisting-record", digest: ISSUER_STORY_HASH };
-    snapshot.asset = { ...snapshot.asset, delisting };
+    snapshot.pool = { ...snapshot.pool!, delisting };
   }
   // The member confirmed five vouchers' worth of service, below the six the token may issue.
   if (state === "lowCapacity")
@@ -356,6 +362,7 @@ function issuerStoryDraft(revision = 1): ServiceIssuerDraft {
       poolHoldingCap: 6_000_000n,
       priceIndex: revision > 1 ? 3_000_000n : 2_000_000n,
       poolFee: 0n,
+      exchangePool: { chainId: 100, id: "fictional-local", address: ISSUER_STORY_ADDRESS },
       replyBusinessDays: 2,
       acceptanceDays: 7,
       document: {

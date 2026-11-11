@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import { keccak256 } from "viem";
 import type { GraphQLReader } from "../../modules/data/graphql-client";
+import { SERVICE_ISSUER_ROUTES } from "../../modules/commitment-pooling/service-issuer-metadata";
 import { SERVICE_LIVE_ROUTES } from "../../modules/commitment-pooling/service-access-live-config";
 import type { ServiceLiveChain } from "../../modules/commitment-pooling/service-access-live-chain";
 
@@ -8,7 +9,12 @@ export function liveVoucherFixture(rows: unknown[] = []) {
   const route = structuredClone(SERVICE_LIVE_ROUTES[0]!);
   delete route.core.receipt.kind;
   const deploymentPins = [route.core, route.source, route.destination];
-  const pins = [...deploymentPins, ...Object.values(route.walletState ?? {})];
+  const issuerRoutes = structuredClone(SERVICE_ISSUER_ROUTES);
+  for (const issuerRoute of issuerRoutes) issuerRoute.service = route;
+  const poolPins = issuerRoutes.flatMap((entry) =>
+    entry.pools.flatMap((pool) => [pool.deployment, pool.registry, pool.limiter])
+  );
+  const pins = [...deploymentPins, ...Object.values(route.walletState ?? {}), ...poolPins];
   for (const pin of [...pins, ...route.assets]) {
     pin.runtimeCodeHash = keccak256("0x6001");
     pin.implementation.runtimeCodeHash = keccak256("0x6002");
@@ -90,5 +96,5 @@ export function liveVoucherFixture(rows: unknown[] = []) {
     account: "0x0000000000000000000000000000000000000200" as const,
     coreModule: route.core.address,
   };
-  return { route, chain, reader, wallet };
+  return { route, issuerRoutes, chain, reader, wallet };
 }

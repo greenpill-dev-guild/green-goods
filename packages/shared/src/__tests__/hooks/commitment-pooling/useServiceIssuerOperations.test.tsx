@@ -89,7 +89,10 @@ describe("issuer operation hook composition", () => {
     });
     await waitFor(() => expect(result.current.quote.failureCount).toBe(1));
   });
-  it("rejects a review for a previously selected asset before invoking the sender", async () => {
+  it.each([
+    "assetId",
+    "poolId",
+  ] as const)("rejects a review after the selected %s changes before invoking the sender", async (field) => {
     const { result, rerender } = renderHook(
       (selected: ServiceIssuerActor) => useServiceIssuerOperations(selected),
       { ...fixture(), initialProps: actor }
@@ -107,7 +110,7 @@ describe("issuer operation hook composition", () => {
       call: createMockContractCall({ account: address, chainId: 100 }),
       fingerprint: H,
     };
-    rerender({ ...actor, assetId: "changed" });
+    rerender({ ...actor, [field]: "changed" });
     await act(async () => {
       await expect(result.current.execute.mutateAsync(old)).rejects.toThrow("context changed");
     });

@@ -1,5 +1,6 @@
 import {
   useCommitment,
+  useVoucherAwards,
   useCommitmentMetadataFor,
   type VoucherBookingEscrow,
   type VoucherHolding,
@@ -63,7 +64,7 @@ function unitName(intl: IntlShape, issuer: VoucherIssuer) {
 export function VouchersTab({ wallet, failed = false, onClose }: VouchersTabProps) {
   const intl = useIntl();
   const navigate = useNavigate();
-  const [open, setOpen] = useState<Address | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   // The sheet sits over Home, so it closes before the screen it opens would show under it.
   const go = (path: string) => {
     onClose();
@@ -141,12 +142,16 @@ export function VouchersTab({ wallet, failed = false, onClose }: VouchersTabProp
               </li>
             ))}
             {rows.holdings.map((holding) => (
-              <li key={`holding-${holding.issuer.account}`}>
+              <li key={`holding-${holding.issuer.asset.chainId}-${holding.issuer.asset.token}`}>
                 <VoucherHoldingRow
                   holding={holding}
-                  open={open === holding.issuer.account}
+                  open={open === `${holding.issuer.asset.chainId}:${holding.issuer.asset.token}`}
                   onToggle={() =>
-                    setOpen(open === holding.issuer.account ? null : holding.issuer.account)
+                    setOpen(
+                      open === `${holding.issuer.asset.chainId}:${holding.issuer.asset.token}`
+                        ? null
+                        : `${holding.issuer.asset.chainId}:${holding.issuer.asset.token}`
+                    )
                   }
                   onBook={() => go(`/home/${holding.issuer.garden}`)}
                 />
@@ -154,6 +159,7 @@ export function VouchersTab({ wallet, failed = false, onClose }: VouchersTabProp
             ))}
           </ul>
         )}
+        {wallet.evidence === "onchain" ? <VoucherAwardReceipts wallet={wallet} /> : null}
         {where}
       </div>
     </div>
@@ -278,11 +284,98 @@ function VoucherHoldingRow({
               }
             />
           </FactList>
+          {issuer.exchanges?.length ? (
+            <ul className="space-y-1 text-xs text-text-sub-600">
+              {issuer.exchanges.map((exchange) => (
+                <li key={exchange.poolAddress}>
+                  {exchange.name}:{" "}
+                  {intl.formatMessage({
+                    id:
+                      exchange.status === "listed"
+                        ? "app.voucher.ms.p.listed"
+                        : exchange.status === "delisted"
+                          ? "app.voucher.ms.p.delisted"
+                          : "app.profile.issuer.unknown",
+                  })}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <Button type="button" emphasis="primary" size="sm" onClick={onBook}>
             {intl.formatMessage({ id: "app.voucher.wl.book" })}
           </Button>
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Award receipts describe provenance only; their amounts are never added to current holdings. */
+function VoucherAwardReceipts({ wallet }: { wallet: VoucherWalletSnapshot }) {
+  const intl = useIntl();
+  const awards = useVoucherAwards();
+  const t = (key: string) => intl.formatMessage({ id: `app.voucher.exchange.${key}` });
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold">{t("awardHistory")}</h3>
+      <Button
+        type="button"
+        emphasis="secondary"
+        size="sm"
+        loading={awards.load.isPending}
+        onClick={() => awards.load.mutate()}
+      >
+        {t("loadAwards")}
+      </Button>
+      {awards.isLimited ? (
+        <p role="status" className="text-sm">
+          {t("awardLimited")}
+        </p>
+      ) : null}
+      {awards.load.isError ? (
+        <p role="alert" className="text-sm">
+          {t("awardFailed")}
+        </p>
+      ) : null}
+      {awards.load.isSuccess && !awards.records.length ? (
+        <p className="text-sm">{t("noAwards")}</p>
+      ) : null}
+      <ul className="space-y-2">
+        {awards.records
+          .filter(
+            (record) =>
+              record.state === "confirmed" &&
+              record.award.recipient.toLowerCase() === wallet.account.toLowerCase()
+          )
+          .map((record) => {
+            const issuer = wallet.issuers.find(
+              (entry) => entry.asset.token.toLowerCase() === record.award.token.toLowerCase()
+            );
+            return (
+              <li key={`${record.award.reserve}:${record.award.awardId}`} className="text-sm">
+                <p>{record.award.reason}</p>
+                <p>
+                  {issuer
+                    ? `${formatVouchers(BigInt(record.award.amount), issuer.asset.decimals, intl.locale)} ${issuer.name}`
+                    : `${record.award.amount} ${intl.formatMessage({ id: "app.profile.issuer.baseUnits" })}`}
+                </p>
+                {record.award.reference ? (
+                  <p className="break-words text-xs">{record.award.reference}</p>
+                ) : null}
+                {record.transactionHash ? (
+                  <a
+                    className="underline underline-offset-4"
+                    href={`https://gnosisscan.io/tx/${record.transactionHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("receipt")}
+                  </a>
+                ) : null}
+              </li>
+            );
+          })}
+      </ul>
+    </section>
   );
 }

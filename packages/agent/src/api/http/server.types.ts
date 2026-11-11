@@ -32,6 +32,8 @@ import type { GardenJoinRequestCountGrants } from "../../services/garden-join-re
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
 import type { PasskeyDirectory } from "../../services/passkey-directory";
 import type { MessagingRouteDeps } from "../routes/messaging";
+import type { VoucherAwardService } from "../../services/voucher-awards";
+import type { ServiceIssuerDeskService } from "../../services/service-issuer-desk";
 
 export interface ServerConfig {
   port: number;
@@ -115,6 +117,8 @@ export interface ServerDeps {
   now?: () => number;
   /** Browser ceremony API for agent reporting; absent unless reporting is configured. */
   messaging?: MessagingRouteDeps;
+  voucherAwards?: VoucherAwardService;
+  serviceIssuerDesk?: ServiceIssuerDeskService;
 }
 
 export type AgentServer = Hono & {

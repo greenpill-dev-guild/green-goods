@@ -1,5 +1,5 @@
 /**
- * An issuer token's place in the shared pool, from the pool's own listing: not admitted yet while
+ * An issuer token's place in a selected exchange pool, from the pool's own listing: not admitted yet while
  * its setup is pending, listed under a holding limit, or delisted. Delisting sets a zero holding
  * limit: the pool takes in no more of the token, while holders keep their vouchers. Setup passes
  * through a zero limit too, since the registry admits the token before its cap lands, so a zero
@@ -10,15 +10,15 @@
  * @module modules/commitment-pooling/service-issuer-pool
  */
 
-import type { ServiceIssuerAsset, ServiceIssuerPoolListing } from "./service-issuer-types";
+import type { ServiceIssuerPoolPolicy, ServiceIssuerPoolListing } from "./service-issuer-types";
 
 export type IssuerPoolStatus = "setup" | "listed" | "delisted";
 
 export function issuerPoolStatus(
   listing: ServiceIssuerPoolListing,
-  asset: Pick<ServiceIssuerAsset, "delisting">
+  policy: Pick<ServiceIssuerPoolPolicy, "delisting"> = { delisting: listing.delisting ?? null }
 ): IssuerPoolStatus {
   if (!listing.admitted) return "setup";
   if (listing.limit > 0n) return "listed";
-  return asset.delisting || listing.holding > 0n ? "delisted" : "setup";
+  return policy.delisting || listing.holding > 0n ? "delisted" : "setup";
 }

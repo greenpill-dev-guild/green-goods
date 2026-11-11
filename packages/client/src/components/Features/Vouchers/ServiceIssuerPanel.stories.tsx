@@ -3,7 +3,7 @@ import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGood
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, userEvent, within } from "storybook/test";
-import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { ServiceIssuerPanel } from "./ServiceIssuerPanel";
 import {
   ISSUER_STORY_HASH,
@@ -12,7 +12,7 @@ import {
   issuerStoryAssets,
   issuerStoryReview,
   issuerStorySnapshot,
-} from "./serviceIssuerStoryFixtures";
+} from "@/views/Profile/serviceIssuerStoryFixtures";
 
 /**
  * A member's own service in Profile, Account, Your Services (PRD-1299 `SMyService`): the
@@ -24,7 +24,15 @@ const meta: Meta<typeof ServiceIssuerPanel> = {
   component: ServiceIssuerPanel,
   tags: ["autodocs"],
   parameters: { layout: "padded" },
-  beforeEach: () => {
+  argTypes: { snapshot: { control: false }, assets: { control: false } },
+  beforeEach: ({ args }) => {
+    mocked(args.onRefresh).mockReset().mockResolvedValue(undefined);
+    mocked(args.onExecute).mockReset().mockResolvedValue({
+      status: "confirmed",
+      transactionHash: ISSUER_STORY_HASH,
+      currentStateMatchesReceipt: true,
+    });
+    mocked(args.onReconcile).mockReset().mockResolvedValue(null);
     mocked(useGreenGoodsEnsName).mockImplementation(
       (address) =>
         ({
@@ -51,17 +59,16 @@ const meta: Meta<typeof ServiceIssuerPanel> = {
   args: {
     snapshot: issuerServiceStory("overview"),
     assets: issuerStoryAssets,
-    onRefresh: fn().mockResolvedValue(undefined),
+    poolName: "Fictional local exchange",
+    onRefresh: fn(),
     onReview: fn(async (action) => issuerStoryReview(action)),
-    onExecute: fn().mockResolvedValue({
-      status: "confirmed",
-      transactionHash: ISSUER_STORY_HASH,
-      currentStateMatchesReceipt: true,
-    }),
-    onReconcile: fn().mockResolvedValue(null),
+    onExecute: fn(),
+    onReconcile: fn(),
     onQuote: fn(async ({ outputAssetId, amount }) => ({
       outputAssetId,
       amount,
+      poolId: "fictional-local",
+      poolAddress: "0x7777777777777777777777777777777777777777" as const,
       quotedOutput: amount * 2n,
       grossOutput: amount * 2n,
       reservedOutputFees: 0n,

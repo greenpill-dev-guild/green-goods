@@ -6,6 +6,7 @@ import {
   serviceIssuerGovernanceDrafts,
   serviceIssuerListingKey,
 } from "@green-goods/shared/commitment-pooling";
+import { voucherIssuerRows } from "../../views/Community/components/voucherIssuerRows";
 import { VoucherIssuerCard } from "../../views/Community/components/VoucherIssuerOnboarding";
 import {
   voucherIssuerStory,
@@ -33,6 +34,48 @@ function stubClipboard() {
 const row = (name: string) => screen.getByText(name).closest("li")!;
 
 describe("voucher issuer onboarding", () => {
+  it("marks a sent revised draft as changed after its previous approval was cleared", () => {
+    const story = voucherIssuerStory("approved");
+    const record = story.drafts[0]!;
+    record.approval = null;
+    record.draft.terms.revision = 2;
+    record.draft.changed = ["service"];
+    expect(
+      voucherIssuerRows(story.routes, story.drafts, story.listings).find((r) => r.record === record)
+        ?.status
+    ).toBe("changed");
+    record.draft.sentAt = null;
+    expect(
+      voucherIssuerRows(story.routes, story.drafts, story.listings).find((r) => r.record === record)
+        ?.status
+    ).toBe("draft");
+  });
+  it("pairs approval only with the exact signed pool when a token has two listings", () => {
+    const story = voucherIssuerStory("ownerSafeDrafts");
+    const route = story.routes[0]!;
+    const local = route.pools[0]!;
+    route.pools = [
+      local,
+      {
+        ...structuredClone(local),
+        id: "green-goods",
+        deployment: {
+          ...local.deployment,
+          address: "0x0000000000000000000000000000000000000001",
+        },
+      },
+    ];
+    const rows = voucherIssuerRows(story.routes, story.drafts, story.listings).filter(
+      (row) => row.asset?.id === "teo"
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows.find((row) => row.pool?.id === local.id)?.record).toBe(story.drafts[0]);
+    expect(rows.find((row) => row.pool?.id === "green-goods")?.record).toBeUndefined();
+    delete story.drafts[0]!.draft.terms.exchangePool;
+    const legacy = voucherIssuerRows(story.routes, story.drafts, story.listings);
+    expect(legacy.filter((row) => row.asset?.id === "teo").every((row) => !row.record)).toBe(true);
+    expect(legacy.find((row) => row.key === "draft:7")?.record).toBe(story.drafts[0]);
+  });
   afterEach(() => vi.unstubAllGlobals());
 
   it("keeps absent live inputs explicit with no transaction or export action", () => {
@@ -74,6 +117,11 @@ describe("voucher issuer onboarding", () => {
     expect(JSON.parse(writeText.mock.calls[0]![0] as string)).toMatchObject({
       approval: provenance,
       terms: { digest: story.drafts[0]!.approval!.termsDigest },
+      draft: {
+        id: story.drafts[0]!.draft.id,
+        terms: { exchangePool: story.drafts[0]!.draft.terms.exchangePool },
+      },
+      signedApproval: { signature: story.drafts[0]!.approval!.signature },
     });
     expect(dialog.getByText(/^Copied\. Nothing was sent/)).toBeInTheDocument();
   });
@@ -85,7 +133,7 @@ describe("voucher issuer onboarding", () => {
     await userEvent.click(screen.getByRole("button", { name: "Owner Safe Drafts…" }));
     await userEvent.click(screen.getByRole("button", { name: "Copy Owner Safe Drafts" }));
     const copied = JSON.parse(writeText.mock.calls[0]![0] as string);
-    const expected = serviceIssuerGovernanceDrafts(story.routes[0]!, "teo");
+    const expected = serviceIssuerGovernanceDrafts(story.routes[0]!, "teo", "tech-and-sun");
     expect(copied.kind).toBe("owner-safe-drafts");
     expect(copied.calls).toHaveLength(4);
     copied.calls.forEach(
@@ -131,7 +179,12 @@ describe("voucher issuer onboarding", () => {
     expect(copied.reason).toBe("Can't deliver this month");
     // The copy carries the record that makes the zero limit read as a delisting.
     expect(copied.delisting).toEqual(
-      serviceIssuerDelistingRecord(story.routes[0]!, "maya", "Can't deliver this month")
+      serviceIssuerDelistingRecord(
+        story.routes[0]!,
+        "maya",
+        "Can't deliver this month",
+        "tech-and-sun"
+      )
     );
     expect(copied.calls).toHaveLength(1);
     const [call] = copied.calls;
@@ -139,7 +192,7 @@ describe("voucher issuer onboarding", () => {
     const maya = route.assets.find((a) => a.id === "maya")!;
     expect(call).toMatchObject({
       purpose: "pool-delist",
-      to: route.pool.limiter.address,
+      to: route.pools[0]!.limiter.address,
       value: "0",
     });
     const decoded = decodeFunctionData({
@@ -154,7 +207,7 @@ describe("voucher issuer onboarding", () => {
       ],
       data: call.data,
     });
-    expect(decoded.args).toEqual([maya.token.address, route.pool.deployment.address, 0n]);
+    expect(decoded.args).toEqual([maya.token.address, route.pools[0]!.deployment.address, 0n]);
     expect(dialog.getByText(/^Copied\. Nothing was sent/)).toBeInTheDocument();
   });
 
@@ -213,7 +266,7 @@ describe("voucher issuer onboarding", () => {
     route.assets[0]!.service.capacity = null;
     const listings = new Map([
       [
-        serviceIssuerListingKey(route.service.id, route.assets[0]!.id),
+        serviceIssuerListingKey(route.service.id, "tech-and-sun", route.assets[0]!.id),
         { admitted: false, limit: 0n, holding: 0n },
       ],
     ]);

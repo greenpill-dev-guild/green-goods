@@ -17,17 +17,21 @@ generated_from:
   - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/src/api/routes/saved-offer-records.ts
   - packages/agent/src/api/routes/saved-offers.ts
+  - packages/agent/src/api/routes/service-issuer-desk.ts
   - packages/agent/src/api/routes/subscribe.ts
   - packages/agent/src/api/routes/upload-sign.ts
+  - packages/agent/src/api/routes/voucher-awards.ts
   - packages/agent/src/api/server.ts
   - packages/client/package.json
   - packages/contracts/package.json
   - packages/indexer/package.json
   - packages/shared/package.json
+  - packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts
   - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
-source_digest: "sha256:f2a40dc97b1a62f5f9474df352ce92543e20c2357dc4df803ba6b61fb74b1e8d"
+  - packages/shared/src/public-contracts/voucher-awards.ts
+source_digest: "sha256:1599c55b629c97cdf0a58e2abd51db4725e53985832f92926526122b47b29085"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
@@ -39,16 +43,20 @@ source_of_truth:
   - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/src/api/routes/saved-offer-records.ts
   - packages/agent/src/api/routes/saved-offers.ts
+  - packages/agent/src/api/routes/service-issuer-desk.ts
   - packages/agent/src/api/routes/subscribe.ts
   - packages/agent/src/api/routes/upload-sign.ts
+  - packages/agent/src/api/routes/voucher-awards.ts
   - packages/agent/src/api/server.ts
   - packages/client/package.json
   - packages/contracts/package.json
   - packages/indexer/package.json
   - packages/shared/package.json
+  - packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts
   - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
   - packages/shared/src/public-contracts/saved-offers/types.ts
+  - packages/shared/src/public-contracts/voucher-awards.ts
 ---
 
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
@@ -82,7 +90,9 @@ Every route the agent registers under `/public/`, and every route a shared route
 | `/public/saved-offers/:savedOfferId` | `DELETE`, `GET`, `OPTIONS`, `PUT` | none | `routes/saved-offer-records.ts` |
 | `/public/saved-offers/session` | `OPTIONS`, `POST` | `SAVED_OFFERS_ROUTES.session` | `routes/saved-offers.ts` |
 | `/public/saved-offers/session/challenge` | `OPTIONS`, `POST` | `SAVED_OFFERS_ROUTES.challenge` | `routes/saved-offers.ts` |
+| `/public/service-issuer-desk` | `OPTIONS`, `POST` | `SERVICE_ISSUER_DESK_ROUTE` | `routes/service-issuer-desk.ts` |
 | `/public/subscribe` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.subscribe` | `routes/subscribe.ts` |
+| `/public/voucher-awards` | `OPTIONS`, `POST` | `VOUCHER_AWARDS_ROUTE` | `routes/voucher-awards.ts` |
 | `/webhooks/thirdweb` | `POST` | `PUBLIC_AGENT_ROUTES.thirdwebWebhook` | `funding/routes.ts` |
 
 A listed route can still answer 404 on a given deployment: the server leaves a route group out at startup when its feature is off or not configured.
@@ -94,10 +104,12 @@ The route constants are exported by these Shared files:
 - `packages/shared/src/public-contracts/profile-avatar.ts`: `PROFILE_AVATAR_BATCH_ROUTE`, `PROFILE_AVATAR_ROUTE`
 - `packages/shared/src/public-contracts/routes.ts`: `PUBLIC_AGENT_ROUTES`
 - `packages/shared/src/public-contracts/saved-offers/types.ts`: `SAVED_OFFERS_ROUTES`
+- `packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts`: `SERVICE_ISSUER_DESK_ROUTE`
+- `packages/shared/src/public-contracts/voucher-awards.ts`: `VOUCHER_AWARDS_ROUTE`
 
 ## Package exports
 
-532 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+538 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
 
 ### @green-goods/contracts
 
@@ -108,7 +120,7 @@ The route constants are exported by these Shared files:
 
 ### @green-goods/shared
 
-530 specifiers. Open a group to see its specifiers.
+536 specifiers. Open a group to see its specifiers.
 
 | Group | Specifiers |
 |---|---|
@@ -117,9 +129,9 @@ The route constants are exported by these Shared files:
 | `./config` | 16 |
 | `./hooks` | 264 |
 | `./i18n` | 8 |
-| `./modules` | 54 |
+| `./modules` | 58 |
 | `./providers` | 8 |
-| `./public-contracts` | 6 |
+| `./public-contracts` | 8 |
 | `./stores` | 10 |
 | `./styles` | 4 |
 | `./types` | 10 |
@@ -749,7 +761,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./modules` (54)</summary>
+<summary>`./modules` (58)</summary>
 
 **`./modules`** (4)
 
@@ -785,7 +797,7 @@ The route constants are exported by these Shared files:
 | `./modules/auth/passkey-kernel-account` | `./src/modules/auth/passkey-kernel-account.ts` |
 | `./modules/auth/session` | `./src/modules/auth/session.ts` |
 
-**`./modules/commitment-pooling`** (13)
+**`./modules/commitment-pooling`** (17)
 
 | Specifier | Target |
 |---|---|
@@ -800,8 +812,12 @@ The route constants are exported by these Shared files:
 | `./modules/commitment-pooling/pool-lifecycle` | `./src/modules/commitment-pooling/pool-lifecycle.ts` |
 | `./modules/commitment-pooling/pool-setup` | `./src/modules/commitment-pooling/pool-setup.ts` |
 | `./modules/commitment-pooling/reasons` | `./src/modules/commitment-pooling/reasons.ts` |
+| `./modules/commitment-pooling/service-issuer-approval-terms` | `./src/modules/commitment-pooling/service-issuer-approval-terms.ts` |
+| `./modules/commitment-pooling/service-issuer-desk-protocol` | `./src/modules/commitment-pooling/service-issuer-desk-protocol.ts` |
 | `./modules/commitment-pooling/settlement-workflow` | `./src/modules/commitment-pooling/settlement-workflow.ts` |
 | `./modules/commitment-pooling/types-core` | `./src/modules/commitment-pooling/types-core.ts` |
+| `./modules/commitment-pooling/voucher-award-config` | `./src/modules/commitment-pooling/voucher-award-config.ts` |
+| `./modules/commitment-pooling/voucher-award-safe` | `./src/modules/commitment-pooling/voucher-award-safe.ts` |
 
 **`./modules/data`** (4)
 
@@ -889,7 +905,7 @@ The route constants are exported by these Shared files:
 </details>
 
 <details>
-<summary>`./public-contracts` (6)</summary>
+<summary>`./public-contracts` (8)</summary>
 
 | Specifier | Target |
 |---|---|
@@ -899,6 +915,8 @@ The route constants are exported by these Shared files:
 | `./public-contracts/join-requests` | `./src/public-contracts/join-requests.ts` |
 | `./public-contracts/public-impact` | `./src/public-contracts/public-impact.ts` |
 | `./public-contracts/routes` | `./src/public-contracts/routes.ts` |
+| `./public-contracts/service-issuer-desk` | `./src/public-contracts/service-issuer-desk.ts` |
+| `./public-contracts/voucher-awards` | `./src/public-contracts/voucher-awards.ts` |
 
 </details>
 

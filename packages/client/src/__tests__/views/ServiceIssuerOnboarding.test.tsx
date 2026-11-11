@@ -38,9 +38,9 @@ describe("a member's draft service", () => {
     expect(fact("One voucher buys")).toHaveTextContent("One 60-minute lesson");
     expect(fact("What you can deliver")).toHaveTextContent("6 over the next 4 weeks");
     expect(fact("Vouchers to issue")).toHaveTextContent(
-      "6 TEO2 go to the shared pool, 4 stay in your reserve"
+      "6 TEO2 go to the selected exchange pool, 4 stay in your reserve"
     );
-    expect(fact("Exchange rate")).toHaveTextContent("1 TEO = 2 at the pool's 1:1 rate");
+    expect(fact("Exchange value")).toHaveTextContent("1 TEO has an exchange value of 2");
     expect(fact("Fees")).toHaveTextContent("No pool fee proposed");
     expect(fact("Deadline to accept")).toHaveTextContent("7 days from agreeing");
     expect(
@@ -51,12 +51,25 @@ describe("a member's draft service", () => {
     const approve = sheet.getByRole("button", { name: "Approve My Service" });
     expect(approve).toBeDisabled();
     expect(sheet.getByText("Your signed approval of these terms")).toBeInTheDocument();
+    expect(sheet.getByText("Exchange Pool")).toBeInTheDocument();
+    expect(sheet.getByText(record.draft.terms.exchangePool!.id)).toBeInTheDocument();
+    expect(sheet.getByText(record.draft.terms.exchangePool!.address)).toBeInTheDocument();
     await userEvent.click(
       sheet.getByRole("checkbox", { name: "I read the terms and the controls above" })
     );
     await userEvent.click(approve);
     expect(onApprove).toHaveBeenCalledExactlyOnceWith(record.draft);
     expect(record.draft.member).toBe(ISSUER_STORY_ADDRESS);
+  });
+
+  it("shows revised terms without assuming an earlier approval", () => {
+    const record = issuerStoryDraftRecord("changed");
+    record.approval = null;
+    renderWithProviders(
+      <ServiceIssuerOnboarding record={record} canSign approving={false} onApprove={vi.fn()} />
+    );
+    expect(screen.getByText("The service terms changed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review and Approve" })).toBeEnabled();
   });
 
   it("keeps the draft waiting when this account can't sign, with no other way to approve", () => {
@@ -69,12 +82,14 @@ describe("a member's draft service", () => {
 
   it("names what changed after an approval and asks for a new one", async () => {
     const { onDecline } = render("changed");
-    expect(screen.getByText("The draft changed after you approved")).toBeInTheDocument();
+    expect(screen.getByText("The service terms changed")).toBeInTheDocument();
     expect(
-      screen.getByText(/Kaya changed the exchange rate\. Your approval was for the earlier draft/)
+      screen.getByText(
+        /Kaya changed the exchange value\. Review this revision before approving or declining/
+      )
     ).toBeInTheDocument();
-    expect(fact("Exchange rate")).toHaveTextContent("1 TEO = 3 at the pool's 1:1 rate");
-    expect(fact("Exchange rate")).toHaveTextContent("Changed");
+    expect(fact("Exchange value")).toHaveTextContent("1 TEO has an exchange value of 3");
+    expect(fact("Exchange value")).toHaveTextContent("Changed");
     expect(screen.getByRole("button", { name: "Review and Approve" })).toBeEnabled();
     await userEvent.click(screen.getByRole("button", { name: "Decline" }));
     expect(onDecline).toHaveBeenCalledOnce();

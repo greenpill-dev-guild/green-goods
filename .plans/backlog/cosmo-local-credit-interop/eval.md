@@ -1,5 +1,22 @@
 # Cosmo-Local Integration — acceptance evidence
 
+## Garden exchange acceptance — selected 7 November 2026 Pacific
+
+The [two-pool acceptance matrix](garden-exchange-pools.md#acceptance-and-operational-decisions)
+supersedes the shared-pool topology in earlier criteria. Required evidence now covers the reused
+GG pool and new TAS pool, independent admission/pricing/caps, the same TSV token in both pools,
+all three member journeys and bounded two-hop recovery. Retrospective awards have a separate
+acceptance gate. The implementation uses the existing Agent SQLite owner to bind each award to
+an immutable Safe transaction and verifies delivery before recording a confirmed award.
+Earlier single-pool tests are historical evidence only; they do not certify these requirements.
+
+The planning amendment alone is not implementation evidence. The
+[two-pool handoff](handoffs/two-pool-implementation.md) records current runtime, whole-suite and
+rendered Storybook proof, initial failures and their corrections, and remaining rollout gates.
+Authenticated signing proof and live deployment remain separate.
+Preserve exact issuer/holder consent, service capacity, refund/recovery and accepted Safe controls.
+The amendment's original planning record retains its document-only proof scope.
+
 ## Member and garden issuer acceptance — 23 October Pacific
 
 The user selected individual issuance with steward-assisted onboarding in the same shared pool.

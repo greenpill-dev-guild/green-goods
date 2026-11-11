@@ -27,6 +27,8 @@ import { passkeyDirectoryQueries } from "./passkey-directory";
 import * as pendingWork from "./pending-work";
 import * as profileAvatars from "./profile-avatars";
 import * as savedOffers from "./saved-offers";
+import { createVoucherAwardStore } from "./voucher-awards";
+import { createServiceIssuerDeskStore } from "./service-issuer-desk";
 import { initSchema } from "./schema";
 import * as sessions from "./sessions";
 import * as users from "./users";
@@ -38,9 +40,7 @@ import type { Address } from "@green-goods/shared/types";
 import type { SavedOfferCipher } from "../saved-offers";
 import type { GardenJoinRequestCipher } from "../garden-join-requests";
 
-// ============================================================================
-// DATABASE CLASS
-// ============================================================================
+// Database connection and query delegation.
 
 class DB {
   private db: Database;
@@ -345,18 +345,17 @@ class DB {
     return gardenJoinRequests.sweepGardenJoinRequests(this.db, nowIso);
   }
 
-  // ===========================================================================
-  // LIFECYCLE
-  // ===========================================================================
+  // Lifecycle and durable coordination stores.
 
   async close(): Promise<void> {
     this.db.close();
   }
+
+  voucherAwardStore = () => createVoucherAwardStore(this.db);
+  serviceIssuerDeskStore = () => createServiceIssuerDeskStore(this.db);
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
+// Singleton access and public query delegates.
 
 let _db: DB | null = null;
 

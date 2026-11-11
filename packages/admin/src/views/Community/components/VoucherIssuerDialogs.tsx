@@ -76,7 +76,7 @@ export function VoucherIssuerDialog({
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [reason, setReason] = useState("");
-  const { route, asset, record } = row;
+  const { route, asset, record, pool, policy } = row;
   const draft = record?.draft;
   const name = draft?.memberName ?? asset?.name ?? "";
   const date = (seconds: bigint) =>
@@ -84,12 +84,12 @@ export function VoucherIssuerDialog({
   const units = (value: bigint | null, decimals: number, symbol: string) =>
     value === null ? t("unconfirmed") : `${formatUnits(value, decimals)} ${symbol}`;
   let drafts: GovernanceDraft[] | null = null;
-  if (route && asset && (kind === "drafts" || kind === "delist")) {
+  if (route && asset && pool && (kind === "drafts" || kind === "delist")) {
     try {
       drafts =
         kind === "delist"
-          ? [serviceIssuerDelistingDraft(route, asset.id)]
-          : serviceIssuerGovernanceDrafts(route, asset.id);
+          ? [serviceIssuerDelistingDraft(route, asset.id, pool.id)]
+          : serviceIssuerGovernanceDrafts(route, asset.id, pool.id);
     } catch {
       /* Incomplete reviewed metadata must remain unavailable. */
     }
@@ -108,7 +108,13 @@ export function VoucherIssuerDialog({
     setCopied(false);
     setCopyFailed(false);
     try {
-      await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+      await navigator.clipboard.writeText(
+        JSON.stringify(
+          value,
+          (_key, item) => (typeof item === "bigint" ? item.toString() : item),
+          2
+        )
+      );
       setCopied(true);
     } catch {
       setCopyFailed(true);
@@ -246,6 +252,9 @@ export function VoucherIssuerDialog({
           draftId: approval.draftId,
           terms: { digest: approval.termsDigest },
           approval: provenance,
+          draft: record!.draft,
+          signedApproval: approval,
+          ...(record && "context" in record ? { context: record.context } : {}),
         })
     );
   } else if (kind === "drafts" || kind === "delist") {
@@ -321,7 +330,8 @@ export function VoucherIssuerDialog({
           ...(kind === "delist"
             ? {
                 reason: reason.trim(),
-                delisting: serviceIssuerDelistingRecord(route!, asset!.id, reason),
+                poolId: pool!.id,
+                delisting: serviceIssuerDelistingRecord(route!, asset!.id, reason, pool!.id),
               }
             : {}),
           calls: safeCalls(),
@@ -344,8 +354,8 @@ export function VoucherIssuerDialog({
           [t("capacity"), t(asset.service.capacity !== null ? "confirmed" : "unconfirmed")],
           [t("supply"), units(asset.initialSupply, asset.decimals, asset.symbol)],
           [t("allowance"), units(asset.adapterAllowance, asset.decimals, asset.symbol)],
-          [t("cap"), units(asset.poolHoldingCap, asset.decimals, asset.symbol)],
-          [t("price"), asset.priceIndex?.toString() ?? t("unconfirmed")],
+          [t("cap"), units(policy?.poolHoldingCap ?? null, asset.decimals, asset.symbol)],
+          [t("price"), policy?.priceIndex?.toString() ?? t("unconfirmed")],
           [t("control"), asset.upgradeControl?.admin ?? t("unconfirmed")],
         ])}
         <p className="type-meta text-text-soft">{t("capacityHelp")}</p>
@@ -357,7 +367,7 @@ export function VoucherIssuerDialog({
       open
       onOpenChange={(open) => !open && onClose()}
       title={title}
-      target={asset?.name ?? draft?.terms.token.name}
+      target={pool ? `${asset?.name} · ${pool.name}` : draft?.terms.token.name}
       description={description}
       size="lg"
       tone="community"

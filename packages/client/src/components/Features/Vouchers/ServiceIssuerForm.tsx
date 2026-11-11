@@ -13,6 +13,7 @@ interface Props {
   asset: ServiceIssuerAsset;
   assets: readonly ServiceIssuerAsset[];
   disabled: boolean;
+  poolId?: string;
   onReview: (action: ServiceIssuerAction) => void;
   onQuote: (input: {
     outputAssetId: string;
@@ -24,7 +25,7 @@ interface Props {
  * A holder's exchange in the curated pool: quantity entry, separate from the exact review and
  * signing step. An issuer's own acts are named on their service instead.
  */
-export function ServiceIssuerForm({ asset, assets, disabled, onReview, onQuote }: Props) {
+export function ServiceIssuerForm({ asset, assets, poolId, disabled, onReview, onQuote }: Props) {
   const { formatMessage, locale } = useIntl();
   const text = (key: string) => formatMessage({ id: `app.profile.issuer.${key}` });
   const id = useId();
@@ -36,7 +37,7 @@ export function ServiceIssuerForm({ asset, assets, disabled, onReview, onQuote }
   );
   const [quoting, setQuoting] = useState(false);
   const [failed, setFailed] = useState(false);
-  const inputKey = `${asset.id}:${kind}:${amount}:${outputAssetId}`;
+  const inputKey = `${poolId}:${asset.id}:${kind}:${amount}:${outputAssetId}`;
   const current = useRef(inputKey);
   current.current = inputKey;
   const value = parseIssuerAmount(amount, asset.decimals);
@@ -158,7 +159,9 @@ export function ServiceIssuerForm({ asset, assets, disabled, onReview, onQuote }
               setQuote(null);
               try {
                 const result = await onQuote({ amount: value, outputAssetId: output.id });
-                if (current.current === key) setQuote({ key, value: result });
+                if (current.current === key && result.poolId === poolId)
+                  setQuote({ key, value: result });
+                else if (current.current === key) setFailed(true);
               } catch {
                 if (current.current === key) setFailed(true);
               } finally {
@@ -176,11 +179,22 @@ export function ServiceIssuerForm({ asset, assets, disabled, onReview, onQuote }
               </p>
               <p>
                 {text("estimatedFees")}:{" "}
-                {issuerAmount(reviewedQuote.reservedOutputFees, output, locale)}
+                {issuerAmount(
+                  reviewedQuote.grossOutput - reviewedQuote.quotedOutput,
+                  output,
+                  locale
+                )}
               </p>
               <p>
                 {text("minimum")}: {issuerAmount(reviewedQuote.quotedOutput, output, locale)}
               </p>
+              {"intermediateResidue" in reviewedQuote &&
+              typeof reviewedQuote.intermediateResidue === "bigint" ? (
+                <p>
+                  {formatMessage({ id: "app.voucher.exchange.residue" })}:{" "}
+                  {issuerAmount(reviewedQuote.intermediateResidue, asset, locale)}
+                </p>
+              ) : null}
               <p>{text("exactOutput")}</p>
             </div>
           ) : null}

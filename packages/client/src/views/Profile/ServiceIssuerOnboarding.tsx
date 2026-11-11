@@ -11,9 +11,13 @@ import { RiCheckboxCircleLine, RiSettings3Line, RiUserLine, RiWallet3Line } from
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ServiceIssuerApproveSheet } from "./ServiceIssuerApproveSheet";
-import { issuerCount } from "./serviceIssuerPresentation";
+import { issuerCount } from "@/components/Features/Vouchers/serviceIssuerPresentation";
 import { draftFacts, factValue } from "./serviceIssuerDraftFacts";
-import { type IssuerBand, ServiceIssuerBand, ServiceIssuerSteps } from "./ServiceIssuerStatus";
+import {
+  type IssuerBand,
+  ServiceIssuerBand,
+  ServiceIssuerSteps,
+} from "@/components/Features/Vouchers/ServiceIssuerStatus";
 
 type DraftState = "review" | "approved" | "changed" | "declined";
 
@@ -50,7 +54,7 @@ export function ServiceIssuerOnboarding({
     ? "declined"
     : coverage === "current"
       ? "approved"
-      : coverage === "outdated"
+      : coverage === "outdated" || (draft.terms.revision > 1 && draft.changed.length > 0)
         ? "changed"
         : "review";
   const facts = draftFacts(draft, intl);
@@ -89,7 +93,7 @@ export function ServiceIssuerOnboarding({
   }[state] as IssuerBand;
   band.from = t("kind", { name: draft.preparedBy, garden: draft.garden });
   const reviewable = state === "review" || state === "changed";
-  const secondary = state === "changed" ? onDecline : onAskForChanges;
+  const secondary = state === "changed" ? onDecline : (onAskForChanges ?? onDecline);
   const allowance = issuerCount(
     draft.terms.rewardAllowance,
     draft.terms.token.decimals,
@@ -209,14 +213,19 @@ export function ServiceIssuerOnboarding({
             <Button
               type="button"
               data-act="review"
-              disabled={!canSign}
+              disabled={!canSign || approving}
               onClick={() => setSheet(true)}
             >
               {t("a.review")}
             </Button>
             {secondary ? (
-              <Button type="button" emphasis="secondary" onClick={() => secondary(draft)}>
-                {t(state === "changed" ? "a.decline" : "a.changes")}
+              <Button
+                type="button"
+                emphasis="secondary"
+                disabled={approving}
+                onClick={() => secondary(draft)}
+              >
+                {t(secondary === onDecline ? "a.decline" : "a.changes")}
               </Button>
             ) : null}
           </div>

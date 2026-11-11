@@ -28,7 +28,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:ed9d1dbf62adb97285ce9fbbc57f1431b7dd9350954b65ac733de7a6df57f6d6"
+source_digest: "sha256:40c9ad360245a8076c0b728683c41f812a166a90138c6874c8833503141f868b"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -76,9 +76,9 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Dependabot Sync Publish](#dependabot-sync-publish) | Publishes repair data from a successful Dependabot Sync run. It validates the origin run, associated PR and current head, executes only trusted default-branch code, and writes a fast-forward repair commit. | completion of another workflow | No |
 | [Dependabot Sync](#dependabot-sync) | Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled. | every pull request | No |
 | [Design](#design) | Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing. | pull requests that touch its paths (55 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
-| [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (100 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
-| [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (97 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
 | [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
@@ -208,7 +208,7 @@ Checks the design system and its voice: Storybook, story coverage, DesignMD toke
 Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site.
 
 - **Use it when:** Anything under docs/, the generator scripts, the skills catalog, or a source a projection reads.
-- **Runs on:** pull requests that touch its paths (100 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (102 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `build`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/docs.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/docs.yml)
@@ -228,7 +228,7 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current.
 
 - **Use it when:** Ontology edits, the data model and entity matrix projections, or a source the sidecar points at.
-- **Runs on:** pull requests that touch its paths (97 path filters); pushes to `main` and `develop` that touch its paths.
+- **Runs on:** pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `ontology-drift`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/ontology.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/ontology.yml)

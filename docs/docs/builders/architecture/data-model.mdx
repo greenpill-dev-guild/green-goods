@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:2dc1d55369ad65151fd6ef04553cd7e252fd338d72c2f2bae9174f7ac4d88455"
+source_digest: "sha256:a831a1bcc1781e8053ee09f0860b351c5f6efb9f15a7f99dec2c11836e61e3d4"
 source_of_truth:
   - packages/indexer/schema.graphql
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -98,6 +98,33 @@ flowchart LR
 | Hypercert | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | admin, client, public, docs |
 | Vault | A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios. | admin, client, public, docs |
 | Cookie Jar | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead. | admin, client, public, docs |
+
+## Service vouchers
+
+Issuer promises, curated exchanges, and awards for contributions.
+
+```mermaid
+flowchart LR
+  service_voucher["Service Voucher"]:::member
+  voucher_exchange_pool["Voucher Exchange Pool"]:::member
+  voucher_award["Voucher Award"]:::member
+  commitment["Commitment"]:::context
+  garden["Garden"]:::context
+  service_voucher -->|offered-in| garden
+  service_voucher -->|can-reward-or-access| commitment
+  voucher_exchange_pool -->|serves| garden
+  voucher_exchange_pool -->|lists-and-exchanges| service_voucher
+  voucher_award -->|transfers| service_voucher
+  voucher_award -->|recognizes-contribution-to| garden
+  classDef member stroke-width:2px
+  classDef context opacity:0.55,stroke-dasharray:4 3
+```
+
+| Entity | Definition | Surfaces |
+|---|---|---|
+| Service Voucher | An issuer-specific token representing a published service promise, such as hub access or a career call. A voucher identifies its issuer and service terms; a wallet balance does not establish current service capacity or acceptance by another issuer. Approved request rewards and steward awards can transfer existing reserve vouchers to a gardener. | admin, client, docs |
+| Voucher Exchange Pool | A curated inventory of admitted service vouchers with its own prices, holding limits, fees, and governance. A pool can exchange multiple listed vouchers when policy and inventory permit. A garden pool supports local service exchange; the separately curated Green Goods pool admits only reviewed vouchers for its offered services. | admin, client, docs |
+| Voucher Award | A durable steward-reviewed allocation of existing issuer-reserve vouchers to a recipient, with an amount, reason, and optional contribution reference. Preparing the record binds one Safe transaction but does not send it. Confirmation requires the matching successful Safe execution and token transfer. | admin, client, docs |
 
 ## Commitment pooling
 
@@ -355,3 +382,35 @@ stateDiagram-v2
 | Disbursed | Repaid | on-chain | recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only |
 | Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
 | Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
+
+### voucher-award {#voucher-award}
+
+Preparation creates awaiting_authorization after validating authority, reserve inventory, and the exact envelope. Confirmed is terminal. Failure distinguishes a reverted outer transaction from a Safe execution failure; a consumed nonce requires reconciliation, never an automatic replacement payment.
+
+```mermaid
+stateDiagram-v2
+  awaiting_authorization
+  submitted
+  confirmed
+  failed
+  needs_reconciliation
+  awaiting_authorization --> submitted: Reconcile the supplied transaction hash against the prepare…
+  awaiting_authorization --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  awaiting_authorization --> failed: Reconcile the supplied transaction hash against the prepare…
+  submitted --> submitted: Reconcile the supplied transaction hash against the prepare…
+  submitted --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  submitted --> failed: Reconcile the supplied transaction hash against the prepare…
+  failed --> submitted: Reconcile the supplied transaction hash against the prepare…
+  failed --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  failed --> failed: Reconcile the supplied transaction hash against the prepare…
+  needs_reconciliation --> submitted: Reconcile the supplied transaction hash against the prepare…
+  needs_reconciliation --> confirmed: Reconcile the supplied transaction hash against the prepare…
+  needs_reconciliation --> failed: Reconcile the supplied transaction hash against the prepare…
+  awaiting_authorization --> needs_reconciliation: Read a prepared or outer-transaction-reverted award and obs…
+  failed --> needs_reconciliation: Read a prepared or outer-transaction-reverted award and obs…
+```
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| awaiting_authorization, submitted, failed, needs_reconciliation | submitted, confirmed, failed | off-chain | Reconcile the supplied transaction hash against the prepared Safe envelope and canonical receipt. Pending execution stays submitted; a verified successful execution plus exact transfer confirms; reverted or Safe-failed execution records failure. An unresolved submitted transaction cannot be replaced by another unconfirmed hash. |
+| awaiting_authorization, failed | needs_reconciliation | off-chain | Read a prepared or outer-transaction-reverted award and observe that its Safe nonce has changed. Preserve the award and exact envelope for receipt reconciliation. |

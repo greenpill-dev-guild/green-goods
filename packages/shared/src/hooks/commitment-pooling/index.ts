@@ -24,10 +24,7 @@ export { useServiceOfferLines } from "./useServiceOfferLines";
 export { useServiceIssuerOperations } from "./useServiceIssuerOperations";
 export {
   serviceIssuerListingKey,
-  type ServiceIssuerDrafts,
   type ServiceIssuerListings,
-  useServiceIssuerApproval,
-  useServiceIssuerDrafts,
   useServiceIssuerListings,
 } from "./useServiceIssuerOnboarding";
 export {
@@ -150,3 +147,10 @@ export {
   useSettlementMutation,
   useSettlementOperationsCapabilities,
 } from "./useSettlement";
+
+export { useVoucherAwards } from "./useVoucherAwards";
+export { useServiceIssuerDesk } from "./useServiceIssuerDesk";
+export type {
+  ServiceIssuerDeskRecord,
+  ServiceIssuerDeskSelection,
+} from "../../public-contracts/service-issuer-desk";

@@ -77,40 +77,19 @@ function provenance(value: unknown, label: string, missing: string[]): void {
   else if (typeof p.digest !== "string" || !/^0x[0-9a-f]{64}$/.test(p.digest))
     throw new Error(`Invalid ${label}.digest`);
 }
-export function inspectCLCMemberManifest(value: unknown): {
-  manifest: CLCMemberManifest;
-  deploymentMissing: string[];
-  activationMissing: string[];
-} {
-  const m = object(value, ["schemaVersion", "releaseId", "purpose", "base", "members"], "member manifest");
-  if (
-    m.schemaVersion !== 2 ||
-    typeof m.releaseId !== "string" ||
-    !/^[a-z0-9][a-z0-9-]{0,79}$/.test(m.releaseId) ||
-    !["live", "fictional-rehearsal"].includes(String(m.purpose))
-  )
-    throw new Error("Invalid member manifest identity");
-  const base = inspectCLCPilotManifest(m.base);
-  const deploymentMissing = base.deploymentMissing.map((key) => `base.${key}`);
-  const activationMissing = base.activationMissing.map((key) => `base.${key}`);
-  const members = object(m.members, ["deployer", "nonce", "assets"], "members");
-  const deployer = address(members.deployer, "members.deployer", deploymentMissing);
-  if (
-    deployer &&
-    [base.manifest.greenGoodsSafe, base.manifest.techAndSunSafe]
-      .filter(Boolean)
-      .map((value) => getAddress(value as string))
-      .includes(deployer)
-  )
-    throw new Error("Member deployment sender cannot be a collective issuer");
-  if (members.nonce === null) deploymentMissing.push("members.nonce");
-  else if (!Number.isSafeInteger(members.nonce) || (members.nonce as number) < 0)
-    throw new Error("Invalid members.nonce");
-  if (!Array.isArray(members.assets) || !members.assets.length) throw new Error("Member assets required");
+/** Shared member consent/quantity validation for initial and already-deployed garden pools. */
+export function inspectCLCMemberAssets(
+  assets: unknown,
+  reservedOwners: (string | null)[],
+  reservedSymbols: string[],
+): { deploymentMissing: string[]; activationMissing: string[] } {
+  const deploymentMissing: string[] = [];
+  const activationMissing: string[] = [];
+  if (!Array.isArray(assets)) throw new Error("Member assets required");
   const ids = new Set<string>();
   const owners = new Set<string>();
-  const symbols = new Set(Object.values(base.manifest.issuers).map((i) => i.symbol));
-  for (const raw of members.assets) {
+  const symbols = new Set(reservedSymbols);
+  for (const raw of assets) {
     const a = object(
       raw,
       [
@@ -139,7 +118,7 @@ export function inspectCLCMemberManifest(value: unknown): {
     if (owner) {
       if (
         owners.has(owner) ||
-        [deployer, base.manifest.deployer, base.manifest.greenGoodsSafe, base.manifest.techAndSunSafe]
+        reservedOwners
           .filter(Boolean)
           .map((v) => getAddress(v as string))
           .includes(owner)
@@ -192,6 +171,45 @@ export function inspectCLCMemberManifest(value: unknown): {
       throw new Error("Invalid member supply, inventory, cap or finite allowance");
     if (cap !== undefined && cap === inventory) activationMissing.push(`${key}.poolHeadroom`);
   }
+  return { deploymentMissing, activationMissing };
+}
+export function inspectCLCMemberManifest(value: unknown): {
+  manifest: CLCMemberManifest;
+  deploymentMissing: string[];
+  activationMissing: string[];
+} {
+  const m = object(value, ["schemaVersion", "releaseId", "purpose", "base", "members"], "member manifest");
+  if (
+    m.schemaVersion !== 2 ||
+    typeof m.releaseId !== "string" ||
+    !/^[a-z0-9][a-z0-9-]{0,79}$/.test(m.releaseId) ||
+    !["live", "fictional-rehearsal"].includes(String(m.purpose))
+  )
+    throw new Error("Invalid member manifest identity");
+  const base = inspectCLCPilotManifest(m.base);
+  const deploymentMissing = base.deploymentMissing.map((key) => `base.${key}`);
+  const activationMissing = base.activationMissing.map((key) => `base.${key}`);
+  const members = object(m.members, ["deployer", "nonce", "assets"], "members");
+  const deployer = address(members.deployer, "members.deployer", deploymentMissing);
+  if (
+    deployer &&
+    [base.manifest.greenGoodsSafe, base.manifest.techAndSunSafe]
+      .filter(Boolean)
+      .map((value) => getAddress(value as string))
+      .includes(deployer)
+  )
+    throw new Error("Member deployment sender cannot be a collective issuer");
+  if (members.nonce === null) deploymentMissing.push("members.nonce");
+  else if (!Number.isSafeInteger(members.nonce) || (members.nonce as number) < 0)
+    throw new Error("Invalid members.nonce");
+  if (!Array.isArray(members.assets) || !members.assets.length) throw new Error("Member assets required");
+  const inspectedAssets = inspectCLCMemberAssets(
+    members.assets,
+    [deployer, base.manifest.deployer, base.manifest.greenGoodsSafe, base.manifest.techAndSunSafe],
+    Object.values(base.manifest.issuers).map((i) => i.symbol),
+  );
+  deploymentMissing.push(...inspectedAssets.deploymentMissing);
+  activationMissing.push(...inspectedAssets.activationMissing);
   if (typeof members.nonce === "number" && members.nonce > Number.MAX_SAFE_INTEGER - members.assets.length)
     throw new Error("Member deployment nonce overflow");
   if (

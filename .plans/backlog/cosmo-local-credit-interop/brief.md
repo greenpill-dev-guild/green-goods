@@ -1,18 +1,22 @@
 # Cosmo-Local Integration
 
-**Reconciled:** 2026-10-23 Pacific · **Stage:** backlog · **Posture:** controlled live pilot
-preparation now includes member-owned and garden/collective vouchers in one shared Gnosis pool.
-Steward-assisted onboarding is accepted; members retain ownership and exact approval. The
-[architecture](spec.md#accepted-pilot-amendment--member-and-garden-issuers-23-october-pacific) and
-[implementation sequence](plan.todo.md#member-and-garden-issuer-pilot--accepted-23-october-pacific)
-record this added scope, which is not yet implementation or deployment evidence. The
+**Reconciled:** 2026-11-07 Pacific · **Stage:** backlog · **Posture:** controlled live pilot
+preparation with a selected two-pool architecture. Reuse the existing Green Goods Network Exchange
+Pool for independently curated Green Goods access and add one Tech and Sun local exchange. Later
+participating gardens can have their own local pools; member issuers do not need personal pools.
+The [garden exchange plan](garden-exchange-pools.md) supersedes the October single-pool topology
+and maps the three journeys: work to TSV to hub days; local member service exchange; and earned
+TSV to GGV to Green Goods services. Local implementation and observed validation now live in the
+[two-pool handoff](handoffs/two-pool-implementation.md); live activation remains pending.
+Steward-assisted onboarding remains accepted; members retain ownership and exact approval. The
 [deployment handoff](handoffs/codex-live-pilot-deployment.md) owns current signed checkpoints,
-account proof and live operations. The zero-delay upgrade decision supersedes older waiting
-periods; owner controls and accepted voucher safeguards remain.
+account proof and live operations. Adoption preserves the observed 24-hour Green Goods delay.
+The live TAS Safe requires two signatures, which must be reconciled with the earlier recorded
+one-approval decision before activation; this implementation changes no live governance policy.
 
 The selected implementation example is a TAS impact website: three separately scoped commitments
 for a designer, analyst and engineer under one shared brief, plus an exchange between two
-member-owned service vouchers in the same pool. The peer-help service stays distinct from the
+member-owned service vouchers in the TAS pool. The peer-help service stays distinct from the
 rewarded project deliverables. Actual people, terms, capacities, rates and funded rewards are
 still open; fixtures and simulated delivery must be labeled. Broader project-token and bundle
 features remain outside scope.
@@ -63,8 +67,11 @@ to communities, the Nigerian diaspora and institutions without requiring them to
 
 ## Broader hub scope (later slices included)
 
-- One shared curated Gnosis exchange pool for individual and collective issuers, earned reserve delivery and bounded direct purchases,
-  service presentment and discharge, and explicit failure/recovery behavior.
+- One local exchange per participating garden and an independently curated Green Goods exchange:
+  two total for TAS/GG, with the existing GG exchange reused. Keep earned reserve delivery,
+  bounded purchases, service presentment/discharge and explicit failure/recovery behavior.
+- Steward-prepared, reserve-authorized awards for past contributions, separate from acceptance-bound
+  earned rewards; durable duplicate protection remains an explicit implementation gate.
 - Personal G$ service purchases across garden and protocol pools, with bound buyer consent,
   recorded funding, provider acceptance and mutually exclusive Celo payout/refund outcomes.
 - A passport joining actual funding, issuance and delivery receipts with capacity and obligations.
@@ -117,6 +124,7 @@ use is a valid finding. Keep native service units, money, voucher balances and i
 
 ## Read next
 
+- [Selected garden exchange plan](garden-exchange-pools.md): topology, three flows, implementation checkpoints and acceptance criteria.
 - [Architecture](spec.md), [work and decisions](plan.todo.md), [acceptance evidence](eval.md).
 - [Prepared local-branch service-access prompt](handoffs/codex-service-access.md), no worktree.
 - [Claude Fable research and pitch handover](handoffs/claude-fable-research-pitch.md).

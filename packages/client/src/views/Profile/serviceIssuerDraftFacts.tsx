@@ -1,7 +1,10 @@
 import type { ServiceIssuerDraft } from "@green-goods/shared/commitment-pooling";
 import type { ReactNode } from "react";
 import type { IntlShape } from "react-intl";
-import { issuerCount, issuerPlural } from "./serviceIssuerPresentation";
+import {
+  issuerCount,
+  issuerPlural,
+} from "@/components/Features/Vouchers/serviceIssuerPresentation";
 
 export interface DraftFact {
   id: string;
@@ -11,7 +14,7 @@ export interface DraftFact {
   changed?: boolean;
 }
 
-/** The pool's price index has six decimals: the pilot's 1:1 vouchers sit at exactly 1. */
+/** The pool stores each voucher's relative exchange value in millionths. */
 const PRICE_DECIMALS = 6;
 
 /** Every setting the member signs, as fact rows; the service's own words stay as written. */
@@ -25,6 +28,13 @@ export function draftFacts(draft: ServiceIssuerDraft, intl: IntlShape): DraftFac
   const changed = (...settings: string[]) =>
     settings.some((setting) => draft.changed.includes(setting as never));
   return [
+    {
+      id: "exchangePool",
+      label: intl.formatMessage({ id: "app.voucher.exchange.pool" }),
+      value: terms.exchangePool?.id ?? intl.formatMessage({ id: "app.profile.issuer.unknown" }),
+      detail: terms.exchangePool?.address,
+      changed: changed("exchangePool"),
+    },
     {
       id: "unit",
       label: t("f.unit"),

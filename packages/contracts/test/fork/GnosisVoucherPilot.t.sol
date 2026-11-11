@@ -16,6 +16,7 @@ import { ICommitmentServiceOffers as Services } from "../../src/interfaces/IComm
 import { ICommitmentVoucherAcceptance as Acceptance } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
 import { CLCVoucherPilotFixture } from "../helpers/CLCVoucherPilotFixture.sol";
 import { CLCVoucherJourneyFixture, IJourneySafe } from "../helpers/CLCVoucherJourneyFixture.sol";
+import { ICLCPurchaseIndex, ICLCPurchaseLimiter } from "../helpers/CLCPurchaseInterfaces.sol";
 
 /// @notice Local pilot against pinned CLC code. Both issuers, terms, prices, service delivery,
 ///         Safes and transport are fictional. A successful swap/activation is not service proof.
@@ -496,11 +497,99 @@ contract GnosisVoucherJourneyForkTest is CLCVoucherJourneyFixture {
     }
 }
 
-/// @notice Three FICTIONAL EOA participants, four assets in one published-CLC pool, independent work.
+/// @notice Three FICTIONAL EOA participants, two independently curated published-CLC pools, independent work.
 /// @dev Synthetic senders/terms/capacity and manually relayed CCIP; no live member signature or delivery.
 contract GnosisVoucherMemberProjectForkTest is CLCMemberProjectFixture {
     function setUp() public {
         _setUpMemberProject();
+    }
+
+    function testGnosisVoucherMemberProject_twoPoolsKeepAdmissionAuthorityAndInventoryIndependent() public {
+        vm.selectFork(journeyGnosisFork);
+        assertTrue(address(memberLocalPool.pool) != address(journeyPool.pool));
+        assertEq(memberLocalPool.pool.owner(), journeyIssuerB);
+        assertEq(journeyPool.pool.owner(), journeyCommunity);
+        assertTrue(memberLocalPool.index.have(address(analystHelp)));
+        assertFalse(journeyPool.index.have(address(analystHelp)));
+        assertTrue(memberLocalPool.index.have(address(journeyB)));
+        assertTrue(journeyPool.index.have(address(journeyB)));
+        assertFalse(memberLocalPool.index.have(address(journeyA)));
+        assertEq(journeyB.totalSupply(), JOURNEY_SUPPLY);
+        assertEq(journeyB.balanceOf(address(memberLocalPool.pool)), 2e6);
+        assertEq(journeyB.balanceOf(address(journeyPool.pool)), 10e6);
+        assertEq(journeyB.balanceOf(journeyIssuerB), 8e6);
+        assertFalse(
+            _safeCall(
+                journeyIssuerB,
+                address(journeyPool.index),
+                abi.encodeCall(ICLCPurchaseIndex.register, (address(analystHelp))),
+                false
+            )
+        );
+        assertFalse(
+            _safeCall(
+                journeyCommunity,
+                address(memberLocalPool.limiter),
+                abi.encodeCall(
+                    ICLCPurchaseLimiter.setLimitFor, (address(journeyB), address(memberLocalPool.pool), uint256(99e6))
+                ),
+                false
+            )
+        );
+        vm.prank(projectAnalyst);
+        analystHelp.approve(address(journeyPool.pool), 1e6);
+        vm.expectRevert(ICLCSwapPool.UnauthorizedToken.selector);
+        vm.prank(projectAnalyst);
+        journeyPool.pool.withdraw(address(journeyA), address(analystHelp), 1e6, projectAnalyst, 1, block.timestamp);
+        assertEq(analystHelp.balanceOf(projectAnalyst), 4e6);
+        assertEq(analystHelp.balanceOf(address(journeyPool.pool)), 0);
+    }
+
+    function testGnosisVoucherMemberProject_earnedTsvReachesGreenGoodsWithOneSwap() public {
+        _createProjectRequests();
+        _acceptProjectRequest(1);
+        _fulfillProjectRequest(1);
+        _dispatchProjectReward(1);
+        assertTrue(journeyAdapter.getExecutionResult(projectMilestones[1].entitlement).success);
+        _relayProjectReward();
+        vm.selectFork(journeyGnosisFork);
+        assertEq(journeyB.balanceOf(projectAnalyst), MEMBER_REWARD);
+        vm.prank(projectAnalyst);
+        journeyB.approve(address(journeyPool.pool), MEMBER_REWARD);
+        vm.prank(projectAnalyst);
+        assertEq(
+            journeyPool.pool
+                .withdraw(
+                    address(journeyA), address(journeyB), MEMBER_REWARD, projectAnalyst, MEMBER_REWARD, block.timestamp
+                ),
+            MEMBER_REWARD
+        );
+        assertEq(journeyA.balanceOf(projectAnalyst), MEMBER_REWARD);
+        assertEq(journeyB.balanceOf(projectAnalyst), 0);
+        assertEq(journeyB.balanceOf(address(memberLocalPool.pool)), 2e6);
+        assertEq(journeyB.totalSupply(), JOURNEY_SUPPLY);
+        assertEq(journeyA.totalSupply(), JOURNEY_SUPPLY);
+    }
+
+    function testGnosisVoucherMemberProject_localCapFailurePreservesNetworkInventory() public {
+        vm.selectFork(journeyGnosisFork);
+        _safeExec(
+            journeyIssuerB,
+            address(memberLocalPool.limiter),
+            abi.encodeCall(
+                ICLCPurchaseLimiter.setLimitFor,
+                (address(analystHelp), address(memberLocalPool.pool), uint256(MEMBER_POOL_STOCK))
+            )
+        );
+        vm.prank(projectAnalyst);
+        analystHelp.approve(address(memberLocalPool.pool), 1e6);
+        vm.expectRevert(ICLCSwapPool.LimitExceeded.selector);
+        vm.prank(projectAnalyst);
+        memberLocalPool.pool.withdraw(address(journeyB), address(analystHelp), 1e6, projectAnalyst, 1, block.timestamp);
+        assertEq(analystHelp.balanceOf(projectAnalyst), 4e6);
+        assertEq(journeyB.balanceOf(address(memberLocalPool.pool)), 2e6);
+        assertEq(journeyB.balanceOf(address(journeyPool.pool)), 10e6);
+        assertEq(journeyPool.limiter.limitOf(address(journeyB), address(journeyPool.pool)), JOURNEY_SUPPLY);
     }
 
     function testGnosisVoucherMemberProject_threeRequestsAndMemberExchangeCloseDistinctLessonOnce() public {
@@ -749,16 +838,16 @@ contract GnosisVoucherMemberProjectForkTest is CLCMemberProjectFixture {
     function testGnosisVoucherMemberProject_memberQuoteFailureIsAtomicBeforeExplicitRepair() public {
         vm.selectFork(journeyGnosisFork);
         vm.prank(projectAnalyst);
-        analystHelp.approve(address(journeyPool.pool), 2e6);
+        analystHelp.approve(address(memberLocalPool.pool), 2e6);
         vm.expectRevert(ICLCSwapPool.InsufficientOutput.selector);
         vm.prank(projectAnalyst);
-        journeyPool.pool
+        memberLocalPool.pool
             .withdraw(address(engineerHelp), address(analystHelp), 2e6, projectAnalyst, MEMBER_REWARD + 1, block.timestamp);
         assertEq(analystHelp.balanceOf(projectAnalyst), 4e6);
-        assertEq(analystHelp.balanceOf(address(journeyPool.pool)), 2e6);
-        assertEq(engineerHelp.balanceOf(address(journeyPool.pool)), 2e6);
+        assertEq(analystHelp.balanceOf(address(memberLocalPool.pool)), 2e6);
+        assertEq(engineerHelp.balanceOf(address(memberLocalPool.pool)), 2e6);
         assertEq(engineerHelp.balanceOf(projectAnalyst), 0);
-        assertEq(analystHelp.allowance(projectAnalyst, address(journeyPool.pool)), 2e6);
+        assertEq(analystHelp.allowance(projectAnalyst, address(memberLocalPool.pool)), 2e6);
         _swapAnalystPromise();
     }
 
@@ -791,41 +880,41 @@ contract GnosisVoucherMemberProjectForkTest is CLCMemberProjectFixture {
         assertEq(engineerHelp.owner(), projectEngineer);
         assertEq(engineerHelp.totalSupply(), MEMBER_SUPPLY);
         assertEq(engineerHelp.balanceOf(projectEngineer), 4e6);
-        assertEq(engineerHelp.balanceOf(address(journeyPool.pool)), 2e6);
+        assertEq(engineerHelp.balanceOf(address(memberLocalPool.pool)), 2e6);
         assertFalse(engineerHelp.isWriter(address(this)));
         assertFalse(engineerHelp.isWriter(journeyCommunity));
     }
 
     function _swapAnalystPromise() private {
-        assertEq(journeyPool.pool.getAmountOut(address(engineerHelp), address(analystHelp), 2e6), MEMBER_REWARD);
+        assertEq(memberLocalPool.pool.getAmountOut(address(engineerHelp), address(analystHelp), 2e6), MEMBER_REWARD);
         vm.prank(projectAnalyst);
-        analystHelp.approve(address(journeyPool.pool), 2e6);
+        analystHelp.approve(address(memberLocalPool.pool), 2e6);
         vm.prank(projectAnalyst);
         assertEq(
-            journeyPool.pool
+            memberLocalPool.pool
                 .withdraw(address(engineerHelp), address(analystHelp), 2e6, projectAnalyst, MEMBER_REWARD, block.timestamp),
             MEMBER_REWARD
         );
-        assertEq(analystHelp.allowance(projectAnalyst, address(journeyPool.pool)), 0);
+        assertEq(analystHelp.allowance(projectAnalyst, address(memberLocalPool.pool)), 0);
         assertEq(analystHelp.balanceOf(projectAnalyst), 2e6);
-        assertEq(analystHelp.balanceOf(address(journeyPool.pool)), 4e6);
+        assertEq(analystHelp.balanceOf(address(memberLocalPool.pool)), 4e6);
         assertEq(engineerHelp.balanceOf(projectAnalyst), MEMBER_REWARD);
-        assertEq(engineerHelp.balanceOf(address(journeyPool.pool)), MEMBER_REWARD);
+        assertEq(engineerHelp.balanceOf(address(memberLocalPool.pool)), MEMBER_REWARD);
     }
 
     function _assertMemberBalances() private {
         assertEq(analystHelp.totalSupply(), MEMBER_SUPPLY);
         assertEq(engineerHelp.totalSupply(), MEMBER_SUPPLY);
         assertEq(analystHelp.balanceOf(projectAnalyst), 2e6);
-        assertEq(analystHelp.balanceOf(address(journeyPool.pool)), 4e6);
+        assertEq(analystHelp.balanceOf(address(memberLocalPool.pool)), 4e6);
         assertEq(engineerHelp.balanceOf(projectEngineer), 3_500_000);
-        assertEq(engineerHelp.balanceOf(address(journeyPool.pool)), 1e6);
+        assertEq(engineerHelp.balanceOf(address(memberLocalPool.pool)), 1e6);
         assertEq(engineerHelp.balanceOf(projectDesigner), 1e6);
         assertEq(engineerHelp.balanceOf(projectAnalyst), 500_000);
         assertEq(engineerHelp.balanceOf(address(journeyEscrow)), 0);
         assertEq(journeyB.balanceOf(projectAnalyst), MEMBER_REWARD);
         assertEq(journeyA.balanceOf(projectEngineer), MEMBER_REWARD);
-        assertEq(journeyPool.pool.fees(address(analystHelp)), 0);
-        assertEq(journeyPool.pool.fees(address(engineerHelp)), 0);
+        assertEq(memberLocalPool.pool.fees(address(analystHelp)), 0);
+        assertEq(memberLocalPool.pool.fees(address(engineerHelp)), 0);
     }
 }

@@ -382,7 +382,23 @@
         "scripts/data/ontology-drift-baseline.json",
         "docs/releases/2.0.0/README.md",
         "packages/shared/src/config/app.ts",
-        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+        "packages/shared/src/modules/commitment-pooling/selectors.ts",
+        "packages/agent/src/__tests__/voucher-awards-chain.test.ts",
+        "packages/agent/src/__tests__/voucher-awards.test.ts",
+        "packages/agent/src/services/voucher-awards-chain.ts",
+        "packages/agent/src/services/voucher-awards.ts",
+        "packages/contracts/config/clc-garden-exchanges.json",
+        "packages/contracts/deployments/100-pilot-downstream.json",
+        "packages/contracts/script/utils/clc-garden-execution.test.ts",
+        "packages/contracts/script/utils/clc-garden-execution.ts",
+        "packages/contracts/script/utils/clc-garden-release.ts",
+        "packages/contracts/src/modules/GnosisVoucherAdapter.sol",
+        "packages/contracts/src/modules/GnosisVoucherEscrow.sol",
+        "packages/contracts/test/fork/GnosisVoucherPilot.t.sol",
+        "packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts",
+        "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+        "packages/shared/src/modules/commitment-pooling/voucher-award-send.ts",
+        "packages/shared/src/public-contracts/voucher-awards.ts"
       ],
       "prefixes": ["packages/shared/src/modules/job-queue/"],
       "excludeValidationOnlyFrom": ["shared"]
@@ -742,7 +758,11 @@
         "packages/shared/src/modules/transactions/wallet-sender.ts",
         "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
         "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
-        "packages/shared/src/workflows/auth-passkey-adapters.ts"
+        "packages/shared/src/workflows/auth-passkey-adapters.ts",
+        "packages/agent/src/api/routes/service-issuer-desk.ts",
+        "packages/agent/src/api/routes/voucher-awards.ts",
+        "packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts",
+        "packages/shared/src/public-contracts/voucher-awards.ts"
       ]
     },
     {
@@ -1762,7 +1782,6 @@
         "packages/shared/src/hooks/commitment-pooling/useCredit.ts",
         "packages/shared/src/hooks/commitment-pooling/useSettlement.ts",
         "packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts",
-        "packages/shared/src/hooks/commitment-pooling/useServiceIssuerOnboarding.ts",
         "packages/shared/src/hooks/commitment-pooling/useServiceIssuerOperations.ts",
         "packages/shared/src/hooks/commitment-pooling/useServiceOfferLines.ts",
         "packages/shared/src/hooks/conviction/useAllocateHypercertSupport.ts",
@@ -1847,7 +1866,10 @@
         "packages/shared/src/modules/transactions/passkey-sender.ts",
         "packages/shared/src/modules/transactions/wallet-atomic-batch.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
-        "packages/shared/src/providers/AuthGate.tsx"
+        "packages/shared/src/providers/AuthGate.tsx",
+        "packages/shared/src/hooks/commitment-pooling/useServiceIssuerDesk.ts",
+        "packages/shared/src/hooks/commitment-pooling/useVoucherAwards.ts",
+        "packages/shared/src/modules/commitment-pooling/voucher-award-send.ts"
       ],
       "risk": "critical",
       "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
@@ -2221,7 +2243,9 @@
         "packages/shared/src/modules/transactions/wallet-sender.ts",
         "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
         "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
-        "packages/shared/src/workflows/auth-passkey-adapters.ts"
+        "packages/shared/src/workflows/auth-passkey-adapters.ts",
+        "packages/shared/src/modules/commitment-pooling/service-issuer-desk-protocol.ts",
+        "packages/shared/src/public-contracts/voucher-awards.ts"
       ],
       "prefixes": [
         ".claude/skills/",
@@ -2347,7 +2371,23 @@
         "scripts/data/ontology-drift-baseline.json",
         "docs/releases/2.0.0/README.md",
         "packages/shared/src/config/app.ts",
-        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+        "packages/shared/src/modules/commitment-pooling/selectors.ts",
+        "packages/agent/src/__tests__/voucher-awards-chain.test.ts",
+        "packages/agent/src/__tests__/voucher-awards.test.ts",
+        "packages/agent/src/services/voucher-awards-chain.ts",
+        "packages/agent/src/services/voucher-awards.ts",
+        "packages/contracts/config/clc-garden-exchanges.json",
+        "packages/contracts/deployments/100-pilot-downstream.json",
+        "packages/contracts/script/utils/clc-garden-execution.test.ts",
+        "packages/contracts/script/utils/clc-garden-execution.ts",
+        "packages/contracts/script/utils/clc-garden-release.ts",
+        "packages/contracts/src/modules/GnosisVoucherAdapter.sol",
+        "packages/contracts/src/modules/GnosisVoucherEscrow.sol",
+        "packages/contracts/test/fork/GnosisVoucherPilot.t.sol",
+        "packages/shared/src/modules/commitment-pooling/service-issuer-governance.ts",
+        "packages/shared/src/modules/commitment-pooling/service-issuer-types.ts",
+        "packages/shared/src/modules/commitment-pooling/voucher-award-send.ts",
+        "packages/shared/src/public-contracts/voucher-awards.ts"
       ],
       "prefixes": ["packages/shared/src/modules/job-queue/"],
       "excludeValidationOnlyFrom": ["shared"]

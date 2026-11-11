@@ -12,8 +12,8 @@ function row(state: VoucherIssuerStory, key: string) {
   return voucherIssuerRows(story.routes, story.drafts, story.listings).find((r) => r.key === key)!;
 }
 const route = voucherIssuerStory("issuers").routes[0]!;
-const teo = `${route.service.id}:teo`;
-const maya = `${route.service.id}:maya`;
+const teo = `${route.service.id}:tech-and-sun:teo`;
+const maya = `${route.service.id}:tech-and-sun:maya`;
 
 /**
  * Each dialog the Voucher Issuers card opens, on its own (PRD-1299 `SIssuers`). Copying sends
@@ -29,8 +29,8 @@ const meta: Meta<typeof VoucherIssuerDialog> = {
     // One address, a different Safe on each chain: each group of calls names its own rule.
     withSeededQueryClient([
       [
-        queryKeys.commitmentPooling.issuerSafeThreshold(100, route.pool.limiter.owner),
-        { safe: route.pool.limiter.owner, status: "observed", threshold: 2, owners: 5 },
+        queryKeys.commitmentPooling.issuerSafeThreshold(100, route.pools[0]!.limiter.owner),
+        { safe: route.pools[0]!.limiter.owner, status: "observed", threshold: 2, owners: 5 },
       ],
       [
         queryKeys.commitmentPooling.issuerSafeThreshold(42161, route.adapterSource.owner),

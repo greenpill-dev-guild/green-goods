@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   ownPools: null as OwnPoolsView | null,
   navigate: vi.fn(),
   confirmQueueProps: [] as CommitmentsToConfirm[],
+  loadIssuerDrafts: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
@@ -39,6 +40,17 @@ vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
       ReturnType<UserModule["useUser"]>,
       "primaryAddress"
     >,
+}));
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useServiceIssuerDesk: () => ({
+    records: [],
+    isLimited: false,
+    load: { mutateAsync: mocks.loadIssuerDrafts, isPending: false, isError: false },
+    save: { isPending: false, isError: false },
+    send: { isPending: false, isError: false },
+  }),
 }));
 
 vi.mock(
@@ -159,6 +171,7 @@ function renderPools(garden: string = GARDEN, canManage = true) {
 describe("CommunityPools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.loadIssuerDrafts.mockResolvedValue([]);
     mocks.confirmQueueProps = [];
     mocks.protocolPool = {
       poolId: 1n,
@@ -204,6 +217,8 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("garden-creators")).toBeInTheDocument();
     // The protocol pool's console is that garden's own Promises tab, not embedded here.
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load Drafts" })).toBeInTheDocument();
+    expect(mocks.loadIssuerDrafts).not.toHaveBeenCalled();
   });
 
   it("knows the protocol garden by its pool's type when the chain read fails", () => {

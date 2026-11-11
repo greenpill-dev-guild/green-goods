@@ -7,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:2b14b42c242f7f77690c4b0ec9faf2c2f561366de1e242da068372f35bad249a"
+source_digest: "sha256:662db9c85447d9b778cd3b5b4e4e4a86c03ecbde4ded609c42eda0d4692f92a3"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---

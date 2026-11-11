@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-30T05:02:17.745Z"
+    "updated_at": "2026-11-08T07:54:09.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,7 +50,9 @@
     "live_pilot_tooling_evidence": "artifacts/live-pilot-tooling-evidence-2026-10-23.json",
     "linear_correction_drafts": "handoffs/claude-linear-correction-drafts-2026-10-20.md",
     "prd_1096_dispatch_draft": "handoffs/prd-1096-rehearsal-dispatch-draft.md",
-    "linear_voucher_direction_drafts": "handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md"
+    "linear_voucher_direction_drafts": "handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md",
+    "garden_exchange_plan": "garden-exchange-pools.md",
+    "two_pool_implementation": "handoffs/two-pool-implementation.md"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -145,7 +147,10 @@
     "Never build a global cross-pool rate table (decision 17) — it would break the no-universal-price guardrail and foreclose federation.",
     "External facts in resources.md were verified 2026-08-24/25; re-verify against primary sources before any transaction.",
     "Lane order is encoded, not implied: contracts -> state_api -> ui. laneDependenciesMet treats an empty depends_on as satisfied, so an empty list would let a manual-blocker clear make UI actionable before its contract and shared-state prerequisites exist.",
-    "2026-10-06 reconciliation: RESR-73 is In Progress in live Linear. This records architecture and due diligence, not Product implementation readiness. Keep the existing scope lock, separate slice dispatches, partner/venue gates and no-implementation boundary. Research activity does not clear the frozen evidence, authority or integration gates."
+    "2026-10-06 reconciliation: RESR-73 is In Progress in live Linear. This records architecture and due diligence, not Product implementation readiness. Keep the existing scope lock, separate slice dispatches, partner/venue gates and no-implementation boundary. Research activity does not clear the frozen evidence, authority or integration gates.",
+    "2026-11-07 Pacific: user selected one local exchange per participating garden and independently curated Green Goods exchange. Initial pilot uses two total: adopt the existing GG pool and add TAS, preserving existing tokens/reserves/escrow. garden-exchange-pools.md maps three journeys, independent listings, bounded routes and retrospective awards. Planning only; implementation/lane states, prior evidence, TAS one-approval policy and Linear state/sync metadata preserved.",
+    "2026-11-08: User authorized two-pool implementation, all three user flows and retrospective steward awards. Execution handoff owns current proof; parent-only Linear preservation verified. Existing Agent SQLite selected for immutable award/Safe transaction binding; no additional infrastructure or contract selected. Deployment/broadcast remains separate.",
+    "2026-11-08 07:54 UTC: Local two-pool implementation, three member flows, durable member approvals and retrospective awards are prepared. Final contract, Shared, Client, Admin, Agent, SQLite, Indexer and validation-system suites pass; application, Agent, Docs and Storybook builds pass. The implementation handoff records labeled Storybook proof, initial failures and corrections, final checks and remaining rollout inputs. Unrelated plan formatting and an ignored temporary test still prevent a clean repository-wide gate. Authenticated signing proof is pending. Preserve existing lane history and nonterminal execution states: this working tree is uncommitted, no commit-attributed receipt or live activation is claimed. TAS deployment, real terms/funding/source authority and reconciliation of its observed two-signature Safe with the recorded one-approval decision remain outstanding. No live transaction or external tracker write occurred."
   ],
   "lanes": {
     "ui": {
@@ -682,7 +687,57 @@
       "status": "tdd_recorded",
       "branch": "feature/cosmo-local-contracts",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-08T04:00:50Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "2026-11-07 Pacific: user selected one local exchange per participating garden and independently curated Green Goods exchange. Initial pilot uses two total: adopt the existing GG pool and add TAS, preserving existing tokens/reserves/escrow. garden-exchange-pools.md maps three journeys, independent listings, bounded routes and retrospective awards. Planning only; implementation/lane states, prior evidence, TAS one-approval policy and Linear state/sync metadata preserved."
+    },
+    {
+      "timestamp": "2026-11-08T04:42:52.757Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
-  "updatedAt": "2026-10-26T10:53:25.428Z"
+  "updatedAt": "2026-10-26T10:53:25.428Z",
+  "execution_sub_lanes": {
+    "garden_exchange_contracts": {
+      "machine_lane": "contracts",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/two-pool-contracts.md"
+    },
+    "garden_exchange_shared": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": ["garden_exchange_contracts"],
+      "handoff": "handoffs/two-pool-shared.md"
+    },
+    "retrospective_voucher_awards": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/voucher-awards.md"
+    },
+    "garden_exchange_ui": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": ["garden_exchange_shared", "retrospective_voucher_awards"],
+      "handoff": "handoffs/two-pool-implementation.md"
+    }
+  }
 }

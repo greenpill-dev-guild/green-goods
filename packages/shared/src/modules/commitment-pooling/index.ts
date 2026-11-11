@@ -25,6 +25,7 @@ export * from "./proof-draft-repository";
 export * from "./reasons";
 export * from "./selectors";
 export * from "./service-access";
+export { liveVoucherIssuerName } from "./service-access-live-config";
 export * from "./service-access-pilot-types";
 export * from "./service-access-types";
 export * from "./service-access-voucher-types";
@@ -51,7 +52,12 @@ export {
   serviceIssuerDraftApproval,
   serviceIssuerTermsDigest,
 } from "./service-issuer-approval";
-export { SERVICE_ISSUER_ROUTES, serviceIssuerIssuanceLimit } from "./service-issuer-metadata";
+export {
+  SERVICE_ISSUER_ROUTES,
+  serviceIssuerIssuanceLimit,
+  issuerPool,
+  issuerPoolPolicy,
+} from "./service-issuer-metadata";
 export { issuerPoolStatus } from "./service-issuer-pool";
 export {
   serviceIssuerDelistingDraft,
@@ -66,3 +72,8 @@ export * from "./work-decision-readback";
 export * from "./work-decisions";
 export * from "./work-identity";
 export * from "./work-link-intent";
+
+export {
+  serviceIssuerExchangeChoices,
+  type ServiceIssuerExchangeChoice,
+} from "./service-issuer-checkout";

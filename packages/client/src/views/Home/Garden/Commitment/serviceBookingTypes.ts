@@ -123,6 +123,12 @@ export interface ServiceBookingView {
     needsYou: boolean;
     /** Set only where the promise's own state words say too little ("Ended early"). */
     pillId: string | null;
+    /**
+     * The booking's own state beside the promise's pill, while the promise still reads "Offered"
+     * or "Awaiting confirmation" through a deposit, a cancellation or a return ("Deposit
+     * confirming", "Vouchers back"). Null where the pill, or its replacement, already says it.
+     */
+    chip: { labelId: string; tone: "success" | "warning" | "error" | "info" | "neutral" } | null;
   };
   facts: ServiceFact[];
   termsVersion: string | null;

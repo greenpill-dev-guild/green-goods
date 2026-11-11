@@ -57,9 +57,12 @@ describe("agent storage with real bun:sqlite", () => {
         "saved_offers",
         "sessions",
         "users",
+        "voucher_awards",
+        "service_issuer_drafts",
+        "service_issuer_draft_revisions",
       ])
     );
-    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 10 });
+    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 11 });
     expect(sqlite.query("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
 
     expect(() =>
@@ -123,7 +126,7 @@ describe("agent storage with real bun:sqlite", () => {
       expect(sqlite.query("SELECT COUNT(*) AS count FROM garden_join_requests").get()).toEqual({
         count: 2,
       });
-      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 10 });
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 11 });
     } finally {
       sqlite.close();
     }
@@ -230,7 +233,7 @@ describe("agent storage with real bun:sqlite", () => {
         );
       expect(uniqueKeys).toContainEqual(["credentialId", "publicKey"]);
       expect(uniqueKeys).not.toContainEqual(["credentialId"]);
-      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 10 });
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 11 });
 
       // After the upgrade one account still holds one name, and the other spelling of the same
       // passkey is its own account.

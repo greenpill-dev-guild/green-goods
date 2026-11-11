@@ -6,6 +6,7 @@ import {
 } from "./service-issuer-metadata";
 import type {
   ServiceIssuerActor,
+  ServiceIssuerExchangeReceipt,
   ServiceIssuerPending,
   ServiceIssuerReview,
 } from "./service-issuer-types";
@@ -90,4 +91,37 @@ export function withIssuerSubmissionLock<T>(
       return run();
     }
   );
+}
+
+/** Confirmed exchange recovery is account-scoped; it survives refresh and unrelated approvals. */
+export function createIssuerExchangeStore(
+  storage: () => Pick<Storage, "getItem" | "setItem" | "removeItem">
+) {
+  const key = (actor: ServiceIssuerActor) =>
+    `green-goods:issuer-exchange:v1:100:${actor.address.toLowerCase()}`;
+  return {
+    read(actor: ServiceIssuerActor): ServiceIssuerExchangeReceipt | null {
+      const raw = storage().getItem(key(actor));
+      if (!raw) return null;
+      const record = issuerDeserialize(raw) as ServiceIssuerExchangeReceipt;
+      const review = record?.review;
+      if (
+        record?.version !== 1 ||
+        !review ||
+        review.action.kind !== "exchange" ||
+        review.fingerprint !== issuerReviewFingerprint(review) ||
+        !issuerSame(review.actor.address, actor.address) ||
+        review.call.chainId !== 100 ||
+        !/^0x[a-f0-9]{64}$/i.test(record.transactionHash) ||
+        !record.submission ||
+        typeof record.deliveredOutput !== "bigint" ||
+        record.deliveredOutput <= 0n
+      )
+        throw new Error("Stored exchange receipt needs operator reconciliation");
+      return record;
+    },
+    save(record: ServiceIssuerExchangeReceipt) {
+      storage().setItem(key(record.review.actor), issuerSerialize(record));
+    },
+  };
 }

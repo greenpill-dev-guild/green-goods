@@ -15,6 +15,8 @@ const state = vi.hoisted(() => ({
   routes: [] as unknown[],
   operations: vi.fn(),
   drafts: vi.fn(),
+  load: { mutate: vi.fn(), isPending: false, isError: false },
+  decline: { mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false, isError: false },
   approval: {
     approve: { isPending: false, mutateAsync: vi.fn() },
     canSign: true,
@@ -43,8 +45,14 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
     return state.routes;
   },
   useServiceIssuerOperations: (...args: unknown[]) => state.operations(...args),
-  useServiceIssuerDrafts: (...args: unknown[]) => state.drafts(...args),
-  useServiceIssuerApproval: () => state.approval,
+  useServiceIssuerDesk: () => ({
+    records: state.drafts().data?.records ?? [],
+    load: state.load,
+    approve: state.approval.approve,
+    decline: state.decline,
+    isLimited: false,
+    canSign: state.approval.canSign,
+  }),
 }));
 
 describe("Profile service asset composition", () => {
@@ -72,7 +80,7 @@ describe("Profile service asset composition", () => {
     });
     state.approval.approve.mutateAsync.mockResolvedValue(undefined);
     renderWithProviders(<ServiceAssets />);
-    expect(state.drafts).toHaveBeenCalledWith(ISSUER_STORY_ADDRESS);
+    expect(state.load.mutate).not.toHaveBeenCalled();
     const select = screen.getByLabelText("Vouchers you hold and services you offer.");
     expect(within(select).getAllByRole("option")).toHaveLength(2);
     await userEvent.selectOptions(select, "draft:7");
@@ -80,12 +88,26 @@ describe("Profile service asset composition", () => {
     const sheet = within(screen.getByRole("dialog"));
     await userEvent.click(sheet.getByRole("checkbox"));
     await userEvent.click(sheet.getByRole("button", { name: "Approve My Service" }));
-    expect(state.approval.approve.mutateAsync).toHaveBeenCalledExactlyOnceWith(own.draft);
+    expect(state.approval.approve.mutateAsync).toHaveBeenCalledExactlyOnceWith(own);
+    await userEvent.click(screen.getByRole("button", { name: "Decline" }));
+    expect(state.decline.mutate).toHaveBeenCalledExactlyOnceWith(own);
     expect(state.operations).not.toHaveBeenCalled();
   });
 
   it("requires explicit asset selection and constructs the actor from the active identity", async () => {
-    state.routes = [{ service: { id: "fictional-story" }, assets: issuerStoryAssets }];
+    state.routes = [
+      {
+        service: { id: "fictional-story" },
+        assets: issuerStoryAssets,
+        pools: [
+          {
+            id: "fictional-local",
+            name: "Test exchange",
+            listings: issuerStoryAssets.map((asset) => ({ assetId: asset.id })),
+          },
+        ],
+      },
+    ];
     state.drafts.mockReturnValue({ data: { status: "unavailable" } });
     state.operations.mockReturnValue({
       snapshot: { data: issuerStorySnapshot(), isLoading: false, isError: false, refetch: vi.fn() },
@@ -93,6 +115,7 @@ describe("Profile service asset composition", () => {
       execute: { mutateAsync: vi.fn() },
       reconcile: { mutateAsync: vi.fn() },
       quote: { mutateAsync: vi.fn() },
+      lastExchange: { data: null },
     });
     state.operations.mockClear();
     const view = renderWithProviders(<ServiceAssets />);
@@ -105,6 +128,13 @@ describe("Profile service asset composition", () => {
       address: ISSUER_STORY_ADDRESS,
       routeId: "fictional-story",
       assetId: "engineer-help",
+    });
+    await userEvent.selectOptions(screen.getByLabelText("Exchange Pool"), "fictional-local");
+    expect(state.operations).toHaveBeenLastCalledWith({
+      address: ISSUER_STORY_ADDRESS,
+      routeId: "fictional-story",
+      assetId: "engineer-help",
+      poolId: "fictional-local",
     });
     state.address = "0x6666666666666666666666666666666666666666";
     view.rerender(<ServiceAssets />);

@@ -4,6 +4,8 @@ import {
   type ServiceIssuerDraftRecord,
   type ServiceIssuerListings,
   type ServiceIssuerPoolListing,
+  type ServiceIssuerPool,
+  type ServiceIssuerPoolPolicy,
   type ServiceIssuerRoute,
   serviceIssuerDraftApproval,
   serviceIssuerListingKey,
@@ -27,6 +29,8 @@ export interface VoucherIssuerRow {
   /** The reviewed metadata, once the steward has completed it; a bare draft has none yet. */
   route?: ServiceIssuerRoute;
   asset?: ServiceIssuerAsset;
+  pool?: ServiceIssuerPool;
+  policy?: ServiceIssuerPoolPolicy;
   listing?: ServiceIssuerPoolListing;
   record?: ServiceIssuerDraftRecord;
 }
@@ -38,13 +42,18 @@ function draftStatus(record: ServiceIssuerDraftRecord): VoucherIssuerStatus {
   if (record.declinedAt !== null) return "declined";
   if (record.draft.sentAt === null) return "draft";
   const approval = serviceIssuerDraftApproval(record.draft, record.approval);
-  return approval === "current" ? "approved" : approval === "outdated" ? "changed" : "waiting";
+  return approval === "current"
+    ? "approved"
+    : approval === "outdated" || record.draft.terms.revision > 1
+      ? "changed"
+      : "waiting";
 }
 
 /**
- * One row per issuer: the reviewed assets, each with its pool listing (admitted, a holding
+ * One row per issuer and pool: each independent listing (admitted, a holding
  * limit, or a zero limit: setup until the stewards record a delisting), then the drafts no
- * reviewed asset carries yet. A draft pairs with the asset its member owns under the same symbol.
+ * reviewed asset carries yet. A draft pairs only with its member, symbol and exact signed pool.
+ * Legacy drafts without a pool remain independent historical records; no listing inherits them.
  */
 export function voucherIssuerRows(
   routes: readonly ServiceIssuerRoute[],
@@ -53,23 +62,36 @@ export function voucherIssuerRows(
 ): VoucherIssuerRow[] {
   const paired = new Set<ServiceIssuerDraftRecord>();
   const assets = routes.flatMap((route) =>
-    route.assets.map((asset): VoucherIssuerRow => {
-      const record = records.find(
-        (r) =>
-          same(r.draft.member, asset.ownerReserve) && r.draft.terms.token.symbol === asset.symbol
-      );
-      if (record) paired.add(record);
-      const listing = listings?.get(serviceIssuerListingKey(route.service.id, asset.id));
-      return {
-        key: `${route.service.id}:${asset.id}`,
-        kind: asset.kind,
-        status: listing ? issuerPoolStatus(listing, asset) : "unread",
-        route,
-        asset,
-        listing,
-        record,
-      };
-    })
+    route.pools.flatMap((pool) =>
+      pool.listings.flatMap((policy): VoucherIssuerRow[] => {
+        const asset = route.assets.find((candidate) => candidate.id === policy.assetId);
+        if (!asset) return [];
+        const record = records.find(
+          (r) =>
+            same(r.draft.member, asset.ownerReserve) &&
+            r.draft.terms.token.symbol === asset.symbol &&
+            r.draft.terms.exchangePool?.chainId === pool.chainId &&
+            r.draft.terms.exchangePool.id === pool.id &&
+            same(r.draft.terms.exchangePool.address, pool.deployment.address)
+        );
+        if (record) paired.add(record);
+        const key = serviceIssuerListingKey(route.service.id, pool.id, asset.id);
+        const listing = listings?.get(key);
+        return [
+          {
+            key,
+            kind: asset.kind,
+            status: listing ? issuerPoolStatus(listing, policy) : "unread",
+            route,
+            asset,
+            pool,
+            policy,
+            listing,
+            record,
+          },
+        ];
+      })
+    )
   );
   const drafts = records
     .filter((record) => !paired.has(record))

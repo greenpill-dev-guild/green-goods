@@ -60,11 +60,8 @@ function issuer(
         digest: digest(n + 21),
       },
     },
-    delisting: null,
     initialSupply: input.kind === "collective" ? 20_000_000n : 6_000_000n,
     adapterAllowance: 1_000_000n,
-    poolHoldingCap: 6_000_000n,
-    priceIndex: input.kind === "collective" ? 1_000_000n : 2_000_000n,
     upgradeControl:
       input.kind === "collective"
         ? { kind: "collective-safe", admin: input.owner }
@@ -97,17 +94,29 @@ function route(issuers: ReturnType<typeof issuer>[]): ServiceIssuerRoute {
     adapterSource: { ...pin(15), guardian, router, remoteSelector: 100n },
     adapter: { ...pin(16), guardian, router, sourcePeer: account(15), sourceSelector: 42161n },
     assets: issuers.map((entry) => entry.asset),
-    pool: {
-      proxyAdmin: ownerSafe,
-      deployment: pin(30),
-      registry: pin(31),
-      limiter: pin(32),
-      quoter: pin(33),
-      feePolicy: pin(34),
-      protocolFee: pin(35),
-      feeAddress: ownerSafe,
-      feesDecoupled: true,
-    },
+    pools: [
+      {
+        id: "tech-and-sun",
+        name: "Tech and Sun exchange",
+        garden: account(90),
+        chainId: 100,
+        listings: issuers.map(({ asset }) => ({
+          assetId: asset.id,
+          poolHoldingCap: 6_000_000n,
+          priceIndex: asset.kind === "collective" ? 1_000_000n : 2_000_000n,
+          delisting: null,
+        })),
+        proxyAdmin: ownerSafe,
+        deployment: pin(30),
+        registry: pin(31),
+        limiter: pin(32),
+        quoter: pin(33),
+        feePolicy: pin(34),
+        protocolFee: pin(35),
+        feeAddress: ownerSafe,
+        feesDecoupled: true,
+      },
+    ],
   };
 }
 
@@ -183,7 +192,7 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
   const catalog = route(issuers);
   // A delisting reads as one only with the stewards' record of it.
   if (state === "delisted")
-    catalog.assets.find((asset) => asset.id === "maya")!.delisting = {
+    catalog.pools[0]!.listings.find((policy) => policy.assetId === "maya")!.delisting = {
       reference: "https://example.org/maya-delisting",
       digest: digest(98),
     };
@@ -198,15 +207,15 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
   });
   const listings = new Map<string, ServiceIssuerPoolListing>([
     [
-      serviceIssuerListingKey(catalog.service.id, "tech-and-sun"),
+      serviceIssuerListingKey(catalog.service.id, "tech-and-sun", "tech-and-sun"),
       listing(true, 20_000_000n, 8_000_000n),
     ],
     [
-      serviceIssuerListingKey(catalog.service.id, "green-goods"),
+      serviceIssuerListingKey(catalog.service.id, "tech-and-sun", "green-goods"),
       listing(true, 20_000_000n, 6_000_000n),
     ],
     [
-      serviceIssuerListingKey(catalog.service.id, "teo"),
+      serviceIssuerListingKey(catalog.service.id, "tech-and-sun", "teo"),
       // Registered, Teo's token waits for its cap: the limiter still reads zero.
       listing(
         state === "listed" || state === "registered",
@@ -215,7 +224,7 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
       ),
     ],
     [
-      serviceIssuerListingKey(catalog.service.id, "maya"),
+      serviceIssuerListingKey(catalog.service.id, "tech-and-sun", "maya"),
       listing(true, state === "delisted" ? 0n : 6_000_000n, 4_000_000n),
     ],
   ]);
@@ -245,6 +254,11 @@ export function voucherIssuerStory(state: VoucherIssuerStory): {
       poolHoldingCap: 6_000_000n,
       priceIndex: 2_000_000n,
       poolFee: 0n,
+      exchangePool: {
+        chainId: 100,
+        id: catalog.pools[0]!.id,
+        address: catalog.pools[0]!.deployment.address,
+      },
       replyBusinessDays: 2,
       acceptanceDays: 7,
       document: { reference: "https://example.org/teo-terms", digest: digest(99) },

@@ -10,10 +10,14 @@ import {
   issuerAssetState,
   issuerPoolState,
   verifyIssuerRoute,
+  verifyIssuerPool,
   type ServiceIssuerChain,
 } from "./service-issuer-chain";
 import {
   issuerAsset,
+  issuerExchangeAction,
+  issuerPool,
+  issuerPoolPolicy,
   issuerDigest,
   issuerSame,
   ISSUER_REVIEW_SECONDS,
@@ -40,15 +44,20 @@ export async function prepareIssuerCall(
     action.kind === "revokeExchange" ||
     action.kind === "authorizeReturn" ||
     (action.kind === "configureReserve" && !action.enabled);
-  const asset = issuerAsset(route, actor.assetId, recovery);
-  const exchange = ["exchange", "approveExchange", "revokeExchange"].includes(action.kind);
+  const exchange = issuerExchangeAction(action);
+  const asset = issuerAsset(route, actor.assetId, recovery || exchange);
+  const selectedPool = exchange ? issuerPool(route, actor.poolId) : undefined;
+  if (selectedPool && action.kind !== "revokeExchange") {
+    issuerPoolPolicy(selectedPool, asset.id);
+    await verifyIssuerPool(route, selectedPool, chain);
+  }
   if (!exchange && (asset.kind !== "individual" || !issuerSame(actor.address, asset.ownerReserve)))
     throw new Error(
       "This issuer action requires the owning member; collective actions use the Safe workflow"
     );
   await verifyIssuerRoute(route, asset, chain);
   const [state, timestamp] = await Promise.all([
-    issuerAssetState(chain, route, asset, actor.address),
+    issuerAssetState(chain, route, asset, actor.address, selectedPool),
     chain.timestamp(),
   ]);
   if (typeof expiresAt !== "bigint" || expiresAt > timestamp + ISSUER_REVIEW_SECONDS)
@@ -107,7 +116,7 @@ export async function prepareIssuerCall(
         throw new Error("Finite approval needs a zero allowance and sufficient reviewed reserve");
       expected.allowance = amount;
       command = call(asset.token.address, TokenABI as Abi, "approve", [
-        pool ? route.pool.deployment.address : route.adapter.address,
+        pool ? selectedPool!.deployment.address : route.adapter.address,
         amount,
       ]);
       break;
@@ -173,7 +182,7 @@ export async function prepareIssuerCall(
       break;
     }
     case "exchange": {
-      const output = issuerAsset(route, action.outputAssetId);
+      const output = issuerAsset(route, action.outputAssetId, true);
       if (
         issuerSame(output.token.address, asset.token.address) ||
         !positive(action.amount) ||
@@ -184,7 +193,7 @@ export async function prepareIssuerCall(
         throw new Error(
           "Exchange needs distinct assets, finite quantities and a current bounded deadline"
         );
-      const pool = await issuerPoolState(chain, route, asset, output, action.amount);
+      const pool = await issuerPoolState(chain, route, selectedPool!, asset, output, action.amount);
       extra = pool;
       if (
         pool.outputExpired ||
@@ -197,7 +206,7 @@ export async function prepareIssuerCall(
       )
         throw new Error("Exchange quote, minimum, inventory, cap or exact allowance changed");
       expected.grossOutput = pool.grossQuote;
-      command = call(route.pool.deployment.address, PoolABI as Abi, "withdraw", [
+      command = call(selectedPool!.deployment.address, PoolABI as Abi, "withdraw", [
         output.token.address,
         asset.token.address,
         action.amount,
@@ -221,8 +230,9 @@ export async function issuerReadback(
   expected: Readonly<Record<string, bigint | boolean>>
 ) {
   const asset = issuerAsset(route, actor.assetId, true);
+  const selectedPool = issuerExchangeAction(action) ? issuerPool(route, actor.poolId) : undefined;
   await verifyIssuerRoute(route, asset, chain);
-  const state = await issuerAssetState(chain, route, asset, actor.address);
+  const state = await issuerAssetState(chain, route, asset, actor.address, selectedPool);
   let matchesReceipt = true;
   if (
     (typeof expected.minted === "bigint" &&

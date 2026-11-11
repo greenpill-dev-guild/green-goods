@@ -20,6 +20,7 @@ const PILL = {
   listed: { id: "ms.p.listed", variant: "success" },
   paused: { id: "ms.p.paused", variant: "warning" },
   delisted: { id: "ms.p.delisted", variant: "neutral" },
+  unavailable: { id: "ms.unknown", variant: "neutral" },
 } as const;
 
 /**
@@ -92,12 +93,12 @@ export function ServiceIssuerOverview({
                 {
                   id: "registered",
                   text: t("ob.sub.registered"),
-                  state: snapshot.pool.admitted ? "done" : "now",
+                  state: snapshot.pool?.admitted ? "done" : "now",
                 },
                 {
                   id: "admitted",
                   text: t("ob.sub.admitted"),
-                  state: admitted ? "done" : snapshot.pool.admitted ? "now" : "todo",
+                  state: admitted ? "done" : snapshot.pool?.admitted ? "now" : "todo",
                 },
               ],
             },
@@ -164,7 +165,7 @@ export function ServiceIssuerOverview({
         <h3 className="text-sm font-semibold leading-5 text-text-strong-950">{t("ms.vou.t")}</h3>
         <FactList frame="inset" className="mt-1">
           <FactRow label={t("ms.v.issued")} value={count(snapshot.totalMinted)} />
-          <FactRow label={t("ms.v.pool")} value={count(snapshot.pool.holding)} />
+          <FactRow label={t("ms.v.pool")} value={count(snapshot.pool?.holding ?? null)} />
           <FactRow label={t("ms.v.reserve")} value={count(snapshot.issuerReserveBalance)} />
           <FactRow label={t("ms.v.escrow")} value={count(issuerEscrowed(snapshot))} />
           <FactRow
