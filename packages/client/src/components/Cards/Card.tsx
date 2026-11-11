@@ -2,7 +2,7 @@ import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
-export const cardVariants = tv({
+const cardVariants = tv({
   // The one card surface (.gg-card in shared theme.css, F7): fill, edge, faint shadow, 24px.
   base: "gg-card flex gap-0.5 justify-between p-1 px-4",
   variants: {

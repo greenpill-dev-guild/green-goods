@@ -74,11 +74,8 @@ const STATUS_TONE: Record<WorkDisplayStatus, ItemRowTone> = {
   offline: "neutral",
 };
 
-/**
- * A work's own pill: its status in a list's words and its tone. The row reads it, and so does
- * any card that shows the same work, so the two never word a status differently.
- */
-export function workStatusPill(
+/** A work's own pill: its status in a list's words and its tone. */
+function workStatusPill(
   status: WorkDisplayStatus,
   labels?: WorkCardLabels
 ): { label: string; tone: ItemRowTone } {
