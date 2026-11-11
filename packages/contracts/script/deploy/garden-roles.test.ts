@@ -14,11 +14,13 @@ import {
   buildRolesTransactions,
   buildTransferConditions,
   encodeMultiSend,
+  main,
   modifierSaltNonce,
   parseArguments,
   permissionsConfigHash,
   predictModifier,
   prevalidatedSignatures,
+  readReviewedPlan,
   rolesInitializer,
   safeTransactionHash,
 } from "./garden-roles";
@@ -212,14 +214,34 @@ describe("Roles execution boundaries", () => {
     expect(() => parseArguments(["configure"])).toThrow(/plan\|verify\|deploy\|enable/);
   });
 
-  it("plans at a pinned block but verifies and broadcasts only against the live head", () => {
-    expect(parseArguments(["plan", "--block", "75178393"]).block).toBe(75_178_393);
-    expect(parseArguments(["plan"]).block).toBeUndefined();
-    expect(() => parseArguments(["plan", "--block", "0"])).toThrow(/positive block number/);
-    expect(() => parseArguments(["verify", "--block", "75178393"])).toThrow(/valid only for plan/);
-    expect(() => parseArguments(["enable", "--broadcast", "--step", "1", "--block", "75178393"])).toThrow(
+  it("plans a fork proof only into proof files, never a plan deploy, verify or enable reads", () => {
+    const proof = parseArguments(["plan", "--proof-block", "75178393"]);
+    expect(proof.proofBlock).toBe(75_178_393);
+    expect(nodePath.basename(proof.planPath)).toBe("42220-garden-roles-proof-plan.json");
+    expect(nodePath.basename(parseArguments(["plan"]).planPath)).toBe("42220-garden-roles.json");
+    expect(() => parseArguments(["plan", "--proof-block", "75178393", "--plan", "live.json"])).toThrow(/drop --plan/);
+    expect(() => parseArguments(["plan", "--proof-block", "0"])).toThrow(/positive block number/);
+    expect(() => parseArguments(["verify", "--proof-block", "75178393"])).toThrow(/valid only for plan/);
+    expect(() => parseArguments(["enable", "--broadcast", "--step", "1", "--proof-block", "75178393"])).toThrow(
       /valid only for plan/,
     );
+  });
+
+  it("refuses a fork-proof plan in deploy and enable even when its path is given", async () => {
+    const directory = fs.mkdtempSync(nodePath.join(os.tmpdir(), "roles-proof-plan-"));
+    const proofPlan = nodePath.join(directory, "42220-garden-roles-proof-plan.json");
+    fs.writeFileSync(proofPlan, JSON.stringify({ proofBlock: 75_178_393, blockers: [], transactions: [] }));
+
+    // Without the guard this plan would reach the boundary checks; with it, nothing past the read runs.
+    await expect(main(["deploy", "--broadcast", "--step", "1", "--plan", proofPlan])).rejects.toThrow(
+      /fork-proof plan for Celo block 75178393/,
+    );
+    expect(() => readReviewedPlan(proofPlan, "enable plan")).toThrow(/fork-proof plan/);
+
+    const livePlan = nodePath.join(directory, "42220-garden-roles.json");
+    fs.writeFileSync(livePlan, JSON.stringify({ blockers: [], transactions: [] }));
+    expect(readReviewedPlan(livePlan, "plan")).toEqual({ blockers: [], transactions: [] });
+    fs.rmSync(directory, { recursive: true, force: true });
   });
 
   it("resumes at the first uncheckpointed boundary and refuses to replay or skip", () => {

@@ -23,6 +23,8 @@ const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
 const EVIDENCE_ROOT = path.join(REPOSITORY_ROOT, "packages/contracts/config/celo-garden-accounts");
 const RUNTIME_ROOT = path.join(CONTRACTS_ROOT, ".generated/runtime");
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "42220-celo-garden-accounts.json");
+/** Where `plan --proof-block` writes the fork proof's historical plan, away from the plan deploy reads. */
+const PROOF_PLAN = path.join(RUNTIME_ROOT, "42220-celo-garden-accounts-proof.json");
 const DEFAULT_RAW_BUNDLE = path.join(EVIDENCE_ROOT, "celo-dependency-init-code-2026-08-15.json");
 const RELEASE_MANIFEST = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.json");
 const DEPENDENCY_EVIDENCE = path.join(EVIDENCE_ROOT, "deterministic-deployments-42161-2026-02-19.json");
@@ -209,6 +211,8 @@ export interface CeloGardenAccountPlan {
   transactions: PlannedTransaction[];
   authorityEnabled: false;
   blockers: string[];
+  /** Present only on a fork-proof plan: the historical Celo block it describes. */
+  proofBlock?: number;
 }
 
 interface ParsedArguments {
@@ -218,14 +222,29 @@ interface ParsedArguments {
   broadcast: boolean;
   step?: number;
   receipt?: string;
-  /** Plans against state at this Celo block instead of the finalized head. */
-  block?: number;
+  /** Plans a fork proof against this historical Celo block. Proof runs write only the proof plan. */
+  proofBlock?: number;
 }
 
 dotenv.config({ path: path.join(REPOSITORY_ROOT, ".env"), quiet: true });
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+/**
+ * Reads the reviewed plan that verify or deploy acts on. A fork-proof plan describes historical
+ * Celo state, so both commands refuse it even when its path is passed explicitly.
+ */
+export function readReviewedPlan(filePath: string): CeloGardenAccountPlan {
+  if (!fs.existsSync(filePath)) throw new Error(`Reviewed plan is missing: ${filePath}`);
+  const plan = readJson<CeloGardenAccountPlan>(filePath);
+  if (plan.proofBlock !== undefined) {
+    throw new Error(
+      `${filePath} is a fork-proof plan for Celo block ${plan.proofBlock}; verify and deploy act only on a live plan`,
+    );
+  }
+  return plan;
 }
 
 function stable(value: unknown): string {
@@ -256,12 +275,12 @@ export function parseArguments(args: string[]): ParsedArguments {
   if (!command || !["plan", "verify", "deploy"].includes(command)) {
     throw new Error("Use: celo-garden-accounts.ts plan|verify|deploy [reviewed options]");
   }
-  let planPath = DEFAULT_PLAN;
+  let planPath: string | undefined;
   let rawBundlePath = DEFAULT_RAW_BUNDLE;
   let broadcast = false;
   let step: number | undefined;
   let receipt: string | undefined;
-  let block: number | undefined;
+  let proofBlock: number | undefined;
   for (let index = 1; index < args.length; ++index) {
     const argument = args[index];
     if (argument === "--broadcast") {
@@ -274,9 +293,11 @@ export function parseArguments(args: string[]): ParsedArguments {
     else if (argument === "--raw-bundle") rawBundlePath = path.resolve(REPOSITORY_ROOT, value);
     else if (argument === "--step") step = Number(value);
     else if (argument === "--receipt") receipt = value;
-    else if (argument === "--block") {
-      block = Number(value);
-      if (!Number.isSafeInteger(block) || block < 1) throw new Error("--block must be a positive block number");
+    else if (argument === "--proof-block") {
+      proofBlock = Number(value);
+      if (!Number.isSafeInteger(proofBlock) || proofBlock < 1) {
+        throw new Error("--proof-block must be a positive block number");
+      }
     } else throw new Error(`Unknown argument: ${argument}`);
     index++;
   }
@@ -287,9 +308,14 @@ export function parseArguments(args: string[]): ParsedArguments {
     throw new Error(`${command} does not accept broadcast, step, or receipt options`);
   }
   if (receipt && command !== "deploy") throw new Error("--receipt is valid only for deploy");
-  // Only planning reads a chosen block. Verification and broadcasts always check the live head.
-  if (block !== undefined && command !== "plan") throw new Error("--block is valid only for plan");
-  return { command, planPath, rawBundlePath, broadcast, step, receipt, block };
+  if (proofBlock === undefined) {
+    return { command, planPath: planPath ?? DEFAULT_PLAN, rawBundlePath, broadcast, step, receipt };
+  }
+  // A proof plan describes historical state, so it is only ever planned, and only into the proof-only
+  // file: a path choice could otherwise replace the reviewed plan a deployment is checked against.
+  if (command !== "plan") throw new Error("--proof-block is valid only for plan");
+  if (planPath !== undefined) throw new Error("--proof-block always writes the proof-only plan; drop --plan");
+  return { command, planPath: PROOF_PLAN, rawBundlePath, broadcast, step, receipt, proofBlock };
 }
 
 function artifactHex(value: FoundryArtifact["bytecode"], label: string): string {
@@ -384,10 +410,10 @@ async function codeHash(
 }
 
 /**
- * Reads chain state at the finalized head, or at `block` when given. The pinned fork proof passes
- * the block it forks, because the release has since run and the live head would refuse it.
+ * Reads chain state at the finalized head, or at `proofBlock` for the pinned fork proof: the release
+ * has since run, so the live head would refuse the state it forks.
  */
-async function buildPlan(rawBundlePath: string, block?: number): Promise<CeloGardenAccountPlan> {
+async function buildPlan(rawBundlePath: string, proofBlock?: number): Promise<CeloGardenAccountPlan> {
   const manifest = readJson<ReleaseIdentity>(RELEASE_MANIFEST);
   if (
     manifest.schemaVersion !== 1 ||
@@ -457,12 +483,13 @@ async function buildPlan(rawBundlePath: string, block?: number): Promise<CeloGar
     transactions: [],
     authorityEnabled: false,
     blockers,
+    ...(proofBlock === undefined ? {} : { proofBlock }),
   };
   if (blockers.length > 0 || !coordinator || !coordinatorBytecode || !coordinatorRuntimeCodeHash) return plan;
 
   const networkManager = new NetworkManager();
   const provider = new JsonRpcProvider(networkManager.getRpcUrl("celo"), CELO_CHAIN_ID, { staticNetwork: true });
-  const [network, finalized] = await Promise.all([provider.getNetwork(), provider.getBlock(block ?? "finalized")]);
+  const [network, finalized] = await Promise.all([provider.getNetwork(), provider.getBlock(proofBlock ?? "finalized")]);
   if (network.chainId !== BigInt(CELO_CHAIN_ID) || !finalized) throw new Error("Celo finalized RPC is unavailable");
   plan.finalizedBlock = finalized.number;
 
@@ -485,7 +512,7 @@ async function buildPlan(rawBundlePath: string, block?: number): Promise<CeloGar
     if (observed !== expected.codeHash) plan.blockers.push(`${name} code differs from the frozen Celo identity`);
   }
 
-  const pendingNonce = await provider.getTransactionCount(plan.sender, block ?? "pending");
+  const pendingNonce = await provider.getTransactionCount(plan.sender, proofBlock ?? "pending");
   const observedCoordinatorHash = await codeHash(provider, coordinator, finalized.number);
   if (!observedCoordinatorHash) {
     plan.transactions.push({
@@ -771,7 +798,7 @@ async function executeBoundary(plan: CeloGardenAccountPlan, step: number, recove
 async function main(args: string[]): Promise<void> {
   const options = parseArguments(args);
   if (options.command === "plan") {
-    const plan = await buildPlan(options.rawBundlePath, options.block);
+    const plan = await buildPlan(options.rawBundlePath, options.proofBlock);
     atomicWrite(options.planPath, plan);
     process.stdout.write(
       stable({ planPath: options.planPath, coordinator: plan.coordinator, blockers: plan.blockers }),
@@ -779,7 +806,7 @@ async function main(args: string[]): Promise<void> {
     if (plan.blockers.length > 0) throw new Error(`Celo GardenAccount planning blocked: ${plan.blockers.join("; ")}`);
     return;
   }
-  const plan = readJson<CeloGardenAccountPlan>(options.planPath);
+  const plan = readReviewedPlan(options.planPath);
   if (options.command === "verify") {
     await verifyDeployedPlan(plan);
     process.stdout.write("Verified exact dependencies and 18 initialized same-address Celo GardenAccounts.\n");

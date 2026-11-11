@@ -9,7 +9,8 @@ const contractsRoot = path.resolve(import.meta.dir, "../..");
 
 // The block CeloGardenAccountRelease.t.sol forks Celo at (its CELO_BLOCK). The release has since
 // run on Celo, so a plan against the live head reports the deployed accounts as blockers. The
-// planner reads the state the proof forks instead.
+// planner reads the state the proof forks instead, and writes it only to the proof-only plan the
+// test reads, never to the reviewed plan deploy uses.
 const PROOF_CELO_BLOCK = 74_938_820;
 
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });
@@ -48,7 +49,7 @@ run(
 );
 run(
   process.execPath,
-  ["script/deploy/celo-garden-accounts.ts", "plan", "--block", String(PROOF_CELO_BLOCK)],
+  ["script/deploy/celo-garden-accounts.ts", "plan", "--proof-block", String(PROOF_CELO_BLOCK)],
   "generating reviewed runtime fixture",
 );
 run(
