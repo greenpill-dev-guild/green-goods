@@ -190,6 +190,14 @@ describe("CommitmentRow", () => {
     // Without a price the line keeps its older shape: the booking, then who promises it.
     view.rerender(<CommitmentRow {...base} service={{ ...service, takes: undefined }} />);
     expect(line()).toEqual(["You hold 2", "Green Goods"]);
+    // A reason none can start leads, so a narrow line drops the price before the reason.
+    view.rerender(
+      <CommitmentRow
+        {...base}
+        service={{ ...service, booking: { text: "Bookings paused", tone: "error" } }}
+      />
+    );
+    expect(line()).toEqual(["Bookings paused", "Takes 10 Green Goods vouchers"]);
   });
 
   it("claims no direction for a record not read yet", () => {

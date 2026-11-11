@@ -117,9 +117,9 @@ function ServicesTab({ state, lang }: { state: ServicesState; lang: Lang }) {
 
 /**
  * Services on a garden's Promises tab as a visitor reads them (PRD-1299 surface 5, slice 2): a
- * member's own service sits on the same row as a garden's, its line saying what booking takes
- * first and then the member who promises delivery. An issuer that paused bookings, or whose
- * vouchers left the exchange pool, keeps its row, and the reason takes the booking's place.
+ * member's own service sits on the same row as a garden's, its line saying what a booking takes
+ * in the member's vouchers and then what booking takes first. An issuer that paused bookings, or
+ * whose vouchers left the exchange pool, keeps its row, and the reason leads the line.
  * Pick the language with `lang`. Fictional people and amounts from the design lab.
  */
 const meta: Meta<typeof ServicesTab> = {
@@ -143,7 +143,7 @@ const meta: Meta<typeof ServicesTab> = {
 export default meta;
 type Story = StoryObj<typeof ServicesTab>;
 
-/** Each service's line as shown, booking first: the details a row keeps on its one line. */
+/** Each service's line as shown, price first: the details a row keeps on its one line. */
 function shownLines(canvasElement: HTMLElement): (string | null)[][] {
   return [...canvasElement.querySelectorAll<HTMLElement>('[data-service="offer"]')].map((row) => {
     const box = row.querySelector(".gg-item-row-details")?.getBoundingClientRect();
@@ -159,14 +159,29 @@ const playLines =
     const words = MESSAGES[args.lang] as Record<string, string>;
     const say = (kind: ServiceOfferLine["booking"]["kind"], count = "") =>
       words[`app.commitments.row.service.${kind}`]!.replace("{count}", count);
-    await expect(shownLines(canvasElement)).toEqual([
-      [state === "issuerPaused" ? say("paused") : say("hold", "1"), "Teo Alves"],
-      [
-        state === "setup" ? say("setup") : state === "delisted" ? say("delisted") : say("exchange"),
-        "Maya Ruiz",
-      ],
-      [say("hold", "9"), "Tech and Sun"],
+    // The price leads every line and names who promises delivery; a reason none can start leads
+    // instead, so a narrow line drops the price before the reason. What booking takes first follows.
+    const price = words["app.commitments.row.service.takes"]!.split(" ")[0]!;
+    const priced = (name: string) => expect.stringMatching(new RegExp(`^${price} 1 .*${name}`));
+    const lines = shownLines(canvasElement);
+    await expect(lines.map((line) => line[0])).toEqual([
+      state === "issuerPaused" ? say("paused") : priced("Teo Alves"),
+      state === "setup"
+        ? say("setup")
+        : state === "delisted"
+          ? say("delisted")
+          : priced("Maya Ruiz"),
+      priced("Tech and Sun"),
     ]);
+    // In English both details sit whole on the line; the es and pt price can push the booking
+    // off this narrow line, and the lead is what every language keeps.
+    if (args.lang === "en") {
+      await expect(lines[2]).toEqual([priced("Tech and Sun"), say("hold", "9")]);
+      if (state === "browse") {
+        await expect(lines[0]).toEqual([priced("Teo Alves"), say("hold", "1")]);
+        await expect(lines[1]).toEqual([priced("Maya Ruiz"), say("exchange")]);
+      }
+    }
     // A reason reads as one the reader acts on; a booking line stays plain.
     const reasons = [
       ...canvasElement.querySelectorAll('[data-service="offer"] [data-tone="error"]'),
