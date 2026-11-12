@@ -4,7 +4,7 @@ sidebar_label: Product QA
 slug: /builders/quality/product-experience-qa
 audience: developer
 owner: product
-last_verified: 2026-10-10
+last_verified: 2026-11-11
 feature_status: In progress
 source_of_truth:
   - AGENTS.md
@@ -27,6 +27,9 @@ source_of_truth:
   - .github/workflows/design.yml
   - .github/workflows/client.yml
   - .github/workflows/admin.yml
+  - .github/workflows/supply-chain-guardrails.yml
+  - scripts/data/validation-policy.json
+  - packages/qa/README.md
 keywords: [QA, product QA, QA app, test cases, UI regression, admin, PWA, editorial website, accessibility]
 ---
 
@@ -69,6 +72,44 @@ verdict still needs your allowlisted wallet signed in to the QA app.
 :::
 
 
+## Coverage and release scope
+
+An active case is a definition available to test, not a deployment record or a passing result.
+Record the catalog revision, build, environment, and any activation prerequisites for the run.
+Use the ordinary surface tabs for regression checks that apply to that release. Use **Rollout
+Readiness** only for an explicitly scoped in-progress build and reviewed deployment. Its `ROLL-`
+cases and **In progress:** journeys stay separate from the shipped release's results.
+
+The coverage review added these checks to the existing catalog:
+
+| Area | Cases and guided flow | Evidence needed beyond automated checks |
+|---|---|---|
+| Service vouchers | `PWA-140` through `PWA-143`, `ADM-205` and `ADM-206`; Service vouchers journey | Agree on terms, book, resolve delivery or cancellation, and reconcile balances and authority across both accounts. |
+| Older passkey accounts | `PWA-144` through `PWA-146`; Passkey continuity journey | Recover the same account across supported origins and real devices, sign an approved test action, and reject mismatched recovery evidence. |
+| Steward access | `ADM-201` through `ADM-204`; Steward access journey | Request, grant, decline, withdraw, retry, and verify confirmed access using separate requester and authorized reviewer identities. |
+| Telegram reporting | `AGT-001` through `AGT-007`; Telegram reporting journey | Consent and pair, correct a media report, sign in the browser, review independently, and exercise expiry, duplicate delivery, revocation, and deletion. |
+| Settlement | `ADM-207` and `ADM-208`, alongside the service relay and treasury journeys | Reject stale ledgers and invalid routes, fees, caps, or authority; distinguish a Safe proposal from execution and verify acknowledgment and replay handling. |
+| Current PWA navigation | Updated `PWA-068` and `PWA-069`, plus `PWA-147` through `PWA-149` | Check Explore filters, garden switching, the home journal, and notifications. Removed ENS controls remain retired as `PWA-062` and `PWA-095`. |
+| QA operations | `QA-001` through `QA-004`; QA recording journey | Verify authenticated recording, two-device convergence, offline recovery, rollover, and catalog/build identity. |
+| Docs editor and browser tools | `DOCS-034`, `DOCS-035`, and `PUB-061` | Check editor authorization, save/reopen/review behavior, protected generated pages, and public-safe WebMCP discovery with ordinary navigation as fallback. |
+| In-progress issuer and Hats work | `ROLL-001` through `ROLL-007`; separate issuer and Hats rollout journeys | Rehearse revised terms, exchange pools, voucher awards, Hats policy and budget controls, and migration against the explicitly selected build. These are not shipped-release attestations. |
+
+WhatsApp and SMS are not covered as shipped reporting channels. Browser-extension behavior also
+needs its own scoped acceptance pass when that integration is delivered. A feature or channel
+does not become supported because another channel's case passes.
+
+CI enforces the catalog, locales, QA recording and reporting suite, and the ID ledger through
+the Guidance integrity job. QA runtime and tooling changes select that suite locally. Agent
+source changes also select the Client passkey browser checks because their reporting driver
+depends on Agent code. Direct Hats adapter tests cover authorization, pair creation, rollback,
+registry integrity, and upgrade preservation; a factory test double does not replace the
+reviewed fork rehearsal or a live release check.
+
+Before calling a release covered, walk its applicable P0 cases and changed journeys, record
+failures and blockers, and explain every N/A. Review P1/P2 scope explicitly. Keep device,
+authenticated-session, and approved transaction evidence with the private run. Passing code
+checks establish automated behavior; release coverage also needs the matching observed run.
+
 ## Walk a journey
 
 However you enter a session, on a call, solo, or paired with an agent, the loop is the same:
@@ -81,8 +122,9 @@ However you enter a session, on a call, solo, or paired with an agent, the loop 
 6. Hand deferred findings to QA triage (`qa-triage`, with `--call` after a call), which files
    them in Linear as fix slices.
 
-Journey mode is for two people who need to meet at the same handoffs. Both select the same
-**Journey**; Tester A takes **Protocol & review** and Tester B takes **Garden & member**. **View**
+Journey mode assigns the parts and handoffs for the selected flow. The following example uses
+the **Service relay** journey: Tester A takes **Protocol & review** and Tester B takes
+**Garden & member**. **View**
 picks whose recorded results you read, and **Part** picks which side of the workflow is yours.
 Use two real, allowlisted wallets and keep the same identity from beginning to end: A is the
 protocol steward and an independent steward or evaluator of the test garden, never on a

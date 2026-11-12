@@ -17,6 +17,8 @@ on:
       - "playwright.config.ts"
       - "tests/**"
       - "packages/client/**"
+      # The passkey browser ceremony composes the Agent reporting driver and runtime.
+      - "packages/agent/src/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
       - "!packages/shared/**/*.test.*"
@@ -56,6 +58,7 @@ on:
       - "playwright.config.ts"
       - "tests/**"
       - "packages/client/**"
+      - "packages/agent/src/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
       - "!packages/shared/**/*.test.*"

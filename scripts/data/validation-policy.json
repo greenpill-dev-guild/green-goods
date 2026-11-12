@@ -532,7 +532,7 @@
       "check": "agent-tools-test",
       "runInQa": true,
       "runInEvidence": true,
-      "prefixes": ["packages/qa/locales/"],
+      "prefixes": ["packages/qa/", "scripts/agents/"],
       "exact": [
         "scripts/data/qa-test-catalog.json",
         "scripts/data/qa-test-id-ledger.json",
@@ -825,7 +825,8 @@
         "packages/shared/src/hooks/auth/",
         "packages/shared/src/hooks/client-ui/auth/",
         "packages/shared/src/hooks/admin-ui/auth/",
-        "packages/client/src/views/Login/"
+        "packages/client/src/views/Login/",
+        "packages/agent/src/"
       ]
     },
     {
@@ -2074,14 +2075,21 @@
         "scripts/dev/test-e2e.js",
         "scripts/dev/node-cli.js",
         "scripts/lib/command-runner.mjs",
-        "scripts/lib/dev-shared.js"
+        "scripts/lib/dev-shared.js",
+        "packages/agent/src/__tests__/reporting/driver/server.ts",
+        "packages/agent/src/__tests__/reporting/support/browser.ts",
+        "packages/agent/src/__tests__/reporting/support/fake-chain.ts",
+        "packages/agent/src/__tests__/reporting/support/fixtures.ts",
+        "packages/agent/src/__tests__/reporting/support/media.ts",
+        "packages/agent/src/__tests__/reporting/support/synthetic.ts"
       ],
       "prefixes": [
         "packages/client/",
         "packages/shared/",
         "tests/",
         "packages/contracts/abis/",
-        "packages/contracts/deployments/"
+        "packages/contracts/deployments/",
+        "packages/agent/src/"
       ],
       "excludeValidationOnlyFrom": ["shared"]
     },
@@ -2432,7 +2440,9 @@
         ".plans/",
         "docs/routines/",
         "scripts/quality/",
-        "scripts/harness/"
+        "scripts/harness/",
+        "packages/qa/",
+        "scripts/agents/"
       ],
       "extensions": [
         ".css",

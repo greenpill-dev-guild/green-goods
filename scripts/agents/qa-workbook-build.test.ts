@@ -54,10 +54,17 @@ describe("qa-test-catalog.json", () => {
     const catalog = await loadCatalog();
     expect(catalog.version).toBe(3);
     expect(catalog.cases.length).toBeGreaterThanOrEqual(120);
-    expect(catalog.journeys?.map((journey) => journey.id)).toEqual([
+    expect(catalog.journeys?.map((journey) => journey.id)).toEqual(expect.arrayContaining([
       "service-relay",
       "protocol-treasury-top-up",
-    ]);
+      "service-vouchers",
+      "steward-access",
+      "telegram-reporting",
+      "passkey-continuity",
+      "qa-recording",
+      "rollout-service-issuer",
+      "rollout-hats-jars",
+    ]));
     // Docs is a first-class surface with content-truth cases of its own.
     expect(filterCases(catalog.cases, { tabs: ["Docs"] }).length).toBeGreaterThanOrEqual(13);
     // Retired rows stay forever (never delete, never reuse ids).
@@ -94,6 +101,31 @@ describe("validateCatalog", () => {
     expect(problems.some((problem) => problem.includes("duplicate id"))).toBe(true);
     expect(problems.some((problem) => problem.includes("does not belong on tab"))).toBe(true);
     expect(problems.some((problem) => problem.includes("empty steps"))).toBe(true);
+  });
+
+  it("keeps rollout readiness separate and requires an activation gate", () => {
+    const rollout = makeCase({ id: "ROLL-001", tab: "Rollout Readiness", scenario: "In progress: check policy", tags: ["in-progress"], preconditions: ["Activation gate: reviewed staging deployment"] });
+    const catalog = { version: 3, tabs: [...tabs, "Rollout Readiness"], kinds, statuses, cases: [rollout] };
+    expect(validateCatalog(catalog)).toEqual([]);
+    for (const patch of [{ scenario: "Check policy" }, { tags: [] }, { preconditions: [] }, { tab: "Admin Dashboard" }]) {
+      expect(validateCatalog({ ...catalog, cases: [{ ...rollout, ...patch }] })).not.toEqual([]);
+    }
+    expect(resolveSurfaceFilter("rollout", catalog.tabs)).toEqual(["Rollout Readiness"]);
+    expect(filterCases([rollout, makeCase()], { tabs: ["Admin Dashboard"] }).map((item) => item.id)).toEqual([makeCase().id]);
+  });
+
+  it("rejects unlabeled rollout journeys and mixtures of regression and rollout cases", () => {
+    const rollout = makeCase({ id: "ROLL-001", tab: "Rollout Readiness", scenario: "In progress: check policy", tags: ["in-progress"], preconditions: ["Activation gate: reviewed staging deployment"] });
+    const journey = {
+      id: "rollout", label: "In progress: policy", summary: "Rehearse the pending release.",
+      lanes: [{ id: "operator", label: "Operator", role: "Owner" }],
+      phases: [{ id: "prepare", label: "Prepare" }],
+      steps: [{ caseId: rollout.id, phaseId: "prepare", leadLaneId: "operator" }],
+    };
+    const catalog = { version: 3, tabs: [...tabs, "Rollout Readiness"], kinds, statuses, cases: [makeCase(), rollout], journeys: [journey] };
+    expect(validateCatalog(catalog)).toEqual([]);
+    expect(validateCatalog({ ...catalog, journeys: [{ ...journey, label: "Policy" }] }).join("\n")).toMatch(/rollout journeys/);
+    expect(validateCatalog({ ...catalog, journeys: [{ ...journey, steps: [...journey.steps, { ...journey.steps[0], caseId: "ADM-001" }] }] }).join("\n")).toMatch(/rollout journeys/);
   });
 
   it("requires a capability flag on installed-device rows but not desktop PWA journeys", () => {

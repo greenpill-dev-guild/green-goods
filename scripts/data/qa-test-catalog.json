@@ -1,7 +1,15 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only: results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list. The public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only: results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list. The public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger. Rollout Readiness (ROLL-) is reserved for in-progress behavior and must never be used as evidence that a capability has shipped. Each rollout case names an activation gate. Other tabs cover regression behavior; a case definition is not a live deployment or passing-run attestation.",
   "version": 3,
-  "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
+  "tabs": [
+    "Public Website",
+    "PWA",
+    "Admin Dashboard",
+    "Docs",
+    "Agent Reporting",
+    "QA Operations",
+    "Rollout Readiness"
+  ],
   "statuses": [
     {
       "id": "active",
@@ -235,6 +243,299 @@
           "verifyLaneIds": ["garden-member"],
           "handoff": "The garden steward verifies the destination garden and balance; no commitment ID is involved.",
           "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
+        }
+      ]
+    },
+    {
+      "id": "service-vouchers",
+      "label": "Service booking: member, steward and wallet",
+      "summary": "Walk an enabled service booking through approval, delivery and balance reconciliation. Confirm the deployment and write boundary first; record missing prerequisites as Blocked, never as a completed exchange.",
+      "lanes": [
+        {
+          "id": "member",
+          "label": "Member",
+          "role": "Member booking the service"
+        },
+        {
+          "id": "steward",
+          "label": "Steward",
+          "role": "Independent steward authorized to resolve this booking"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "PWA-140",
+          "phaseId": "walk",
+          "leadLaneId": "member",
+          "verifyLaneIds": ["steward"],
+          "handoff": "The steward verifies the booking ID, approved terms, amount and held balance before resolving it."
+        },
+        {
+          "caseId": "ADM-205",
+          "phaseId": "walk",
+          "leadLaneId": "steward",
+          "verifyLaneIds": ["member"],
+          "handoff": "The member sees the confirmed resolution on the same booking before checking wallet balances."
+        },
+        {
+          "caseId": "PWA-141",
+          "phaseId": "walk",
+          "leadLaneId": "member",
+          "verifyLaneIds": ["steward"],
+          "handoff": "Both people reconcile the same booking with the held, spent and returned voucher amounts."
+        }
+      ]
+    },
+    {
+      "id": "steward-access",
+      "label": "Steward access: request, role and cockpit",
+      "summary": "Use separate requester and reviewer accounts. A pending request grants no privileges; verify the confirmed role before entering the cockpit.",
+      "lanes": [
+        {
+          "id": "requester",
+          "label": "Requester",
+          "role": "Account without steward access"
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "role": "Authorized garden reviewer"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "ADM-201",
+          "phaseId": "walk",
+          "leadLaneId": "requester",
+          "verifyLaneIds": ["reviewer"],
+          "handoff": "The reviewer sees the pending request for the same account and garden; the requester still has no steward access."
+        },
+        {
+          "caseId": "ADM-202",
+          "phaseId": "walk",
+          "leadLaneId": "reviewer",
+          "verifyLaneIds": ["requester"],
+          "handoff": "The requester refreshes and verifies the confirmed role and cockpit access in the intended garden."
+        }
+      ]
+    },
+    {
+      "id": "telegram-reporting",
+      "label": "Telegram report: consent, Work and independent review",
+      "summary": "Use the enabled Telegram adapter and private disposable evidence. Browser authorization, Work publication and independent review are separate outcomes; unavailable services remain Blocked.",
+      "lanes": [
+        {
+          "id": "reporter",
+          "label": "Reporter",
+          "role": "Consenting garden member"
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "role": "Independent steward outside the contributor roster"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "AGT-001",
+          "phaseId": "walk",
+          "leadLaneId": "reporter"
+        },
+        {
+          "caseId": "AGT-002",
+          "phaseId": "walk",
+          "leadLaneId": "reporter",
+          "verifyLaneIds": ["reviewer"],
+          "handoff": "The independent reviewer finds the same published Work and evidence in the cockpit before reviewing."
+        },
+        {
+          "caseId": "AGT-003",
+          "phaseId": "walk",
+          "leadLaneId": "reviewer",
+          "verifyLaneIds": ["reporter"],
+          "handoff": "The reporter sees the confirmed review result for the same Work in both chat and the app."
+        }
+      ]
+    },
+    {
+      "id": "passkey-continuity",
+      "label": "Passkey recovery: same account, then a signed operation",
+      "summary": "Walk on the supported hosted origins and real device families in scope. Virtual authenticators and local substitutes do not prove account recovery on a real device.",
+      "lanes": [
+        {
+          "id": "member",
+          "label": "Member",
+          "role": "Owner of the older passkey account"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "PWA-144",
+          "phaseId": "walk",
+          "leadLaneId": "member"
+        },
+        {
+          "caseId": "PWA-145",
+          "phaseId": "walk",
+          "leadLaneId": "member"
+        }
+      ]
+    },
+    {
+      "id": "qa-recording",
+      "label": "QA operations: saved verdicts and run rollover",
+      "summary": "Use a disposable run and private notes. Confirm the catalog revision and builds, then prove recording and rollover with two devices.",
+      "lanes": [
+        {
+          "id": "tester",
+          "label": "Tester",
+          "role": "Allowlisted tester"
+        },
+        {
+          "id": "peer",
+          "label": "Peer",
+          "role": "Second allowlisted tester"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "QA-001",
+          "phaseId": "walk",
+          "leadLaneId": "tester"
+        },
+        {
+          "caseId": "QA-002",
+          "phaseId": "walk",
+          "leadLaneId": "tester",
+          "verifyLaneIds": ["peer"],
+          "handoff": "Both devices show the confirmed verdict and note; the peer verifies that their own entry remains independent."
+        },
+        {
+          "caseId": "QA-003",
+          "phaseId": "walk",
+          "leadLaneId": "peer",
+          "verifyLaneIds": ["tester"],
+          "handoff": "Both testers identify the new open run and read the closed run; recovered old outbox entries remain parked."
+        },
+        {
+          "caseId": "QA-004",
+          "phaseId": "walk",
+          "leadLaneId": "tester"
+        }
+      ]
+    },
+    {
+      "id": "rollout-service-issuer",
+      "label": "In progress: issuer revision and exchange",
+      "summary": "Rollout readiness only. Do not count these steps as shipped coverage or activation approval. Confirm the reviewed deployment, issuer revision and allowed value boundary first.",
+      "lanes": [
+        {
+          "id": "issuer",
+          "label": "Issuer",
+          "role": "Issuer preparing the reviewed terms"
+        },
+        {
+          "id": "steward",
+          "label": "Steward",
+          "role": "Reviewer of the issuer and destination pool"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "ROLL-001",
+          "phaseId": "walk",
+          "leadLaneId": "issuer",
+          "verifyLaneIds": ["steward"],
+          "handoff": "The reviewer verifies the current issuer revision and fresh approval before any exchange is prepared."
+        },
+        {
+          "caseId": "ROLL-002",
+          "phaseId": "walk",
+          "leadLaneId": "steward",
+          "verifyLaneIds": ["issuer"],
+          "handoff": "Both people reconcile the selected pool and receipt, keeping this result in the rollout run."
+        }
+      ]
+    },
+    {
+      "id": "rollout-hats-jars",
+      "label": "In progress: Hats jar migration and permissions",
+      "summary": "Rollout readiness only. Rehearse on a pinned fork before an authorized staging walk. A passing rehearsal does not authorize a live migration or certify every garden.",
+      "lanes": [
+        {
+          "id": "operator",
+          "label": "Release operator",
+          "role": "Operator of the reviewed migration rehearsal"
+        },
+        {
+          "id": "steward",
+          "label": "Steward",
+          "role": "Garden steward with separately verified role authority"
+        }
+      ],
+      "phases": [
+        {
+          "id": "walk",
+          "label": "Walk and verify"
+        }
+      ],
+      "steps": [
+        {
+          "caseId": "ROLL-007",
+          "phaseId": "walk",
+          "leadLaneId": "operator",
+          "verifyLaneIds": ["steward"],
+          "handoff": "The steward verifies both asset mappings and the rollback evidence before walking the staged jar controls."
+        },
+        {
+          "caseId": "ROLL-005",
+          "phaseId": "walk",
+          "leadLaneId": "steward",
+          "verifyLaneIds": ["operator"],
+          "handoff": "The operator verifies policy limits, budget and revoked-role rejection on the same reviewed jar pair."
+        },
+        {
+          "caseId": "ROLL-006",
+          "phaseId": "walk",
+          "leadLaneId": "operator",
+          "verifyLaneIds": ["steward"],
+          "handoff": "Both people verify the applied policy, pause state and approved recovery destination without inferring fleet activation."
         }
       ]
     }
@@ -1856,11 +2157,11 @@
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
-      "area": "Home",
+      "area": "Explore",
       "scenario": "Filter the garden list by scope and sort order, then reset",
       "preconditions": ["Authenticated gardener who belongs to at least one garden"],
       "steps": [
-        "Open the Filters drawer from the Home header",
+        "Open the Filters drawer from the Explore header",
         "Choose My gardens, then each sort order: Default order, Newest first, Name (A-Z)",
         "Read the badge on the Filters button and the list",
         "Press Reset Filters"
@@ -1868,7 +2169,7 @@
       "expected": "My gardens shows only gardens the address belongs to, with the count in its label; each sort reorders the list; the Filters button carries a badge with the number of active filters while any is set; Reset returns to All gardens in Default order and clears the badge",
       "evidence": "Screenshot of the filtered list with the badge",
       "role": "gardener",
-      "tags": ["home"],
+      "tags": ["explore"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-runs-pwa-split-2026-09-07"
@@ -1883,7 +2184,6 @@
       "scenario": "Arrival toast names the uploads still on this phone and its action lands",
       "preconditions": [
         "Authenticated session in a fresh browser tab (the toast fires once per tab session per address)",
-        "An address that already has a Green Goods name, or that dismissed the ENS reminder before, so only the arrival toast fires (PWA-095 covers the reminder)",
         "A known state to arrive in: work, a review or proof queued in the active garden, the same queued only in another of your gardens, or nothing queued"
       ],
       "steps": [
@@ -1917,8 +2217,10 @@
       "role": "gardener",
       "tags": ["home", "ens"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-pwa-split-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-pwa-split-2026-09-07",
+      "retiredOn": "2026-11-11",
+      "retiredReason": "The Home ENS claim-name reminder was removed; no replacement prompt is required."
     },
     {
       "id": "PWA-096",
@@ -4252,8 +4554,10 @@
       "role": "gardener",
       "tags": ["profile", "ens", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-catalog-split-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-catalog-split-2026-09-07",
+      "retiredOn": "2026-11-11",
+      "retiredReason": "Profile ENS claim and release controls were removed; existing name display remains supported."
     },
     {
       "id": "PWA-063",
@@ -9115,7 +9419,10 @@
       "kind": "transaction",
       "area": "Community · Payouts",
       "scenario": "Edit the payouts jar's per-claim limit and cooldown",
-      "preconditions": ["The wallet that owns the garden, or one it permissioned"],
+      "preconditions": [
+        "Legacy cookie jar using the existing garden-account permission model; Hats jar rollout checks are ROLL-005 and ROLL-006",
+        "The wallet that owns the garden, or one it permissioned"
+      ],
       "steps": [
         "On the jar card press Edit beside Per-claim limit, change the value, press Update Limit, and confirm",
         "Press Edit beside Withdrawal cooldown, pick another cooldown, press Update Cooldown, and confirm",
@@ -10759,6 +11066,972 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "PWA-140",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Approve service terms and book the agreed amount",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized"
+      ],
+      "steps": [
+        "Open the service promise and review issuer, unit, amount and terms",
+        "Cancel once, then approve the current terms and book",
+        "Wait for the receipt and open the booking from Your Wallet"
+      ],
+      "expected": "Cancel sends nothing. One booking uses the approved terms and amount; its held balance and wallet link agree. A pending receipt is not shown as completed.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-141",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Service vouchers",
+      "scenario": "Receive a delivered service and reconcile held, spent and returned vouchers",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "A booking whose delivery the independent steward can resolve"
+      ],
+      "steps": [
+        "Record the held and available amounts",
+        "Have the steward complete the agreed delivery, then reopen the booking",
+        "Compare the wallet, booking and steward record after confirmation"
+      ],
+      "expected": "The delivery and any agreed split or return reconcile to the original booking amount. Held value is not also available to spend; receipt history remains visible.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-142",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Cancel a booking and reconcile a delayed return",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "A cancelable booking and a controlled test environment that can delay confirmation"
+      ],
+      "steps": [
+        "Cancel once and interrupt the confirmation read",
+        "Reload and check the known booking before retrying",
+        "Restore reads and wait for the return; inspect available and held balances"
+      ],
+      "expected": "Uncertain cancellation stays pending. No second cancellation or return is invented; the returned amount becomes available once, and the booking keeps its history.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-143",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Service vouchers",
+      "scenario": "Refuse stale terms, insufficient funds and unavailable service reads",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized"
+      ],
+      "steps": [
+        "Open the booking review, then change the approved terms or exhaust the available amount using the test fixture",
+        "Try to continue; repeat with a failed service or balance read",
+        "Restore the fixture and reopen the review"
+      ],
+      "expected": "The changed terms require fresh approval. Insufficient funds and unreadable state prevent sending with an explanation; an unavailable balance is never zero. Recovery uses current terms and balances.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "service-vouchers"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-144",
+      "tab": "PWA",
+      "platform": "Real device",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Identity",
+      "scenario": "Recover an older passkey account without changing its identity",
+      "preconditions": [
+        "Older passkey account with its original address recorded privately",
+        "Hosted supported origin; a second browser or device with the passkey available through the intended Apple or Google account"
+      ],
+      "steps": [
+        "Sign out and recover by the existing account name on a browser without local account storage",
+        "Compare the recovered address, memberships and balances with the original",
+        "Reload, sign out and recover again on each supported origin in scope"
+      ],
+      "expected": "Recovery opens the original account, with the same address and memberships. A different origin or unavailable passkey gives an honest recovery path and never silently creates a replacement account.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "identity"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11",
+      "requiresDevice": true
+    },
+    {
+      "id": "PWA-145",
+      "tab": "PWA",
+      "platform": "Real device",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Identity",
+      "scenario": "Sign after passkey recovery and keep account switching isolated",
+      "preconditions": [
+        "PWA-144 completed on the same supported origin",
+        "One small test Work submission or other explicitly authorized account operation",
+        "A second account and an unsent item on the original device"
+      ],
+      "steps": [
+        "Reject the first signing prompt, then retry the authorized operation",
+        "Wait for its receipt and verify the original account is the author",
+        "Switch accounts, reload, and return to the original account"
+      ],
+      "expected": "Rejected signing sends nothing. The retry lands once under the recovered account. The other account cannot see, send or discard the original account’s unsent items; returning restores them.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "identity", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11",
+      "requiresDevice": true
+    },
+    {
+      "id": "PWA-146",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Identity",
+      "scenario": "Recover from a directory outage or mismatched account without overwriting the saved account",
+      "preconditions": [
+        "Controlled staging fixture for failed lookup, mismatched account and rejected verification",
+        "A remembered account with unsent local work"
+      ],
+      "steps": [
+        "Attempt recovery under each fixture and cancel one device prompt",
+        "Reload and inspect the remembered identity and local work",
+        "Restore the directory and retry recovery"
+      ],
+      "expected": "Failure never authenticates the wrong account or overwrites the remembered account and work. The message offers retry; a successful retry restores the intended identity.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "identity"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-147",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Home",
+      "scenario": "Choose and switch the active garden while keeping visits separate",
+      "preconditions": ["Accounts with zero, one and multiple gardens; one other public garden"],
+      "steps": [
+        "Open Home with each account and choose a garden when offered",
+        "Reload and inspect the active garden",
+        "Visit another garden through Explore, return, then explicitly switch gardens"
+      ],
+      "expected": "No-garden, sole-garden and chooser states are usable. Reload retains the selection. Visiting does not silently switch it; an explicit switch changes the journal and closes the previous garden’s sheets.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-148",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Home",
+      "scenario": "Follow journal sections and recover empty or partial reads",
+      "preconditions": [
+        "An active garden with work, promises, a current cycle and saved local work",
+        "A plain member and steward; controlled unavailable-read fixture"
+      ],
+      "steps": [
+        "Open What’s Open, Needs Your Attention, Recent Activity, Continue, Take Part and About This Garden where applicable",
+        "Follow a work and promise, then return using Back",
+        "Repeat with no records, offline cached records and one failed read"
+      ],
+      "expected": "Links open the right record and garden, returning preserves usable navigation, and steward duties are role-gated. Empty, offline and partial states remain distinct without hiding available local work.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PWA-149",
+      "tab": "PWA",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Home",
+      "scenario": "Read and clear Home notifications within the current account and garden",
+      "preconditions": ["Two gardens and two accounts with Work and Promise notifications"],
+      "steps": [
+        "Open the Home bell, switch All, Work and Promises, and follow an item",
+        "Return and clear the listed events; reload",
+        "Switch gardens and accounts, then repeat offline and with a partial read"
+      ],
+      "expected": "Opening a tab marks only its shown events seen. Clear All persists for that account and garden without clearing another’s events. Unreadable events are not described as an empty inbox.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "gardener",
+      "tags": ["coverage-review-2026-11", "home"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-201",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Steward access",
+      "scenario": "Request steward access and remain unprivileged while pending",
+      "preconditions": [
+        "Signed-in requester without steward access; eligible garden; enabled request API"
+      ],
+      "steps": [
+        "Choose the garden from the no-access screen and review the request",
+        "Cancel signing once, then sign and submit",
+        "Reload and open a protected garden route"
+      ],
+      "expected": "Cancellation creates no request. A submitted request is pending for the chosen garden; it grants no role and protected actions remain unavailable.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "requester",
+      "tags": ["coverage-review-2026-11", "steward-access"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-202",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Steward access",
+      "scenario": "Resolve a steward request and verify confirmed cockpit access",
+      "preconditions": [
+        "ADM-201 pending request",
+        "Authorized independent reviewer and requester using separate accounts",
+        "Role assignment transaction explicitly authorized"
+      ],
+      "steps": [
+        "Open the steward-access queue and approve the request",
+        "Wait for the role receipt and request resolution",
+        "As the requester, refresh and enter the cockpit; compare with an ordinary membership request"
+      ],
+      "expected": "Approval assigns the steward role, not ordinary membership. Access opens only after confirmed authority; a pending or failed role assignment is not reported as access granted.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "steward-access", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-203",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Steward access",
+      "scenario": "Decline, withdraw and resubmit without losing request history",
+      "preconditions": ["Requester and reviewer with separate disposable pending requests"],
+      "steps": [
+        "Decline one request with a reason and read it as the requester",
+        "Withdraw the other request and reload both queues",
+        "Resubmit through the offered path and inspect the new pending request"
+      ],
+      "expected": "Declined and withdrawn requests grant no role. Their outcomes remain legible; resubmission creates one current request without reviving an old approval.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "requester and steward",
+      "tags": ["coverage-review-2026-11", "steward-access"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-204",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Steward access",
+      "scenario": "Reconcile uncertain approval and concurrent reviewers safely",
+      "preconditions": [
+        "Controlled request API and role receipt faults",
+        "Two authorized reviewers and an unauthorized identity"
+      ],
+      "steps": [
+        "Try resolving as the unauthorized identity",
+        "Approve in one reviewer session, interrupt the response, and inspect outcome before retrying",
+        "Resolve or refresh the same request in the second session; repeat with the role granted but request resolution interrupted"
+      ],
+      "expected": "Unauthorized resolution is refused. Both reviewers converge on one outcome; retry reconciles the existing role and request without duplicate grants or premature success. API unavailability retains a retryable pending state.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "steward-access", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-205",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Resolve a service booking with the approved terms and amount",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "PWA-140 booking awaiting authorized delivery resolution"
+      ],
+      "steps": [
+        "Open the booking from the voucher console",
+        "Review its terms and proposed delivery, split or return",
+        "Cancel once, then confirm the agreed outcome and wait for the receipt"
+      ],
+      "expected": "Only the authorized steward can resolve it. Cancel changes nothing; the confirmed outcome conserves the booked amount and is visible to the member without claiming payment from Work approval alone.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-206",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Service vouchers",
+      "scenario": "Manage issuer listing and reserve limits with the correct authority",
+      "preconditions": [
+        "Existing issuer and enabled voucher console",
+        "Authorized Safe signer, unauthorized wallet and controlled low-reserve or exhausted-allowance state"
+      ],
+      "steps": [
+        "Inspect issuer approval, listing and reserve status from both identities",
+        "Try an operation with insufficient reserve or allowance",
+        "Propose an authorized listing change, then verify its execution separately; test delisting on a disposable issuer"
+      ],
+      "expected": "Unauthorized or underfunded operations cannot send. A Safe proposal remains pending until executed. Delisting blocks new activity while keeping existing bookings and returns visible.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "service-vouchers", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-207",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Settlement",
+      "scenario": "Recover stale ledgers and refuse changed routes, fees and limits before sending",
+      "preconditions": [
+        "Controlled settlement fixture with readable chain clocks",
+        "Cases for stale or missing ledger, route mismatch, pause, exhausted allowance, cap, unacceptable fee and low acknowledgment reserve"
+      ],
+      "steps": [
+        "Open Pool Funding under each fixture and inspect the reason and disabled operation",
+        "Restore coherent reads and refresh",
+        "Change a limit after opening a ready review, then attempt dispatch"
+      ],
+      "expected": "Each unavailable state names its actual cause and prevents dispatch. Refresh clears only recovered causes. Send-time checks reject a changed limit before signing or spending; no unavailable read is presented as zero.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "settlement"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ADM-208",
+      "tab": "Admin Dashboard",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Settlement",
+      "scenario": "Keep Safe proposal, execution and acknowledgment separate through retry",
+      "preconditions": [
+        "Authorized test settlement through a Safe",
+        "Controlled delayed execution, delayed acknowledgment and replay fixture"
+      ],
+      "steps": [
+        "Propose the operation and reload before execution",
+        "Execute it and inspect both chains before acknowledgment",
+        "Restore acknowledgment or use the supported retry, then compare recipient balance and indexer history"
+      ],
+      "expected": "Proposal alone moves no value and is not completed. Execution awaiting acknowledgment stays pending. Retry or replay converges on one payout with consistent recipient balance and retained history.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "Safe signer and recipient",
+      "tags": ["coverage-review-2026-11", "settlement", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "PUB-061",
+      "tab": "Public Website",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "WebMCP",
+      "scenario": "Discover public browser tools and reject private or external navigation",
+      "preconditions": [
+        "Brave build exposing document.modelContext; separate ordinary browser without it",
+        "Public website and no private account context"
+      ],
+      "steps": [
+        "Discover and invoke the public describe and navigation tools",
+        "Try a private app/admin destination and an external URL",
+        "Navigate normally without the API and repeat registration after a controlled failure"
+      ],
+      "expected": "Tools describe and navigate only supported public routes, expose no private data or writes, and reject forbidden destinations. Missing API or partial registration never breaks ordinary browsing.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "none",
+      "tags": ["coverage-review-2026-11", "webmcp"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "DOCS-034",
+      "tab": "Docs",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Editor",
+      "scenario": "Save and reopen authored content on the review branch",
+      "preconditions": [
+        "Authorized editor; disposable authored page change; configured review branch confirmed before saving"
+      ],
+      "steps": [
+        "Sign in to the editor and open an authored page",
+        "Edit text, one heading, a link and an image caption, then save",
+        "Reopen and preview; verify the commit target and restore the disposable change through the same review workflow"
+      ],
+      "expected": "Saved content survives reopening and preview. Existing anchors, images and metadata remain intact. The save targets the review branch and does not publish directly to production.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "docs editor",
+      "tags": ["coverage-review-2026-11", "editor"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "DOCS-035",
+      "tab": "Docs",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Editor",
+      "scenario": "Refuse unauthorized edits and protect generated pages",
+      "preconditions": [
+        "Signed-out browser and authorized editor; generated glossary and catalog pages"
+      ],
+      "steps": [
+        "Try editing while signed out or unauthorized",
+        "Inspect the authorized collection for generated pages and create/delete controls",
+        "Interrupt a disposable save and reopen the page"
+      ],
+      "expected": "Unauthorized writes are refused. Generated pages and repository-owned creation/deletion remain outside the editor. Interrupted saving reports uncertainty without claiming the page was published.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "docs editor",
+      "tags": ["coverage-review-2026-11", "editor"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-001",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Pairing",
+      "scenario": "Consent and pair a Telegram reporter with the intended account",
+      "preconditions": [
+        "Enabled Telegram reporting channel in the selected environment",
+        "Disposable conversation and member account; consent to private test media"
+      ],
+      "steps": [
+        "Start reporting and read the consent and account link",
+        "Decline once; restart and open the link with the intended account",
+        "Complete account proof and return to the conversation"
+      ],
+      "expected": "Declining records no report. Pairing binds only the proven account and intended conversation; it grants no unrelated garden role.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "reporter",
+      "tags": ["coverage-review-2026-11", "pairing"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-002",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Reporting",
+      "scenario": "Correct a report and publish one Work through browser authorization",
+      "preconditions": [
+        "AGT-001 paired member; authorized test submission",
+        "Disposable text, photo, voice and document samples; only supported evidence is accepted"
+      ],
+      "steps": [
+        "Create a report, attach supported media and correct the action, description or garden before confirmation",
+        "Open the browser authorization and reject signing once",
+        "Retry, confirm and wait for the receipt; open the resulting Work in the app"
+      ],
+      "expected": "The review matches the corrected report and accepted evidence. Unsupported input is explained. Rejection sends nothing; confirmed submission publishes one Work under the paired account, never an automatic approval.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "reporter",
+      "tags": ["coverage-review-2026-11", "reporting", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-003",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Review",
+      "scenario": "Independently review chat-submitted Work and verify the reporter’s result",
+      "preconditions": [
+        "AGT-002 published Work",
+        "Independent steward outside the contributor roster; authorized review"
+      ],
+      "steps": [
+        "Find the same Work and evidence in the cockpit",
+        "Approve or reject with feedback and wait for confirmation",
+        "As the reporter, read the resulting status in chat and the app"
+      ],
+      "expected": "The independent review and feedback agree across chat, app and cockpit. A Work receipt is not confused with review approval or payout.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward and reporter",
+      "tags": ["coverage-review-2026-11", "review", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-004",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Authorization",
+      "scenario": "Reject expired, forwarded and wrong-account reporting links",
+      "preconditions": [
+        "Disposable expired link, valid link opened by another identity and revoked garden role"
+      ],
+      "steps": [
+        "Open each link and try to continue",
+        "Revoke the paired member’s role before authorization and retry",
+        "Request a fresh link and recover with the correct authorized account"
+      ],
+      "expected": "Expired or mismatched links and missing authority cannot publish or rebind the report. A valid recovery resumes the intended report without exposing private content to another account.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "reporter",
+      "tags": ["coverage-review-2026-11", "authorization"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-005",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Recovery",
+      "scenario": "Recover provider redelivery and restart without duplicate Work",
+      "preconditions": [
+        "Controlled Telegram replay and Agent restart environment",
+        "One report paused before confirmation and one with a known send reference"
+      ],
+      "steps": [
+        "Redeliver the same provider event",
+        "Restart before confirmation, then resume",
+        "Interrupt the submission response and restart; reconcile the known send before any retry"
+      ],
+      "expected": "Provider duplicates produce no second draft or Work. A restart retains the correct report. An uncertain send is reconciled against its receipt and cannot silently submit twice.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "reporter and QA operator",
+      "tags": ["coverage-review-2026-11", "recovery"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-006",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Permissions",
+      "scenario": "Expire or revoke delegated reporting authority",
+      "preconditions": [
+        "Explicitly enabled delegation on a test account with scoped authority",
+        "Authorized grant and revocation actions"
+      ],
+      "steps": [
+        "Review and grant the bounded permission",
+        "Attempt a report outside its scope",
+        "Revoke or expire it, then retry a pending report"
+      ],
+      "expected": "Only the reviewed scope is usable. Expired or revoked authority blocks new execution and offers fresh authorization; it never silently extends itself.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "reporter",
+      "tags": ["coverage-review-2026-11", "permissions", "tx"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "AGT-007",
+      "tab": "Agent Reporting",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Privacy",
+      "scenario": "Stop reporting and delete eligible private conversation data",
+      "preconditions": [
+        "Disposable conversation with consent and an unpublished draft; retain public Work separately"
+      ],
+      "steps": [
+        "Use the supported stop command and try to continue",
+        "Use the delete flow and read its explanation",
+        "Restart with fresh consent and inspect what is retained"
+      ],
+      "expected": "Stop prevents further reporting until fresh consent. Deletion removes eligible private material and explains immutable public records; it never promises to erase an onchain Work.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "reporter",
+      "tags": ["coverage-review-2026-11", "privacy"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-001",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Recording",
+      "scenario": "Authenticate and save one private verdict across reload",
+      "preconditions": [
+        "Hosted QA app; allowlisted tester and a non-allowlisted wallet",
+        "Disposable run; record its environment, catalog revision and build under test"
+      ],
+      "steps": [
+        "Try sign-in with the non-allowlisted wallet, then cancel and complete allowed sign-in",
+        "Record a verdict and note in the disposable run",
+        "Wait for saved confirmation, reload and read the same case"
+      ],
+      "expected": "Unauthorized access is refused and cancellation is retryable. The allowed tester’s verdict and note persist in the intended run without exposing private data publicly.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "allowlisted QA tester",
+      "tags": ["coverage-review-2026-11", "recording"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-002",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Recording",
+      "scenario": "Converge two devices and recover an offline verdict",
+      "preconditions": [
+        "QA-001 signed-in tester on two devices; second tester on a different case"
+      ],
+      "steps": [
+        "Change a verdict on one device and its note on the other",
+        "Go offline, edit another note and reload",
+        "Reconnect and compare both devices and the other tester’s record"
+      ],
+      "expected": "Field changes converge without overwriting confirmed edits or another tester. Offline changes remain local with an honest unsaved message and sync once into their original open run.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "allowlisted QA tester",
+      "tags": ["coverage-review-2026-11", "recording"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-003",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "resilience",
+      "area": "Runs",
+      "scenario": "Roll over with unsaved edits and preserve closed-run history",
+      "preconditions": [
+        "Disposable QA run; two testers; one live unsaved edit and one outbox recovered after reload"
+      ],
+      "steps": [
+        "Have both testers start the successor run at nearly the same time",
+        "Read the outcome and the handling of live versus recovered unsent edits",
+        "Open the closed run and compare it with the successor"
+      ],
+      "expected": "Exactly one successor is open. Closed history cannot be edited; live edits explain their new destination and recovered old-run edits wait for an explicit decision. No verdict silently moves to another run.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "allowlisted QA tester",
+      "tags": ["coverage-review-2026-11", "runs"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "QA-004",
+      "tab": "QA Operations",
+      "platform": "Browser",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Runs",
+      "scenario": "Verify catalog revision and distinguish regression from rollout results",
+      "preconditions": [
+        "A QA deployment with the intended catalog revision; known build identifiers"
+      ],
+      "steps": [
+        "Compare the deployed revision with the catalog being reviewed and record the product builds",
+        "Select a normal surface, then Rollout Readiness and an In progress journey",
+        "Read the private run report by surface and inspect retired IDs"
+      ],
+      "expected": "The run identifies the exact catalog and builds. Rollout cases are visibly separate and are not treated as proof of shipped behavior; retired IDs retain history but cannot be walked.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "allowlisted QA tester",
+      "tags": ["coverage-review-2026-11", "runs"],
+      "requiresProduction": true,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-001",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Issuer desk",
+      "scenario": "In progress: revise an issuer draft and obtain fresh member approval",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Issuer-desk rollout enabled; issuer and authorized reviewer with disposable draft"
+      ],
+      "steps": [
+        "Create and review a draft with terms and proposed pool",
+        "Approve one revision, then change a material term",
+        "Attempt activation with the old approval, then review the current revision"
+      ],
+      "expected": "Revision history is retained. Old approval cannot authorize changed terms; activation remains gated until the exact current revision and authorities are approved.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "issuer and steward",
+      "tags": ["coverage-review-2026-11", "issuer-desk", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-002",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Voucher exchange",
+      "scenario": "In progress: choose the explicit exchange pool and reconcile the receipt",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed issuer-desk revision; two configured garden exchange pools; authorized test funds"
+      ],
+      "steps": [
+        "Choose the destination pool and inspect the route, asset and terms",
+        "Reject a wrong or unavailable route, then submit the approved route",
+        "Reload during receipt lookup and reconcile the known operation"
+      ],
+      "expected": "Only the explicitly selected reviewed pool is used. Unavailable routes cannot send; reload never duplicates exchange or approval, and the receipt records the actual pool.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "member and steward",
+      "tags": ["coverage-review-2026-11", "voucher-exchange", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-003",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Voucher awards",
+      "scenario": "In progress: propose an award and reconcile Safe execution once",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Voucher-award rollout enabled; authorized proposer and Safe executor; disposable eligible award"
+      ],
+      "steps": [
+        "Review recipient, asset, amount and authority; cancel once",
+        "Propose through the Safe and inspect the pending record",
+        "Execute and reconcile after an interrupted response; compare recipient wallet and award history"
+      ],
+      "expected": "Cancel changes nothing. Proposal is not payment; confirmed execution records one award and one recipient credit, retaining receipt history across retries.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward and Safe signer",
+      "tags": ["coverage-review-2026-11", "voucher-awards", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-004",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Voucher awards",
+      "scenario": "In progress: reject stale authority, changed amounts and duplicate awards",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Controlled award fixture with insufficient reserve, wrong signer and changed revision"
+      ],
+      "steps": [
+        "Attempt each invalid award and inspect the refusal",
+        "Submit the same authorized award from two sessions",
+        "Restore valid authority and reconcile the original record"
+      ],
+      "expected": "Invalid or stale authority cannot spend. Concurrent or replayed requests do not award twice; recovery preserves the original reviewed amount and recipient.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "steward",
+      "tags": ["coverage-review-2026-11", "voucher-awards", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-005",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hats jars",
+      "scenario": "In progress: operate limits within policy and enforce role loss",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed Hats jar pair on a test garden; owner, steward, gardener and unrelated accounts"
+      ],
+      "steps": [
+        "Inspect and change operational limits as each role",
+        "Try exceeding the policy ceiling, shortening cooldown and exceeding daily budget",
+        "Revoke the acting role before confirmation and retry; inspect legacy jars separately"
+      ],
+      "expected": "Only the designated role can act within policy. Limits, cooldown and budget reject boundary violations; role loss is rechecked. Legacy and new jars retain their distinct permission rules.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "owner and steward",
+      "tags": ["coverage-review-2026-11", "hats-jars", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-006",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "transaction",
+      "area": "Hats jars",
+      "scenario": "In progress: apply delayed policy and recover a paused jar safely",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed Hats jar pair and authorized governor; disposable balance and approved recovery destination"
+      ],
+      "steps": [
+        "Propose a policy, try early execution, cancel it and propose a replacement",
+        "Apply after the delay and reject the stale proposal",
+        "Pause and test claim refusal; verify separate unpause and recovery authority and reject the wrong recovery recipient"
+      ],
+      "expected": "Only the current policy executes after its delay. Pause blocks claims; unpause and recovery require their designated authority. Recovery uses only the approved destination and uncertain receipts are checked before retrying.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "owner and steward",
+      "tags": ["coverage-review-2026-11", "hats-jars", "tx", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
+    },
+    {
+      "id": "ROLL-007",
+      "tab": "Rollout Readiness",
+      "platform": "Browser",
+      "priority": "P0",
+      "kind": "data-integrity",
+      "area": "Hats jars",
+      "scenario": "In progress: rehearse migration atomically and reconcile each garden’s two jars",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Pinned pre-migration fork and reviewed manifest of every garden and asset pair",
+        "No live broadcast; use the owning migration rehearsal and direct adapter tests"
+      ],
+      "steps": [
+        "Snapshot legacy registry, balances, roles and yield destinations",
+        "Rehearse legacy unlisting and pair provisioning; inject a second-asset failure and changed Hat/factory inputs",
+        "Retry from the unchanged fixture and read both registry entries, factory identities and yield destinations"
+      ],
+      "expected": "A failed pair leaves neither partial deployment nor partial registration. Changed roles, factory or existing entries reject stale calldata. Successful pairs map the intended assets; old history is retained and active new jars cannot be unlisted as legacy.",
+      "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
+      "role": "release operator",
+      "tags": ["coverage-review-2026-11", "hats-jars", "in-progress"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-coverage-review-2026-11-11"
     }
   ]
 }

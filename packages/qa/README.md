@@ -169,6 +169,24 @@ Journey copy lives in the three locale files beside the page. The build requires
 cover the same journeys, lanes, phases, case instructions, handoffs, and gates, and requires English
 to match the canonical catalog so the two sources cannot quietly drift.
 
+### Regression and rollout scope
+
+The Public Website, PWA, Admin Dashboard, Docs, Agent Reporting, and QA Operations tabs define
+regression checks. Confirm the deployment and prerequisites before running them; an `active` case
+means available to test, not deployed or passed.
+
+**Rollout Readiness** is separate. Every `ROLL-` case carries an `in-progress` tag, an
+`In progress:` scenario label, and an `Activation gate:` prerequisite. Its journeys use only
+rollout cases and carry the same visible label. The catalog validator rejects mixed journeys or
+missing gates. Select `--surface rollout` when preparing a rollout-only workbook. A release owner
+must confirm activation and review the definitions before rollout coverage becomes part of the
+shipped release's regression scope; preserve issued IDs and their histories.
+
+The required CI Guidance integrity job runs `agent-tools-test` for QA application and tooling
+changes, including the catalog, localization, authentication, concurrent recording, run rollover,
+and reporting tests. It also checks the append-only ID ledger. These automated checks do not
+replace the authenticated two-person recording journey (`QA-001` through `QA-004`).
+
 ## Journey mode
 
 **Walk** remains the default order. **Priority** keeps its P0/P1/P2 bands. **Journey** can cross
