@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 4,
+  "kind": "AIYELOJA_TEST_POOL",
+  "testOnly": true,
+  "releaseId": "aiyeloja-test-exchange-2026-11",
+  "chainId": 100,
+  "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+  "safe": "0xdeB7d1990a643Aa4954ff179e9683Ed4693A955c",
+  "safeOwners": [
+    "0x9CBD397A978e582005922feAD4815E88903cA807",
+    "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+    "0xa9FDeb97d2ACad58eC48d0406Ed2Eb6bB96CfDB5",
+    "0xaB8C7bEB9f43998Ea36D06DC6ddD342fB99cfb0a",
+    "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "0x596d412815b063DFAEFeD1dabd2BBf2AD7503BA4"
+  ],
+  "safeNonce": 0,
+  "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "nonce": 22,
+  "automation": "0x596d412815b063DFAEFeD1dabd2BBf2AD7503BA4",
+  "tokens": [
+    {
+      "id": "garden",
+      "kind": "garden",
+      "name": "Aiyeloja Test Garden Voucher",
+      "symbol": "AYTGV",
+      "supply": "100000000",
+      "inventory": "10000000",
+      "holdingCap": "20000000",
+      "automationBalance": "1000000"
+    },
+    {
+      "id": "member-a",
+      "kind": "member-fixture",
+      "name": "Aiyeloja Test Member A Voucher",
+      "symbol": "AYTMA",
+      "supply": "100000000",
+      "inventory": "10000000",
+      "holdingCap": "20000000",
+      "automationBalance": "1000000"
+    },
+    {
+      "id": "member-b",
+      "kind": "member-fixture",
+      "name": "Aiyeloja Test Member B Voucher",
+      "symbol": "AYTMB",
+      "supply": "100000000",
+      "inventory": "10000000",
+      "holdingCap": "20000000",
+      "automationBalance": "1000000"
+    }
+  ]
+}
