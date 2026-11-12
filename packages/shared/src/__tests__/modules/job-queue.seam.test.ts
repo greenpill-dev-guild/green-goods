@@ -15,6 +15,7 @@ import {
   createJobQueueDependencies,
 } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
+import { ActRefusedByChain } from "../../modules/job-queue/queue-policy";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 
 const USER = "0x1111111111111111111111111111111111111111";
@@ -737,6 +738,36 @@ describe("processJob", () => {
       expect.objectContaining({ attempts: 1, lastError: "work-transaction-reverted" })
     );
     expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+  });
+
+  it("gives up an act the chain refused at once, and Try Again still sends it", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob({ kind: "claim" })]);
+    const executors = {
+      execute: vi
+        .fn()
+        .mockRejectedValueOnce(new ActRefusedByChain(new Error("execution reverted")))
+        .mockResolvedValueOnce({ status: "complete", txHash: "0x1" }),
+    };
+    const { deps, queue } = setup({ store, executors });
+
+    await expect(queue.processJob("job-1", { transactionSender: {} as never })).resolves.toEqual({
+      success: false,
+      error: "execution reverted",
+    });
+    expect(await store.getJob("job-1")).toMatchObject({
+      attempts: 5,
+      lastError: "execution reverted",
+    });
+    expect(deps.analytics.jobPermanentlyFailed).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ kind: "claim", attempts: 1, lastError: "execution reverted" })
+    );
+    expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+
+    await queue.retryJob("job-1");
+    await expect(
+      queue.processJob("job-1", { transactionSender: {} as never, explicit: true })
+    ).resolves.toMatchObject({ success: true });
+    expect(deps.analytics.jobProcessed).toHaveBeenCalledExactlyOnceWith("claim", 0, 1);
   });
 
   it("uses the ordinary retry ceiling for repeated Work metadata failures", async () => {

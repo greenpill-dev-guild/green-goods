@@ -2,7 +2,7 @@
 
 import "fake-indexeddb/auto";
 import type { Config } from "@wagmi/core";
-import { encodeAbiParameters, encodeEventTopics } from "viem";
+import { encodeAbiParameters, encodeEventTopics, ExecutionRevertedError } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import type { EASConfig } from "../../config/blockchain";
 import type {
@@ -29,7 +29,11 @@ import {
   createJobQueueDependencies,
 } from "../test-utils/job-queue-fakes";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { hasRecordedSend, sendCheckpointOf } from "../../modules/job-queue/queue-policy";
+import {
+  ActRefusedByChain,
+  hasRecordedSend,
+  sendCheckpointOf,
+} from "../../modules/job-queue/queue-policy";
 import { intentHead } from "../../modules/job-queue/send-chain-reads";
 import { executeWorkJob } from "../../modules/job-queue/work-executor";
 import { WorkSendCancelledError } from "../../modules/work/send-outcome";
@@ -1445,6 +1449,23 @@ describe("commitment acts record their sends", () => {
     );
     expect(sender.sendContractCall).not.toHaveBeenCalled();
     expect(hasRecordedSend(claim)).toBe(false);
+  });
+
+  it("names a revert from the chain as a refusal, so the queue does not try it again", async () => {
+    const claim = takeUp("claim-reverted");
+    const reverted = new ExecutionRevertedError();
+    const sender = createMockTransactionSender({ authMode: "wallet" });
+
+    const refusal = await executeCommitmentQueueJob(claim.id, claim, 42161, sender, {
+      demoActive: () => false,
+      reads: { ...reads(), simulateSend: vi.fn().mockRejectedValue(reverted) },
+      store: store(),
+    }).catch((error: unknown) => error);
+
+    expect(refusal).toBeInstanceOf(ActRefusedByChain);
+    expect((refusal as Error).message).toBe(reverted.message);
+    expect((refusal as Error).cause).toBe(reverted);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
 });
 

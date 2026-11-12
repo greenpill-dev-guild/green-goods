@@ -21,6 +21,7 @@ import type {
   ProcessJobResult,
 } from "./ports";
 import {
+  ActRefusedByChain,
   createOfflineTxHash,
   hasRecordedSend,
   isWaitingReprobeThrottled,
@@ -281,6 +282,17 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         await deps.store.markJobTerminalFailed(jobId, errorMessage);
         deps.events.emit("job:failed", { jobId, job, error: errorMessage });
         // The stored job's count moved, not this copy's: count the try that reverted.
+        deps.analytics.jobPermanentlyFailed({
+          ...job,
+          lastError: errorMessage,
+          attempts: job.attempts + 1,
+        });
+        return { success: false, error: errorMessage };
+      }
+      if (error instanceof ActRefusedByChain) {
+        await deps.store.markJobTerminalFailed(jobId, errorMessage);
+        const updated = (await deps.store.getJob(jobId)) ?? job;
+        deps.events.emit("job:failed", { jobId, job: updated, error: errorMessage });
         deps.analytics.jobPermanentlyFailed({
           ...job,
           lastError: errorMessage,

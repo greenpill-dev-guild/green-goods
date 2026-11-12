@@ -5,6 +5,18 @@ export const COMMITMENT_WAITING_REPROBE_MS = 30_000;
 /** The error a `job:failed` event carries when the person discarded the job. */
 export const JOB_DISCARDED = "discarded";
 
+/**
+ * The chain refused an act before it was signed, so the same send reverts on
+ * every try. The queue gives it up at once instead of spending its tries; Try
+ * Again still sends it. It keeps the refusal's own message.
+ */
+export class ActRefusedByChain extends Error {
+  constructor(refusal: Error) {
+    super(refusal.message, { cause: refusal });
+    this.name = "ActRefusedByChain";
+  }
+}
+
 export function createOfflineTxHash(jobId: string): `0x${string}` {
   const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");
   return `0xoffline_${paddedId}` as `0x${string}`;
