@@ -11325,7 +11325,8 @@
       "area": "Steward access",
       "scenario": "Request steward access and remain unprivileged while pending",
       "preconditions": [
-        "Signed-in requester without steward access; eligible garden; enabled request API"
+        "Signed-in requester without steward access; eligible garden; enabled request API",
+        "Required participants: requester."
       ],
       "steps": [
         "Choose the garden from the no-access screen and review the request",
@@ -11334,7 +11335,7 @@
       ],
       "expected": "Cancellation creates no request. A submitted request is pending for the chosen garden; it grants no role and protected actions remain unavailable.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "requester",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "steward-access"],
       "requiresProduction": false,
       "status": "active",
@@ -11374,7 +11375,10 @@
       "kind": "journey",
       "area": "Steward access",
       "scenario": "Decline, withdraw and resubmit without losing request history",
-      "preconditions": ["Requester and reviewer with separate disposable pending requests"],
+      "preconditions": [
+        "Requester and reviewer with separate disposable pending requests",
+        "Required participants: requester and steward."
+      ],
       "steps": [
         "Decline one request with a reason and read it as the requester",
         "Withdraw the other request and reload both queues",
@@ -11382,7 +11386,7 @@
       ],
       "expected": "Declined and withdrawn requests grant no role. Their outcomes remain legible; resubmission creates one current request without reviving an old approval.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "requester and steward",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "steward-access"],
       "requiresProduction": false,
       "status": "active",
@@ -11499,7 +11503,8 @@
       "scenario": "Keep Safe proposal, execution and acknowledgment separate through retry",
       "preconditions": [
         "Authorized test settlement through a Safe",
-        "Controlled delayed execution, delayed acknowledgment and replay fixture"
+        "Controlled delayed execution, delayed acknowledgment and replay fixture",
+        "Required participants: Safe signer and recipient."
       ],
       "steps": [
         "Propose the operation and reload before execution",
@@ -11508,7 +11513,7 @@
       ],
       "expected": "Proposal alone moves no value and is not completed. Execution awaiting acknowledgment stays pending. Retry or replay converges on one payout with consistent recipient balance and retained history.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "Safe signer and recipient",
+      "role": "steward",
       "tags": ["coverage-review-2026-11", "settlement", "tx"],
       "requiresProduction": false,
       "status": "active",
@@ -11548,7 +11553,8 @@
       "area": "Editor",
       "scenario": "Save and reopen authored content on the review branch",
       "preconditions": [
-        "Authorized editor; disposable authored page change; configured review branch confirmed before saving"
+        "Authorized editor; disposable authored page change; configured review branch confirmed before saving",
+        "Required participants: docs editor."
       ],
       "steps": [
         "Sign in to the editor and open an authored page",
@@ -11557,7 +11563,7 @@
       ],
       "expected": "Saved content survives reopening and preview. Existing anchors, images and metadata remain intact. The save targets the review branch and does not publish directly to production.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "docs editor",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "editor"],
       "requiresProduction": true,
       "status": "active",
@@ -11572,7 +11578,8 @@
       "area": "Editor",
       "scenario": "Refuse unauthorized edits and protect generated pages",
       "preconditions": [
-        "Signed-out browser and authorized editor; generated glossary and catalog pages"
+        "Signed-out browser and authorized editor; generated glossary and catalog pages",
+        "Required participants: docs editor."
       ],
       "steps": [
         "Try editing while signed out or unauthorized",
@@ -11581,7 +11588,7 @@
       ],
       "expected": "Unauthorized writes are refused. Generated pages and repository-owned creation/deletion remain outside the editor. Interrupted saving reports uncertainty without claiming the page was published.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "docs editor",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "editor"],
       "requiresProduction": true,
       "status": "active",
@@ -11597,7 +11604,8 @@
       "scenario": "Consent and pair a Telegram reporter with the intended account",
       "preconditions": [
         "Enabled Telegram reporting channel in the selected environment",
-        "Disposable conversation and member account; consent to private test media"
+        "Disposable conversation and member account; consent to private test media",
+        "Required participants: reporter."
       ],
       "steps": [
         "Start reporting and read the consent and account link",
@@ -11606,7 +11614,7 @@
       ],
       "expected": "Declining records no report. Pairing binds only the proven account and intended conversation; it grants no unrelated garden role.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "reporter",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "pairing"],
       "requiresProduction": true,
       "status": "active",
@@ -11622,7 +11630,8 @@
       "scenario": "Correct a report and publish one Work through browser authorization",
       "preconditions": [
         "AGT-001 paired member; authorized test submission",
-        "Disposable text, photo, voice and document samples; only supported evidence is accepted"
+        "Disposable text, photo, voice and document samples; only supported evidence is accepted",
+        "Required participants: reporter."
       ],
       "steps": [
         "Create a report, attach supported media and correct the action, description or garden before confirmation",
@@ -11631,7 +11640,7 @@
       ],
       "expected": "The review matches the corrected report and accepted evidence. Unsupported input is explained. Rejection sends nothing; confirmed submission publishes one Work under the paired account, never an automatic approval.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "reporter",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "reporting", "tx"],
       "requiresProduction": true,
       "status": "active",
@@ -11647,7 +11656,8 @@
       "scenario": "Independently review chat-submitted Work and verify the reporter’s result",
       "preconditions": [
         "AGT-002 published Work",
-        "Independent steward outside the contributor roster; authorized review"
+        "Independent steward outside the contributor roster; authorized review",
+        "Required participants: steward and reporter."
       ],
       "steps": [
         "Find the same Work and evidence in the cockpit",
@@ -11656,7 +11666,7 @@
       ],
       "expected": "The independent review and feedback agree across chat, app and cockpit. A Work receipt is not confused with review approval or payout.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "steward and reporter",
+      "role": "steward",
       "tags": ["coverage-review-2026-11", "review", "tx"],
       "requiresProduction": true,
       "status": "active",
@@ -11671,7 +11681,8 @@
       "area": "Authorization",
       "scenario": "Reject expired, forwarded and wrong-account reporting links",
       "preconditions": [
-        "Disposable expired link, valid link opened by another identity and revoked garden role"
+        "Disposable expired link, valid link opened by another identity and revoked garden role",
+        "Required participants: reporter."
       ],
       "steps": [
         "Open each link and try to continue",
@@ -11680,7 +11691,7 @@
       ],
       "expected": "Expired or mismatched links and missing authority cannot publish or rebind the report. A valid recovery resumes the intended report without exposing private content to another account.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "reporter",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "authorization"],
       "requiresProduction": true,
       "status": "active",
@@ -11696,7 +11707,8 @@
       "scenario": "Recover provider redelivery and restart without duplicate Work",
       "preconditions": [
         "Controlled Telegram replay and Agent restart environment",
-        "One report paused before confirmation and one with a known send reference"
+        "One report paused before confirmation and one with a known send reference",
+        "Required participants: reporter and QA operator."
       ],
       "steps": [
         "Redeliver the same provider event",
@@ -11705,7 +11717,7 @@
       ],
       "expected": "Provider duplicates produce no second draft or Work. A restart retains the correct report. An uncertain send is reconciled against its receipt and cannot silently submit twice.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "reporter and QA operator",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "recovery"],
       "requiresProduction": false,
       "status": "active",
@@ -11721,7 +11733,8 @@
       "scenario": "Expire or revoke delegated reporting authority",
       "preconditions": [
         "Explicitly enabled delegation on a test account with scoped authority",
-        "Authorized grant and revocation actions"
+        "Authorized grant and revocation actions",
+        "Required participants: reporter."
       ],
       "steps": [
         "Review and grant the bounded permission",
@@ -11730,7 +11743,7 @@
       ],
       "expected": "Only the reviewed scope is usable. Expired or revoked authority blocks new execution and offers fresh authorization; it never silently extends itself.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "reporter",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "permissions", "tx"],
       "requiresProduction": true,
       "status": "active",
@@ -11745,7 +11758,8 @@
       "area": "Privacy",
       "scenario": "Stop reporting and delete eligible private conversation data",
       "preconditions": [
-        "Disposable conversation with consent and an unpublished draft; retain public Work separately"
+        "Disposable conversation with consent and an unpublished draft; retain public Work separately",
+        "Required participants: reporter."
       ],
       "steps": [
         "Use the supported stop command and try to continue",
@@ -11754,7 +11768,7 @@
       ],
       "expected": "Stop prevents further reporting until fresh consent. Deletion removes eligible private material and explains immutable public records; it never promises to erase an onchain Work.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "reporter",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "privacy"],
       "requiresProduction": true,
       "status": "active",
@@ -11770,7 +11784,8 @@
       "scenario": "Authenticate and save one private verdict across reload",
       "preconditions": [
         "Hosted QA app; allowlisted tester and a non-allowlisted wallet",
-        "Disposable run; record its environment, catalog revision and build under test"
+        "Disposable run; record its environment, catalog revision and build under test",
+        "Required participants: allowlisted QA tester."
       ],
       "steps": [
         "Try sign-in with the non-allowlisted wallet, then cancel and complete allowed sign-in",
@@ -11779,7 +11794,7 @@
       ],
       "expected": "Unauthorized access is refused and cancellation is retryable. The allowed tester’s verdict and note persist in the intended run without exposing private data publicly.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "allowlisted QA tester",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "recording"],
       "requiresProduction": true,
       "status": "active",
@@ -11794,7 +11809,8 @@
       "area": "Recording",
       "scenario": "Converge two devices and recover an offline verdict",
       "preconditions": [
-        "QA-001 signed-in tester on two devices; second tester on a different case"
+        "QA-001 signed-in tester on two devices; second tester on a different case",
+        "Required participants: allowlisted QA tester."
       ],
       "steps": [
         "Change a verdict on one device and its note on the other",
@@ -11803,7 +11819,7 @@
       ],
       "expected": "Field changes converge without overwriting confirmed edits or another tester. Offline changes remain local with an honest unsaved message and sync once into their original open run.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "allowlisted QA tester",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "recording"],
       "requiresProduction": true,
       "status": "active",
@@ -11818,7 +11834,8 @@
       "area": "Runs",
       "scenario": "Roll over with unsaved edits and preserve closed-run history",
       "preconditions": [
-        "Disposable QA run; two testers; one live unsaved edit and one outbox recovered after reload"
+        "Disposable QA run; two testers; one live unsaved edit and one outbox recovered after reload",
+        "Required participants: allowlisted QA tester."
       ],
       "steps": [
         "Have both testers start the successor run at nearly the same time",
@@ -11827,7 +11844,7 @@
       ],
       "expected": "Exactly one successor is open. Closed history cannot be edited; live edits explain their new destination and recovered old-run edits wait for an explicit decision. No verdict silently moves to another run.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "allowlisted QA tester",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "runs"],
       "requiresProduction": true,
       "status": "active",
@@ -11842,7 +11859,8 @@
       "area": "Runs",
       "scenario": "Verify catalog revision and distinguish regression from rollout results",
       "preconditions": [
-        "A QA deployment with the intended catalog revision; known build identifiers"
+        "A QA deployment with the intended catalog revision; known build identifiers",
+        "Required participants: allowlisted QA tester."
       ],
       "steps": [
         "Compare the deployed revision with the catalog being reviewed and record the product builds",
@@ -11851,7 +11869,7 @@
       ],
       "expected": "The run identifies the exact catalog and builds. Rollout cases are visibly separate and are not treated as proof of shipped behavior; retired IDs retain history but cannot be walked.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "allowlisted QA tester",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "runs"],
       "requiresProduction": true,
       "status": "active",
@@ -11867,7 +11885,8 @@
       "scenario": "In progress: revise an issuer draft and obtain fresh member approval",
       "preconditions": [
         "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
-        "Issuer-desk rollout enabled; issuer and authorized reviewer with disposable draft"
+        "Issuer-desk rollout enabled; issuer and authorized reviewer with disposable draft",
+        "Required participants: issuer and steward."
       ],
       "steps": [
         "Create and review a draft with terms and proposed pool",
@@ -11876,7 +11895,7 @@
       ],
       "expected": "Revision history is retained. Old approval cannot authorize changed terms; activation remains gated until the exact current revision and authorities are approved.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "issuer and steward",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "issuer-desk", "tx", "in-progress"],
       "requiresProduction": false,
       "status": "active",
@@ -11892,7 +11911,8 @@
       "scenario": "In progress: choose the explicit exchange pool and reconcile the receipt",
       "preconditions": [
         "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
-        "Reviewed issuer-desk revision; two configured garden exchange pools; authorized test funds"
+        "Reviewed issuer-desk revision; two configured garden exchange pools; authorized test funds",
+        "Required participants: member and steward."
       ],
       "steps": [
         "Choose the destination pool and inspect the route, asset and terms",
@@ -11901,7 +11921,7 @@
       ],
       "expected": "Only the explicitly selected reviewed pool is used. Unavailable routes cannot send; reload never duplicates exchange or approval, and the receipt records the actual pool.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "member and steward",
+      "role": "gardener",
       "tags": ["coverage-review-2026-11", "voucher-exchange", "tx", "in-progress"],
       "requiresProduction": false,
       "status": "active",
@@ -11917,7 +11937,8 @@
       "scenario": "In progress: propose an award and reconcile Safe execution once",
       "preconditions": [
         "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
-        "Voucher-award rollout enabled; authorized proposer and Safe executor; disposable eligible award"
+        "Voucher-award rollout enabled; authorized proposer and Safe executor; disposable eligible award",
+        "Required participants: steward and Safe signer."
       ],
       "steps": [
         "Review recipient, asset, amount and authority; cancel once",
@@ -11926,7 +11947,7 @@
       ],
       "expected": "Cancel changes nothing. Proposal is not payment; confirmed execution records one award and one recipient credit, retaining receipt history across retries.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "steward and Safe signer",
+      "role": "steward",
       "tags": ["coverage-review-2026-11", "voucher-awards", "tx", "in-progress"],
       "requiresProduction": false,
       "status": "active",
@@ -11967,7 +11988,8 @@
       "scenario": "In progress: operate limits within policy and enforce role loss",
       "preconditions": [
         "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
-        "Reviewed Hats jar pair on a test garden; owner, steward, gardener and unrelated accounts"
+        "Reviewed Hats jar pair on a test garden; owner, steward, gardener and unrelated accounts",
+        "Required participants: owner and steward."
       ],
       "steps": [
         "Inspect and change operational limits as each role",
@@ -11976,7 +11998,7 @@
       ],
       "expected": "Only the designated role can act within policy. Limits, cooldown and budget reject boundary violations; role loss is rechecked. Legacy and new jars retain their distinct permission rules.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "owner and steward",
+      "role": "steward",
       "tags": ["coverage-review-2026-11", "hats-jars", "tx", "in-progress"],
       "requiresProduction": false,
       "status": "active",
@@ -11992,7 +12014,8 @@
       "scenario": "In progress: apply delayed policy and recover a paused jar safely",
       "preconditions": [
         "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
-        "Reviewed Hats jar pair and authorized governor; disposable balance and approved recovery destination"
+        "Reviewed Hats jar pair and authorized governor; disposable balance and approved recovery destination",
+        "Required participants: owner and steward."
       ],
       "steps": [
         "Propose a policy, try early execution, cancel it and propose a replacement",
@@ -12001,7 +12024,7 @@
       ],
       "expected": "Only the current policy executes after its delay. Pause blocks claims; unpause and recovery require their designated authority. Recovery uses only the approved destination and uncertain receipts are checked before retrying.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "owner and steward",
+      "role": "steward",
       "tags": ["coverage-review-2026-11", "hats-jars", "tx", "in-progress"],
       "requiresProduction": false,
       "status": "active",
@@ -12018,7 +12041,8 @@
       "preconditions": [
         "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
         "Pinned pre-migration fork and reviewed manifest of every garden and asset pair",
-        "No live broadcast; use the owning migration rehearsal and direct adapter tests"
+        "No live broadcast; use the owning migration rehearsal and direct adapter tests",
+        "Required participants: release operator."
       ],
       "steps": [
         "Snapshot legacy registry, balances, roles and yield destinations",
@@ -12027,7 +12051,7 @@
       ],
       "expected": "A failed pair leaves neither partial deployment nor partial registration. Changed roles, factory or existing entries reject stale calldata. Successful pairs map the intended assets; old history is retained and active new jars cannot be unlisted as legacy.",
       "evidence": "Private screenshots and observed state; include build, environment, role and case ID. Keep identities and transaction references in the private run.",
-      "role": "release operator",
+      "role": "any",
       "tags": ["coverage-review-2026-11", "hats-jars", "in-progress"],
       "requiresProduction": false,
       "status": "active",

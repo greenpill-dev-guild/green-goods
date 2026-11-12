@@ -332,7 +332,8 @@
     "QA-004": {
       "scenario": "Confira a revisão do catálogo e separe regressão de implantação em andamento",
       "preconditions": [
-        "Implantação QA com a revisão prevista do catálogo; identificadores de versão conhecidos"
+        "Implantação QA com a revisão prevista do catálogo; identificadores de versão conhecidos",
+        "Participantes necessários: pessoa autorizada para QA."
       ],
       "steps": [
         "Compare a revisão implantada com o catálogo revisado e registre as versões do produto",
@@ -340,13 +341,14 @@
         "Leia o relatório privado por superfície e confira os IDs aposentados"
       ],
       "expected": "A rodada identifica catálogo e versões exatos. Casos de implantação ficam separados e não provam comportamento já publicado; IDs aposentados mantêm histórico, mas não são executados.",
-      "role": "pessoa autorizada para QA"
+      "role": "qualquer pessoa"
     },
     "ROLL-006": {
       "scenario": "Em andamento: aplique uma política adiada e recupere um jar pausado",
       "preconditions": [
         "Condição de ativação: use apenas a versão de implantação delimitada e revisada; este caso não prova que a função foi publicada.",
-        "Par de jars Hats revisado e autoridade de governo; saldo descartável e destino de recuperação aprovado"
+        "Par de jars Hats revisado e autoridade de governo; saldo descartável e destino de recuperação aprovado",
+        "Participantes necessários: pessoa proprietária e responsável."
       ],
       "steps": [
         "Proponha uma política, tente executar cedo, cancele e proponha outra",
@@ -354,13 +356,14 @@
         "Pause e teste a recusa de saques; confira autoridades de retomada e recuperação e rejeite destino errado"
       ],
       "expected": "Só a política atual executa após a espera. A pausa bloqueia saques; retomar e recuperar exige a autoridade designada. A recuperação usa o destino aprovado e confere confirmações incertas antes de repetir.",
-      "role": "pessoa proprietária e responsável"
+      "role": "responsável"
     },
     "AGT-001": {
       "scenario": "Dê consentimento e vincule o relato do Telegram à conta prevista",
       "preconditions": [
         "Canal de relatos do Telegram habilitado no ambiente escolhido",
-        "Conversa descartável e conta membro; consentimento para mídia privada de teste"
+        "Conversa descartável e conta membro; consentimento para mídia privada de teste",
+        "Participantes necessários: pessoa que relata."
       ],
       "steps": [
         "Inicie o relato e leia o consentimento e o link da conta",
@@ -368,7 +371,7 @@
         "Conclua a prova da conta e volte à conversa"
       ],
       "expected": "Recusar não registra relato. O vínculo une apenas a conta comprovada e a conversa prevista; não concede outros papéis no jardim.",
-      "role": "pessoa que relata"
+      "role": "membro"
     },
     "PWA-141": {
       "scenario": "Receba o serviço e confira os vales retidos, gastos e devolvidos",
@@ -389,7 +392,8 @@
       "scenario": "Revise o trabalho do chat de forma independente e confira o resultado",
       "preconditions": [
         "Trabalho publicado por AGT-002",
-        "Responsável independente fora da lista de contribuintes; revisão autorizada"
+        "Responsável independente fora da lista de contribuintes; revisão autorizada",
+        "Participantes necessários: responsável e autor do relato."
       ],
       "steps": [
         "Encontre o mesmo trabalho e suas evidências no painel",
@@ -397,13 +401,14 @@
         "Como autor do relato, leia o resultado no chat e no app"
       ],
       "expected": "A revisão independente e os comentários coincidem no chat, app e painel. A confirmação do trabalho não se confunde com aprovação ou pagamento.",
-      "role": "responsável e autor do relato"
+      "role": "responsável"
     },
     "AGT-002": {
       "scenario": "Corrija um relato e publique um trabalho com autorização no navegador",
       "preconditions": [
         "Membro vinculado por AGT-001; envio de teste autorizado",
-        "Amostras descartáveis de texto, foto, voz e documento; apenas evidência compatível é aceita"
+        "Amostras descartáveis de texto, foto, voz e documento; apenas evidência compatível é aceita",
+        "Participantes necessários: pessoa que relata."
       ],
       "steps": [
         "Crie um relato, anexe mídia compatível e corrija ação, descrição ou jardim antes de confirmar",
@@ -411,13 +416,14 @@
         "Tente novamente, confirme e espere a confirmação; abra o trabalho no app"
       ],
       "expected": "A revisão corresponde ao relato corrigido e à evidência aceita. Entradas incompatíveis são explicadas. Recusar não envia nada; o envio confirmado publica um trabalho sob a conta vinculada, sem aprovação automática.",
-      "role": "pessoa que relata"
+      "role": "membro"
     },
     "ROLL-002": {
       "scenario": "Em andamento: escolha o pool de troca e concilie a confirmação",
       "preconditions": [
         "Condição de ativação: use apenas a versão de implantação delimitada e revisada; este caso não prova que a função foi publicada.",
-        "Revisão aprovada do emissor; dois pools de troca de jardim configurados; fundos de teste autorizados"
+        "Revisão aprovada do emissor; dois pools de troca de jardim configurados; fundos de teste autorizados",
+        "Participantes necessários: membro e responsável."
       ],
       "steps": [
         "Escolha o pool de destino e confira rota, ativo e termos",
@@ -425,25 +431,29 @@
         "Recarregue durante a consulta de confirmação e concilie a operação conhecida"
       ],
       "expected": "Só o pool explícito e revisado é usado. Uma rota indisponível não envia; recarregar não duplica troca ou aprovação, e a confirmação registra o pool real.",
-      "role": "membro e responsável"
+      "role": "membro"
     },
     "QA-002": {
       "scenario": "Concilie dois dispositivos e recupere um veredicto offline",
-      "preconditions": ["Pessoa de QA-001 em dois dispositivos; segunda pessoa em outro caso"],
+      "preconditions": [
+        "Pessoa de QA-001 em dois dispositivos; segunda pessoa em outro caso",
+        "Participantes necessários: pessoa autorizada para QA."
+      ],
       "steps": [
         "Mude o veredicto em um dispositivo e a nota no outro",
         "Desconecte a rede, edite outra nota e recarregue",
         "Reconecte e compare ambos os dispositivos e o registro da outra pessoa"
       ],
       "expected": "Os campos convergem sem sobrescrever mudanças confirmadas nem outro registro. Mudanças offline ficam locais com aviso claro e sincronizam uma vez na rodada original aberta.",
-      "role": "pessoa autorizada para QA"
+      "role": "qualquer pessoa"
     },
     "ROLL-007": {
       "scenario": "Em andamento: ensaie a migração atômica e confira os dois jars por jardim",
       "preconditions": [
         "Condição de ativação: use apenas a versão de implantação delimitada e revisada; este caso não prova que a função foi publicada.",
         "Fork fixado antes da migração e manifesto revisado de cada jardim e par de ativos",
-        "Sem transações ao vivo; use o ensaio de migração e os testes diretos do adaptador"
+        "Sem transações ao vivo; use o ensaio de migração e os testes diretos do adaptador",
+        "Participantes necessários: pessoa responsável pela publicação."
       ],
       "steps": [
         "Registre cadastro antigo, saldos, papéis e destinos de rendimento",
@@ -451,12 +461,13 @@
         "Tente novamente da mesma base e leia as duas entradas, identidades da fábrica e destinos"
       ],
       "expected": "Um par que falha não deixa implantação ou cadastro parciais. Mudanças de papéis, fábrica ou entradas existentes rejeitam chamadas antigas. Pares válidos mapeiam os ativos previstos; o histórico permanece e jars novos ativos não são removidos como antigos.",
-      "role": "pessoa responsável pela publicação"
+      "role": "qualquer pessoa"
     },
     "ADM-201": {
       "scenario": "Solicite acesso de responsável sem privilégios enquanto estiver pendente",
       "preconditions": [
-        "Solicitante com sessão iniciada sem acesso de responsável; jardim elegível; API habilitada"
+        "Solicitante com sessão iniciada sem acesso de responsável; jardim elegível; API habilitada",
+        "Participantes necessários: solicitante."
       ],
       "steps": [
         "Escolha o jardim na tela sem acesso e confira a solicitação",
@@ -464,13 +475,14 @@
         "Recarregue e abra uma rota protegida do jardim"
       ],
       "expected": "Cancelar não cria solicitação. A solicitação enviada fica pendente para o jardim escolhido; não concede papel e as ações protegidas continuam indisponíveis.",
-      "role": "solicitante"
+      "role": "qualquer pessoa"
     },
     "ROLL-005": {
       "scenario": "Em andamento: ajuste limites dentro da política e confira a perda de papel",
       "preconditions": [
         "Condição de ativação: use apenas a versão de implantação delimitada e revisada; este caso não prova que a função foi publicada.",
-        "Par de jars Hats revisado em jardim de teste; contas proprietária, responsável, membro e externa"
+        "Par de jars Hats revisado em jardim de teste; contas proprietária, responsável, membro e externa",
+        "Participantes necessários: pessoa proprietária e responsável."
       ],
       "steps": [
         "Inspecione e mude os limites operacionais com cada papel",
@@ -478,7 +490,7 @@
         "Revogue o papel antes da confirmação e tente novamente; inspecione os jars antigos separadamente"
       ],
       "expected": "Só o papel designado atua dentro da política. Limites, espera e orçamento recusam violações, e o papel é conferido novamente. Jars antigos e novos mantêm regras distintas.",
-      "role": "pessoa proprietária e responsável"
+      "role": "responsável"
     },
     "PWA-145": {
       "scenario": "Assine após recuperar a passkey e mantenha as contas isoladas",
@@ -499,7 +511,8 @@
       "scenario": "Em andamento: revise um rascunho de emissor e obtenha nova aprovação",
       "preconditions": [
         "Condição de ativação: use apenas a versão de implantação delimitada e revisada; este caso não prova que a função foi publicada.",
-        "Mesa de emissores habilitada; emissor e pessoa revisora autorizada com rascunho descartável"
+        "Mesa de emissores habilitada; emissor e pessoa revisora autorizada com rascunho descartável",
+        "Participantes necessários: emissor e responsável."
       ],
       "steps": [
         "Crie e revise um rascunho com termos e pool proposto",
@@ -507,13 +520,14 @@
         "Tente ativar com a aprovação antiga e revise a versão atual"
       ],
       "expected": "O histórico permanece. A aprovação anterior não autoriza termos alterados; a ativação espera a revisão atual exata e as autoridades aprovadas.",
-      "role": "emissor e responsável"
+      "role": "qualquer pessoa"
     },
     "QA-001": {
       "scenario": "Autentique-se e mantenha um veredicto privado após recarregar",
       "preconditions": [
         "App QA hospedado; pessoa autorizada e carteira não autorizada",
-        "Rodada descartável; registre ambiente, revisão do catálogo e versão testada"
+        "Rodada descartável; registre ambiente, revisão do catálogo e versão testada",
+        "Participantes necessários: pessoa autorizada para QA."
       ],
       "steps": [
         "Tente entrar com a carteira não autorizada; depois cancele e conclua o acesso autorizado",
@@ -521,7 +535,7 @@
         "Espere a confirmação de salvamento, recarregue e leia o mesmo caso"
       ],
       "expected": "O acesso não autorizado é recusado e cancelar permite nova tentativa. O veredicto e a nota persistem na rodada prevista sem publicar dados privados.",
-      "role": "pessoa autorizada para QA"
+      "role": "qualquer pessoa"
     },
     "PWA-140": {
       "scenario": "Aprove os termos e reserve o valor combinado",
@@ -540,7 +554,8 @@
     "QA-003": {
       "scenario": "Abra a próxima rodada com edições pendentes e preserve o histórico",
       "preconditions": [
-        "Rodada QA descartável; duas pessoas; uma edição ativa não salva e uma fila recuperada ao recarregar"
+        "Rodada QA descartável; duas pessoas; uma edição ativa não salva e uma fila recuperada ao recarregar",
+        "Participantes necessários: pessoa autorizada para QA."
       ],
       "steps": [
         "Ambas as pessoas tentam abrir a próxima rodada quase ao mesmo tempo",
@@ -548,7 +563,7 @@
         "Abra a rodada encerrada e compare com a seguinte"
       ],
       "expected": "Só uma rodada sucessora fica aberta. O histórico encerrado não pode ser editado; edições ativas explicam o novo destino e edições antigas recuperadas esperam decisão explícita. Nenhum veredicto muda de rodada em silêncio.",
-      "role": "pessoa autorizada para QA"
+      "role": "qualquer pessoa"
     },
     "ADM-205": {
       "scenario": "Resolva uma reserva com os termos e o valor aprovados",
