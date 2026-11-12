@@ -20,6 +20,12 @@ const plan = () => buildCLCAiyelojaPlan(structuredClone(manifest), revision);
 describe("Aiyeloja test-only pool preparation", () => {
   it("deploys nine initialized proxies with Safe custody and no production-token calls", () => {
     const p = plan();
+    expect(p.safeBatchExecutor).toEqual({
+      version: "1.4.1",
+      address: "0x9641d764fc13c8B624c04430C7356C1C7C8102e2",
+      runtimeHash: "0xecd5bd14a08c5d2122379900b2f272bdf107a7e92423c10dd5fe3254386c9939",
+      operation: 1,
+    });
     expect(p.transactions).toHaveLength(9);
     expect(p.transactions.map((tx) => tx.nonce)).toEqual(Array.from({ length: 9 }, (_, i) => manifest.nonce + i));
     expect(new Set(p.transactions.map((tx) => tx.address)).size).toBe(9);
@@ -98,6 +104,13 @@ describe("Aiyeloja test-only pool preparation", () => {
   it("binds every deployment and Safe call, and keeps deterministic addresses independent of sender nonce", () => {
     const p = plan();
     validateCLCAiyelojaPlan(p, manifest, revision);
+    expect(() =>
+      validateCLCAiyelojaPlan(
+        { ...p, safeBatchExecutor: { ...p.safeBatchExecutor, address: ZeroAddress } },
+        manifest,
+        revision,
+      ),
+    ).toThrow("plan mismatch");
     expect(() => validateCLCAiyelojaPlan({ ...p, batches: [] }, manifest, revision)).toThrow("plan mismatch");
     expect(() => validateCLCAiyelojaPlan(p, { ...manifest, safeNonce: 1 }, revision)).toThrow("plan mismatch");
     const next = buildCLCAiyelojaPlan({ ...manifest, nonce: manifest.nonce + 9 }, revision);

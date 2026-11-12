@@ -1,5 +1,10 @@
 import { Contract, getAddress, JsonRpcProvider, keccak256 } from "ethers";
-import { type CLCAiyelojaPlan, AIYELOJA_MULTISEND, AIYELOJA_TEST_SAFE } from "./clc-aiyeloja-release";
+import {
+  type CLCAiyelojaPlan,
+  AIYELOJA_MULTISEND,
+  AIYELOJA_MULTISEND_RUNTIME_HASH,
+  AIYELOJA_TEST_SAFE,
+} from "./clc-aiyeloja-release";
 import {
   CLC_DEPENDENCIES,
   CLC_FACTORY_ABI,
@@ -20,6 +25,7 @@ export function aiyelojaEqual(actual: unknown, expected: unknown, label: string)
   if (String(actual).toLowerCase() !== String(expected).toLowerCase()) throw new Error(`Aiyeloja ${label} mismatch`);
 }
 export const AIYELOJA_SAFE_ABI = [
+  "function VERSION() view returns(string)",
   "function getOwners() view returns(address[])",
   "function getThreshold() view returns(uint256)",
   "function nonce() view returns(uint256)",
@@ -33,6 +39,7 @@ const SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
 export async function verifyAiyelojaAuthority(provider: JsonRpcProvider, plan: CLCAiyelojaPlan, initialNonce = false) {
   aiyelojaEqual((await provider.getNetwork()).chainId, 100, "chain");
   const safe = new Contract(AIYELOJA_TEST_SAFE, AIYELOJA_SAFE_ABI, provider);
+  aiyelojaEqual(await safe.VERSION(), plan.safeBatchExecutor.version, "Safe version");
   const owners: string[] = (await safe.getOwners()).map(getAddress);
   aiyelojaEqual([...owners].sort().join(), [...plan.safeOwners].sort().join(), "reviewed test Safe owners");
   aiyelojaEqual(await safe.getThreshold(), 1, "one-signature test Safe");
@@ -62,7 +69,7 @@ export async function verifyAiyelojaAuthority(provider: JsonRpcProvider, plan: C
   );
   aiyelojaEqual(
     keccak256(await provider.getCode(AIYELOJA_MULTISEND)),
-    "0xa9865ac2d9c7a1591619b188c4d88167b50df6cc0c5327fcbd1c8c75f7c066ad",
+    AIYELOJA_MULTISEND_RUNTIME_HASH,
     "pinned MultiSendCallOnly runtime",
   );
   return {

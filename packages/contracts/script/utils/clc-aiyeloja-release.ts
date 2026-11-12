@@ -16,7 +16,9 @@ import { voucherDigest } from "./voucher-release";
 
 export const AIYELOJA_TEST_SAFE = getAddress("0xdeB7d1990a643Aa4954ff179e9683Ed4693A955c");
 export const AIYELOJA_GARDEN = getAddress("0xF7b892886998DAe960D64a9db488336684F137A0");
-export const AIYELOJA_MULTISEND = getAddress("0x40A2aCCbd92BCA938b02010E17A5b8929b49130D");
+export const AIYELOJA_MULTISEND = getAddress("0x9641d764fc13c8B624c04430C7356C1C7C8102e2");
+// Safe deployments v1.4.1, verified on Gnosis; match the Transaction Builder SDK version.
+export const AIYELOJA_MULTISEND_RUNTIME_HASH = "0xecd5bd14a08c5d2122379900b2f272bdf107a7e92423c10dd5fe3254386c9939";
 export const AIYELOJA_TOKEN_ABI = [...CLC_TOKEN_ABI, "function transfer(address,uint256) returns(bool)"];
 export const AIYELOJA_SWAP_ABI = [
   ...CLC_POOL_ABI,
@@ -72,6 +74,7 @@ export interface CLCAiyelojaPlan {
   safe: string;
   safeOwners: string[];
   automation: string;
+  safeBatchExecutor: { version: "1.4.1"; address: string; runtimeHash: string; operation: 1 };
   addresses: Record<CLCGardenPoolComponent, string>;
   assets: (CLCAiyelojaManifest["tokens"][number] & { token: string; owner: string; admin: string })[];
   transactions: AiyelojaDeployment[];
@@ -272,6 +275,12 @@ export function buildCLCAiyelojaPlan(value: unknown, sourceCommit: string): CLCA
     safe,
     safeOwners: m.safeOwners.map(getAddress),
     automation: getAddress(m.automation),
+    safeBatchExecutor: {
+      version: "1.4.1",
+      address: AIYELOJA_MULTISEND,
+      runtimeHash: AIYELOJA_MULTISEND_RUNTIME_HASH,
+      operation: 1,
+    },
     addresses,
     assets,
     transactions,
