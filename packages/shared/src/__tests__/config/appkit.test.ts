@@ -5,9 +5,33 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockCreateAppKit, mockEnv, mockHttp, mockSetThemeMode, mockWagmiAdapter } = vi.hoisted(
-  () => ({
-    mockCreateAppKit: vi.fn((_options?: unknown) => ({ setThemeMode: mockSetThemeMode })),
+const {
+  mockCreateAppKit,
+  mockEnv,
+  mockGetUniversalProvider,
+  mockHttp,
+  mockSetThemeMode,
+  mockWagmiAdapter,
+  mockWalletConnectMetadata,
+} = vi.hoisted(() => {
+  const mockWalletConnectMetadata: Record<string, unknown> = {
+    name: "Green Goods",
+    description: "WalletConnect metadata",
+    url: "https://www.greengoods.app",
+    icons: [],
+  };
+  const mockGetUniversalProvider = vi.fn(
+    async (): Promise<{ client: { metadata: Record<string, unknown> } } | undefined> => ({
+      client: { metadata: mockWalletConnectMetadata },
+    })
+  );
+  return {
+    mockGetUniversalProvider,
+    mockWalletConnectMetadata,
+    mockCreateAppKit: vi.fn((_options?: unknown) => ({
+      setThemeMode: mockSetThemeMode,
+      getUniversalProvider: mockGetUniversalProvider,
+    })),
     mockEnv: {
       VITE_ALCHEMY_API_KEY: "",
       VITE_WALLETCONNECT_PROJECT_ID: "env-project",
@@ -22,8 +46,8 @@ const { mockCreateAppKit, mockEnv, mockHttp, mockSetThemeMode, mockWagmiAdapter 
     ) {
       this.wagmiConfig = { kind: "wagmi-config", config };
     }),
-  })
-);
+  };
+});
 
 vi.mock("viem", () => ({
   http: (url: string) => mockHttp(url),
@@ -62,6 +86,11 @@ describe("AppKit config", () => {
     mockHttp.mockClear();
     mockCreateAppKit.mockClear();
     mockWagmiAdapter.mockClear();
+    mockGetUniversalProvider.mockReset();
+    mockGetUniversalProvider.mockResolvedValue({
+      client: { metadata: mockWalletConnectMetadata },
+    });
+    delete mockWalletConnectMetadata.redirect;
   });
 
   it("builds explicit HTTP transports for every supported chain", () => {
@@ -162,6 +191,92 @@ describe("AppKit config", () => {
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining("Set it in .env (or run `bun run env:sync`")
     );
+  });
+
+  it("puts the PWA return fallback on WalletConnect metadata even when AppKit drops it", async () => {
+    vi.resetModules();
+    const { ensureAppKit: ensureFreshAppKit } = await import("../../config/appkit");
+    const redirect = {
+      native: "https://beta.greengoods.app/home/",
+      universal: "https://beta.greengoods.app/home/",
+    };
+    const metadata = {
+      name: "Green Goods",
+      description: "Test metadata",
+      url: "https://www.greengoods.app",
+      icons: [],
+      redirect,
+    };
+
+    ensureFreshAppKit({ metadata });
+
+    await vi.waitFor(() => {
+      expect(mockWalletConnectMetadata).toMatchObject({
+        name: "Green Goods",
+        url: "https://www.greengoods.app",
+        redirect,
+      });
+    });
+  });
+
+  it("leaves wallet provider initialization alone when no return fallback is requested", async () => {
+    vi.resetModules();
+    const { ensureAppKit: ensureFreshAppKit } = await import("../../config/appkit");
+
+    ensureFreshAppKit();
+
+    expect(mockGetUniversalProvider).not.toHaveBeenCalled();
+    expect(mockWalletConnectMetadata).not.toHaveProperty("redirect");
+  });
+
+  it("adds the PWA fallback to an existing AppKit without replacing its wallet connection", async () => {
+    vi.resetModules();
+    const { ensureAppKit: ensureFreshAppKit } = await import("../../config/appkit");
+    const first = ensureFreshAppKit();
+    const second = ensureFreshAppKit({
+      metadata: {
+        name: "Green Goods",
+        description: "Test metadata",
+        url: "https://www.greengoods.app",
+        icons: [],
+        redirect: { native: "https://beta.greengoods.app/home/" },
+      },
+    });
+
+    expect(second.appKit).toBe(first.appKit);
+    expect(second.wagmiConfig).toBe(first.wagmiConfig);
+    expect(mockCreateAppKit).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(mockWalletConnectMetadata.redirect).toEqual({
+        native: "https://beta.greengoods.app/home/",
+      });
+    });
+  });
+
+  it.each([
+    "unavailable",
+    "rejected",
+  ])("keeps AppKit usable when the return fallback provider is %s", async (failure) => {
+    vi.resetModules();
+    const { ensureAppKit: ensureFreshAppKit } = await import("../../config/appkit");
+    const { logger } = await import("../../modules/app/logger");
+    vi.mocked(logger.warn).mockClear();
+    if (failure === "unavailable") mockGetUniversalProvider.mockResolvedValueOnce(undefined);
+    else mockGetUniversalProvider.mockRejectedValueOnce(new Error("WalletConnect unavailable"));
+
+    const result = ensureFreshAppKit({
+      metadata: {
+        name: "Green Goods",
+        description: "Test metadata",
+        url: "https://www.greengoods.app",
+        icons: [],
+        redirect: { native: "https://beta.greengoods.app/home/" },
+      },
+    });
+
+    expect(result.wagmiConfig).toBeDefined();
+    await vi.waitFor(() => expect(logger.warn).toHaveBeenCalled());
+    expect(mockWalletConnectMetadata).not.toHaveProperty("redirect");
   });
 
   it.each([
