@@ -26,6 +26,7 @@ vi.mock("@wagmi/core", () => ({ readContract: (...args: unknown[]) => mocks.read
 let client: ReturnType<typeof createTestQueryClient>;
 beforeEach(() => {
   client = createTestQueryClient();
+  mocks.account = "0x1111111111111111111111111111111111111111";
   mocks.chain = 42161;
   mocks.read.mockReset().mockImplementation(async (_config, call) => {
     if (call.functionName === "protocolRoleHats") return [1n, 2n, 3n, 4n];
@@ -78,5 +79,27 @@ describe("effective protocol Hat membership", () => {
     rerender();
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.team).toBe(false);
+  });
+
+  it("does not retain Team authority when the signing account changes", async () => {
+    const { result, rerender } = renderHookWithQueryClient(useProtocolRoles, {
+      queryClient: client,
+    });
+    await waitFor(() => expect(result.current.team).toBe(true));
+    mocks.account = "0x4444444444444444444444444444444444444444";
+    mocks.read.mockImplementation(async (_config, call) => {
+      if (call.functionName === "protocolRoleHats") return [1n, 2n, 3n, 4n];
+      if (call.functionName === "hats") return "0x3333333333333333333333333333333333333333";
+      return false;
+    });
+    rerender();
+    expect(result.current.team).toBe(false);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current).toMatchObject({
+      team: false,
+      productLead: false,
+      agents: false,
+      deployer: false,
+    });
   });
 });

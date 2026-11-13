@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - One ordered fork-log replay requires external rehearsal output; hatsModule.test.ts covers individual handler cases without that input.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { AbiCoder, Interface } from "ethers";
