@@ -11,6 +11,8 @@ export type CommitmentDoor = "offer" | "request";
 
 export interface PoolCreateEntryProps {
   onChoose: (door: CommitmentDoor) => void;
+  /** Home keeps the bottom bar, so there the + rides above its 69px (DL-181). */
+  aboveAppBar?: boolean;
 }
 
 function Choice({
@@ -49,18 +51,19 @@ function Choice({
 }
 
 /**
- * The way into a new promise: the floating + opens the Offer or Ask sheet,
- * whose two cards are the two doors (D10). Direction is fixed by the door and
- * never asked again inside the form, so a member who wanted the other one
- * leaves and comes back through it. The sheet links to Help, where promises are
- * explained, since the tab no longer carries that explanation itself.
+ * The way into a new promise, on a garden's Promises tab and on Home (DL-181): the
+ * floating + opens the Offer or Ask sheet, whose two cards are the two doors (D10).
+ * Direction is fixed by the door and never asked again inside the form, so a member
+ * who wanted the other one leaves and comes back through it. The sheet links to
+ * Help, where promises are explained, since the tab no longer carries that
+ * explanation itself.
  *
  * The + floats at the bottom corner so it is reachable however far the list has
  * scrolled, and it stays when the list is empty (D25). A garden's pages hide the
- * bottom nav, so it sits 16px above the safe area. Only members see it
- * (D14); the caller decides that.
+ * bottom nav, so there it sits 16px above the safe area; Home keeps the nav, so
+ * there it sits 16px above it. Only members see it (D14); the caller decides that.
  */
-export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
+export function PoolCreateEntry({ onChoose, aboveAppBar = false }: PoolCreateEntryProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -74,7 +77,12 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
     <>
       <div
         className="fixed right-4 z-nav flex flex-col items-end gap-3"
-        style={{ bottom: "calc(var(--safe-area-bottom) + 1rem)" }}
+        style={{
+          // The bottom bar is 69px tall over the safe area (AppBar).
+          bottom: aboveAppBar
+            ? "calc(69px + var(--safe-area-bottom) + 1rem)"
+            : "calc(var(--safe-area-bottom) + 1rem)",
+        }}
         data-component="PoolCreateEntry"
       >
         <button

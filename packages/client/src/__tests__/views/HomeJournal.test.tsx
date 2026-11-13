@@ -65,8 +65,8 @@ vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   useCommitmentCycle: () => mocks.cycleDetail(),
 }));
 
-// Needs Your Attention (step 19) and Continue (step 8), each with its own tests, stand in as
-// markers here.
+// Needs Your Attention (step 19), Continue (step 8) and the Offer or Ask + (DL-181), each with
+// its own tests, stand in as markers here.
 vi.mock("@green-goods/shared/hooks/garden/useStewardDuties", () => ({
   useStewardDuties: () => ({ duties: [], isLoading: false, isError: false, refetch: () => {} }),
 }));
@@ -75,6 +75,11 @@ vi.mock("../../views/Home/Journal/NeedsYourAttention", () => ({
 }));
 vi.mock("../../views/Home/Journal/Continue", () => ({
   Continue: () => <section data-component="Continue" />,
+}));
+vi.mock("../../views/Home/Journal/OfferOrAsk", () => ({
+  OfferOrAsk: ({ gardenId }: { gardenId: string }) => (
+    <div data-component="OfferOrAsk" data-garden={gardenId} />
+  ),
 }));
 
 // The section sheets over Home wrap the garden page's own section component, which has its own
@@ -884,6 +889,11 @@ describe("Home journal", () => {
       expect(read).toHaveBeenCalledWith(GARDEN);
     }
     expect(mocks.cycles).toHaveBeenCalledWith(GARDEN, { shown: true });
+    // The Offer or Ask + floats over the journal in the active garden (DL-181).
+    expect(container.querySelector("[data-component='OfferOrAsk']")).toHaveAttribute(
+      "data-garden",
+      GARDEN
+    );
   });
 
   describe("About This Garden", () => {
