@@ -1,0 +1,162 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "garden-membership-dates",
+    "title": "Garden membership dates",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-11-12T02:46:02.157Z",
+    "updated_at": "2026-11-13T02:09:15Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": ["shared", "indexer", "client", "admin"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User locked UI and data scope on 2026-11-11; operational account removal is separate.",
+    "Working-tree proof only; no commit-attributed validation receipt until scoped changes are committed.",
+    "Hosted schema publication and historical replay remain pending; no deployment authorized.",
+    "User approved all three Admin member polish improvements; locally implemented with 70 focused tests, 22 browser stories and labeled desktop/mobile proof. Publication and committed certification remain pending.",
+    "Review/shipping ported the scoped patch onto develop cb9ef105c9 in a separate worktree; Linear connector is unavailable. See handoffs/review-shipping.md for fresh evidence and publication state."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/garden-membership-history",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/client test -- src/__tests__/components/GardenGardeners.test.tsx",
+          "evidence": "Controlled mutation replacing garden joinedAt with global registeredAt failed: expected Joined Jun 12, 2026 but received Joined Nov 14, 2023. Restored. Admin regression tests also rejected stale refresh-error dates and missing refresh callbacks."
+        },
+        "green": {
+          "command": "bun run --cwd packages/client test -- src/__tests__/components/GardenGardeners.test.tsx src/__tests__/views/GardensList.test.tsx src/__tests__/components/LeaveGardenAction.test.tsx",
+          "evidence": "Client focused suite 57 passed; final roster follow-up 7 passed. Admin initial focused suites 31 passed; final directory 3 and final dialog/refresh suite16 passed. Storybook build and desktop/390px rendered states passed. Working-tree proof only."
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "feature/garden-membership-history",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/shared test -- src/__tests__/modules/garden-member-history.test.ts",
+          "evidence": "2026-11-12 02:47 UTC: reader suite failed because the new membership-history implementation was absent; indexer also proved four new missing-event failures with 20 existing cases passing."
+        },
+        "green": {
+          "command": "bun run --cwd packages/shared test -- src/__tests__/modules/garden-member-history.test.ts src/__tests__/hooks/garden/useGardenMemberHistory.test.ts src/__tests__/components/GardenMembershipDates.test.tsx",
+          "evidence": "2026-11-12: 14 Shared tests passed; indexer codegen/build, 24 role tests and 15 indexing-boundary tests passed. Working-tree evidence only."
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract source changes."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-11-12T02:46:02.195Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-11-12T03:08:26.572Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "fix/work-approval-feedback",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-12T03:09:53.759Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "fix/work-approval-feedback",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-11-12T03:12:03.992276+00:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "local_implementation_complete",
+      "branch": "fix/work-approval-feedback",
+      "note": "Approved UI/data scope implemented. Focused working-tree tests, owner/consumer typechecks, Storybook build and rendered proof passed. Unrelated source-structure and ontology failures remain. Lane certification needs a committed implementation; hosted schema replay/publication and membership mutations were not performed."
+    }
+  ]
+}

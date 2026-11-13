@@ -96,6 +96,19 @@ function sharedRole(roles: GardenRole[]): GardenRole | null {
   return first && roles.every((role) => role === first) ? first : null;
 }
 
+/** The fixed-member action names the role only after it has been chosen. */
+export function addRoleSubmitLabel(
+  role: GardenRole | null,
+  formatMessage: IntlShape["formatMessage"]
+): string {
+  return role
+    ? formatMessage(
+        { id: "admin.members.submitRole" },
+        { role: getRoleLabel(role, formatMessage).singular }
+      )
+    : formatMessage({ id: "admin.members.addRole" });
+}
+
 /**
  * The add button's label. It names the role when every row shares it, and an empty list names the
  * role the picker would add.

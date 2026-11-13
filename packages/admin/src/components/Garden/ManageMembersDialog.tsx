@@ -1,3 +1,4 @@
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Button } from "@green-goods/shared/components/Button";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -12,6 +13,7 @@ import { useIntl } from "react-intl";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { FlowStatusRow } from "../Layout/FlowStatusRow";
+import { ManageRolesSelectionSummary } from "./ManageRolesSelectionSummary";
 import { ManageRolesFilters } from "./ManageRolesFilters";
 import { ManageRolesPersonRow } from "./ManageRolesPersonRow";
 import { MemberNameReaders, withMemberName } from "./MemberNames";
@@ -40,6 +42,8 @@ import { type ReviewPairStatus, RoleRemovalReview } from "./RoleRemovalReview";
 
 export interface ManageMembersDialogProps {
   open: boolean;
+  gardenAddress?: Address;
+  onAddRole?: (address: Address) => void;
   /** The person a directory row opened it for: the list starts with just them. */
   initialMember?: Address;
   onClose: () => void;
@@ -57,7 +61,7 @@ export interface ManageMembersDialogProps {
   isLoading: boolean;
   /** Reads and removes person-and-role pairs on chain. */
   removal: RoleRemovalApi;
-  /** A run or a check ended somewhere other than a clean removal, so the roster may be behind. */
+  /** A run/check finished; indexed membership history may still lag the chain. */
   onRosterStale?: () => void;
   /** Opens Add Members, with the person this dialog is showing when it shows one. */
   onAddMembers: (prefill?: Address) => void;
@@ -82,6 +86,8 @@ const NOTHING_PICKED: ReadonlySet<GardenRole> = new Set();
  */
 export function ManageMembersDialog({
   open,
+  gardenAddress,
+  onAddRole,
   initialMember,
   onClose,
   roleMembers,
@@ -98,6 +104,11 @@ export function ManageMembersDialog({
   tone,
 }: ManageMembersDialogProps) {
   const { formatMessage } = useIntl();
+  const history = useGardenMemberHistory({ garden: open ? gardenAddress : undefined, chainId });
+  const historyByAccount = useMemo(
+    () => new Map(history.members.map((member) => [member.account.toLowerCase(), member])),
+    [history.members]
+  );
   const [filter, setFilter] = useState<RoleFilter>("all");
   const [search, setSearch] = useState("");
   const [scopedTo, setScopedTo] = useState<Address | null>(initialMember ?? null);
@@ -213,7 +224,6 @@ export function ManageMembersDialog({
       setReview((current) => current && withPairsStatus(current, [row], status, reason));
     };
     setReview((current) => current && startRun(current, pairs));
-    let clean = false;
     let settled: RolePair[] = [];
     try {
       const outcomes = await removal.remove(pairs, {
@@ -225,7 +235,6 @@ export function ManageMembersDialog({
             outcome.status === "refused" || outcome.status === "failed" ? outcome.reason : undefined
           ),
       });
-      clean = outcomes.every((outcome) => outcome.status === "removed");
       settled = settledPairs(pairs, outcomes);
     } catch (error) {
       // The run itself broke: whatever had not settled may or may not have landed.
@@ -236,7 +245,7 @@ export function ManageMembersDialog({
     setReview((current) => current && { ...current, phase: "done" });
     // Settled pairs leave the picks; a declined or unsent one stays picked for Back.
     setSelected((current) => withPicks(current, settled, false));
-    if (!clean) onRosterStale?.();
+    onRosterStale?.();
   };
 
   const checkAgain = async (pairs: RolePair[]) => {
@@ -343,43 +352,18 @@ export function ManageMembersDialog({
     );
   }
 
-  let summary: ReactNode = moment?.note ?? null;
-  if (!review && canManage) {
-    summary =
-      picks.length === 0 ? (
-        formatMessage({ id: "admin.manageRoles.selectHint" })
-      ) : (
-        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-text-strong">
-            {formatMessage(
-              { id: "admin.manageRoles.selection" },
-              { roles: picks.length, people: view.pickedRoles.size }
-            )}
-          </span>
-          {view.hiddenPicks > 0 ? (
-            <>
-              <span>
-                {formatMessage(
-                  { id: "admin.manageRoles.selectionHidden" },
-                  { count: view.hiddenPicks }
-                )}
-              </span>
-              <Button type="button" emphasis="tertiary" size="compact" onClick={showPicked}>
-                {formatMessage({ id: "admin.manageRoles.showSelected" })}
-              </Button>
-            </>
-          ) : null}
-          <Button
-            type="button"
-            emphasis="tertiary"
-            size="compact"
-            onClick={() => setSelected(new Map())}
-          >
-            {formatMessage({ id: "admin.manageRoles.clearSelection" })}
-          </Button>
-        </span>
-      );
-  }
+  const summary =
+    !review && canManage ? (
+      <ManageRolesSelectionSummary
+        roles={picks.length}
+        people={view.pickedRoles.size}
+        hidden={view.hiddenPicks}
+        onShow={showPicked}
+        onClear={() => setSelected(new Map())}
+      />
+    ) : (
+      (moment?.note ?? null)
+    );
 
   const viewerKey = viewerAddress?.toLowerCase();
 
@@ -470,6 +454,11 @@ export function ManageMembersDialog({
                       selected={view.pickedRoles.get(key) ?? NOTHING_PICKED}
                       onToggle={(role, checked) => toggle(person, role, checked)}
                       readOnly={readOnly}
+                      history={historyByAccount.get(key)}
+                      historyLoading={history.isLoading}
+                      historyError={history.isError}
+                      onAddRole={onAddRole ? () => onAddRole(person.address) : undefined}
+                      addRoleDisabled={picks.length > 0}
                       disabled={busy}
                     />
                   );

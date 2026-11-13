@@ -47,6 +47,8 @@ export function CommunityMembersDialogs({
   // Add Members also opens over Manage Members, with no route item of its own.
   const [addingFromManage, setAddingFromManage] = useState(false);
   // The person Manage Members was showing when Add Members opened over it.
+  const [roleTarget, setRoleTarget] = useState<Address | undefined>();
+  if (addMemberItemOpen && roleTarget) setRoleTarget(undefined);
   const [addMembersPrefill, setAddMembersPrefill] = useState<Address | undefined>();
   // It leaves with Manage Members, by browser Back as well as by a close.
   if (addingFromManage && !manageMembersOpen) {
@@ -78,12 +80,19 @@ export function CommunityMembersDialogs({
     [operations]
   );
   const openAddMembers = (prefill?: Address) => {
+    setRoleTarget(undefined);
     setAddMembersPrefill(prefill);
+    setAddingFromManage(true);
+  };
+  const openAddRole = (address: Address) => {
+    setRoleTarget(address);
+    setAddMembersPrefill(address);
     setAddingFromManage(true);
   };
   const closeAddMembers = () => {
     setAddingFromManage(false);
     setAddMembersPrefill(undefined);
+    scheduleBackgroundRefetch();
     closeAddMemberItem();
   };
 
@@ -93,6 +102,8 @@ export function CommunityMembersDialogs({
       <ManageMembersDialog
         key={`manage-members:${garden.id}`}
         open={manageMembersOpen}
+        gardenAddress={isAddress(gardenAddress) ? gardenAddress : undefined}
+        onAddRole={openAddRole}
         initialMember={initialMemberAddress}
         onClose={closeMembersModal}
         closesByRoute
@@ -110,17 +121,29 @@ export function CommunityMembersDialogs({
       />
       {isAddress(gardenAddress) ? (
         <AddMembersDialog
-          key={`add-members:${garden.id}`}
+          key={`add-members:${garden.id}:${roleTarget ?? "new"}`}
           open={canManage && (addMemberItemOpen || addingFromManage)}
           closesByRoute={addMemberItemOpen}
           onClose={closeAddMembers}
           tone="community"
           gardenAddress={gardenAddress}
           roleMembers={roleMembers}
+          memberAddress={roleTarget}
           initialAddress={addMembersPrefill}
           isLoading={operations.isLoading}
-          onAdd={(role, address) => addByRole[role](address)}
-          batch={addMembersBatch}
+          onAdd={async (role, address) => {
+            const result = await addByRole[role](address);
+            if (result.success) scheduleBackgroundRefetch();
+            return result;
+          }}
+          batch={{
+            ...addMembersBatch,
+            add: (rows, onLanded) =>
+              addMembersBatch.add(rows, (landed) => {
+                scheduleBackgroundRefetch();
+                onLanded?.(landed);
+              }),
+          }}
         />
       ) : null}
     </>

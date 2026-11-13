@@ -62,7 +62,7 @@ async function pickRole(role: GardenRole) {
 }
 
 async function stage() {
-  await userEvent.click(await body().findByRole("button", { name: "Add" }));
+  await userEvent.click(await body().findByRole("button", { name: "Add to list" }));
 }
 
 /** The dialog fades in from opacity 0, so a field hint is checked once it can be seen. */
@@ -154,6 +154,29 @@ const meta: Meta<typeof AddMembersDialog> = {
 export default meta;
 type Story = StoryObj<typeof AddMembersDialog>;
 
+/** One existing member, one explicit role choice, with no staging step. */
+export const AddRole: Story = {
+  args: { memberAddress: ROSA },
+  play: async () => {
+    await expect(await body().findByRole("button", { name: "Add role" })).toBeDisabled();
+    await expect(body().queryByRole("radio", { name: "Gardener" })).not.toBeInTheDocument();
+    await userEvent.click(body().getByRole("radio", { name: "Steward" }));
+    await expect(body().getByRole("button", { name: "Add Steward Role" })).toBeEnabled();
+    await expect(body().queryByRole("group", { name: "Members to add" })).not.toBeInTheDocument();
+  },
+};
+
+export const FailedRoleRetry: Story = {
+  args: { memberAddress: ROSA, onAdd: fn(async () => ({ success: false })) },
+  play: async () => {
+    await userEvent.click(await body().findByRole("radio", { name: "Steward" }));
+    await userEvent.click(body().getByRole("button", { name: "Add Steward Role" }));
+    await expect(await body().findByText("Failed to add member")).toBeVisible();
+    await expect(body().getByRole("button", { name: "Add Steward Role" })).toBeEnabled();
+    await expect(body().getByRole("radio", { name: "Steward" })).toBeDisabled();
+  },
+};
+
 export const Default: Story = {};
 
 /** Rosa already gardens here, so Gardener is refused with a reason, not an error. */
@@ -161,7 +184,7 @@ export const DuplicateBlocked: Story = {
   play: async () => {
     await enter(ROSA);
     await expectHintShown(/is already a Gardener/);
-    await expect(body().getByRole("button", { name: "Add" })).toBeDisabled();
+    await expect(body().getByRole("button", { name: "Add to list" })).toBeDisabled();
   },
 };
 
@@ -171,7 +194,7 @@ export const PromotionHint: Story = {
     await pickRole("steward");
     await enter(ROSA);
     await expectHintShown(/is currently a Gardener/);
-    await expect(body().getByRole("button", { name: "Add" })).toBeEnabled();
+    await expect(body().getByRole("button", { name: "Add to list" })).toBeEnabled();
   },
 };
 

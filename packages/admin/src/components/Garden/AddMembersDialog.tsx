@@ -1,5 +1,4 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
 import type { useAddMembersBatch } from "@green-goods/shared/hooks/garden/useGardenOperations";
@@ -8,22 +7,20 @@ import { logger } from "@green-goods/shared/modules/app/logger";
 import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { resolveEnsAddress } from "@green-goods/shared/utils/blockchain/ens";
-import {
-  GARDEN_ROLE_ORDER,
-  type GardenRole,
-} from "@green-goods/shared/utils/blockchain/garden-roles";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
-import { RiAddLine, RiClipboardLine } from "@remixicon/react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
-import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { AddMembersEntryStatus } from "./AddMembersEntryStatus";
+import { AddMembersEntryField } from "./AddMembersEntryField";
+import { MemberRolePicker } from "./MemberRolePicker";
 import {
   addMembersSubmitLabel,
+  addRoleSubmitLabel,
   buildRolesByAddress,
   canStage,
   checkEntry,
@@ -31,7 +28,7 @@ import {
   memberRowKey,
   type StagedMember,
 } from "./addMembersEntry";
-import { runAddMembers, stagedAfterRead } from "./addMembersRun";
+import { heldRowsForMember, runAddMembers, stagedAfterRead } from "./addMembersRun";
 import { BatchHoldAlert } from "./BatchHoldAlert";
 import { StagedMemberList } from "./StagedMemberList";
 
@@ -51,6 +48,8 @@ export interface AddMembersDialogProps {
   roleMembers: Record<GardenRole, Address[]>;
   /** Starts the field with this person (the Manage Roles path into promotion). */
   initialAddress?: Address;
+  /** Adds one role to this fixed member, without a bulk staging step. */
+  memberAddress?: Address;
   /** Disables inputs while the hosting view runs an unrelated write. */
   isLoading?: boolean;
   /** A route item opened it, so the router guards its draft: browser Back asks before dropping it. */
@@ -58,14 +57,8 @@ export interface AddMembersDialogProps {
   tone?: AdminDialogProps["tone"];
 }
 
-/**
- * Add Members — the single add path for garden membership (multi-add with a
- * staged list). Role select + address/ENS input; each resolved person stages
- * into a fixed-height list with the role picked for them (changing the picker
- * only affects the next person), then the whole batch commits on submit.
- * Someone who already holds the picked role cannot be staged, so the dialog
- * never asks the wallet to sign for nothing. Failed writes stay staged for retry.
- */
+/** Bulk membership stages people and roles; role addition fixes one member.
+ * Both use the same exact-role checks and signing flow, retaining failed rows for retry. */
 export function AddMembersDialog({
   open,
   onClose,
@@ -74,6 +67,7 @@ export function AddMembersDialog({
   gardenAddress,
   roleMembers,
   initialAddress,
+  memberAddress,
   isLoading = false,
   closesByRoute = false,
   tone,
@@ -81,13 +75,15 @@ export function AddMembersDialog({
   const intl = useIntl();
   const { formatMessage } = intl;
   const statusId = useId();
+  const entryAddress = memberAddress ?? initialAddress;
+  const [roleChosen, setRoleChosen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<GardenRole>("gardener");
-  const [input, setInput] = useState(initialAddress ?? "");
+  const [input, setInput] = useState(entryAddress ?? "");
   const [pending, setPending] = useState<StagedMember[]>([]);
   const [error, setError] = useState("");
   const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [shownFor, setShownFor] = useState({ open, initialAddress });
+  const [shownFor, setShownFor] = useState({ open, entryAddress });
   // The list that came back past its ceilings. It goes one person at a time now the person has seen
   // what that costs. Any change makes it a different list, which gets a fresh try.
   const [overCeilings, setOverCeilings] = useState<string | null>(null);
@@ -98,9 +94,10 @@ export function AddMembersDialog({
     setDraftAccount(batch.account);
     if (draftAccount) {
       setPending([]);
-      setInput(initialAddress ?? "");
+      setInput(entryAddress ?? "");
       setError("");
       setOverCeilings(null);
+      setRoleChosen(false);
     }
   }
   // A send outlives a change of account, and what it left behind is not the new draft's. A layout
@@ -123,16 +120,20 @@ export function AddMembersDialog({
   useEffect(() => {
     if (!lastReadAt || lastAppliedReadRef.current === lastReadAt) return;
     lastAppliedReadRef.current = lastReadAt;
-    setPending((current) => stagedAfterRead(current, hold?.rows ?? [], landedRows ?? []));
-  }, [lastReadAt, hold, landedRows]);
+    const heldRows = heldRowsForMember(hold?.rows ?? [], memberAddress);
+    setPending((current) => stagedAfterRead(current, heldRows, landedRows ?? []));
+    // Restoring an unsettled attempt preserves the role already reviewed for this member.
+    if (memberAddress && heldRows[0]) {
+      setSelectedRole(heldRows[0].role);
+      setRoleChosen(true);
+    }
+  }, [lastReadAt, hold, landedRows, memberAddress]);
 
-  // Each opening, and each change of the person it opens for, starts the field
-  // from `initialAddress`. Resetting here, rather than remounting through a
-  // key, keeps the closing dialog mounted so its exit motion plays.
-  if (open !== shownFor.open || initialAddress !== shownFor.initialAddress) {
-    setShownFor({ open, initialAddress });
+  // Reopening restores the supplied person while keeping the exit animation mounted.
+  if (open !== shownFor.open || entryAddress !== shownFor.entryAddress) {
+    setShownFor({ open, entryAddress });
     if (open) {
-      setInput(initialAddress ?? "");
+      setInput(entryAddress ?? "");
       setError("");
     }
   }
@@ -168,11 +169,13 @@ export function AddMembersDialog({
   const typedCheck = typedResolvedAddress
     ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress, typedHeldOnChain)
     : null;
-  const typedEntryCommitReady = typedCheck !== null && canStage(typedCheck);
+  const typedEntryCommitReady =
+    (!memberAddress || roleChosen) && typedCheck !== null && canStage(typedCheck);
   const typedInputInvalid = Boolean(trimmed) && !resolvingEns && !typedResolvedAddress;
 
   const resetDraft = () => {
-    setInput("");
+    setInput(memberAddress ?? "");
+    setRoleChosen(false);
     // A held row is not the person's to drop: it stays until it settles.
     setPending((current) => current.filter(isHeld));
     setError("");
@@ -220,8 +223,13 @@ export function AddMembersDialog({
     setInput("");
   };
 
-  const removeEntry = (row: StagedMember) =>
+  const removeEntry = (row: StagedMember) => {
     setPending((prev) => prev.filter((entry) => memberRowKey(entry) !== memberRowKey(row)));
+    if (memberAddress) {
+      setRoleChosen(false);
+      setError("");
+    }
+  };
 
   const handlePaste = async () => {
     try {
@@ -238,15 +246,15 @@ export function AddMembersDialog({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (busy || isSettlingHold || (memberAddress && !roleChosen)) return;
     setError("");
 
     const addFailed = formatMessage({ id: "app.admin.roles.error.addFailed" });
     const sentBy = draftAccount;
     let rows = sendable;
     try {
-      // Fold a typed person into the list, so one entry needs no extra "Add" tap. Someone queued or
-      // already holding the role is left out; the status line says why. ENS resolution is marked
-      // busy before awaiting, so close paths cannot continue into a wallet write after a cancel.
+      // A resolved entry can submit directly. Mark ENS lookup busy before awaiting,
+      // so cancellation cannot continue into a wallet write.
       if (trimmed) {
         if (!isHexAddress) setSubmitResolving(true);
         const resolved = await resolveInput();
@@ -273,7 +281,7 @@ export function AddMembersDialog({
       });
       if (draftAccountRef.current !== sentBy) return;
       setPending((current) => [...current.filter(isHeld), ...run.remaining]);
-      setInput("");
+      if (!memberAddress) setInput("");
       const refusedCount = run.remaining.filter((row) => row.refusal).length;
       if (run.thrown) {
         // Refused rows show their own reasons, so this line names what else stopped the send.
@@ -313,7 +321,11 @@ export function AddMembersDialog({
       : sendable;
   const batchRoles = batchRows.map((entry) => entry.role);
   const batchCount = batchRoles.length;
-  const submitLabel = addMembersSubmitLabel(batchRoles, selectedRole, formatMessage);
+  const submitLabel = memberAddress
+    ? addRoleSubmitLabel(roleChosen ? selectedRole : null, formatMessage)
+    : batchCount > 0
+      ? addMembersSubmitLabel(batchRoles, selectedRole, formatMessage)
+      : formatMessage({ id: "admin.addMember.openAction" });
   const pastCeilings = memberListKey(batchRows) === overCeilings;
   const signatureCount =
     batch?.available && !pastCeilings ? batch.signaturesFor(batchCount) : batchCount;
@@ -329,16 +341,20 @@ export function AddMembersDialog({
     });
     onClose();
   };
-  // Confirm-before-discard: a staged batch (or typed input) is unsaved
-  // steward input, so X/scrim/Escape confirm first. A prefilled person nobody
-  // changed is not. The footer Cancel still exits directly per the dialog contract.
+  // Dismissal guards unsaved choices; untouched prefills and protected held rows are clean.
+  // Footer Cancel discards directly per the dialog contract.
   const dirtyClose = useDirtyClose({
     isDirty:
-      open && (sendable.length > 0 || (Boolean(trimmed) && trimmed !== (initialAddress ?? ""))),
+      open &&
+      (sendable.length > 0 ||
+        (memberAddress
+          ? roleChosen && !pending.length
+          : Boolean(trimmed) && trimmed !== (initialAddress ?? ""))),
     onClose: closesByRoute ? onClose : closeAndReset,
-    blockRouteChange: closesByRoute,
-    preventRouteChange: closesByRoute && (submitResolving || submitting),
-    onDiscard: closesByRoute ? resetDraft : undefined,
+    blockRouteChange: open,
+    closesInPlace: !closesByRoute,
+    preventRouteChange: submitResolving || submitting,
+    onDiscard: resetDraft,
   });
   const handleOpenChange = (next: boolean) => {
     if (next || busy) return;
@@ -353,10 +369,11 @@ export function AddMembersDialog({
         size="md"
         tone={tone}
         preventClose={busy}
-        title={formatMessage({ id: "admin.addMember.title", defaultMessage: "Add Members" })}
+        title={formatMessage({
+          id: memberAddress ? "admin.members.addRole" : "admin.addMember.title",
+        })}
         description={formatMessage({
-          id: "admin.addMember.description",
-          defaultMessage: "Choose a role for each person, then add the whole list.",
+          id: memberAddress ? "admin.members.roleDescription" : "admin.addMember.description",
         })}
         actions={
           // One row at every width, so this line appearing never moves the buttons under a finger.
@@ -401,92 +418,74 @@ export function AddMembersDialog({
               onMoveOn={() => void batch?.moveOn()}
             />
           ) : null}
-          <AdminSelect
-            id="member-role"
-            label={formatMessage({ id: "app.admin.roles.roleLabel", defaultMessage: "Role" })}
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value as GardenRole)}
-            disabled={busy}
-          >
-            {GARDEN_ROLE_ORDER.map((role) => (
-              <option key={role} value={role}>
-                {formatMessage({ id: `app.roles.${role}` })}
-              </option>
-            ))}
-          </AdminSelect>
-          <div>
-            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start">
-              <AdminTextField
-                id="member-address"
-                className="min-w-0 flex-1"
-                label={formatMessage({ id: "app.admin.roles.addressLabel" })}
-                error={error || ceilingNote || undefined}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
+          {memberAddress ? (
+            <>
+              <MemberRolePicker
+                address={memberAddress}
+                roles={rolesByAddress.get(memberAddress.toLowerCase()) ?? []}
+                value={roleChosen ? selectedRole : null}
+                disabled={busy || isSettlingHold || pending.length > 0}
+                onChange={(role) => {
+                  setSelectedRole(role);
+                  setRoleChosen(true);
                   setError("");
                 }}
-                placeholder={formatMessage({
-                  id: "admin.addMember.placeholder",
-                  defaultMessage: "0x... or name.eth",
-                })}
-                disabled={busy}
-                inputProps={{
-                  "aria-invalid": !!error || typedInputInvalid,
-                  "aria-describedby": statusId,
-                }}
               />
-              {/* From 640px the buttons sit beside the field at its control's
-                  height and centre on it: the label (20px) and gap (4px) put the
-                  40px control at 24px, and the 44px finger box of a 40px button
-                  starts 2px above it, so 22px (qa-session 2026-10-30 OBS-15).
-                  Below 640px they stack under the field. */}
-              <div className="flex items-center gap-2 pt-1.5 sm:pt-5.5">
-                <IconButton
-                  size="md"
-                  onClick={handlePaste}
-                  disabled={busy}
-                  aria-label={formatMessage({
-                    id: "admin.addMember.paste",
-                    defaultMessage: "Paste from Clipboard",
-                  })}
-                  title={formatMessage({
-                    id: "admin.addMember.paste",
-                    defaultMessage: "Paste from Clipboard",
-                  })}
-                  icon={<RiClipboardLine />}
+              {error || ceilingNote ? (
+                <p role="alert" className="type-body text-error-dark">
+                  {error || ceilingNote}
+                </p>
+              ) : null}
+              {roleChosen && typedCheck?.kind === "held" ? (
+                <AddMembersEntryStatus
+                  id={statusId}
+                  typed={trimmed}
+                  isHexAddress={isHexAddress}
+                  resolvedAddress={typedResolvedAddress}
+                  isEnsName={false}
+                  isResolvingEns={false}
+                  check={typedCheck}
+                  selectedRole={selectedRole}
                 />
-                <Button
-                  type="button"
-                  emphasis="secondary"
-                  size="md"
-                  onClick={() => handleAddToList()}
-                  disabled={busy || !typedEntryCommitReady || resolvingEns}
-                  leadingIcon={<RiAddLine className="h-[18px] w-[18px]" aria-hidden="true" />}
-                >
-                  {formatMessage({ id: "admin.addMember.addToList", defaultMessage: "Add" })}
-                </Button>
-              </div>
-            </div>
-            <AddMembersEntryStatus
-              id={statusId}
-              typed={trimmed}
-              isHexAddress={isHexAddress}
-              resolvedAddress={typedResolvedAddress}
-              isEnsName={shouldResolveEns}
-              isResolvingEns={resolvingEns}
-              check={typedCheck}
-              selectedRole={selectedRole}
+              ) : null}
+            </>
+          ) : (
+            <AddMembersEntryField
+              value={input}
+              onChange={(value) => {
+                setInput(value);
+                setError("");
+              }}
+              onRoleChange={setSelectedRole}
+              onPaste={() => void handlePaste()}
+              onStage={() => void handleAddToList()}
+              disabled={busy}
+              stageDisabled={!typedEntryCommitReady || resolvingEns}
+              invalid={!!error || typedInputInvalid}
+              error={error || ceilingNote || undefined}
+              status={{
+                id: statusId,
+                typed: trimmed,
+                isHexAddress,
+                resolvedAddress: typedResolvedAddress,
+                isEnsName: shouldResolveEns,
+                isResolvingEns: resolvingEns,
+                check: typedCheck,
+                selectedRole,
+              }}
             />
-          </div>
+          )}
 
-          <StagedMemberList
-            members={pending}
-            rolesByAddress={rolesByAddress}
-            onRemove={removeEntry}
-            disabled={busy || isSettlingHold}
-            heldNote={heldNote}
-          />
+          {!memberAddress || pending.length > 0 ? (
+            <StagedMemberList
+              members={pending}
+              reserveSpace={!memberAddress}
+              rolesByAddress={rolesByAddress}
+              onRemove={removeEntry}
+              disabled={busy || isSettlingHold}
+              heldNote={heldNote}
+            />
+          ) : null}
         </form>
       </AdminDialog>
       <DiscardChangesDialog

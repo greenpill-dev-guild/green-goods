@@ -1,3 +1,4 @@
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { Button } from "@green-goods/shared/components/Button";
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
@@ -48,7 +49,14 @@ export function CommunityMembersTab({
   setMemberSearch,
   visibleDirectory,
 }: CommunityMembersTabProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatDate } = useIntl();
+  const history = useGardenMemberHistory({
+    garden: isAddress(garden.id) ? garden.id : undefined,
+    chainId: garden.chainId,
+  });
+  const historyByAccount = new Map(
+    history.isError ? [] : history.members.map((member) => [member.account.toLowerCase(), member])
+  );
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
   const onName = useCallback(
@@ -182,48 +190,72 @@ export function CommunityMembersTab({
               // One person row each: the highest role is the row's chip, and the count
               // says how many roles they hold when it is more than that one (DL-112).
               <ul className="flex flex-col gap-(--gg-list-gap)">
-                {filteredDirectory.map((entry) => (
-                  <li key={entry.address}>
-                    <PersonRow
-                      address={entry.address}
-                      roles={entry.roles}
-                      chainId={garden.chainId}
-                      details={
-                        entry.roles.length > 1
-                          ? [
-                              formatMessage(
-                                { id: "cockpit.community.members.roleCount" },
-                                { count: entry.roles.length }
-                              ),
-                            ]
-                          : undefined
+                {filteredDirectory.map((entry) => {
+                  const joinedAt = historyByAccount.get(entry.address.toLowerCase())?.joinedAt;
+                  const joined = joinedAt
+                    ? {
+                        text: formatMessage(
+                          { id: "app.garden.membership.joinedOn" },
+                          {
+                            date: formatDate(joinedAt, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }),
+                          }
+                        ),
+                        dateTime: new Date(joinedAt).toISOString(),
                       }
-                      action={
-                        canManage ? (
-                          <IconButton
-                            asChild
-                            emphasis="tertiary"
-                            size="sm"
-                            aria-label={formatMessage({
-                              id: "cockpit.community.members.manageRoles",
-                            })}
-                            title={formatMessage({ id: "cockpit.community.members.manageRoles" })}
-                          >
-                            <Link
-                              to={adminRoutes.communityMembers({
-                                ...gardenRouteContext,
-                                item: "manage-members",
-                                member: entry.address,
+                    : undefined;
+                  const count =
+                    entry.roles.length > 1
+                      ? formatMessage(
+                          { id: "cockpit.community.members.roleCount" },
+                          { count: entry.roles.length }
+                        )
+                      : undefined;
+                  return (
+                    <li key={entry.address}>
+                      <PersonRow
+                        address={entry.address}
+                        roles={entry.roles}
+                        chainId={garden.chainId}
+                        details={
+                          joined
+                            ? count
+                              ? [joined, count]
+                              : [joined]
+                            : count
+                              ? [count]
+                              : undefined
+                        }
+                        action={
+                          canManage ? (
+                            <IconButton
+                              asChild
+                              emphasis="tertiary"
+                              size="sm"
+                              aria-label={formatMessage({
+                                id: "cockpit.community.members.manageRoles",
                               })}
+                              title={formatMessage({ id: "cockpit.community.members.manageRoles" })}
                             >
-                              <RiUserSettingsLine />
-                            </Link>
-                          </IconButton>
-                        ) : undefined
-                      }
-                    />
-                  </li>
-                ))}
+                              <Link
+                                to={adminRoutes.communityMembers({
+                                  ...gardenRouteContext,
+                                  item: "manage-members",
+                                  member: entry.address,
+                                })}
+                              >
+                                <RiUserSettingsLine />
+                              </Link>
+                            </IconButton>
+                          ) : undefined
+                        }
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             )}
             <MemberNameReaders

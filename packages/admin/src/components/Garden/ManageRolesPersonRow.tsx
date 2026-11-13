@@ -1,10 +1,14 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
-import type { Address } from "@green-goods/shared/types/domain";
-import type {
-  GardenRole,
-  GardenRoleRemovalBlock,
+import { Button } from "@green-goods/shared/components/Button";
+import { GardenMembershipDates } from "@green-goods/shared/components/GardenMembershipDates";
+import { MemberIdentity } from "./MemberIdentity";
+import type { Address, GardenMemberHistory } from "@green-goods/shared/types/domain";
+import {
+  GARDEN_ROLE_ORDER,
+  type GardenRole,
+  type GardenRoleRemovalBlock,
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiUserLine } from "@remixicon/react";
@@ -85,6 +89,11 @@ interface ManageRolesPersonRowProps {
   /** A viewer who cannot manage roles sees them without checkboxes or reasons. */
   readOnly: boolean;
   disabled?: boolean;
+  history?: GardenMemberHistory;
+  historyLoading?: boolean;
+  historyError?: boolean;
+  onAddRole?: () => void;
+  addRoleDisabled?: boolean;
 }
 
 /**
@@ -101,6 +110,11 @@ export function ManageRolesPersonRow({
   onToggle,
   readOnly,
   disabled = false,
+  history,
+  historyLoading = false,
+  historyError = false,
+  onAddRole,
+  addRoleDisabled = false,
 }: ManageRolesPersonRowProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
@@ -151,6 +165,29 @@ export function ManageRolesPersonRow({
               </span>
               {isViewer ? <YouTag /> : null}
             </p>
+            <MemberIdentity address={person.address} showName={false} />
+            <GardenMembershipDates
+              history={history}
+              roles={person.roles}
+              isLoading={historyLoading}
+              isError={historyError}
+            />
+            {!readOnly && onAddRole ? (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  emphasis="secondary"
+                  size="compact"
+                  disabled={
+                    disabled || addRoleDisabled || person.roles.length === GARDEN_ROLE_ORDER.length
+                  }
+                  aria-label={formatMessage({ id: "admin.members.addRoleFor" }, { member: name })}
+                  onClick={onAddRole}
+                >
+                  {formatMessage({ id: "admin.members.addRole" })}
+                </Button>
+              </div>
+            ) : null}
             <ul
               className="flex flex-wrap gap-1.5"
               aria-label={formatMessage({ id: "admin.manageRoles.rolesOf" }, { name })}

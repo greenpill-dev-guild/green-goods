@@ -118,6 +118,32 @@ describe("browser backend contract", () => {
       })
     ).toEqual({ data: { Gardener: [] } });
   });
+  it.each([
+    { garden: { _eq: MOCK_CLIENT_GARDEN.id } },
+    { account: { _eq: MOCK_CLIENT_GARDEN.gardeners[0] } },
+  ])("declares an empty membership history for scope %j", async (scope) => {
+    const mock = transport();
+    await mockClientBackend(mock.page);
+    const query = "query GardenMemberHistory { GardenRoleEvent { id } }";
+    const variables = {
+      where: { chainId: { _eq: 11155111 }, ...scope },
+      limit: 200,
+      offset: 0,
+    };
+    expect(await mock.request({ query, variables })).toEqual({ data: { GardenRoleEvent: [] } });
+    for (const invalid of [
+      { ...variables, where: { ...variables.where, chainId: { _eq: 42161 } } },
+      { ...variables, where: { chainId: { _eq: 11155111 } } },
+      { ...variables, where: { ...variables.where, garden: { _eq: "0xwrong" } } },
+      { ...variables, where: { ...variables.where, account: { _eq: "0xwrong" } } },
+      { ...variables, limit: 0 },
+      { ...variables, offset: -1 },
+    ]) {
+      await expect(mock.request({ query, variables: invalid })).rejects.toThrow(
+        /GardenMemberHistory/
+      );
+    }
+  });
   it("accepts the work-link confirmer filter only for the same fixture account", async () => {
     const mock = transport();
     await mockClientBackend(mock.page);

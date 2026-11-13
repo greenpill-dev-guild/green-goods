@@ -75,6 +75,10 @@ const meta: Meta<typeof StagedMemberList> = {
 export default meta;
 type Story = StoryObj<typeof StagedMemberList>;
 
+export const SingleRoleRecovery: Story = {
+  args: { members: [{ address: ROSA, role: "steward" }], reserveSpace: false },
+};
+
 export const Empty: Story = {};
 
 export const NewPeople: Story = {
