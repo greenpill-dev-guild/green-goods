@@ -1,6 +1,15 @@
 export const gardensKeys = {
   all: ["greengoods", "gardens"] as const,
   byChain: (chainId: number) => ["greengoods", "gardens", chainId] as const,
+  memberHistory: (garden: string | undefined, account: string | undefined, chainId: number) =>
+    [
+      "greengoods",
+      "gardens",
+      chainId,
+      "memberHistory",
+      garden?.toLowerCase(),
+      account?.toLowerCase(),
+    ] as const,
   detail: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "detail", gardenId, chainId] as const,
   profileMemberships: (account: string | undefined, chainId: number) =>

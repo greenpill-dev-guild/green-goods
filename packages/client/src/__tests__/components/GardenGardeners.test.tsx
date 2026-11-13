@@ -1,7 +1,9 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
 import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import en from "@green-goods/shared/i18n/en.json";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -34,6 +36,15 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: vi.fn(() => ({ data: null })),
 }));
 
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: vi.fn(() => ({
+    members: [],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
+}));
+
 vi.mock("@/components/Inputs", () => ({
   AddressCopy: ({ address }: { address: string }) => <span>{address}</span>,
 }));
@@ -41,9 +52,30 @@ vi.mock("@/components/Inputs", () => ({
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
 
 const messages = {
+  ...en,
   "app.garden.gardeners.gardenerSince": "Gardener since {date}",
   "app.roles.gardener": "Gardener",
   "app.roles.steward": "Steward",
+};
+
+const garden: Garden = {
+  id: "0x1111111111111111111111111111111111111111",
+  name: "River garden",
+  chainId: 42161,
+  tokenAddress: "0x1111111111111111111111111111111111111111",
+  tokenID: 1n,
+  stewards: [],
+  owners: [],
+  evaluators: [],
+  funders: [],
+  communities: [],
+  gardeners: [],
+  description: "",
+  location: "",
+  bannerImage: "",
+  createdAt: 1_700_000_000_000,
+  assessments: [],
+  works: [],
 };
 
 function TestIntl({ children }: { children: ReactNode }) {
@@ -71,6 +103,12 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(useGardenMemberHistory).mockReturnValue({
+    members: [],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  } as ReturnType<typeof useGardenMemberHistory>);
   vi.mocked(useGreenGoodsEnsName).mockImplementation(
     () => ({ data: null }) as ReturnType<typeof useGreenGoodsEnsName>
   );
@@ -139,10 +177,29 @@ describe("GardenGardeners", () => {
     expect(toastService.success).not.toHaveBeenCalled();
   });
 
-  it("shows each member's highest role and since when a gardener has been one, and no date it lacks", () => {
+  it("shows this garden's join date instead of a gardener's earlier registration", async () => {
+    const joinedAt = Date.UTC(2026, 5, 12, 12);
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: garden.id,
+          account: members[0].account,
+          joinedAt,
+          memberSince: Date.UTC(2026, 9, 4, 12),
+          roleSince: {
+            gardener: Date.UTC(2026, 9, 4, 12),
+            steward: Date.UTC(2026, 9, 6, 12),
+          },
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
     renderWithProviders(
       <TestIntl>
         <GardenGardeners
+          garden={garden}
           members={[
             { ...members[0], isSteward: true },
             { ...members[1], registeredAt: null },
@@ -153,13 +210,26 @@ describe("GardenGardeners", () => {
     );
 
     const steward = screen.getByRole("button", { name: /Member 0/i });
-    // The pill is the highest role alone. The date is the indexer's one date per gardener, their
-    // first gardener role in any garden, so it never claims when they joined this garden.
     expect(within(steward).getByTitle("Steward")).toBeInTheDocument();
     expect(within(steward).queryByTitle("Gardener")).not.toBeInTheDocument();
-    expect(steward).toHaveTextContent("Gardener since Nov 14, 2023");
-    expect(screen.getByRole("button", { name: /Member 1/i })).not.toHaveTextContent("since");
-    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("since");
+    expect(steward).toHaveTextContent("Joined Jun 12, 2026");
+    expect(steward.querySelector("time")).toHaveAttribute(
+      "datetime",
+      new Date(joinedAt).toISOString()
+    );
+    expect(steward).not.toHaveTextContent("Nov 14, 2023");
+    expect(screen.getByRole("button", { name: /Member 1/i })).not.toHaveTextContent("Joined");
+    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Joined");
+    expect(useGardenMemberHistory).toHaveBeenCalledWith({
+      garden: garden.id,
+      chainId: garden.chainId,
+    });
+
+    await userEvent.setup().click(steward);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("Jun 12, 2026");
+    expect(dialog).toHaveTextContent("Oct 4, 2026");
+    expect(dialog).toHaveTextContent("Oct 6, 2026");
   });
 
   it("uses the viewed member's published avatar and protocol name across changes", () => {
@@ -218,6 +288,36 @@ describe("GardenGardeners", () => {
     expect(container.querySelector(".gg-item-row-avatar > img")?.getAttribute("src")).toBe(
       "/images/avatar.png"
     );
+  });
+
+  it("keeps member identity available when membership history cannot load", async () => {
+    vi.mocked(useGardenMemberHistory).mockReturnValue({
+      members: [
+        {
+          garden: garden.id,
+          account: members[0].account,
+          joinedAt: Date.UTC(2026, 5, 12, 12),
+          memberSince: Date.UTC(2026, 5, 12, 12),
+          roleSince: { gardener: Date.UTC(2026, 5, 12, 12) },
+        },
+      ],
+      isLoading: false,
+      isError: true,
+      refetch: vi.fn(),
+    } as ReturnType<typeof useGardenMemberHistory>);
+    renderWithProviders(
+      <TestIntl>
+        <GardenGardeners garden={garden} members={[members[0]]} />
+      </TestIntl>
+    );
+
+    const row = screen.getByRole("button", { name: /Member 0/i });
+    expect(row).not.toHaveTextContent("Joined");
+    await userEvent.setup().click(row);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(members[0].account)).toBeInTheDocument();
+    expect(dialog).toHaveTextContent(en["app.garden.membership.unavailable"]);
+    expect(dialog).not.toHaveTextContent("Nov 14, 2023");
   });
 
   it("shows the default avatar while a member's photo is still being looked up", () => {

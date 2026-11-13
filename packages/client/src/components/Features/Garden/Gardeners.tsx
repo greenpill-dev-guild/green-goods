@@ -2,11 +2,18 @@ import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Button } from "@green-goods/shared/components/Button";
 import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { GardenMembershipDates } from "@green-goods/shared/components/GardenMembershipDates";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
+import { useGardenMemberHistory } from "@green-goods/shared/hooks/garden/useGardenMemberHistory";
+import type {
+  Address,
+  Garden,
+  GardenerCard,
+  GardenMemberHistory,
+} from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { formatAddress } from "@green-goods/shared/utils/app/text";
 import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
@@ -17,7 +24,7 @@ import {
   RiUserLine,
   RiWallet3Fill,
 } from "@remixicon/react";
-import { forwardRef, memo, useState } from "react";
+import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -46,16 +53,17 @@ function contactName(member: GardenMember) {
 
 /**
  * One member as a person row (DL-112): their avatar, their name from the shared address
- * display, their highest role as the chip and, as the one fact, since when they have been a
- * gardener.
+ * display, their highest role as the chip, and when they first joined this garden.
  */
 const GardenMemberItem = memo(function GardenMemberItem({
   member,
   garden,
+  history,
   onClick,
 }: {
   member: GardenMember;
   garden?: Garden;
+  history?: GardenMemberHistory;
   onClick?: () => void;
 }) {
   const intl = useIntl();
@@ -63,9 +71,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
     ...(member.isSteward ? (["steward"] as const) : []),
     ...(member.isGardener ? (["gardener"] as const) : []),
   ];
-  // The indexer records one date per gardener, their first gardener role in any garden, so the
-  // row says since when they have been a gardener, never when they joined this garden.
-  const gardenerSince = member.isGardener && member.registeredAt ? member.registeredAt : null;
+  const joinedAt = history?.joinedAt;
 
   return (
     <PersonRow
@@ -76,20 +82,20 @@ const GardenMemberItem = memo(function GardenMemberItem({
       fallbackAvatar={DEFAULT_AVATAR}
       chainId={garden?.chainId ?? DEFAULT_CHAIN_ID}
       details={
-        gardenerSince
+        joinedAt
           ? [
               {
                 text: intl.formatMessage(
-                  { id: "app.garden.gardeners.gardenerSince" },
+                  { id: "app.garden.membership.joinedOn", defaultMessage: "Joined {date}" },
                   {
-                    date: intl.formatDate(gardenerSince, {
+                    date: intl.formatDate(joinedAt, {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
                     }),
                   }
                 ),
-                dateTime: new Date(gardenerSince).toISOString(),
+                dateTime: new Date(joinedAt).toISOString(),
               },
             ]
           : undefined
@@ -102,6 +108,7 @@ const GardenMemberItem = memo(function GardenMemberItem({
 type GardenMemberRowData = {
   members: GardenMember[];
   garden?: Garden;
+  historyByAccount: ReadonlyMap<string, GardenMemberHistory>;
   onSelect: (member: GardenMember) => void;
 };
 
@@ -111,6 +118,7 @@ function GardenMemberRow({
   style,
   members,
   garden,
+  historyByAccount,
   onSelect,
 }: RowComponentProps<GardenMemberRowData>) {
   const member = members[index];
@@ -118,7 +126,12 @@ function GardenMemberRow({
 
   return (
     <div {...ariaAttributes} style={style} className="px-0.5 pb-3">
-      <GardenMemberItem member={member} garden={garden} onClick={() => onSelect(member)} />
+      <GardenMemberItem
+        member={member}
+        garden={garden}
+        history={historyByAccount.get(member.account.toLowerCase())}
+        onClick={() => onSelect(member)}
+      />
     </div>
   );
 }
@@ -126,6 +139,19 @@ function GardenMemberRow({
 export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps>(
   ({ members, garden, canManageRequests = false }, ref) => {
     const intl = useIntl();
+    const history = useGardenMemberHistory({
+      garden: garden?.id as Address | undefined,
+      chainId: garden?.chainId ?? DEFAULT_CHAIN_ID,
+    });
+    const historyByAccount = useMemo(
+      () =>
+        new Map(
+          history.isError
+            ? []
+            : history.members.map((member) => [member.account.toLowerCase(), member])
+        ),
+      [history.isError, history.members]
+    );
     const shouldVirtualize = members.length > 40;
     // Include the row's height and the list gap; the row grows with the reader's text size.
     const rowHeight = useDynamicRowHeight({ defaultRowHeight: 100 });
@@ -165,7 +191,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               rowComponent={GardenMemberRow}
               rowCount={members.length}
               rowHeight={rowHeight}
-              rowProps={{ members, garden, onSelect: setSelected }}
+              rowProps={{ members, garden, historyByAccount, onSelect: setSelected }}
               style={{ height: 600, width: "100%" }}
             />
           ) : (
@@ -175,6 +201,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                   key={member.account ?? member.id}
                   member={member}
                   garden={garden}
+                  history={historyByAccount.get(member.account.toLowerCase())}
                   onClick={() => setSelected(member)}
                 />
               ))}
@@ -208,6 +235,11 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
         >
           {selected && (
             <div className="flex flex-col gap-8">
+              <GardenMembershipDates
+                history={historyByAccount.get(selected.account.toLowerCase())}
+                isLoading={history.isLoading}
+                isError={history.isError}
+              />
               {selected.account &&
                 (selectedPreferredEnsName ? (
                   <>

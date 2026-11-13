@@ -1,13 +1,40 @@
-import { indexer, type Garden } from "envio";
+import { indexer, type EvmEvent, type Garden } from "envio";
 import type { Address } from "viem";
 
-import { addUniqueAddress, GARDEN_ROLE, normalizeAddress, removeAddress } from "./shared";
+import {
+  addUniqueAddress,
+  GARDEN_ROLE,
+  getTxHash,
+  normalizeAddress,
+  removeAddress,
+} from "./shared";
 import {
   createDefaultGarden,
   createDefaultKarmaProjectAccess,
   type EventContext,
 } from "./entity-defaults";
 import { getKarmaProjectAccessId } from "./ids";
+
+function recordRoleEvent(
+  context: EventContext,
+  event: EvmEvent<"HatsModule", "RoleGranted" | "RoleRevoked">
+) {
+  const role = Number(event.params.role);
+  if (role < GARDEN_ROLE.Gardener || role > GARDEN_ROLE.Community) return;
+  const txHash = getTxHash(event.transaction);
+  context.GardenRoleEvent.set({
+    id: `${event.chainId}-${txHash}-${event.logIndex}`,
+    chainId: event.chainId,
+    garden: normalizeAddress(event.params.garden),
+    account: normalizeAddress(event.params.account),
+    role,
+    action: event.eventName === "RoleGranted" ? "GRANTED" : "REVOKED",
+    timestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    logIndex: event.logIndex,
+    txHash,
+  });
+}
 
 function markKarmaAccessPending(garden: Garden, account: Address, role: number): Garden {
   if (role !== GARDEN_ROLE.Steward && role !== GARDEN_ROLE.Owner) return garden;
@@ -52,6 +79,7 @@ async function setPendingAccessAggregate(
 // ============================================================================
 
 indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event, context }) => {
+  recordRoleEvent(context, event);
   const gardenId = event.params.garden;
   const account = event.params.account;
   const role = Number(event.params.role);
@@ -150,6 +178,7 @@ indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event
 });
 
 indexer.onEvent({ contract: "HatsModule", event: "RoleRevoked" }, async ({ event, context }) => {
+  recordRoleEvent(context, event);
   const gardenId = event.params.garden;
   const account = event.params.account;
   const role = Number(event.params.role);
