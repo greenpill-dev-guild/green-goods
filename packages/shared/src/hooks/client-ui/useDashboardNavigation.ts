@@ -139,6 +139,8 @@ export function useDashboardNavigation() {
           ...options,
           state: { ...options.state, ...(scope ? { dashboardBack: { scope, path } } : {}) },
         }),
+      /** Whether `back` steps back: this session recorded the immediately preceding page. */
+      canGoBack: previous !== null,
       /** True only when this session recorded the immediately preceding page. */
       back: () => {
         if (!previous) return false;
