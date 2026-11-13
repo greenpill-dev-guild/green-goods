@@ -6,7 +6,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
 import { useApp } from "@green-goods/shared/providers/App";
 import { type ReactNode, useEffect } from "react";
-import { createPwaLaunchUrl } from "@/config/pwaRouting";
+import { createPwaRoutingConfig } from "@/config/pwaRouting";
 
 function PwaAnalyticsIdentity() {
   const { locale, isPwaPresentation } = useApp();
@@ -44,7 +44,10 @@ export default function WalletRuntimeProviders({
   const { isStandalone, platform } = useApp();
   const walletReturnUrl =
     isStandalone && platform === "android" && typeof window !== "undefined"
-      ? createPwaLaunchUrl(window.location.origin)
+      ? new URL(
+          createPwaRoutingConfig(import.meta.env.VITE_USE_HASH_ROUTER === "true").startUrl,
+          window.location.href
+        ).href
       : undefined;
 
   return (

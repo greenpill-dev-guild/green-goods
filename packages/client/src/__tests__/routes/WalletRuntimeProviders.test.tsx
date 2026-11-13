@@ -43,6 +43,7 @@ describe("WalletRuntimeProviders return fallback", () => {
     mockUseAuthState.mockReturnValue({ isReady: false });
     mockUseApp.mockReturnValue({ isStandalone: true, platform: "android" });
     vi.stubEnv("VITE_APP_URL", "https://www.greengoods.app");
+    vi.stubEnv("VITE_USE_HASH_ROUTER", "false");
   });
 
   afterEach(() => {
@@ -70,6 +71,34 @@ describe("WalletRuntimeProviders return fallback", () => {
         }),
       })
     );
+  });
+
+  it.each([
+    [
+      "https://gateway.example/ipfs/bafy-garden/#/home/garden?draft=private",
+      "https://gateway.example/ipfs/bafy-garden/#/home",
+    ],
+    [
+      "https://gateway.example/ipfs/bafy-garden/index.html#/home/garden",
+      "https://gateway.example/ipfs/bafy-garden/#/home",
+    ],
+    [
+      "https://bafy-garden.ipfs.gateway.example/#/home/garden",
+      "https://bafy-garden.ipfs.gateway.example/#/home",
+    ],
+  ])("preserves the IPFS document base when returning from %s", (currentUrl, returnUrl) => {
+    vi.stubEnv("VITE_USE_HASH_ROUTER", "true");
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: new URL(currentUrl),
+    });
+
+    render(<WalletRuntimeProviders analyticsIdentity={false}>App</WalletRuntimeProviders>);
+
+    expect(mockAppKitProvider.mock.calls[0]?.[0].metadata.redirect).toEqual({
+      native: returnUrl,
+      universal: returnUrl,
+    });
   });
 
   it.each([
