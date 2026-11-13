@@ -1514,6 +1514,20 @@ type VaultEvent {
   timestamp: Int!
 }
 
+# Immutable role facts preserve garden-specific membership and rejoin dates.
+type GardenRoleEvent {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  garden: String! # GardenAccount address, lowercase
+  account: String! # Role holder address, lowercase
+  role: Int! # IHatsModule.GardenRole position
+  action: String! # GRANTED or REVOKED
+  timestamp: Int!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+}
+
 type Gardener {
   id: ID! # Smart account address
   chainId: Int!

@@ -34,6 +34,7 @@ export {
   type ButtonTone,
 } from "./Button";
 export { Chip, type ChipProps } from "./Chip";
+export { GardenMembershipDates } from "./GardenMembershipDates";
 export { IconButton, type IconButtonProps } from "./IconButton";
 // Card Components
 export {

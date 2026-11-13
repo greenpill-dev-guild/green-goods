@@ -499,6 +499,7 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
         const expectedFields: Record<string, string[]> = {
           Gardens: ["Garden", "GardenDomains"],
           Gardeners: ["Gardener"],
+          GardenMemberHistory: ["GardenRoleEvent"],
           Actions: ["Action"],
           GetStewardGardens: ["Garden"],
           Garden: ["Garden", "GardenDomains"],
@@ -518,10 +519,44 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
           `${name} fields`
         );
         check(
-          (name === "Actions" ? v.where?.chainId?._eq : v.chainId) === 11155111,
+          (["Actions", "GardenMemberHistory"].includes(name)
+            ? v.where?.chainId?._eq
+            : v.chainId) === 11155111,
           `${name} chainId must be 11155111`
         );
         switch (name) {
+          case "GardenMemberHistory":
+            check(
+              Object.keys(v.where).every((key) => ["chainId", "garden", "account"].includes(key)) &&
+                (v.where.garden || v.where.account),
+              "GardenMemberHistory scope"
+            );
+            for (const [field, addresses] of [
+              ["garden", [garden.id, garden.tokenAddress]],
+              ["account", allowedAddresses],
+            ] as const) {
+              const filter = v.where[field];
+              if (filter !== undefined) {
+                check(
+                  filter &&
+                    Object.keys(filter).length === 1 &&
+                    addresses.some(
+                      (address) => address.toLowerCase() === filter._eq?.toLowerCase()
+                    ),
+                  `GardenMemberHistory ${field}`
+                );
+              }
+            }
+            check(
+              Number.isInteger(v.limit) &&
+                v.limit > 0 &&
+                Number.isInteger(v.offset) &&
+                v.offset >= 0,
+              "GardenMemberHistory pagination"
+            );
+            // This scenario deliberately has no indexed role events, so dates remain unknown.
+            data = { GardenRoleEvent: [] };
+            break;
           case "Gardens":
             data = { Garden: [garden], GardenDomains: [{ garden: garden.id, domainMask: 2 }] };
             break;

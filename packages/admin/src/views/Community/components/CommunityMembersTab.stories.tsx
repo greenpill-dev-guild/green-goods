@@ -14,6 +14,7 @@ import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
   storyGarden,
+  storyMemberHistory,
   storyRoleSummary,
   storyRoster,
   storyRosterIdentity,
@@ -24,6 +25,10 @@ const joinRequestsAvailable = [
   queryKeys.gardenJoinRequests.availability(),
   { enabled: true, supportedKinds: ["garden_membership", "steward_access"] },
 ] as const;
+const membershipHistory = [
+  queryKeys.gardens.memberHistory(storyGarden.id, undefined, storyGarden.chainId),
+  storyMemberHistory,
+] as const;
 
 const meta = {
   title: "Admin/Workflows/Community/Members",
@@ -32,7 +37,7 @@ const meta = {
   decorators: [
     withAdminIdentity,
     withDataRouter("/community/members"),
-    withSeededQueryClient([joinRequestsAvailable]),
+    withSeededQueryClient([joinRequestsAvailable, membershipHistory]),
   ],
   parameters: { layout: "padded" },
   args: {
@@ -72,6 +77,7 @@ export const PersonWithSeveralRoles: Story = {
 
 const withRosterIdentity = withSeededQueryClient([
   joinRequestsAvailable,
+  membershipHistory,
   ...storyRosterIdentity(FIXTURE_IMAGE_PROFILE),
 ]);
 

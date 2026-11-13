@@ -8,16 +8,19 @@ export function MemberRoleSelect({
   value,
   onChange,
   disabled,
+  className,
 }: {
   roles: readonly GardenRole[];
   value: GardenRole;
   onChange: (role: GardenRole) => void;
   disabled: boolean;
+  className?: string;
 }) {
   const { formatMessage } = useIntl();
   return (
     <AdminSelect
       id="member-role"
+      className={className}
       label={formatMessage({ id: "app.admin.roles.roleLabel", defaultMessage: "Role" })}
       value={value}
       onChange={(event) => {

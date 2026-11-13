@@ -76,6 +76,10 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
   };
 });
 
+vi.mock("@green-goods/shared/hooks/garden/useGardenMemberHistory", () => ({
+  useGardenMemberHistory: () => ({ members: [], isLoading: false, isError: false }),
+}));
+
 import { ManageMembersDialog } from "../../../components/Garden/ManageMembersDialog";
 
 const roleMembers: Record<GardenRole, Address[]> = {
@@ -253,7 +257,8 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
   it("reviews against the garden, leaves out a role already gone, and removes the rest", async () => {
     const user = userEvent.setup();
     const removal = fakeRemoval({ held: (address) => address !== TOMI });
-    const { onClose } = renderDialog({ removal });
+    const onRosterStale = vi.fn();
+    const { onClose } = renderDialog({ removal, onRosterStale });
 
     await pick(user, "Evaluator", "chidinma");
     await pick(user, "Evaluator", "tomi.eth");
@@ -282,6 +287,7 @@ describe("components/Garden/ManageMembersDialog (Manage Roles)", () => {
       expect.anything()
     );
     expect(await within(review).findByText("2 roles removed")).toBeInTheDocument();
+    expect(onRosterStale).toHaveBeenCalledTimes(1);
     await user.click(within(review).getByRole("button", { name: "Done" }));
     expect(onClose).toHaveBeenCalled();
   });

@@ -1,5 +1,5 @@
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { Address, GardenMemberHistory } from "@green-goods/shared/types/domain";
 import type { QueryKey } from "@tanstack/react-query";
 import type { RoleDirectoryEntry } from "@green-goods/shared/types/garden-detail";
 import { PoolType, type YieldAllocation } from "@green-goods/shared/types/gardens-community";
@@ -53,6 +53,14 @@ export const storyDirectory: RoleDirectoryEntry[] = [
   { address: STORY_OWNER, roles: ["owner"] },
   { address: STORY_STEWARD, roles: ["steward"] },
 ];
+
+export const storyMemberHistory: GardenMemberHistory[] = storyDirectory.map((entry) => ({
+  garden: STORY_GARDEN_ID,
+  account: entry.address,
+  joinedAt: Date.UTC(2026, 3, 4, 12),
+  memberSince: Date.UTC(2026, 3, 4, 12),
+  roleSince: Object.fromEntries(entry.roles.map((role) => [role, Date.UTC(2026, 3, 4, 12)])),
+}));
 
 /**
  * A fuller garden for the people rows: a Green Goods name, ENS names, bare addresses and

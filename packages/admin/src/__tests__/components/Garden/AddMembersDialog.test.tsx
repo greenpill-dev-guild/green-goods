@@ -159,7 +159,7 @@ async function stage(user: ReturnType<typeof userEvent.setup>, ...addresses: Add
   for (const address of addresses) {
     await user.click(input);
     await user.paste(address);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
   }
 }
 
@@ -180,6 +180,100 @@ describe("components/Garden/AddMembersDialog", () => {
     mockUseGardenRoleHat.mockReturnValue({ wearsHat: undefined, isLoading: false, isError: false });
   });
 
+  it("requires an explicit additional role for the fixed member, then signs for that person", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <AddMembersDialog {...defaultProps} memberAddress={ADDRESS_A} roleMembers={WITH_GARDENER_A} />
+    );
+    expect(screen.getByRole("dialog", { name: "Add role" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Members to add" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Gardener" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add role" })).toBeDisabled();
+    fireEvent.submit(document.getElementById("admin-add-members-dialog")!);
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(defaultProps.onAdd).toHaveBeenCalledWith("steward", ADDRESS_A));
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a failed role add on the same person and role for retry", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onAdd = vi
+      .fn()
+      .mockResolvedValueOnce({ success: false })
+      .mockResolvedValueOnce({ success: true });
+    render(
+      <AddMembersDialog
+        {...defaultProps}
+        onAdd={onAdd}
+        memberAddress={ADDRESS_A}
+        roleMembers={WITH_GARDENER_A}
+      />
+    );
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    expect(await screen.findByText("Failed to add member")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Steward" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(2));
+    expect(onAdd.mock.calls).toEqual([
+      ["steward", ADDRESS_A],
+      ["steward", ADDRESS_A],
+    ]);
+  });
+
+  it("guards a chosen role when closing without saving", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <AddMembersDialog {...defaultProps} memberAddress={ADDRESS_A} roleMembers={WITH_GARDENER_A} />
+    );
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
+  it("clears a failed role choice when its recovery row is removed", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onAdd = vi.fn(async () => ({ success: false }));
+    render(
+      <AddMembersDialog
+        {...defaultProps}
+        onAdd={onAdd}
+        memberAddress={ADDRESS_A}
+        roleMembers={WITH_GARDENER_A}
+      />
+    );
+    await user.click(screen.getByRole("radio", { name: "Steward" }));
+    await user.click(screen.getByRole("button", { name: "Add Steward Role" }));
+    await screen.findByText("Failed to add member");
+    await user.click(stagedList().getByRole("button", { name: "Remove" }));
+    expect(screen.getByRole("button", { name: "Add role" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Steward" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByText("Failed to add member")).not.toBeInTheDocument();
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores only this member's unsettled role when a bulk attempt included other people", async () => {
+    const user = userEvent.setup({ delay: null });
+    const batch = batchWith({
+      hold: { ...HOLD_ON_A, rows: [ROW_A, ROW_B] },
+      lastReadAt: 1,
+    });
+    const props = { ...defaultProps, memberAddress: ADDRESS_A, batch };
+    const { rerender } = render(<AddMembersDialog {...props} />);
+    expect(await stagedList().findAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText(ADDRESS_B)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Gardener Role" })).toBeDisabled();
+    // The recovery read unlocks this row. Retrying must never include the other person.
+    rerender(<AddMembersDialog {...props} batch={{ ...batch, hold: null, lastReadAt: 2 }} />);
+    await user.click(screen.getByRole("button", { name: "Add Gardener Role" }));
+    await waitFor(() => expect(batch.add).toHaveBeenCalled());
+    expect(vi.mocked(batch.add).mock.calls[0][0]).toEqual([ROW_A]);
+  });
+
   it("stages resolved addresses into the reserved list and clears the input", async () => {
     const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
@@ -187,7 +281,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
 
     await waitFor(() => {
       expect(stagedName(ADDRESS_A)).toBeInTheDocument();
@@ -204,7 +298,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.click(input);
     await user.paste(ADDRESS_B);
 
@@ -233,7 +327,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.click(input);
     await user.paste(ADDRESS_B);
     await user.click(screen.getByRole("button", { name: "Add 2 Gardeners" }));
@@ -269,8 +363,8 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.click(input);
     await user.paste("not-a-wallet");
 
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
     expect(defaultProps.onAdd).not.toHaveBeenCalled();
   });
 
@@ -283,7 +377,7 @@ describe("components/Garden/AddMembersDialog", () => {
     await user.paste(ADDRESS_A);
 
     // Calm guidance, not an error: the address is fine, only this role is taken.
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
     expect(
       screen.getByText(/is already a Gardener\. Choose another role to add them\./)
     ).toBeInTheDocument();
@@ -291,7 +385,7 @@ describe("components/Garden/AddMembersDialog", () => {
 
     await user.selectOptions(screen.getByLabelText("Role"), "steward");
     expect(screen.getByText(/is currently a Gardener\./)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
 
     // The row names the role being added and the roles held today.
     const list = screen.getByRole("group", { name: "Members to add" });
@@ -317,7 +411,7 @@ describe("components/Garden/AddMembersDialog", () => {
       enabled: true,
     });
     expect(screen.queryByText(/is already a Gardener/)).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     // The staged row trusts the chain too: no "Currently a Gardener" beside Gardener.
     const list = screen.getByRole("group", { name: "Members to add" });
     expect(within(list).getByText("Gardener")).toBeInTheDocument();
@@ -341,7 +435,7 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(mockUseGardenRoleHat).toHaveBeenLastCalledWith(GARDEN, ADDRESS_A, "gardener", {
       enabled: true,
     });
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
     expect(screen.getByText(/is already a Gardener/)).toBeInTheDocument();
   });
 
@@ -352,11 +446,11 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.selectOptions(screen.getByLabelText("Role"), "steward");
     await user.click(input);
     await user.paste(ADDRESS_B);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
 
     const list = screen.getByRole("group", { name: "Members to add" });
     expect(within(list).getByText("Gardener")).toBeInTheDocument();
@@ -376,11 +470,11 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await user.click(input);
     await user.paste(ADDRESS_A);
 
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add to list" })).toBeDisabled();
     expect(screen.getByText(/is already in the list as a Gardener\./)).toBeInTheDocument();
   });
 
@@ -409,7 +503,7 @@ describe("components/Garden/AddMembersDialog", () => {
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
     await user.click(input);
     await user.paste(ADDRESS_A);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add to list" }));
     await waitFor(() => {
       expect(stagedName(ADDRESS_A)).toBeInTheDocument();
     });
@@ -603,7 +697,7 @@ describe("components/Garden/AddMembersDialog", () => {
       })
     );
     await waitFor(() => expect(stagedList().queryAllByRole("listitem")).toHaveLength(0));
-    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
   });
 
   it("keeps a refused row's reason, and sends the rest only once the person changes the list", async () => {
@@ -687,7 +781,7 @@ describe("components/Garden/AddMembersDialog", () => {
 
     expect(await screen.findByText("Not confirmed yet · On chain now")).toBeInTheDocument();
     expect(stagedList().getByRole("button", { name: "Remove" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Add Gardeners" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add Members" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Move On" }));
     expect(batch.moveOn).toHaveBeenCalledTimes(1);
 

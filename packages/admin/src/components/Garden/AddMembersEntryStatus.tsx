@@ -6,7 +6,7 @@ import { EnsAddressText } from "@/components/EnsAddressText";
 import { type EntryCheck, formatRoleNames } from "./addMembersEntry";
 import { getRoleLabel } from "./gardenUtils";
 
-interface AddMembersEntryStatusProps {
+export interface AddMembersEntryStatusProps {
   id: string;
   /** The field's trimmed text. */
   typed: string;

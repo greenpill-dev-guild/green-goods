@@ -1,3 +1,4 @@
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type {
   RoleRemovalApi,
@@ -157,6 +158,8 @@ const meta: Meta<typeof ManageMembersDialog> = {
     isLoading: false,
     removal: simulatedRemoval(),
     onAddMembers: fn(),
+    onAddRole: fn(),
+    gardenAddress: "0x7777777777777777777777777777777777777777",
     tone: "community",
   },
 };
@@ -313,4 +316,36 @@ function inLocale(locale: string, messages: Record<string, string>): Decorator {
 /** Spanish role names are the longest ("Miembro de la comunidad"): chips wrap, nothing is cut. */
 export const StewardChoosingSpanish: Story = {
   decorators: [inLocale("es", esMessages)],
+};
+
+/** Garden-specific dates are read once for the roster, independently of removal selection. */
+export const MembershipDates: Story = {
+  decorators: [
+    withSeededQueryClient([
+      [
+        queryKeys.gardens.memberHistory(
+          "0x7777777777777777777777777777777777777777",
+          undefined,
+          DEFAULT_CHAIN_ID
+        ),
+        [
+          {
+            garden: "0x7777777777777777777777777777777777777777",
+            account: TOMI,
+            joinedAt: Date.UTC(2026, 5, 12, 12),
+            memberSince: Date.UTC(2026, 5, 12, 12),
+            roleSince: {
+              gardener: Date.UTC(2026, 5, 12, 12),
+              evaluator: Date.UTC(2026, 5, 12, 12),
+            },
+          },
+        ],
+      ],
+    ]),
+  ],
+  play: async () => {
+    await waitFor(() =>
+      expect(within(document.body).getByText("Joined this garden")).toBeVisible()
+    );
+  },
 };
