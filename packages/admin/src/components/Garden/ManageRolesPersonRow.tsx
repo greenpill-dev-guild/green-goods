@@ -4,8 +4,7 @@ import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useP
 import { Button } from "@green-goods/shared/components/Button";
 import { GardenMembershipDates } from "@green-goods/shared/components/GardenMembershipDates";
 import { MemberIdentity } from "./MemberIdentity";
-import type { GardenMemberHistory } from "@green-goods/shared/types/domain";
-import type { Address } from "@green-goods/shared/types/domain";
+import type { Address, GardenMemberHistory } from "@green-goods/shared/types/domain";
 import {
   GARDEN_ROLE_ORDER,
   type GardenRole,
