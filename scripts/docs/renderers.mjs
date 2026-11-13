@@ -1180,6 +1180,7 @@ export function renderQaCatalog({ root, sources, digest }) {
     "This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded."
   );
   body += "Each surface groups its cases by priority (the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view) and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
+  body += "**Release scope:** Rollout Readiness (`ROLL-` IDs) contains only in-progress features. Its cases and journeys require an explicit activation gate and stay separate from the regression surfaces. An active case is available to test; it does not mean the feature is deployed or the case has passed. Confirm the build and environment before recording a verdict.\n\n";
   body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}**: ${meaning}.`).join("\n");
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
@@ -1225,6 +1226,7 @@ export function renderQaCatalog({ root, sources, digest }) {
     const tabSlug = tab.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     let rendered = 0;
     body += `## ${tab}\n\n`;
+    if (tab === "Rollout Readiness") body += "These checks apply only to the scoped rollout build and reviewed deployment. Their results do not count as coverage of the shipped release.\n\n";
     for (const [priority] of QA_PRIORITY_MEANINGS) {
       const band = tabCases.filter((candidate) => candidate.priority === priority);
       if (band.length === 0) continue;

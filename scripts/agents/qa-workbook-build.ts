@@ -51,6 +51,9 @@ export const TAB_PREFIXES: Record<string, readonly string[]> = {
   "ADM-": ["Admin Dashboard"],
   "XPLAT-": ["PWA", "Admin Dashboard"],
   "DOCS-": ["Docs"],
+  "AGT-": ["Agent Reporting"],
+  "QA-": ["QA Operations"],
+  "ROLL-": ["Rollout Readiness"],
 };
 
 /** Installed-device rows keep their platform-specific id prefix on the merged PWA tab. */
@@ -65,6 +68,9 @@ const SURFACE_ALIASES: Record<string, string[]> = {
   pwa: ["PWA"],
   admin: ["Admin Dashboard"],
   docs: ["Docs"],
+  agent: ["Agent Reporting"],
+  qa: ["QA Operations"],
+  rollout: ["Rollout Readiness"],
 };
 
 const TAB_COLORS: Record<string, string> = {
@@ -72,6 +78,9 @@ const TAB_COLORS: Record<string, string> = {
   PWA: "2E7D6B",
   "Admin Dashboard": "5B7553",
   Docs: "6B8E9E",
+  "Agent Reporting": "5B7553",
+  "QA Operations": "6B8E9E",
+  "Rollout Readiness": "8A663D",
 };
 
 const REQUIRES_PRODUCTION_NOTE = "Can't run on localhost — needs a production install/passkey";
@@ -366,6 +375,17 @@ export function validateCatalog(catalog: Catalog): string[] {
       if (testCase.tags?.includes("transaction")) {
         problems.push(`${testCase.id}: legacy tag 'transaction' — use 'tx'`);
       }
+      if (
+        testCase.tab === "Rollout Readiness" &&
+        (!testCase.tags?.includes("in-progress") ||
+          !testCase.scenario.startsWith("In progress:") ||
+          !testCase.preconditions.some((condition) => condition.startsWith("Activation gate:")))
+      ) {
+        problems.push(`${testCase.id}: rollout cases must name their in-progress status and activation gate`);
+      }
+      if (testCase.tags?.includes("in-progress") && testCase.tab !== "Rollout Readiness") {
+        problems.push(`${testCase.id}: in-progress cases belong only on Rollout Readiness`);
+      }
       // Installed-device rows (PWA-IOS-/PWA-AND-/PWA-ROLE-) can never pass on a
       // desktop-local walk, so each must carry a capability flag that pre-blocks
       // it in --local run sheets. Generic PWA- desktop-journey rows are exempt.
@@ -389,6 +409,13 @@ export function validateCatalog(catalog: Catalog): string[] {
   );
   const journeyIds = new Set<string>();
   for (const journey of catalog.journeys ?? []) {
+    const rolloutSteps = journey.steps?.filter((step) => step.caseId.startsWith("ROLL-")) ?? [];
+    if (
+      rolloutSteps.length &&
+      (!journey.label?.startsWith("In progress:") || rolloutSteps.length !== journey.steps.length)
+    ) {
+      problems.push(`${journey.id}: rollout journeys must be labeled In progress and contain only rollout cases`);
+    }
     if (!journey.id?.trim()) {
       problems.push("journeys: entry without an id");
       continue;

@@ -966,6 +966,14 @@ test("guided journeys keep each handoff and known gate beside its Test ID", () =
   }
 });
 
+test("QA projection distinguishes rollout readiness from shipped release coverage", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/quality/test-cases.mdx");
+  const rendered = renderProjection(REPO_ROOT, projection);
+  assert.match(rendered, /An active case is available to test; it does not mean the feature is deployed or the case has passed/);
+  assert.match(rendered, /## Rollout Readiness\n\nThese checks apply only to the scoped rollout build/);
+  assert.match(rendered, /### In progress: /);
+});
+
 test("task routing projects public ownership and one-way synchronization", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/agentic/task-routing.mdx",

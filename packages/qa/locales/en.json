@@ -308,6 +308,286 @@
       ],
       "expected": "When authorized and enabled, a discretionary top-up is queued for the correct garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
       "role": "steward"
+    },
+    "ADM-202": {
+      "scenario": "Resolve a steward request and verify confirmed cockpit access",
+      "preconditions": [
+        "ADM-201 pending request",
+        "Authorized independent reviewer and requester using separate accounts",
+        "Role assignment transaction explicitly authorized"
+      ],
+      "steps": [
+        "Open the steward-access queue and approve the request",
+        "Wait for the role receipt and request resolution",
+        "As the requester, refresh and enter the cockpit; compare with an ordinary membership request"
+      ],
+      "expected": "Approval assigns the steward role, not ordinary membership. Access opens only after confirmed authority; a pending or failed role assignment is not reported as access granted.",
+      "role": "steward"
+    },
+    "QA-004": {
+      "scenario": "Verify catalog revision and distinguish regression from rollout results",
+      "preconditions": [
+        "A QA deployment with the intended catalog revision; known build identifiers",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Compare the deployed revision with the catalog being reviewed and record the product builds",
+        "Select a normal surface, then Rollout Readiness and an In progress journey",
+        "Read the private run report by surface and inspect retired IDs"
+      ],
+      "expected": "The run identifies the exact catalog and builds. Rollout cases are visibly separate and are not treated as proof of shipped behavior; retired IDs retain history but cannot be walked.",
+      "role": "any"
+    },
+    "ROLL-006": {
+      "scenario": "In progress: apply delayed policy and recover a paused jar safely",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed Hats jar pair and authorized governor; disposable balance and approved recovery destination",
+        "Required participants: owner and steward."
+      ],
+      "steps": [
+        "Propose a policy, try early execution, cancel it and propose a replacement",
+        "Apply after the delay and reject the stale proposal",
+        "Pause and test claim refusal; verify separate unpause and recovery authority and reject the wrong recovery recipient"
+      ],
+      "expected": "Only the current policy executes after its delay. Pause blocks claims; unpause and recovery require their designated authority. Recovery uses only the approved destination and uncertain receipts are checked before retrying.",
+      "role": "steward"
+    },
+    "AGT-001": {
+      "scenario": "Consent and pair a Telegram reporter with the intended account",
+      "preconditions": [
+        "Enabled Telegram reporting channel in the selected environment",
+        "Disposable conversation and member account; consent to private test media",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Start reporting and read the consent and account link",
+        "Decline once; restart and open the link with the intended account",
+        "Complete account proof and return to the conversation"
+      ],
+      "expected": "Declining records no report. Pairing binds only the proven account and intended conversation; it grants no unrelated garden role.",
+      "role": "gardener"
+    },
+    "PWA-141": {
+      "scenario": "Receive a delivered service and reconcile held, spent and returned vouchers",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "A booking whose delivery the independent steward can resolve"
+      ],
+      "steps": [
+        "Record the held and available amounts",
+        "Have the steward complete the agreed delivery, then reopen the booking",
+        "Compare the wallet, booking and steward record after confirmation"
+      ],
+      "expected": "The delivery and any agreed split or return reconcile to the original booking amount. Held value is not also available to spend; receipt history remains visible.",
+      "role": "gardener"
+    },
+    "AGT-003": {
+      "scenario": "Independently review chat-submitted Work and verify the reporter’s result",
+      "preconditions": [
+        "AGT-002 published Work",
+        "Independent steward outside the contributor roster; authorized review",
+        "Required participants: steward and reporter."
+      ],
+      "steps": [
+        "Find the same Work and evidence in the cockpit",
+        "Approve or reject with feedback and wait for confirmation",
+        "As the reporter, read the resulting status in chat and the app"
+      ],
+      "expected": "The independent review and feedback agree across chat, app and cockpit. A Work receipt is not confused with review approval or payout.",
+      "role": "steward"
+    },
+    "AGT-002": {
+      "scenario": "Correct a report and publish one Work through browser authorization",
+      "preconditions": [
+        "AGT-001 paired member; authorized test submission",
+        "Disposable text, photo, voice and document samples; only supported evidence is accepted",
+        "Required participants: reporter."
+      ],
+      "steps": [
+        "Create a report, attach supported media and correct the action, description or garden before confirmation",
+        "Open the browser authorization and reject signing once",
+        "Retry, confirm and wait for the receipt; open the resulting Work in the app"
+      ],
+      "expected": "The review matches the corrected report and accepted evidence. Unsupported input is explained. Rejection sends nothing; confirmed submission publishes one Work under the paired account, never an automatic approval.",
+      "role": "gardener"
+    },
+    "ROLL-002": {
+      "scenario": "In progress: choose the explicit exchange pool and reconcile the receipt",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed issuer-desk revision; two configured garden exchange pools; authorized test funds",
+        "Required participants: member and steward."
+      ],
+      "steps": [
+        "Choose the destination pool and inspect the route, asset and terms",
+        "Reject a wrong or unavailable route, then submit the approved route",
+        "Reload during receipt lookup and reconcile the known operation"
+      ],
+      "expected": "Only the explicitly selected reviewed pool is used. Unavailable routes cannot send; reload never duplicates exchange or approval, and the receipt records the actual pool.",
+      "role": "gardener"
+    },
+    "QA-002": {
+      "scenario": "Converge two devices and recover an offline verdict",
+      "preconditions": [
+        "QA-001 signed-in tester on two devices; second tester on a different case",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Change a verdict on one device and its note on the other",
+        "Go offline, edit another note and reload",
+        "Reconnect and compare both devices and the other tester’s record"
+      ],
+      "expected": "Field changes converge without overwriting confirmed edits or another tester. Offline changes remain local with an honest unsaved message and sync once into their original open run.",
+      "role": "any"
+    },
+    "ROLL-007": {
+      "scenario": "In progress: rehearse migration atomically and reconcile each garden’s two jars",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Pinned pre-migration fork and reviewed manifest of every garden and asset pair",
+        "No live broadcast; use the owning migration rehearsal and direct adapter tests",
+        "Required participants: release operator."
+      ],
+      "steps": [
+        "Snapshot legacy registry, balances, roles and yield destinations",
+        "Rehearse legacy unlisting and pair provisioning; inject a second-asset failure and changed Hat/factory inputs",
+        "Retry from the unchanged fixture and read both registry entries, factory identities and yield destinations"
+      ],
+      "expected": "A failed pair leaves neither partial deployment nor partial registration. Changed roles, factory or existing entries reject stale calldata. Successful pairs map the intended assets; old history is retained and active new jars cannot be unlisted as legacy.",
+      "role": "any"
+    },
+    "ADM-201": {
+      "scenario": "Request steward access and remain unprivileged while pending",
+      "preconditions": [
+        "Signed-in requester without steward access; eligible garden; enabled request API",
+        "Required participants: requester."
+      ],
+      "steps": [
+        "Choose the garden from the no-access screen and review the request",
+        "Cancel signing once, then sign and submit",
+        "Reload and open a protected garden route"
+      ],
+      "expected": "Cancellation creates no request. A submitted request is pending for the chosen garden; it grants no role and protected actions remain unavailable.",
+      "role": "any"
+    },
+    "ROLL-005": {
+      "scenario": "In progress: operate limits within policy and enforce role loss",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Reviewed Hats jar pair on a test garden; owner, steward, gardener and unrelated accounts",
+        "Required participants: owner and steward."
+      ],
+      "steps": [
+        "Inspect and change operational limits as each role",
+        "Try exceeding the policy ceiling, shortening cooldown and exceeding daily budget",
+        "Revoke the acting role before confirmation and retry; inspect legacy jars separately"
+      ],
+      "expected": "Only the designated role can act within policy. Limits, cooldown and budget reject boundary violations; role loss is rechecked. Legacy and new jars retain their distinct permission rules.",
+      "role": "steward"
+    },
+    "PWA-145": {
+      "scenario": "Sign after passkey recovery and keep account switching isolated",
+      "preconditions": [
+        "PWA-144 completed on the same supported origin",
+        "One small test Work submission or other explicitly authorized account operation",
+        "A second account and an unsent item on the original device"
+      ],
+      "steps": [
+        "Reject the first signing prompt, then retry the authorized operation",
+        "Wait for its receipt and verify the original account is the author",
+        "Switch accounts, reload, and return to the original account"
+      ],
+      "expected": "Rejected signing sends nothing. The retry lands once under the recovered account. The other account cannot see, send or discard the original account’s unsent items; returning restores them.",
+      "role": "gardener"
+    },
+    "ROLL-001": {
+      "scenario": "In progress: revise an issuer draft and obtain fresh member approval",
+      "preconditions": [
+        "Activation gate: use only the explicitly scoped rollout build and reviewed deployment; this case is not evidence that the feature has shipped.",
+        "Issuer-desk rollout enabled; issuer and authorized reviewer with disposable draft",
+        "Required participants: issuer and steward."
+      ],
+      "steps": [
+        "Create and review a draft with terms and proposed pool",
+        "Approve one revision, then change a material term",
+        "Attempt activation with the old approval, then review the current revision"
+      ],
+      "expected": "Revision history is retained. Old approval cannot authorize changed terms; activation remains gated until the exact current revision and authorities are approved.",
+      "role": "any"
+    },
+    "QA-001": {
+      "scenario": "Authenticate and save one private verdict across reload",
+      "preconditions": [
+        "Hosted QA app; allowlisted tester and a non-allowlisted wallet",
+        "Disposable run; record its environment, catalog revision and build under test",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Try sign-in with the non-allowlisted wallet, then cancel and complete allowed sign-in",
+        "Record a verdict and note in the disposable run",
+        "Wait for saved confirmation, reload and read the same case"
+      ],
+      "expected": "Unauthorized access is refused and cancellation is retryable. The allowed tester’s verdict and note persist in the intended run without exposing private data publicly.",
+      "role": "any"
+    },
+    "PWA-140": {
+      "scenario": "Approve service terms and book the agreed amount",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized"
+      ],
+      "steps": [
+        "Open the service promise and review issuer, unit, amount and terms",
+        "Cancel once, then approve the current terms and book",
+        "Wait for the receipt and open the booking from Your Wallet"
+      ],
+      "expected": "Cancel sends nothing. One booking uses the approved terms and amount; its held balance and wallet link agree. A pending receipt is not shown as completed.",
+      "role": "gardener"
+    },
+    "QA-003": {
+      "scenario": "Roll over with unsaved edits and preserve closed-run history",
+      "preconditions": [
+        "Disposable QA run; two testers; one live unsaved edit and one outbox recovered after reload",
+        "Required participants: allowlisted QA tester."
+      ],
+      "steps": [
+        "Have both testers start the successor run at nearly the same time",
+        "Read the outcome and the handling of live versus recovered unsent edits",
+        "Open the closed run and compare it with the successor"
+      ],
+      "expected": "Exactly one successor is open. Closed history cannot be edited; live edits explain their new destination and recovered old-run edits wait for an explicit decision. No verdict silently moves to another run.",
+      "role": "any"
+    },
+    "ADM-205": {
+      "scenario": "Resolve a service booking with the approved terms and amount",
+      "preconditions": [
+        "Enabled service-voucher deployment and a test service with agreed terms",
+        "Member and independent steward; test funds and the write boundary explicitly authorized",
+        "PWA-140 booking awaiting authorized delivery resolution"
+      ],
+      "steps": [
+        "Open the booking from the voucher console",
+        "Review its terms and proposed delivery, split or return",
+        "Cancel once, then confirm the agreed outcome and wait for the receipt"
+      ],
+      "expected": "Only the authorized steward can resolve it. Cancel changes nothing; the confirmed outcome conserves the booked amount and is visible to the member without claiming payment from Work approval alone.",
+      "role": "steward"
+    },
+    "PWA-144": {
+      "scenario": "Recover an older passkey account without changing its identity",
+      "preconditions": [
+        "Older passkey account with its original address recorded privately",
+        "Hosted supported origin; a second browser or device with the passkey available through the intended Apple or Google account"
+      ],
+      "steps": [
+        "Sign out and recover by the existing account name on a browser without local account storage",
+        "Compare the recovered address, memberships and balances with the original",
+        "Reload, sign out and recover again on each supported origin in scope"
+      ],
+      "expected": "Recovery opens the original account, with the same address and memberships. A different origin or unavailable passkey gives an honest recovery path and never silently creates a replacement account.",
+      "role": "gardener"
     }
   },
   "journeys": {
@@ -394,6 +674,176 @@
         "ADM-045": {
           "handoff": "The garden steward verifies the destination garden and balance; no commitment ID is involved.",
           "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
+        }
+      }
+    },
+    "service-vouchers": {
+      "label": "Service booking: member, steward and wallet",
+      "summary": "Walk an enabled service booking through approval, delivery and balance reconciliation. Confirm the deployment and write boundary first; record missing prerequisites as Blocked, never as a completed exchange.",
+      "lanes": {
+        "member": {
+          "label": "Member",
+          "role": "Member booking the service"
+        },
+        "steward": {
+          "label": "Steward",
+          "role": "Independent steward authorized to resolve this booking"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {
+        "PWA-140": {
+          "handoff": "The steward verifies the booking ID, approved terms, amount and held balance before resolving it."
+        },
+        "ADM-205": {
+          "handoff": "The member sees the confirmed resolution on the same booking before checking wallet balances."
+        },
+        "PWA-141": {
+          "handoff": "Both people reconcile the same booking with the held, spent and returned voucher amounts."
+        }
+      }
+    },
+    "steward-access": {
+      "label": "Steward access: request, role and cockpit",
+      "summary": "Use separate requester and reviewer accounts. A pending request grants no privileges; verify the confirmed role before entering the cockpit.",
+      "lanes": {
+        "requester": {
+          "label": "Requester",
+          "role": "Account without steward access"
+        },
+        "reviewer": {
+          "label": "Reviewer",
+          "role": "Authorized garden reviewer"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {
+        "ADM-201": {
+          "handoff": "The reviewer sees the pending request for the same account and garden; the requester still has no steward access."
+        },
+        "ADM-202": {
+          "handoff": "The requester refreshes and verifies the confirmed role and cockpit access in the intended garden."
+        }
+      }
+    },
+    "telegram-reporting": {
+      "label": "Telegram report: consent, Work and independent review",
+      "summary": "Use the enabled Telegram adapter and private disposable evidence. Browser authorization, Work publication and independent review are separate outcomes; unavailable services remain Blocked.",
+      "lanes": {
+        "reporter": {
+          "label": "Reporter",
+          "role": "Consenting garden member"
+        },
+        "reviewer": {
+          "label": "Reviewer",
+          "role": "Independent steward outside the contributor roster"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {
+        "AGT-002": {
+          "handoff": "The independent reviewer finds the same published Work and evidence in the cockpit before reviewing."
+        },
+        "AGT-003": {
+          "handoff": "The reporter sees the confirmed review result for the same Work in both chat and the app."
+        }
+      }
+    },
+    "passkey-continuity": {
+      "label": "Passkey recovery: same account, then a signed operation",
+      "summary": "Walk on the supported hosted origins and real device families in scope. Virtual authenticators and local substitutes do not prove account recovery on a real device.",
+      "lanes": {
+        "member": {
+          "label": "Member",
+          "role": "Owner of the older passkey account"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {}
+    },
+    "qa-recording": {
+      "label": "QA operations: saved verdicts and run rollover",
+      "summary": "Use a disposable run and private notes. Confirm the catalog revision and builds, then prove recording and rollover with two devices.",
+      "lanes": {
+        "tester": {
+          "label": "Tester",
+          "role": "Allowlisted tester"
+        },
+        "peer": {
+          "label": "Peer",
+          "role": "Second allowlisted tester"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {
+        "QA-002": {
+          "handoff": "Both devices show the confirmed verdict and note; the peer verifies that their own entry remains independent."
+        },
+        "QA-003": {
+          "handoff": "Both testers identify the new open run and read the closed run; recovered old outbox entries remain parked."
+        }
+      }
+    },
+    "rollout-service-issuer": {
+      "label": "In progress: issuer revision and exchange",
+      "summary": "Rollout readiness only. Do not count these steps as shipped coverage or activation approval. Confirm the reviewed deployment, issuer revision and allowed value boundary first.",
+      "lanes": {
+        "issuer": {
+          "label": "Issuer",
+          "role": "Issuer preparing the reviewed terms"
+        },
+        "steward": {
+          "label": "Steward",
+          "role": "Reviewer of the issuer and destination pool"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {
+        "ROLL-001": {
+          "handoff": "The reviewer verifies the current issuer revision and fresh approval before any exchange is prepared."
+        },
+        "ROLL-002": {
+          "handoff": "Both people reconcile the selected pool and receipt, keeping this result in the rollout run."
+        }
+      }
+    },
+    "rollout-hats-jars": {
+      "label": "In progress: Hats jar migration and permissions",
+      "summary": "Rollout readiness only. Rehearse on a pinned fork before an authorized staging walk. A passing rehearsal does not authorize a live migration or certify every garden.",
+      "lanes": {
+        "operator": {
+          "label": "Release operator",
+          "role": "Operator of the reviewed migration rehearsal"
+        },
+        "steward": {
+          "label": "Steward",
+          "role": "Garden steward with separately verified role authority"
+        }
+      },
+      "phases": {
+        "walk": "Walk and verify"
+      },
+      "steps": {
+        "ROLL-007": {
+          "handoff": "The steward verifies both asset mappings and the rollback evidence before walking the staged jar controls."
+        },
+        "ROLL-005": {
+          "handoff": "The operator verifies policy limits, budget and revoked-role rejection on the same reviewed jar pair."
+        },
+        "ROLL-006": {
+          "handoff": "Both people verify the applied policy, pause state and approved recovery destination without inferring fleet activation."
         }
       }
     }

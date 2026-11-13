@@ -150,9 +150,10 @@ managed services.
 The `passkey-mock` project also starts the Agent's loopback reporting driver on port 3016
 (`packages/agent/src/__tests__/reporting/driver`) and points the Client's `/api/messaging` proxy at
 it. The driver serves the Client's origin only, and the test profile ignores a
-`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. The Client
-workflow does not run on Agent-only changes, so a driver or ceremony API change that breaks these
-journeys shows on the next Client or Shared pull request.
+`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. Agent source
+changes also select the passkey browser check and start the Client workflow. This includes the
+driver's transitive runtime and API dependencies, so an Agent-only change gets browser integration
+proof on its own pull request.
 
 The deterministic browser-test chain is Sepolia (`VITE_CHAIN_ID=11155111`). Local URLs are HTTPS
 outside CI and HTTP in CI.

@@ -313,6 +313,286 @@
       ],
       "expected": "Cuando está autorizada y habilitada, la recarga se pone en cola para el jardín correcto y su saldo refleja el resultado; nunca sustituye a la compensación ganada ni hace referencia a un compromiso",
       "role": "Responsable"
+    },
+    "ADM-202": {
+      "scenario": "Resuelve la solicitud y verifica el acceso confirmado al panel",
+      "preconditions": [
+        "Solicitud ADM-201 pendiente",
+        "Persona revisora autorizada e independiente y solicitante con cuentas distintas",
+        "Transacción de asignación de rol autorizada"
+      ],
+      "steps": [
+        "Abre la cola de acceso de responsables y aprueba la solicitud",
+        "Espera la confirmación del rol y la resolución de la solicitud",
+        "Como solicitante, actualiza y entra al panel; compara con una solicitud de membresía ordinaria"
+      ],
+      "expected": "La aprobación asigna el rol de responsable, no una membresía ordinaria. El acceso se abre solo tras confirmar la autoridad; una asignación pendiente o fallida no se presenta como acceso concedido.",
+      "role": "responsable"
+    },
+    "QA-004": {
+      "scenario": "Verifica la revisión del catálogo y separa regresión de despliegue en curso",
+      "preconditions": [
+        "Implementación QA con la revisión prevista del catálogo; identificadores de versiones conocidos",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Compara la revisión desplegada con el catálogo revisado y registra las versiones del producto",
+        "Selecciona una superficie normal, después Rollout Readiness y un recorrido En curso",
+        "Lee el informe privado por superficie y revisa los IDs retirados"
+      ],
+      "expected": "La ejecución identifica catálogo y versiones exactos. Los casos de despliegue están separados y no demuestran comportamiento ya publicado; los IDs retirados conservan historial y no se ejecutan.",
+      "role": "cualquier persona"
+    },
+    "ROLL-006": {
+      "scenario": "En curso: aplica una política diferida y recupera un jar pausado",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Par de jars Hats revisado y autoridad de gobierno; saldo desechable y destino de recuperación aprobado",
+        "Participantes requeridos: persona propietaria y responsable."
+      ],
+      "steps": [
+        "Propón una política, intenta ejecutarla antes de tiempo, cancélala y propón otra",
+        "Aplica tras la espera y rechaza la propuesta obsoleta",
+        "Pausa y comprueba el rechazo de retiros; verifica autoridades de reanudación y recuperación y rechaza un destino incorrecto"
+      ],
+      "expected": "Solo la política actual se ejecuta tras la espera. La pausa bloquea retiros; reanudar y recuperar requiere la autoridad designada. La recuperación usa el destino aprobado y comprueba confirmaciones inciertas antes de reintentar.",
+      "role": "responsable"
+    },
+    "AGT-001": {
+      "scenario": "Da consentimiento y vincula un informe de Telegram con la cuenta prevista",
+      "preconditions": [
+        "Canal de informes de Telegram habilitado en el entorno elegido",
+        "Conversación desechable y cuenta miembro; consentimiento para medios privados de prueba",
+        "Participantes requeridos: persona que informa."
+      ],
+      "steps": [
+        "Inicia el informe y lee el consentimiento y el enlace de cuenta",
+        "Rechaza una vez; reinicia y abre el enlace con la cuenta prevista",
+        "Completa la prueba de cuenta y vuelve a la conversación"
+      ],
+      "expected": "Rechazar no registra un informe. La vinculación une solo la cuenta demostrada y la conversación prevista; no concede otros roles del jardín.",
+      "role": "miembro"
+    },
+    "PWA-141": {
+      "scenario": "Recibe el servicio y concilia los vales retenidos, gastados y devueltos",
+      "preconditions": [
+        "Implementación de vales habilitada y servicio con condiciones acordadas",
+        "Miembro y responsable independiente; fondos y operaciones de prueba autorizados",
+        "Reserva cuya entrega puede resolver la persona responsable independiente"
+      ],
+      "steps": [
+        "Anota los importes retenido y disponible",
+        "Pide a la persona responsable que complete la entrega acordada y vuelve a abrir la reserva",
+        "Compara wallet, reserva y registro de revisión tras la confirmación"
+      ],
+      "expected": "La entrega y cualquier reparto o devolución concilian con el importe original. El valor retenido no está disponible para gastarlo; el historial de confirmaciones permanece visible.",
+      "role": "miembro"
+    },
+    "AGT-003": {
+      "scenario": "Revisa de forma independiente el trabajo de chat y comprueba el resultado",
+      "preconditions": [
+        "Trabajo publicado mediante AGT-002",
+        "Responsable independiente fuera de la lista de contribuyentes; revisión autorizada",
+        "Participantes requeridos: responsable e informante."
+      ],
+      "steps": [
+        "Busca el mismo trabajo y su evidencia en el panel",
+        "Aprueba o rechaza con comentarios y espera la confirmación",
+        "Como informante, consulta el resultado en chat y app"
+      ],
+      "expected": "La revisión independiente y los comentarios coinciden en chat, app y panel. La confirmación del trabajo no se confunde con aprobación ni pago.",
+      "role": "responsable"
+    },
+    "AGT-002": {
+      "scenario": "Corrige un informe y publica un trabajo con autorización en el navegador",
+      "preconditions": [
+        "Miembro vinculado mediante AGT-001; envío de prueba autorizado",
+        "Muestras desechables de texto, foto, voz y documento; solo se acepta evidencia compatible",
+        "Participantes requeridos: persona que informa."
+      ],
+      "steps": [
+        "Crea un informe, adjunta medios compatibles y corrige acción, descripción o jardín antes de confirmar",
+        "Abre la autorización en el navegador y rechaza la firma una vez",
+        "Reintenta, confirma y espera la confirmación; abre el trabajo en la app"
+      ],
+      "expected": "La revisión coincide con el informe corregido y la evidencia aceptada. Las entradas no compatibles se explican. Rechazar no envía nada; el envío confirmado publica un trabajo bajo la cuenta vinculada, sin aprobación automática.",
+      "role": "miembro"
+    },
+    "ROLL-002": {
+      "scenario": "En curso: elige el pool de intercambio y concilia la confirmación",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Revisión aprobada del emisor; dos pools de intercambio de jardín configurados; fondos de prueba autorizados",
+        "Participantes requeridos: miembro y responsable."
+      ],
+      "steps": [
+        "Elige el pool de destino y revisa ruta, activo y condiciones",
+        "Rechaza una ruta incorrecta o no disponible y envía por la aprobada",
+        "Recarga durante la consulta de confirmación y concilia la operación conocida"
+      ],
+      "expected": "Solo se usa el pool explícito y revisado. Una ruta no disponible no envía; recargar no duplica intercambio ni aprobación, y la confirmación registra el pool real.",
+      "role": "miembro"
+    },
+    "QA-002": {
+      "scenario": "Concilia dos dispositivos y recupera un veredicto sin conexión",
+      "preconditions": [
+        "Persona de QA-001 en dos dispositivos; segunda persona en otro caso",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Cambia el veredicto en un dispositivo y su nota en el otro",
+        "Desconecta la red, edita otra nota y recarga",
+        "Reconecta y compara ambos dispositivos y el registro de la otra persona"
+      ],
+      "expected": "Los campos convergen sin sobrescribir cambios confirmados ni otro registro. Los cambios sin conexión permanecen locales con un aviso honesto y se sincronizan una vez en su ejecución original abierta.",
+      "role": "cualquier persona"
+    },
+    "ROLL-007": {
+      "scenario": "En curso: ensaya la migración atómica y concilia los dos jars por jardín",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Fork fijado antes de migrar y manifiesto revisado de cada jardín y par de activos",
+        "Sin transacciones en vivo; usa el ensayo de migración y las pruebas directas del adaptador",
+        "Participantes requeridos: persona a cargo de la publicación."
+      ],
+      "steps": [
+        "Captura registro antiguo, saldos, roles y destinos de rendimiento",
+        "Ensaya retirar entradas antiguas y crear pares; inyecta un fallo en el segundo activo y cambios de Hats o fábrica",
+        "Reintenta desde la misma base y lee ambas entradas, identidades de fábrica y destinos"
+      ],
+      "expected": "Un par fallido no deja creación ni registro parciales. Cambios de roles, fábrica o entradas existentes rechazan llamadas antiguas. Los pares válidos asignan los activos previstos; se conserva el historial y no se retiran jars nuevos como antiguos.",
+      "role": "cualquier persona"
+    },
+    "ADM-201": {
+      "scenario": "Solicita acceso de responsable sin obtener privilegios mientras está pendiente",
+      "preconditions": [
+        "Solicitante con sesión iniciada sin acceso de responsable; jardín elegible; API habilitada",
+        "Participantes requeridos: solicitante."
+      ],
+      "steps": [
+        "Elige el jardín en la pantalla sin acceso y revisa la solicitud",
+        "Cancela la firma una vez; después firma y envía",
+        "Recarga y abre una ruta protegida del jardín"
+      ],
+      "expected": "Cancelar no crea una solicitud. La solicitud enviada queda pendiente para el jardín elegido; no concede ningún rol y las acciones protegidas siguen sin estar disponibles.",
+      "role": "cualquier persona"
+    },
+    "ROLL-005": {
+      "scenario": "En curso: ajusta límites dentro de la política y comprueba la pérdida de rol",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Par de jars Hats revisado en jardín de prueba; cuentas propietaria, responsable, miembro y ajena",
+        "Participantes requeridos: persona propietaria y responsable."
+      ],
+      "steps": [
+        "Inspecciona y cambia límites operativos con cada rol",
+        "Intenta superar el máximo de política, acortar la espera y exceder el presupuesto diario",
+        "Revoca el rol antes de confirmar y reintenta; inspecciona los jars antiguos por separado"
+      ],
+      "expected": "Solo el rol designado actúa dentro de la política. Límites, espera y presupuesto rechazan excesos y se vuelve a comprobar el rol. Los jars antiguos y nuevos conservan permisos distintos.",
+      "role": "responsable"
+    },
+    "PWA-145": {
+      "scenario": "Firma después de recuperar la passkey y aísla los cambios de cuenta",
+      "preconditions": [
+        "PWA-144 completado en el mismo origen compatible",
+        "Un trabajo de prueba pequeño u otra operación de cuenta autorizada",
+        "Segunda cuenta y un elemento sin enviar en el dispositivo original"
+      ],
+      "steps": [
+        "Rechaza la primera firma y reintenta la operación autorizada",
+        "Espera la confirmación y verifica la cuenta autora original",
+        "Cambia de cuenta, recarga y vuelve a la cuenta original"
+      ],
+      "expected": "Rechazar no envía nada. El reintento se confirma una vez bajo la cuenta recuperada. La otra cuenta no puede ver, enviar ni descartar los elementos sin enviar; al volver se recuperan.",
+      "role": "miembro"
+    },
+    "ROLL-001": {
+      "scenario": "En curso: revisa un borrador de emisor y consigue una aprobación nueva",
+      "preconditions": [
+        "Condición de activación: usa solo la versión de despliegue acotada y revisada; este caso no demuestra que la función esté publicada.",
+        "Mesa de emisores habilitada; emisor y persona revisora autorizada con borrador desechable",
+        "Participantes requeridos: emisor y responsable."
+      ],
+      "steps": [
+        "Crea y revisa un borrador con condiciones y pool propuesto",
+        "Aprueba una revisión y cambia una condición relevante",
+        "Intenta activar con la aprobación anterior y revisa la versión actual"
+      ],
+      "expected": "Se conserva el historial. La aprobación anterior no autoriza condiciones cambiadas; la activación espera la revisión actual exacta y las autoridades aprobadas.",
+      "role": "cualquier persona"
+    },
+    "QA-001": {
+      "scenario": "Autentícate y conserva un veredicto privado tras recargar",
+      "preconditions": [
+        "App QA alojada; persona autorizada y wallet no autorizada",
+        "Ejecución desechable; registra entorno, revisión del catálogo y versión probada",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Intenta entrar con la wallet no autorizada; después cancela y completa el acceso autorizado",
+        "Registra un veredicto y una nota en la ejecución desechable",
+        "Espera la confirmación de guardado, recarga y lee el mismo caso"
+      ],
+      "expected": "El acceso no autorizado se rechaza y cancelar permite reintentar. El veredicto y la nota persisten en la ejecución prevista sin publicar datos privados.",
+      "role": "cualquier persona"
+    },
+    "PWA-140": {
+      "scenario": "Aprueba las condiciones y reserva el importe acordado",
+      "preconditions": [
+        "Implementación de vales de servicio habilitada y servicio con condiciones acordadas",
+        "Miembro y responsable independiente; fondos de prueba y operaciones autorizadas"
+      ],
+      "steps": [
+        "Abre la promesa de servicio y revisa emisor, unidad, importe y condiciones",
+        "Cancela una vez; después aprueba las condiciones actuales y reserva",
+        "Espera la confirmación y abre la reserva desde Tu wallet"
+      ],
+      "expected": "Cancelar no envía nada. Una sola reserva usa las condiciones y el importe aprobados; el saldo retenido coincide con el enlace de la wallet. Una confirmación pendiente no figura como completada.",
+      "role": "miembro"
+    },
+    "QA-003": {
+      "scenario": "Abre la siguiente ejecución con cambios pendientes y conserva el historial",
+      "preconditions": [
+        "Ejecución QA desechable; dos personas; una edición activa sin guardar y una cola recuperada al recargar",
+        "Participantes requeridos: persona autorizada para QA."
+      ],
+      "steps": [
+        "Ambas personas intentan abrir la siguiente ejecución casi a la vez",
+        "Lee el resultado y el tratamiento de las ediciones activas y recuperadas",
+        "Abre la ejecución cerrada y compárala con la siguiente"
+      ],
+      "expected": "Solo queda una ejecución abierta. El historial cerrado no se edita; las ediciones activas explican su nuevo destino y las antiguas recuperadas esperan una decisión explícita. Ningún veredicto cambia de ejecución en silencio.",
+      "role": "cualquier persona"
+    },
+    "ADM-205": {
+      "scenario": "Resuelve una reserva con las condiciones y el importe aprobados",
+      "preconditions": [
+        "Implementación de vales habilitada y servicio con condiciones acordadas",
+        "Miembro y responsable independiente; fondos y operaciones de prueba autorizados",
+        "Reserva PWA-140 pendiente de resolución autorizada"
+      ],
+      "steps": [
+        "Abre la reserva en la consola de vales",
+        "Revisa condiciones y entrega, reparto o devolución propuestos",
+        "Cancela una vez; después confirma el resultado acordado y espera la confirmación"
+      ],
+      "expected": "Solo la persona responsable autorizada puede resolverla. Cancelar no cambia nada; el resultado conserva el importe reservado y llega al miembro sin presentar la aprobación del trabajo como un pago.",
+      "role": "responsable"
+    },
+    "PWA-144": {
+      "scenario": "Recupera una cuenta antigua con passkey sin cambiar su identidad",
+      "preconditions": [
+        "Cuenta antigua con passkey y dirección original guardada de forma privada",
+        "Origen alojado compatible; segundo navegador o dispositivo con la passkey disponible en la cuenta Apple o Google prevista"
+      ],
+      "steps": [
+        "Cierra sesión y recupera por el nombre existente en un navegador sin datos locales de la cuenta",
+        "Compara dirección, membresías y saldos recuperados con los originales",
+        "Recarga, cierra sesión y repite en cada origen compatible incluido"
+      ],
+      "expected": "Se recupera la cuenta original con la misma dirección y membresías. Un origen distinto o una passkey no disponible ofrece una recuperación honesta y nunca crea otra cuenta en silencio.",
+      "role": "miembro"
     }
   },
   "journeys": {
@@ -399,6 +679,176 @@
         "ADM-045": {
           "handoff": "La persona responsable del jardín verifica el jardín de destino y el saldo; no interviene ningún ID de compromiso.",
           "knownGate": "La financiación de tesorería del protocolo requiere autorización explícita para mover valor y una vía ProtocolToGarden activa. Si no están disponibles, registra Bloqueado y no des a entender que se movieron fondos."
+        }
+      }
+    },
+    "service-vouchers": {
+      "label": "Reserva de servicio: miembro, responsable y wallet",
+      "summary": "Recorre una reserva habilitada desde la aprobación hasta la entrega y conciliación. Confirma implementación y operaciones autorizadas; registra requisitos ausentes como Bloqueado, nunca como intercambio completado.",
+      "lanes": {
+        "member": {
+          "label": "Miembro",
+          "role": "Miembro que reserva el servicio"
+        },
+        "steward": {
+          "label": "Responsable",
+          "role": "Responsable independiente con autoridad para resolver esta reserva"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "PWA-140": {
+          "handoff": "La persona responsable verifica ID de reserva, condiciones aprobadas, importe y saldo retenido antes de resolverla."
+        },
+        "ADM-205": {
+          "handoff": "El miembro ve la resolución confirmada en la misma reserva antes de revisar los saldos."
+        },
+        "PWA-141": {
+          "handoff": "Ambas personas concilian la misma reserva con los vales retenidos, gastados y devueltos."
+        }
+      }
+    },
+    "steward-access": {
+      "label": "Acceso de responsable: solicitud, rol y panel",
+      "summary": "Usa cuentas distintas. Una solicitud pendiente no concede privilegios; verifica el rol confirmado antes de entrar al panel.",
+      "lanes": {
+        "requester": {
+          "label": "Solicitante",
+          "role": "Cuenta sin acceso de responsable"
+        },
+        "reviewer": {
+          "label": "Persona revisora",
+          "role": "Persona revisora autorizada del jardín"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "ADM-201": {
+          "handoff": "Quien revisa ve la solicitud pendiente de la misma cuenta y jardín; quien solicita aún no tiene acceso de responsable."
+        },
+        "ADM-202": {
+          "handoff": "Quien solicita actualiza y verifica el rol confirmado y el acceso al panel del jardín previsto."
+        }
+      }
+    },
+    "telegram-reporting": {
+      "label": "Informe de Telegram: consentimiento, trabajo y revisión",
+      "summary": "Usa el adaptador Telegram habilitado y evidencia privada desechable. Autorización, publicación y revisión son resultados distintos; servicios no disponibles quedan Bloqueados.",
+      "lanes": {
+        "reporter": {
+          "label": "Informante",
+          "role": "Miembro del jardín que da consentimiento"
+        },
+        "reviewer": {
+          "label": "Persona revisora",
+          "role": "Responsable autorizado fuera de la lista de contribuyentes"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "AGT-002": {
+          "handoff": "Quien revisa de forma independiente encuentra el mismo trabajo publicado y su evidencia en el panel antes de revisarlo."
+        },
+        "AGT-003": {
+          "handoff": "Quien informa ve el resultado confirmado de la revisión del mismo trabajo en el chat y la app."
+        }
+      }
+    },
+    "passkey-continuity": {
+      "label": "Recuperación de passkey: misma cuenta y operación firmada",
+      "summary": "Recorre los orígenes alojados compatibles y las familias de dispositivos reales incluidas. Los autenticadores virtuales y sustitutos locales no prueban recuperación real.",
+      "lanes": {
+        "member": {
+          "label": "Miembro",
+          "role": "Titular de la cuenta con passkey antigua"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {}
+    },
+    "qa-recording": {
+      "label": "Operaciones QA: veredictos guardados y nueva ejecución",
+      "summary": "Usa una ejecución desechable y notas privadas. Confirma catálogo y versiones; después verifica el registro y cambio de ejecución con dos dispositivos.",
+      "lanes": {
+        "tester": {
+          "label": "Persona de QA",
+          "role": "Persona autorizada para QA"
+        },
+        "peer": {
+          "label": "Otra persona de QA",
+          "role": "Segunda persona autorizada para QA"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "QA-002": {
+          "handoff": "Ambos dispositivos muestran el veredicto y la nota confirmados; la otra persona comprueba que su entrada sigue siendo independiente."
+        },
+        "QA-003": {
+          "handoff": "Ambas personas identifican la nueva ejecución abierta y leen la cerrada; las entradas antiguas recuperadas siguen pendientes de decisión."
+        }
+      }
+    },
+    "rollout-service-issuer": {
+      "label": "En curso: revisión de emisor e intercambio",
+      "summary": "Solo preparación de despliegue. No cuenta como cobertura publicada ni autorización de activación. Confirma implementación revisada, revisión del emisor y operaciones permitidas.",
+      "lanes": {
+        "issuer": {
+          "label": "Emisor",
+          "role": "Emisor que prepara las condiciones revisadas"
+        },
+        "steward": {
+          "label": "Responsable",
+          "role": "Persona que revisa el emisor y el pool de destino"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "ROLL-001": {
+          "handoff": "Quien revisa verifica la revisión actual del emisor y la nueva aprobación antes de preparar un intercambio."
+        },
+        "ROLL-002": {
+          "handoff": "Ambas personas concilian el pool seleccionado y el recibo, manteniendo el resultado en la ejecución de despliegue."
+        }
+      }
+    },
+    "rollout-hats-jars": {
+      "label": "En curso: migración y permisos de jars Hats",
+      "summary": "Solo preparación de despliegue. Ensaya en un fork fijado antes de una prueba autorizada. Un ensayo aprobado no autoriza migración en vivo ni certifica todos los jardines.",
+      "lanes": {
+        "operator": {
+          "label": "Responsable de publicación",
+          "role": "Persona a cargo del ensayo de migración revisado"
+        },
+        "steward": {
+          "label": "Responsable",
+          "role": "Responsable del jardín con autoridad de rol verificada por separado"
+        }
+      },
+      "phases": {
+        "walk": "Recorrer y verificar"
+      },
+      "steps": {
+        "ROLL-007": {
+          "handoff": "La persona responsable verifica las asignaciones de ambos activos y la evidencia de reversión antes de probar los controles de ensayo."
+        },
+        "ROLL-005": {
+          "handoff": "Quien opera verifica límites de política, presupuesto y rechazo del rol revocado en el mismo par revisado."
+        },
+        "ROLL-006": {
+          "handoff": "Ambas personas verifican política aplicada, pausa y destino de recuperación aprobado sin inferir activación de todos los jardines."
         }
       }
     }

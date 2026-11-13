@@ -253,6 +253,22 @@ test("Supply Chain classifier routes each change class without broad fallthrough
   }
 });
 
+test("QA runtime and catalog changes reach the existing required behavioral job", () => {
+  const source = read(".github/workflows/supply-chain-guardrails.yml");
+  const start = source.search(/^  guidance:\n/m);
+  assert.notEqual(start, -1);
+  const job = source.slice(start, source.indexOf("\n  parity:", start));
+  assert.match(job, /run: bun run check --only agent-tools-test/);
+  for (const path of ["packages/qa/store.ts", "packages/qa/runs.ts", "packages/qa/api/runs.ts", "packages/qa/index.html", "scripts/agents/qa-app-store.test.ts", "scripts/data/qa-test-catalog.json"]) {
+    assert.equal(classifySupplyChainChanges([path]).guidance, true, path);
+  }
+  for (const event of ["push", "pull_request"]) {
+    assert.ok(workflowEventBlock(source, event).includes('"packages/qa/**"'));
+    assert.ok(workflowEventBlock(source, event).includes('"scripts/agents/**"'));
+    assert.ok(workflowEventBlock(read(".github/workflows/client.yml"), event).includes('"packages/agent/src/**"'));
+  }
+});
+
 test("pre-push forwards focused proof paths and gate arguments without shell expansion", () => {
   const hook = read(".husky/pre-push");
   // Both variables are set explicitly: the hook reads the pushing shell's environment, so a value
