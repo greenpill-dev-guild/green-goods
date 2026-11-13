@@ -13,8 +13,8 @@ type Story = StoryObj<typeof meta>;
 export const TeamStewardOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("option", { name: "Steward", exact: true })).toBeVisible();
-    await expect(canvas.queryByRole("option", { name: "Owner", exact: true })).toBeNull();
+    await expect(canvas.getByRole("option", { name: /^Steward$/ })).toBeVisible();
+    await expect(canvas.queryByRole("option", { name: /^Owner$/ })).toBeNull();
   },
 };
 export const GardenOwner: Story = {
