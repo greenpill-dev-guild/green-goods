@@ -41,3 +41,9 @@ Agent/model: Codex / exact model unknown | Coverage: current review/shipping seg
 | publish | unknown → ongoing | Commit/push preparation; PR blocked on Linear access/reference |
 
 Human corrections: 0 observed; attention: unknown. Times include tools and overlapping checks; do not sum them.
+
+## Export-manifest certificate refresh
+
+The push gate exposed the manifest-wide seam fingerprint boundary. Compared all 24 registered implementation, root, consumer and proof files byte-for-byte with develop; all are unchanged. Existing export targets and dependency fields are unchanged. The only manifest delta is the two new, independent UI/history leaf exports. All 13 registered direct/conformance/integration suites were rerun: 359 passed, four existing governed skips. Refreshed the four existing certificates' fingerprints and review dates from the canonical checker after this evidence; lifecycle, criticality, declared boundaries, proof paths, and policy are unchanged. No waiver or baseline relaxation was used.
+
+Evidence: `/private/tmp/member-shipping/seam-input-proof.txt`, `develop-seams.json`, and `seam-proof.log`. The develop evidence snapshot reproduces its original certificates; the new manifest alone caused their staleness.
