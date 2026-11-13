@@ -5,7 +5,7 @@ import { createConnection } from "node:net";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-
+import * as yaml from "js-yaml";
 import {
   type Abi,
   type Address,
@@ -22,13 +22,12 @@ import {
   zeroHash,
 } from "viem";
 import { arbitrum } from "viem/chains";
-import * as yaml from "js-yaml";
 import { LOCAL_GOVERNANCE_MANAGER, sendLocalGovernanceCall } from "./local-governance";
 
 export const LOCAL_ARBITRUM_RPC_URL = "http://127.0.0.1:3009";
-export const LOCAL_CONTRACT_EVENT_OPERATION_TIMEOUT_MS = 300_000;
+export const LOCAL_CONTRACT_EVENT_OPERATION_TIMEOUT_MS = 600_000;
 export const LOCAL_CONTRACT_EVENT_CLEANUP_BUDGET_MS = 120_000;
-export const LOCAL_CONTRACT_EVENT_MOCHA_TIMEOUT_MS = 480_000;
+export const LOCAL_CONTRACT_EVENT_MOCHA_TIMEOUT_MS = 780_000;
 export const CREDIT_REGISTRY_STATIC_PIN_ALLOWANCE = {
   owner: "PRD-722",
   expires: "2026-08-31",
@@ -72,6 +71,9 @@ const repoRoot = dirname(dirname(indexerRoot));
 const envioBin = join(indexerRoot, "node_modules/envio/bin.mjs");
 const ANVIL_START_TIMEOUT_MS = 60_000;
 const COMPOSE_START_TIMEOUT_MS = 90_000;
+// Envio configures the complete schema's permissions/relationships serially before
+// processing events. That setup is distinct from the unchanged 150s event deadline.
+const INDEXER_STORAGE_START_TIMEOUT_MS = 360_000;
 const INDEXER_POLL_TIMEOUT_MS = 150_000;
 
 interface LocalConfigInput {
@@ -431,6 +433,7 @@ export async function runLocalContractEventIntegration(): Promise<void> {
       );
       const envioEnv: NodeJS.ProcessEnv = {
         ...process.env,
+        LOG_LEVEL: "info",
         ENVIO_PG_HOST: "127.0.0.1",
         ENVIO_PG_PORT: String(postgresPort),
         ENVIO_PG_USER: "postgres",
@@ -445,6 +448,16 @@ export async function runLocalContractEventIntegration(): Promise<void> {
         cwd: indexerRoot,
         env: envioEnv,
       });
+
+      const indexerProcess = envio;
+      await waitFor(
+        async () =>
+          tail(indexerProcess.output).includes("Hasura configuration completed") ? true : undefined,
+        INDEXER_STORAGE_START_TIMEOUT_MS,
+        () => `Envio did not finish storage/Hasura initialization.\n${tail(indexerProcess.output)}`,
+        indexerProcess.child,
+        signal
+      );
 
       const indexed = await pollForIndexedProof(
         proof,
@@ -1031,9 +1044,15 @@ function spawnManaged(
 ): ManagedProcess {
   const child = spawn(command, args, { ...options, stdio: "pipe" });
   const output: string[] = [];
+  let outputBytes = 0;
   const capture = (chunk: Buffer) => {
-    output.push(chunk.toString());
-    if (output.length > 200) output.splice(0, output.length - 200);
+    const text = chunk.toString();
+    output.push(text);
+    outputBytes += Buffer.byteLength(text);
+    // Bound memory by bytes so a long structured startup message retains its context.
+    while (outputBytes > 512 * 1024 && output.length > 1) {
+      outputBytes -= Buffer.byteLength(output.shift()!);
+    }
   };
   child.stdout.on("data", capture);
   child.stderr.on("data", capture);
@@ -1220,7 +1239,7 @@ async function abortableDelay(timeoutMs: number, signal?: AbortSignal): Promise<
 }
 
 function tail(output: string[]): string {
-  return output.join("").split("\n").slice(-80).join("\n");
+  return output.join("").slice(-64 * 1024);
 }
 
 function errorMessage(error: unknown): string {
