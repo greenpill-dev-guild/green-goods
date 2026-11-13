@@ -6,6 +6,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
 import { useApp } from "@green-goods/shared/providers/App";
 import { type ReactNode, useEffect } from "react";
+import { createPwaRoutingConfig } from "@/config/pwaRouting";
 
 function PwaAnalyticsIdentity() {
   const { locale, isPwaPresentation } = useApp();
@@ -40,6 +41,15 @@ export default function WalletRuntimeProviders({
   /** Off where a page must not tie the connected account to analytics, such as chat ceremonies. */
   analyticsIdentity?: boolean;
 }) {
+  const { isStandalone, platform } = useApp();
+  const walletReturnUrl =
+    isStandalone && platform === "android" && typeof window !== "undefined"
+      ? new URL(
+          createPwaRoutingConfig(import.meta.env.VITE_USE_HASH_ROUTER === "true").startUrl,
+          window.location.href
+        ).href
+      : undefined;
+
   return (
     <AppKitProvider
       projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
@@ -51,6 +61,10 @@ export default function WalletRuntimeProviders({
             ? import.meta.env.VITE_APP_URL || window.location.origin
             : "https://www.greengoods.app",
         icons: ["https://greengoods.app/icon.png"],
+        // Rabby Android reads native when moving its task to the background fails.
+        ...(walletReturnUrl
+          ? { redirect: { native: walletReturnUrl, universal: walletReturnUrl } }
+          : {}),
       }}
       defaultChainId={DEFAULT_CHAIN_ID}
       fontFamily={'"Inter", system-ui, sans-serif'}

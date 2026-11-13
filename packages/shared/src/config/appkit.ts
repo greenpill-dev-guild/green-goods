@@ -22,11 +22,15 @@ import { APP_DESCRIPTION } from "./app";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
 
-type AppKitMetadata = {
+export type AppKitMetadata = {
   name: string;
   description: string;
   url: string;
   icons: string[];
+  redirect?: {
+    native?: string;
+    universal?: string;
+  };
 };
 
 type AppKitInitOptions = {
@@ -93,6 +97,28 @@ export function createAppKitTransports(
   );
 }
 
+function configureWalletReturnFallback(
+  appKit: ReturnType<typeof createAppKit>,
+  redirect: AppKitMetadata["redirect"]
+): void {
+  if (!redirect) return;
+
+  // AppKit 1.8.24 copies only the four branding fields into WalletConnect.
+  // Set the return fallback on the signer metadata used by new session proposals.
+  void appKit
+    .getUniversalProvider()
+    .then((provider) => {
+      if (!provider) {
+        logger.warn("[AppKit] Wallet return fallback unavailable: provider did not initialize");
+        return;
+      }
+      provider.client.metadata.redirect = redirect;
+    })
+    .catch((error: unknown) => {
+      logger.warn("[AppKit] Could not configure wallet return fallback", { error });
+    });
+}
+
 /**
  * Initialize (or return) the singleton AppKit + Wagmi config.
  * Accepts optional overrides but will not re-initialize once created.
@@ -107,6 +133,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
   }
 
   if (appKitInstance && wagmiAdapterInstance) {
+    configureWalletReturnFallback(appKitInstance, options?.metadata?.redirect);
     return {
       appKit: appKitInstance,
       wagmiConfig: wagmiAdapterInstance.wagmiConfig,
@@ -174,6 +201,8 @@ export function ensureAppKit(options?: AppKitInitOptions) {
       ...(options?.fontFamily ? { "--apkt-font-family": options.fontFamily } : {}),
     },
   });
+
+  configureWalletReturnFallback(appKitInstance, metadata.redirect);
 
   return {
     appKit: appKitInstance,
