@@ -1053,7 +1053,8 @@ async function journeyModeHarness() {
     assert.equal(dom.window.localStorage.getItem("qa-locale"), "pt");
 
     const mobileRules = [...document.styleSheets[0].cssRules]
-      .filter((rule) => rule.conditionText === "(max-width:720px)")
+      // CSSOM serializers can insert spaces without changing the media query.
+      .filter((rule) => rule.conditionText?.replace(/\s+/g, "") === "(max-width:720px)")
       .flatMap((rule) => [...rule.cssRules]);
     const mobileVerdicts = mobileRules.find((rule) => rule.selectorText === ".st");
     const mobileSavebar = mobileRules.find((rule) => rule.selectorText === ".savebar");

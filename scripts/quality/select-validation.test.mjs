@@ -675,6 +675,23 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
   assert.equal(unfocused.stopReason, "local-budget-exceeded");
 });
 
+test("QA recording and run changes select their behavioral suite", () => {
+  for (const changedPath of ["packages/qa/store.ts", "packages/qa/runs.ts", "packages/qa/api/runs.ts", "scripts/agents/qa-status.ts"]) {
+    for (const intent of ["qa", "diagnose", "checkpoint"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      assert.ok(ids(plan).includes("agent-tools-test"), `${intent}: ${changedPath}`);
+    }
+  }
+});
+
+test("Agent-only browser dependencies select passkey proof and the Client workflow", () => {
+  for (const changedPath of ["packages/agent/src/api/routes/messaging.ts", "packages/agent/src/runtime/reporting.ts", "packages/agent/src/services/reporting/browser-access.ts", "packages/agent/src/__tests__/reporting/driver/server.ts"]) {
+    const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
+    assert.ok(ids(plan).includes("browser-passkey"), changedPath);
+    assert.ok(selectExpectedWorkflows({ changedPaths: [changedPath] }).includes("Client"), changedPath);
+  }
+});
+
 test("QA locale changes require catalog tests and rendered browser proof", () => {
   for (const locale of ["en", "es", "pt"]) {
     const plan = selectValidation({
@@ -3433,17 +3450,16 @@ test("a push leaves a check to CI only when the workflow that runs it is expecte
   assert.ok(left > 20, `the push leaves work to CI for many policy paths, got ${left}`);
 });
 
-test("a push keeps a CI-owned check local where its workflow does not run", () => {
-  // The passkey preset reads the Agent's test driver, but an Agent-only change runs no Client CI.
+test("a push delegates the Agent reporting driver's browser proof to the now-required Client workflow", () => {
   const driver = "packages/agent/src/__tests__/reporting/driver/server.ts";
   const plan = selectValidation({
     intent: "push",
     changedPaths: [driver],
     testPaths: { agent: ["src/__tests__/reporting/driver.test.ts"] },
   });
-  assert.ok(!selectExpectedWorkflows({ changedPaths: [driver], intent: "merge", ci: true }).includes("Client"));
-  assert.ok(ids(plan).includes("browser-passkey"));
-  assert.ok(!plan.ciOwned.some((entry) => entry.id === "browser-passkey"));
+  assert.ok(selectExpectedWorkflows({ changedPaths: [driver], intent: "merge", ci: true }).includes("Client"));
+  assert.ok(!ids(plan).includes("browser-passkey"));
+  assert.ok(plan.ciOwned.some((entry) => entry.id === "browser-passkey" && entry.workflow === "Client"));
 });
 
 test("a push replaces builds with typechecks, leaves presets and Storybook to CI, and keeps explicit checks", () => {

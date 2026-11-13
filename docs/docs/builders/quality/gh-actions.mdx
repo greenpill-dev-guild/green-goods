@@ -28,7 +28,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:40c9ad360245a8076c0b728683c41f812a166a90138c6874c8833503141f868b"
+source_digest: "sha256:62a952ed6e0daa20a71a9b3546eeaed65305989fc7aaf517718e55a6d79dfe04"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -67,7 +67,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Admin](#admin) | Builds and tests the steward cockpit when admin code, the shared code it imports, or the shared test support changes. | pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [CI Gate](#ci-gate) | The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection. | every pull request | Yes |
-| [Client](#client) | Builds, tests, and runs the client Playwright project for the public site and the installed PWA. | pull requests that touch its paths (36 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Client](#client) | Builds, tests, and runs the client Playwright project for the public site and the installed PWA. | pull requests that touch its paths (37 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [CodeQL Cache Prune](#codeql-cache-prune) | Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on. | pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch | No |
 | [Contracts Manual](#contracts-manual) | Runs a chosen contracts operation (fork readiness, the CI lane, or both) on demand by calling the Contracts workflow. | manual dispatch | No |
 | [Contracts Nightly](#contracts-nightly) | The deep fuzz and invariant lane: pull-request CI runs the capped test profile for speed, and this run restores full depth through the ci profile. | a schedule (`17 3 * * *` UTC); manual dispatch | No |
@@ -81,7 +81,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (113 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
-| [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (41 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 
 ### Admin {#admin}
 
@@ -118,7 +118,7 @@ The one required status. It derives the workflows a pull request's changed files
 Builds, tests, and runs the client Playwright project for the public site and the installed PWA.
 
 - **Use it when:** Client views, routes, service worker, PWA packaging, or the shared UI they render.
-- **Runs on:** pull requests that touch its paths (36 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (37 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `e2e`, `lighthouse`, `lint-build`, `sourcemaps`, `test`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/client.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/client.yml)
@@ -258,7 +258,7 @@ Typechecks and tests the shared package: hooks, providers, protocol modules, and
 Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
 
 - **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.
-- **Runs on:** pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (41 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `audit`, `changes`, `format`, `guidance`, `parity`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/supply-chain-guardrails.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/supply-chain-guardrails.yml)

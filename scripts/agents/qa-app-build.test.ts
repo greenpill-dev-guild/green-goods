@@ -325,10 +325,9 @@ describe("QA app build", () => {
     expect((byId.get("PUB-001") as { replaces?: string[] }).replaces).toBeUndefined();
     // The catalog revision lets a run record which build it opened with.
     expect(built.revision).toMatch(/^[0-9a-f]{12}$/);
-    expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual([
-      "service-relay",
-      "protocol-treasury-top-up",
-    ]);
+    expect(built.journeys.map((journey: { id: string }) => journey.id)).toEqual(
+      source.journeys.map((journey: { id: string }) => journey.id),
+    );
     const activeIds = new Set(built.cases.map((testCase: { id: string }) => testCase.id));
     const journeyCaseIds = new Set<string>();
     for (const journey of built.journeys) {
@@ -358,10 +357,9 @@ describe("QA app build", () => {
       expect(locale.ui.caseRole.trim()).not.toBe("");
       expect(locale.ui.preconditions.trim()).not.toBe("");
       expect(locale.ui.roleRequirements.trim()).not.toBe("");
-      expect(Object.keys(locale.journeys).sort()).toEqual([
-        "protocol-treasury-top-up",
-        "service-relay",
-      ]);
+      expect(Object.keys(locale.journeys).sort()).toEqual(
+        source.journeys.map((journey: { id: string }) => journey.id).sort(),
+      );
       expect(Object.keys(locale.cases).sort()).toEqual([...journeyCaseIds].sort());
       for (const copy of Object.values(locale.cases)) {
         expect(copy.scenario.trim()).not.toBe("");
@@ -434,12 +432,15 @@ describe("QA catalog contract", () => {
     const byId = new Map<string, { status: string; replacedBy?: string[] }>(
       catalog.cases.map((testCase: { id: string; status: string; replacedBy?: string[] }) => [testCase.id, testCase]),
     );
-    const resolvesToActive = (id: string, trail: Set<string>): boolean => {
+    const resolvesToKnownOutcome = (id: string, trail: Set<string>): boolean => {
       const candidate = byId.get(id);
       if (!candidate || trail.has(id)) return false;
       if (candidate.status === "active") return true;
+      // A feature can be removed after a split. Keep the historical replacement
+      // edge; an explained terminal retirement is a valid outcome too.
+      if (!candidate.replacedBy?.length) return candidate.status === "retired";
       trail.add(id);
-      return (candidate.replacedBy ?? []).some((next) => resolvesToActive(next, trail));
+      return candidate.replacedBy.every((next) => resolvesToKnownOutcome(next, new Set(trail)));
     };
     const seen = new Set<string>();
     for (const testCase of catalog.cases) {
@@ -455,11 +456,11 @@ describe("QA catalog contract", () => {
         // Shape and calendar validity together: "2026-02-31" round-trips to another day.
         expect(new Date(`${retiredOn}T00:00:00.000Z`).toISOString().slice(0, 10)).toBe(retiredOn);
         expect(String(testCase.retiredReason ?? "").trim()).not.toBe("");
-        // A successor may itself have retired since (PWA-IOS-011 → PWA-038 → its
-        // per-act rows): every chain must end in at least one active id, so a
-        // verdict on a retired case always has somewhere current to land.
+        // Every replacement chain must end at an active case or an explained
+        // removal, never a missing ID or a cycle. Do not invent a successor for
+        // a feature the product no longer offers.
         for (const successor of testCase.replacedBy ?? []) {
-          expect(resolvesToActive(successor, new Set()), `${testCase.id} → ${successor}`).toBe(true);
+          expect(resolvesToKnownOutcome(successor, new Set()), `${testCase.id} → ${successor}`).toBe(true);
         }
       } else {
         expect(testCase.retiredOn).toBeUndefined();
