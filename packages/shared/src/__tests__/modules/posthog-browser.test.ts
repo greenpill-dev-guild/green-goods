@@ -5,6 +5,7 @@ import {
   dropDevelopmentHostExceptions,
   dropExtensionExceptions,
   dropSkippedTransitionExceptions,
+  dropVercelToolbarExceptions,
   initializePostHog,
   protectReportingCeremonies,
 } from "../../modules/app/posthog-browser";
@@ -118,6 +119,50 @@ describe("dropExtensionExceptions", () => {
 
   it("handles a null event safely", () => {
     expect(dropExtensionExceptions(null)).toBeNull();
+  });
+});
+
+describe("dropVercelToolbarExceptions", () => {
+  it("drops an exception thrown inside the Vercel Live toolbar script", () => {
+    const out = dropVercelToolbarExceptions(
+      makeEvent({
+        $exception_list: [
+          {
+            type: "TypeError",
+            value: "w.togglePopover is not a function",
+            stacktrace: {
+              frames: [
+                { filename: "https://beta.greengoods.app/assets/index.js" },
+                { filename: "https://vercel.live/_next-live/feedback/feedback.js" },
+              ],
+            },
+          },
+        ],
+      })
+    );
+
+    expect(out).toBeNull();
+  });
+
+  it("keeps an exception that only names vercel.live outside the frame origin", () => {
+    const event = makeEvent({
+      $exception_list: [
+        {
+          type: "TypeError",
+          value: "Failed to fetch https://vercel.live/",
+          stacktrace: {
+            frames: [{ filename: "https://www.greengoods.app/assets/vercel.live.js" }],
+          },
+        },
+      ],
+    });
+
+    expect(dropVercelToolbarExceptions(event)).toBe(event);
+  });
+
+  it("passes non-exception events through untouched", () => {
+    const event = makeEvent({ $current_url: "/gardens" }, "$pageview");
+    expect(dropVercelToolbarExceptions(event)).toBe(event);
   });
 });
 
@@ -240,6 +285,7 @@ describe("initializePostHog", () => {
           dropDevelopmentHostExceptions,
           restoreExceptionTopLevelProps,
           dropExtensionExceptions,
+          dropVercelToolbarExceptions,
           dropSkippedTransitionExceptions,
         ],
       })
