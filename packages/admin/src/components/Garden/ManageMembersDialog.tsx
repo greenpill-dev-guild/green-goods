@@ -48,6 +48,8 @@ export interface ManageMembersDialogProps {
   canManage: boolean;
   /** An owner removes any role; a steward never changes an owner or another steward's Steward role. */
   viewerIsOwner: boolean;
+  viewerCanManageStewards?: boolean;
+  allowedRoles?: readonly GardenRole[];
   /** The account the cockpit signs with, so its own Owner and Steward roles stay out of reach. */
   viewerAddress?: Address | null;
   /** The garden every change applies to, named under the title (Interface Principles 4, 9). */
@@ -69,16 +71,9 @@ export interface ManageMembersDialogProps {
 const NOTHING_PICKED: ReadonlySet<GardenRole> = new Set();
 
 /**
- * Manage Roles: the one place a steward changes who holds which role in the garden.
- *
- * One row per person with a check chip for each role they hold (DL-049); a checked chip picks
- * that person-and-role pair for removal. Search and filters change what shows, never what is
- * picked, and the footer counts the picks in roles and people and says how many are out of
- * view. Review opens in the same shell at the same size, names the garden under the title,
- * reads every pair on chain again, and lists what each person loses and keeps. Its confirm is
- * the flow's one destructive button. Each pair takes its own signature; the run shows each
- * landing in place and ends on a result that says what landed before it offers anything again.
- * What each step shows and offers lives in `manageRoles` and `manageRolesReview`.
+ * Pick person-and-role pairs, review live membership, and remove the permitted pairs.
+ * Filters preserve selections. Each signature and its outcome remain visible; failed or
+ * uncertain removals stay available for reconciliation through manageRolesReview.
  */
 export function ManageMembersDialog({
   open,
@@ -87,6 +82,8 @@ export function ManageMembersDialog({
   roleMembers,
   canManage,
   viewerIsOwner,
+  viewerCanManageStewards = false,
+  allowedRoles,
   viewerAddress,
   gardenName,
   chainId = DEFAULT_CHAIN_ID,
@@ -105,7 +102,7 @@ export function ManageMembersDialog({
   const [review, setReview] = useState<ReviewState | null>(null);
   const [names, setNames] = useState<ReadonlyMap<string, string>>(() => new Map());
   // Who signs, with what rights: a review is never signed by an account that did not make it.
-  const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}`;
+  const signer = `${viewerAddress?.toLowerCase() ?? ""}:${viewerIsOwner}:${canManage}:${viewerCanManageStewards}:${allowedRoles?.join(",")}`;
   const [shownFor, setShownFor] = useState({ open, initialMember, signer });
   // Async answers belong to the review that asked; a newer opening or review drops them.
   const reviewToken = useRef(0);
@@ -140,7 +137,13 @@ export function ManageMembersDialog({
 
   const { people, blocked } = useMemo(() => {
     const roster = peopleFromRoster(roleMembers);
-    const viewer = { address: viewerAddress, isOwner: viewerIsOwner, canManage };
+    const viewer = {
+      address: viewerAddress,
+      isOwner: viewerIsOwner,
+      canManage,
+      canManageStewards: viewerCanManageStewards,
+      allowedRoles,
+    };
     const ownerCount = roleMembers.owner?.length ?? 0;
     return {
       people: roster,
@@ -151,7 +154,7 @@ export function ManageMembersDialog({
         ])
       ),
     };
-  }, [canManage, roleMembers, viewerAddress, viewerIsOwner]);
+  }, [canManage, roleMembers, viewerAddress, viewerIsOwner, viewerCanManageStewards, allowedRoles]);
   const view = chooseView({
     people,
     blocked,

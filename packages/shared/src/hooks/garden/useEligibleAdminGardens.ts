@@ -86,6 +86,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const {
     role,
     isProtocolTeam,
+    isProductLead,
     stewardGardens,
     loading: roleLoading,
     gardensError: roleGardensError,
@@ -106,7 +107,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   // (PRD-988). Only a fetched, non-empty list can be missing it: an empty or
   // failed list is an outage, and must stay one, never a garden that cannot load.
   const needsProtocolGarden =
-    isProtocolTeam &&
+    (isProtocolTeam || isProductLead) &&
     rootGardenAddress !== null &&
     isFetched &&
     !baseListError &&
@@ -127,15 +128,11 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     const fromBaseList = listed
       .filter((garden) => {
         return (
+          isProtocolTeam ||
+          isProductLead ||
           isAddressInList(address, garden.stewards) ||
           isAddressInList(address, garden.owners) ||
-          isAddressInList(address, garden.evaluators) ||
-          // The team runs the protocol garden's campaign cookie jars (DL-046),
-          // and the registry's owner is on it whether or not it holds a role in
-          // that garden; its writes stay gated by garden permissions.
-          (isProtocolTeam &&
-            rootGardenAddress !== null &&
-            compareAddresses(garden.id, rootGardenAddress))
+          isAddressInList(address, garden.evaluators)
         );
       })
       .slice()
@@ -173,7 +170,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     stewardGardens,
     chainId,
     isProtocolTeam,
-    rootGardenAddress,
+    isProductLead,
   ]);
 
   const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;

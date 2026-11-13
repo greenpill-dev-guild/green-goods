@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useProtocolRoles } from "../roles/useProtocolRoles";
 
 export interface GardenPermissions {
   canManageGarden: (garden: Garden) => boolean;
@@ -12,11 +13,13 @@ export interface GardenPermissions {
   isEvaluatorOfGarden: (garden: Garden) => boolean;
   canAddMembers: (garden: Garden) => boolean;
   canRemoveMembers: (garden: Garden) => boolean;
+  canManageStewards: (garden: Garden) => boolean;
 }
 
 export function useGardenPermissions(): GardenPermissions {
   // Use single source of truth for primary address (smart account for passkey, EOA for wallet)
   const address = usePrimaryAddress() as string | undefined;
+  const { team } = useProtocolRoles();
 
   const permissions = useMemo(() => {
     const isStewardOfGarden = (garden: Garden): boolean => {
@@ -65,8 +68,9 @@ export function useGardenPermissions(): GardenPermissions {
       isEvaluatorOfGarden,
       canAddMembers,
       canRemoveMembers,
+      canManageStewards: (garden: Garden) => team || isOwnerOfGarden(garden),
     };
-  }, [address]);
+  }, [address, team]);
 
   return permissions;
 }

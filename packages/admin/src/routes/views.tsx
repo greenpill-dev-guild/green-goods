@@ -399,7 +399,7 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "actions",
-    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} />,
+    element: <RequireProtocolTeam loadingFallback={<RoleGateSkeleton />} allowProductLead />,
     children: [
       { index: true, lazy: actionsView },
       { path: "create", lazy: actionsView },

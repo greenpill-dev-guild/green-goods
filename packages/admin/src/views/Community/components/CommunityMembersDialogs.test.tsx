@@ -52,7 +52,13 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
 const TAB_URL = `/community/endowment?gardenId=${storyGarden.id}`;
 const NEW_MEMBER = "0x7777777777777777777777777777777777777777";
 
-function CommunityRoute({ canManage }: { canManage: boolean }) {
+function CommunityRoute({
+  canManage,
+  canManageStewards = false,
+}: {
+  canManage: boolean;
+  canManageStewards?: boolean;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const actions = buildCommunityViewActions(
@@ -61,7 +67,9 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
     true,
     true,
     navigate,
-    { gardenAddress: storyGarden.id }
+    { gardenAddress: storyGarden.id },
+    true,
+    canManage || canManageStewards
   );
   return (
     <>
@@ -69,6 +77,7 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage={canManage}
+        canManageStewards={canManageStewards}
         isOwner={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         roleMembers={storyRoleMembers}
@@ -81,10 +90,18 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
   );
 }
 
-function renderAt(path: string, { before, canManage = true }: RenderOptions = {}) {
+function renderAt(
+  path: string,
+  { before, canManage = true, canManageStewards = false }: RenderOptions = {}
+) {
   // The dialog's close guard uses useBlocker, which needs a data router.
   const router = createMemoryRouter(
-    [{ path: "*", element: <CommunityRoute canManage={canManage} /> }],
+    [
+      {
+        path: "*",
+        element: <CommunityRoute canManage={canManage} canManageStewards={canManageStewards} />,
+      },
+    ],
     {
       initialEntries: before ? [before, path] : [path],
       initialIndex: before ? 1 : 0,
@@ -96,6 +113,7 @@ function renderAt(path: string, { before, canManage = true }: RenderOptions = {}
 interface RenderOptions {
   before?: string;
   canManage?: boolean;
+  canManageStewards?: boolean;
 }
 
 const addButton = () => screen.getByRole("button", { name: "Add Member" });
@@ -105,6 +123,12 @@ const pressBrowserBack = () => fireEvent.click(screen.getByTestId("browser-back"
 const addressField = () => screen.getByPlaceholderText("0x... or name.eth");
 
 describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
+  it("gives a Team member only the Steward choice without garden management", async () => {
+    renderAt(`${TAB_URL}&item=add-member`, { canManage: false, canManageStewards: true });
+    const dialog = await screen.findByRole("dialog", { name: "Add Members" });
+    expect(within(dialog).getAllByRole("option")).toHaveLength(1);
+    expect(within(dialog).getByRole("option", { name: "Steward" })).toBeInTheDocument();
+  });
   it.each([
     "members",
     "coordination",

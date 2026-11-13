@@ -37,7 +37,7 @@ const FAIL_OPEN = {
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
   const { activeGarden } = useAdminGardenContext();
-  const { isProtocolTeam, loading: roleLoading } = useRole();
+  const { isProtocolTeam, isProductLead, loading: roleLoading } = useRole();
   const {
     eligibleGardens,
     isLoaded: eligibleGardensLoaded,
@@ -84,13 +84,13 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     }
 
     return {
-      showWork: hasAnyRole,
-      showGarden: isStewardOrOwner || isEvaluator,
+      showWork: isProductLead || hasAnyRole,
+      showGarden: isProtocolTeam || isProductLead || isStewardOrOwner || isEvaluator,
       // Stewards participate in Community: they manage roles, deposits, and
       // payouts. Gating to deployer-or-owner only hid that surface from people
       // who do most of the day-to-day work.
-      showCommunity: isProtocolTeam || isStewardOrOwner,
-      showActions: isProtocolTeam,
+      showCommunity: isProtocolTeam || isProductLead || isStewardOrOwner,
+      showActions: isProtocolTeam || isProductLead,
       isLoading: false,
     };
   }, [
@@ -101,5 +101,6 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     eligibleGardensLoaded,
     eligibleGardensError,
     isProtocolTeam,
+    isProductLead,
   ]);
 }

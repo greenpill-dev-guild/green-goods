@@ -61,6 +61,12 @@ Old names in this table are historical labels, not runnable examples.
 
 ## Contract operations
 
+`bun run contracts -- release hats-delegation --mode plan --safe-nonce <n> --output <private-directory>`
+prepares the PRD-615 implementation deployment, governance schedule and execution as three
+ordinary Safe calls. It requires a clean committed revision and matching production artifacts.
+The command never signs or broadcasts. `--mode preflight` checks the production artifact;
+`--mode verify --plan <private-plan>` checks activation state, with receipt verification separate.
+
 `bun run contracts -- help` lists operations; command-specific help lists supported arguments.
 The [operational reference and migration table](../docs/docs/builders/packages/contract-operations.mdx)
 are generated from the package-owned CLI definitions. Network and execution mode are explicit for

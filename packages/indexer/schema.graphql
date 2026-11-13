@@ -2539,3 +2539,31 @@ type StewardSafeReceiverState {
   createdAt: Int!
   updatedAt: Int!
 }
+"Protocol role configuration; effective membership is checked live in Hats, not inferred from this record."
+type ProtocolRoleConfiguration {
+  id: ID!
+  chainId: Int! @index
+  module: String! @index
+  teamHat: BigInt!
+  productLeadHat: BigInt!
+  agentsHat: BigInt!
+  deployerHat: BigInt!
+  updatedAt: Int!
+  blockNumber: Int!
+  logIndex: Int!
+}
+
+"Authorizing account and subject of a module role operation; does not duplicate garden membership events."
+type GardenRoleOperation {
+  id: ID!
+  chainId: Int! @index
+  garden: String! @index
+  actor: String! @index
+  account: String! @index
+  role: Int!
+  granted: Boolean!
+  transactionHash: String!
+  timestamp: Int!
+  blockNumber: Int!
+  logIndex: Int!
+}

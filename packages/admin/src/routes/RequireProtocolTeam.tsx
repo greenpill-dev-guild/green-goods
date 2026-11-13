@@ -8,9 +8,15 @@ import RouteUnauthorized from "@/routes/RouteUnauthorized";
  * sees Unauthorized in place: a redirect from here loses to the cockpit's garden sync, which
  * rewrites this route's address as the page arrives.
  */
-export default function RequireProtocolTeam({ loadingFallback }: { loadingFallback: ReactNode }) {
-  const { isProtocolTeam, loading } = useRole();
+export default function RequireProtocolTeam({
+  loadingFallback,
+  allowProductLead = false,
+}: {
+  loadingFallback: ReactNode;
+  allowProductLead?: boolean;
+}) {
+  const { isProtocolTeam, isProductLead, loading } = useRole();
 
   if (loading) return loadingFallback;
-  return isProtocolTeam ? <Outlet /> : <RouteUnauthorized />;
+  return isProtocolTeam || (allowProductLead && isProductLead) ? <Outlet /> : <RouteUnauthorized />;
 }

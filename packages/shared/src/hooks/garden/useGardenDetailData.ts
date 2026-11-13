@@ -84,6 +84,7 @@ export function useGardenDetailData(id: string | undefined) {
   const canManage = garden ? gardenPermissions.canManageGarden(garden) : false;
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
+  const canManageStewards = garden ? gardenPermissions.canManageStewards(garden) : false;
   const isOwner = garden ? gardenPermissions.isOwnerOfGarden(garden) : false;
 
   const vaultGardenAddress = id && isAddress(id) ? id : undefined;
@@ -222,6 +223,7 @@ export function useGardenDetailData(id: string | undefined) {
     canManage,
     canReview,
     canManageRoles,
+    canManageStewards,
     isOwner,
     assessments,
     fetchingAssessments,

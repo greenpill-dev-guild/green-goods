@@ -11,7 +11,7 @@ import {
   type Address,
   createPublicClient,
   createTestClient,
-  createWalletClient,
+  encodeFunctionData,
   getAddress,
   http,
   isAddress,
@@ -23,6 +23,7 @@ import {
 } from "viem";
 import { arbitrum } from "viem/chains";
 import * as yaml from "js-yaml";
+import { LOCAL_GOVERNANCE_MANAGER, sendLocalGovernanceCall } from "./local-governance";
 
 export const LOCAL_ARBITRUM_RPC_URL = "http://127.0.0.1:3009";
 export const LOCAL_CONTRACT_EVENT_OPERATION_TIMEOUT_MS = 300_000;
@@ -72,7 +73,6 @@ const envioBin = join(indexerRoot, "node_modules/envio/bin.mjs");
 const ANVIL_START_TIMEOUT_MS = 60_000;
 const COMPOSE_START_TIMEOUT_MS = 90_000;
 const INDEXER_POLL_TIMEOUT_MS = 150_000;
-const TRANSACTION_RECEIPT_TIMEOUT_MS = 30_000;
 
 interface LocalConfigInput {
   baseConfig: string;
@@ -589,7 +589,11 @@ async function assertForkBoundary(
     abi: counterAbi,
     functionName: "owner",
   });
-  assert.equal(owner.toLowerCase(), MODULE_OWNER.toLowerCase(), "unexpected pooling module owner");
+  assert.equal(
+    owner.toLowerCase(),
+    LOCAL_GOVERNANCE_MANAGER.toLowerCase(),
+    "unexpected pooling module owner"
+  );
   const creditOwner = await publicClient.readContract({
     address: contracts.creditRegistry,
     abi: counterAbi,
@@ -597,7 +601,7 @@ async function assertForkBoundary(
   });
   assert.equal(
     creditOwner.toLowerCase(),
-    MODULE_OWNER.toLowerCase(),
+    LOCAL_GOVERNANCE_MANAGER.toLowerCase(),
     "unexpected credit registry owner"
   );
   assert.equal(
@@ -674,11 +678,6 @@ async function mineLifecycle(
     "active test Garden already has a pool; use a fresh Anvil snapshot"
   );
 
-  const walletClient = createWalletClient({
-    account: MODULE_OWNER,
-    chain: arbitrum,
-    transport: http(LOCAL_ARBITRUM_RPC_URL),
-  });
   const startBlock = (await publicClient.getBlockNumber()) + 1n;
   const poolId = await readCounter(publicClient, contracts, "nextPoolId");
   const cycleId = await readCounter(publicClient, contracts, "nextCycleId");
@@ -687,19 +686,14 @@ async function mineLifecycle(
 
   const write = async (functionName: string, args: readonly unknown[]) => {
     throwIfAborted(signal);
-    const hash = await walletClient.writeContract({
-      address: contracts.commitmentPoolingModule,
-      abi: commitmentPoolingAbi,
-      functionName,
-      args,
-    });
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash,
-      timeout: TRANSACTION_RECEIPT_TIMEOUT_MS,
-    });
+    const receipt = await sendLocalGovernanceCall(
+      contracts.commitmentPoolingModule,
+      encodeFunctionData({ abi: commitmentPoolingAbi, functionName, args }),
+      signal
+    );
     throwIfAborted(signal);
     assert.equal(receipt.status, "success", `${functionName} transaction reverted`);
-    transactionHashes.push(hash);
+    transactionHashes.push(receipt.transactionHash);
     return receipt.blockNumber;
   };
 
@@ -776,16 +770,12 @@ async function mineLifecycle(
     functionName: "paused",
   })) as boolean;
   throwIfAborted(signal);
-  const creditTransactionHash = await walletClient.writeContract({
-    address: contracts.creditRegistry,
-    abi: counterAbi,
-    functionName: "setPaused",
-    args: [creditPaused],
-  });
-  const creditReceipt = await publicClient.waitForTransactionReceipt({
-    hash: creditTransactionHash,
-    timeout: TRANSACTION_RECEIPT_TIMEOUT_MS,
-  });
+  const creditReceipt = await sendLocalGovernanceCall(
+    contracts.creditRegistry,
+    encodeFunctionData({ abi: counterAbi, functionName: "setPaused", args: [creditPaused] }),
+    signal
+  );
+  const creditTransactionHash = creditReceipt.transactionHash;
   assert.equal(creditReceipt.status, "success", "CreditRegistry setPaused transaction reverted");
   const endBlock = creditReceipt.blockNumber;
   const rawLogs = await publicClient.getLogs({

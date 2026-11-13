@@ -163,6 +163,7 @@ describe("useGardenDetailData eligible garden fallback", () => {
       canManageGarden: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       canReviewGarden: vi.fn(() => false),
       canAddMembers: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
+      canManageStewards: vi.fn(() => false),
       isOwnerOfGarden: vi.fn(() => false),
     });
   });

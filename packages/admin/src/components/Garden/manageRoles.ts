@@ -67,6 +67,8 @@ export interface ManageRolesViewer {
   address?: Address | null;
   isOwner: boolean;
   canManage: boolean;
+  canManageStewards?: boolean;
+  allowedRoles?: readonly GardenRole[];
 }
 
 /** Why each of a person's roles cannot be removed by this viewer, for the roles that cannot. */
@@ -77,10 +79,15 @@ export function blockedRoles(
 ): Map<GardenRole, GardenRoleRemovalBlock> {
   const blocked = new Map<GardenRole, GardenRoleRemovalBlock>();
   for (const role of person.roles) {
+    if (viewer.allowedRoles && !viewer.allowedRoles.includes(role)) {
+      blocked.set(role, "no-access");
+      continue;
+    }
     const block = gardenRoleRemovalBlock({
       viewer: viewer.address,
       viewerIsOwner: viewer.isOwner,
       viewerCanManage: viewer.canManage,
+      viewerCanManageStewards: viewer.canManageStewards,
       person: person.address,
       personRoles: person.roles,
       role,

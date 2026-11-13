@@ -19,7 +19,7 @@ import { flushSync } from "react-dom";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { AdminDialog, type AdminDialogProps } from "../AdminDialog";
-import { AdminSelect, AdminTextField } from "../AdminTextField";
+import { AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { AddMembersEntryStatus } from "./AddMembersEntryStatus";
 import {
@@ -34,6 +34,7 @@ import {
 import { runAddMembers, stagedAfterRead } from "./addMembersRun";
 import { BatchHoldAlert } from "./BatchHoldAlert";
 import { StagedMemberList } from "./StagedMemberList";
+import { MemberRoleSelect } from "./MemberRoleSelect";
 
 export interface AddMembersDialogProps {
   open: boolean;
@@ -49,6 +50,7 @@ export interface AddMembersDialogProps {
    * on chain first because the roster can lag, and shows what an add changes for an existing member.
    */
   roleMembers: Record<GardenRole, Address[]>;
+  allowedRoles?: readonly GardenRole[];
   /** Starts the field with this person (the Manage Roles path into promotion). */
   initialAddress?: Address;
   /** Disables inputs while the hosting view runs an unrelated write. */
@@ -59,12 +61,8 @@ export interface AddMembersDialogProps {
 }
 
 /**
- * Add Members — the single add path for garden membership (multi-add with a
- * staged list). Role select + address/ENS input; each resolved person stages
- * into a fixed-height list with the role picked for them (changing the picker
- * only affects the next person), then the whole batch commits on submit.
- * Someone who already holds the picked role cannot be staged, so the dialog
- * never asks the wallet to sign for nothing. Failed writes stay staged for retry.
+ * Stage each person with a permitted role, then submit the list. Existing roles
+ * cannot be staged again; failed writes stay staged for retry.
  */
 export function AddMembersDialog({
   open,
@@ -73,6 +71,7 @@ export function AddMembersDialog({
   batch,
   gardenAddress,
   roleMembers,
+  allowedRoles = GARDEN_ROLE_ORDER,
   initialAddress,
   isLoading = false,
   closesByRoute = false,
@@ -82,8 +81,18 @@ export function AddMembersDialog({
   const { formatMessage } = intl;
   const statusId = useId();
   const [selectedRole, setSelectedRole] = useState<GardenRole>("gardener");
+  const permissionKey = allowedRoles.join(",");
+  const [shownPermissions, setShownPermissions] = useState(permissionKey);
   const [input, setInput] = useState(initialAddress ?? "");
   const [pending, setPending] = useState<StagedMember[]>([]);
+  if (shownPermissions !== permissionKey || !allowedRoles.includes(selectedRole)) {
+    if (shownPermissions !== permissionKey) {
+      setShownPermissions(permissionKey);
+      setPending([]);
+    }
+    if (allowedRoles.length && !allowedRoles.includes(selectedRole))
+      setSelectedRole(allowedRoles[0]);
+  }
   const [error, setError] = useState("");
   const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -168,7 +177,8 @@ export function AddMembersDialog({
   const typedCheck = typedResolvedAddress
     ? checkEntry(typedResolvedAddress, selectedRole, pending, rolesByAddress, typedHeldOnChain)
     : null;
-  const typedEntryCommitReady = typedCheck !== null && canStage(typedCheck);
+  const typedEntryCommitReady =
+    allowedRoles.includes(selectedRole) && typedCheck !== null && canStage(typedCheck);
   const typedInputInvalid = Boolean(trimmed) && !resolvingEns && !typedResolvedAddress;
 
   const resetDraft = () => {
@@ -401,19 +411,12 @@ export function AddMembersDialog({
               onMoveOn={() => void batch?.moveOn()}
             />
           ) : null}
-          <AdminSelect
-            id="member-role"
-            label={formatMessage({ id: "app.admin.roles.roleLabel", defaultMessage: "Role" })}
+          <MemberRoleSelect
+            roles={allowedRoles}
             value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value as GardenRole)}
+            onChange={setSelectedRole}
             disabled={busy}
-          >
-            {GARDEN_ROLE_ORDER.map((role) => (
-              <option key={role} value={role}>
-                {formatMessage({ id: `app.roles.${role}` })}
-              </option>
-            ))}
-          </AdminSelect>
+          />
           <div>
             <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start">
               <AdminTextField
@@ -436,11 +439,8 @@ export function AddMembersDialog({
                   "aria-describedby": statusId,
                 }}
               />
-              {/* From 640px the buttons sit beside the field at its control's
-                  height and centre on it: the label (20px) and gap (4px) put the
-                  40px control at 24px, and the 44px finger box of a 40px button
-                  starts 2px above it, so 22px (qa-session 2026-10-30 OBS-15).
-                  Below 640px they stack under the field. */}
+              {/* Align the 44px button targets with the field control above 640px;
+                  stack them below it on smaller screens (qa-session 2026-10-30 OBS-15). */}
               <div className="flex items-center gap-2 pt-1.5 sm:pt-5.5">
                 <IconButton
                   size="md"

@@ -51,6 +51,48 @@ async function setPendingAccessAggregate(
 // HATS MODULE EVENT HANDLERS
 // ============================================================================
 
+indexer.onEvent(
+  { contract: "HatsModule", event: "ProtocolRoleHatsUpdated" },
+  async ({ event, context }) => {
+    const id = `${event.chainId}:${event.srcAddress.toLowerCase()}`;
+    const previous = await context.ProtocolRoleConfiguration.get(id);
+    if (
+      previous &&
+      (previous.blockNumber > event.block.number ||
+        (previous.blockNumber === event.block.number && previous.logIndex > event.logIndex))
+    )
+      return;
+    context.ProtocolRoleConfiguration.set({
+      id,
+      chainId: event.chainId,
+      module: event.srcAddress.toLowerCase(),
+      teamHat: event.params.team,
+      productLeadHat: event.params.productLead,
+      agentsHat: event.params.agents,
+      deployerHat: event.params.deployer,
+      updatedAt: event.block.timestamp,
+      blockNumber: event.block.number,
+      logIndex: event.logIndex,
+    });
+  }
+);
+
+indexer.onEvent({ contract: "HatsModule", event: "RoleManaged" }, async ({ event, context }) => {
+  context.GardenRoleOperation.set({
+    id: `${event.chainId}:${event.transaction.hash.toLowerCase()}:${event.logIndex}`,
+    chainId: event.chainId,
+    garden: event.params.garden.toLowerCase(),
+    actor: event.params.actor.toLowerCase(),
+    account: event.params.account.toLowerCase(),
+    role: Number(event.params.role),
+    granted: event.params.granted,
+    transactionHash: event.transaction.hash,
+    timestamp: event.block.timestamp,
+    blockNumber: event.block.number,
+    logIndex: event.logIndex,
+  });
+});
+
 indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event, context }) => {
   const gardenId = event.params.garden;
   const account = event.params.account;

@@ -17,9 +17,19 @@ const gardens = [
 const mocks = vi.hoisted(() => ({
   auth: { isReady: true, authMode: "passkey", smartAccountAddress: null as string | null },
   registry: { canDeploy: false, isOwner: false, isInAllowlist: false, loading: false },
+  protocol: {
+    team: false,
+    productLead: false,
+    agents: false,
+    deployer: false,
+    isLoading: false,
+    isError: false,
+  },
   chainId: 11155111,
   query: vi.fn(),
 }));
+
+vi.mock("../../hooks/roles/useProtocolRoles", () => ({ useProtocolRoles: () => mocks.protocol }));
 
 vi.mock("../../providers/Auth", () => ({
   useAuthContext: () => mocks.auth,
@@ -47,6 +57,14 @@ beforeEach(() => {
   mocks.auth = { isReady: true, authMode: "passkey", smartAccountAddress: SMART_ACCOUNT };
   mocks.registry = { canDeploy: false, isOwner: false, isInAllowlist: false, loading: false };
   mocks.chainId = CHAIN_ID;
+  mocks.protocol = {
+    team: false,
+    productLead: false,
+    agents: false,
+    deployer: false,
+    isLoading: false,
+    isError: false,
+  };
   mocks.query.mockReset().mockImplementation(async (_document, { steward, chainId }) => ({
     data: {
       Garden: steward[0] === SMART_ACCOUNT.toLowerCase() && chainId === CHAIN_ID ? gardens : [],
@@ -61,6 +79,16 @@ afterEach(() => {
 });
 
 describe("useRole", () => {
+  it("recognizes Team independently from local stewardship and registry permissions", async () => {
+    mocks.protocol.team = true;
+    mocks.query.mockResolvedValue({ data: { Garden: [] } });
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.isProtocolTeam).toBe(true);
+    expect(result.current.isSteward).toBe(false);
+    expect(result.current.isDeployer).toBe(false);
+  });
+
   it("queries the normalized smart account and current chain despite a connected EOA", async () => {
     const { result } = renderRole();
     await waitFor(() => expect(result.current.role).toBe("steward"));
@@ -122,13 +150,13 @@ describe("useRole", () => {
       who: "a Community Garden steward who is not allowlisted",
       registry: { canDeploy: false, isOwner: false, isInAllowlist: false },
       steward: [gardens[1]],
-      isProtocolTeam: true,
+      isProtocolTeam: false,
     },
     {
       who: "the registry owner with no role in the Community Garden",
       registry: { canDeploy: true, isOwner: true, isInAllowlist: false },
       steward: [],
-      isProtocolTeam: true,
+      isProtocolTeam: false,
     },
   ])("treats $who as protocol team: $isProtocolTeam", async ({
     registry,

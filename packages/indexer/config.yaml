@@ -40,6 +40,8 @@ contracts:
     events:
       - event: RoleGranted(address indexed garden, address indexed account, uint8 role)
       - event: RoleRevoked(address indexed garden, address indexed account, uint8 role)
+      - event: ProtocolRoleHatsUpdated(uint256 team, uint256 productLead, uint256 agents, uint256 deployer)
+      - event: RoleManaged(address indexed garden, address indexed actor, address indexed account, uint8 role, bool granted)
       - event: KarmaHookFailed(address indexed garden, address indexed account, uint8 indexed operation, string reason)
   - name: WorkApprovalResolver
     handler: src/EventHandlers.ts

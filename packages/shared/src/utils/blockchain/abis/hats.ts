@@ -7,6 +7,23 @@
 export const HATS_MODULE_ABI = [
   {
     type: "function",
+    name: "protocolRoleHats",
+    stateMutability: "view",
+    inputs: [],
+    outputs: ["team", "productLead", "agents", "deployer"].map((name) => ({
+      name,
+      type: "uint256",
+    })),
+  },
+  {
+    type: "function",
+    name: "hats",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
     name: "leaveGarden",
     stateMutability: "nonpayable",
     inputs: [{ name: "garden", type: "address" }],

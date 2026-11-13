@@ -9,7 +9,7 @@ interface RequireRoleProps {
 }
 
 export default function RequireRole({ allowedRoles, loadingFallback }: RequireRoleProps) {
-  const { role, loading } = useRole();
+  const { role, isProtocolTeam, isProductLead, loading } = useRole();
   const { formatMessage } = useIntl();
 
   if (loading) {
@@ -24,7 +24,10 @@ export default function RequireRole({ allowedRoles, loadingFallback }: RequireRo
     );
   }
 
-  if (!allowedRoles.includes(role)) {
+  if (
+    !allowedRoles.includes(role) &&
+    !((isProtocolTeam || isProductLead) && allowedRoles.includes("steward"))
+  ) {
     return (
       <RouteUnauthorized>
         {role === "user" && (
