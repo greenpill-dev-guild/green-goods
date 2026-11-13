@@ -1,0 +1,134 @@
+# Planning handoff
+
+## Scope and outcome
+
+PR #640 is being reframed around Certified/Ma Earth account linking and approval publication.
+The public architecture contains ten Mermaid diagrams across the seven requested diagram types,
+and the backlog plan has fourteen bounded implementation checkpoints across six phases.
+Dependencies D1–D9 are unresolved; runtime lanes remain blocked and contract work is not applicable.
+
+The 2026-10-15 GainForest extension added a separate nine-action ontology/provider crosswalk and five more
+diagrams, for fifteen at that checkpoint. It preserved the fourteen-checkpoint plan and six phases. New G1–G5
+and A1–A4 gates cover biodiversity evidence, AppView identity, assessments, commitments and
+certificates; they do not expand the first Certified linking/approval slice.
+
+## Evidence boundary
+
+The current-code baseline is `b9176994beddb74c1f32240a1829a7e2c3805896`; the prior July documents
+were reconciled with the current documentation layout in merge commit `db802d655`.
+The full architecture distinguishes repository observations, proposed designs and unverified
+provider capabilities. Candidate lexicons are v1.5.1. No partner has approved the topology, and no
+live account, grant or external report was created during planning.
+
+## Next step
+
+Resolve phase 0 with the provider and Green Goods owners, recording evidence for each dependency.
+Accept a bounded runtime implementation scope before opening implementation lanes. Preserve the
+parked draft PR's keep-open intent. At that planning checkpoint RESR-69 was described as Backlog; the live issue is now In Progress
+and its current conformance scope/project are recorded in the Linear map.
+
+## Validation receipt
+
+Planning validation is recorded at the exact published commit in the PR body and chat handoff.
+This file does not assert a passing runtime lane or current-head CI result. Local tooling reuses
+the existing checkout's dependency installation; the lockfile differs only in Sharp and its native
+packages, so a clean-install GitHub CI result remains necessary for release readiness.
+
+## Task record
+
+Task: PR #640 architecture and phased plan | Type: guidance | Outcome: planning artifacts prepared; runtime execution blocked
+Agent/model: Codex / GPT-6 family | Coverage: 2026-10-15 planning turn
+
+| Phase | Start → end (UTC) | Evidence |
+|---|---|---|
+| investigate | 2026-10-15 08:59:09 → 2026-10-15 09:08:20 | Current source review, upstream schema checks, isolated PR checkout |
+| implement | 2026-10-15 09:08:20 → 2026-10-15 09:21:29 | Architecture, topology and backlog plan documents only |
+
+Additional segment: GainForest and action crosswalk. Investigation observed from
+2026-10-15 21:40:18 to 21:46:09 UTC; documentation drafting began at 21:46:09 UTC.
+Public provider schemas/documentation and current repository sources support the crosswalk;
+private research-session content and identifiers are excluded from Git.
+
+Final verification/publication boundaries belong in the chat handoff; this record is not a runtime
+completion claim. Human corrections observed in this segment: 0; human attention: unknown.
+
+
+## Architecture expansion — 2026-10-16
+
+Add provider-specific architecture for GainForest, Silvi, Bloom and Regen, plus a shared
+sync/reconciliation and social-sharing design. Assessment interpretations can be evaluations;
+observations, targets and qualitative evidence retain distinct projections. This is a working
+proposal at this checkpoint, subsequently accepted as the working direction below; it is not an
+ontology edit. Silvi AT deployment remains unverified;
+GainForest's public AT lexicons are established. Native/export alternatives remain explicit.
+
+Core steps 6–10 now include historical selection, current consent, three-way comparison, partial
+resume and visible repair controls. The fourteen core checkpoints remain; `extensions.todo.md`
+breaks later work into independent tracks. Thirty-two acceptance cases and thirty-five diagrams cover the expanded design.
+No runtime lane advanced and no provider/social record was published.
+
+Task segment: investigation began 2026-10-16 00:44:40 UTC; drafting was underway at 00:55:27 UTC.
+Final verification/publication timing belongs in the chat handoff. Human feedback corrected the
+previous architecture's provider depth and incomplete sync treatment; attention remains unknown.
+
+
+## Assessment direction accepted — 2026-10-15 Pacific / 2026-10-16 UTC
+
+Accept the three-part split as the working direction: observations/measurements, evaluator
+interpretation, and recommended work/targets. Only the interpretation becomes a Hypercerts
+evaluation; Work Approval remains a separate review type. A1 still requires exact source-kind,
+subject, evaluator, baseline-validity and canonical ontology mapping decisions. Provider
+conformance, runtime scope and publication gates remain open; no implementation lane advances.
+
+Task record: PR #640 | Type: guidance | Outcome: accepted decision recorded
+Agent/model: Codex / GPT-6 family | Coverage: assessment decision follow-up only
+
+| Phase | Start → end (UTC) | Result / evidence |
+|---|---|---|
+| investigate | 2026-10-16 01:38:35 → 2026-10-16 01:39:06 | Confirmed user acceptance, clean isolated checkout and affected decision records |
+| implement | 2026-10-16 01:39:06 → 2026-10-16 01:39:56 | Record accepted direction; preserve unresolved A1 details and runtime gates |
+
+Verification/publication completion is recorded in the PR and chat. Human corrections in this
+follow-up: 0 (decision acceptance); human attention: unknown.
+
+
+## Linear synchronization — 2026-10-16
+
+Create the Certified and independent sharing projects under Community Evidence Mesh. Record thin
+Product checkpoint mirrors, native blockers and source links in `linear-map.md`. Refresh RESR-69,
+RESR-96, RESR-49 and RESR-77; preserve RESR-98 Done and PRD-744's existing scope. Conformance
+frontiers are RESR-99 (GainForest), RESR-100 (Silvi), RESR-101 (Bloom), and RESR-96 (Regen).
+
+Task record: PR #640 | Type: planning and coordination | Outcome: projects/issues created and native dependencies verified
+Agent/model: Codex / GPT-6 family | Coverage: authorized Linear-sync turn only
+
+| Phase | Start → end (UTC) | Evidence |
+|---|---|---|
+| investigate | 2026-10-16 02:31:32 → 2026-10-16 02:33:04 | Live teams, labels, project inventory, issue states and routing contract |
+| implement | 2026-10-16 02:33:04 → unknown | Native projects/issues, existing record updates, independent sharing hub and plan mappings |
+
+Live verification completed at 2026-10-16 02:43:56 UTC: both projects, 22 new issues, source labels,
+parents and native blockers were checked. Two relation-type conflicts were corrected and read back.
+Existing research states and the completed GainForest body were preserved. Publication timing
+belongs in the PR/chat. No runtime lane advanced.
+Human corrections observed in this segment: 0; human attention: unknown.
+
+
+## Provider research tracking — 2026-10-16
+
+Keep Bloom Network, Silvi, GainForest and Regen Network in Research under RESR-102. Each child
+links to native architecture and common research completion criteria; full lifecycle/action
+mapping, capability evidence, historical reconciliation, correction, disclosure and a reviewed
+recommendation are required. No Product delivery project or runtime activation is accepted.
+
+Task record: PR #640 | Type: research coordination | Outcome: Linear research tracking verified
+Agent/model: Codex / GPT-6 family | Coverage: research-only tracking follow-up
+
+| Phase | Start → end (UTC) | Evidence |
+|---|---|---|
+| investigate | 2026-10-16 03:02:03 → unknown | Live provider issues, states, sources and existing project inventory |
+| implement | unknown → 2026-10-16 03:04:32 | Research parent, four child updates and native architecture/source links |
+| verify | unknown → 2026-10-16 03:05:09 | Four Research children confirmed; statuses and completed RESR-98 description preserved; no new blocking relations |
+
+Publication evidence belongs in the PR/chat. Human corrections observed: 0; this turn accepts
+the research tracking direction. Human attention: unknown.
