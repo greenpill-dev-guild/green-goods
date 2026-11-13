@@ -390,7 +390,7 @@ describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
     expect(
       await screen.findByRole("alertdialog", { name: "Discard Changes?" })
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Discard", exact: true }));
+    await user.click(screen.getByRole("button", { name: /^Discard$/ }));
     await waitFor(() => expect(addDialog()).not.toBeInTheDocument());
     expect(currentUrl()).toBe(TAB_URL);
     expect(scheduleBackgroundRefetch).toHaveBeenCalledTimes(1);
