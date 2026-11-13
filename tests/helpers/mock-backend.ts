@@ -95,6 +95,10 @@ const multicallAbi = parseAbi([
 ]);
 const evaluatorAbi = parseAbi(["function isEvaluator(address) view returns (bool)"]);
 const operatorAbi = parseAbi(["function isOperator(address) view returns (bool)"]);
+const protocolRolesAbi = parseAbi([
+  "function protocolRoleHats() view returns (uint256,uint256,uint256,uint256)",
+  "function hats() view returns (address)",
+]);
 
 export interface MockRpcRead {
   name: string;
@@ -177,6 +181,21 @@ function buildRpcResponse(
       const key = `rpc: ${declaredRead.name}`;
       requests.set(key, (requests.get(key) ?? 0) + 1);
       result = declaredRead.result;
+    } else if (
+      target === deployment.hatsModule.toLowerCase() &&
+      data === encodeFunctionData({ abi: protocolRolesAbi, functionName: "protocolRoleHats" })
+    ) {
+      // Default browser fixtures grant no protocol role; scenarios can declare their own reads.
+      result = encodeFunctionResult({
+        abi: protocolRolesAbi,
+        functionName: "protocolRoleHats",
+        result: [0n, 0n, 0n, 0n],
+      });
+    } else if (
+      target === deployment.hatsModule.toLowerCase() &&
+      data === encodeFunctionData({ abi: protocolRolesAbi, functionName: "hats" })
+    ) {
+      result = encodeAddressResult("0x3333333333333333333333333333333333333333");
     } else if (target === "0xca11bde05977b3631167028862be2a173976ca11" && !nested) {
       const decoded = decodeFunctionData({ abi: multicallAbi, data: data as `0x${string}` });
       check(decoded.functionName === "aggregate3" && decoded.args[0].length > 0, "RPC multicall");
