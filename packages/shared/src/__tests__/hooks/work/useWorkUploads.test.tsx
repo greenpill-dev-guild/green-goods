@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     activeJobId: null as string | null,
     paused: null as string | null,
     dataSaverOverride: false,
+    retryingJobIds: new Set<string>() as ReadonlySet<string>,
   },
 }));
 
@@ -89,7 +90,12 @@ beforeEach(() => {
   mocks.jobs = [];
   mocks.queueAnswer = "jobs";
   mocks.subscriptions = 0;
-  mocks.preparation = { activeJobId: null, paused: null, dataSaverOverride: false };
+  mocks.preparation = {
+    activeJobId: null,
+    paused: null,
+    dataSaverOverride: false,
+    retryingJobIds: new Set(),
+  };
 });
 
 describe("useWorkUploads", () => {
@@ -175,7 +181,7 @@ describe("useWorkUploads", () => {
   it("says preparation runs only when it is not waiting for the connection or Data Saver", async () => {
     mocks.jobs = [queued("work", {})];
     const render = (paused: string | null) => {
-      mocks.preparation = { activeJobId: null, paused, dataSaverOverride: false };
+      mocks.preparation = { ...mocks.preparation, paused };
       return renderHookWithProviders(() => useWorkUploads()).result;
     };
 
@@ -206,6 +212,61 @@ describe("useWorkUploads", () => {
         unmount();
       } finally {
         status.mockRestore();
+      }
+    }
+  });
+
+  it("says what preparation is doing for one item: on it, trying again later, or waiting and why", () => {
+    // A work's page reads this instead of spinning for every work without an answer (PRD-1488).
+    const cases: Array<{
+      preparation: Partial<typeof mocks.preparation>;
+      connection?: "online" | "degraded" | "offline";
+      expected: string;
+    }> = [
+      { preparation: {}, expected: "working" },
+      { preparation: { paused: "hidden" }, expected: "working" },
+      { preparation: { paused: "uploading" }, expected: "working" },
+      { preparation: { retryingJobIds: new Set(["another"]) }, expected: "working" },
+      { preparation: { retryingJobIds: new Set(["item"]) }, expected: "retrying" },
+      // The try under way outranks the backoff it may end with.
+      {
+        preparation: { activeJobId: "item", retryingJobIds: new Set(["item"]) },
+        expected: "working",
+      },
+      { preparation: { paused: "unconfirmed" }, expected: "connection" },
+      { preparation: {}, connection: "degraded", expected: "connection" },
+      {
+        preparation: { retryingJobIds: new Set(["item"]) },
+        connection: "offline",
+        expected: "connection",
+      },
+      {
+        preparation: { paused: "data-saver", retryingJobIds: new Set(["item"]) },
+        expected: "data-saver",
+      },
+      { preparation: { paused: "app-code" }, expected: "app-update" },
+    ];
+    for (const { preparation, connection = "online", expected } of cases) {
+      mocks.preparation = { ...mocks.preparation, ...preparation };
+      const status = vi
+        .spyOn(connectivityStore, "getStatusSnapshot")
+        .mockReturnValue({ state: connection });
+      try {
+        const { result, unmount } = renderHookWithProviders(() => useWorkUploads());
+        expect({ preparation, connection, answer: result.current.preparationOf("item") }).toEqual({
+          preparation,
+          connection,
+          answer: expected,
+        });
+        unmount();
+      } finally {
+        status.mockRestore();
+        mocks.preparation = {
+          activeJobId: null,
+          paused: null,
+          dataSaverOverride: false,
+          retryingJobIds: new Set(),
+        };
       }
     }
   });

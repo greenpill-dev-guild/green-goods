@@ -48,7 +48,8 @@ const withLocale: Decorator = (Story, context) => {
 /**
  * The work detail footer for queued work at phone width: waiting work can upload directly,
  * work that needs attention can be tried again or discarded, a failed upload keeps Upload now,
- * and a sent work can be checked again.
+ * and a sent work can be checked again. Work being prepared spins only while preparation is on
+ * it; a failed try offers Try Again, and a wait on the connection leaves Discard.
  */
 const meta: Meta<typeof WorkUploadFooter> = {
   title: "Client/Work/WorkUploadFooter",
@@ -58,7 +59,7 @@ const meta: Meta<typeof WorkUploadFooter> = {
   decorators: [withLocale],
   args: {
     isOnline: true,
-    pausedForDataSaver: false,
+    preparation: "working",
     onPrepareNow: fn(),
     onRetry: fn(),
     isRetrying: false,
@@ -85,7 +86,17 @@ export const PhotoConverting: Story = {
 };
 
 export const PhotoPausedForDataSaver: Story = {
-  args: { work: queuedWork("photo-pending"), pausedForDataSaver: true },
+  args: { work: queuedWork("photo-pending"), preparation: "data-saver" },
+};
+
+/** A try failed and waits to be made again: Discard and Try Again instead of a spinner. */
+export const PreparationRetrying: Story = {
+  args: { work: queuedWork("preparing"), preparation: "retrying" },
+};
+
+/** Waiting on the connection or an app update: nothing to start here, and Discard stays. */
+export const PreparationWaitingForConnection: Story = {
+  args: { work: queuedWork("preparing"), preparation: "connection" },
 };
 
 /** The longest refusal, in the language where it runs longest. */

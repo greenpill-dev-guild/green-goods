@@ -169,6 +169,8 @@ function mountPreparation(overrides: Partial<UploadPreparationPorts> = {}) {
     },
     recover: async () => undefined,
     now: () => Date.now(),
+    // The hook sends these to telemetry, which this test leaves out.
+    record: () => undefined,
     ...overrides,
   });
   setActiveUploadPreparation(preparation);
