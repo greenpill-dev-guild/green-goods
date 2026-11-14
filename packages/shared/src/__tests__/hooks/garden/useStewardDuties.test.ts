@@ -417,3 +417,6 @@ describe("useOpenStewardDuty", () => {
     }
   });
 });
+vi.mock("../../../hooks/roles/useProtocolRoles", () => ({
+  useProtocolRoles: () => ({ team: false }),
+}));

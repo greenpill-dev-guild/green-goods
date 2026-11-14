@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { IHats } from "../interfaces/IHats.sol";
+
 error HatsProtocolNotSupported();
 
 /// @title HatsLib
@@ -170,5 +172,18 @@ library HatsLib {
     function isSupported() internal view returns (bool) {
         uint256 chainId = block.chainid;
         return chainId == 42_161 || chainId == 11_155_111 || chainId == 42_220;
+    }
+
+    /// @notice Protocol roles must be distinct existing children of the configured tree; zero disables a role.
+    function areProtocolRolesValid(IHats hats, uint256 gardensHatId, uint256[4] memory ids) internal view returns (bool) {
+        for (uint256 i; i < ids.length; i++) {
+            if (ids[i] == 0) continue;
+            (, uint32 maxSupply,,,,,,,) = hats.viewHat(ids[i]);
+            if (maxSupply == 0 || hats.getHatLevel(ids[i]) == 0 || ids[i] >> 224 != gardensHatId >> 224) return false;
+            for (uint256 j; j < i; j++) {
+                if (ids[i] == ids[j]) return false;
+            }
+        }
+        return true;
     }
 }

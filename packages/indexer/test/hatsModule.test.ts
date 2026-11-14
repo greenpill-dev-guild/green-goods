@@ -3,9 +3,67 @@ import { getKarmaProjectAccessId } from "../src/handlers/ids";
 import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 import { seedGarden } from "./helpers/garden";
 import { assertRoleArrays } from "./helpers/projections";
-import { createTestIndexer, HatsModule, processEvents } from "./v3";
+import { createTestIndexer, HatsModule, indexedAddress, processEvents } from "./v3";
 
 const CHAIN_ID = CHAINS.arbitrum;
+
+describe("HatsModule protocol delegation", () => {
+  it("records independent role IDs with a chain-scoped module identity", async () => {
+    let db = createTestIndexer();
+    const event = HatsModule.ProtocolRoleHatsUpdated.createMockEvent({
+      team: 1n,
+      productLead: 2n,
+      agents: 3n,
+      deployer: 4n,
+      mockEventData: mockEvent(CHAIN_ID, 2000),
+    });
+    db = await HatsModule.ProtocolRoleHatsUpdated.processEvent({ event, mockDb: db });
+    const row = await db.ProtocolRoleConfiguration.get(
+      `${CHAIN_ID}:${indexedAddress("HatsModule", CHAIN_ID).toLowerCase()}`
+    );
+    assert.ok(row);
+    assert.equal(row.teamHat, 1n);
+    assert.equal(row.productLeadHat, 2n);
+    assert.equal(row.agentsHat, 3n);
+    assert.equal(row.deployerHat, 4n);
+    assert.equal(row.chainId, CHAIN_ID);
+  });
+
+  it("keeps actor auditing separate from the canonical Steward membership projection", async () => {
+    let db = seedGarden(createTestIndexer(), addr(10));
+    const subject = addr(20);
+    const actor = addr(30);
+    const metadata = mockEvent(CHAIN_ID, 2000, { logIndex: 12 });
+    const audit = HatsModule.RoleManaged.createMockEvent({
+      garden: addr(10),
+      actor,
+      account: subject,
+      role: 2n,
+      granted: true,
+      mockEventData: metadata,
+    });
+    db = await HatsModule.RoleManaged.processEvent({ event: audit, mockDb: db });
+    assertRoleArrays(await db.Garden.get(addr(10)), { operators: [] });
+    const row = await db.GardenRoleOperation.get(
+      `${CHAIN_ID}:${metadata.transaction.hash.toLowerCase()}:12`
+    );
+    assert.ok(row);
+    assert.equal(row.actor, actor.toLowerCase());
+    assert.equal(row.account, subject.toLowerCase());
+    const grant = HatsModule.RoleGranted.createMockEvent({
+      garden: addr(10),
+      account: subject,
+      role: 2n,
+      mockEventData: mockEvent(CHAIN_ID, 2001),
+    });
+    db = await HatsModule.RoleGranted.processEvent({ event: grant, mockDb: db });
+    assertRoleArrays(await db.Garden.get(addr(10)), { operators: [subject.toLowerCase()] });
+  });
+});
+
+// ============================================================================
+// ROLE GRANT — ALL 6 ROLE TYPES
+// ============================================================================
 
 describe("Garden role event history", () => {
   it("records a role grant with normalized identity and its chain position", async () => {

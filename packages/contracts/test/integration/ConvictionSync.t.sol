@@ -301,15 +301,13 @@ contract ConvictionSyncTest is Test {
         assertEq(stored.length, 1, "Operator should be able to set strategies");
     }
 
-    function test_setConvictionStrategies_allowsGardenSelf() public {
+    function testIntegration_ConvictionSync_rejectsGardenAccountAdministrationBypass() public {
         address[] memory strategies = new address[](1);
         strategies[0] = address(strategy1);
 
         vm.prank(garden1);
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.NotGardenAdmin.selector, garden1, garden1));
         adapter.setConvictionStrategies(garden1, strategies);
-
-        address[] memory stored = adapter.getConvictionStrategies(garden1);
-        assertEq(stored.length, 1, "Garden should be able to set its own strategies");
     }
 
     function test_getConvictionStrategies_returnsEmptyForUnconfigured() public {

@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
+import { AddMembersEntryStatus, type AddMembersEntryStatusProps } from "./AddMembersEntryStatus";
 import { getRoleLabel } from "./gardenUtils";
 import { MemberIdentity } from "./MemberIdentity";
 import { RoleChip } from "./RoleChip";
@@ -13,15 +14,21 @@ import { RoleChip } from "./RoleChip";
 export function MemberRolePicker({
   address,
   roles,
+  allowedRoles = GARDEN_ROLE_ORDER,
   value,
   onChange,
   disabled,
+  error,
+  status,
 }: {
   address: Address;
   roles: GardenRole[];
+  allowedRoles?: readonly GardenRole[];
   value: GardenRole | null;
   onChange: (role: GardenRole) => void;
   disabled: boolean;
+  error?: string;
+  status?: AddMembersEntryStatusProps;
 }) {
   const { formatMessage } = useIntl();
   return (
@@ -44,15 +51,25 @@ export function MemberRolePicker({
         <AdminChoiceGroup
           ariaLabel={formatMessage({ id: "admin.members.chooseRole" })}
           value={value}
-          onChange={(role) => onChange(role as GardenRole)}
+          onChange={(role) => {
+            if (allowedRoles.includes(role as GardenRole)) onChange(role as GardenRole);
+          }}
           columns={2}
-          options={GARDEN_ROLE_ORDER.filter((role) => !roles.includes(role)).map((role) => ({
-            value: role,
-            label: getRoleLabel(role, formatMessage).singular,
-            disabled,
-          }))}
+          options={allowedRoles
+            .filter((role) => !roles.includes(role))
+            .map((role) => ({
+              value: role,
+              label: getRoleLabel(role, formatMessage).singular,
+              disabled,
+            }))}
         />
       </div>
+      {error ? (
+        <p role="alert" className="type-body text-error-dark">
+          {error}
+        </p>
+      ) : null}
+      {status ? <AddMembersEntryStatus {...status} /> : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { QueryKey } from "@tanstack/react-query";
+import { roleKeys } from "../src/config/query-keys/identity";
 import {
   Capital,
   CynefinPhase,
@@ -285,6 +286,10 @@ const STORYBOOK_ADMIN_POOLS: GardenSignalPool[] = [
 ];
 
 export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
+  [roleKeys.protocolRoles(STORYBOOK_STEWARD_ADDRESS, DEFAULT_CHAIN_ID), {
+    team: false, productLead: false, agents: false, deployer: false,
+    isLoading: false, isError: false,
+  }],
   [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_GARDENS],
   [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_ACTIONS],
   [queryKeys.assessments.byChain(DEFAULT_CHAIN_ID), STORYBOOK_ADMIN_ASSESSMENTS],
@@ -328,6 +333,11 @@ export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unkn
 
 export const STORYBOOK_ADMIN_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  // This fixture separately wears Team; registry ownership never implies it in the app.
+  [roleKeys.protocolRoles(STORYBOOK_DEPLOYER_ADDRESS, DEFAULT_CHAIN_ID), {
+    team: true, productLead: false, agents: false, deployer: false,
+    isLoading: false, isError: false,
+  }],
   [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), STORYBOOK_DEPLOYER_ADMIN_GARDENS],
   [
     queryKeys.role.stewardGardens(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),

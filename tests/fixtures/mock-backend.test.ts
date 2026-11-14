@@ -44,6 +44,40 @@ const gardens = {
 };
 
 describe("browser backend contract", () => {
+  it("exposes an unconfigured protocol role binding without granting fixture accounts Team", async () => {
+    const mock = transport();
+    await mockSepoliaRpc(mock.page);
+    const abi = parseAbi([
+      "function protocolRoleHats() view returns (uint256,uint256,uint256,uint256)",
+      "function hats() view returns (address)",
+    ]);
+    for (const functionName of ["protocolRoleHats", "hats"] as const) {
+      const data = encodeFunctionData({ abi, functionName });
+      const response = await mock.request(
+        { method: "eth_call", params: [{ to: deployment.hatsModule, data }, "latest"] },
+        "rpc"
+      );
+      expect(
+        decodeAbiParameters(
+          functionName === "protocolRoleHats"
+            ? [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }]
+            : [{ type: "address" }],
+          response.result
+        )
+      ).toEqual(
+        functionName === "protocolRoleHats"
+          ? [0n, 0n, 0n, 0n]
+          : ["0x3333333333333333333333333333333333333333"]
+      );
+      await expect(
+        mock.request(
+          { method: "eth_call", params: [{ to: MOCK_CLIENT_GARDEN.id, data }, "latest"] },
+          "rpc"
+        )
+      ).rejects.toThrow(/Unsupported RPC/);
+    }
+  });
+
   it("answers only explicitly declared module-code reads for leave preflight", async () => {
     const mock = transport();
     const module = "0x3333333333333333333333333333333333333333";

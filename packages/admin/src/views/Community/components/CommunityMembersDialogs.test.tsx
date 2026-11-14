@@ -63,7 +63,13 @@ vi.mock("@green-goods/shared/hooks/roles/useGardenRoleHat", () => ({
 const TAB_URL = `/community/endowment?gardenId=${storyGarden.id}`;
 const NEW_MEMBER = "0x7777777777777777777777777777777777777777";
 
-function CommunityRoute({ canManage }: { canManage: boolean }) {
+function CommunityRoute({
+  canManage,
+  canManageStewards,
+}: {
+  canManage: boolean;
+  canManageStewards: boolean;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const actions = buildCommunityViewActions(
@@ -80,6 +86,7 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage={canManage}
+        canManageStewards={canManageStewards}
         isOwner={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         roleMembers={storyRoleMembers}
@@ -92,10 +99,18 @@ function CommunityRoute({ canManage }: { canManage: boolean }) {
   );
 }
 
-function renderAt(path: string, { before, canManage = true }: RenderOptions = {}) {
+function renderAt(
+  path: string,
+  { before, canManage = true, canManageStewards = false }: RenderOptions = {}
+) {
   // The dialog's close guard uses useBlocker, which needs a data router.
   const router = createMemoryRouter(
-    [{ path: "*", element: <CommunityRoute canManage={canManage} /> }],
+    [
+      {
+        path: "*",
+        element: <CommunityRoute canManage={canManage} canManageStewards={canManageStewards} />,
+      },
+    ],
     {
       initialEntries: before ? [before, path] : [path],
       initialIndex: before ? 1 : 0,
@@ -107,6 +122,7 @@ function renderAt(path: string, { before, canManage = true }: RenderOptions = {}
 interface RenderOptions {
   before?: string;
   canManage?: boolean;
+  canManageStewards?: boolean;
 }
 
 const addButton = () => screen.getByRole("button", { name: "Add Member" });
@@ -117,10 +133,38 @@ const addressField = () => screen.getByPlaceholderText("0x... or name.eth");
 
 describe("CommunityMembersDialogs: Add Member (DL-140)", () => {
   beforeEach(() => {
+    addGardener.mockClear();
     scheduleBackgroundRefetch.mockClear();
     batchState.available = false;
     batchState.add.mockReset();
     addSteward.mockReset().mockResolvedValue({ success: true });
+  });
+
+  it("gives Team only Steward for bulk additions without local garden management", async () => {
+    renderAt(`${TAB_URL}&item=add-member`, { canManage: false, canManageStewards: true });
+    const dialog = await screen.findByRole("dialog", { name: "Add Members" });
+    expect(within(dialog).getAllByRole("option")).toHaveLength(1);
+    expect(within(dialog).getByRole("option", { name: "Steward" })).toBeInTheDocument();
+  });
+
+  it("lets Team add only Steward to an existing member through the new role picker", async () => {
+    const user = userEvent.setup();
+    renderAt(`/community/members?gardenId=${storyGarden.id}&item=manage-members`, {
+      canManage: false,
+      canManageStewards: true,
+    });
+    const manage = await screen.findByRole("dialog", { name: "Manage Roles" });
+    const person = storyRoleMembers.owner[0];
+    const row = within(manage)
+      .getByText(person, { exact: true })
+      .closest<HTMLElement>("[data-component=ManageRolesPersonRow]")!;
+    await user.click(within(row).getByRole("button", { name: /Add role for/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Add role" });
+    expect(within(dialog).getAllByRole("radio")).toHaveLength(1);
+    await user.click(within(dialog).getByRole("radio", { name: "Steward" }));
+    await user.click(within(dialog).getByRole("button", { name: "Add Steward Role" }));
+    await waitFor(() => expect(addSteward).toHaveBeenCalledWith(person));
+    expect(addGardener).not.toHaveBeenCalled();
   });
 
   it("keeps browser Back blocked while a role write is pending", async () => {
