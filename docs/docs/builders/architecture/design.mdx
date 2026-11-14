@@ -25,14 +25,14 @@ import {DesignTokens} from "@site/src/components/docs";
 
 # Design
 
-Green Goods has one design system, Warm Earth, and three dialects of it: the installed app, the
-public website, and the admin cockpit, with these docs as a quiet fourth. This page starts with the
+Green Goods has one design system, Warm Earth, and three dialects of it, one per surface: the Green Goods
+App, the Green Goods Website, and the Green Goods Hub, with these docs as a quiet fourth. This page starts with the
 system everything shares, then shows what each dialect keeps, changes, and forbids, and ends with
 how the system is governed in the repo.
 
 <figure className="gg-figure">
-  <img src="/img/design/design-system-overview-three-systems.webp" alt="Three surface systems side by side in Storybook: the installed app, the public website, and the admin cockpit, each with its button specimens and the metrics measured in the browser" loading="lazy" width="1200" height="800" />
-  <figcaption>The app, website and dashboard share one token set. <a href="https://design.greengoods.app/?path=/story/design-system-overview--three-systems">Open in Storybook</a>.</figcaption>
+  <img src="/img/design/design-system-overview-three-systems.webp" alt="Three surface systems side by side in Storybook: the Green Goods App, the Green Goods Website, and the Green Goods Hub, each with its button specimens and the metrics measured in the browser" loading="lazy" width="1200" height="800" />
+  <figcaption>The App, the Website and the Hub share one token set. <a href="https://design.greengoods.app/?path=/story/design-system-overview--three-systems">Open in Storybook</a>.</figcaption>
 </figure>
 
 ## Why the product feels this way {#why-warm-earth}
@@ -76,8 +76,8 @@ fill that carries text uses the contrast-safe action pair, never the bright acce
 
 ### Type, shape, motion, material {#foundations}
 
-- **Type.** Plus Jakarta Sans in the installed app and the admin cockpit, Inter on the public
-  website, and a serif (Fraunces) only for the website's editorial headlines.
+- **Type.** Plus Jakarta Sans in the Green Goods App and Hub, Inter on the Green Goods
+  Website, and a serif (Fraunces) only for the website's editorial headlines.
 - **Shape.** Buttons take one corner per surface whatever their emphasis: the 16px field corner
   in the app (12px while pressed), a capsule on the website, pills in the cockpit. Fields are 16px, and buttons and fields share
   one height scale: 48, 44, 40, and 32px.
@@ -123,7 +123,7 @@ means the installed app, a site header means the website, and the nav dock with 
 cockpit. Never mix them. The [client](../packages/client) and [admin](../packages/admin) package
 pages describe the shells that enforce the split.
 
-### The installed app: a field journal {#pwa}
+### The Green Goods App: a field journal {#pwa}
 
 Gardeners install the client as a PWA and use it in the field, often offline. The dialect is
 practical and personal: mobile-first and thumb-zone optimized, a bottom `AppBar` with Home,
@@ -145,7 +145,7 @@ never relearns a screen. Its rules live in
 </div>
 
 
-### The public website: editorial {#website}
+### The Green Goods Website: editorial {#website}
 
 The browser site is a coffee-table garden journal crossed with a living public record: a sticky,
 transparent `SiteHeader`, Fraunces headlines at magazine sizes with Inter for everything else,
@@ -164,7 +164,7 @@ green is reserved for the install and support calls to action. Its rules live in
 
 <div className="gg-figure-grid">
   <figure className="gg-figure">
-    <img src="/img/design/design-system-website-foundations-tokens.webp" alt="Website foundations story: the live corner, weight, and font tokens the public site sets, with capsule button specimens and an editorial underline field marked on spec" loading="lazy" width="2000" height="2615" />
+    <img src="/img/design/design-system-website-foundations-tokens.webp" alt="Website foundations story: the live corner, weight, and font tokens the Green Goods Website sets, with capsule button specimens and an editorial underline field marked on spec" loading="lazy" width="2000" height="2615" />
     <figcaption>The website’s button shapes, label weights and typography. <a href="https://design.greengoods.app/?path=/story/design-system-website-foundations--tokens">Open in Storybook</a>.</figcaption>
   </figure>
   <figure className="gg-figure">
@@ -173,9 +173,9 @@ green is reserved for the install and support calls to action. Its rules live in
   </figure>
 </div>
 
-### The admin cockpit: the app's language, set denser {#admin}
+### The Green Goods Hub: the app's language, set denser {#admin}
 
-Stewards and evaluators work in the cockpit, and its litmus test is blunt: if it would be out of
+Stewards and evaluators work in the Hub. Its dialect, the cockpit, has a blunt litmus test: if it would be out of
 place in Linear, GitHub, or Stripe's dashboard, it is out of place here. It speaks the installed
 app's language at a denser setting: the same face, linen canvas, and charcoal ink, with no serif and
 no lookbook layouts. Its strict Material 3 rule is retired. It takes the app's shared pieces where
@@ -188,12 +188,12 @@ rules live in
 
 <div className="gg-figure-grid">
   <figure className="gg-figure">
-  <img src="/img/design/design-system-admin-foundations-tokens.webp" alt="Admin foundations story: the Material 3 color roles, elevation levels, and type scale the steward cockpit uses" loading="lazy" width="1200" height="800" />
-  <figcaption>The dashboard’s color roles (Material-named tokens), elevation and typography. <a href="https://design.greengoods.app/?path=/story/design-system-admin-foundations--tokens">Open in Storybook</a>.</figcaption>
+  <img src="/img/design/design-system-admin-foundations-tokens.webp" alt="Admin foundations story: the Material 3 color roles, elevation levels, and type scale the Green Goods Hub uses" loading="lazy" width="1200" height="800" />
+  <figcaption>The Hub’s color roles (Material-named tokens), elevation and typography. <a href="https://design.greengoods.app/?path=/story/design-system-admin-foundations--tokens">Open in Storybook</a>.</figcaption>
 </figure>
   <figure className="gg-figure">
     <img src="/img/design/design-system-admin-components-buttons.webp" alt="Admin components story: every button emphasis as a pill at the small and medium sizes, each with its measured height, corner, label, and hit area" loading="lazy" width="2000" height="1333" />
-    <figcaption>Dashboard controls with measured dimensions. <a href="https://design.greengoods.app/?path=/story/design-system-admin-components--buttons">Open in Storybook</a>.</figcaption>
+    <figcaption>Hub controls with measured dimensions. <a href="https://design.greengoods.app/?path=/story/design-system-admin-components--buttons">Open in Storybook</a>.</figcaption>
   </figure>
 </div>
 

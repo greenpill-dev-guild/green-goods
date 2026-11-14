@@ -193,7 +193,7 @@
       "evidence": [
         {
           "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 steward console, pool setup starts a season, and End Season and Archive Season close it."
+          "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 Green Goods Hub, pool setup starts a season, and End Season and Archive Season close it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -278,7 +278,7 @@
       "evidence": [
         {
           "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 steward console, pool setup opens a season, and End Season and Archive Season close it."
+          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 Green Goods Hub, pool setup opens a season, and End Season and Archive Season close it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -365,7 +365,7 @@
       "evidence": [
         {
           "file": "packages/shared/src/modules/job-queue/commitment-call-builder.ts",
-          "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The client app offers them on a garden's Promises tab, and the steward console seeds and confirms promises. Settlement was off in that release and is on in the app after it."
+          "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The Green Goods App offers them on a garden's Promises tab, and the Green Goods Hub seeds and confirms promises. Settlement was off in that release and is on in the app after it."
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -847,7 +847,7 @@
       "evidence": [
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
-          "note": "Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30."
+          "note": "Release 2.0 (production v2.0.1) offers promise acts in the Green Goods App and the Green Goods Hub, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused. G$ settlement is on in the app after release 2.0, and gardenerDeliveryEnabled() read true on 2026-10-30."
         }
       ],
       "safe_wording": "Gardens can run a commitment pool: members make, take up, and confirm promises, and where the garden's settlement account is active, a promise can carry a G$ reward, paid on Celo after it's kept. No member payout has been sent yet.",
@@ -1001,7 +1001,7 @@
         },
         {
           "when": "When money arrives",
-          "what": "Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the cockpit's cookie jar screens create campaign jars, which are a separate thing.",
+          "what": "Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the Hub's cookie jar screens create campaign jars, which are a separate thing.",
           "where": ["admin"],
           "term_refs": ["entity:vault", "entity:cookie-jar"],
           "guide": "/community/steward-guide/funding-and-governance",
@@ -1100,7 +1100,7 @@
         },
         {
           "when": "Through a grant or partnership",
-          "what": "Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the public site. The grant itself is arranged outside the app.",
+          "what": "Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the Green Goods Website. The grant itself is arranged outside the app.",
           "where": ["public"],
           "term_refs": ["entity:garden"],
           "code": ["packages/client/src/components/Public/PublicGetInTouch.tsx"]
@@ -1326,8 +1326,8 @@
     },
     {
       "id": "pwa",
-      "label": "Installed app",
-      "meaning": "The Green Goods website installed on your phone. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.",
+      "label": "Green Goods App",
+      "meaning": "Green Goods installed on your phone from the Green Goods Website. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.",
       "example": "Record in the field, then send from the same account and phone.",
       "guide": "/community/gardener-guide/installing-and-updating",
       "source_of_truth": [

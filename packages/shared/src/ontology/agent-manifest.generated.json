@@ -473,7 +473,7 @@
         "evidence": [
           {
             "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-            "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 steward console, pool setup starts a season, and End Season and Archive Season close it."
+            "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 Green Goods Hub, pool setup starts a season, and End Season and Archive Season close it."
           },
           {
             "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -634,7 +634,7 @@
         "evidence": [
           {
             "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-            "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 steward console, pool setup opens a season, and End Season and Archive Season close it."
+            "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 Green Goods Hub, pool setup opens a season, and End Season and Archive Season close it."
           },
           {
             "file": "packages/client/src/views/Public/GardenDetail.tsx",
@@ -841,7 +841,7 @@
         "evidence": [
           {
             "file": "packages/shared/src/modules/job-queue/commitment-call-builder.ts",
-            "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The client app offers them on a garden's Promises tab, and the steward console seeds and confirms promises. Settlement was off in that release and is on in the app after it."
+            "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The Green Goods App offers them on a garden's Promises tab, and the Green Goods Hub seeds and confirms promises. Settlement was off in that release and is on in the app after it."
           },
           {
             "file": "packages/client/src/views/Public/GardenDetail.tsx",
