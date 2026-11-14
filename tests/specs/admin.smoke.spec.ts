@@ -221,9 +221,11 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByText("Mock Steward Garden", { exact: true })).toBeVisible({
       timeout: 15000,
     });
-    // Hub is the workspace heading; its active pipeline stage appears in the tab rail below.
-    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible({ timeout: 15000 });
-    // The Hub tab rail renders pipeline stage tabs filtered by role
+    // Review is the workspace heading; its active pipeline stage appears in the tab rail below.
+    await expect(page.getByRole("heading", { name: "Review", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
+    // The Review tab rail renders pipeline stage tabs filtered by role
     // capability. With mocked steward auth, canManage gates the work tab and
     // history is always visible; canAssess / canCertify depend on hats role
     // assignments that the mock cannot fake, so 1-4 tabs is acceptable.
@@ -259,7 +261,7 @@ test.describe("Admin Cockpit", () => {
 
   test("sends someone without Community access to Hub", async ({ page }) => {
     // As the page arrives, the garden sync writes the garden into the address while the guard's
-    // redirect is still loading Hub. The redirect has to land anyway, not leave a blank page.
+    // redirect is still loading Review. The redirect has to land anyway, not leave a blank page.
     test.setTimeout(SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page, EVALUATOR_ONLY);
 
@@ -267,7 +269,9 @@ test.describe("Admin Cockpit", () => {
     await waitForSignedInBoot(page, helper);
 
     await expect(page).toHaveURL(/\/hub\b/, { timeout: 15000 });
-    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Review", exact: true })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
