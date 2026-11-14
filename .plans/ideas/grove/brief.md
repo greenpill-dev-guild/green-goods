@@ -63,6 +63,6 @@ Repeat with a community learning or cultural record. Community acceptance, evide
 
 ## Boundaries
 
-The [24 October G0 report](reports/2026-10-24-g0-feasibility.md) proves limited synthetic desktop feasibility. It does not show phone suitability, Pi recovery across a closed tab on persistent storage, or private sharing. Records are synthetic or non-sensitive until the loop's gates pass and a second controller exists.
+The [24 October G0 report](reports/2026-10-24-g0-feasibility.md) proves limited synthetic desktop feasibility. It does not show phone suitability, Pi recovery across a closed tab on persistent storage, or private sharing. Records are synthetic or non-sensitive until the loop's gates pass, a second controller exists and the owner has decided what limits code updates to the phone app (O8).
 
 No dedicated hardware node or cloud inference is required. Hosted storage, the Admin Hub connection, KOI exchange, co-editing, sensors and public publication are next lanes or later work. This revision updates the plan only: it authorizes no product implementation, dependency installation, deployment or tracker change.

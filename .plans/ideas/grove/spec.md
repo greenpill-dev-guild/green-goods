@@ -13,7 +13,7 @@ This document owns three things: the MVP contract, the decision log, and the com
 
 ## MVP contract
 
-**Primary users (assumption W1).** One steward who creates and looks after a community, two to four members who capture and review, and one contact in a partner community who receives a summary. Records are synthetic or non-sensitive until the [loop gates](eval.md#which-gates-the-mvp-needs) pass.
+**Primary users (assumption W1).** One steward who creates and looks after a community, two to four members who capture and review, and one contact in a partner community who receives a summary. Records are synthetic or non-sensitive until the [loop gates](eval.md#which-gates-the-mvp-needs) pass, a second controller exists (D18) and the owner has answered O8.
 
 **Devices (D2).** Two clients ship together:
 
@@ -45,7 +45,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 - Co-editing with Yjs, WebRTC transfer, Bluetooth sensors.
 - Publication: the Green Goods work-submission bridge, ATProto/Certified, IPFS/Filecoin.
 - EDV, Automerge + Keyhive and MLS, which stay research.
-- A model or passive capture on the phone, and any real sensitive record before the loop gates pass.
+- A model or passive capture on the phone, and any real sensitive record before the loop gates pass, a second controller exists and O8 is answered.
 
 **The MVP is done when all of these are observed** on a physical phone and a physical laptop:
 
@@ -145,7 +145,7 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | O5 | May Grove reuse Coop code? The AGPL licence is on an unmerged local branch and Coop's main branch carried no licence when last fetched | The owner. Until then, reimplement small pieces and copy nothing |
 | O6 | How is a fork in the member list detected and refused once a second controller exists? | Design and experiment: C0 / E15 |
 | O7 | What can an author withdraw after sharing, and what do recipients' devices do when they learn of it? | Design in C2; copies already received cannot be recalled |
-| O8 | What limits code updates to the phone app before sensitive records are admitted? | The owner, before any sensitive pilot. D20 accepts the publisher as trusted |
+| O8 | What limits code updates to the phone app before sensitive records are admitted? | The owner, before any sensitive pilot: no sensitive record is admitted until this is answered. D20 accepts the publisher as trusted |
 | O9 | Which Hub connection design: the content-script relay below, or the WebMCP tool of prototype decisions 18 to 21? | The owner, when the Hub lane is scoped |
 | O10 | When are the five Linear milestones, which still mirror A0 to A4, reconciled with this sequence? | The owner. No tracker change is authorized by this revision |
 | O11 | Three outside claims in [sharing research](sharing-research.md) were not re-checked on 14 November: the Linked Web Storage draft date, the ATProto Spaces update, and Certified's EOA-only link schema | Whoever scopes the lane that depends on each |

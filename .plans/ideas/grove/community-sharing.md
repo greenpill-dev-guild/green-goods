@@ -49,7 +49,7 @@ These are audiences, not a ladder toward publication. A community can share a su
 
 Three limits belong beside that requirement wherever it is stated:
 
-- **The publisher of the client code is trusted.** The extension is packaged code. The phone web app is served from the web each time it updates, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates before sensitive records are admitted.
+- **The publisher of the client code is trusted.** The extension is packaged code. The phone web app is served from the web each time it updates, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates, and no sensitive record is admitted until the owner answers it.
 - **An unlocked or compromised device exposes what it can decrypt** and can sign as its owner until it is removed.
 - **Removal cannot make anyone forget.** A recipient keeps what it already received.
 
@@ -87,9 +87,9 @@ Keep **identity, authority, encryption and service login separate**:
 No maintained browser library provides community membership and key grants (see [dependencies](dependencies.md#community-identity-encryption-and-device-sharing)), so Grove defines this part itself and keeps it small (R3). This is a design to prove in C0, not a selected format:
 
 - The list is a chain of signed versions. Each version names the one before it by hash. The first version's hash is the community's identifier.
-- One steward's device signs changes in the MVP (D18). A version signed by anyone else is ignored.
+- One steward's device, the active signer, signs changes in the MVP (D18). A version signed by anyone else is ignored, except a takeover by a named controller.
 - Each version lists members, their device keys, their roles and the controllers. Adding or removing a member or device is a new version.
-- A second controller is required before real data (D18). Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them (O6).
+- A second controller is required before real data (D18). The list names it. It can sign one kind of version, a takeover, which makes its own device the active signer and removes the old one. A takeover needs neither the lost controller's devices nor the recovery code, and after it anything the old signer signs is refused. Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them (O6).
 - A recovery code is created at setup (D18). It opens the steward's recovery export, which holds a succession key; that key can appoint a new controller device and do nothing else.
 - A partner community is another member list. Two communities exchange their current list heads through the same pairing step members use.
 
@@ -117,7 +117,7 @@ A fresh key for every file means removing a member needs no group key to rotate:
 - Sender authentication comes from the signature, not from the encryption format.
 - MLS (RFC 9420) would add forward secrecy and post-compromise security for live groups. It stays research until co-editing or frequent membership change justifies it.
 
-**At rest.** Each device keeps a random vault key. Private keys and record payloads are stored encrypted under it. The vault key is itself stored wrapped, once per way of opening the vault on that device. The recovery code is listed for contrast: it opens a recovery export, not the vault.
+**At rest.** Each device keeps a random vault key. Private keys and record payloads are stored encrypted under it. A device's signing and key-agreement private keys are created exportable once, wrapped under the vault key and stored only in that wrapped form. After unlock the client imports them so that scripts can use them and cannot copy them, and it drops them on lock. They are never stored in a usable form outside the vault, because same-origin code could then sign or decrypt while the vault is locked. The vault key is itself stored wrapped, once per way of opening the vault on that device. The recovery code is listed for contrast: it opens a recovery export, not the vault.
 
 | Way in | How | Standing |
 |---|---|---|
@@ -125,7 +125,7 @@ A fresh key for every file means removing a member needs no group key to rotate:
 | Passphrase | A memory-hard key derivation | D19, everywhere the passkey path is unavailable |
 | Recovery code | A high-entropy code created at setup, held off the device. It does not unwrap the vault key | D18. Opens a recovery export only |
 
-The passkey is never the only way in (R4). Its secret belongs to the credential, so it is the same from every `greengoods.app` site and from any extension with permission for that domain, and it follows the passkey wherever it syncs. Combining it with a device-held key means neither a copied browser profile nor another site is enough alone. A passkey assertion is not an encryption key, and a synced passkey never enrols or re-admits a device.
+The passkey is never the only way in (R4). Its secret belongs to the credential, so it is the same from every `greengoods.app` site and from any extension with permission for that domain, and it follows the passkey wherever it syncs. Combining it with a device-held key means neither a copied browser profile nor another site is enough alone. That device-held key is the only secret kept outside the vault: scripts can use it and cannot copy it, and it opens nothing without the passkey's secret. A passkey assertion is not an encryption key, and a synced passkey never enrols or re-admits a device.
 
 New captures are encrypted to the device's own public key, so saving works while the vault is locked (R15). Reading, reviewing and sharing need it unlocked. Locking clears keys and decrypted context from memory and pauses protected tasks.
 
@@ -134,7 +134,7 @@ New captures are encrypted to the device's own public key, so saving works while
 - **Pairing:** each side shows a code; the other scans it and both confirm a short comparison string read aloud or compared by eye. Pairing exchanges public keys and the member-list head. It grants nothing by itself: the controller's next list version does.
 - **Recovery:** a member restores from a recovery export with their recovery code, or from their second device. A recovery export holds records and the member's place in the community. It never holds a device's private keys, so a backup cannot bring back the identity of a lost or removed device. A restored device creates new keys and is added to the list again; an old device key is never revived. Restoring a vault restores no Ethereum account. Losing every path fails visibly.
 - **Removal:** the controller signs a version without the device. Files made after a sender holds that version are not wrapped to it. Where history must be excluded, start a new collection.
-- **Stale member lists (D24):** a device stops sharing when its copy of the list is older than seven days, until a newer one arrives in any shared file. Each community can change the number: the controller signs the new limit into the member list, so every device applies the same one. Capture and personal review never pause. The controller re-signs the current head at least that often so that an unchanged list still counts as fresh; C0 proves the mechanism.
+- **Stale member lists (D24):** a device stops sharing when its copy of the list is older than seven days, until a newer one arrives. Each community can change the number: the controller signs the new limit into the member list, so every device applies the same one. Capture and personal review never pause. The controller re-signs the current head at least that often so that an unchanged list still counts as fresh. Refreshing never pauses. The controller's device can re-sign the head after any length of idle time, and it can send the list alone, with no records, as a membership file. A device accepts a newer list from a shared file, a membership file or a repeated pairing, whether or not its own copy has expired. So a community whose devices all sat idle past the limit shares again once the controller re-signs and the members import the result. C0 proves the mechanism.
 - **Derived data:** thumbnails, model outputs, indexes and backups are encrypted at the same boundary as their source. Pi keeps references and receipts, never decrypted sources or keys.
 - **Telemetry (R7):** private records never pass through Shared's upload or telemetry helpers, which record file names and content identifiers today.
 - **Failure and erasure:** a failed unlock or decryption is shown, never an empty successful record. Erasure invalidates local derivatives and pending tasks. A withdrawal cannot delete copies on other devices or in public archives (O7).

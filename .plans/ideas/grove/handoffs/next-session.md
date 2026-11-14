@@ -36,7 +36,7 @@ Each step needs its own authorization before anything is installed or built.
 4. Then C1, C0, recovery and C2, in the [MVP order](../plan.todo.md#mvp-order).
 5. The agent's checkpoints, S13 to S15, belong to the workspace lane. S14 asks for access to all sites, a manifest change that needs its own review (O12).
 
-The recommendations R1 to R19 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts.
+The recommendations R1 to R19 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts. O8, what limits code updates to the phone app, must be answered before any sensitive record is admitted.
 
 ## Validation and phase record, 14 November
 
