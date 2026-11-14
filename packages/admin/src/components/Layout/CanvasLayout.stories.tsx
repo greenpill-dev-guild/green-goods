@@ -46,7 +46,7 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
     () => [
       {
         id: "hub",
-        label: "Hub",
+        label: "Review",
         labelId: "cockpit.nav.hub",
         icon: RiAppsLine,
         path: "/hub",
@@ -338,7 +338,7 @@ export const DarkRouteToneContract: Story = {
         { label: "Garden", tone: "garden" },
         { label: "Community", tone: "community" },
         { label: "Actions", tone: "actions" },
-        { label: "Hub", tone: "hub" },
+        { label: "Review", tone: "hub" },
       ] as const;
 
       for (const route of routeCases) {

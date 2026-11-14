@@ -203,7 +203,7 @@ const messages = {
   "app.work.batch.chip.reject": "To reject",
   "app.work.batch.notBatchable": "This review costs too much to send with the others right now.",
   "app.work.batch.remove": "Remove from Batch",
-  "app.work.batch.staged.hint": "It goes out when you send your batch from the Hub.",
+  "app.work.batch.staged.hint": "It goes out when you send your batch from Review.",
   "app.work.detail.reviewFeedback": "Feedback to the gardener",
   "app.work.detail.statusLabel": "Status",
 };
@@ -527,7 +527,7 @@ describe("ReviewForm", () => {
 
       expect(screen.getByText("To reject")).toBeInTheDocument();
       expect(screen.getByText("No photo")).toBeInTheDocument();
-      expect(screen.getByText(/send your batch from the Hub/)).toBeInTheDocument();
+      expect(screen.getByText(/send your batch from Review/)).toBeInTheDocument();
       for (const name of ["Approve", "Reject", "Add to Batch"]) {
         expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
       }
@@ -565,7 +565,7 @@ describe("ReviewForm", () => {
       renderReviewForm();
 
       expect(screen.getByText(words)).toBeInTheDocument();
-      expect(screen.queryByText(/send your batch from the Hub/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/send your batch from Review/)).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Remove from Batch" })).toBeEnabled();
     });
 

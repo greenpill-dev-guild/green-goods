@@ -125,7 +125,7 @@ export function AccountProfilePanel({
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: "cockpit.account.gardensDescription",
-                defaultMessage: "Switch the garden this canvas is scoped to.",
+                defaultMessage: "Switch the garden the Hub is scoped to.",
               })}
             </p>
           </div>

@@ -18,7 +18,7 @@ export interface AdminWorkspaceViewDefinition {
 export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
     id: "hub",
-    label: "Hub",
+    label: "Review",
     labelId: "cockpit.nav.hub",
     icon: RiAppsLine,
     rootPath: "/hub",

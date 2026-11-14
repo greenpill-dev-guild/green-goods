@@ -12,13 +12,13 @@ import pt from "../../i18n/pt.json";
 
 describe("HydrationFallback", () => {
   it.each([
-    { locale: "en", messages: en, label: "Loading Green Goods Admin", line: "Loading..." },
-    { locale: "es", messages: es, label: "Cargando Green Goods Admin", line: "Cargando..." },
-    { locale: "pt", messages: pt, label: "Carregando Green Goods Admin", line: "Carregando..." },
+    { locale: "en", messages: en, label: "Loading Green Goods Hub", line: "Loading..." },
+    { locale: "es", messages: es, label: "Cargando Green Goods Hub", line: "Cargando..." },
+    { locale: "pt", messages: pt, label: "Carregando Green Goods Hub", line: "Carregando..." },
   ])("names the app and shows its loading line in $locale", ({ locale, messages, label, line }) => {
     render(
       <IntlProvider locale={locale} messages={messages}>
-        <HydrationFallback appName="Green Goods Admin" showMessage />
+        <HydrationFallback appName="Green Goods Hub" showMessage />
       </IntlProvider>
     );
 

@@ -104,7 +104,7 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
           title={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
           description={formatMessage({
             id: "cockpit.settings.languageDescription",
-            defaultMessage: "Choose the language for the steward canvas.",
+            defaultMessage: "Choose the language for the Green Goods Hub.",
           })}
         />
         <AdminChoiceGroup

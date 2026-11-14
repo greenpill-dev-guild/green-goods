@@ -50,8 +50,8 @@ export default function AdminRoot({
         <AppKitProvider
           projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
           metadata={{
-            name: "Green Goods Admin",
-            description: "Garden management canvas for the Green Goods protocol",
+            name: "Green Goods Hub",
+            description: "Garden management for Green Goods stewards",
             url: adminAppUrl,
             icons: ["https://greengoods.app/icon.png"],
           }}

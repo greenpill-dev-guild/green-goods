@@ -39,10 +39,10 @@ export const Default: Story = {};
 export const WalletRequired: Story = {
   args: {
     titleId: "app.admin.auth.walletRequired",
-    defaultTitle: "Wallet required",
+    defaultTitle: "Wallet or passkey required",
     descriptionId: "app.admin.auth.walletRequiredPrompt",
     defaultDescription:
-      "The admin panel requires a wallet connection. Email and social logins are not supported here.",
+      "The Green Goods Hub needs a wallet or a passkey. Email and social logins are not supported here.",
     icon: <RiLockLine className="h-7 w-7 text-warning-dark" aria-hidden="true" />,
   },
 };

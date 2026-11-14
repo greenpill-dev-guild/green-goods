@@ -56,7 +56,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           >
             {intl.formatMessage({
               id: "app.admin.auth.signOutAndReconnect",
-              defaultMessage: "Sign Out & Connect Wallet",
+              defaultMessage: "Sign Out & Sign In Again",
             })}
           </Button>
         }
@@ -83,7 +83,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
               defaultMessage:
-                "Connect your wallet or sign in with a passkey to access this feature.",
+                "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
             })}
           </p>
           <div className="mt-6 w-full max-w-sm">

@@ -66,7 +66,7 @@ export default function HubView() {
       <HubFlowDialogs item={hub.routeItem} />
       {!hub.selectedGarden && !hub.routeWorkId && !hub.isSubmitRoute ? (
         <CanvasWorkspaceSelectionState
-          workspaceLabel={formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })}
+          workspaceLabel={formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Review" })}
           gardens={hub.gardenOptions}
           onSelectGarden={hub.handleSelectGarden}
         />
@@ -79,7 +79,7 @@ export default function HubView() {
         >
           <CanvasRouteHeader
             wrapperClassName="hub-route-content flex flex-col gap-4 sm:gap-5"
-            title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Hub" })}
+            title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Review" })}
             description={formatMessage({
               id: "cockpit.hub.description",
               defaultMessage: "Review and triage pending submissions.",
@@ -154,7 +154,7 @@ export default function HubView() {
               activeId={hub.stage}
               ariaLabel={formatMessage({
                 id: "cockpit.hub.tabRail",
-                defaultMessage: "Hub pipeline stages",
+                defaultMessage: "Review pipeline stages",
               })}
               onChange={hub.handleStageChange}
             />

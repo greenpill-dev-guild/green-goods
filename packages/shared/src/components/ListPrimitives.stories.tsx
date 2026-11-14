@@ -195,7 +195,7 @@ const STATES: Array<{ name: string; props: EmptyStateProps }> = [
     props: {
       tone: "error",
       icon: <RiErrorWarningLine />,
-      title: "Hub data could not be loaded",
+      title: "Review data could not be loaded",
       description: "Refresh the workspace and try again.",
       action: (
         <Button size="sm" emphasis="secondary">

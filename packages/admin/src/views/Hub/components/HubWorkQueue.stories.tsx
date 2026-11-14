@@ -165,7 +165,7 @@ export const LoadedWorkAfterReadFailure: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText(PENDING_WORK[0].title)).toBeVisible();
-    await expect(canvas.getByRole("alert")).toHaveTextContent("Hub data could not be loaded");
+    await expect(canvas.getByRole("alert")).toHaveTextContent("Review data could not be loaded");
     await userEvent.click(canvas.getByRole("button", { name: "Show Older Work" }));
     await expect(args.older?.onShowOlder).toHaveBeenCalledTimes(1);
   },

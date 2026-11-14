@@ -100,7 +100,7 @@ export function PoolSettingsProgress({
           {formatMessage({
             id: "cockpit.garden.pool.setup.failure.unavailable",
             defaultMessage:
-              "Commitment pooling isn't switched on in this app yet, so nothing was written.",
+              "Commitment pooling isn't switched on in the Hub yet, so nothing was written.",
           })}
         </Alert>
       ) : null}

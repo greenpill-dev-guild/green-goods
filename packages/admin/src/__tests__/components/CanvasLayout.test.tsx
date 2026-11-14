@@ -978,7 +978,7 @@ describe("CanvasShell access states", () => {
     renderCanvasShell("/hub/work");
 
     expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out & sign in again/i })).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
   });
 
