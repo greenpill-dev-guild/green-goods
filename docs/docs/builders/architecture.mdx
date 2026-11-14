@@ -156,7 +156,7 @@ the money. The contracts are deployed, but the 2.0 apps keep these writes off; s
 [Cookie jars](./integrations/cookie-jar) cover small, capped allowances, and
 [hypercerts](./integrations/hypercerts) turn verified contribution into an impact claim a funder
 can hold a fraction of. A season's certificate is built from its fulfilled commitments, with the
-approved work inside them kept as evidence; the dashboard cannot mint that kind yet, and its
+approved work inside them kept as evidence; the Hub cannot mint that kind yet, and its
 current wizard bundles approved work directly.
 
 The common thread is the record. Deposits, jar funding, and new commitments are open doors; the
@@ -216,7 +216,7 @@ Gardens live on two chains, and the second address is not a mistake.
 | Chain | What lives there | Addresses people see |
 |---|---|---|
 | Arbitrum One | Gardens and their accounts, roles, actions, work and approvals, commitments, and the `SettlementModule` that issues payout instructions | The garden's account address in both apps, and a member's account address |
-| Celo | Canonical G$, each garden's settlement Safe, and the `CeloSettlementExecutor` that carries out instructions | The garden's Celo Safe, a different address that the dashboard shows under **Pool Funding**; a member's Celo account, which has the same address as their Arbitrum account |
+| Celo | Canonical G$, each garden's settlement Safe, and the `CeloSettlementExecutor` that carries out instructions | The garden's Celo Safe, a different address that the Hub shows under **Pool Funding**; a member's Celo account, which has the same address as their Arbitrum account |
 | Gnosis | The voucher pilot's endpoints and its shared exchange pool, in progress | None in a released app yet |
 
 G$ never moves to Arbitrum. The protocol funds a garden through a protocol-to-garden transfer
