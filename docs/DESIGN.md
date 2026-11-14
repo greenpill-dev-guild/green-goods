@@ -109,7 +109,7 @@ components:
 |---------|----------|----------|----------|------------|
 | **Docs** | Community members, gardeners, stewards, funders, builders | Field manual and builder reference | Readable reference surface | Docusaurus navbar, sidebar, table of contents |
 
-**Hard rule:** Docs stay docs. Preserve Docusaurus structure, long-form readability, compact reference patterns, and clear sidebars. Do not import admin cockpit chrome, installed-PWA bottom navigation, or public-site marketing hero treatment unless the docs home explicitly needs a concise opening moment.
+**Hard rule:** Docs stay docs. Preserve Docusaurus structure, long-form readability, compact reference patterns, and clear sidebars. Do not import the Green Goods Hub's cockpit chrome, the Green Goods App's bottom navigation, or the Green Goods Website's marketing hero treatment unless the docs home explicitly needs a concise opening moment.
 
 ---
 
