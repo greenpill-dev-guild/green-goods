@@ -66,6 +66,7 @@ function MembersHarness({
       <CommunityMembersDialogs
         garden={storyGarden}
         canManage
+        canManageStewards={false}
         closeMembersModal={() => navigate(`/community/members?gardenId=${storyGarden.id}`)}
         isOwner
         roleMembers={storyRoleMembers}

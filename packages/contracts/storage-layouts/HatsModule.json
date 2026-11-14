@@ -139,10 +139,16 @@
       "type": "t_mapping(t_address,t_address)"
     },
     {
-      "label": "__gap",
+      "label": "protocolRoleHats",
       "offset": 0,
       "slot": "167",
-      "type": "t_array(t_uint256)34_storage"
+      "type": "t_struct(ProtocolRoles)_storage"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "171",
+      "type": "t_array(t_uint256)30_storage"
     }
   ],
   "types": {
@@ -157,11 +163,11 @@
       "label": "address[]",
       "numberOfBytes": "32"
     },
-    "t_array(t_uint256)34_storage": {
+    "t_array(t_uint256)30_storage": {
       "base": "t_uint256",
       "encoding": "inplace",
-      "label": "uint256[34]",
-      "numberOfBytes": "1088"
+      "label": "uint256[30]",
+      "numberOfBytes": "960"
     },
     "t_array(t_uint256)49_storage": {
       "base": "t_uint256",
@@ -277,6 +283,37 @@
         }
       ],
       "numberOfBytes": "256"
+    },
+    "t_struct(ProtocolRoles)_storage": {
+      "encoding": "inplace",
+      "label": "struct HatsModule.ProtocolRoles",
+      "members": [
+        {
+          "label": "team",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "productLead",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "label": "agents",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "label": "deployer",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "128"
     },
     "t_uint256": {
       "encoding": "inplace",

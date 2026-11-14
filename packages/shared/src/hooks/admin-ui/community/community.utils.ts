@@ -147,7 +147,8 @@ export function buildCommunityViewActions(
   navigate: (path: string) => void,
   routeContext?: AdminCommunityRouteContext,
   /** False once the garden is known to have no payout jar to fund. */
-  hasPayoutJar = true
+  hasPayoutJar = true,
+  canAddMember = canManage
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   // "View public" lives once, on the Garden workspace — not duplicated here.
@@ -163,7 +164,7 @@ export function buildCommunityViewActions(
           adminRoutes.communityMode(mode, { gardenId: gardenAddress, item: ADD_MEMBER_ROUTE_ITEM })
         ),
       variant: "primary",
-      visible: hasSelectedGarden && canManage,
+      visible: hasSelectedGarden && canAddMember,
       primary: true,
     },
     {

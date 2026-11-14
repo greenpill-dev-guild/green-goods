@@ -6,10 +6,12 @@ import {
 } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { RiAddLine, RiClipboardLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AdminSelect, AdminTextField } from "../AdminTextField";
+import { AdminTextField } from "../AdminTextField";
 import { AddMembersEntryStatus, type AddMembersEntryStatusProps } from "./AddMembersEntryStatus";
+import { MemberRoleSelect } from "./MemberRoleSelect";
 
 interface AddMembersEntryFieldProps {
+  allowedRoles?: readonly GardenRole[];
   value: string;
   onChange: (value: string) => void;
   onRoleChange: (role: GardenRole) => void;
@@ -24,6 +26,7 @@ interface AddMembersEntryFieldProps {
 
 /** One list entry: identify the person, choose their role, then stage it. */
 export function AddMembersEntryField({
+  allowedRoles = GARDEN_ROLE_ORDER,
   value,
   onChange,
   onRoleChange,
@@ -62,20 +65,13 @@ export function AddMembersEntryField({
         </div>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <AdminSelect
-          id="member-role"
+        <MemberRoleSelect
+          roles={allowedRoles}
           className="min-w-0"
-          label={formatMessage({ id: "app.admin.roles.roleLabel" })}
           value={status.selectedRole}
-          onChange={(event) => onRoleChange(event.target.value as GardenRole)}
+          onChange={onRoleChange}
           disabled={disabled}
-        >
-          {GARDEN_ROLE_ORDER.map((role) => (
-            <option key={role} value={role}>
-              {formatMessage({ id: `app.roles.${role}` })}
-            </option>
-          ))}
-        </AdminSelect>
+        />
         <div className="pt-5.5">
           <Button
             type="button"

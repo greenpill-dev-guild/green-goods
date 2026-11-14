@@ -75,7 +75,7 @@ test("indexer preserves codegen, full assertion, coverage reporter and integrati
   assert.deepEqual(covered.steps[0].args.slice(1, 6), ["c8", "--reporter", "text", "--reporter", "json"]);
   assert.deepEqual(covered.steps[0].env, {});
   const events = resolve("indexer", "test", ["--scope", "contract-events"]);
-  assert.ok(events.steps[0].args.includes("480000"));
+  assert.ok(events.steps[0].args.includes("780000"));
   assert.equal(events.steps[0].env.GG_RUN_LOCAL_CONTRACT_EVENT_INTEGRATION, "1");
 });
 

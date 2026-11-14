@@ -178,6 +178,7 @@ export interface GardenRoleRemovalInput {
   viewerIsOwner: boolean;
   /** Owners and stewards manage roles. */
   viewerCanManage: boolean;
+  viewerCanManageStewards?: boolean;
   person: string;
   /** Every role the person holds in the garden. */
   personRoles: readonly GardenRole[];
@@ -190,14 +191,17 @@ export function gardenRoleRemovalBlock({
   viewer,
   viewerIsOwner,
   viewerCanManage,
+  viewerCanManageStewards = false,
   person,
   personRoles,
   role,
   ownerCount,
 }: GardenRoleRemovalInput): GardenRoleRemovalBlock | null {
-  if (!viewerCanManage && !viewerIsOwner) return "no-access";
+  if (!viewerCanManage && !viewerIsOwner && !(role === "steward" && viewerCanManageStewards))
+    return "no-access";
   const isSelf = Boolean(viewer) && viewer?.toLowerCase() === person.toLowerCase();
   if (isSelf && (role === "owner" || role === "steward")) return "own-access";
+  if (role === "steward" && viewerCanManageStewards) return null;
   if (!viewerIsOwner) {
     if (personRoles.includes("owner")) return "owner-only";
     if (role === "steward") return "owner-steward";

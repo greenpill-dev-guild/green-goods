@@ -7,7 +7,6 @@ import {
   getServerGardenFenceFilters,
   subscribeToGardenFences,
 } from "../../modules/garden/garden-departures";
-import { getNetworkConfig } from "../../config/blockchain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
@@ -17,7 +16,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { roleKeys } from "../../config/query-keys/identity";
-import { compareAddresses } from "../../utils/blockchain/address";
+import { useProtocolRoles } from "../roles/useProtocolRoles";
 
 const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
@@ -71,11 +70,12 @@ export interface RoleInfo {
   role: UserRole;
   /** May create gardens: the deployment registry's owner or an account on its allowlist. */
   isDeployer: boolean;
-  /**
-   * Runs the protocol: the registry's owner or an owner or steward of the Green Goods Community
-   * Garden. Being allowed to create gardens does not make an account part of the team.
-   */
+  /** Effective Team Hat membership. Other garden and protocol roles do not imply Team. */
   isProtocolTeam: boolean;
+  isProductLead: boolean;
+  isAgent: boolean;
+  isTechnicalDeployer: boolean;
+  protocolRolesError: boolean;
   isSteward: boolean;
   stewardGardens: StewardGarden[];
   loading: boolean;
@@ -107,6 +107,7 @@ export function useRole(): RoleInfo {
   const ready = auth.isReady;
 
   const deploymentRegistry = useDeploymentRegistry();
+  const protocolRoles = useProtocolRoles();
 
   // Use React Query for fetching steward gardens
   const {
@@ -132,11 +133,7 @@ export function useRole(): RoleInfo {
     : [];
   const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
-  const rootGarden = getNetworkConfig(chainId).rootGarden?.address;
-  const isProtocolTeam =
-    deploymentRegistry.isOwner ||
-    (rootGarden !== undefined &&
-      stewardGardens.some((garden) => compareAddresses(garden.id, rootGarden)));
+  const isProtocolTeam = protocolRoles.team;
 
   // Determine primary role based on capabilities
   let role: UserRole = "user";
@@ -150,10 +147,14 @@ export function useRole(): RoleInfo {
     role,
     isDeployer,
     isProtocolTeam,
+    isProductLead: protocolRoles.productLead,
+    isAgent: protocolRoles.agents,
+    isTechnicalDeployer: protocolRoles.deployer,
+    protocolRolesError: protocolRoles.isError,
     isSteward,
     stewardGardens,
-    loading: !ready || isFetching || deploymentRegistry.loading,
-    gardensError,
+    loading: !ready || isFetching || deploymentRegistry.loading || protocolRoles.isLoading,
+    gardensError: gardensError || protocolRoles.isError,
     deploymentPermissions: {
       canDeploy: deploymentRegistry.canDeploy,
       isOwner: deploymentRegistry.isOwner,
