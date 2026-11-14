@@ -12,6 +12,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { acquireAvailableWorkJobs, saveUnderClaim } from "../../modules/job-queue/work-claims";
 import type { Job } from "../../types/job-queue";
 
 /** One account per case: the database persists across cases in this file. */
@@ -58,6 +59,34 @@ describe("job queue live views", () => {
     await queueWork(account);
 
     expect(await settlesAt(seen, 1)).toBe(1);
+  });
+
+  it("re-emits a job saved under its claim, as preparation records its answer", async () => {
+    // Preparation and Upload all write this way and raise no queue event; a screen that reads
+    // queued work from this view learns of their answers only because the view re-emits.
+    const account = nextAccount();
+    const id = await queueWork(account);
+    const seen: string[] = [];
+    subscriptions.push(
+      jobQueueDB.observeJobs({ userAddress: account, kind: "work", synced: false }).subscribe({
+        next: (jobs) => {
+          const preparation = jobs[0]?.meta?.preparation as { status?: string } | undefined;
+          seen.push(preparation?.status ?? "unprepared");
+        },
+      })
+    );
+    await vi.waitFor(() => expect(seen.at(-1)).toBe("unprepared"));
+
+    const [claim] = (await acquireAvailableWorkJobs([id])).values();
+    try {
+      await saveUnderClaim(claim, id, (stored) => {
+        stored.meta = { ...stored.meta, preparation: { status: "ready", checkedAt: "now" } };
+      });
+    } finally {
+      await claim.release();
+    }
+
+    await vi.waitFor(() => expect(seen.at(-1)).toBe("ready"));
   });
 
   it("re-emits queue statistics as work is queued", async () => {

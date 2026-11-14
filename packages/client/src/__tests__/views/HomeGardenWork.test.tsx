@@ -128,7 +128,10 @@ describe("Home garden work detail", () => {
       discard: vi.fn(async () => true),
       isDiscarding: false,
     });
-    mockUseWorkUploads.mockReturnValue({ decisionFor: () => undefined });
+    mockUseWorkUploads.mockReturnValue({
+      decisionFor: () => undefined,
+      preparationOf: vi.fn(() => "working"),
+    });
     mockUseAttributions.mockReturnValue({ attributions: [] });
     mockUseCommitment.mockReturnValue({ detail: null });
     mockUseWorkDecisions.mockReturnValue({ byWorkUID: new Map(), readAvailable: true });
@@ -218,6 +221,15 @@ describe("Home garden work detail", () => {
     );
 
     expect(mockUseQueuedWorkActions).toHaveBeenCalledWith("job-1");
+    // The notice and the bar tell one story: what preparation is doing for this work.
+    expect(mockUseWorkUploads.mock.results.at(-1)?.value.preparationOf).toHaveBeenCalledWith(
+      "job-1"
+    );
+    const { notice, footer } = mockWorkViewSectionProps.current as {
+      notice: { props: { preparation: string } };
+      footer: { props: { preparation: string } };
+    };
+    expect([notice.props.preparation, footer.props.preparation]).toEqual(["working", "working"]);
     fireEvent.click(screen.getByRole("button", { name: "Upload now" }));
     expect(mockUseWorkDetailController.mock.results.at(-1)?.value.retry).toHaveBeenCalledOnce();
 

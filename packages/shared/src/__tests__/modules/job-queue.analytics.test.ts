@@ -38,6 +38,7 @@ import {
   trackJobProcessed,
   trackJobProcessingError,
   trackStorageWarning,
+  trackUploadPreparation,
 } from "../../modules/job-queue/job-analytics";
 
 const userAddress = "0x1111111111111111111111111111111111111111";
@@ -88,8 +89,18 @@ describe("job queue analytics privacy", () => {
     await trackJobProcessingError(job, 50, 11155111, 5, new Error(`failed for ${gardenAddress}`));
     trackJobPermanentlyFailed(job);
     trackJobProcessed("work", 50, 2);
+    trackUploadPreparation({ type: "started", kind: "work", attempt: 1 });
+    trackUploadPreparation({
+      type: "finished",
+      kind: "work",
+      attempt: 1,
+      result: "blocked",
+      durationMs: 1_700,
+      reason: "NotGardenMember",
+    });
+    trackUploadPreparation({ type: "retry-scheduled", kind: "work", attempt: 1, delayMs: 30_000 });
 
-    expect(analyticsMocks.track).toHaveBeenCalledTimes(4);
+    expect(analyticsMocks.track).toHaveBeenCalledTimes(7);
     for (const [, properties, options] of analyticsMocks.track.mock.calls) {
       const propertyNames = collectPropertyNames(properties);
       expect(propertyNames.filter((key) => forbiddenPropertyNames.has(key))).toEqual([]);
@@ -114,6 +125,29 @@ describe("job queue analytics privacy", () => {
     expect(failed).toMatchObject({ parsed_error_family: "UserRejected" });
     expect(permanentlyFailed).toMatchObject({ parsed_error_family: "WalletSessionUnavailable" });
     expect(JSON.stringify(failed)).not.toContain(userAddress);
+  });
+
+  it("names background preparation's start, answer and retry, with the try and its timing", () => {
+    trackUploadPreparation({ type: "started", kind: "approval", attempt: 3 });
+    trackUploadPreparation({
+      type: "finished",
+      kind: "work",
+      attempt: 2,
+      result: "retry-later",
+      durationMs: 40_000,
+    });
+    trackUploadPreparation({ type: "retry-scheduled", kind: "work", attempt: 2, delayMs: 60_000 });
+
+    expect(
+      analyticsMocks.track.mock.calls.map(([event, properties]) => [event, properties])
+    ).toEqual([
+      ["upload_preparation_started", { job_kind: "approval", attempt: 3 }],
+      [
+        "upload_preparation_finished",
+        { job_kind: "work", attempt: 2, result: "retry-later", duration_ms: 40_000 },
+      ],
+      ["upload_preparation_retry_scheduled", { job_kind: "work", attempt: 2, delay_ms: 60_000 }],
+    ]);
   });
 
   it("keeps queue breadcrumbs free of local job and address identifiers", () => {

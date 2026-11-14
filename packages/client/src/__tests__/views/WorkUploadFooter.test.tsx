@@ -25,7 +25,7 @@ function renderFooter(work: Work, overrides: Partial<WorkUploadFooterProps> = {}
   const props: WorkUploadFooterProps = {
     work,
     isOnline: true,
-    pausedForDataSaver: false,
+    preparation: "working",
     onPrepareNow: vi.fn(),
     onRetry: vi.fn(),
     isRetrying: false,
@@ -118,10 +118,31 @@ describe("WorkUploadFooter", () => {
   });
 
   it("lets the person start photo preparation under Data Saver", () => {
-    const props = renderFooter(queuedWork("photo-pending"), { pausedForDataSaver: true });
+    const props = renderFooter(queuedWork("photo-pending"), { preparation: "data-saver" });
 
     fireEvent.click(screen.getByRole("button", { name: "Prepare now" }));
     expect(props.onPrepareNow).toHaveBeenCalledOnce();
+  });
+
+  it("offers Try Again and Discard once a preparation failed, instead of a spinner", () => {
+    // PRD-1488: the bar spun on "Preparing uploads…" while preparation waited out a backoff.
+    const props = renderFooter(queuedWork("preparing"), { preparation: "retrying" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(props.onTryAgain).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Preparing uploads…" })).not.toBeInTheDocument();
+  });
+
+  it("waits for the connection or an app update without a spinner, and lets the work go", () => {
+    for (const preparation of ["connection", "app-update"] as const) {
+      renderFooter(queuedWork("preparing"), { preparation });
+
+      expect(screen.getByRole("button", { name: "Upload now" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Discard" })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: "Preparing uploads…" })).not.toBeInTheDocument();
+      cleanup();
+    }
   });
 
   it("offers to try refused work again or discard it", async () => {
@@ -174,12 +195,47 @@ describe("WorkUploadFooter", () => {
 });
 
 describe("WorkStatusNotice", () => {
-  const renderNotice = (work: Work, isOnline = true) =>
+  const renderNotice = (
+    work: Work,
+    isOnline = true,
+    preparation: WorkUploadFooterProps["preparation"] = "working"
+  ) =>
     render(
       <IntlProvider locale="en" messages={messages}>
-        <WorkStatusNotice work={work} isOnline={isOnline} />
+        <WorkStatusNotice work={work} isOnline={isOnline} preparation={preparation} />
       </IntlProvider>
     );
+  const spinning = () => document.querySelector(".animate-spin");
+
+  it("spins only while preparation is working on the work", () => {
+    renderNotice(queuedWork("preparing"));
+    expect(screen.getByText("Getting it ready to upload")).toBeInTheDocument();
+    expect(spinning()).not.toBeNull();
+  });
+
+  it("says a failed preparation will be tried again, and what the person can do", () => {
+    renderNotice(queuedWork("preparing"), true, "retrying");
+
+    expect(screen.getByText("Couldn't get it ready")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing was sent. We'll keep trying, or choose Try Again.")
+    ).toBeInTheDocument();
+    expect(spinning()).toBeNull();
+  });
+
+  it("names what a paused preparation waits for, without a spinner", () => {
+    for (const [preparation, isOnline, title] of [
+      ["connection", true, "Waiting for a steady connection"],
+      ["connection", false, "Waiting for a steady connection"],
+      ["data-saver", true, "Paused for Data Saver"],
+      ["app-update", true, "Waiting for an app update"],
+    ] as const) {
+      renderNotice(queuedWork("preparing"), isOnline, preparation);
+      expect(screen.getByText(title)).toBeInTheDocument();
+      expect(spinning()).toBeNull();
+      cleanup();
+    }
+  });
 
   it("says why waiting work is still on this phone, and what to do offline", () => {
     renderNotice(queuedWork("ready"));
