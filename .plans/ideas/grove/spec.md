@@ -161,6 +161,7 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D42 | Carried files come first. Direct sync between devices that are open at the same time is the next lane, ahead of the hosted mailbox | The MVP proves everything with files, which need no server. Direct sync moves from research to the next lane; it needs a signalling service, often a relay, and both devices awake | Accepted 14 Nov |
 | D43 | The garden's current assessment is the agent's focus. A steward can add a few extra topics to watch, such as funding or partnerships | One record to write, and the agent follows what the garden already committed to. A garden with no assessment gives the agent nothing to go on until one is written. Amends D30 | Accepted 14 Nov |
 | D44 | Local operation lives in separate local builds of the app and the cockpit, on their own addresses, with no analytics and no hosted calls | Stronger isolation for keys. People install a second app, and the existing passkey reaches it because it shares the `greengoods.app` domain | Accepted 14 Nov |
+| D45 | A steward can include an approved work report in a report to a funder or partner on the steward's approval alone | The fastest reporting. A gardener's photos and details can reach a funder without the gardener being asked again. It is the one stated exception to the rule that an approval for one destination cannot be used for another, and the author still approves again if a corrected version of their capture leaves (D17) | Accepted 14 Nov |
 
 The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Where they conflict with this table, this table governs: decisions 18 to 21 (the Hub connection) and 5 (the KOI community node) describe next lanes, not the MVP.
 
@@ -168,7 +169,7 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 
 | # | Recommendation | Why |
 |---|---|---|
-| R1 | Use one existing multi-recipient format for shared files, with a fresh key per file. Choose between age v1 and HPKE (RFC 9180) at C1 | No protocol to invent. A fresh key per file means removing a member needs no key rotation |
+| R1 | Use one existing multi-recipient format for shared files, with a fresh key per file. age v1 is one. HPKE (RFC 9180) wraps a key to a single recipient and defines no file format, so C1 may choose it only inside a named, reviewed envelope that carries one wrap per recipient | No protocol to invent. A fresh key per file means removing a member needs no key rotation |
 | R2 | Do not select a DID method for the MVP. Identify devices by their public keys and a community by the hash of its first member list | Nothing in the MVP needs an outside verifier. C0 today says to select and pin a method first |
 | R3 | Keep the member list to one signed, hash-chained history with one active signer. Reject a fork; never merge one | No maintained browser library provides community membership, so this project writes this part and it must stay small |
 | R4 | Never make the passkey the only way to open a vault. Combine its secret with a key held on the device, and always keep a recovery-code path | The same passkey secret is available to every `greengoods.app` site and to any extension with permission for that domain |
@@ -203,10 +204,10 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 |---|---|---|
 | O1 | Do existing credentials return a usable secret (WebAuthn PRF) on each provider, from an extension page, with the network blocked? | Experiment: C0a / E24 |
 | O2 | Resolved 14 November by D44: separate local builds on their own addresses. Still to settle: the exact addresses, and where the module shared by the local builds and Grove lives | The owner for the addresses; C7 for the module |
-| O3 | Which envelope library: age v1 or HPKE? | Experiment: C1 / E16, decided by what the device floor supports |
+| O3 | Which envelope: age v1, or HPKE inside a named, reviewed multi-recipient envelope? | Experiment: C1 / E16, decided by what the device floor supports. With no such envelope the answer is age |
 | O4 | Do keys and captures survive on real devices, including a Safari tab, a Home Screen app and an extension reinstall? | Experiment: C0b / E26 |
 | O5 | May this project reuse Coop code? The AGPL licence is on an unmerged local branch and Coop's main branch carried no licence when last fetched | The owner. Until then, reimplement small pieces and copy nothing |
-| O6 | How is a fork in the member list detected and refused once a second controller exists? | Design and experiment: C0 / E15 |
+| O6 | How is a fork in the member list detected and refused once a second controller exists, and how does the garden get back to one head afterwards without the lost controller? | Design and experiment: C0 / E15 |
 | O7 | What can an author withdraw after sharing, and what do recipients' devices do when they learn of it? | Design in C2; copies already received cannot be recalled |
 | O8 | What limits code updates to the Green Goods app, which is served from the web, before sensitive records are admitted? | The owner, before any sensitive pilot: no sensitive record is admitted until this is answered. D20 accepts the publisher as trusted |
 | O9 | Which Hub connection design: the content-script relay below, or the WebMCP tool of prototype decisions 18 to 21? | The owner, when the Hub lane is scoped |

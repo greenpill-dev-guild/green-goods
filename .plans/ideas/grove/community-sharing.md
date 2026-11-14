@@ -98,7 +98,7 @@ No maintained browser library provides community membership and key grants (see 
 - The list is a chain of signed versions. Each version names the one before it by hash. The first version's hash is the community's identifier.
 - One steward's device, the active signer, signs changes in the MVP (D18). A version signed by anyone else is ignored, except a takeover by a named controller.
 - Each version lists members, their device keys, their roles and the controllers. Adding or removing a member or device is a new version.
-- A second controller is required before real data (D18). The list names it. It can sign one kind of version, a takeover, which makes its own device the active signer and removes the old one. A takeover needs neither the lost controller's devices nor the recovery code, and after it anything the old signer signs is refused. Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them (O6).
+- A second controller is required before real data (D18). The list names it. It can sign one kind of version, a takeover, which makes its own device the active signer and removes the old one. A takeover needs neither the lost controller's devices nor the recovery code, and after it anything the old signer signs is refused. Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them. How the garden then gets back to one head, without the lost controller, is part of O6 and is settled before a second controller is added.
 - A recovery code is created at setup (D18). It opens the steward's recovery export, which holds a succession key; that key can appoint a new controller device and do nothing else.
 - A partner community is another member list. Two communities exchange their current list heads through the same pairing step members use.
 
@@ -106,10 +106,10 @@ Recipient clients verify the member list themselves. An edit to a Pod's access l
 
 ### Who approves
 
-- **The author** approves every share of their own capture. The approval names the exact revision, the fields, the recipients, the purpose and the destination. Changed content, recipients or destination need a new approval, and an approval for one destination cannot be used for another.
+- **The author** approves every share of their own capture. The approval names the exact revision, the fields, the recipients, the purpose and the destination. Changed content, recipients or destination need a new approval, and an approval for one destination cannot be used for another. The one exception is a steward's report (D45).
 - **Recipients** record review decisions and corrections. Reading a record gives no authority to release it.
 - **The author again**, if a corrected version of their capture is to leave the community.
-- **A steward** approves partner summaries and public releases.
+- **A steward** approves partner summaries and public releases. A steward can include an approved work report in a report to a funder or partner on that approval alone (D45).
 - **Every approval is signed** by a device of the person who gives it, over a digest of the whole projection: the revision, the fields, the recipients, the purpose and the destination. A recipient checks that signature against the member list the file names. It rejects a file whose approval is missing, is signed by anyone other than the author or a steward as the case requires, or is signed by a device that list does not hold. The sending device's signature on the manifest never stands in for an approval.
 - Each reviewer's decision is stored, and no "community approved" state is computed (R14). A steward's release approval names the decisions it relied on.
 
@@ -117,7 +117,7 @@ Community acceptance is never Green Goods WorkApproval, evaluator verification o
 
 ## Encryption contract
 
-**Shared files (R1).** For each share, the client builds a manifest, signs it with the sending device's key, and encrypts manifest and content together under a fresh random key. It wraps that key to each recipient device's public key using one existing multi-recipient format. The candidates are age v1 and HPKE (RFC 9180); C1 chooses on what the supported devices can run (O3). Do not hand-build a cryptographic protocol.
+**Shared files (R1).** For each share, the client builds a manifest, signs it with the sending device's key, and encrypts manifest and content together under a fresh random key. It wraps that key to each recipient device's public key using one existing multi-recipient format. age v1 is such a format. HPKE (RFC 9180) wraps a key to one recipient and defines no file format, so it is a candidate only inside a named, reviewed envelope that carries one wrap per recipient. C1 chooses on what the supported devices can run (O3), and with no such envelope it chooses age. Do not hand-build a cryptographic protocol.
 
 The signed manifest binds the community, the member-list version the sender used, the sender, the named recipients, the purpose and destination, each approval with its own signature, and a digest of each included revision and field selection. Signing before encrypting, with the recipients inside the signed part, stops a recipient passing the file on as if it were addressed to someone else. Recipients reject a file that fails its signature, names a sender who is not in the list, does not name them, repeats a file they already stored, carries an approval that fails its own check, or was built on a list older than one they hold.
 
