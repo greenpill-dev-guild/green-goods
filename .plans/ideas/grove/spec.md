@@ -74,7 +74,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 2. A person completes capture → review → share with no model, wallet, provider account or network (E17).
 3. The recipient sees exactly the approved fields. A device that was not named, and anyone holding only the file, cannot read it. A tampered or re-addressed file is rejected, and a replayed one changes nothing (E16).
 4. A removed device cannot read anything shared after the sender learned of the removal, and a sender whose member list is older than seven days is paused (E15).
-5. A lost phone is recovered from the recovery code and from a second device. Losing every path fails visibly (E15, E16, E24).
+5. A lost phone is recovered from the recovery code and from a second device, and a restore says which records may be missing since the last export. Losing every path fails visibly (E15, E16, E24).
 6. Passkey unlock works with the network blocked where the provider supports it, the passphrase works where it does not, and a synced passkey cannot bring back a removed device (E24).
 7. A corrected record cannot leave the community without its author's approval, and a partner summary carries a steward's approval and no private history (E17).
 8. On the laptop, a real local Gemma investigation produces proposals with exact quotes, survives a closed tab through Pi with one result, and appears in the graph as new (E4, E6, E12–E14). Capture and manual review behave the same with the model absent.

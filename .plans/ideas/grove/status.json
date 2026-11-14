@@ -344,6 +344,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "The owner named where the local builds are developed (D46): alpha.greengoods.app for the app and alpha.admin.greengoods.app for the cockpit, new subdomains of greengoods.app, and not the beta environment. C7 records what the builds need for that: a third name and icon, and no passkey directory. C0b and E26 run at the alpha address with a control for Safari's site-wide visit rule, and C0a tests the greengoods.app credentials there. Whether real gardens first install from those addresses is confirmed before a pilot with real data (O2). Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-14T11:06:17Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "Folded in thirteen review points, with no decision changed. An imported garden's roles, Actions and assessment arrive as observations and imported records that keep their onchain source, and nobody becomes a member without pairing (C8, E31). Assessments name the one they replace (S13, E33). E30 bars only the identifiers of private records. The durability gate covers the cockpit (C0b, E26). A removal is bounded only on devices that trust the current signer (E15, E37). Role changes, not admissions, carry a decider's signature (F6, E37). Promises gain their end states (F5, E36). Approvals keep their confidence fields (E34). A withdrawn share approval sends nothing (C2, E17). A restore names what may be missing (C0, E15). A public upload of a member's capture needs that member's approval (C6, E21). Gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }
