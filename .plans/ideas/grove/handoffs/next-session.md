@@ -1,10 +1,10 @@
 # Continue: Green Goods, fully local, with Grove
 
-**State as of 14 November 2026:** two independent reviewers examined the architecture and MVP, and the owner settled ten decisions on the architecture and then five on what the agent does. Later the same day the owner corrected the framing: the project makes Green Goods work in a fully local environment with a phone, a browser and an extension, and Grove is only the extension (D31 to D36). The hub's documents and the architecture page carry that framing. Nothing is built beyond the disposable G0 spike, and every gate is unrun. The work sits on the branch `research/grove-architecture-alignment`.
+**State as of 14 November 2026:** two independent reviewers examined the architecture and MVP, and the owner settled ten decisions on the architecture and then five on what the agent does. Later the same day the owner corrected the framing: the project makes Green Goods work in a fully local environment with a phone, a browser and an extension, and Grove is only the extension (D31 to D36). The owner then answered eight questions that set the plan's shape (D37 to D44), and the plan is now reworked function by function. The hub's documents and the architecture page carry all of it. Nothing is built beyond the disposable G0 spike, and every gate is unrun. The work sits on the branch `research/grove-architecture-alignment`.
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract, a first table of what each Green Goods function needs to work locally, and the one decision log: decisions D1 to D36, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O18. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D44, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O18. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -15,12 +15,20 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - Locally a community is its Garden, with Green Goods' own roles, Actions, work reports, approvals, assessments and promises (D33). This supersedes D23.
 - Work and promises can be reported free-form or through the existing screens (D34).
 - An agent structures a free-form report or promise at any review on a laptop (D35), into the existing report contract and promise fields (D36).
+- The gardener app and the steward cockpit gain local operation together, so every current function is available locally from the first version (D37).
+- A new garden starts fully locally; an existing garden is brought local with one connected read of its public roles and Actions (D38).
+- The plan follows the Green Goods chain: Actions and assessment, work, approval, the report; then promises, joining and roles, and money and certificates (D39).
+- Money and certificates are recorded now and settled when connected (D40).
+- On a laptop, Grove works beside the app's screens through a bridge limited to the Green Goods pages, and keeps its own page for the graph (D41).
+- Carried files come first; direct sync between open devices is the next lane, ahead of the hosted mailbox (D42).
+- The garden's current assessment is the agent's focus, with extra topics a steward may add (D43).
+- Local operation lives in separate local builds of the app and the cockpit, with no analytics and no hosted calls (D44).
 - The phone and the extension ship together (D2). The phone runs Green Goods itself.
 - The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
 - One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).
 - The existing passkey unlocks the vault where its provider supports it; a passphrase does otherwise. C0a is a gate (D19).
 - "The operator cannot decrypt" covers storage and relay hosts. Green Goods is trusted as publisher of the client code (D20).
-- Encrypted files carry records in the MVP; a hosted mailbox with Solid preferred is the next lane (D21).
+- Encrypted files carry records in the MVP; a hosted mailbox with Solid preferred is a later lane (D21).
 - The MVP graph shows the records held on the device; the Hub snapshot and KOI exchange are next lanes (D22).
 - A device stops sharing when its member list is older than seven days, adjustable per community (D24).
 - The graph, Gemma suggestions and Pi investigations stay in the MVP (D14, D25).
@@ -34,12 +42,12 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 
 Each step needs its own authorization before anything is installed or built.
 
-1. Two owner decisions unblock the build: where local operation of the Green Goods app and the code it shares with Grove will live (O2), and whether any Coop code may be copied (O5).
-2. The reframing opened five questions. The owner decides what working locally means for funds and certificates (O14) and in what order the existing screens gain local operation (O15). Design settles how local records map onto the onchain ones when published (O16) and how Grove connects to the app in the same laptop browser (O17). E29 answers whether a small local model can structure a report well enough (O18). The plan has not yet been reworked function by function; the [function table](../spec.md#green-goods-functions-working-locally) is the starting point.
+1. Two owner decisions unblock the build: the exact addresses of the local builds (O2), and whether any Coop code may be copied (O5).
+2. Three questions from the reframing stay open. Design settles how local records map onto the onchain ones when published (O16) and which side holds a garden's keys on a laptop (O17, in C9). E29 answers whether a small local model can structure a report well enough (O18). One addition is this plan's and awaits the owner's word: the connected read for an existing garden also brings its current assessment (D38).
 3. **C0b**, then **C0a**. Both are experiments on a physical phone and laptop and need no protocol code. C0b decides which phones may hold keys. C0a decides who gets passkey unlock and who gets the passphrase.
 4. **P0** alongside: the Pi tab-close proof on persistent storage, which the G0 spike left owed and nothing blocks now.
-5. Then C1, C0, recovery and C2, in the [MVP order](../plan.todo.md#mvp-order).
-6. The agent's checkpoints, S13 to S16, belong to Grove's lane. S14 asks for access to all sites, a manifest change that needs its own review (O12).
+5. Then C7, C1, C0, recovery, C8, and the function blocks F1 to F7 with C2, in the [MVP order](../plan.todo.md#mvp-order).
+6. The agent's checkpoints, S13 to S16, and the bridge, C9, belong to Grove's lane. S14 asks for access to all sites, a manifest change that needs its own review (O12).
 
 The recommendations R1 to R19 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts. O8, what limits code updates to the Green Goods app, must be answered before any sensitive record is admitted.
 

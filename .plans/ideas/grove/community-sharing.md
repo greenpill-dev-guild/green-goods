@@ -22,8 +22,11 @@ These words mean one thing each across the hub. They describe the local environm
 | Work report | A member's record of work they did, made through the existing work screen or free-form in their own words with photos (D34) | A published Work attestation. An approval |
 | Promise | An offer or an ask, made through the existing promise screens or free-form (D34) | A promise registered in an onchain pool |
 | Structured version | The agent's proposal of a free-form work report or promise in the existing shape, each value kept with the words it was read from (D35, D36). A new revision, never an edit in place | A decision. The author's approval |
-| Focus | The garden's written list of topics, goals and open questions, written and signed by a steward as a garden record | A published Garden's domains or Actions |
-| Assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | A review decision. An approval |
+| Assessment | Green Goods' own: the baseline, method, outcome targets, selected Actions and reporting period a steward or evaluator writes before work begins. Locally it is a garden record | The agent's assessment of an item, which this hub always names in full |
+| Focus | What the agent takes its direction from: the garden's current assessment, plus any extra topics a steward adds to watch, such as funding or partnerships (D43) | A separate record that must be written before the agent can work |
+| Agent's assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | The garden's assessment. A review decision. An approval |
+| Intention | A signed, locally approved request to move money or tokens: a claim, an award, a vault action or a certificate. It settles only when a device connects and the right person confirms (D40) | A payment. A balance |
+| Local build | The gardener app or the steward cockpit published at its own address, with no analytics and no hosted calls (D44) | Today's hosted app at its current address |
 | Personal review | The author's own check and correction before anything is shared | Community review |
 | Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
 | Share approval | The author's approval of one projection for named recipients, a purpose and a destination, signed by one of the author's devices | A release approval. WorkApproval |
@@ -53,7 +56,7 @@ These are audiences, not a ladder toward publication. A community can share a su
 
 Three limits belong beside that requirement wherever it is stated:
 
-- **The publisher of the client code is trusted.** The extension is packaged code. The Green Goods app is served from the web each time it updates, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates, and no sensitive record is admitted until the owner answers it.
+- **The publisher of the client code is trusted.** The extension is packaged code. The local builds of the app and the cockpit are served from the web each time they update, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates, and no sensitive record is admitted until the owner answers it.
 - **An unlocked or compromised device exposes what it can decrypt** and can sign as its owner until it is removed.
 - **Removal cannot make anyone forget.** A recipient keeps what it already received.
 
@@ -61,15 +64,16 @@ Hosts still see file sizes, timing, addresses and how many recipients a file has
 
 ## What the agent reads
 
-On the laptop, Grove's agent brings in relevant knowledge and resources as the person browses, assesses each item before the person reviews it (D26 to D30), and structures free-form reports when they are reviewed (D35). The steward's written focus tells it what is relevant. A focus counts only when a device the current member list names as a steward signed it. A focus from anyone else is refused, and after a change of steward the new steward signs it again.
+On the laptop, Grove's agent brings in relevant knowledge and resources as the person browses, assesses each item before the person reviews it (D26 to D30), and structures free-form reports when they are reviewed (D35). The garden's current assessment tells it what is relevant, with any extra topics a steward adds (D43). An assessment counts only when its signer could write one in the member list it was signed under: a steward, an owner or an evaluator. Extra topics count only from a steward. Anything else is refused.
 
 - **What it may read (D27):** the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend.
 - **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged. A matched page waits for its check in a queue with a limit on size and on age, and page text past either limit is dropped unchecked.
 - **Where it runs:** on the laptop only, with a local model. Nothing a page contains leaves the device because the agent read it.
 - **What it decides (D28):** only whether to bring an item in. It never brings in something it would recommend discarding, and it never shares. A person reviews every item and can discard it; sharing follows the approvals below (D17).
-- **When the vault locks:** the agent stops. The focus is an encrypted record, so the agent cannot judge relevance while locked. Queued page text is dropped, a check in progress is cancelled, and nothing resumes until the person unlocks.
-- **What the assessment says (D29):** why the item was brought in, its source, author and date, and what to check before sharing, such as names, contact details and exact locations. It is advice. It cannot establish that a claim is true or that work happened.
+- **When the vault locks:** the agent stops. The assessment it follows is an encrypted record, so the agent cannot judge relevance while locked. Queued page text is dropped, a check in progress is cancelled, and nothing resumes until the person unlocks.
+- **What the agent's assessment says (D29):** why the item was brought in, its source, author and date, and what to check before sharing, such as names, contact details and exact locations. It is advice. It cannot establish that a claim is true or that work happened.
 - **What it structures (D34 to D36):** a free-form work report or promise, when someone reviews it on a laptop. It proposes the existing shape. For a work report that is the report contract Green Goods' messaging Agent already fills: title, time spent, notes, the Action's details and the photos. For a promise it is the existing promise fields. Each value keeps the words it was read from, and anything the words do not state stays empty. It picks an Action only when the garden's Action list is on the device. The proposal is a new revision. The reviewer accepts or corrects it, and if someone other than the author reviewed it, the author approves that version before it leaves the garden (D17).
+- **Where its proposals appear (D41):** on a laptop, beside the app's and the cockpit's own screens, through a bridge limited to the local builds' addresses. Grove receives the record under review and no keys. Grove's own page holds the graph.
 
 Reading every page is the largest privacy exposure in this design. The block list is the only thing between a private page and local storage, so it ships covering banking, mail, health, government accounts and password managers, and the agent skips any page with a password field (R18). E27 tests all of this, and O12 asks whether a browser store will accept the access it needs.
 
@@ -128,12 +132,12 @@ A fresh key for every file means removing a member needs no group key to rotate:
 | Way in | How | Standing |
 |---|---|---|
 | Passkey | A secret the passkey returns through WebAuthn PRF, combined with a key that never leaves the device | D19, where the provider supports it. C0a proves which providers do |
-| Passphrase | A memory-hard key derivation | D19, everywhere the passkey path is unavailable |
+| Passphrase | A memory-hard key derivation. C1 names the algorithm, its salt and its cost, and measures it on the supported phone and laptop | D19, everywhere the passkey path is unavailable |
 | Recovery code | A high-entropy code created at setup, held off the device. It does not unwrap the vault key | D18. Opens a recovery export only |
 
 The passkey is never the only way in (R4). Its secret belongs to the credential, so it is the same from every `greengoods.app` site and from any extension with permission for that domain, and it follows the passkey wherever it syncs. Combining it with a device-held key means neither a copied browser profile nor another site is enough alone. That device-held key is the only secret kept outside the vault: scripts can use it and cannot copy it, and it opens nothing without the passkey's secret. A passkey assertion is not an encryption key, and a synced passkey never enrols or re-admits a device.
 
-New captures are encrypted to the device's own public key, so saving works while the vault is locked (R15). Reading, reviewing and sharing need it unlocked. Locking clears keys and decrypted context from memory and pauses protected tasks.
+New captures are encrypted to the device's own public key, so saving works while the vault is locked (R15). C1 states one envelope for a capture, the same whether the vault was locked or unlocked when it was made, and says when, if ever, a locked capture is rewrapped. Reading, reviewing and sharing need it unlocked. Locking clears keys and decrypted context from memory and pauses protected tasks.
 
 ## Keys, recovery and lifecycle
 
@@ -152,16 +156,20 @@ Clients track signed versions to detect a rollback they have seen before. A firs
 | Carrier | Standing | Boundary |
 |---|---|---|
 | Encrypted file | MVP (D21) | Share sheet, a cable or any messenger can carry it. It is the only carrier and the permanent fallback |
-| Hosted mailbox | Next lane | A generic store of opaque objects: put, get, list and delete by an unguessable name. Solid is the preferred adapter (D12); the interface is proved first so identity and keys never depend on a provider. See the [storage spike](storage-comparison-spike.md) |
-| WebRTC between open devices | Research | Needs a signalling service and often a relay; both devices must be awake |
+| Direct sync between open devices | Next lane (D42, C10) | Carries the same signed, encrypted files. Needs a signalling service and often a relay, and both devices must be awake |
+| Hosted mailbox | A later lane, after direct sync | A generic store of opaque objects: put, get, list and delete by an unguessable name. Solid is the preferred adapter (D12); the interface is proved first so identity and keys never depend on a provider. See the [storage spike](storage-comparison-spike.md) |
 | Sensors | Later | File import first. Web Bluetooth reaches supported peripherals in Chromium only and is absent on iOS |
 | KOI | Next lane | Discovery and provenance between communities. It receives only what was approved for its audience and grants no membership |
 
-Devices keep selected copies and exchange them when a person carries a file across. That is the mesh of devices in its simplest form (D32): nothing is discovered or relayed automatically, and no browser stays reachable in the background. Unattended delivery needs a reachable store, which is why the mailbox is the next lane, and direct exchange between open devices stays research.
+Devices keep selected copies and exchange them when a person carries a file across. That is the mesh of devices in its simplest form (D32): nothing is discovered or relayed automatically, and no browser stays reachable in the background. Direct sync between devices that are open at the same time is the next lane (D42). Unattended delivery needs a reachable store, which is why the mailbox follows it.
 
 ## Co-editing, later
 
 Encrypted record exchange is the baseline, and immutable captures and review decisions need no merge engine. Yjs is the preferred engine when two people must edit one draft at once (D16). It supplies merging only: it has no encryption and no check on who wrote an update, its WebRTC provider's password protects signalling, and its IndexedDB provider stores plaintext. When the lane opens, use the Yjs core with one new document per audience in which every key holder may write (R9), and give non-editors immutable records. Never send a private document's history to a wider audience by filtering what is visible now; build a new projection.
+
+## Money settles when connected
+
+Money and tokens cannot move on local devices (D40). A cookie-jar claim, a voucher award, a vault action or a certificate is prepared and approved locally as a signed intention, under today's rules and limits. An intention names its amount, its purpose and its approver. It settles only when a device connects and the right person confirms it, once. Until then nothing has moved, and every screen says so. Balances shown locally are last-known and carry their date. F7 designs the intention's format and who may confirm each kind (O14), and E38 tests it.
 
 ## Share and publish are separate decisions
 

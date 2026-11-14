@@ -1,11 +1,11 @@
 # Green Goods, fully local, with Grove: MVP architecture
 
 **Status:** implementation proposal; decisions recorded, product build not started.
-**Updated:** 14 November 2026. **Owner:** the `grove` idea hub. **Parts:** the Green Goods app on a phone and in a browser, working locally (home open, see O2), and Grove, the extension, in `packages/extension` (a spike exists).
+**Updated:** 14 November 2026. **Owner:** the `grove` idea hub. **Parts:** local builds of the Green Goods app and the steward cockpit (D37, D44), and Grove, the extension, in `packages/extension` (a spike exists).
 **Current contract:** [community sharing](community-sharing.md), [flows](architecture-flows.md), [identity and roles](identity-role-mapping.md), [implementation sequence](plan.todo.md), [gates](eval.md), [dependencies](dependencies.md), [Pi Durable execution](durable-execution.md).
 **Earlier baselines:** [prototype](prototype.md), [prototype architecture](prototype-architecture.md), [design brief](prototype-design.md), [Vida Verde/TAS spike](first-spike.md), [KOI contract](koi-integration.md), [ontology alignment](ontology-alignment.md), [visual exploration](visual-design.md).
 
-This project makes Green Goods work in a fully local environment, with just a phone, a browser and an extension (D31). All current Green Goods functionality works there in essence: a garden, its roles and Actions, work reports and their approval, assessments and promises, with no server, chain or account needed. People report work and make promises through the screens that exist today, or in their own words (D34). They review by hand, pair their devices, and share selected encrypted records with named members of their garden. Publishing to the chain stays a separate choice.
+This project makes Green Goods work in a fully local environment, with just a phone, a browser and an extension (D31). The gardener app and the steward cockpit both work this way, as separate local builds (D37, D44). All current Green Goods functionality works there in essence: a garden, its roles and Actions, work reports and their approval, assessments and promises, with no server, chain or account needed. People report work and make promises through the screens that exist today, or in their own words (D34). They review by hand, pair their devices, and share selected encrypted records with named members of their garden. Publishing to the chain stays a separate choice.
 
 Grove is the extension, and only the extension (D32). It adds knowledge capture and the agentic flows that give insights and structure data, on the device and across a mesh of devices: a graph of what the garden holds, an agent that brings in relevant knowledge as a person browses, and the same agent structuring free-form reports when they are reviewed (D35). Grove is the user-selected brand: **Grove by Green Goods — Your garden’s living knowledge.** The project's principle is **Coordinate locally. Govern together. Share by context. Publish by choice.**
 
@@ -17,27 +17,42 @@ This document owns three things: the MVP contract, the decision log, and the com
 
 **Primary users (assumption W1).** One steward who starts a garden locally and looks after it, two to four gardeners who report work, make promises and capture knowledge, and one contact in a partner community who receives a summary. Records are synthetic or non-sensitive until the [loop gates](eval.md#which-gates-the-mvp-needs) pass, a second controller exists (D18) and the owner has answered O8.
 
-**Devices (D2, D31, D32).** Three parts ship together, and the first two are Green Goods itself:
+**Devices (D2, D31, D32, D37, D44).** Three parts ship together. The first two are Green Goods itself, published as separate local builds:
 
 | Part | Runs on | Does |
 |---|---|---|
-| Green Goods on a phone | The app installed to the Home Screen on Android Chrome or iOS Safari | Report work and make promises, through today's screens or free-form; personal review; pairing; share and receive by encrypted file |
-| Green Goods in a browser | The same app in a desktop browser | The same, on a laptop |
+| The Green Goods app, local build | Installed to the Home Screen on Android Chrome or iOS Safari, and in a desktop browser | Everything the gardener app does today, working locally: joining a garden, reporting work, promises, following a review, and claims as intentions. Work and promises can also be reported free-form |
+| The steward cockpit, local build | A desktop browser | Everything the cockpit does today, working locally: starting a garden, Actions, assessments, review and approval, members and roles, promise pools, and money and certificates as intentions |
 | Grove, the extension | A packaged extension in a desktop Chromium browser, Brave first | Knowledge capture, including page capture; the agent, which brings in relevant pages as the person browses, assesses them and structures free-form reports when they are reviewed; the graph; Pi investigations |
 
-Grove is its own device with its own storage, and it receives the garden's records by encrypted file like any other device (D21). How it connects to the Green Goods app running in the same browser is open (O17).
+The local builds live at their own addresses under `greengoods.app`, with no analytics and no hosted calls (D44). The existing passkey reaches them through the shared domain, and nothing private shares an origin with today's hosted services. On a laptop, Grove works beside the app's and the cockpit's screens through a bridge limited to those addresses, and it keeps its own page for the graph (D41). Which side holds the garden's keys and records on a laptop is still to be designed (O17).
 
 The exact supported versions are a result of C0b and C0a, not a promise made here. The proposed floor is Chromium 137 on desktop and Android and iOS 18.4, for the reasons in [dependencies](dependencies.md#community-identity-encryption-and-device-sharing).
 
-**Included workflows.**
+**Function blocks, in order (D37, D39).** The MVP is the first version, and in it every current function works locally. The blocks are built and proved in the order of the Green Goods chain, and each is usable once its gate passes:
 
-1. Start a garden locally and create a member identity offline, with a recovery code. The steward writes the garden's focus: its topics, goals and open questions (D30).
+| Order | Block | What works locally | Step | Gate |
+|---|---|---|---|---|
+| 0 | The local environment | Keys that last, unlock, the local builds, the vault and file format, the member list and recovery | C0b, C0a, C7, C1, C0 | E26, E24, E30, E16, E15 |
+| 1 | A garden | Start one with no chain, or bring an existing one local with one connected read of its public roles, Actions and current assessment (D38) | C8 | E31 |
+| 2 | Actions and assessment | A steward defines Actions. A steward or evaluator writes the assessment, which is also the agent's focus (D43) | F1 | E33 |
+| 3 | Work | Report work through the existing screen or free-form, review it, share it and follow its state | C2, F2 | E17, E2 |
+| 4 | Approval | A steward approves or rejects with feedback. Nobody approves their own work | F3 | E34 |
+| 5 | The report | A steward-approved report for a named funder or partner, built from approved work | F4 | E35 |
+| 6 | Promises | Offers and asks, take-up, proof or linked work, confirmation, and the pool with its seasons and campaigns | F5 | E36 |
+| 7 | Joining and roles | Open joining, or a request a steward accepts; granting and revoking roles | F6 | E37 |
+| 8 | Money and certificates | Claims, awards, vault actions and certificates prepared and approved as signed intentions, and settled when connected (D40) | F7 | E38 |
+| Alongside | Grove | Knowledge capture, the agent's three jobs, the graph, Pi, and the bridge to the local builds (D41) | S1 to S6, S8, S13 to S16, P0 to P2, C9 | E1, E3, E4, E6, E12 to E14, E27 to E29, E32 |
+
+**Included workflows.** Every block uses the same loop:
+
+1. Start a garden locally, or bring an existing garden onto its members' devices with one connected read (D38). Create a member identity offline, with a recovery code.
 2. Unlock with an existing Green Goods passkey where its provider supports it, and with a passphrase otherwise (D19).
 3. Report work or make a promise, through the existing screens or free-form in the member's own words with photos (D34). Capture knowledge: a note, photo, file, or link with an excerpt, and in Grove a page. Each capture records source, time and consent context and is saved before anything else happens.
 4. Review a capture personally, by hand, on any device.
 5. Pair a member's own phone and laptop, and admit another member's device.
 6. Move captures between a member's devices as an encrypted file (D21).
-7. In Grove, an agent brings in relevant knowledge and resources as the person browses, guided by that focus, and assesses each item before the person reviews it (D26 to D29). When a free-form work report or promise is reviewed on a laptop, the same agent proposes its structured version in the existing shape, and the reviewer accepts or corrects it (D35, D36). The person browses records as lists and as a graph, and accepts, rejects or corrects what the agent proposes (D25).
+7. In Grove, an agent brings in relevant knowledge and resources as the person browses, guided by the garden's assessment (D43), and assesses each item before the person reviews it (D26 to D29). When a free-form work report or promise is reviewed on a laptop, the same agent proposes its structured version in the existing shape, beside the app's own screen, and the reviewer accepts or corrects it (D35, D36, D41). The person browses records as lists and as a graph, and accepts, rejects or corrects what the agent proposes (D25).
 8. Share: the author approves an exact projection, meaning which revision and which fields, for named recipients, a purpose and a destination, and the author's device signs that approval; the client signs and encrypts the file; the recipient verifies, stores it and returns a receipt (D17).
 9. Review together: recipients record decisions and corrections. A corrected version leaves the community only with the author's fresh approval (D17).
 10. Send a partner summary under a steward's approval, as a new projection with no private history (D17).
@@ -45,11 +60,11 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 
 **Excluded from the MVP.** These are next lanes or research, each with its own entry in the [implementation sequence](plan.todo.md):
 
-- Hosted storage of any kind. Solid is the preferred adapter for the next lane (D12, D21).
-- The Admin Hub snapshot, WebMCP tools, the Hub digest and KOI exchange (D5, D22).
-- Co-editing with Yjs, WebRTC transfer, Bluetooth sensors.
+- Moving money or tokens without a connection. Intentions are recorded and approved locally and settle when a device connects (D40).
 - Publishing local records: to the chain as Work, WorkApproval or pool promises, and to ATProto/Certified or IPFS/Filecoin. Local operation needs none of them (D31).
-- Funds and certificates. Vaults, cookie jars, vouchers and Hypercerts move money or tokens on a chain, and what working locally means for them is open (O14).
+- Direct sync between open devices, which is the next lane (D42), and hosted storage of any kind after it. Solid is the preferred adapter (D12, D21).
+- The Admin Hub snapshot of a garden's published work history, WebMCP tools, the Hub digest and KOI exchange (D5, D22). The MVP reads only a garden's public roles, Actions and current assessment (D38).
+- Co-editing with Yjs and Bluetooth sensors.
 - EDV, Automerge + Keyhive and MLS, which stay research.
 - A model or passive capture on the phone, and any real sensitive record before the loop gates pass, a second controller exists and O8 is answered.
 
@@ -63,26 +78,36 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 6. Passkey unlock works with the network blocked where the provider supports it, the passphrase works where it does not, and a synced passkey cannot bring back a removed device (E24).
 7. A corrected record cannot leave the community without its author's approval, and a partner summary carries a steward's approval and no private history (E17).
 8. On the laptop, a real local Gemma investigation produces proposals with exact quotes, survives a closed tab through Pi with one result, and appears in the graph as new (E4, E6, E12–E14). Capture and manual review behave the same with the model absent.
-9. As a person browses on the laptop, the agent brings in pages that fit the community's focus and nothing from a blocked site or a private window. It keeps nothing from a page it did not bring in. Each item it brings in shows why it was brought in, its source, author and date, and anything to check before sharing. An item it brought in can be kept and shared like any capture (E27, E28).
+9. As a person browses on the laptop, the agent brings in pages that fit the garden's focus and nothing from a blocked site or a private window. It keeps nothing from a page it did not bring in. Each item it brings in shows why it was brought in, its source, author and date, and anything to check before sharing. An item it brought in can be kept and shared like any capture (E27, E28).
 10. In a moderated check, participants say correctly who can see a record in each of the four audiences (E17).
 11. A gardener reports work and makes a promise in their own words on a phone. When each is reviewed on a laptop, the agent proposes its structured version in the existing shape, every value shown with the words it was read from, and the reviewer accepts or corrects it. The same report made through the existing work screen needs no structuring (E29).
+12. The local builds of the app and the cockpit make no request that carries a private record, and none at all once installed and offline (E30).
+13. A garden started with no chain, and an existing garden brought local with one connected read, both work offline afterwards (E31).
+14. The whole chain runs on local devices with no connection: a steward defines Actions and writes the assessment, a gardener reports work, a steward approves it, and a named funder receives the report (E33 to E35).
+15. A promise is made, taken up, proved and confirmed among the garden's devices, under today's rules (E36).
+16. A person joins a garden and a role is granted and revoked, with no connection (E37).
+17. A cookie-jar claim is prepared and approved offline and moves nothing. It settles only after a device connects and the right person confirms, within today's limits (E38).
+18. On a laptop, Grove's structured version and assessment appear beside the cockpit's own review screen, and the bridge refuses every other page (E32).
 
 ### Green Goods functions, working locally
 
-This table is a first proposal, not a decision. D31 says all current functionality works locally in essence; the table says what that could mean for each function and what still needs a connection. The left column follows the [ontology](../../../packages/shared/src/ontology/green-goods-ontology.json). O15 asks in what order the existing screens gain local operation.
+D31 says all current functionality works locally in essence, and D37 to D44 say how. This table gives each function's local form, what still waits for a connection, and its block. The left column follows the persona journeys in the [ontology's projections](../../../packages/shared/src/ontology/green-goods-projections.json). The detail inside a row is a proposal until that block's gate passes.
 
-| Function today | Locally, in essence (proposed) | Still needs a connection |
-|---|---|---|
-| Garden and roles. An onchain Garden, with roles held as Hats | The garden's signed member list names each member's devices and role. One steward signs changes (D18). A garden can start locally before it has an onchain one (D33) | The garden's token and Hats, and linking a local garden to its onchain one (C6, R8, O16) |
-| Actions. A steward creates them, and the app reads the published list | An Action list is a garden record on the device once it has arrived. Until then a report's Action stays empty (D36). Whether a steward writes Actions locally is open (O15) | Reading a garden's published Actions |
-| Work. A gardener picks an Action, adds photos and details, and submits. Offline work waits in a queue, then uploads to public storage | A work report is saved on the device first, through the existing screen or free-form (D34), and stays private to the garden's named devices. Nothing is uploaded | The public Work attestation and its media |
-| Work approval. A steward approves or rejects submitted Work, and nobody approves their own | A steward's signed decision on the work report, on local devices, under the same rule | The WorkApproval attestation |
-| Assessment. A baseline and strategy written by an evaluator or steward before work begins | A garden record on the device. Whether it and the garden's focus (D30) are one record is open (O15) | Its attestation and any Karma GAP mirror |
-| Promises. Offers and asks in a garden's pool: take-up, proof or linked work, confirmation, seasons and campaigns | A promise is written free-form or through the existing screens (D34) and structured at review (D35). Take-up, proof and confirmation are signed decisions among the garden's devices | The pool's onchain register and its unit accounting |
-| Funds and certificates. Vaults, cookie jars, vouchers and Hypercerts | Open (O14). Money and tokens cannot move without a chain | Everything |
-| Reports for funders. Exports and certificates built from approved work | A steward-approved summary to a named funder or partner, built from reviewed work reports (D17) | Any public release (C6) |
-| Reporting by message. The Agent structures a gardener's messages with a hosted model | Grove's agent does the same structuring on the laptop with a local model, into the same report contract (D35, D36). The hosted Agent is unchanged | Nothing |
-| Knowledge, insights and the graph | New with Grove: knowledge capture, the agent and the graph, in the extension only (D32) | Nothing |
+| Function today | Locally | When connected | Block |
+|---|---|---|---|
+| Garden and roles. An onchain Garden, with roles held as Hats | The garden's signed member list names each member's devices and role, and one steward signs changes (D18). A garden can start locally, and an existing one is brought local with one connected read (D33, D38) | The garden's token and Hats, and linking a local garden to its onchain one (C6, R8, O16) | 1, 7 |
+| Actions. A steward creates them in the cockpit, and the app reads the published list | A steward defines Actions in the cockpit's local build. They are garden records shared by file. An existing garden's Actions arrive with its connected read | Publishing new Actions | 2 |
+| Assessment. A baseline and strategy written by an evaluator or steward before work begins | Written in the cockpit's local build by a steward or evaluator. The current assessment is also the agent's focus (D43) | Its attestation and any Karma GAP mirror | 2 |
+| Work. A gardener picks an Action, adds photos and details, and submits. Offline work waits in a queue, then uploads to public storage | A work report is saved on the device first, through the existing screen or free-form (D34), and stays private to the garden's named devices. Nothing is uploaded | The public Work attestation and its media | 3 |
+| Work approval. A steward approves or rejects submitted Work, and nobody approves their own | A steward's signed decision on the work report, in the app or the cockpit, under the same rule | The WorkApproval attestation | 4 |
+| Reports for funders. Exports and certificates built from approved work | A steward-approved report to a named funder or partner, built from approved work reports and the assessment's targets (D17) | Any public release (C6) | 5 |
+| Promises. Offers and asks in a garden's pool: take-up, proof or linked work, confirmation, seasons and campaigns | A promise is made free-form or through the existing screens (D34) and structured at review (D35). Take-up, proof and confirmation are signed decisions among the garden's devices, and a steward runs the pool in the cockpit | The pool's onchain register and its unit accounting | 6 |
+| Joining and roles. Open joining or a request a steward accepts; granting and revoking roles | New versions of the member list, signed by the steward (D18) | Hats | 7 |
+| Funds and certificates. Cookie jar claims and donations, vaults, endowments, yield, vouchers and Hypercerts | Prepared and approved locally as signed intentions, under today's rules and limits. Balances shown are last-known and say so (D40) | Every movement of money or tokens, confirmed by the right person | 8 |
+| Public reading. Anyone browses gardens, approved work and impact | Nothing is public locally. Members read the garden's records, and a funder or partner reads an approved report | The public site, after publication | 5 |
+| Reporting by message. The Agent structures a gardener's messages with a hosted model | Grove's agent does the same structuring on the laptop with a local model, into the same report contract (D35, D36). The hosted Agent is unchanged | Nothing | Grove |
+| Knowledge, insights and the graph | New with Grove: knowledge capture, the agent and the graph, in the extension only (D32) | Nothing | Grove |
+| Needs. Planned in Green Goods, not built | Not planned here until Green Goods has it | Not applicable | None |
 
 ## Decision log
 
@@ -103,7 +128,7 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D9 | Capture → review → share for both knowledge and impact evidence | Impact evidence means work reports and promises (D34). Passive capture on the laptop was added on 14 November (D26). Co-editing and sensors follow demonstrated need and consent | Accepted 13 Nov; amended 14 Nov |
 | D10 | Capture and manual review never depend on a model | The manual path is the primary path, not a fallback | Accepted 13 Nov |
 | D11 | Local, community-controlled identity with separate device, storage and public associations | No provider or Ethereum dependency for local use | Accepted 13 Nov |
-| D12 | Solid is the preferred optional storage adapter, with encryption on the client | Next lane, behind a generic store interface (D21). EDV stays research | Accepted 13 Nov; sequenced 14 Nov |
+| D12 | Solid is the preferred optional storage adapter, with encryption on the client | A later lane, after direct sync (D42), behind a generic store interface (D21). EDV stays research | Accepted 13 Nov; sequenced 14 Nov |
 | D13 | Planned, reported and recorded activity stay distinct from review and transport state | A signature, local acceptance or recent import cannot prove completed work | Carried |
 | D14 | Pi Durable runs investigations in the MVP | It never gates saving, review or delivery. The tab-close proof on persistent storage is still owed (P0) | Accepted 16 Oct; reaffirmed 14 Nov |
 | D15 | Idempotent Grove commands connect Pi checkpoints to stored knowledge | Recovers the gap between two stores without duplicates | Carried |
@@ -112,8 +137,8 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D18 | One steward signs member and device changes. A recovery code is created at setup. A second controller is required before real data | One person can start a community. Until the second controller exists, losing the steward's devices and code ends it | Accepted 14 Nov |
 | D19 | The existing passkey unlocks the vault from day one where its provider supports it; a passphrase does otherwise | C0a is a gate. The passkey is never a device identity, and a recovery path that does not need it always exists | Accepted 14 Nov |
 | D20 | "The operator cannot decrypt" covers storage and relay hosts. Green Goods, as publisher of the client code, is trusted, and the documents say so | The Green Goods app on a phone may hold keys. A dishonest or compromised code host could read an unlocked phone vault | Accepted 14 Nov |
-| D21 | Encrypted files carry records between devices in the MVP. A hosted mailbox is the next lane | No server and it works offline; every transfer is a manual step | Accepted 14 Nov |
-| D22 | The MVP graph shows the records held on the device. The Hub snapshot and KOI exchange are next lanes | Changes the October prototype's order, where connecting a garden came first. "On the device" was first written as "Grove's own records" | Accepted 14 Nov |
+| D21 | Encrypted files carry records between devices in the MVP. A hosted mailbox is a later lane | No server and it works offline; every transfer is a manual step. D42 puts direct sync between open devices ahead of the mailbox | Accepted 14 Nov; next lane reordered the same day |
+| D22 | The MVP graph shows the records held on the device. The Hub snapshot and KOI exchange are next lanes | Changes the October prototype's order, where connecting a garden came first. "On the device" was first written as "Grove's own records". D38 adds one connected read of an existing garden's public roles, Actions and current assessment; its work history still waits for the Hub lane | Accepted 14 Nov |
 | D23 | "Community" is a word for the group that shares records, defined apart from a Garden and from the Community role | Superseded by D33: locally a community is its Garden. Kept here as history | Accepted 14 Nov; superseded the same day |
 | D24 | A device stops sharing when its copy of the member list is older than seven days, until a newer one arrives. Each community can change the number | Capture and personal review never pause. A removal can take up to the limit to reach an offline sender | Accepted 14 Nov |
 | D25 | The MVP finish line includes the laptop workspace: the graph, Gemma suggestions and Pi investigations | The loop and privacy gates come first; the workspace runs alongside on synthetic records and counts once they pass. D26 to D30 say what the agent does there | Accepted 14 Nov |
@@ -121,13 +146,21 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D27 | The agent may read every page the person visits, except private windows and a block list of sensitive sites that the person can extend | Closest to "as a user uses their browser" and catches the most. The extension must ask for access to all sites, which browser stores scrutinize, and a gap in the block list would let a private page's text reach local storage | Accepted 14 Nov |
 | D28 | A person reviews everything the agent brings in and can discard it. The agent brings in only what it judges relevant, and never an item it would recommend discarding | Relevance is decided before anything is stored, so the agent makes no keep-or-discard recommendation. Getting relevance right matters more than bringing in more | Accepted 14 Nov |
 | D29 | The assessment of a brought-in item first covers three things: why it was brought in, its source, author and date, and whether it is safe to share | Checking an item's claims against its source comes later; it is the hardest check for a small local model. The assessment is advice and never a decision (D17) | Accepted 14 Nov |
-| D30 | The steward writes the community's focus, its topics, goals and open questions, locally | It is a garden record signed by a steward's device and shared with members. Each member's agent uses it and refuses a focus signed by anyone else. It needs no wallet and no onchain Garden. Reading it from a published Garden's records waits for the Hub lane | Accepted 14 Nov |
-| D31 | This project makes Green Goods work in a fully local environment, with just a phone, a browser and an extension. All current Green Goods functionality works there in essence | The phone and the browser run Green Goods itself. No server, chain or account is needed for the essence of a flow, and publishing to the chain stays a choice. The [function table](#green-goods-functions-working-locally) is a first proposal of what "in essence" means for each function | Accepted 14 Nov |
+| D30 | The steward writes the community's focus, its topics, goals and open questions, locally | It is a garden record signed by a steward's device and shared with members. Each member's agent uses it and refuses a focus signed by anyone else. It needs no wallet and no onchain Garden. D43 makes the garden's current assessment the focus, with extra topics a steward may add | Accepted 14 Nov; amended the same day by D43 |
+| D31 | This project makes Green Goods work in a fully local environment, with just a phone, a browser and an extension. All current Green Goods functionality works there in essence | The phone and the browser run Green Goods itself. No server, chain or account is needed for the essence of a flow, and publishing to the chain stays a choice. D37 to D44 and the [function table](#green-goods-functions-working-locally) say what "in essence" means for each function | Accepted 14 Nov |
 | D32 | Grove is the extension, and only the extension. It adds knowledge capture and agentic flows that give insights and structure data, on the device and across a mesh of devices | Local identity, encryption and device-to-device sharing belong to the local environment, not to Grove. Replaces the 13 and 14 November framing of Grove as the whole product with its own phone app | Accepted 14 Nov |
 | D33 | Locally a community is its Garden, with Green Goods' own roles, Actions, work reports, approvals, assessments and promises | Supersedes D23. "Community" stays in these documents as the plain word for a garden's people. How a local garden and its records map onto the onchain ones when published is open (O16) | Accepted 14 Nov |
 | D34 | Work and promises can be reported free-form, in a member's own words, or through the existing screens | Nobody is made to fill a form, and nobody loses the form. The existing screens stay the structured path | Accepted 14 Nov |
 | D35 | An agent structures a free-form report or promise when it is reviewed, at any review on a laptop | A member with only a phone still gets it structured at the garden's review. If someone else's agent structured it, the author approves that version before it leaves the garden (D17). Follows the owner's words that the agent reviews "data (knowledge, reports) that flows in" | Accepted 14 Nov |
-| D36 | The structured version uses the existing shape: the report contract the messaging Agent already fills, and the existing promise fields. The agent picks the Action only when the garden's Action list is on the device | One tested contract and no garden import added to the MVP. Until the list arrives, the Action stays empty and the rest is filled | Accepted 14 Nov |
+| D36 | The structured version uses the existing shape: the report contract the messaging Agent already fills, and the existing promise fields. The agent picks the Action only when the garden's Action list is on the device | One tested contract. Until the list arrives, the Action stays empty and the rest is filled. D38 later added a connected read for existing gardens, which brings the list | Accepted 14 Nov |
+| D37 | The gardener app and the steward cockpit gain local operation together, so every current function is available locally from the first version | Nothing is rebuilt in a second place. It is the largest first step: two apps to make local at once | Accepted 14 Nov |
+| D38 | A new garden can start fully locally. An existing garden is brought onto its members' devices with one connected read of its public roles and Actions, then works offline | Today's pilot gardens can use it, and the read gives the agent the Action list. It adds a garden import to the MVP. The read also brings the garden's current assessment, because D43 makes it the agent's focus; that addition is this plan's, to confirm | Accepted 14 Nov |
+| D39 | The plan follows the Green Goods chain: Actions and assessment, then work, then approval, then the report for a funder. Promises follow, then joining and roles beyond the first steward, then money and certificates | The order Green Goods already teaches. A block is usable once its own gate passes | Accepted 14 Nov |
+| D40 | Money and certificates are recorded now and settled when connected. A claim, an award, an allocation or a certificate is prepared and approved locally as a signed intention, under today's rules and limits | Nothing moves until a device connects and the right person confirms. People can do their part offline, and balances shown locally are last-known, not live | Accepted 14 Nov |
+| D41 | On a laptop, Grove works beside the app's and the cockpit's screens, through a bridge limited to the Green Goods pages. Grove keeps its own page for the graph | One place to work. It needs that bridge and a rule for which side holds the keys (O17) | Accepted 14 Nov |
+| D42 | Carried files come first. Direct sync between devices that are open at the same time is the next lane, ahead of the hosted mailbox | The MVP proves everything with files, which need no server. Direct sync moves from research to the next lane; it needs a signalling service, often a relay, and both devices awake | Accepted 14 Nov |
+| D43 | The garden's current assessment is the agent's focus. A steward can add a few extra topics to watch, such as funding or partnerships | One record to write, and the agent follows what the garden already committed to. A garden with no assessment gives the agent nothing to go on until one is written. Amends D30 | Accepted 14 Nov |
+| D44 | Local operation lives in separate local builds of the app and the cockpit, on their own addresses, with no analytics and no hosted calls | Stronger isolation for keys. People install a second app, and the existing passkey reaches it because it shares the `greengoods.app` domain | Accepted 14 Nov |
 
 The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Where they conflict with this table, this table governs: decisions 18 to 21 (the Hub connection) and 5 (the KOI community node) describe next lanes, not the MVP.
 
@@ -160,7 +193,7 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | # | Assumption | Until |
 |---|---|---|
 | W1 | The pilot is one steward, two to four gardeners and one partner contact, with synthetic or non-sensitive records | The owner names a pilot community |
-| W2 | The extension reaches the existing passkey through host permission for `greengoods.app`; the Green Goods app is served from `greengoods.app` or a subdomain of it | C0a and O2 |
+| W2 | The extension reaches the existing passkey through host permission for `greengoods.app`; the local builds are served from subdomains of `greengoods.app` (D44) | C0a and C7 |
 | W3 | Each device holds a separate key pair for each community it belongs to | C0 proves isolation between communities (E23) |
 | W4 | The workspace lane runs on the laptop only; the phone needs no model | A measured phone result says otherwise |
 
@@ -169,7 +202,7 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | # | Question | Resolved by |
 |---|---|---|
 | O1 | Do existing credentials return a usable secret (WebAuthn PRF) on each provider, from an extension page, with the network blocked? | Experiment: C0a / E24 |
-| O2 | D31 makes the phone and browser app Green Goods itself. Does local operation live in the existing client, or in a separate build on its own `greengoods.app` subdomain? The same answer decides where the code shared with the extension lives | The owner. An origin with no analytics in it is safer for keys; one app for gardeners is simpler. Either way the shared code is one module both import |
+| O2 | Resolved 14 November by D44: separate local builds on their own addresses. Still to settle: the exact addresses, and where the module shared by the local builds and Grove lives | The owner for the addresses; C7 for the module |
 | O3 | Which envelope library: age v1 or HPKE? | Experiment: C1 / E16, decided by what the device floor supports |
 | O4 | Do keys and captures survive on real devices, including a Safari tab, a Home Screen app and an extension reinstall? | Experiment: C0b / E26 |
 | O5 | May this project reuse Coop code? The AGPL licence is on an unmerged local branch and Coop's main branch carried no licence when last fetched | The owner. Until then, reimplement small pieces and copy nothing |
@@ -181,10 +214,10 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | O11 | Three outside claims in [sharing research](sharing-research.md) were not re-checked on 14 November: the Linked Web Storage draft date, the ATProto Spaces update, and Certified's EOA-only link schema | Whoever scopes the lane that depends on each |
 | O12 | Will an extension that asks for access to all sites pass store review for the pilot, and is the block list enough? | The owner, at listing time, with evidence from E27 |
 | O13 | Can a small local model judge relevance and assess items well enough, and fast enough, to keep up with ordinary browsing? | Experiment: E27 and E28 |
-| O14 | What does working locally mean for funds and certificates: vaults, cookie jars, vouchers and Hypercerts? They move money or tokens on a chain | The owner |
-| O15 | In what order do the existing screens gain local operation, and which Green Goods functions come first? This includes whether a steward writes Actions locally, and whether an assessment and the garden's focus are one record | The owner, starting from the [function table](#green-goods-functions-working-locally) |
+| O14 | Resolved 14 November by D40: record now, settle when connected. Still to design: the intention's format, and who may confirm each kind when a device connects | Design in F7 / E38 |
+| O15 | Resolved 14 November: D39 sets the order, D37 has a steward define Actions in the cockpit's local build, and D43 makes the assessment the focus | Closed |
 | O16 | When a local garden, work report, approval or promise is published, how does it map onto the onchain entity without being entered twice? Is a local garden the same Garden the ontology defines? | Design in the publication lane (C6), through the ontology change protocol |
-| O17 | On a laptop, how does Grove connect to the Green Goods app in the same browser? They have separate storage, and carrying a file between two programs on one laptop is clumsy | Design and experiment, before C2's laptop walkthrough |
+| O17 | D41 puts Grove beside the app's screens through a bridge. Which side holds the garden's keys and records on a laptop, and how does the bridge prove which page it is talking to? | Design and experiment: C9 / E32 |
 | O18 | Can a small local model structure a free-form report or promise well enough for a reviewer to trust the proposal? | Experiment: E29 |
 
 Dependencies and a bounded implementation still need task-specific authorization before installation. Publishing this plan changes no application package, manifest, lockfile, license or runtime.
@@ -217,8 +250,8 @@ The Green Goods app and Grove each keep their own Dexie database, which is the o
 
 ```mermaid
 flowchart LR
-  subgraph PHONE["Green Goods app"]
-    PCap["Work reports, promises<br/>and personal review"] --> PDB[("Dexie: revisions,<br/>approvals, outbox")]
+  subgraph PHONE["Local builds"]
+    PCap["App and cockpit<br/>every current screen, plus<br/>free-form reports and promises"] --> PDB[("Dexie: revisions,<br/>approvals, outbox")]
   end
   subgraph LAPTOP["Grove, the extension"]
     Page["Page, note, photo or file"] --> Cap["Knowledge capture"]
@@ -235,8 +268,11 @@ flowchart LR
   Core["Core, the same in both<br/>vault and unlock, device keys, member list,<br/>approvals, sign and encrypt"]
   PDB --> Core
   DB --> Core
+  PCap -->|"Bridge: the record under review"| Runner
+  Runner -->|"Proposal, shown beside the screen"| PCap
   Core <-->|"Encrypted file"| Peers["Own and members' devices"]
-  Core -.->|"Next lane: ciphertext only"| Store["Hosted mailbox<br/>Solid preferred"]
+  Core -.->|"Next lane"| Sync["Direct sync between<br/>open devices"]
+  Core -.->|"Later lane: ciphertext only"| Store["Hosted mailbox<br/>Solid preferred"]
   Hub["Admin Hub snapshot"] -.->|"Next lane"| Cap
   Core -.->|"Next lane"| KOI["KOI exchange"]
   Core -.->|"Later: separately approved release"| Public["The chain, ATProto or Certified, archive"]
@@ -244,9 +280,9 @@ flowchart LR
 
 | Proposed placement | Owns |
 |---|---|
-| Core used by the app and by Grove (home open, O2) | Vault and unlock, device keys, the member list, share and release approvals, signing and encrypting files, import and export. Framework-free, with no network access of its own |
-| The Green Goods app, working locally (home open, O2) | Work reports and promises through the existing screens or free-form, personal review, pairing, share and receive |
-| `packages/extension/entrypoints/` | Background coordinator, graph page, scoped capture entrypoint, offscreen host and packaged model sandbox |
+| Core used by the local builds and by Grove | Vault and unlock, device keys, the member list, share and release approvals, signing and encrypting files, import and export. Framework-free, with no network access of its own |
+| Local builds of the app and the cockpit, on their own addresses (D44) | Every current screen working locally; work reports and promises through those screens or free-form; personal review, pairing, share and receive |
+| `packages/extension/entrypoints/` | Background coordinator, graph page, scoped capture entrypoint, offscreen host, packaged model sandbox, and the bridge to the local builds' pages (C9) |
 | `packages/extension/src/knowledge/` | Revision store, ingestion, entity resolution, query execution, review transitions |
 | `packages/extension/src/graph/` | Canvas adapter, controls, inspector and saved layout |
 | `packages/extension/src/runtime/` | Browser capture and local inference lifecycle |
@@ -344,9 +380,11 @@ Run inference outside the graph document so GPU/CPU work cannot own the graph's 
 
 ## First end-to-end slice
 
-The MVP is two lanes that meet at the [contract above](#mvp-contract).
+The MVP is three strands that meet at the [contract above](#mvp-contract): the loop, the function blocks and Grove.
 
 **The loop lane** is the [capture → review → share walkthrough](architecture-flows.md#initial-user-flows), delivered in the [order the plan gives](plan.todo.md#mvp-order): device durability, passkey unlock, the vault and file format, identity and the member list, recovery, then the whole loop by encrypted file between the Green Goods app and Grove. Its captures are work reports, promises and knowledge. It proves local identity, protected capture, member review and encrypted transfer before any sensitive record is admitted. Nothing in it needs a model, a wallet, a provider account or a network.
+
+**The function blocks** put Green Goods' own functions on that loop, in the order of the chain (D39): a garden, Actions and assessment, work, approval, the report, promises, joining and roles, then money and certificates. Each runs in the local builds of the app and the cockpit (D37, D44), and each is usable once its own gate passes.
 
 **The workspace lane** is Grove: the laptop's agent, graph and Pi investigations over the records held on the device. The agent has three jobs: it brings in relevant knowledge and resources as the person browses, it assesses each item before the person reviews it (D26 to D30), and it structures a free-form work report or promise when one is reviewed (D35, D36). It can be built alongside the loop lane on synthetic records. It counts toward the finish line only once the loop gates pass, and it never gates saving, manual review or delivery.
 
@@ -355,7 +393,7 @@ The earlier [Vida Verde and TAS spike](first-spike.md) specifies graph, Hub and 
 ## Remaining implementation frontiers
 
 - Device durability (C0b) and passkey unlock (C0a) are the first two experiments and can change the design: which phones may hold keys, and who gets passkey unlock rather than a passphrase.
-- Local operation of the Green Goods app has no home yet, and neither does the core it shares with Grove (O2). How the two connect on one laptop is open too (O17).
+- The local builds have a decided home, separate addresses (D44), and no code yet. The bridge between them and Grove is decided in direction (D41) and unproved (C9, O17).
 - Pi's browser storage, single ownership, interrupted execution and migration must pass P0/E12 before integration. The spike on develop pins Pi Durable 1.5.0 but still runs it on in-memory storage, so the tab-close proof is owed; nothing blocks it now. A failed gate does not authorize moving private execution to a server.
 - Exact model artifact and minimum supported laptop depend on measured quality, memory and latency. On the G0 machine one investigation took 35 to 42 seconds.
 - Commons authority must supply or approve the pinned draft mapping before claiming commons conformance. A fixture pack proves mechanics only.

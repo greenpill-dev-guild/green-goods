@@ -84,7 +84,7 @@ Pi supplies **execution recovery**, while Dexie supplies authoritative source/re
 
 D26 to D30, D35 and D36 in [spec.md](spec.md#decision-log) give Pi its clearest work.
 
-**Passive capture.** As the person browses, a plain text match against the community's focus runs in ordinary code on every page the agent may read. A page that matches is queued, and one bounded Pi phase asks the model whether it is relevant. Only a relevant page is saved, as a capture.
+**Passive capture.** As the person browses, a plain text match against the garden's focus, which is its current assessment and any extra topics a steward added (D43), runs in ordinary code on every page the agent may read. A page that matches is queued, and one bounded Pi phase asks the model whether it is relevant. Only a relevant page is saved, as a capture.
 
 **Assessment.** Each item the agent brought in gets three bounded phases: why it was brought in, its source, author and date, and what to check before sharing. Each phase checkpoints, so a closed tab costs one phase, and the result is stored beside the item through an idempotent command.
 

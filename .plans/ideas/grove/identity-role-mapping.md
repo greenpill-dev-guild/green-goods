@@ -74,11 +74,11 @@ Still unknown, and the subject of C0a: whether each provider returns a PRF secre
 
 Six roles exist in the protocol. They are defined in [IHatsModule.sol](../../../packages/contracts/src/interfaces/IHatsModule.sol), named in [garden-roles.ts](../../../packages/shared/src/utils/blockchain/garden-roles.ts), and enforced by [GardenAccount](../../../packages/contracts/src/accounts/Garden.sol) and the [Work](../../../packages/contracts/src/resolvers/Work.sol), [WorkApproval](../../../packages/contracts/src/resolvers/WorkApproval.sol), [Assessment](../../../packages/contracts/src/resolvers/Assessment.sol) and [Testimony](../../../packages/contracts/src/resolvers/Testimony.sol) resolvers. This was read on develop at `3ee6594ef`; it is source evidence, not a check of any deployed garden.
 
-| Role | What it authorizes onchain today | Locally it could (proposed) | It would never |
+| Role | What it authorizes onchain today | Locally (D33, D37) | It would never |
 |---|---|---|---|
 | Gardener | Submit Work. The account check also passes for a steward or an owner | Report work and make promises, through the existing screens or free-form, and capture knowledge | Imply review, release or key rights |
 | Evaluator | Create assessments. The check also passes for a steward or an owner; an evaluator alone does not pass the gardener check | Write assessments and review evidence assigned to them | Approve work. That stays with a steward, as it does onchain |
-| Steward, named operator in deployed contracts | Approve Work, but not their own; submit Work; assess; grant roles; manage the garden in the app | Sign the member list as controller, write the focus, accept or reject work reports that are not their own, and approve partner summaries (D17, D18, D30) | Read anyone's private captures by holding the role |
+| Steward, named operator in deployed contracts | Approve Work, but not their own; submit Work; assess; grant roles; manage the garden in the app | Sign the member list as controller, define Actions, write the assessment, approve or reject work reports that are not their own, run the promise pool, and approve reports and releases (D17, D18) | Read anyone's private captures by holding the role |
 | Owner | Everything a steward can, plus owner-only settings | Take a recovery or controller duty if the garden delegates it | Hold archive keys by default |
 | Funder | No Work, WorkApproval or Assessment. Counts as a member for commitment pooling | Receive agreed reports as a partner contact | Receive evidence because of the label |
 | Community | Give community testimony. Counts as a member for commitment pooling | Read and contribute in what it is granted | Mean the whole garden. It is one of six roles; the plain word "community" means a garden's people (D33) |
@@ -115,7 +115,9 @@ Certified's [Group Service](https://docs.hypercerts.org/reference/services/certi
 |---|---|
 | Member | An opaque local identifier within one community, its device keys and their history |
 | Member-list entry | Member, device keys, role, the list version that added it and the one that removed it |
-| Focus | The community, the revision, the topics, goals and open questions, and the signature of a steward's device. Accepted only while the current member list names the signer as a steward |
+| Assessment | Its author, the revision, the baseline, method, outcome targets, selected Actions and reporting period, and the signature of the author's device. Accepted when the signer could write one in the member list it was signed under |
+| Watch topics | A steward's extra topics for the agent, signed by a steward's device |
+| Intention | The requester, the kind (claim, award, vault action or certificate), the amount, the purpose, the approver's signed decision, and its state: prepared, approved, settled or declined |
 | Share approval | The author, the revision's digest, the fields, the recipients, the purpose, the destination, the time. Bound to a digest of the exact content and signed by one of the author's devices |
 | Release approval | The steward, the projection's digest, the audience, the destination, the review decisions relied on. The author's approval too when a corrected version of their capture is leaving. Signed by a steward's device |
 | Review decision | The reviewer, the revision's digest, accept, reject or comment, the time |

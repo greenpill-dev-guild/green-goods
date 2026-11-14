@@ -22,7 +22,7 @@ flowchart TB
   end
   PRev -->|"The author approves:<br/>revision, fields, recipients,<br/>purpose, destination"| File["Signed, encrypted file"]
   File --> Recv
-  File -.->|"Next lane: ciphertext only"| Box[("Hosted mailbox<br/>Solid preferred")]
+  File -.->|"Later lane: ciphertext only"| Box[("Hosted mailbox<br/>Solid preferred")]
   Box -.-> Recv
   CRev -->|"A steward approves a new projection.<br/>The author too, if their corrected capture leaves"| PSum
   CRev -.->|"Later lane: a steward approves<br/>before any upload"| Rel
@@ -34,7 +34,7 @@ Local means one person's own phone and laptop; community means the devices of th
 
 | Step | Work reports and promises | Knowledge | Boundary and authority |
 |---|---|---|---|
-| 1. Start locally | Start a garden locally or accept a verified invitation | Same | No wallet or provider login. Each device gets its own keys. A recovery code is created. The steward writes the garden's focus. A published Garden can be linked later |
+| 1. Start locally | Start a garden locally, bring an existing garden local with one connected read, or accept a verified invitation | Same | No wallet or provider login to start. Each device gets its own keys. A recovery code is created. A steward defines Actions and writes the assessment, which gives the agent its focus |
 | 2. Capture | Report work or make a promise, through the existing screen or free-form in the member's own words with photos | Save a guide, page excerpt, lesson or note | Saved first, with source, time and consent. No model, network or unlock is needed to save. In Grove, the agent also brings in pages that fit the garden's focus as the person browses |
 | 3. Review personally | Check date, attribution and evidence; keep planned, reported and recorded apart. On a laptop, check the agent's structured version against the words it came from | Correct a summary, inspect sources, add a connection | By hand on any device. In Grove, each item the agent brought in comes with its assessment; the person decides and can discard. No attestation is created |
 | 4. Share for review | Choose the fields and the reviewers; leave out unneeded personal and location data | Choose an excerpt or resource and named reviewers | The author approves the exact revision, fields, recipients, purpose and destination. The file is encrypted before it leaves; the original stays |
@@ -81,7 +81,7 @@ sequenceDiagram
   participant V as Vault and local store
   P->>X: Visits a page
   X->>X: Skip private windows, blocked sites and pages with a password field
-  X->>X: Plain text match against the community's focus
+  X->>X: Plain text match against the garden's focus
   Note over X: No match. The text is discarded and nothing is logged
   X->>A: A page that matches, queued for when the laptop is idle
   A->>A: Is it relevant to a stated goal
@@ -93,7 +93,7 @@ sequenceDiagram
   Note over P,V: Sharing with the community still needs the author's approval
 ```
 
-The agent brings in only what it judges relevant, so it never recommends discarding an item (D28). The person reviews everything it brings in. The focus is the steward's written list of topics, goals and open questions (D30); with no focus the agent brings in nothing.
+The agent brings in only what it judges relevant, so it never recommends discarding an item (D28). The person reviews everything it brings in. The focus is the garden's current assessment, plus any extra topics a steward adds (D43); with no assessment the agent brings in nothing.
 
 ### A free-form report, structured at review
 
@@ -101,15 +101,15 @@ The agent brings in only what it judges relevant, so it never recommends discard
 sequenceDiagram
   participant G as Gardener on a phone
   participant F as Encrypted file
-  participant R as Reviewer in Grove on a laptop
-  participant A as Agent, a local model run by Pi
+  participant R as Reviewer in the cockpit, on a laptop
+  participant A as Grove's agent, beside the screen
   G->>G: Report work in their own words, with photos
   Note over G: Saved first. No form, model or network
   G->>F: Approve the share and export
   F->>R: Arrives, is verified and stored
-  R->>A: Open the report for review
+  R->>A: The report under review, through the bridge
   A->>A: Read the gardener's words. Photos are attached as evidence
-  A-->>R: Structured version. Each value with the words it came from
+  A-->>R: Structured version beside the screen. Each value with its source words
   Note over A,R: The Action is filled only when the garden's Action list is on the device
   R->>R: Accept or correct each value by hand
   R->>F: The structured version, as a new revision
@@ -117,7 +117,7 @@ sequenceDiagram
   G->>G: Approve it before it leaves the garden
 ```
 
-A promise follows the same steps. So does the author's own review when they have a laptop (D35). A report made through the existing work screen is already structured and skips them. The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
+A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the cockpit as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
 
 ### Phone to laptop
 
@@ -177,6 +177,68 @@ sequenceDiagram
   P-->>S: Receipt
   Note over S,P: The partner receives the summary only. Sources and draft history stay behind
 ```
+
+### The Green Goods chain, locally
+
+```mermaid
+sequenceDiagram
+  participant S as Steward in the cockpit, local build
+  participant G as Gardener in the app, local build
+  participant F as Encrypted file
+  participant P as Funder's device
+  S->>S: Define Actions and write the assessment
+  S->>F: Share them with the garden's members
+  F->>G: Arrive and are verified
+  G->>G: Report work against an Action, or free-form
+  G->>F: Approve the share and export
+  F->>S: Arrives and is verified
+  S->>S: Approve or reject, with feedback. Never their own work
+  S->>F: The signed decision
+  F->>G: The gardener sees approved or rejected, with the feedback
+  S->>S: Build the report from approved work and the assessment's targets
+  S->>F: Release approval, then export for the funder
+  F->>P: The funder reads the report and nothing under it
+  Note over S,P: No connection, no attestation and no upload at any step
+```
+
+This is the order Green Goods teaches: assessment, work, approval, report (D39). Each arrow is the loop above with a Green Goods record on it. Promises, joining and roles follow the same pattern as signed decisions among the garden's devices. Publishing any of it to the chain is the separate, later choice.
+
+### Bringing an existing garden local
+
+```mermaid
+sequenceDiagram
+  participant S as Steward's device, connected once
+  participant C as Chain and published records
+  participant M as Members' devices
+  S->>C: Prove a steward or owner Hat with a fresh role check
+  C-->>S: Public roles, Actions and the current assessment
+  S->>S: Sign them into the first local member list
+  S->>M: Share by encrypted file
+  M->>M: Verify the steward's signature and store
+  Note over S,M: From here the garden works with no connection
+  Note over S,C: No work history is read. That stays with the Hub lane
+```
+
+A new garden skips this and starts with no chain at all (D38).
+
+### Money, settled when connected
+
+```mermaid
+sequenceDiagram
+  participant G as Gardener, offline
+  participant S as Steward, offline
+  participant C as Chain, when a device connects
+  G->>G: Prepare a cookie-jar claim as a signed intention
+  G->>S: Share it by encrypted file
+  S->>S: Check today's rules and limits, then approve
+  Note over G,S: Nothing has moved. Every screen says so
+  S->>C: A device connects and the right person confirms
+  C-->>S: Settled once, or declined
+  S->>G: The result returns by file
+  Note over G,C: Balances shown offline are last-known, with their date
+```
+
+The same holds for a voucher award, a vault action and a certificate (D40). F7 designs the intention and who may confirm each kind.
 
 ### Removing a device
 
