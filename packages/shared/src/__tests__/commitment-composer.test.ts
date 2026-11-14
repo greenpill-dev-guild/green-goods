@@ -149,6 +149,38 @@ describe("commitment composer validation", () => {
 });
 
 describe("buildCommitmentCreationPayload", () => {
+  it("rejects a rewarded Request from a restored member draft", () => {
+    expect(() =>
+      build({
+        direction: "REQUEST",
+        considerationRail: "ARBITRUM_EXTERNAL",
+        considerationSource: GARDEN,
+        considerationToken: GARDEN,
+        considerationAmount: "100",
+      })
+    ).toThrow("Only a pool steward");
+    expect(build({ direction: "REQUEST" }).consideration.amount).toBe(0n);
+  });
+
+  it("keeps rewarded Requests available to the steward console", () => {
+    const request = buildCommitmentCreationPayload({
+      values: {
+        ...values,
+        direction: "REQUEST",
+        considerationRail: "ARBITRUM_EXTERNAL",
+        considerationSource: GARDEN,
+        considerationToken: GARDEN,
+        considerationAmount: "100",
+      },
+      clientCommitmentId: "steward-request",
+      poolId: 7n,
+      creator: CREATOR,
+      gardenAddress: GARDEN,
+      nowSeconds: NOW,
+      allowRequestReward: true,
+    });
+    expect(request.consideration.amount).toBe(100n);
+  });
   it("maps the two directions onto the contract's own ordinals", () => {
     expect(build({ direction: "OFFER" }).direction).toBe(0);
     expect(build({ direction: "REQUEST" }).direction).toBe(1);

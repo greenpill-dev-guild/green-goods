@@ -158,6 +158,7 @@ export function SeedCommitmentDialog({
       dueDate: copy.dueDate,
       ...(copy.displayGroup ? { displayGroup: copy.displayGroup } : {}),
       allowGatedOffers: true,
+      allowRequestReward: true,
     });
   };
   const tray = useSeedTray({ form, chainId, owner: jobs.viewer, buildCopy });

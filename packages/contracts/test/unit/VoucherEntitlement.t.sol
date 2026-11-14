@@ -620,9 +620,12 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
     }
 
     function testVoucherEntitlement_upgradeCannotChangeLocalChainIdentity() public {
-        uint256 localChain = block.chainid;
+        // Read the deployed identity across an external call: the optimizer assumes CHAINID
+        // cannot change inside a transaction, while vm.chainId deliberately breaks that rule.
+        uint256 localChain = vouchers.LOCAL_CHAIN_ID();
         vm.chainId(localChain + 1);
         VoucherEntitlementModule replacement = new VoucherEntitlementModule(address(router));
+        assertEq(replacement.LOCAL_CHAIN_ID(), localChain + 1);
         vm.chainId(localChain);
         vouchers.pause();
         vouchers.scheduleUpgrade(address(replacement));

@@ -826,24 +826,44 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
             string memory sourcePath = string.concat(base, '["', sources[i], '"]');
             string[] memory names = IJourneyJsonVm(address(vm)).parseJsonKeys(artifact, sourcePath);
             for (uint256 j; j < names.length; ++j) {
-                bytes32 identity = keccak256(abi.encode(vm.activeFork(), sources[i], names[j]));
-                address libraryAddress = journeyLibraries[identity];
-                if (libraryAddress == address(0)) {
-                    libraryAddress = _productionDeploy(sources[i], names[j], "");
-                    journeyLibraries[identity] = libraryAddress;
-                }
-                bytes memory addressText = bytes(vm.toString(libraryAddress));
-                ArtifactRange[] memory ranges =
-                    abi.decode(vm.parseJson(artifact, string.concat(sourcePath, '["', names[j], '"]')), (ArtifactRange[]));
-                for (uint256 k; k < ranges.length; ++k) {
-                    assertEq(ranges[k].length, 20);
-                    for (uint256 n; n < 40; ++n) {
-                        encoded[2 + ranges[k].start * 2 + n] = addressText[2 + n];
-                    }
-                }
+                _patchProductionLibrary(
+                    encoded,
+                    artifact,
+                    string.concat(sourcePath, '["', names[j], '"]'),
+                    _journeyLibrary(sources[i], names[j])
+                );
             }
         }
         return vm.parseBytes(string(encoded));
+    }
+
+    function _journeyLibrary(string memory source, string memory name) private returns (address libraryAddress) {
+        bytes32 identity = keccak256(abi.encode(vm.activeFork(), source, name));
+        libraryAddress = journeyLibraries[identity];
+        if (libraryAddress == address(0)) {
+            libraryAddress = _productionDeploy(source, name, "");
+            journeyLibraries[identity] = libraryAddress;
+        }
+    }
+
+    /// @dev Keep byte patching separate from JSON traversal so coverage's minimum-IR build
+    ///      does not need the recursive deployment and both source/name loops on one stack.
+    function _patchProductionLibrary(
+        bytes memory encoded,
+        string memory artifact,
+        string memory rangesPath,
+        address libraryAddress
+    )
+        private
+    {
+        bytes memory addressText = bytes(vm.toString(libraryAddress));
+        ArtifactRange[] memory ranges = abi.decode(vm.parseJson(artifact, rangesPath), (ArtifactRange[]));
+        for (uint256 k; k < ranges.length; ++k) {
+            assertEq(ranges[k].length, 20);
+            for (uint256 n; n < 40; ++n) {
+                encoded[2 + ranges[k].start * 2 + n] = addressText[2 + n];
+            }
+        }
     }
 
     function _journeyBasename(string memory source) private pure returns (string memory) {
