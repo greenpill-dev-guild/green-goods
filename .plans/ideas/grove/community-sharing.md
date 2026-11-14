@@ -22,13 +22,13 @@ These words mean one thing each across the hub. They describe Grove's local cont
 | Assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | A review decision. An approval |
 | Personal review | The author's own check and correction before anything is shared | Community review |
 | Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
-| Share approval | The author's recorded approval of one projection for named recipients, a purpose and a destination | A release approval. WorkApproval |
+| Share approval | The author's approval of one projection for named recipients, a purpose and a destination, signed by one of the author's devices | A release approval. WorkApproval |
 | Destination | Where an approved projection is going: a named community, a named partner community, or later a public service | The recipients, which are the devices a file names. The carrier that moves the file |
 | Shared file | The signed, encrypted file that carries approved projections to named devices | A backup |
 | Receipt | A recipient device's signed statement that it stored a shared file | A review. A command receipt in the workspace lane |
 | Review decision | A member's signed accept, reject or comment on a revision they received | WorkApproval. Evaluator verification |
 | Correction | A new revision that supersedes a received one | An edit in place |
-| Release approval | A steward's recorded approval of a projection for a partner community or the public | The author's share approval |
+| Release approval | A steward's approval of a projection for a partner community or the public, signed by a steward's device | The author's share approval |
 | Vault | The encrypted store on one device | Hosted storage |
 | Recovery code | A secret created at setup that opens a recovery export without a passkey or the lost device | A password to a service |
 
@@ -60,7 +60,7 @@ Hosts still see file sizes, timing, addresses and how many recipients a file has
 On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant. A focus counts only when a device the current member list names as a steward signed it. A focus from anyone else is refused, and after a change of steward the new steward signs it again.
 
 - **What it may read (D27):** the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend.
-- **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged.
+- **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged. A matched page waits for its check in a queue with a limit on size and on age, and page text past either limit is dropped unchecked.
 - **Where it runs:** on the laptop only, with a local model. Nothing a page contains leaves the device because the agent read it.
 - **What it decides (D28):** only whether to bring an item in. It never brings in something it would recommend discarding, and it never shares. A person reviews every item and can discard it; sharing follows the approvals below (D17).
 - **When the vault locks:** the agent stops. The focus is an encrypted record, so the agent cannot judge relevance while locked. Queued page text is dropped, a check in progress is cancelled, and nothing resumes until the person unlocks.
@@ -101,6 +101,7 @@ Recipient clients verify the member list themselves. An edit to a Pod's access l
 - **Recipients** record review decisions and corrections. Reading a record gives no authority to release it.
 - **The author again**, if a corrected version of their capture is to leave the community.
 - **A steward** approves partner summaries and public releases.
+- **Every approval is signed** by a device of the person who gives it, over a digest of the whole projection: the revision, the fields, the recipients, the purpose and the destination. A recipient checks that signature against the member list the file names. It rejects a file whose approval is missing, is signed by anyone other than the author or a steward as the case requires, or is signed by a device that list does not hold. The sending device's signature on the manifest never stands in for an approval.
 - Grove stores each reviewer's decision and does not compute a "community approved" state (R14). A steward's release approval names the decisions it relied on.
 
 Community acceptance is never Green Goods WorkApproval, evaluator verification or a certified impact claim.
@@ -109,7 +110,7 @@ Community acceptance is never Green Goods WorkApproval, evaluator verification o
 
 **Shared files (R1).** For each share, the client builds a manifest, signs it with the sending device's key, and encrypts manifest and content together under a fresh random key. It wraps that key to each recipient device's public key using one existing multi-recipient format. The candidates are age v1 and HPKE (RFC 9180); C1 chooses on what the supported devices can run (O3). Do not hand-build a cryptographic protocol.
 
-The signed manifest binds the community, the member-list version the sender used, the sender, the named recipients, the purpose and destination, the approval, and a digest of each included revision and field selection. Signing before encrypting, with the recipients inside the signed part, stops a recipient passing the file on as if it were addressed to someone else. Recipients reject a file that fails its signature, names a sender who is not in the list, does not name them, repeats a file they already stored, or was built on a list older than one they hold.
+The signed manifest binds the community, the member-list version the sender used, the sender, the named recipients, the purpose and destination, each approval with its own signature, and a digest of each included revision and field selection. Signing before encrypting, with the recipients inside the signed part, stops a recipient passing the file on as if it were addressed to someone else. Recipients reject a file that fails its signature, names a sender who is not in the list, does not name them, repeats a file they already stored, carries an approval that fails its own check, or was built on a list older than one they hold.
 
 A fresh key for every file means removing a member needs no group key to rotate: the next file is simply not wrapped to them. It also sets the limits:
 

@@ -116,8 +116,8 @@ Certified's [Group Service](https://docs.hypercerts.org/reference/services/certi
 | Member | An opaque local identifier within one community, its device keys and their history |
 | Member-list entry | Member, device keys, role, the list version that added it and the one that removed it |
 | Focus | The community, the revision, the topics, goals and open questions, and the signature of a steward's device. Accepted only while the current member list names the signer as a steward |
-| Share approval | The author, the revision's digest, the fields, the recipients, the purpose, the destination, the time. Bound to a digest of the exact content |
-| Release approval | The steward, the projection's digest, the audience, the destination, the review decisions relied on. The author's approval too when a corrected version of their capture is leaving |
+| Share approval | The author, the revision's digest, the fields, the recipients, the purpose, the destination, the time. Bound to a digest of the exact content and signed by one of the author's devices |
+| Release approval | The steward, the projection's digest, the audience, the destination, the review decisions relied on. The author's approval too when a corrected version of their capture is leaving. Signed by a steward's device |
 | Review decision | The reviewer, the revision's digest, accept, reject or comment, the time |
 | Account association | The local member or community, the service and account, the garden and chain if relevant, the kind of proof, audience and purpose, expiry, when verified, consent and visibility |
 | Protocol authority observation | The exact account, garden and chain, the capability or Hat checked, the block or source, when observed and how long it may be relied on. Not a timeless certificate |

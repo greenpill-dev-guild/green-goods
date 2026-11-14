@@ -33,7 +33,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 5. Pair a member's own phone and laptop, and admit another member's device.
 6. Move captures from phone to laptop as an encrypted file (D21).
 7. On the laptop, an agent brings in relevant knowledge and resources as the person browses, guided by that focus, and assesses each item before the person reviews it (D26 to D29). The person browses records as lists and as a graph, and accepts, rejects or corrects what the agent proposes (D25).
-8. Share: the author approves an exact projection, meaning which revision and which fields, for named recipients, a purpose and a destination; the client signs and encrypts it; the recipient verifies, stores it and returns a receipt (D17).
+8. Share: the author approves an exact projection, meaning which revision and which fields, for named recipients, a purpose and a destination, and the author's device signs that approval; the client signs and encrypts the file; the recipient verifies, stores it and returns a receipt (D17).
 9. Review together: recipients record decisions and corrections. A corrected version leaves the community only with the author's fresh approval (D17).
 10. Send a partner summary under a steward's approval, as a new projection with no private history (D17).
 11. Remove a member or device, pause sharing on a stale member list (D24), and recover a lost device.
@@ -58,7 +58,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 7. A corrected record cannot leave the community without its author's approval, and a partner summary carries a steward's approval and no private history (E17).
 8. On the laptop, a real local Gemma investigation produces proposals with exact quotes, survives a closed tab through Pi with one result, and appears in the graph as new (E4, E6, E12–E14). Capture and manual review behave the same with the model absent.
 9. As a person browses on the laptop, the agent brings in pages that fit the community's focus and nothing from a blocked site or a private window. It keeps nothing from a page it did not bring in. Each item it brings in shows why it was brought in, its source, author and date, and anything to check before sharing. An item it brought in can be kept and shared like any capture (E27, E28).
-10. In a moderated check, participants say correctly who can see a record in each of the four audiences.
+10. In a moderated check, participants say correctly who can see a record in each of the four audiences (E17).
 
 ## Decision log
 
