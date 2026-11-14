@@ -2,8 +2,11 @@
 
 Open [the demo index](index.html) in a browser, then choose a study. Each HTML file contains its own styles, fixtures and JavaScript; there is no package install, build, private file dependency or network data fetch. An ordinary static server also works. Public source links open only when selected.
 
+The [current architecture view](grove-architecture.html) adds capture → review → share, local identity/keys, preferred optional Solid storage and Yjs co-editing, and EDV/Automerge + Keyhive research alternatives. Its [editable fragment](grove-architecture.fragment.html) is the source for the inline view; open the standalone page for normal browser use. It contains synthetic examples and no live accounts, keys, network sharing or production capability proof. Standalone state storage restores display choices only.
+
 | Demo | Explore |
 |---|---|
+| [Current architecture](grove-architecture.html) | Privacy contexts, approval boundaries, local identity and optional storage/collaboration/public connections |
 | [Follow a connection](grove-follow-a-connection.html) | Garden overview → Soil care → new connection → source → Back |
 | [Garden scenarios](grove-real-gardens.html) | TAS and Vida Verde topic journeys, proposed work and source inspection |
 | [Garden timelines](grove-gardens-timeline.html) | Both gardens growing through illustrative steps, with projected work kept distinct |

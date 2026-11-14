@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-10-24T02:32:26.326Z"
+    "updated_at": "2026-11-14T00:58:39Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,7 +50,14 @@
     "2026-10-23: prototype specification added (prototype.md): Gemma, KOI, Pi Durable and WebMCP in one demo loop, slices G0 to G4, ten decisions and six demo checks; connects through the public garden page's WebMCP tool and uses Pi Durable 1.4.0 IndexedDbStorage. No implementation started.",
     "2026-10-24: the prototype's four open questions were decided (public garden page first; Brave Beta with the WebMCP flag, Chrome only as fallback; Grove works without WebMCP through a direct adapter and an externally_connectable API; TAS second; counts toward A0 to A4). G0 authorized as a disposable spike in its own session; hub not promoted; nothing built.",
     "2026-10-24: correction: the connection surface is the Admin Hub, not the public garden page (prototype decisions 18 to 21): a read-only garden snapshot tool behind a Hub setting, protocol records with approval state, direct Shared readers without WebMCP; the client's own navigator.modelContext fix ships separately.",
-    "2026-10-24: design direction agreed (prototype decisions 22 to 25, prototype-design.md): Grove is a third Warm Earth dialect on the cockpit's dials with the garden tone, an ink-and-stone canvas legend, and Storybook Design System pages as proof."
+    "2026-10-24: design direction agreed (prototype decisions 22 to 25, prototype-design.md): Grove is a third Warm Earth dialect on the cockpit's dials with the garden tone, an ink-and-stone canvas legend, and Storybook Design System pages as proof.",
+    "2026-11-13: user accepted capture → review → share for knowledge and impact evidence. Local community identity is independent of chain/address; encrypted sharing excludes hosting operators. community-sharing.md is the current contract, with architecture-flows.md and sharing-research.md.",
+    "2026-11-13: Solid is the first optional hosted-storage adapter, not identity/key authority. ATProto/Certified, Ethereum, KOI and archive connections are optional. Yjs/MLS are conditional; offline encrypted bundles and paired-device networking precede generalized mesh.",
+    "2026-11-13: C0–C6 and E15–E21 added, all unrun. Historical G0 synthetic desktop report exists but does not pass private-sharing, phone or persistent Pi tab-close gates. Earlier S/P/K IDs and lane states preserved. Planning-only revision; no runtime/dependency or external Linear changes.",
+    "2026-11-13 follow-up: C1a/E22 define a planned, unrun two-device Solid-versus-EDV comparison with local keys, recovery, scoped roles, host privacy and build burden. E23 and identity-role-mapping.md separate community/member associations and current protocol roles from proposed local grants. local-first-options.md shortlists candidates; Pi source refresh records 1.5.2 manifest and deferred-progress limits, without changing installed versions. Lanes/Linear metadata remain unchanged; no backend selected by this plan revision.",
+    "2026-11-13 accepted follow-up: C0a/E24 plan existing-passkey reuse, actual PRF support, offline unlock and independent recovery on phone/laptop. C5/E25 now compare Yjs with Automerge + Keyhive using the same synthetic two-device fixture, scoped permissions, host privacy, revocation, history and engine-state recovery. Keyhive remains experimental; Solid/EDVs remain optional and a tested ciphertext relay may serve the slice without either. collaboration-passkey-spike.md owns the experiment. All product gates remain unrun; lane and Linear metadata preserved; no dependency/runtime/account changes.",
+    "2026-11-13 accepted preferences: Solid is the preferred optional hosted-storage adapter with client-side encryption; Yjs is preferred for optional co-editing with verified writer permissions. Community/member identity and private keys remain local. EDV and Automerge + Keyhive remain research alternatives, Keyhive experimental and synthetic-data-only. Encrypted record exchange stays the baseline. C1a/C3/E18/E22 validate Solid first; C5/E20 gates optional Yjs, while E25 alternative research is independent. No implementation, installation or completed runtime gate; lane and Linear metadata preserved.",
+    "2026-11-13: user authorized commit and push of Grove plan/visual updates. Added the synthetic standalone architecture page and editable fragment under artifacts/demos. Publication preparation only; result/commit/gate evidence to be reported after execution. No implementation gate, lane or Linear state advanced."
   ],
   "lanes": {
     "ui": {
@@ -225,6 +232,38 @@
       "status": "linear_sync_confirmed",
       "branch": null,
       "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-11-13T09:24:02Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "branch": "fix/work-approval-feedback",
+      "note": "Updated accepted local/community identity and encrypted capture-review-share direction; added standards/Coop research, diagrams and gated checkpoints. Lanes and Linear sync timestamp preserved; no implementation or publication."
+    },
+    {
+      "timestamp": "2026-11-13T10:03:33Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "branch": "fix/work-approval-feedback",
+      "note": "Added accepted C1a comparison design, scoped cross-context identity/role mapping, local-first package research and refreshed Pi capture/review ownership. Experiment and runtime proof remain unrun."
+    },
+    {
+      "timestamp": "2026-11-13T21:55:24Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "branch": "fix/work-approval-feedback",
+      "note": "Added accepted C0a/C5 two-device passkey and Yjs/Automerge + Keyhive comparison design with E24/E25. Kept Keyhive experimental and Solid/EDVs optional; no experiment, install, account migration, lane advancement or external sync."
+    },
+    {
+      "timestamp": "2026-11-14T00:42:02Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "branch": "fix/work-approval-feedback",
+      "note": "Recorded user-selected Solid/Yjs optional design preferences, retained EDV/Automerge + Keyhive research and local key/identity boundaries; updated plan and interactive architecture. Gates remain unrun; no runtime or external sync."
     }
   ]
 }
