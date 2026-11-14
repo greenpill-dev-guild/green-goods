@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Grove architecture | Grove design demos</title>
+<title>Green Goods, fully local | Grove design demos</title>
 <style>
 :root {
   color-scheme: light dark;
@@ -134,8 +134,8 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
 <div class="page">
 <header>
   <p><a href="index.html">← All Grove demos</a></p>
-  <h1>Grove, from local to shared</h1>
-  <p class="lede">How one capture moves from a person's own device to their community, to a partner community, and later to the public. Each crossing is a separate decision with its own approver.</p>
+  <h1>Green Goods, from local to shared</h1>
+  <p class="lede">How one record, a work report, a promise or a piece of knowledge, moves from a person's own device to their garden's community, to a partner community, and later to the public. Green Goods runs on the phone and in the browser. Grove is the extension that adds knowledge capture and the agent. Each crossing is a separate decision with its own approver.</p>
   <p class="notice"><strong>Proposed architecture.</strong> Nothing on this page is running software, and no property shown has been tested. It reflects the decisions recorded on 14 November 2026. Examples are synthetic; the page holds no keys or accounts and stores nothing.</p>
 </header>
 
@@ -171,9 +171,10 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
         <p>One person's phone and laptop. Readable only on their own unlocked devices.</p>
       </div>
       <ul class="actors">
-        <li class="actor" data-actor="phone"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>Phone web app</strong><span>Capture, review, share</span></li>
-        <li class="actor" data-actor="laptop"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></svg>Desktop extension</strong><span>The same, plus page capture, a graph, and the agent</span></li>
-        <li class="actor" data-actor="agent"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Agent on the laptop</strong><span>Brings in what fits the community's focus as you browse, and assesses it</span></li>
+        <li class="actor" data-actor="phone"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>Green Goods on a phone</strong><span>Report work and make promises, by form or in your own words. Review and share</span></li>
+        <li class="actor" data-actor="browser"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18"/></svg>Green Goods in a browser</strong><span>The same app on a laptop</span></li>
+        <li class="actor" data-actor="laptop"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></svg>Grove, the extension</strong><span>Knowledge and page capture, a graph, and review with the agent</span></li>
+        <li class="actor" data-actor="agent"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Grove's agent</strong><span>Brings in what fits the garden's focus as you browse, assesses it, and structures free-form reports</span></li>
         <li class="actor" data-actor="vault"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg>Vault on each device</strong><span>Opened by an existing passkey where supported, or a passphrase</span></li>
         <li class="actor is-later" data-actor="hub" data-later hidden><strong>Admin Hub snapshot</strong><span><b class="tag-later">Next lane.</b> Read-only import of a garden's public records into the graph</span></li>
       </ul>
@@ -190,12 +191,12 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
     <section class="band" data-band="community" aria-labelledby="h-community">
       <div class="band-head">
         <h3 id="h-community">Community</h3>
-        <p>Named members' devices. Readable only by the devices a file was addressed to.</p>
+        <p>The devices of the garden's named members. Readable only by the devices a file was addressed to.</p>
       </div>
       <ul class="actors">
         <li class="actor" data-actor="reviewer"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19M9 10.5l2 2 4-4"/></svg>Reviewer's device</strong><span>Checks, decrypts, stores, returns a receipt</span></li>
         <li class="actor" data-actor="together"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="3"/><circle cx="16.5" cy="10" r="2.5"/><path d="M2.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M14.5 15c2.6-.5 5.4.6 6.5 4"/></svg>Review together</strong><span>Signed decisions and corrections</span></li>
-        <li class="actor" data-actor="steward"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg>Steward</strong><span>Writes the community's focus. Signs the member list and release approvals</span></li>
+        <li class="actor" data-actor="steward"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg>Steward</strong><span>Writes the garden's focus. Signs the member list, reviews work reports and approves releases</span></li>
         <li class="actor is-later" data-actor="yjs" data-later hidden><strong>Co-editing</strong><span><b class="tag-later">Later lane.</b> Yjs for merging, when two people must edit one draft at once</span></li>
       </ul>
     </section>
@@ -232,7 +233,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       </div>
       <ul class="actors">
         <li class="actor" data-actor="release"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>Release</strong><span>A report, a knowledge resource or a claim</span></li>
-        <li class="actor is-later" data-actor="gg" data-later hidden><strong>Green Goods</strong><span>Work submission under the existing garden rules</span></li>
+        <li class="actor is-later" data-actor="gg" data-later hidden><strong>The chain</strong><span>Work, approvals and promises, published under the existing garden rules</span></li>
         <li class="actor is-later" data-actor="at" data-later hidden><strong>ATProto or Certified</strong><span>Attribution through a chosen publisher</span></li>
         <li class="actor is-later" data-actor="ipfs" data-later hidden><strong>IPFS or Filecoin</strong><span>Archive of approved public artifacts</span></li>
       </ul>
@@ -252,15 +253,15 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
   <tbody>
     <tr><th scope="row">Existing Green Goods passkey</th><td>The person, through their passkey provider. It can sync</td><td>Unlocks the vault where the provider supports it. It never identifies a device, signs a record or opens a shared file</td><td>Use the passphrase or the recovery code</td></tr>
     <tr><th scope="row">Passphrase</th><td>The person</td><td>Unlocks the vault wherever passkey unlock is unavailable</td><td>Use the recovery code</td></tr>
-    <tr><th scope="row">Recovery code</th><td>The person, off the device. For a community, the steward</td><td>Opens a recovery export, which holds records and membership and never a device's keys. For a community, appoints a new controller device and nothing else</td><td>A second device or a second controller. Otherwise nothing can be recovered</td></tr>
+    <tr><th scope="row">Recovery code</th><td>The person, off the device. For a garden, the steward</td><td>Opens a recovery export, which holds records and membership and never a device's keys. For a garden, appoints a new controller device and nothing else</td><td>A second device or a second controller. Otherwise nothing can be recovered</td></tr>
     <tr><th scope="row">Vault key</th><td>Each device, stored wrapped</td><td>Protects private keys and records at rest</td><td>Restore from a recovery export</td></tr>
-    <tr><th scope="row">Device keys</th><td>Each device, a separate pair for each community. Stored wrapped under the vault key; they never leave the device</td><td>One signs what the device sends. One opens files addressed to the device</td><td>Enrol a new device. A lost device key is never revived</td></tr>
+    <tr><th scope="row">Device keys</th><td>Each device, a separate pair for each garden. Stored wrapped under the vault key; they never leave the device</td><td>One signs what the device sends. One opens files addressed to the device</td><td>Enrol a new device. A lost device key is never revived</td></tr>
     <tr><th scope="row">File key</th><td>Nobody keeps it. It travels inside each shared file, wrapped once per recipient device</td><td>Encrypts one shared file</td><td>Removing a member needs no rotation: the next file is not wrapped to them</td></tr>
     <tr><th scope="row">Controller key</th><td>The steward's device. A second controller before real data</td><td>Signs every change to the member list</td><td>The recovery code appoints a new controller device, or the second controller takes over signing</td></tr>
   </tbody>
 </table>
 </div>
-<p class="small" style="margin-top:.7rem">Whoever stores or relays a shared file sees its size, its timing, addresses and how many recipients it has, and never its content. Green Goods publishes the client code and is trusted: the phone app is served from the web, so its publisher could ship code that reads an unlocked vault. A device that is unlocked or compromised exposes what it can open, and removal cannot make a recipient forget what it already received.</p>
+<p class="small" style="margin-top:.7rem">Whoever stores or relays a shared file sees its size, its timing, addresses and how many recipients it has, and never its content. Green Goods publishes the client code and is trusted: the app is served from the web, so its publisher could ship code that reads an unlocked vault. A device that is unlocked or compromised exposes what it can open, and removal cannot make a recipient forget what it already received.</p>
 
 <h2 id="approvals">Who approves each crossing</h2>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Approvals by crossing">
@@ -277,20 +278,21 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
   </tbody>
 </table>
 </div>
-<p class="small" style="margin-top:.7rem">Community review is never Green Goods WorkApproval, evaluator verification or a certified impact claim.</p>
+<p class="small" style="margin-top:.7rem">A steward's local decision on a work report is not a published WorkApproval, and community review is never evaluator verification or a certified impact claim.</p>
 
 <h2 id="scope">What is in the MVP, and what comes after</h2>
 <div class="cols">
   <section aria-labelledby="s-mvp">
     <h3 id="s-mvp">MVP</h3>
     <ul>
-      <li>A phone web app and a desktop extension, shipped together</li>
+      <li>Green Goods working locally on a phone and in a browser, with Grove, the extension</li>
+      <li>Work reports and promises, through today's screens or in your own words</li>
       <li>Capture and manual review with no wallet, account, model or network</li>
       <li>Passkey unlock where supported, passphrase otherwise, and a recovery code</li>
       <li>One steward signs the member list</li>
       <li>Sharing by encrypted file</li>
-      <li>On the laptop: an agent that brings in relevant pages as you browse and assesses each one, a graph of Grove's own records, and Pi investigations</li>
-      <li>The steward writes the community's focus, which tells the agent what is relevant</li>
+      <li>In Grove: an agent that brings in relevant pages as you browse, assesses each one and structures free-form reports at review; a graph of the records on the device; and Pi investigations</li>
+      <li>The steward writes the garden's focus, which tells the agent what is relevant</li>
     </ul>
   </section>
   <section aria-labelledby="s-next">
@@ -300,7 +302,8 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       <li>The Admin Hub snapshot and digest</li>
       <li>KOI exchange</li>
       <li>Co-editing with Yjs</li>
-      <li>Publication: Green Goods, ATProto or Certified, IPFS or Filecoin</li>
+      <li>Publishing: to the chain, ATProto or Certified, IPFS or Filecoin</li>
+      <li>Funds and certificates, once it is decided what local means for them</li>
     </ul>
   </section>
   <section aria-labelledby="s-research">
@@ -324,13 +327,13 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
 <script>
 (() => {
   const steps = [
-    { title: "Capture", lane: "mvp", bands: ["local"], actors: ["phone", "laptop"], gate: null,
-      text: "A member saves a note, photo, file or page on the phone app or the extension. It is encrypted to that device's own key and saved before anything else happens. No unlock, model, account or network is needed.",
+    { title: "Capture", lane: "mvp", bands: ["local"], actors: ["phone", "browser", "laptop"], gate: null,
+      text: "A gardener reports work or makes a promise in Green Goods, through today's screens or in their own words with photos. In Grove, a member saves a note, file or page. Each capture is encrypted to that device's own key and saved before anything else happens. No unlock, model, account or network is needed.",
       approver: "Nobody. It is the member's own.",
       keys: "The device's own public key, so saving works while the vault is locked.",
       sees: "Nothing. The capture has not left the device." },
     { title: "The agent brings in what fits", lane: "mvp", bands: ["local"], actors: ["agent", "laptop"], gate: null,
-      text: "As a person browses on the laptop, the agent reads each page on the device, except private windows and a block list of sensitive sites. It keeps only what fits the focus the steward wrote, as a capture in that person's own inbox. Nothing is kept from any other page, and the phone does none of this.",
+      text: "As a person browses on the laptop, Grove's agent reads each page on the device, except private windows and a block list of sensitive sites. It keeps only what fits the focus the steward wrote, as a capture in that person's own inbox. Nothing is kept from any other page, and the phone does none of this.",
       approver: "Nobody yet. The agent only decides whether to bring an item in. The person reviews it next.",
       keys: "The device's own public key, as for any capture.",
       sees: "Nothing. Page text is read on the device and is never sent anywhere." },
@@ -340,17 +343,22 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       keys: "The vault key, unwrapped by the passkey's secret combined with a key held on the device, or by a passphrase.",
       sees: "Nothing. Review happens on the device." },
     { title: "Carry it from phone to laptop", lane: "mvp", bands: ["local"], actors: ["phone", "laptop"], gate: null,
-      text: "The phone builds an encrypted file addressed to the member's own laptop. The member carries it across by share sheet, cable or any messenger, and the extension checks and imports it. The two clients share no storage.",
+      text: "The phone builds an encrypted file addressed to the member's own laptop. The member carries it across by share sheet, cable or any messenger, and Grove checks and imports it. The app and Grove share no storage.",
       approver: "The member, for their own devices.",
       keys: "A fresh key for the file, wrapped to the laptop's device key and signed by the phone's.",
       sees: "Whoever carries the file sees its size and when it moved." },
-    { title: "Share for review", lane: "mvp", bands: ["local", "community"], actors: ["phone", "laptop", "reviewer"], gate: "share",
+    { title: "The agent structures a free-form report", lane: "mvp", bands: ["local"], actors: ["laptop", "agent"], gate: null,
+      text: "When a free-form work report or promise is opened for review in Grove, the agent proposes its structured version in the shape Green Goods already uses: for a report, the title, time spent, notes, details and photos. Every value shows the words it was read from, and anything the words do not state stays empty. The member accepts or corrects each value. A report made through today's work screen skips this step.",
+      approver: "The member. The agent proposes, and never approves, shares or publishes.",
+      keys: "The vault key. The structured version is a new revision, encrypted like any record.",
+      sees: "Nothing. The model runs on the laptop." },
+    { title: "Share for review", lane: "mvp", bands: ["local", "community"], actors: ["phone", "browser", "laptop", "reviewer"], gate: "share",
       text: "The author picks the revision, the fields, the recipients, the purpose and the destination, and approves. The client signs a manifest, encrypts it with the content under a fresh key, and wraps that key to each named device. Sharing pauses if the member list on the device is older than seven days.",
       approver: "The author, for every share of their own capture.",
       keys: "The sender's signing key and each recipient's device key.",
       sees: "The file's size, its timing and how many recipients it has. Not its content." },
     { title: "Receive and review together", lane: "mvp", bands: ["community"], actors: ["reviewer", "together"], gate: null,
-      text: "Each named device checks the signature, the sender's place in the member list and that it is a recipient. Then it decrypts, stores the record and returns a signed receipt. Reviewers record decisions and corrections. A receipt means stored, not read or accepted.",
+      text: "Each named device checks the signature, the sender's place in the member list and that it is a recipient. Then it decrypts, stores the record and returns a signed receipt. Reviewers record decisions and corrections, and on a laptop the reviewer's agent proposes the structured version if a report arrived free-form. A receipt means stored, not read or accepted.",
       approver: "Nobody is needed to read. Reading gives no authority to release.",
       keys: "The recipient's device key to open the file; signing keys for receipts and decisions.",
       sees: "The same as before: sizes, timing, recipient count." },
@@ -365,7 +373,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       keys: "A fresh key, wrapped to the partner devices whose keys came from pairing the two communities.",
       sees: "The file's size, its timing and its recipient count." },
     { title: "Publish by choice", lane: "later", bands: ["public"], actors: ["steward", "release"], gate: "public",
-      text: "Not in the MVP. A steward would approve the exact payload before it is handed to any upload queue, because Green Goods uploads work to public storage during background preparation, before the transaction is signed.",
+      text: "Not in the MVP. Publishing a work report, an approval or a promise to the chain is a separate choice. A steward would approve the exact payload before it is handed to any upload queue, because Green Goods uploads work to public storage during background preparation, before the transaction is signed.",
       approver: "A steward, before the first upload.",
       keys: "None. A public release is not encrypted.",
       sees: "Everything in the release. It cannot be recalled." }

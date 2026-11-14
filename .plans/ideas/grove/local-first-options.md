@@ -1,5 +1,7 @@
 # Grove: local-first package options
 
+> **14 November framing note (D31 to D33).** This hub's project is Green Goods working in a fully local environment, and Grove names its extension only. This document was written when Grove named the whole local system: where it says Grove outside the extension's graph, agent and Pi work, read the local environment.
+
 **Research date:** 13 November 2026. **Accepted preference:** Yjs for optional co-editing; encrypted record exchange remains the baseline. Automerge + Keyhive is an experimental research alternative. No installation or runtime proof. **14 November:** co-editing is a later lane (D16 in [spec.md](spec.md#decision-log)), and the Keyhive comparison is backlog research that gates nothing (R11). [Community sharing](community-sharing.md) owns confidentiality; [the comparison](collaboration-passkey-spike.md) owns C0a/C5 and E24/E25.
 
 ## Keep the jobs separate

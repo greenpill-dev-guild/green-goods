@@ -1,5 +1,7 @@
 # Grove sharing research: standards, Coop and browser limits
 
+> **14 November framing note (D31 to D33).** This hub's project is Green Goods working in a fully local environment, and Grove names its extension only. This document was written when Grove named the whole local system: where it says Grove outside the extension's graph, agent and Pi work, read the local environment.
+
 **Inspected:** 13 November 2026. **Question:** how can Grove support community-controlled identity and encrypted capture → review → share on existing devices? This note supplies evidence for [the proposed contract](community-sharing.md); it does not certify implementations. **Established** means observed in a cited specification/source, **inferred** means an architecture conclusion, and **unresolved** means a required spike.
 
 ## Recommendation and alternatives

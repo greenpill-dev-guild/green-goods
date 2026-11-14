@@ -7,12 +7,12 @@
 | Component | Role | Standing |
 |---|---|---|
 | Device keys through Web Crypto | Sign what a device sends and open what is addressed to it | MVP. Sets the device floor; see the table below |
-| Member list | Membership, devices, roles and controllers, as one signed history | MVP. Grove's own small format (R3): no maintained browser library provides it. No identifier scheme is selected (R2) |
+| Member list | Membership, devices, roles and controllers, as one signed history | MVP. This project's own small format (R3): no maintained browser library provides it. No identifier scheme is selected (R2) |
 | One multi-recipient file format | Encrypt each shared file under a fresh key, wrapped to recipient devices | MVP. C1 chooses between age v1 and HPKE (R1, O3). No handwritten cryptographic protocol |
 | Existing WebAuthn credential with PRF | Unlock the vault where the provider supports it | MVP (D19), gated by [C0a](collaboration-passkey-spike.md#pass-a-existing-passkey-offline-unlock-and-recovery). Never the only wrap, never a device identity (R4) |
 | Passphrase and recovery code | Unlock everywhere else; open a recovery export | MVP (D18, D19) |
 | Encrypted file export and import | The carrier between devices | MVP (D21) |
-| Phone web app | Capture, review and share on a phone | MVP (D2). Home open (O2); keys only when installed (R13) |
+| The Green Goods app, working locally | Work reports, promises, review and sharing on a phone and in a browser | MVP (D2, D31). Home open (O2); keys on a phone only when installed (R13) |
 | Generic store interface, then a Solid client and a community-selected Pod | Asynchronous delivery of ciphertext | Next lane (D12, D21). Proved first with a plain folder; Solid is the preferred adapter. See [C1a](storage-comparison-spike.md) |
 | EDV client and server | Research storage alternative | Research. No selected implementation |
 | Yjs core | Merging when two people edit one draft | Later lane (D16, R9). Its stock persistence and WebRTC providers are replaced, not reused |

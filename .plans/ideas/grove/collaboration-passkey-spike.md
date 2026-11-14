@@ -1,5 +1,7 @@
 # Grove: two-device collaboration and passkey comparison
 
+> **14 November framing note (D31 to D33).** This hub's project is Green Goods working in a fully local environment, and Grove names its extension only. This document was written when Grove named the whole local system: where it says Grove outside the extension's graph, agent and Pi work, read the local environment.
+
 **Accepted planning scope:** 13 November 2026. **State:** planned, unrun. This owns C0a/E24 and C5/E25 in [the delivery plan](plan.todo.md#community-sharing-delivery-order) and [acceptance gates](eval.md#community-sharing-gates). It adds no implementation, installation, account migration or deployment authorization. **14 November:** Pass A is an MVP gate, because the existing passkey unlocks the vault where its provider supports that (D19 in [spec.md](spec.md#decision-log)). Pass B is backlog research and gates nothing (R11).
 
 **Yjs with encrypted, authenticated adapters is preferred for optional co-editing. Automerge Repo + Keyhive remains an experimental research alternative.** Retain the two-device comparison and independently prove existing-passkey reuse, offline unlock and recovery. Solid is the preferred optional storage adapter; EDV remains research. All content keys and community/member identity stay local. Completing an experiment records its result without implying production readiness or installing the alternative.

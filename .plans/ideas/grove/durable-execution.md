@@ -80,13 +80,15 @@ For example, a member records workshop notes or a field observation. Grove saves
 
 Pi supplies **execution recovery**, while Dexie supplies authoritative source/review history. A CRDT supplies **concurrent merge**, while a storage adapter supplies **remote persistence**. None replaces community authorization or content encryption. This separation keeps capture/manual review useful if Pi is unavailable, a model is too large for the phone, or the browser suspends processing.
 
-### The agent's two jobs, decided 14 November
+### The agent's three jobs, decided 14 November
 
-D26 to D30 in [spec.md](spec.md#decision-log) give Pi its clearest work.
+D26 to D30, D35 and D36 in [spec.md](spec.md#decision-log) give Pi its clearest work.
 
 **Passive capture.** As the person browses, a plain text match against the community's focus runs in ordinary code on every page the agent may read. A page that matches is queued, and one bounded Pi phase asks the model whether it is relevant. Only a relevant page is saved, as a capture.
 
 **Assessment.** Each item the agent brought in gets three bounded phases: why it was brought in, its source, author and date, and what to check before sharing. Each phase checkpoints, so a closed tab costs one phase, and the result is stored beside the item through an idempotent command.
+
+**Structuring.** When a free-form work report or promise is opened for review, one bounded phase proposes its structured version in the existing report contract or the existing promise fields. Its input is the record's own words, and photos are attached as evidence by reference. The result is a prepared command that adds a new revision, with the source words of each value and the model version. A closed tab resumes it with one result, and locking cancels it.
 
 The text match, the block list and the rule that nothing is kept from other pages are not Pi's. They are ordinary code that runs before anything is queued. Pi never sees a page that was not queued, and its records hold references, not page text.
 

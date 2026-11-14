@@ -1,32 +1,36 @@
-# Grove: community identity and encrypted sharing
+# Local identity and encrypted sharing
 
-**Accepted direction:** 13 November 2026; ten decisions recorded 14 November. **State:** design, not implemented, and no property below has been tested. This is the identity, privacy and device-sharing contract. [spec.md](spec.md#decision-log) owns the decision log and cites decisions as D-numbers, recommendations as R-numbers and open questions as O-numbers. [Flows](architecture-flows.md) show the sequences, [identity and roles](identity-role-mapping.md) maps accounts and authority, the [plan](plan.todo.md#mvp-order) gives the proof order, and [research](sharing-research.md) records the sources.
+**Accepted direction:** 13 November 2026; decisions recorded 14 November, including the corrected framing (D31 to D33). **State:** design, not implemented, and no property below has been tested. This is the identity, privacy and device-sharing contract for Green Goods working locally. It is the layer under the app and under Grove, the extension, and it does not belong to Grove. [spec.md](spec.md#decision-log) owns the decision log and cites decisions as D-numbers, recommendations as R-numbers and open questions as O-numbers. [Flows](architecture-flows.md) show the sequences, [identity and roles](identity-role-mapping.md) maps accounts and authority, the [plan](plan.todo.md#mvp-order) gives the proof order, and [research](sharing-research.md) records the sources.
 
 **Coordinate locally. Govern together. Share by context. Publish by choice.**
 
-Grove's common loop is **capture → review → share**. A useful article, a community lesson and evidence of regenerative work enter the same loop. Their meanings stay distinct: a saved observation is not automatically Green Goods Work, and community review is not protocol WorkApproval. On the laptop, a graph helps people explore connections; it is one view of the records, alongside capture and review lists.
+The common loop is **capture → review → share**. A work report, a promise and a piece of knowledge, such as a useful article or a community lesson, enter the same loop. Recorded locally, a work report, a steward's decision on it and a promise are Green Goods' own flows working without a chain (D31). They become the onchain Work, WorkApproval and pool records only when someone publishes them, which is a later lane. On the laptop, Grove's graph helps people explore connections; it is one view of the records, alongside capture and review lists.
 
 ## Terms
 
-These words mean one thing each across the hub. They describe Grove's local context and are proposals for the ontology change protocol, not ontology edits (D23).
+These words mean one thing each across the hub. They describe the local environment and are proposals for the ontology change protocol, not ontology edits (D33).
 
-| Term | Meaning in Grove | Not the same as |
+| Term | Meaning locally | Not the same as |
 |---|---|---|
-| Community | A group that keeps and shares records under its own member list. It exists locally and can be linked to a Garden by choice | A Garden, which the ontology defines as "a community of gardeners" with an onchain account. The Community garden role |
-| Member | A person admitted to a community. In Grove a member is the set of that person's enrolled devices in that community | A garden member, which the protocol derives from Hats |
-| Device | One browser profile holding its own keys: the web app on a phone, or the extension on a laptop | A person. A passkey, which can sync to many devices |
-| Member list | The community's signed, versioned list of members, devices, roles and controllers | A Pod's access list. A garden's role graph |
-| Controller | A steward whose device may sign changes to the member list | A garden owner or operator, unless the community chooses the same person |
-| Capture | A saved source with its origin, time and consent context, kept as immutable revisions | Green Goods Work |
-| Focus | The community's written list of topics, goals and open questions, written and signed by a steward as a community record | A Garden's domains or Actions |
+| Garden | Locally, the group people belong to: a signed member list, with its roles, Actions and records on its members' devices. It can start locally and be linked to an onchain Garden by choice (D33) | Its onchain account and tokens, which exist only once the garden is published or linked |
+| Community | The people of one garden. A plain word in this hub, not a separate entity | The Community garden role |
+| Member | A person in a garden's member list, with a Green Goods role there. Locally a member is the set of that person's enrolled devices in that garden | An onchain role holder, which the protocol derives from Hats |
+| Device | One browser profile holding its own keys: the Green Goods app on a phone or in a browser, or Grove on a laptop | A person. A passkey, which can sync to many devices |
+| Member list | The garden's signed, versioned list of members, devices, roles and controllers | A Pod's access list. The onchain role graph |
+| Controller | A steward whose device may sign changes to the member list | The holder of the onchain owner or operator Hat, unless the garden chooses the same person |
+| Capture | Anything a member saves: a work report, a promise, or knowledge such as a guide, a lesson, a link or a page. Each keeps its origin, time and consent context as immutable revisions | A published record |
+| Work report | A member's record of work they did, made through the existing work screen or free-form in their own words with photos (D34) | A published Work attestation. An approval |
+| Promise | An offer or an ask, made through the existing promise screens or free-form (D34) | A promise registered in an onchain pool |
+| Structured version | The agent's proposal of a free-form work report or promise in the existing shape, each value kept with the words it was read from (D35, D36). A new revision, never an edit in place | A decision. The author's approval |
+| Focus | The garden's written list of topics, goals and open questions, written and signed by a steward as a garden record | A published Garden's domains or Actions |
 | Assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | A review decision. An approval |
 | Personal review | The author's own check and correction before anything is shared | Community review |
 | Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
 | Share approval | The author's approval of one projection for named recipients, a purpose and a destination, signed by one of the author's devices | A release approval. WorkApproval |
-| Destination | Where an approved projection is going: a named community, a named partner community, or later a public service | The recipients, which are the devices a file names. The carrier that moves the file |
+| Destination | Where an approved projection is going: a named garden, a named partner community, or later a public service | The recipients, which are the devices a file names. The carrier that moves the file |
 | Shared file | The signed, encrypted file that carries approved projections to named devices | A backup |
 | Receipt | A recipient device's signed statement that it stored a shared file | A review. A command receipt in the workspace lane |
-| Review decision | A member's signed accept, reject or comment on a revision they received | WorkApproval. Evaluator verification |
+| Review decision | A member's signed accept, reject or comment on a revision they received. A steward's decision on a work report is the local form of work approval | A published WorkApproval. Evaluator verification |
 | Correction | A new revision that supersedes a received one | An edit in place |
 | Release approval | A steward's approval of a projection for a partner community or the public, signed by a steward's device | The author's share approval |
 | Vault | The encrypted store on one device | Hosted storage |
@@ -49,7 +53,7 @@ These are audiences, not a ladder toward publication. A community can share a su
 
 Three limits belong beside that requirement wherever it is stated:
 
-- **The publisher of the client code is trusted.** The extension is packaged code. The phone web app is served from the web each time it updates, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates, and no sensitive record is admitted until the owner answers it.
+- **The publisher of the client code is trusted.** The extension is packaged code. The Green Goods app is served from the web each time it updates, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates, and no sensitive record is admitted until the owner answers it.
 - **An unlocked or compromised device exposes what it can decrypt** and can sign as its owner until it is removed.
 - **Removal cannot make anyone forget.** A recipient keeps what it already received.
 
@@ -57,7 +61,7 @@ Hosts still see file sizes, timing, addresses and how many recipients a file has
 
 ## What the agent reads
 
-On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant. A focus counts only when a device the current member list names as a steward signed it. A focus from anyone else is refused, and after a change of steward the new steward signs it again.
+On the laptop, Grove's agent brings in relevant knowledge and resources as the person browses, assesses each item before the person reviews it (D26 to D30), and structures free-form reports when they are reviewed (D35). The steward's written focus tells it what is relevant. A focus counts only when a device the current member list names as a steward signed it. A focus from anyone else is refused, and after a change of steward the new steward signs it again.
 
 - **What it may read (D27):** the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend.
 - **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged. A matched page waits for its check in a queue with a limit on size and on age, and page text past either limit is dropped unchecked.
@@ -65,6 +69,7 @@ On the laptop, an agent brings in relevant knowledge and resources as the person
 - **What it decides (D28):** only whether to bring an item in. It never brings in something it would recommend discarding, and it never shares. A person reviews every item and can discard it; sharing follows the approvals below (D17).
 - **When the vault locks:** the agent stops. The focus is an encrypted record, so the agent cannot judge relevance while locked. Queued page text is dropped, a check in progress is cancelled, and nothing resumes until the person unlocks.
 - **What the assessment says (D29):** why the item was brought in, its source, author and date, and what to check before sharing, such as names, contact details and exact locations. It is advice. It cannot establish that a claim is true or that work happened.
+- **What it structures (D34 to D36):** a free-form work report or promise, when someone reviews it on a laptop. It proposes the existing shape. For a work report that is the report contract Green Goods' messaging Agent already fills: title, time spent, notes, the Action's details and the photos. For a promise it is the existing promise fields. Each value keeps the words it was read from, and anything the words do not state stays empty. It picks an Action only when the garden's Action list is on the device. The proposal is a new revision. The reviewer accepts or corrects it, and if someone other than the author reviewed it, the author approves that version before it leaves the garden (D17).
 
 Reading every page is the largest privacy exposure in this design. The block list is the only thing between a private page and local storage, so it ships covering banking, mail, health, government accounts and password managers, and the agent skips any page with a password field (R18). E27 tests all of this, and O12 asks whether a browser store will accept the access it needs.
 
@@ -74,9 +79,9 @@ Keep **identity, authority, encryption and service login separate**:
 
 | Identity or key | Purpose | Control and visibility |
 |---|---|---|
-| Device keys | Sign what a device sends and receive what is encrypted to it | Created on the device and never exported. One signing key and one key-agreement key per device, and a separate pair for each community (W3) |
+| Device keys | Sign what a device sends and receive what is encrypted to it | Created on the device and stored wrapped under the vault key; they never leave the device. One signing key and one key-agreement key per device, and a separate pair for each garden (W3) |
 | Member | Identify an author across their devices in one community | Created offline. No wallet, email, public registry or Solid login. Not reused across communities unless the member chooses |
-| Community | Identify the group and its controllers | The member list. Its identifier is the hash of its first version, so no provider account can be its root |
+| Garden, locally | Identify the group and its controllers | The member list. Its identifier is the hash of its first version, so no provider account can be its root |
 | Passkey | Unlock a vault where supported (D19) | Held by the passkey provider and able to sync. It identifies no device and admits none |
 | Solid WebID, ATProto or Certified account, Ethereum account, GardenAccount | Optional associations for storage, attribution or protocol actions | Later lanes. Each is a private, signed link that grants no role and no key; see [identity and roles](identity-role-mapping.md) |
 
@@ -84,7 +89,7 @@ Keep **identity, authority, encryption and service login separate**:
 
 ### The member list
 
-No maintained browser library provides community membership and key grants (see [dependencies](dependencies.md#community-identity-encryption-and-device-sharing)), so Grove defines this part itself and keeps it small (R3). This is a design to prove in C0, not a selected format:
+No maintained browser library provides community membership and key grants (see [dependencies](dependencies.md#community-identity-encryption-and-device-sharing)), so this project defines this part itself and keeps it small (R3). This is a design to prove in C0, not a selected format:
 
 - The list is a chain of signed versions. Each version names the one before it by hash. The first version's hash is the community's identifier.
 - One steward's device, the active signer, signs changes in the MVP (D18). A version signed by anyone else is ignored, except a takeover by a named controller.
@@ -102,7 +107,7 @@ Recipient clients verify the member list themselves. An edit to a Pod's access l
 - **The author again**, if a corrected version of their capture is to leave the community.
 - **A steward** approves partner summaries and public releases.
 - **Every approval is signed** by a device of the person who gives it, over a digest of the whole projection: the revision, the fields, the recipients, the purpose and the destination. A recipient checks that signature against the member list the file names. It rejects a file whose approval is missing, is signed by anyone other than the author or a steward as the case requires, or is signed by a device that list does not hold. The sending device's signature on the manifest never stands in for an approval.
-- Grove stores each reviewer's decision and does not compute a "community approved" state (R14). A steward's release approval names the decisions it relied on.
+- Each reviewer's decision is stored, and no "community approved" state is computed (R14). A steward's release approval names the decisions it relied on.
 
 Community acceptance is never Green Goods WorkApproval, evaluator verification or a certified impact claim.
 
@@ -152,7 +157,7 @@ Clients track signed versions to detect a rollback they have seen before. A firs
 | Sensors | Later | File import first. Web Bluetooth reaches supported peripherals in Chromium only and is absent on iOS |
 | KOI | Next lane | Discovery and provenance between communities. It receives only what was approved for its audience and grants no membership |
 
-Devices keep selected copies and exchange them when a person carries a file across. This is not a mesh and no browser stays reachable in the background. Unattended delivery needs a reachable store, which is why the mailbox is the next lane.
+Devices keep selected copies and exchange them when a person carries a file across. That is the mesh of devices in its simplest form (D32): nothing is discovered or relayed automatically, and no browser stays reachable in the background. Unattended delivery needs a reachable store, which is why the mailbox is the next lane, and direct exchange between open devices stays research.
 
 ## Co-editing, later
 
@@ -160,15 +165,15 @@ Encrypted record exchange is the baseline, and immutable captures and review dec
 
 ## Share and publish are separate decisions
 
-Publication is a later lane. Three facts about the existing Green Goods path shape it:
+Publishing to the chain is a later lane. Three facts about the existing Green Goods upload path shape it:
 
 - **Data becomes public at upload, not at the transaction.** Work media and metadata are pinned to public IPFS before the transaction is sent. For queued work that happens during background preparation, once the connection is confirmed and before the person taps Upload all.
 - **The existing gate is a standing consent per account**, and that consent record is published inside the metadata.
 - **Location and camera metadata are stripped** before a photo is pinned.
 
-So a release approval must be recorded before a record is handed to that queue, must bind a digest of the exact payload to be uploaded, and must be honored again at every send (R6). Grove does not reuse the public Work queue for private records.
+So a release approval must be recorded before a record is handed to that queue, must bind a digest of the exact payload to be uploaded, and must be honored again at every send (R6). In local operation a work report stays out of that queue until then.
 
-A link between a community and a Garden is proved by an account that wears that garden's steward or owner Hat, with a fresh role check, and kept private unless separately approved (R8). The GardenAccount's own signature follows whoever holds the garden token and is not steward authority. ATProto and Certified are optional publishers: a Certified group service holds the group account's credentials and is a delegated publisher, never Grove's identity root. IPFS and Filecoin are optional destinations for approved public artifacts. Details are in [identity and roles](identity-role-mapping.md).
+A link between a local garden and its onchain Garden is proved by an account that wears that garden's steward or owner Hat, with a fresh role check, and kept private unless separately approved (R8). The GardenAccount's own signature follows whoever holds the garden token and is not steward authority. ATProto and Certified are optional publishers: a Certified group service holds the group account's credentials and is a delegated publisher, never the local identity root. IPFS and Filecoin are optional destinations for approved public artifacts. Details are in [identity and roles](identity-role-mapping.md).
 
 ## What still needs proof
 

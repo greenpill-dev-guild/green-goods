@@ -1,5 +1,7 @@
 # Grove within Community Evidence Mesh
 
+> **14 November framing note (D31 to D33).** This hub's project is Green Goods working in a fully local environment, and Grove names its extension only. The 23 October decision below stands for the project. In the ownership table, read the Grove row as the project; Grove itself owns knowledge capture, the agent and the graph.
+
 **Decision accepted:** 23 October 2026. Grove is a focused project within the existing initiative. Keep Community Evidence Mesh as the broader direction; give Grove a clear product identity and delivery boundary.
 
 The [Grove project](https://linear.app/green-goods/project/grove-garden-knowledge-8582c2970974) has five undated milestones matching A0–A4. [RESR-103](https://linear.app/green-goods/issue/RESR-103/grove-by-green-goods-roadmap) remains the Backlog parent. This hub preserves the 18 earlier S/P/K checkpoints and adds C0–C6 for the 13 November local/shared direction. The order was revised on 14 November; see the [MVP order](plan.todo.md#mvp-order). Existing Linear milestones remain the earlier baseline; this revision makes no external tracker changes or implementation claims.

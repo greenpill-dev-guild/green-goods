@@ -1,15 +1,15 @@
-# Grove: capture → review → share
+# Capture → review → share, locally
 
-**Current direction:** 13 November 2026, with the decisions of 14 November. These are proposed flows, not runtime proof. [Community sharing](community-sharing.md) owns the contract and its [terms](community-sharing.md#terms); [spec.md](spec.md#decision-log) owns the decisions cited here as D-numbers. Solid lines are the MVP. Dotted lines are next lanes or later work.
+**Current direction:** 13 November 2026, with the decisions of 14 November. Green Goods runs these flows locally, and Grove, the extension, adds the agent's steps (D31, D32). These are proposed flows, not runtime proof. [Community sharing](community-sharing.md) owns the contract and its [terms](community-sharing.md#terms); [spec.md](spec.md#decision-log) owns the decisions cited here as D-numbers. Solid lines are the MVP. Dotted lines are next lanes or later work.
 
 ## Four audiences
 
 ```mermaid
 flowchart TB
   subgraph LOCAL["LOCAL · own devices"]
-    Cap["Capture<br/>source, time, consent"] --> Vault[("Encrypted vault<br/>on each device")]
-    Agent["Agent on the laptop<br/>brings in what fits the focus"] --> Vault
-    Vault --> PRev["Personal review<br/>by hand, with the agent's assessment on the laptop"]
+    Cap["Capture<br/>work report, promise or knowledge"] --> Vault[("Encrypted vault<br/>on each device")]
+    Agent["Grove's agent<br/>brings in what fits the focus"] --> Vault
+    Vault --> PRev["Personal review<br/>by hand. In Grove the agent assesses and structures"]
   end
   subgraph COMMUNITY["COMMUNITY · members"]
     Recv["Verify sender, member list and recipients<br/>decrypt and store"] --> CRev["Review together<br/>decisions and corrections"]
@@ -28,21 +28,21 @@ flowchart TB
   CRev -.->|"Later lane: a steward approves<br/>before any upload"| Rel
 ```
 
-Local means one person's own phone and laptop; community means named members' devices; a partner community is named recipients elsewhere; public is anyone. Moving outward is a deliberate disclosure of one projection, never a change of visibility on the source. Local-only use is complete without any other audience. A partner can read a summary without receiving the evidence under it. Each crossing has its own approval and its own approver (D17).
+Local means one person's own phone and laptop; community means the devices of the garden's named members; a partner community is named recipients elsewhere; public is anyone. Moving outward is a deliberate disclosure of one projection, never a change of visibility on the source. Local-only use is complete without any other audience. A partner can read a summary without receiving the evidence under it. Each crossing has its own approval and its own approver (D17).
 
 ## Initial user flows
 
-| Step | Knowledge capture | Impact evidence capture | Boundary and authority |
+| Step | Work reports and promises | Knowledge | Boundary and authority |
 |---|---|---|---|
-| 1. Start locally | Create a community or accept a verified invitation | Same; a public garden can be linked later | No wallet or provider login. Each device gets its own keys. A recovery code is created. The steward writes the community's focus |
-| 2. Capture | Save a guide, page excerpt, lesson or note | Save an observation, photo or account of work | Saved first, with source, time and consent. No model, network or unlock is needed to save. On the laptop, the agent also brings in pages that fit the community's focus as the person browses |
-| 3. Review personally | Correct a summary, inspect sources, add a connection | Check date, attribution and evidence; keep planned, reported and recorded apart | By hand on either client. On the laptop, each item the agent brought in comes with its assessment; the person decides and can discard. No protocol attestation is created |
-| 4. Share for review | Choose an excerpt or resource and named reviewers | Choose the evidence fields and reviewers; leave out unneeded personal and location data | The author approves the exact revision, fields, recipients, purpose and destination. The file is encrypted before it leaves; the original stays |
-| 5. Review together | Members discuss and correct a lesson | Reviewers assess the evidence and prepare notes for a summary | Each reviewer's decision is recorded with their identity and the revision. Reading gives no authority to release |
-| 6. Share an outcome | Send a useful summary to a partner community | Send a report to a named funder or partner | A steward approves a new, minimized projection. The author approves too if a corrected version of their capture is leaving |
-| 7. Publish by choice | Release a public learning resource | Release selected impact information or use a protocol flow | Later lane. A steward approves before the first upload. Existing Work and WorkApproval rules still apply |
+| 1. Start locally | Start a garden locally or accept a verified invitation | Same | No wallet or provider login. Each device gets its own keys. A recovery code is created. The steward writes the garden's focus. A published Garden can be linked later |
+| 2. Capture | Report work or make a promise, through the existing screen or free-form in the member's own words with photos | Save a guide, page excerpt, lesson or note | Saved first, with source, time and consent. No model, network or unlock is needed to save. In Grove, the agent also brings in pages that fit the garden's focus as the person browses |
+| 3. Review personally | Check date, attribution and evidence; keep planned, reported and recorded apart. On a laptop, check the agent's structured version against the words it came from | Correct a summary, inspect sources, add a connection | By hand on any device. In Grove, each item the agent brought in comes with its assessment; the person decides and can discard. No attestation is created |
+| 4. Share for review | Choose the fields and the reviewers; leave out unneeded personal and location data | Choose an excerpt or resource and named reviewers | The author approves the exact revision, fields, recipients, purpose and destination. The file is encrypted before it leaves; the original stays |
+| 5. Review together | A steward or reviewer checks the evidence and accepts, rejects or corrects. On a laptop the agent proposes the structured version if the report arrived free-form | Members discuss and correct a lesson | Each reviewer's decision is recorded with their identity and the revision. Reading gives no authority to release |
+| 6. Share an outcome | Send a report to a named funder or partner | Send a useful summary to a partner community | A steward approves a new, minimized projection. The author approves too if a corrected version of their capture is leaving |
+| 7. Publish by choice | Publish the work report, its approval or the promise to the chain | Release a public learning resource | Later lane. A steward approves before the first upload. Existing Work and WorkApproval rules apply to what is published |
 
-Example: a steward captures soil observations offline on a phone, while a learning facilitator saves a workshop lesson on a laptop. Each reviews on their own device and shares selected records with the community's reviewers. A funder receives a reviewed summary; culturally restricted knowledge, participant details and precise ecological locations stay in narrower audiences.
+Example: a gardener reports a planting session on a phone in their own words, while a learning facilitator saves a workshop lesson in Grove on a laptop. Each reviews on their own device and shares selected records with the garden's reviewers. A funder receives a reviewed summary; culturally restricted knowledge, participant details and precise ecological locations stay in narrower audiences.
 
 ## Sequences
 
@@ -51,9 +51,9 @@ Example: a steward captures soil observations offline on a phone, while a learni
 ```mermaid
 sequenceDiagram
   participant P as Person
-  participant C as Phone app or extension
+  participant C as Green Goods app or Grove
   participant V as Vault and local store
-  P->>C: Capture a note, photo, file or page
+  P->>C: Report work, make a promise or save knowledge
   C->>V: Encrypt to this device's own key and save revision 1
   V-->>C: Committed
   C-->>P: Saved locally
@@ -95,22 +95,46 @@ sequenceDiagram
 
 The agent brings in only what it judges relevant, so it never recommends discarding an item (D28). The person reviews everything it brings in. The focus is the steward's written list of topics, goals and open questions (D30); with no focus the agent brings in nothing.
 
+### A free-form report, structured at review
+
+```mermaid
+sequenceDiagram
+  participant G as Gardener on a phone
+  participant F as Encrypted file
+  participant R as Reviewer in Grove on a laptop
+  participant A as Agent, a local model run by Pi
+  G->>G: Report work in their own words, with photos
+  Note over G: Saved first. No form, model or network
+  G->>F: Approve the share and export
+  F->>R: Arrives, is verified and stored
+  R->>A: Open the report for review
+  A->>A: Read the gardener's words. Photos are attached as evidence
+  A-->>R: Structured version. Each value with the words it came from
+  Note over A,R: The Action is filled only when the garden's Action list is on the device
+  R->>R: Accept or correct each value by hand
+  R->>F: The structured version, as a new revision
+  F->>G: Arrives on the gardener's phone
+  G->>G: Approve it before it leaves the garden
+```
+
+A promise follows the same steps. So does the author's own review when they have a laptop (D35). A report made through the existing work screen is already structured and skips them. The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
+
 ### Phone to laptop
 
 ```mermaid
 sequenceDiagram
-  participant Ph as Phone web app
+  participant Ph as Green Goods on the phone
   participant F as Encrypted file
-  participant L as Desktop extension
+  participant L as Grove on the laptop
   Ph->>Ph: Select captures and build a file for the member's own laptop key
   Ph->>F: Export through the share sheet
-  F->>L: Import in the extension
+  F->>L: Import in Grove
   L->>L: Check the signature, the sending device and the recipient
   L->>L: Decrypt and store, skipping anything already held
   L-->>Ph: Receipt, carried by the next file in the other direction
 ```
 
-The two clients have separate storage. Nothing moves between them except through a file a person carries across (D21).
+The app and Grove have separate storage. Nothing moves between them except through a file a person carries across (D21). How Grove connects to the app in the same laptop browser is open (O17).
 
 ### Share and recipient review
 
@@ -195,7 +219,7 @@ The passkey unlocks; it does not identify a device, sign Grove records or decryp
 ```mermaid
 sequenceDiagram
   participant S as Steward
-  participant G as Grove
+  participant G as Green Goods app, working locally
   participant Q as Green Goods upload queue
   participant I as Public IPFS
   participant C as Chain
@@ -207,14 +231,14 @@ sequenceDiagram
   Q->>I: Pin media and metadata. Public from this moment
   S->>Q: Upload all, which only signs
   Q->>C: Work attestation under the existing garden rules
-  Note over G,C: Community review is not WorkApproval. Existing authority is unchanged
+  Note over G,C: A local approval is not the WorkApproval attestation. Existing authority is unchanged
 ```
 
-This sequence is why the release approval sits before the hand-over and not before the signature. The upload behavior is current code, read on 14 November; the Grove steps are proposed.
+This sequence is why the release approval sits before the hand-over and not before the signature. The upload behavior is current code, read on 14 November; the local steps are proposed.
 
 ## Identity and processing ownership
 
-The [identity and role map](identity-role-mapping.md) separates a community's garden, WebID and group accounts from each member's wallet, WebID and personal account. Associations are private by default and confer no role and no key.
+The [identity and role map](identity-role-mapping.md) separates a garden's onchain account, WebID and group accounts from each member's wallet, WebID and personal account. Associations are private by default and confer no role and no key.
 
 The [Pi capture and review contract](durable-execution.md#where-pi-belongs-in-capture--review--share) keeps saving and human review in Grove transactions. Pi resumes optional multi-step enrichment on the laptop and finishes ready for review; a human correction can request a new investigation.
 
@@ -222,7 +246,7 @@ The [Pi capture and review contract](durable-execution.md#where-pi-belongs-in-ca
 
 ```mermaid
 flowchart LR
-  Local["NEW: local community identity<br/>Capture and personal review"] --> Shared["NEW: encrypted community sharing<br/>Member review and corrections"]
+  Local["NEW: local garden identity<br/>Reports, promises and personal review"] --> Shared["NEW: encrypted sharing in the garden<br/>Member review and corrections"]
   Shared --> Consent["Separate release approval"]
   Existing["EXISTING: Green Goods local drafts<br/>and public Ethereum garden identity"] --> Consent
   Consent --> Protocol["Existing public upload and<br/>Work / WorkApproval workflows"]
@@ -231,11 +255,11 @@ flowchart LR
   Coop -.-> Shared
 ```
 
-Grove adds local and community identity and shared evidence before the existing public boundary. Existing draft queues, public IPFS uploads and onchain identity are not an encrypted shared layer. Coop provides patterns that were read from source, not an implementation that has been shown to keep a host blind, and its code cannot be copied until its license is settled. No application or contract behavior changes in this plan revision.
+This project adds local garden identity and shared evidence before the existing public boundary. Existing draft queues, public IPFS uploads and onchain identity are not an encrypted shared layer. Coop provides patterns that were read from source, not an implementation that has been shown to keep a host blind, and its code cannot be copied until its license is settled. No application or contract behavior changes in this plan revision.
 
 ## The laptop workspace
 
-The diagrams below describe the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's two jobs, passive capture and assessment, are shown in the sequence above (D26 to D30); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. Pinned resource packs follow the MVP with S10. In the MVP the graph shows Grove's own captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
+The diagrams below describe Grove: the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's three jobs, passive capture, assessment and structuring, are shown in the sequences above (D26 to D30, D35); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. Pinned resource packs follow the MVP with S10. In the MVP the graph shows the records held on the device: work reports, promises, knowledge captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
 
 ## Two loops joined by garden memory
 
