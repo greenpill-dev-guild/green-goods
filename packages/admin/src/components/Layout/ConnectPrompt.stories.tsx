@@ -22,7 +22,7 @@ const meta: Meta<typeof ConnectPrompt> = {
   },
   args: {
     title: "Connect to continue",
-    description: "Connect your wallet or sign in with a passkey to access this feature.",
+    description: "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
     lang: "en",
     action: (
       <Button type="button" size="lg" onClick={connect}>

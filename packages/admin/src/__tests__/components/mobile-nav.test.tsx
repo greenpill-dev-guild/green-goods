@@ -202,7 +202,7 @@ describe("Mobile Navigation", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-item-hub")).toHaveTextContent("Hub");
+    expect(screen.getByTestId("nav-item-hub")).toHaveTextContent("Review");
     expect(screen.getByTestId("nav-item-garden")).toHaveTextContent("Garden");
     expect(screen.getByTestId("nav-item-community")).toHaveTextContent("Community");
     expect(screen.getByTestId("nav-item-profile")).toHaveTextContent("Profile");

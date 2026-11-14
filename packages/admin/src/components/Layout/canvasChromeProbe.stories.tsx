@@ -8,7 +8,7 @@ import { ProfiledNavigationBar } from "./canvasChromeProbe";
 const slots: ToolbarSlot[] = [
   {
     id: "hub",
-    label: "Hub",
+    label: "Review",
     labelId: "cockpit.nav.hub",
     icon: RiAppsLine,
     path: "/hub",
@@ -73,7 +73,7 @@ type Story = StoryObj<typeof meta>;
 export const ActiveRoute: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: /hub/i })).toHaveAttribute(
+    await expect(canvas.getByRole("button", { name: /review/i })).toHaveAttribute(
       "data-state",
       "active"
     );

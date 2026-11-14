@@ -29,20 +29,21 @@ const BOOT_COPY: Record<
 > = {
   en: {
     loading: "Opening your workspace…",
-    failedTitle: "Green Goods Admin could not start",
+    failedTitle: "Green Goods Hub could not start",
     failedBody:
       "Something failed before the workspace could open. Reload to try again, or clear the cached data if a reload does not help.",
     reload: "Reload",
     reset: "Clear Cached Data and Reload",
     details: "Technical details",
     connectTitle: "Connect to continue",
-    connectDescription: "Connect your wallet or sign in with a passkey to access this feature.",
+    connectDescription:
+      "Connect your wallet or sign in with a passkey to open the Green Goods Hub.",
     connect: "Connect Wallet",
     passkey: "Sign in with Passkey",
   },
   es: {
     loading: "Abriendo tu espacio de trabajo…",
-    failedTitle: "Green Goods Admin no pudo iniciarse",
+    failedTitle: "Green Goods Hub no pudo iniciarse",
     failedBody:
       "Algo falló antes de que el espacio de trabajo pudiera abrirse. Recarga para intentarlo de nuevo o borra los datos en caché si recargar no ayuda.",
     reload: "Recargar",
@@ -50,13 +51,13 @@ const BOOT_COPY: Record<
     details: "Detalles técnicos",
     connectTitle: "Conectar para continuar",
     connectDescription:
-      "Conecta tu billetera o inicia sesión con una clave de acceso para acceder a esta función.",
+      "Conecta tu billetera o inicia sesión con una clave de acceso para abrir el Green Goods Hub.",
     connect: "Conectar billetera",
     passkey: "Entrar con passkey",
   },
   pt: {
     loading: "Abrindo seu espaço de trabalho…",
-    failedTitle: "O Green Goods Admin não conseguiu iniciar",
+    failedTitle: "O Green Goods Hub não conseguiu iniciar",
     failedBody:
       "Algo falhou antes de o espaço de trabalho abrir. Recarregue para tentar de novo ou limpe os dados em cache se recarregar não ajudar.",
     reload: "Recarregar",
@@ -64,7 +65,7 @@ const BOOT_COPY: Record<
     details: "Detalhes técnicos",
     connectTitle: "Conectar para continuar",
     connectDescription:
-      "Conecte sua carteira ou entre com uma chave de acesso para acessar este recurso.",
+      "Conecte sua carteira ou entre com uma chave de acesso para abrir o Green Goods Hub.",
     connect: "Conectar carteira",
     passkey: "Entrar com passkey",
   },

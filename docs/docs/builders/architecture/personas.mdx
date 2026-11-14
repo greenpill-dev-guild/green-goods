@@ -9,7 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:2b941a5ce6d4cf4ee6e2582e1d48d04a257c016dd4e9693145d482d2b38be420"
+source_digest: "sha256:5bfd85f427a9ca0ff03af2509df7f9cee46561c446473e8ffcaaef642041b439"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -24,18 +24,18 @@ Green Goods is built for five kinds of people and organizations. Each kind has a
 
 | Persona | In one line | Works in |
 |---|---|---|
-| [Gardener](#gardener) | A person doing and documenting the work | Client app, Messaging agent |
-| [Steward](#steward) | A person stewarding garden operations | Admin cockpit, Client app, Messaging agent |
-| [Evaluator](#evaluator) | A person shaping assessment and impact rigor | Admin cockpit, Public site |
-| [Funder](#funder) | A person or organization supporting the work | Client app, Public site |
-| [Community Member](#community-member) | A local person affected by the work | Client app, Public site |
+| [Gardener](#gardener) | A person doing and documenting the work | Green Goods App, Messaging agent |
+| [Steward](#steward) | A person stewarding garden operations | Green Goods Hub, Green Goods App, Messaging agent |
+| [Evaluator](#evaluator) | A person shaping assessment and impact rigor | Green Goods Hub, Green Goods Website |
+| [Funder](#funder) | A person or organization supporting the work | Green Goods App, Green Goods Website |
+| [Community Member](#community-member) | A local person affected by the work | Green Goods App, Green Goods Website |
 
 The surfaces are:
 
-- **Admin cockpit**: the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run.
-- **Client app**: the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field.
+- **Green Goods Hub**: the steward workspace at admin.greengoods.app, where gardens, actions, reviews, and pools are run.
+- **Green Goods App**: the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field.
 - **Messaging agent**: the Telegram bot, for people who would rather message than install anything.
-- **Public site**: the browser website at greengoods.app, where anyone reads gardens and impact and can fund them.
+- **Green Goods Website**: the browser website at greengoods.app, where anyone reads gardens and impact and can fund them.
 
 ## Gardener {#gardener}
 
@@ -48,13 +48,13 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 
 | When | What they do | Where |
 |---|---|---|
-| Getting started | Install the app and sign in with a passkey. No wallet or seed phrase is needed. [Guide](/community/gardener-guide/installing-and-updating). | Client app |
-| Joining a garden | Join an open garden directly, or ask to join and wait for a steward to accept. [Guide](/community/gardener-guide/joining-a-garden). | Client app |
-| After doing the work | Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns. [Guide](/community/gardener-guide/uploading-your-work). | Client app |
+| Getting started | Install the app and sign in with a passkey. No wallet or seed phrase is needed. [Guide](/community/gardener-guide/installing-and-updating). | Green Goods App |
+| Joining a garden | Join an open garden directly, or ask to join and wait for a steward to accept. [Guide](/community/gardener-guide/joining-a-garden). | Green Goods App |
+| After doing the work | Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns. [Guide](/community/gardener-guide/uploading-your-work). | Green Goods App |
 | When messaging is easier | Report in a private chat with the Telegram bot: describe the work, send photos, answer a few quick questions, then check the summary and confirm. Publishing needs a linked Green Goods account with a gardener, steward or owner role in the garden; the bot asks for the link if the chat has none. The gardener signs each report on a Green Goods page, unless their passkey account has allowed reporting in chat for that garden. The report becomes the same work record the app makes, and stewards review it the same way. [Guide](/community/gardener-guide/report-in-chat). | Messaging agent |
-| While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Client app |
-| When the garden pays an allowance | Claim from the garden's cookie jar, up to its cap. | Client app |
-| When neighbors make promises | Follow the garden's commitments, confirm one a neighbor has kept, and record work toward one. | Client app |
+| While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Green Goods App |
+| When the garden pays an allowance | Claim from the garden's cookie jar, up to its cap. | Green Goods App |
+| When neighbors make promises | Follow the garden's commitments, confirm one a neighbor has kept, and record work toward one. | Green Goods App |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -80,15 +80,15 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 
 | When | What they do | Where |
 |---|---|---|
-| Starting a garden | Create the garden with its name, place and first roles. This needs permission from the Green Goods team, and whoever creates the garden becomes its owner. [Guide](/community/steward-guide/creating-a-garden). | Admin cockpit |
-| Before work starts | Define the actions gardeners can document. [Guide](/community/steward-guide/managing-actions). | Admin cockpit |
-| Before a reporting period | Write the assessment that sets the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Admin cockpit |
-| As work comes in | Review each submission's evidence, then approve it or reject it with feedback. [Guide](/community/steward-guide/reviewing-work). | Admin cockpit, Client app |
+| Starting a garden | Create the garden with its name, place and first roles. This needs permission from the Green Goods team, and whoever creates the garden becomes its owner. [Guide](/community/steward-guide/creating-a-garden). | Green Goods Hub |
+| Before work starts | Define the actions gardeners can document. [Guide](/community/steward-guide/managing-actions). | Green Goods Hub |
+| Before a reporting period | Write the assessment that sets the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Green Goods Hub |
+| As work comes in | Review each submission's evidence, then approve it or reject it with feedback. [Guide](/community/steward-guide/reviewing-work). | Green Goods Hub, Green Goods App |
 | When messaging is easier | Send REVIEW in a private chat with the Telegram bot to see up to 10 pieces of work waiting in gardens the account stewards or owns, from the app or the chat. Pick one, approve or reject it, confirm the summary, and sign the decision on a Green Goods page. Each decision is signed on its own. [Guide](/community/steward-guide/reviewing-work). | Messaging agent |
-| As people join | Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking. | Admin cockpit, Client app |
-| When money arrives | Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the cockpit's cookie jar screens create campaign jars, which are a separate thing. [Guide](/community/steward-guide/funding-and-governance). | Admin cockpit |
-| When neighbors make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/open-a-pool). | Admin cockpit |
-| At the end of a period | Bundle approved work into an impact certificate that funders can hold a share of. *Still being built.* [Guide](/community/steward-guide/creating-impact-certificates). | Admin cockpit |
+| As people join | Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking. | Green Goods Hub, Green Goods App |
+| When money arrives | Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the Hub's cookie jar screens create campaign jars, which are a separate thing. [Guide](/community/steward-guide/funding-and-governance). | Green Goods Hub |
+| When neighbors make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/open-a-pool). | Green Goods Hub |
+| At the end of a period | Bundle approved work into an impact certificate that funders can hold a share of. *Still being built.* [Guide](/community/steward-guide/creating-impact-certificates). | Green Goods Hub |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -116,8 +116,8 @@ Evaluators bring the method. They are people with domain expertise, such as an a
 
 | When | What they do | Where |
 |---|---|---|
-| Before a reporting period | Write or strengthen an assessment: the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Admin cockpit |
-| As evidence builds | Read the garden's approved work and its record to judge whether the claimed outcomes hold. | Admin cockpit, Public site |
+| Before a reporting period | Write or strengthen an assessment: the baseline, the method and the outcomes to look for. [Guide](/community/evaluator-guide/making-an-assessment). | Green Goods Hub |
+| As evidence builds | Read the garden's approved work and its record to judge whether the claimed outcomes hold. | Green Goods Hub, Green Goods Website |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -138,11 +138,11 @@ Funders are the people and organizations who support a garden: individuals and d
 
 | When | What they do | Where |
 |---|---|---|
-| Deciding where to give | Browse gardens and read their approved work and impact. | Public site |
-| Giving directly | Donate to a garden's cookie jar. This is direct support and creates no position to withdraw. [Guide](/community/funder-guide/donating-to-a-garden). | Public site |
-| Giving for the long term | Endow a garden: deposit into its vault, keep a position they can withdraw, and let the yield support the work. [Guide](/community/funder-guide/funding-a-garden). | Client app, Public site |
-| Any time afterwards | Check an endowment and withdraw part or all of it. [Guide](/community/funder-guide/withdraw-from-a-vault). | Client app, Public site |
-| Through a grant or partnership | Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the public site. The grant itself is arranged outside the app. | Public site |
+| Deciding where to give | Browse gardens and read their approved work and impact. | Green Goods Website |
+| Giving directly | Donate to a garden's cookie jar. This is direct support and creates no position to withdraw. [Guide](/community/funder-guide/donating-to-a-garden). | Green Goods Website |
+| Giving for the long term | Endow a garden: deposit into its vault, keep a position they can withdraw, and let the yield support the work. [Guide](/community/funder-guide/funding-a-garden). | Green Goods App, Green Goods Website |
+| Any time afterwards | Check an endowment and withdraw part or all of it. [Guide](/community/funder-guide/withdraw-from-a-vault). | Green Goods App, Green Goods Website |
+| Through a grant or partnership | Talk with Green Goods about a garden's work and funding needs, then follow its approved work on the Green Goods Website. The grant itself is arranged outside the app. | Green Goods Website |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -166,8 +166,8 @@ Community members live with the results. They are residents and neighbors who ma
 
 | When | What they do | Where |
 |---|---|---|
-| Any time | Read what a garden has done: its work, its field notes and its impact. | Public site |
-| When a garden asks what to back | Signal support for the impact certificates that matter most to them, in a garden that has governance turned on. *Still being built.* | Client app |
+| Any time | Read what a garden has done: its work, its field notes and its impact. | Green Goods Website |
+| When a garden asks what to back | Signal support for the impact certificates that matter most to them, in a garden that has governance turned on. *Still being built.* | Green Goods App |
 | When something is missing | Name a community need so stewards and funders can respond to it. *Planned, not built yet.* | None |
 
 <details>

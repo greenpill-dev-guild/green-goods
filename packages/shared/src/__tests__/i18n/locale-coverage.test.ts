@@ -129,6 +129,8 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  // The steward surface's name, kept as a name in every language (PRD-1485).
+  "Green Goods Hub",
   // The product noun the team already uses untranslated in Spanish and
   // Portuguese copy ("las pools", "as pools").
   "Pool",

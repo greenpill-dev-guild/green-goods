@@ -76,7 +76,7 @@ export const WorkQueue: Story = {
     await withTemporaryDocumentTheme("dark", async () => {
       const canvas = within(canvasElement);
       await expect(
-        await canvas.findByRole("heading", { name: "Hub" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+        await canvas.findByRole("heading", { name: "Review" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
       ).toBeVisible();
       await expect(
         await canvas.findByRole("tab", { name: /Work/ }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)

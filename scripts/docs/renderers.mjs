@@ -213,10 +213,10 @@ export function renderPackageExports(exports) {
 // Each product surface, in display order, with its name on the page and what it is. The
 // renderer throws on a surface a persona journey names but this table does not.
 const SURFACES = [
-  ["admin", "Admin cockpit", "the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
-  ["client", "Client app", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
+  ["admin", "Green Goods Hub", "the steward workspace at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
+  ["client", "Green Goods App", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
   ["agent", "Messaging agent", "the Telegram bot, for people who would rather message than install anything"],
-  ["public", "Public site", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
+  ["public", "Green Goods Website", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
   ["community", "Community channels", "the Telegram and Discord spaces around the product"],
   ["docs", "Docs", "this site"],
 ];

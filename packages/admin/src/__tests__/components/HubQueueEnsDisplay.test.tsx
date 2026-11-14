@@ -327,7 +327,7 @@ describe("Hub lists with older records", () => {
     const older = olderPage();
     renderQueue([TEST_WORK], older, { failed: true });
 
-    expect(screen.getByText("Hub data could not be loaded")).toBeInTheDocument();
+    expect(screen.getByText("Review data could not be loaded")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Compost setup/ })).toBeInTheDocument();
     expect(screen.getByRole("alert")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show Older Work" }));
@@ -337,7 +337,7 @@ describe("Hub lists with older records", () => {
   it("keeps the empty error state when no work has loaded", () => {
     renderQueue([], olderPage(), { failed: true });
 
-    expect(screen.getByText("Hub data could not be loaded")).toBeInTheDocument();
+    expect(screen.getByText("Review data could not be loaded")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show Older Work" })).toBeInTheDocument();
   });

@@ -37,7 +37,7 @@ export const StateCatalog: Story = {
         variant="canvas"
         sticky
         metadata={<span>Rio Rainforest Lab</span>}
-        backLink={{ to: "/hub", label: "Back to hub" }}
+        backLink={{ to: "/hub", label: "Back to Review" }}
       >
         <AdminTabRail
           ariaLabel="Garden workspace sections"

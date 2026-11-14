@@ -54,7 +54,7 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 | Passkey auth with zero blockchain vocabulary | Seed phrase, gas fee prompts, chain switching |
 | Graceful degradation on 2G/3G | Features that require persistent connectivity |
 
-### Steward (Admin Dashboard)
+### Steward (Green Goods Hub)
 
 | Acceptable | Unacceptable |
 |------------|--------------|
@@ -97,7 +97,7 @@ When connectivity is lost or degraded, features degrade predictably:
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
 | Work approvals (installed app, passkey or wallet) | Queued offline (user-scoped job queue, `submitApprovalToQueue`; the client passes `queueWalletDecisions` so wallet decisions queue too) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
-| Work approvals (admin cockpit, wallet) | Not queued: the action stays enabled; `submitApproval` probes the connection after the click and, without `queueWalletDecisions`, throws `ApprovalConnectionUnconfirmedError` before the wallet is asked | Info toast (`app.offline.degraded` title, `app.approval.connectionUnconfirmed` message); nothing is sent or saved |
+| Work approvals (Green Goods Hub, wallet) | Not queued: the action stays enabled; `submitApproval` probes the connection after the click and, without `queueWalletDecisions`, throws `ApprovalConnectionUnconfirmedError` before the wallet is asked | Info toast (`app.offline.degraded` title, `app.approval.connectionUnconfirmed` message); nothing is sent or saved |
 | Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
 | Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |
 | Auth (passkey) | Works offline once authenticated | No change if session active |
@@ -192,7 +192,7 @@ These are already part of the core product baseline and should be treated as liv
 - EAS attestation chains (Work → Approval → Assessment)
 - Hats Protocol role management
 - Indexer-backed state queries
-- Admin dashboard for garden operations
+- The Green Goods Hub for garden operations
 
 ### Ship Next (Q2 2026)
 

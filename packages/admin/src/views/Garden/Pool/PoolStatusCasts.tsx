@@ -53,7 +53,7 @@ export function PoolStatusCasts({
           description={formatMessage({
             id: "cockpit.garden.pool.stewardOnly.body",
             defaultMessage:
-              "Members read this garden's pool in the Green Goods app. Ask a steward if something here needs changing.",
+              "Members read this garden's pool in the Green Goods App. Ask a steward if something here needs changing.",
           })}
         />
       </AdminCard>
@@ -124,7 +124,7 @@ export function PoolStatusCasts({
           icon={<RiTimeLine />}
           title={formatMessage({
             id: "cockpit.garden.pool.unavailable.title",
-            defaultMessage: "Commitment pooling isn't switched on in this app yet",
+            defaultMessage: "Commitment pooling isn't switched on in the Hub yet",
           })}
           description={formatMessage({
             id: "cockpit.garden.pool.unavailable.body",

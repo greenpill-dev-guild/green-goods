@@ -42,7 +42,7 @@ export function CanvasWorkspaceSelectionState({
               })}
               description={formatMessage({
                 id: "cockpit.workspace.noGardensDescription",
-                defaultMessage: "Create your first garden to start using the canvas workspaces.",
+                defaultMessage: "Create your first garden to start using the Hub's workspaces.",
               })}
               action={
                 <Button size="sm" asChild>

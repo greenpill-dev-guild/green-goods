@@ -92,7 +92,7 @@ describe("buildCommandPaletteResults", () => {
     const groups = groupCommandPaletteResults(
       [
         { id: "action-1", label: "Action", href: "/actions/1", category: "actions" },
-        { id: "page-hub", label: "Hub", href: "/hub/work", category: "pages" },
+        { id: "page-hub", label: "Review", href: "/hub/work", category: "pages" },
         {
           id: "garden-1",
           label: "Garden",

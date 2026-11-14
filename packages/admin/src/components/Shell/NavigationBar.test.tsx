@@ -14,7 +14,7 @@ import { NavigationBar } from "./NavigationBar";
 const slots: ToolbarSlot[] = [
   {
     id: "hub",
-    label: "Hub",
+    label: "Review",
     labelId: "cockpit.nav.hub",
     icon: () => null,
     path: "/hub",

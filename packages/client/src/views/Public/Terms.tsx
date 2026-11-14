@@ -15,7 +15,7 @@ const SECTIONS = [
     body: {
       id: "public.terms.public.body",
       defaultMessage:
-        "Files uploaded from the app or admin go to public IPFS, and submitted work records go to a public blockchain. Steward approval controls the website listing; it does not make an uploaded file private. Messaging drafts stay private in the reporting service until you separately confirm the exact report for publication. Public records and files may be copied and may remain permanently.",
+        "Files uploaded from the Green Goods App or the Green Goods Hub go to public IPFS, and submitted work records go to a public blockchain. Steward approval controls the website listing; it does not make an uploaded file private. Messaging drafts stay private in the reporting service until you separately confirm the exact report for publication. Public records and files may be copied and may remain permanently.",
     },
   },
   {

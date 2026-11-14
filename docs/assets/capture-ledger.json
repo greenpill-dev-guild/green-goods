@@ -5,7 +5,7 @@
     {
       "page": "docs/docs/builders/architecture.mdx",
       "images": ["/img/builders/admin-garden-promises.webp"],
-      "capture_note": "A garden's commitment pool in the admin cockpit: seasons, promises to review, and the pool's status, all read from the module's register."
+      "capture_note": "A garden's commitment pool in the Green Goods Hub: seasons, promises to review, and the pool's status, all read from the module's register."
     },
     {
       "page": "docs/docs/builders/getting-started.mdx",

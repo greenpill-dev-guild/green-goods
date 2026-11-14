@@ -11,8 +11,8 @@ implementation facts; the [ontology](.claude/context/ontology.md) owns shared do
 |---|---|---|
 | Contracts | Solidity, deployment and upgrade wrappers, Foundry tests | [packages/contracts/AGENTS.md](packages/contracts/AGENTS.md) |
 | Shared | Hooks, providers, stores, domain modules, i18n, UI foundations | [packages/shared/AGENTS.md](packages/shared/AGENTS.md) |
-| Client | Public website and installed PWA | [packages/client/AGENTS.md](packages/client/AGENTS.md) |
-| Admin | Steward cockpit | [packages/admin/AGENTS.md](packages/admin/AGENTS.md) |
+| Client | Green Goods Website and the installed Green Goods App | [packages/client/AGENTS.md](packages/client/AGENTS.md) |
+| Admin | Green Goods Hub, the steward surface | [packages/admin/AGENTS.md](packages/admin/AGENTS.md) |
 | Agent | Messaging and webhook runtime | [packages/agent/AGENTS.md](packages/agent/AGENTS.md) |
 | Indexer | Envio event indexing | [packages/indexer/AGENTS.md](packages/indexer/AGENTS.md) |
 | QA | Private QA recording application | [packages/qa/AGENTS.md](packages/qa/AGENTS.md) |

@@ -1,4 +1,4 @@
-# robots.txt for Green Goods Admin
+# robots.txt for Green Goods Hub
 User-agent: *
 Allow: /
 

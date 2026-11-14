@@ -744,7 +744,7 @@ describe("GardenPool", () => {
     expect(rows[1]).toHaveAttribute("data-done", "false");
     expect(screen.getByText("What this pool is for")).toBeInTheDocument();
     expect(screen.getByText("How many promises one person can hold at once")).toBeInTheDocument();
-    expect(screen.getByText(/steward dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Green Goods Hub/i)).toBeInTheDocument();
   });
 
   it("says only what is true for anyone while the steward read is still out", () => {
