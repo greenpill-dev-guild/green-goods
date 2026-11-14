@@ -1,6 +1,8 @@
 # Grove prototype architecture: packages, dependencies, modules, types
 
-**Status:** architecture for the agreed prototype scope; nothing built. **Updated:** 24 October 2026.
+> **13 November scope update:** preserve this as the earlier graph/runtime package design. [spec.md](spec.md) and [community-sharing.md](community-sharing.md) now govern community identity, encrypted storage, phone pairing and optional adapters. The [G0 report](reports/2026-10-24-g0-feasibility.md) records the experiment actually built; proposed paths below are not all implemented.
+
+**Status:** earlier prototype architecture; disposable G0 evidence exists, product integration unbuilt. **Updated:** 24 October 2026.
 **Companion to:** [prototype.md](prototype.md), which owns what we build and why. This document owns how: the packages, their dependencies, where code runs, the module layers, the types that cross module boundaries, the UI components and the data flows. Names below are proposals until G0 and G1 land them; every type is grounded in a source named next to it.
 
 ## 1. Packages

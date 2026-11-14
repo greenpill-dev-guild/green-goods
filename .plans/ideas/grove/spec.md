@@ -1,49 +1,50 @@
 # Grove by Green Goods: MVP architecture
 
 **Status:** implementation proposal; planning requested, product build not started.
-**Updated:** 23 October 2026. **Owner:** Grove idea hub. **Package:** `packages/extension` (proposed).
+**Updated:** 13 November 2026. **Owner:** Grove idea hub. **Package:** `packages/extension` (proposed).
 **Companions:** [prototype scope](prototype.md), [implementation sequence](plan.todo.md), [evaluation and evidence](eval.md), [ontology alignment](ontology-alignment.md), [learning loops](architecture-flows.md), [dependency map](dependencies.md), [visual exploration](visual-design.md), [KOI contract](koi-integration.md), [Pi Durable execution](durable-execution.md), [Vida Verde/TAS spike](first-spike.md).
 
-Build a local browser extension whose main interface is a living garden graph. A steward can connect a garden from the Admin Hub, preserve useful research, inspect the relationships between research and recorded work, review suggested connections, and see what changed over time.
+Build a local knowledge and evidence workspace around **capture → review → share**. People can begin without a wallet, pair their devices, and share selected encrypted records with a community. A living graph supports exploration alongside capture and review lists. The current identity, encryption and networking contract is [community-sharing.md](community-sharing.md), refined by [role mapping](identity-role-mapping.md), the [Solid/EDV comparison](storage-comparison-spike.md) and [local-first options](local-first-options.md); [architecture-flows.md](architecture-flows.md) owns the diagrams and initial flows.
 
-Grove is the user-selected brand for this extension: **Grove by Green Goods — Your garden’s living knowledge.** The living graph is its primary workspace. Grove is a focused project within Community Evidence Mesh; the initiative coordinates shared evidence, privacy and authority principles. Grove owns the local knowledge workspace, while Framework, Messaging and publishing projects retain their delivery authority. Read the [Mesh alignment and evidence mapping](mesh-alignment.md). Broader OS, sensor, edge and publishing implementation is outside this plan. Product implementation and dependency installation remain unstarted.
+Grove is the user-selected brand: **Grove by Green Goods — Your garden’s living knowledge.** Its principle is **Coordinate locally. Govern together. Share by context. Publish by choice.** Grove remains a focused project within Community Evidence Mesh; Framework, Messaging and external publishing projects retain their authority. Read the [Mesh alignment](mesh-alignment.md). A disposable [G0 experiment](reports/2026-10-24-g0-feasibility.md) exists; the product's community identity and encrypted sharing are unbuilt. This 13 November 2026 revision supersedes the earlier single-profile, graph-first pilot boundary without changing historical experiment results or completing any implementation gate.
 
 ## MVP boundary
 
 | Included | Deferred |
 |---|---|
-| One active garden view; isolated Vida Verde and TAS workspaces on one desktop profile, with explicit chain scope | Cross-device or multi-user graph synchronization |
-| Full-tab graph, search, typed filters, inspector, history, change highlighting | A separate chat, feed, inbox, or extension dashboard |
-| Public Garden, Action, Work and WorkApproval records selected through the Hub | Private garden API credentials, signer access, onchain writes |
-| Explicit page capture, then opt-in capture on selected research domains | Whole-history capture, unrestricted crawling, broad background access |
-| User-selected text/Markdown notes; a pinned commons vocabulary and curated resource list | Automatic Drive ingestion, PDF/OCR/media parsing, live commons publishing |
-| Pi Durable custom-task investigations with one local Gemma configuration | Provider marketplace, fine-tuning, autonomous external actions |
-| Personal accept/reject/correct decisions with provenance | Garden governance votes, protocol WorkApproval, community truth certification |
-| Same-device Hub insight digest and graph deep links | Shared server-side insight storage or unattended private-data refresh |
-| Partial KOI node; optional controlled full-node resource exchange and explicit single-object sharing | Public federation, continuous private connectors, CRDT, sensor mesh, AT publishing |
-| Portable local export/import and recovery | General-purpose graph server required on each gardener's machine |
+| Local community/member identity, device grants and encrypted recovery design | A required wallet, public identity registry or provider account |
+| Phone capture companion and desktop extension; prove actual supported devices | Universal mobile-extension support or an always-running browser mesh |
+| Explicit page/note and bounded photo/file capture for knowledge and impact evidence; source/consent provenance | Whole-history capture, automatic recording, unrestricted crawling |
+| Local review, then consented encrypted sharing to named community reviewers | Automatic sharing of private inboxes or replication to every member |
+| Preferred optional Solid storage, with independent client E2EE; Yjs for optional co-editing | Mandatory provider or CRDT; EDV and Automerge + Keyhive adoption without research proof |
+| Versioned review, correction, selected summaries and reports | Community acceptance becoming protocol WorkApproval or certified impact |
+| Local graph/history and optional Pi/Gemma enrichment | Model success as a prerequisite for saving or manual review |
+| Authenticated pairing, encrypted file exchange; bounded WebRTC proof | Automatic multi-hop Bluetooth mesh; background phone availability claims |
+| Optional read-only Hub binding to public Garden/Action/Work/WorkApproval | Private Hub credentials or wallet keys copied into the extension |
+| Optional KOI and public-destination adapter contracts | Production federation, sensor integration, onchain writes and live publication in this build |
 
-The first spike uses source-backed Vida Verde and TAS fixtures and real bounded Hub imports, with synthetic negative cases kept separate. No private sync-note evidence is published in this public repository. See the [fixture and walkthrough contract](first-spike.md). Locally imported internal notes stay in the extension and are not automatically included in the Hub digest. Offline storage is local browser storage, not a claim of application-level encryption or protection from a compromised device. Sensitive-data pilots require a separately specified encryption, recovery and retention contract.
+Begin community-sharing proof with synthetic records and two authorized member devices plus an unauthorized device/host view. Reuse source-backed Vida Verde/TAS fixtures for knowledge/evidence semantics and optional Hub import, keeping synthetic negatives distinct. The [earlier spike](first-spike.md) remains a graph/runtime baseline. Sensitive data waits for E15–E19 encryption, recovery and recipient-isolation proof. This design is not a claim of implemented application encryption or protection from a compromised unlocked endpoint.
 
 ## Proposed decisions
 
 | # | Decision | Reason |
 |---|---|---|
 | D1 | Add `packages/extension` in Green Goods; use Coop as a source of bounded adaptations | Direct access to Green Goods domain authority and coordinated Hub contracts without importing Coop's product workflows |
-| D2 | WXT, React and TypeScript; a full-tab graph | Enough space for relationships, filtering and history; aligns with Coop's extension packaging |
+| D2 | WXT/React/TypeScript desktop extension and a separately tested phone companion | Capture/review lists lead the loop; a full-tab graph supports connections and history |
 | D3 | Sigma + Graphology, with a small imperative renderer adapter | Separates rendering and layout from persisted knowledge; Cytoscape is the fallback if the benchmark rejects Sigma |
-| D4 | Dexie/IndexedDB revision tables and an atomic change sequence | Acknowledged saves, restart recovery, historical reconstruction and independent edge changes |
-| D5 | Typed, origin-restricted Hub bridge; credentials stay in the Hub | Reuse garden readers without copying authentication, private keys or wallet state into the extension |
+| D4 | Encrypted local payloads, Dexie revisions and atomic command receipts | Durable capture with explicit unlock/key custody and separate metadata exposure policy |
+| D5 | Optional typed, origin-restricted Hub bridge; credentials stay in the Hub | Public garden binding enriches an existing local workspace; it does not create or own local identity |
 | D6 | Compose a versioned Grove application profile from Green Goods, a pinned Commons draft and local memory terms | One user-facing vocabulary with distinct source identities, per-type schemas and explicit mappings; see the [alignment proposal](ontology-alignment.md) |
 | D7 | Source-linked model proposals, validated before storage | The model cannot commit facts, approve Work, or invent supported ontology predicates |
-| D8 | Changes since last review and stable positions | The graph communicates learning rather than constant layout movement |
-| D9 | Explicit capture first; bounded passive capture completes the MVP | Prove the useful loop before broadening browser access |
+| D8 | Independent personal/community review, visible changes and stable graph positions | Preserve who reviewed what and the exact revision without implying protocol approval |
+| D9 | Explicit capture → review → share, for knowledge and impact evidence | Passive capture, co-editing and sensors follow demonstrated need and consent |
 | D10 | Model failure leaves captured knowledge and graph queries usable | Inference availability does not determine whether a save succeeds |
-| D11 | Browser partial KOI node with an optional full node | Reuse identity/exchange without requiring a server for local garden memory |
-| D12 | Grove owns history, scoped inbox/outbox and collection reconciliation | KOI event signals/current-object caches do not guarantee durable history or complete delivery |
+| D11 | Community-controlled local identity with separate device, storage and optional public bindings | No provider or Ethereum dependency for local use; explicit controller succession and recovery |
+| D12 | Solid is the preferred optional storage adapter; encrypt client-side and retain transport-neutral records/outbox | Community/member identity and private keys remain local. Pod ACLs are additional controls. EDV stays a research alternative; local/direct use needs neither |
 | D13 | Keep planned, reported and recorded activity distinct from review and transport state | A signature, local acceptance or recent import cannot prove completed work |
-| D14 | Pi Durable owns investigation execution, using a conformant browser storage adapter | Resume bounded multi-step work while local graph memory stays usable independently |
+| D14 | Pi Durable owns investigation execution, using approved upstream IndexedDbStorage with browser lifecycle proof | Resume bounded multi-step work while local graph memory stays usable independently |
 | D15 | Idempotent Grove commands connect Pi checkpoints to garden mutations | Recover separate commits without duplicate edges, stale writes or broadened sharing |
+| D16 | Yjs is preferred for optional co-editing; retain [Automerge + Keyhive research and independent passkey proof](collaboration-passkey-spike.md), C0a/C5 and E24/E25 | Encrypted record exchange remains the baseline. Keyhive stays experimental. Test permissions, local keys, existing-credential reuse, offline unlock and recovery before private use |
 
 Dependencies and a bounded implementation still need task-specific authorization before installation. Publishing this plan changes no application package, manifest, lockfile, license or runtime.
 
@@ -87,9 +88,15 @@ flowchart LR
   Query --> Graph[Graphology and Sigma graph tab]
   Graph -->|Review command| BG
   DB -->|Reviewed digest only| BG
-  Peer[Optional controlled full KOI node] <-->|Signed HTTPS exchange| KOI[Partial-node adapter]
+  DB -->|Selected revision and recipients| Approval[Share approval and signed community policy]
+  Approval --> Encrypt[Client encryption and recipient key grants]
+  Encrypt <-.->|Ciphertext only, if needed| Store[Solid: preferred optional storage]
+  Encrypt <-->|Encrypted file or authenticated WebRTC| Devices[Authorized member devices]
+  Approval --> Release[Separate approved public projection]
+  Peer[Optional controlled full KOI node] <-->|Approved projection only| KOI[Partial-node adapter]
   KOI -->|Validated scoped bundles| Ingest
-  DB -->|Explicitly selected outbox object| KOI
+  Release --> KOI
+  Release -.-> Public[Optional ATProto or Certified / Ethereum / archive]
   Peer -.-> Commons[Later: selected commons and connectors]
 ```
 
@@ -104,6 +111,9 @@ flowchart LR
 | `packages/extension/src/runtime/` | Browser capture and local inference lifecycle |
 | `packages/extension/src/koi/` | Browser protocol adapter, independent node identity, peer policy and resumable exchange |
 | `packages/extension/src/execution/` | Pi composition, browser storage, versioned investigation phases, scoped admission and command adapter |
+| `packages/extension/src/identity/` | Local identifiers, verified community policy, device grants, recovery and optional external associations |
+| `packages/extension/src/crypto/` | Reviewed envelope integration, vault unlock, key custody and recipient encryption; no network authority |
+| `packages/extension/src/sharing/` | Revision-bound approval, encrypted outbox/inbox, carrier adapters and delivery receipts; proposed phone contracts stay transport-neutral |
 
 Names are proposed paths, not claims that files exist. Shared never imports Extension. Domain transitions remain independent of React, Sigma and Chrome APIs. New Shared imports use declared package exports; existing internal readers are called inside Shared. Add a narrow ontology leaf export if bundling the existing root API pulls unrelated modules. Do not deep-import Shared `src` from Extension. All React hooks remain in Shared under repository policy.
 
@@ -118,7 +128,7 @@ Choose a content script limited to the exact configured Admin Hub origin, relayi
 3. The Hub uses existing readers to produce `GardenSnapshotV1`: schema version, export ID, garden/chain scope, ontology version, observation time, source coverage, records and explicit source references. Only allowlisted fields cross the boundary.
 4. The extension durably ingests the snapshot before acknowledging receipt. Repeated export IDs or content-identical records are no-ops.
 5. While the Hub is open and bound, changed query results or explicit refresh can send another snapshot. Show last synchronization and coverage. A closed Hub does not imply continuing private-data synchronization.
-6. `getInsightDigest` returns a bounded set of locally accepted knowledge summaries and source references for that exact binding. The Hub labels them **On this device** and links to the graph. No raw captures or notes are returned by default; including a local note requires item-level inclusion.
+6. `getInsightDigest` returns a bounded set of locally accepted knowledge summaries and source references for that exact binding. The Hub labels them **On this device** and links to the graph. No raw captures or notes are returned by default; including any nonpublic local material requires exact item/revision consent. Returning plaintext to a Hub page is a disclosure to that app context, not host-blind encrypted storage.
 7. Disconnect removes the binding and stops exchange. Local graph retention or deletion is an explicit user choice; disconnect never silently deletes the only copy.
 
 V1 commands: `connectGarden`, `ingestSnapshot`, `openGraph`, `getInsightDigest`, `disconnectGarden`. Reject arbitrary URLs, arbitrary queries, mutations and model text as commands. The Hub keeps its authentication and authorization; no cookies, passkeys, signing keys or auth/session providers are copied. Initial snapshots contain public protocol records only. Local review authority is personal and must not be presented as a steward attestation.
@@ -127,7 +137,7 @@ Begin with a bounded snapshot of the garden, at most 100 selected/latest Work re
 
 ## Knowledge contract and time
 
-Use an IndexedDB database owned by the extension. Every record and query is scoped by `workspaceId`; the workspace identity includes chain and normalized garden address. Canonical Green Goods IDs include chain and entity kind. Work identity comes from its attestation UID; Action identity comes from the authoritative reader's identifier, not a display title. Imported commons IDs retain their namespace/version. Local source/question IDs are independent of labels.
+Use an IndexedDB database owned by each client origin. Every record/query is scoped by a locally generated `workspaceId`, independent of a chain address. Optional garden bindings include chain and normalized garden address; multiple bindings do not merge communities automatically. Canonical Green Goods IDs retain chain and entity kind. Work identity comes from its attestation UID; Action identity comes from its authoritative reader, not a title. Imported commons IDs retain namespace/version. Pairing must cross the phone/PWA/extension storage-origin boundary explicitly. Protected payloads and derived indexes follow the encryption contract; do not interpret the logical tables below as permission to persist private plaintext.
 
 | Store | Minimum meaning |
 |---|---|
@@ -143,6 +153,8 @@ Use an IndexedDB database owned by the extension. Every record and query is scop
 | `peerBindings` | Workspace/collection allowlist, trusted node key reference and local connection policy; no wallet identity |
 | `inbox`, `outbox`, `syncState` | Validated operation/revision identity, persisted delivery attempts, explicit share projection and reconciled collection generation |
 | `ontologyPacks` | Pinned vocabulary/schema/mapping version, digest, publisher/source and draft status |
+| `communityPolicies`, `deviceGrants`, `externalBindings` | Verified controller history, audience/purpose/expiry-scoped grants and explicit service/garden associations; no plaintext private keys |
+| `encryptedPayloads`, `keyEnvelopes`, `releaseApprovals` | Versioned ciphertext, wrapped recipient keys and exact revision/audience/destination consent; key custody follows the sharing contract |
 
 Keep revisions append-only in normal use. A knowledge command transaction allocates one workspace sequence and writes affected revisions plus its duplicate-protection receipt atomically. Matching command retries return the original receipt; a different payload under the same ID rejects. Source capture and human review atomically append any follow-up dispatch intent. Pi admission/checkpoint commits occur separately and recover through stable request/command IDs. Pi owns investigation phase scheduling, while deterministic intake/delivery workers retain operation-specific leases. Stale or erased source/model/review revisions cannot overwrite newer decisions. Acknowledgement follows the owning commit; no cross-store atomicity is claimed. Display notifications are expendable: another tab can recover changes by reading after its last sequence.
 
@@ -189,7 +201,9 @@ Run inference outside the graph document so GPU/CPU work cannot own the graph's 
 
 ## First end-to-end slice
 
-The [Vida Verde and TAS spike](first-spike.md) replaces the earlier synthetic-only demonstration. It specifies public-source fixtures, actual Hub imports, local capture and inference, simple graph navigation, projected work, history, offline restart, controlled KOI exchange and two-workspace isolation.
+The current slice is the [capture → review → share walkthrough](architecture-flows.md#initial-user-flows), delivered through [C0–C4](plan.todo.md#community-sharing-delivery-order). It proves local identity, protected capture, member review and encrypted transfer before admitting sensitive data; optional storage needs its own gate only when selected. Model inference and Hub/KOI connections support the flow but do not gate manual capture or require public identity. C0a/C5 research is accepted and unrun; passkey convenience, shipping co-editing and C6 connections remain optional.
+
+The earlier [Vida Verde and TAS spike](first-spike.md) specifies additional graph/runtime/Hub/KOI proof. Its source semantics and isolation cases remain useful; its graph-first scope does not override the community-sharing contract.
 
 Run Vida Verde first, then TAS through the same implementation. Completing the spike requires a loaded Brave extension and a real local model. Manual links, fixture imports and UI prototypes provide useful partial proof but cannot pass the AI or live Hub gates. No actual garden record, source claim or outcome is invented to make the scene look complete.
 
@@ -200,6 +214,6 @@ Run Vida Verde first, then TAS through the same implementation. Completing the s
 - Commons authority must supply or approve the pinned draft mapping before claiming commons conformance. A fixture pack proves mechanics only.
 - Source-code reuse needs an exact licensed Coop revision; technical similarity is not a reuse permission.
 - The shipped extension ID, allowed Hub origins and distribution channel need final packaging values. Development uses explicit loopback origins only.
-- The controlled peer proves bounded exchange only. Production shared/community memory, confidential imports, role revocation and general synchronization require later contracts. Personal same-device review must not be marketed as collective knowledge governance.
+- The controlled KOI peer proves bounded exchange only. Community membership, encrypted sharing and revocation now have a design contract but remain unimplemented. Personal same-device review must not be marketed as community review; production federation and generalized synchronization remain later scope.
 
 Primary platform references: [runtime messaging](https://developer.chrome.com/docs/extensions/reference/api/runtime), [offscreen documents](https://developer.chrome.com/docs/extensions/reference/api/offscreen), [Transformers.js extension example](https://huggingface.co/blog/transformersjs-chrome-extension), [Sigma](https://www.sigmajs.org/get-started/quickstart/), [Graphology](https://graphology.github.io/), [Dexie live queries](https://dexie.org/docs/liveQuery()). Component support is not Green Goods browser proof.

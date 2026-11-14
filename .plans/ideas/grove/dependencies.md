@@ -1,6 +1,29 @@
 # Grove dependency map
 
+**Updated:** 13 November 2026. [Community sharing](community-sharing.md) supersedes earlier graph-only scope. Existing G0 installed versions and limitations are in its [immutable report](reports/2026-10-24-g0-feasibility.md); entries below remain architectural choices, not installation approval.
+
+## Community identity, encryption and device sharing
+
+| Component | Role | Decision |
+|---|---|---|
+| Offline identifiers, signed community policy and per-device grants | Local author/member identity and controller succession | Required; exact DID method/credential format gated by C0. Separate from wallet, WebID and ATProto login. |
+| Reviewed envelope/key-wrapping library plus Web Crypto | Vault unlock, authenticated encrypted revisions, recipient key distribution | Required C1 selection; compare EDV patterns and standard envelopes/HPKE. No handwritten crypto protocol or copied provider-derived content key. |
+| Existing WebAuthn credential plus supported PRF/local recovery implementation | Optional local vault unlock; existing Kernel account remains a separate binding | [C0a/E24](collaboration-passkey-spike.md#pass-a-existing-passkey-offline-unlock-and-recovery) proves actual credential/RP reuse, offline unlock and recovery. No direct P-256-to-Ed25519 substitution, signature-derived key or automatic account migration. |
+| Solid browser client and community-selected Pod | Preferred optional encrypted storage adapter | C1a/C3 and E18/E22 prove client encryption, MV3 auth, provider independence and local key custody. Server runs outside the extension; no Pod account needed for local/direct use. |
+| EDV client/server | Research storage alternative | Retain the same two-device comparison criteria; no selected implementation, installed dependency or requirement alongside Solid. |
+| Encrypted export/import and WebRTC | Offline fallback and direct active-device transfer | C2/C4. Authenticated pairing/signaling; explicit STUN/TURN and LAN-only proof. |
+| Phone browser/PWA companion | Local capture/review independent of desktop availability | Candidate; exact support and trusted app/update boundary unproven. Not a universal mobile extension promise. |
+| Yjs / y-indexeddb / encrypted authenticated adapter | Preferred optional concurrent draft convergence | C5/E20: encrypted updates, verified writers, audience/history isolation and recovery. Yjs IDs grant no identity or authority; stock server-readable y-websocket is insufficient. |
+| Automerge Repo + Keyhive | Experimental research alternative to Yjs | [C5/E25](collaboration-passkey-spike.md#pass-b-yjs-versus-automerge--keyhive) retains synthetic comparison, upstream-gap and recovery proof. No production adoption or dual authoritative stores. |
+| MLS implementation | Optional group key epochs for justified collaboration/membership churn | Evaluate against simpler per-resource recipient wrapping. Not required alongside it in the initial pilot. |
+| Web Bluetooth | Optional consented BLE sensor input | Later device-specific spike; not general browser-to-browser mesh. |
+| ATProto/Certified, Ethereum, KOI and IPFS/Filecoin adapters | Deliberate public identity/publication, selected knowledge exchange or archive | Individually scoped optional C6 outputs; no private identity/root-key dependency. |
+
+[Sharing research](sharing-research.md) records sources and alternatives: W3C Linked Web Storage, EDVs, DIF DWNs, remoteStorage and Willow. None is an implicit dependency installation. Old graph/runtime choices below remain conditional on the actual feature slice.
+
 **Status:** proposed choices, Green Goods/Coop inspected 11 October; KOI and Pi Durable revisions added 16 October 2026. No packages or model weights were installed. “Existing” means present in the inspected Green Goods manifests, not automatically available to a future extension bundle. New dependencies require task-specific approval and the repository's release-age gate before pinning.
+
+See [identity/role contracts](identity-role-mapping.md) and [local-first candidates](local-first-options.md). Automerge/Keyhive, Loro, RxDB and Classic Jazz are research options, not selected or installed dependencies. Pi's [capture/review ownership](durable-execution.md#where-pi-belongs-in-capture--review--share) separates durable enrichment from saving and human authority.
 
 ## Platform and presentation
 
