@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-14T06:21:43Z"
+    "updated_at": "2026-11-14T06:50:50Z"
   },
   "links": {
     "brief": "brief.md",
@@ -285,6 +285,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "Recorded five owner decisions on the agent (D26–D30): passive capture as the person browses, a block list, person-reviewed intake, a three-part assessment and a steward-written focus. Added S13–S15 and E27–E28. Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-14T06:50:50Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "Closed ten review findings on the plan: a recovery export holds no device keys; a share approval binds its destination; the agent stops when the vault locks; a steward signs the focus; S7 alone owns the Garden snapshot and its fixtures; curated resource packs follow the MVP; E15, E17 and E26–E28 gained cases. No decision changed. Gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }

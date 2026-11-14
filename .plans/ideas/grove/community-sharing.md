@@ -57,7 +57,7 @@ Hosts still see file sizes, timing, addresses and how many recipients a file has
 
 ## What the agent reads
 
-On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant. A focus counts only when a steward's device signed it; a focus from anyone else is refused.
+On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant. A focus counts only when a device the current member list names as a steward signed it. A focus from anyone else is refused, and after a change of steward the new steward signs it again.
 
 - **What it may read (D27):** the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend.
 - **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged.
@@ -134,7 +134,7 @@ New captures are encrypted to the device's own public key, so saving works while
 - **Pairing:** each side shows a code; the other scans it and both confirm a short comparison string read aloud or compared by eye. Pairing exchanges public keys and the member-list head. It grants nothing by itself: the controller's next list version does.
 - **Recovery:** a member restores from a recovery export with their recovery code, or from their second device. A recovery export holds records and the member's place in the community. It never holds a device's private keys, so a backup cannot bring back the identity of a lost or removed device. A restored device creates new keys and is added to the list again; an old device key is never revived. Restoring a vault restores no Ethereum account. Losing every path fails visibly.
 - **Removal:** the controller signs a version without the device. Files made after a sender holds that version are not wrapped to it. Where history must be excluded, start a new collection.
-- **Stale member lists (D24):** a device stops sharing when its copy of the list is older than seven days, until a newer one arrives in any shared file. Each community can change the number. Capture and personal review never pause. The controller re-signs the current head at least that often so that an unchanged list still counts as fresh; C0 proves the mechanism.
+- **Stale member lists (D24):** a device stops sharing when its copy of the list is older than seven days, until a newer one arrives in any shared file. Each community can change the number: the controller signs the new limit into the member list, so every device applies the same one. Capture and personal review never pause. The controller re-signs the current head at least that often so that an unchanged list still counts as fresh; C0 proves the mechanism.
 - **Derived data:** thumbnails, model outputs, indexes and backups are encrypted at the same boundary as their source. Pi keeps references and receipts, never decrypted sources or keys.
 - **Telemetry (R7):** private records never pass through Shared's upload or telemetry helpers, which record file names and content identifiers today.
 - **Failure and erasure:** a failed unlock or decryption is shown, never an empty successful record. Erasure invalidates local derivatives and pending tasks. A withdrawal cannot delete copies on other devices or in public archives (O7).

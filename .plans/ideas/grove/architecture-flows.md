@@ -235,7 +235,7 @@ Grove adds local and community identity and shared evidence before the existing 
 
 ## The laptop workspace
 
-The diagrams below describe the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's two jobs, passive capture and assessment, are shown in the sequence above (D26 to D30); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. In the MVP the graph shows Grove's own captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
+The diagrams below describe the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's two jobs, passive capture and assessment, are shown in the sequence above (D26 to D30); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. Pinned resource packs follow the MVP with S10. In the MVP the graph shows Grove's own captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
 
 ## Two loops joined by garden memory
 

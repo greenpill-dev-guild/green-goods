@@ -21,7 +21,7 @@ No security or privacy claim is made before E16, E15 and E17 pass on a physical 
 
 E1 to E14 are the earlier graph and runtime gates. The table above says which of them the MVP's workspace lane needs; E5 and E9 to E11 wait for the Hub and KOI lanes. The [G0 report](reports/2026-10-24-g0-feasibility.md) records partial synthetic desktop feasibility only and passes none of them.
 
-These are proposed acceptance criteria, not observed performance or product receipts. Run Vida Verde and TAS as isolated workspaces on one desktop profile using source-backed public inputs; retain separately labeled synthetic negatives. The [spike](first-spike.md) selects the first-slice gates; E7 capacity and E8 broader passive/portability proof follow for the complete MVP. Record exact versions and dataset sizes with every result.
+These are proposed acceptance criteria, not observed performance or product receipts. In the MVP, run the workspace gates on synthetic Grove records in two isolated workspaces on one desktop profile, and retain separately labeled synthetic negatives. Where a row below says "garden", the MVP run uses a workspace of Grove's own records. The Vida Verde and TAS runs on source-backed public inputs wait for S7, as do E1's Garden, Action, Work and WorkApproval mapper cases; the [spike](first-spike.md) defines that walkthrough. E7 capacity and E8's bundle-restore and curated-resource cases follow after the MVP. Record exact versions and dataset sizes with every result.
 
 | Gate | Proof | Acceptance |
 |---|---|---|
