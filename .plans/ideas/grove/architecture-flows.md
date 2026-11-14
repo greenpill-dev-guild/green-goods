@@ -212,7 +212,8 @@ sequenceDiagram
   participant M as Members' devices
   S->>C: Prove a steward or owner Hat with a fresh role check
   C-->>S: Public roles, Actions and the current assessment
-  S->>S: Sign them into the first local member list
+  S->>S: Sign the roles into the first local member list
+  S->>S: Keep Actions and the assessment as signed garden records
   S->>M: Share by encrypted file
   M->>M: Verify the steward's signature and store
   Note over S,M: From here the garden works with no connection

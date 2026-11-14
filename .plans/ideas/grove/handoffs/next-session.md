@@ -4,7 +4,7 @@
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D45, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D46, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -24,6 +24,7 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - The garden's current assessment is the agent's focus, with extra topics a steward may add (D43).
 - Local operation lives in separate local builds of the app and the cockpit, with no analytics and no hosted calls (D44).
 - A steward can include an approved work report, in a revision its author shared or approved, in a report to a funder or partner on the steward's approval alone (D45).
+- The local builds are developed and published at `alpha.greengoods.app` for the app and `alpha.admin.greengoods.app` for the cockpit, new subdomains of `greengoods.app`, and not in the beta environment (D46).
 - The phone and the extension ship together (D2). The phone runs Green Goods itself.
 - The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
 - One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).
@@ -43,7 +44,7 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 
 Each step needs its own authorization before anything is installed or built.
 
-1. Two owner decisions unblock the build: the exact addresses of the local builds (O2), and whether any Coop code may be copied (O5).
+1. One owner decision unblocks the build: whether any Coop code may be copied (O5). The addresses are named (D46). Whether real gardens first install from them is confirmed before a pilot with real data (O2).
 2. Three questions from the reframing stay open. Design settles how local records map onto the onchain ones when published (O16) and which side holds a garden's keys on a laptop (O17, in C9). E29 answers whether a small local model can structure a report well enough (O18). Review raised a fourth: whether an open garden needs a way in when its signer's device cannot be reached (O19), which the owner decides with a design from F6.
 3. **C0b**, then **C0a**. Both are experiments on a physical phone and laptop and need no protocol code. C0b decides which phones may hold keys. C0a decides who gets passkey unlock and who gets the passphrase.
 4. **P0** alongside: the Pi tab-close proof on persistent storage, which the G0 spike left owed and nothing blocks now.

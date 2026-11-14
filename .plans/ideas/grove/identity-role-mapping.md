@@ -115,7 +115,7 @@ Certified's [Group Service](https://docs.hypercerts.org/reference/services/certi
 |---|---|
 | Member | An opaque local identifier within one community, its device keys and their history |
 | Member-list entry | Member, device keys, role, the list version that added it and the one that removed it |
-| Assessment | Its author, the revision, the baseline, method, outcome targets, selected Actions and reporting period, and the signature of the author's device. Accepted when the signer could write one in the member list it was signed under |
+| Assessment | Its author, the revision, the baseline, method, outcome targets, selected Actions and reporting period, and the signature of the author's device. A new one is accepted when its signer can write one in the newest member list the device holds when it arrives, and one already accepted stays in place after its author leaves |
 | Watch topics | A steward's extra topics for the agent, signed by a steward's device |
 | Intention | The requester, the kind (claim, award, vault action or certificate), the amount, the purpose, the approver's signed decision, and its state: prepared, approved, settled or declined |
 | Share approval | The author, the revision's digest, the fields, the recipients, the purpose, the destination, the time. Bound to a digest of the exact content and signed by one of the author's devices |
