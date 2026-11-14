@@ -214,6 +214,7 @@ sequenceDiagram
   C-->>S: Public roles, Actions and the current assessment
   S->>S: Start the member list with the proof
   S->>S: Keep roles, Actions and the assessment as imported records
+  S->>C: Record the local garden's identifier onchain
   S->>M: Share by encrypted file
   M->>M: Verify the steward's signature and store
   Note over S,M: From here the garden works with no connection

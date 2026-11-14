@@ -4,7 +4,7 @@
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D46, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D47, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -25,6 +25,8 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - Local operation lives in separate local builds of the app and the cockpit, with no analytics and no hosted calls (D44).
 - A steward can include an approved work report, in a revision its author shared or approved, in a report to a funder or partner on the steward's approval alone (D45).
 - The local builds are developed and published at `alpha.greengoods.app` for the app and `alpha.admin.greengoods.app` for the cockpit, new subdomains of `greengoods.app`, and not in the beta environment (D46).
+- When an existing garden is brought local, the first import records the local garden's identifier onchain, so a second steward finds it and joins instead of making a copy (D47).
+- Running a pool's seasons, support allocations and editing an Action are in the first version, as part of every current function working locally (D37).
 - The phone and the extension ship together (D2). The phone runs Green Goods itself.
 - The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
 - One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).
