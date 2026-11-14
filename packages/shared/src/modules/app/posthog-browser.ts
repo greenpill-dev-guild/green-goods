@@ -6,6 +6,9 @@ import { registerTelemetrySink } from "./telemetry-sink";
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 const EXTENSION_TAB_ERROR = /^No tab with id: \d+\.$/;
+// Vercel injects its Live feedback toolbar on preview deployments such as beta. Its script calls
+// browser APIs that older engines lack, such as the Popover API before Chrome 114.
+const VERCEL_TOOLBAR_ORIGIN = "https://vercel.live/";
 // When a navigation interrupts an in-flight view transition, the browser skips it and rejects
 // its `ready` promise with an AbortError. react-router never handles that promise, so it lands
 // as an unhandled rejection even though the route still commits. posthog-js stores the
@@ -21,6 +24,17 @@ type ExceptionEntry = {
   value?: unknown;
 };
 
+function exceptionFrames(entries: ExceptionEntry[]): unknown[] {
+  return entries.flatMap((entry) =>
+    Array.isArray(entry?.stacktrace?.frames) ? entry.stacktrace.frames : []
+  );
+}
+
+function frameFilename(frame: unknown): string | undefined {
+  const filename = (frame as { filename?: unknown } | null)?.filename;
+  return typeof filename === "string" ? filename : undefined;
+}
+
 /** Drop extension-owned exceptions while preserving frameless application failures. */
 export function dropExtensionExceptions(event: CaptureResult | null): CaptureResult | null {
   if (!event || event.event !== "$exception" || !event.properties) return event;
@@ -29,14 +43,8 @@ export function dropExtensionExceptions(event: CaptureResult | null): CaptureRes
   if (!Array.isArray(list)) return event;
 
   const entries = list as ExceptionEntry[];
-  const frames = entries.flatMap((entry) =>
-    Array.isArray(entry?.stacktrace?.frames) ? entry.stacktrace.frames : []
-  );
-  const hasExtensionFrame = frames.some((frame) => {
-    const filename = (frame as { filename?: unknown } | null)?.filename;
-    return typeof filename === "string" && filename.includes("extension://");
-  });
-  if (hasExtensionFrame) return null;
+  const frames = exceptionFrames(entries);
+  if (frames.some((frame) => frameFilename(frame)?.includes("extension://"))) return null;
 
   const isKnownFramelessExtensionError =
     frames.length === 0 &&
@@ -49,6 +57,21 @@ export function dropExtensionExceptions(event: CaptureResult | null): CaptureRes
     );
 
   return isKnownFramelessExtensionError ? null : event;
+}
+
+/** Drop exceptions thrown inside the Vercel Live feedback toolbar script. */
+export function dropVercelToolbarExceptions(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  if (!Array.isArray(list)) return event;
+
+  const frames = exceptionFrames(list as ExceptionEntry[]);
+  const hasToolbarFrame = frames.some((frame) =>
+    frameFilename(frame)?.startsWith(VERCEL_TOOLBAR_ORIGIN)
+  );
+
+  return hasToolbarFrame ? null : event;
 }
 
 /** Drop the AbortError raised when a queued view transition is skipped by the next navigation. */
@@ -143,6 +166,7 @@ export function initializePostHog(apiKey: string): void {
       dropDevelopmentHostExceptions,
       restoreExceptionTopLevelProps,
       dropExtensionExceptions,
+      dropVercelToolbarExceptions,
       dropSkippedTransitionExceptions,
     ],
     debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
