@@ -2,7 +2,7 @@
 
 Open [the demo index](index.html) in a browser, then choose a study. Each HTML file contains its own styles, fixtures and JavaScript; there is no package install, build, private file dependency or network data fetch. An ordinary static server also works. Public source links open only when selected.
 
-The [current architecture view](grove-architecture.html) was rebuilt on 14 November 2026 as one self-contained page: one file, no network requests and no stored state. It replaces the earlier exported widget and its separate fragment, which loaded a script from a CDN. It steps one capture through the four audiences (local, community, partner community, public), names who approves each crossing and who holds which key, and marks next lanes and later work apart from the MVP. It follows the [decision log](../../spec.md#decision-log). It contains synthetic examples and no live accounts, keys, network sharing or proof of any capability.
+The [current architecture view](grove-architecture.html) was rebuilt on 14 November 2026 as one self-contained page: one file, no network requests and no stored state. It replaces the earlier exported widget and its separate fragment, which loaded a script from a CDN. It steps one capture through the four audiences (local, community, partner community, public), names who approves each crossing and who holds which key, shows where the laptop agent brings items in and assesses them, and marks next lanes and later work apart from the MVP. It follows the [decision log](../../spec.md#decision-log). It contains synthetic examples and no live accounts, keys, network sharing or proof of any capability.
 
 | Demo | Explore |
 |---|---|

@@ -19,7 +19,7 @@ The order follows two rules. The first is the owner's: "Local identity and key c
 | 5 | C0 and C1 together | Recovery of a lost device and loss of the steward | E15, E16, E24 |
 | 6 | C2 | The whole loop by encrypted file on both clients, ending in a partner summary | E17, E2 |
 | 7 | C4 | The supported device list, and what suspension and large files do | E19 for the file carrier |
-| Alongside | S1 to S6, S8, P0 to P2 | The laptop workspace: graph, Gemma and Pi over Grove's own records | E1 to E4, E6, E12 to E14 |
+| Alongside | S1 to S6, S8, S13 to S15, P0 to P2 | The laptop workspace: the agent's passive capture and assessment, the graph, and Pi, over Grove's own records | E1 to E4, E6, E12 to E14, E27, E28 |
 
 The workspace lane can be built in parallel on synthetic records. It counts toward the [MVP finish line](spec.md#mvp-contract) only after steps 1 to 6 pass, and no private record enters it before then (D25).
 
@@ -42,7 +42,7 @@ The workspace lane can be built in parallel on synthetic records. It counts towa
 - [ ] **C5 — Co-editing with Yjs; Automerge + Keyhive research.** Later lane, opened when two people must edit one draft at once (D16). Use the Yjs core for merging, one new document per audience, with every key holder able to write (R9). Prove encrypted updates, offline edits, restart and reconnect, removed and stale members, history and presence privacy, and recovery on a physical phone and laptop. Exit: E20; a server that can read the document fails it. [Pass B](collaboration-passkey-spike.md#pass-b-yjs-versus-automerge--keyhive) and E25 are backlog research and gate nothing (R11). MLS is a separate, conditional evaluation.
 - [ ] **C6 — Outside accounts and publication.** Later lane. Prove private, separately approved associations with a garden or a service account. Verify EOAs and ERC-1271 accounts and the current garden role, and prove a garden link through a Hat-wearing account (R8). Record a release approval before anything is handed to an upload queue, bound to a digest of the exact payload (R6). Test Certified's EOA-only limit instead of claiming GardenAccount support. Scope ATProto/Certified, Ethereum and archival adapters one at a time with their owning projects. Exit: E21 and the outside-account cases of E23; no chain transaction or public upload is authorized by this plan.
 
-**First complete demonstration:** a steward creates a community with no wallet → a member captures on a phone → reviews it by hand → pairs their laptop and carries the capture across as a file → shares a selected, encrypted copy with a reviewer → the reviewer corrects it → the author approves the corrected version → the steward sends a separately approved summary to a named partner. Then, on the laptop, a Gemma investigation proposes a connection, survives a closed tab, and the member accepts it in the graph. No Solid, EDV, co-editing, KOI, Hub, Certified or Ethereum dependency is needed. The phone needs no model.
+**First complete demonstration:** a steward creates a community with no wallet → a member captures on a phone → reviews it by hand → pairs their laptop and carries the capture across as a file → shares a selected, encrypted copy with a reviewer → the reviewer corrects it → the author approves the corrected version → the steward sends a separately approved summary to a named partner. Then, on the laptop, the agent brings in a funding call that fits the community's focus while the member browses, and shows why it was brought in, where it came from and what to check before sharing; the member keeps it and shares it. A Gemma investigation proposes a connection, survives a closed tab, and the member accepts it in the graph. No Solid, EDV, co-editing, KOI, Hub, Certified or Ethereum dependency is needed. The phone needs no model.
 
 ## Before execution
 
@@ -68,7 +68,8 @@ Where each of the 18 earlier checkpoints stands after 14 November:
 | S1 to S6, S8, P1, P2 | MVP, workspace lane, over Grove's own records (D25) |
 | S7, S9 | Next lane: the Admin Hub snapshot and digest (D22, O9) |
 | K1, K2 | Next lane: KOI exchange (D22) |
-| S10 to S12 | After the MVP |
+| S13 to S15 | MVP, workspace lane: the community's focus, passive capture and assessment (D26 to D30). Added 14 November |
+| S10 to S12 | After the MVP. S14 replaces S10's research-session capture; S10's resource packs and notes remain |
 
 The rest of this section and the milestones below keep the earlier plan's wording, with a note wherever a checkpoint moved. Use five implementation PRs after build authorization, followed by the broader MVP. The 18 checkpoints are split so no PR becomes an unbounded integration batch:
 
@@ -110,6 +111,12 @@ The [first spike](first-spike.md) is the acceptance scenario for Vida Verde and 
 
 - [ ] **P2 — Run a durable local investigation and review continuation.** Proposed `execution/investigation.ts`, its interruption test, `execution/gemma-step.ts`, and a scoped progress projection; split UI wiring/erasure proof into a separate bounded checkpoint. Use custom phases and the existing Gemma bridge, not a built-in tool loop. Checkpoint references to prepared commands, apply through P1, and finish as ready for review. A human review dispatches a new keyed follow-up without a live wait. Exit: E13/E14 pass for source-save/admit, inference, prepared-result, graph-commit and Pi-checkpoint interruptions; one owner remains; erased source text never enters/restores through Pi records. Prerequisites: P0/P1, S6/S8.
 
+- [ ] **S13 — The community's focus.** Added 14 November (D30). The steward writes the community's topics, goals and open questions as a community record with revisions. Members receive it like any shared record, and each member's agent reads the copy on its own device. Exit: a focus written on one device reaches another by shared file, a change is a new revision, and with no focus the agent brings in nothing. Prerequisites: S3 for storage, C2 for sharing.
+
+- [ ] **S14 — Passive capture as the person browses.** Added 14 November (D26 to D28). In the extension, read the text of pages the person visits, except private windows, the block list and pages with a password field (R18). Judge relevance in two stages: a plain text match against the focus, then one model step on pages that match, queued for when the laptop is idle (R16). Bring in only what the model judges relevant, as a capture in the person's own inbox, and keep nothing from any other page (R17). Show when the agent is reading, give a pause switch, and list what it brought in. Deduplicate by address and content. Exit: E27. The request for access to all sites is a manifest change that needs its own review (O12).
+
+- [ ] **S15 — Assessment before review.** Added 14 November (D29). For each item the agent brought in, run three bounded Pi phases: why it was brought in, with the passage; its source, author and date, with the deadline for a funding call; and what to check before sharing, such as names, contact details and exact locations. Store the result beside the item with the model version and what could not be checked (R19). Show it in review, where the person keeps, corrects or discards. Exit: E28. The assessment never shares, approves or discards.
+
 - [ ] **S9 — Return reviewed insight to the Hub.** Next lane (D22). Shared digest contract/mapping, an Admin digest component and its consumer test, plus the existing bridge handler. Show only included accepted items, source references and graph links under the exact garden binding. Exit: an accepted item appears as **On this device**; rejected/raw/private items do not escape by default; disconnect stops exchange. No backend mutation is introduced.
 
 **Local checkpoint:** connect → source capture → keyed Pi investigation → real proposal → idempotent graph command → graph review/follow-up → temporal comparison → offline resume → same-device Hub digest. P0–P2 are required for this selected architecture. This proves the local path, not the KOI spike. In the MVP the checkpoint runs from source capture to offline resume; connect and the Hub digest belong to the Hub lane.
@@ -144,6 +151,8 @@ The [first spike](first-spike.md) is the acceptance scenario for Vida Verde and 
 | The author and a steward approve each crossing | C2 | E17's approval cases pass |
 | Storage and relay hosts cannot decrypt | C1 now; C1a and C3 when a store exists | E16; then E18 and E22 with the operator's full view |
 | A partner receives only an approved summary | C2 | E17's partner case passes with no private history in the file |
+| An agent brings in relevant knowledge and resources as the person browses | S13, S14 | E27 passes on a labelled set of pages |
+| An assessment of each item before it is shared | S15 | E28 passes, and the assessment never decides |
 | Ontology-grounded AI | S0, S2, S8, S10 | Valid candidate IDs/predicates and exact source provenance; commons draft status remains visible |
 | Garden entity/relationship graph | S2–S7 | Canonical garden records appear with distinct domain identities |
 | Living graph is the core interface | S5–S6 | Capture, query, inspection and review are available in one graph workspace |
@@ -157,7 +166,7 @@ The [first spike](first-spike.md) is the acceptance scenario for Vida Verde and 
 | Durable local investigations | P0–P2, S8 | Pi storage conforms; actual Gemma run resumes through idempotent commands; review follow-up and source erasure remain safe |
 | KOI as optional exchange foundation (next lane) | K1–K2 | Cross-language wire proof, authorized scoped reads/writes and recovery after loss |
 | Vida Verde and TAS with distinct projections | S2–S9, K2 | Both real-source flows work; planned work never becomes recorded by acceptance; no cross-garden leakage |
-| Mostly passive operation | S10–S12 | Selected research scopes capture while enabled, with recoverable enrichment |
+| Mostly passive operation | S14 in the MVP; S10–S12 after | Selected research scopes capture while enabled, with recoverable enrichment |
 
 ## Verification and change boundaries
 

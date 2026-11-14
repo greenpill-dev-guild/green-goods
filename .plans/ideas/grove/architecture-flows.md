@@ -8,7 +8,8 @@
 flowchart TB
   subgraph LOCAL["LOCAL · own devices"]
     Cap["Capture<br/>source, time, consent"] --> Vault[("Encrypted vault<br/>on each device")]
-    Vault --> PRev["Personal review<br/>by hand, with optional local AI on the laptop"]
+    Agent["Agent on the laptop<br/>brings in what fits the focus"] --> Vault
+    Vault --> PRev["Personal review<br/>by hand, with the agent's assessment on the laptop"]
   end
   subgraph COMMUNITY["COMMUNITY · members"]
     Recv["Verify sender, member list and recipients<br/>decrypt and store"] --> CRev["Review together<br/>decisions and corrections"]
@@ -33,9 +34,9 @@ Local means one person's own phone and laptop; community means named members' de
 
 | Step | Knowledge capture | Impact evidence capture | Boundary and authority |
 |---|---|---|---|
-| 1. Start locally | Create a community or accept a verified invitation | Same; a public garden can be linked later | No wallet or provider login. Each device gets its own keys. A recovery code is created |
-| 2. Capture | Save a guide, page excerpt, lesson or note | Save an observation, photo or account of work | Saved first, with source, time and consent. No model, network or unlock is needed to save |
-| 3. Review personally | Correct a summary, inspect sources, add a connection | Check date, attribution and evidence; keep planned, reported and recorded apart | By hand on either client. On the laptop, local AI may propose; the person decides. No protocol attestation is created |
+| 1. Start locally | Create a community or accept a verified invitation | Same; a public garden can be linked later | No wallet or provider login. Each device gets its own keys. A recovery code is created. The steward writes the community's focus |
+| 2. Capture | Save a guide, page excerpt, lesson or note | Save an observation, photo or account of work | Saved first, with source, time and consent. No model, network or unlock is needed to save. On the laptop, the agent also brings in pages that fit the community's focus as the person browses |
+| 3. Review personally | Correct a summary, inspect sources, add a connection | Check date, attribution and evidence; keep planned, reported and recorded apart | By hand on either client. On the laptop, each item the agent brought in comes with its assessment; the person decides and can discard. No protocol attestation is created |
 | 4. Share for review | Choose an excerpt or resource and named reviewers | Choose the evidence fields and reviewers; leave out unneeded personal and location data | The author approves the exact revision, fields, recipients and purpose. The file is encrypted before it leaves; the original stays |
 | 5. Review together | Members discuss and correct a lesson | Reviewers assess the evidence and prepare notes for a summary | Each reviewer's decision is recorded with their identity and the revision. Reading gives no authority to release |
 | 6. Share an outcome | Send a useful summary to a partner community | Send a report to a named funder or partner | A steward approves a new, minimized projection. The author approves too if a corrected version of their capture is leaving |
@@ -69,6 +70,29 @@ sequenceDiagram
 ```
 
 A save is acknowledged only after its transaction commits. Inference is optional and happens after the save, never before it.
+
+### Passive capture and assessment on the laptop
+
+```mermaid
+sequenceDiagram
+  participant P as Person browsing
+  participant X as Extension
+  participant A as Agent, a local model run by Pi
+  participant V as Vault and local store
+  P->>X: Visits a page
+  X->>X: Skip private windows, blocked sites and pages with a password field
+  X->>X: Plain text match against the community's focus
+  Note over X: No match. The text is discarded and nothing is logged
+  X->>A: A page that matches, queued for when the laptop is idle
+  A->>A: Is it relevant to a stated goal
+  Note over A: Not relevant. Discarded, nothing is kept
+  A->>V: Relevant. Save it as a capture in the person's own inbox
+  A->>V: Assessment. Why it was brought in, source and date, what to check before sharing
+  P->>X: Reviews the inbox and keeps, corrects or discards
+  Note over P,V: Sharing with the community still needs the author's approval
+```
+
+The agent brings in only what it judges relevant, so it never recommends discarding an item (D28). The person reviews everything it brings in. The focus is the steward's written list of topics, goals and open questions (D30); with no focus the agent brings in nothing.
 
 ### Phone to laptop
 
@@ -209,7 +233,7 @@ Grove adds local and community identity and shared evidence before the existing 
 
 ## The laptop workspace
 
-The diagrams below describe the laptop's graph and investigation lane, which is part of the MVP (D25). Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. In the MVP the graph shows Grove's own captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
+The diagrams below describe the laptop's graph and investigation lane, which is part of the MVP (D25). The agent's two jobs, passive capture and assessment, are shown in the sequence above (D26 to D30); in these older diagrams they correspond to the capture and investigation steps. Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. In the MVP the graph shows Grove's own captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
 
 ## Two loops joined by garden memory
 

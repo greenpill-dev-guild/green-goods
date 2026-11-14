@@ -1,10 +1,10 @@
 # Continue Grove
 
-**State as of 14 November 2026:** two independent reviewers examined the architecture and MVP, and the owner settled ten decisions. The hub's documents were aligned to those decisions and the architecture page was rebuilt. Nothing is built beyond the disposable G0 spike, and every gate is unrun. The edits are uncommitted in a review worktree on top of draft PR #1601's content; nothing was committed, pushed or published.
+**State as of 14 November 2026:** two independent reviewers examined the architecture and MVP, and the owner settled ten decisions on the architecture and then five on what the agent does. The hub's documents were aligned to those decisions and the architecture page was rebuilt. Nothing is built beyond the disposable G0 spike, and every gate is unrun. The work is three commits on the branch `research/grove-architecture-alignment`: the earlier draft's commit replayed onto develop, the alignment, and the agent decisions.
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract and the one decision log: decisions D1 to D25, recommendations R1 to R15, assumptions W1 to W4 and open questions O1 to O11. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract and the one decision log: decisions D1 to D30, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O13. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second Grove hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -20,6 +20,11 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - "Community" is Grove's term, defined apart from a Garden and the Community role (D23).
 - A device stops sharing when its member list is older than seven days, adjustable per community (D24).
 - The graph, Gemma suggestions and Pi investigations stay in the MVP (D14, D25).
+- The agent captures relevant knowledge and resources as a person uses their browser, and brings them in for that person to review and then share (D26).
+- It may read every page visited, except private windows and a block list of sensitive sites (D27).
+- A person reviews everything it brings in and can discard it. The agent brings in only what it judges relevant, never something it would recommend discarding (D28).
+- Its assessment first covers why an item was brought in, its source, author and date, and whether it is safe to share (D29).
+- The steward writes the community's focus in Grove (D30).
 
 ## Next bounded work
 
@@ -29,17 +34,18 @@ Each step needs its own authorization before anything is installed or built.
 2. **C0b**, then **C0a**. Both are experiments on a physical phone and laptop and need no protocol code. C0b decides which phones may hold keys. C0a decides who gets passkey unlock and who gets the passphrase.
 3. **P0** alongside: the Pi tab-close proof on persistent storage, which the G0 spike left owed and nothing blocks now.
 4. Then C1, C0, recovery and C2, in the [MVP order](../plan.todo.md#mvp-order).
+5. The agent's checkpoints, S13 to S15, belong to the workspace lane. S14 asks for access to all sites, a manifest change that needs its own review (O12).
 
-The recommendations R1 to R15 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts.
+The recommendations R1 to R19 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts.
 
 ## Validation and phase record, 14 November
 
 Checked on the working copy, develop `3ee6594ef` plus this hub:
 
 - `node scripts/harness/plan-hub.mjs validate`: 31 hubs validated.
-- A local link and anchor checker over the hub's 26 Markdown files: every local link resolves. Before the edits, one link pointed into an uninitialized submodule; it now points upstream at the pinned commit.
-- All 25 Mermaid diagrams parse with Mermaid 11.4.1, and the 11 new or changed ones were rendered and looked at. Two diagrams in `prototype-architecture.md` failed to parse before; a semicolon in each was the cause and both are fixed.
-- The architecture page was rendered in a browser pane from a local static server (isolated profile, not authenticated): desktop in light and dark, and 360 px wide. Stepping by button, by menu and by keyboard works; the later-work toggle shows and hides seven items; there are no console messages, no request beyond the page itself and no stored state. Computed contrast is at least 5.4:1 for text and 3.6:1 for control borders in both themes.
+- A local link and anchor checker over the hub's 26 Markdown files: every local link resolves. `check-guidance-links.mjs` and `check-immutable-plan-reports.mjs` pass. Before the edits, one link pointed into an uninitialized submodule; it now points upstream at the pinned commit.
+- All 26 Mermaid diagrams parse with Mermaid 11.4.1, and the new or changed ones were rendered and looked at. Two diagrams in `prototype-architecture.md` failed to parse before; a semicolon in each was the cause and both are fixed.
+- The architecture page was rendered in a browser pane from a local static server (isolated profile, not authenticated): desktop in light and dark, and 360 px wide. Stepping by button, by menu and by keyboard works; the nine steps, including the agent's, highlight the right parts; the later-work toggle shows and hides seven items; there are no console messages, no request beyond the page itself and no stored state. Computed contrast is at least 5.4:1 for text and 3.6:1 for control borders in both themes.
 - Draft PR #1601's checks were green at `175d3051f` when read; they do not cover these edits.
 
 Not checked: a screen reader, forced-colors mode, a real phone, GitHub's own Mermaid rendering, Linear, and any gate in [eval.md](../eval.md). No experiment was run. The outside facts in [dependencies](../dependencies.md#versions-maturity-and-licenses) were read by a reviewer on 13 November except where a row says it was verified on 14 November.
@@ -53,8 +59,11 @@ Agent/model: Claude Code / claude-fable-5-2, with reviewer subagents claude-opus
 | Wait | 03:48 → about 04:58 | Ten owner decisions, in two rounds of five |
 | Implement plan and visual | about 04:58 → 05:21 | Documents aligned; architecture page rebuilt as one self-contained file |
 | Verify | 05:13 → 05:23 | Hub validator, links, diagrams and rendered page, as listed above |
+| Wait | 05:27 → 06:15 | Commit signing locked until the owner unlocked it; five agent decisions settled meanwhile |
+| Implement plan and visual | 06:17 → 06:22 | Agent decisions written into the hub and the architecture page |
+| Verify | 06:20 → 06:22 | Validators, links, diagrams and rendered page; the push gate runs after the commit |
 
-Human corrections: 0 observed; three recommended defaults were declined in favor of the fuller plan. Attention: unknown.
+Human corrections: 1 observed, on scope: the first alignment left passive capture out of the MVP and defined no assessment step, and the owner restored both. Three recommended defaults were also declined in favor of the fuller plan. Attention: unknown.
 
 ## Earlier records, 13 November
 

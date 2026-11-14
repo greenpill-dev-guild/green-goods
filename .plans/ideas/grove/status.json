@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-14T05:22:00Z"
+    "updated_at": "2026-11-14T06:21:43Z"
   },
   "links": {
     "brief": "brief.md",
@@ -61,7 +61,8 @@
     "2026-11-14: two independent reviewers examined the architecture and MVP (one on product, flows and scope; one on identity, encryption and synchronization), and their findings were reconciled. spec.md now owns the MVP contract and the single decision log: D1–D25, recommendations R1–R15, assumptions W1–W4 and open questions O1–O11.",
     "2026-11-14 owner decisions: the desktop extension and a phone web app ship together; the author approves every share of their own capture and a steward approves partner summaries and public releases; one steward signs member changes, with a recovery code at setup and a second controller before real data; the existing passkey unlocks the vault where its provider supports it and a passphrase does otherwise, so C0a is a gate; the graph, Gemma and Pi stay in the MVP; the no-decrypt requirement covers storage and relay hosts, with Green Goods trusted as publisher of the client code.",
     "2026-11-14 owner decisions, continued: encrypted files carry records in the MVP and a hosted mailbox with Solid preferred is the next lane; the MVP graph shows Grove's own records, with the Hub snapshot and KOI exchange as next lanes; community is Grove's term, defined apart from a Garden and the Community role; a device stops sharing when its member list is older than seven days, adjustable per community. The earlier note that the living graph is the core interface is superseded: the graph is one view beside capture and review lists.",
-    "2026-11-14: C0b/E26 added (device durability, run first). MVP order: C0b, C0a, C1, C0, recovery, C2, C4, with the workspace lane (S1–S6, S8, P0–P2) alongside. Open with the owner: where the phone app and shared core live (O2) and whether Coop code may be reused (O5). The architecture page was rebuilt as one self-contained file. All gates remain unrun; no lane, Linear, dependency or runtime change; the documentation edits are uncommitted in a review worktree."
+    "2026-11-14: C0b/E26 added (device durability, run first). MVP order: C0b, C0a, C1, C0, recovery, C2, C4, with the workspace lane (S1–S6, S8, P0–P2) alongside. Open with the owner: where the phone app and shared core live (O2) and whether Coop code may be reused (O5). The architecture page was rebuilt as one self-contained file. All gates remain unrun; no lane, Linear, dependency or runtime change; the documentation edits are uncommitted in a review worktree.",
+    "2026-11-14 owner decisions on the agent (D26–D30): it captures relevant knowledge and resources as a person uses their browser and brings them in for that person to review and then share; it may read every page visited except private windows and a block list of sensitive sites; a person reviews everything it brings in and can discard it, and it never brings in an item it would recommend discarding; its assessment first covers why an item was brought in, its source, author and date, and whether it is safe to share; the steward writes the community's focus in Grove. S13–S15 and E27–E28 added to the workspace lane, unrun. Passive capture is therefore in the MVP, replacing the earlier selected-domain research session."
   ],
   "lanes": {
     "ui": {
@@ -276,6 +277,14 @@
       "status": "idea",
       "branch": "claude/grove-architecture-review-bdbda6",
       "note": "Recorded ten owner decisions after an independent two-reviewer architecture review; aligned the hub's documents to them and rebuilt the architecture page. Gates remain unrun; no lane, Linear, dependency or runtime change; nothing committed."
+    },
+    {
+      "timestamp": "2026-11-14T06:21:43Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "Recorded five owner decisions on the agent (D26–D30): passive capture as the person browses, a block list, person-reviewed intake, a three-part assessment and a steward-written focus. Added S13–S15 and E27–E28. Gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }

@@ -20,19 +20,19 @@ This document owns three things: the MVP contract, the decision log, and the com
 | Client | Runs on | Does |
 |---|---|---|
 | Phone web app | An installed web app on Android Chrome or iOS Safari (Home Screen) | Capture, personal review, pairing, share and receive by encrypted file |
-| Desktop extension | A packaged extension in a desktop Chromium browser, Brave first | Everything the phone does, plus page capture, the graph, local Gemma suggestions and Pi investigations |
+| Desktop extension | A packaged extension in a desktop Chromium browser, Brave first | Everything the phone does, plus page capture, an agent that brings in relevant pages as the person browses and assesses them, the graph, and Pi investigations |
 
 The exact supported versions are a result of C0b and C0a, not a promise made here. The proposed floor is Chromium 137 on desktop and Android and iOS 18.4, for the reasons in [dependencies](dependencies.md#community-identity-encryption-and-device-sharing).
 
 **Included workflows.**
 
-1. Create a community and a member identity offline on either client, with a recovery code.
+1. Create a community and a member identity offline on either client, with a recovery code. The steward writes the community's focus: its topics, goals and open questions (D30).
 2. Unlock with an existing Green Goods passkey where its provider supports it, and with a passphrase otherwise (D19).
 3. Capture a note, photo, file, or link with an excerpt; on the laptop, capture a page. Each capture records source, time and consent context and is saved before anything else happens.
 4. Review a capture personally, by hand, on either client.
 5. Pair a member's own phone and laptop, and admit another member's device.
 6. Move captures from phone to laptop as an encrypted file (D21).
-7. On the laptop, browse records as lists and as a graph, run an optional Gemma investigation through Pi, and accept, reject or correct what it proposes (D25).
+7. On the laptop, an agent brings in relevant knowledge and resources as the person browses, guided by that focus, and assesses each item before the person reviews it (D26 to D29). The person browses records as lists and as a graph, and accepts, rejects or corrects what the agent proposes (D25).
 8. Share: the author approves an exact projection, meaning which revision and which fields, for named recipients; the client signs and encrypts it; the recipient verifies, stores it and returns a receipt (D17).
 9. Review together: recipients record decisions and corrections. A corrected version leaves the community only with the author's fresh approval (D17).
 10. Send a partner summary under a steward's approval, as a new projection with no private history (D17).
@@ -45,7 +45,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 - Co-editing with Yjs, WebRTC transfer, Bluetooth sensors.
 - Publication: the Green Goods work-submission bridge, ATProto/Certified, IPFS/Filecoin.
 - EDV, Automerge + Keyhive and MLS, which stay research.
-- Passive capture, a model on the phone, and any real sensitive record before the loop gates pass.
+- A model or passive capture on the phone, and any real sensitive record before the loop gates pass.
 
 **The MVP is done when all of these are observed** on a physical phone and a physical laptop:
 
@@ -57,7 +57,8 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 6. Passkey unlock works with the network blocked where the provider supports it, the passphrase works where it does not, and a synced passkey cannot bring back a removed device (E24).
 7. A corrected record cannot leave the community without its author's approval, and a partner summary carries a steward's approval and no private history (E17).
 8. On the laptop, a real local Gemma investigation produces proposals with exact quotes, survives a closed tab through Pi with one result, and appears in the graph as new (E4, E6, E12–E14). Capture and manual review behave the same with the model absent.
-9. In a moderated check, participants say correctly who can see a record in each of the four audiences.
+9. As a person browses on the laptop, the agent brings in pages that fit the community's focus and nothing from a blocked site or a private window. It keeps nothing from a page it did not bring in. Each item it brings in shows why it was brought in, its source, author and date, and anything to check before sharing (E27, E28).
+10. In a moderated check, participants say correctly who can see a record in each of the four audiences.
 
 ## Decision log
 
@@ -75,7 +76,7 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D6 | A versioned Grove application profile composed from Green Goods, a pinned Commons draft and local terms | One vocabulary with distinct source identities; see [ontology alignment](ontology-alignment.md) | Carried |
 | D7 | Model proposals are source-linked and validated before storage | The model cannot commit facts, approve Work or invent predicates | Carried |
 | D8 | Personal and community review are separate and versioned | Who reviewed what, at which revision, without implying protocol approval. D17 names the approvers | Carried |
-| D9 | Explicit capture → review → share for both knowledge and impact evidence | Passive capture, co-editing and sensors follow demonstrated need and consent | Accepted 13 Nov |
+| D9 | Capture → review → share for both knowledge and impact evidence | Explicit capture on both clients. Passive capture on the laptop was added on 14 November (D26). Co-editing and sensors follow demonstrated need and consent | Accepted 13 Nov; amended 14 Nov |
 | D10 | Capture and manual review never depend on a model | The manual path is the primary path, not a fallback | Accepted 13 Nov |
 | D11 | Local, community-controlled identity with separate device, storage and public associations | No provider or Ethereum dependency for local use | Accepted 13 Nov |
 | D12 | Solid is the preferred optional storage adapter, with encryption on the client | Next lane, behind a generic store interface (D21). EDV stays research | Accepted 13 Nov; sequenced 14 Nov |
@@ -91,7 +92,12 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D22 | The MVP graph shows Grove's own records. The Hub snapshot and KOI exchange are next lanes | Changes the October prototype's order, where connecting a garden came first | Accepted 14 Nov |
 | D23 | "Community" is Grove's word for the group that shares records, defined apart from a Garden and from the Community role | Terms live in the [sharing contract](community-sharing.md#terms). The term is a proposal for the ontology change protocol, not an ontology edit | Accepted 14 Nov |
 | D24 | A device stops sharing when its copy of the member list is older than seven days, until a newer one arrives. Each community can change the number | Capture and personal review never pause. A removal can take up to the limit to reach an offline sender | Accepted 14 Nov |
-| D25 | The MVP finish line includes the laptop workspace: the graph, Gemma suggestions and Pi investigations | The loop and privacy gates come first; the workspace runs alongside on synthetic records and counts once they pass | Accepted 14 Nov |
+| D25 | The MVP finish line includes the laptop workspace: the graph, Gemma suggestions and Pi investigations | The loop and privacy gates come first; the workspace runs alongside on synthetic records and counts once they pass. D26 to D30 say what the agent does there | Accepted 14 Nov |
+| D26 | The agent captures relevant knowledge and resources as a person uses their browser, and brings them in for that person to review and then share with the community | Passive capture is in the MVP, on the laptop extension. What it brings in lands in the person's own local records first and reaches the community only through the approvals in D17 | Accepted 14 Nov |
+| D27 | The agent may read every page the person visits, except private windows and a block list of sensitive sites that the person can extend | Closest to "as a user uses their browser" and catches the most. The extension must ask for access to all sites, which browser stores scrutinize, and a gap in the block list would let a private page's text reach local storage | Accepted 14 Nov |
+| D28 | A person reviews everything the agent brings in and can discard it. The agent brings in only what it judges relevant, and never an item it would recommend discarding | Relevance is decided before anything is stored, so the agent makes no keep-or-discard recommendation. Getting relevance right matters more than bringing in more | Accepted 14 Nov |
+| D29 | The assessment of a brought-in item first covers three things: why it was brought in, its source, author and date, and whether it is safe to share | Checking an item's claims against its source comes later; it is the hardest check for a small local model. The assessment is advice and never a decision (D17) | Accepted 14 Nov |
+| D30 | The steward writes the community's focus, its topics, goals and open questions, in Grove | It is a community record shared with members, and each member's agent uses it. It needs no wallet and no Garden. Reading it from a Garden's records waits for the Hub lane | Accepted 14 Nov |
 
 The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Where they conflict with this table, this table governs: decisions 18 to 21 (the Hub connection) and 5 (the KOI community node) describe next lanes, not the MVP.
 
@@ -114,6 +120,10 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | R13 | Create keys on a phone only when the app is installed to the Home Screen | Safari removes a site's stored data after seven days of use without a visit; installed apps are counted separately |
 | R14 | Do not compute a "community approved" state in the MVP. Store each reviewer's signed decision; a steward's release approval names the decisions it relied on | D17 names who approves a release. A second, automatic status would need a rule for reviewers who disagree |
 | R15 | Encrypt each new capture to the device's own public key | Saving then works while the vault is locked; reading, review and sharing still need it unlocked |
+| R16 | Judge relevance in two stages: a plain text match against the focus on every page the agent may read, then the model only on pages that match, queued for when the laptop is idle | One model step took 35 to 42 seconds on the G0 laptop, so the model cannot run on every page |
+| R17 | Keep nothing from a page the agent does not bring in: no text and no address. Show when the agent is reading, give a pause switch, and list what it brought in and from where | Access to all sites is the largest privacy exposure in the design, and D27 depends on people trusting it |
+| R18 | Ship a block list that covers banking, mail, health, government accounts and password managers, and skip any page with a password field | D27 leaves the block list as the only thing between a private page and local storage |
+| R19 | Run each assessment check as one bounded Pi phase, and store the result beside the item: what was checked, by which model version, what it found and what it could not check | The same pattern the connection proposals use (D7, D15), and it keeps the assessment inspectable |
 
 ### Assumed
 
@@ -139,6 +149,8 @@ The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Wher
 | O9 | Which Hub connection design: the content-script relay below, or the WebMCP tool of prototype decisions 18 to 21? | The owner, when the Hub lane is scoped |
 | O10 | When are the five Linear milestones, which still mirror A0 to A4, reconciled with this sequence? | The owner. No tracker change is authorized by this revision |
 | O11 | Three outside claims in [sharing research](sharing-research.md) were not re-checked on 14 November: the Linked Web Storage draft date, the ATProto Spaces update, and Certified's EOA-only link schema | Whoever scopes the lane that depends on each |
+| O12 | Will an extension that asks for access to all sites pass store review for the pilot, and is the block list enough? | The owner, at listing time, with evidence from E27 |
+| O13 | Can a small local model judge relevance and assess items well enough, and fast enough, to keep up with ordinary browsing? | Experiment: E27 and E28 |
 
 Dependencies and a bounded implementation still need task-specific authorization before installation. Publishing this plan changes no application package, manifest, lockfile, license or runtime.
 
@@ -268,7 +280,7 @@ Use the [Grove application profile proposal](ontology-alignment.md) for one lang
 
 See the [internal/external learning loops and ingestion diagrams](architecture-flows.md) for the complete flow and the boundary around later Commons contributions.
 
-In the MVP the sources are explicit captures on either client. KOI bundles (step 1) and structured Garden, Work, Action and WorkApproval records from the Hub (step 3) arrive with their next lanes (D22); the steps below keep them so the store is designed once.
+In the MVP the sources are explicit captures on either client and, on the laptop, pages the agent brings in as the person browses (D26). KOI bundles (step 1) and structured Garden, Work, Action and WorkApproval records from the Hub (step 3) arrive with their next lanes (D22); the steps below keep them so the store is designed once.
 
 1. Receive a scoped, signature/hash-validated KOI bundle or capture from an explicit action or enabled research scope. Save the source revision first. Strip form controls, credentials and hidden input; treat the retained text as untrusted evidence, never instructions.
 2. Normalize conservative URL identity plus content hash. Preserve distinct changed content at one URL. Exact canonical entity IDs win; name similarity produces a suggestion, never an automatic merge.
@@ -279,7 +291,7 @@ In the MVP the sources are explicit captures on either client. KOI bundles (step
 7. Patch the visible Graphology projection using committed changes. Retain existing coordinates and camera; place new nodes near connected context. Unrelated metadata refreshes do not count as new knowledge.
 8. Accept, reject or correct from the inspector. Persist the decision with actor/device, timestamp and rationale when supplied. Retrieval can exclude rejected suggestions and use accepted mappings; this is feedback-driven retrieval, not model training. A review may enqueue a keyed follow-up investigation in that same graph transaction. The previous task has already ended as ready for review; no live invocation waits for a person.
 
-Research-session capture is off by default and enabled for selected domains with optional host permissions. It processes allowed active-page navigations while the browser is running; it does not request browser history or universal host access. Closing a research session stops new captures. Pi investigations resume only when their supported host is running; source capture remains independent. The first host is the graph document or its dedicated worker, with isolated model execution. Offscreen execution is conditional on valid browser reasons and lifecycle proof; unsupported/interrupted inference remains persisted. Do not keep service workers alive with artificial loops.
+Passive capture runs in the extension while the browser is open (D26, D27). The agent may read the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend. It keeps nothing from a page it does not bring in, and it does not read browser history. The earlier design limited this to selected domains inside a research session; the owner replaced it on 14 November. Pi investigations resume only when their supported host is running; source capture remains independent. The first host is the graph document or its dedicated worker, with isolated model execution. Offscreen execution is conditional on valid browser reasons and lifecycle proof; unsupported/interrupted inference remains persisted. Do not keep service workers alive with artificial loops.
 
 Curated external sourcing in the MVP means a versioned list of public resources indexed by commons concepts and linked to garden questions. Refresh known resources on demand. Arbitrary search engines, autonomous crawling, availability verification and private-context-bearing external searches are deferred.
 
@@ -301,7 +313,7 @@ The MVP is two lanes that meet at the [contract above](#mvp-contract).
 
 **The loop lane** is the [capture → review → share walkthrough](architecture-flows.md#initial-user-flows), delivered in the [order the plan gives](plan.todo.md#mvp-order): device durability, passkey unlock, the vault and file format, identity and the member list, recovery, then the whole loop by encrypted file on both clients. It proves local identity, protected capture, member review and encrypted transfer before any sensitive record is admitted. Nothing in it needs a model, a wallet, a provider account or a network.
 
-**The workspace lane** is the laptop's graph, Gemma suggestions and Pi investigations over Grove's own records. It can be built alongside the loop lane on synthetic records. It counts toward the finish line only once the loop gates pass, and it never gates saving, manual review or delivery.
+**The workspace lane** is the laptop's agent, graph and Pi investigations over Grove's own records. The agent has two jobs (D26 to D30): it brings in relevant knowledge and resources as the person browses, and it assesses each item before the person reviews it. It can be built alongside the loop lane on synthetic records. It counts toward the finish line only once the loop gates pass, and it never gates saving, manual review or delivery.
 
 The earlier [Vida Verde and TAS spike](first-spike.md) specifies graph, Hub and KOI proof on public-source fixtures. Its source semantics and isolation cases remain useful for the workspace lane. Its Hub import and KOI exchange are next lanes (D22), and its graph-first scope does not override the sharing contract. A real local model is required to pass the workspace gates; manual links, fixture imports and UI prototypes are partial proof. No actual garden record, source claim or outcome is invented to make the scene look complete.
 

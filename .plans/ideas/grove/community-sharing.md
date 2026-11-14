@@ -18,6 +18,8 @@ These words mean one thing each across the hub. They describe Grove's local cont
 | Member list | The community's signed, versioned list of members, devices, roles and controllers | A Pod's access list. A garden's role graph |
 | Controller | A steward whose device may sign changes to the member list | A garden owner or operator, unless the community chooses the same person |
 | Capture | A saved source with its origin, time and consent context, kept as immutable revisions | Green Goods Work |
+| Focus | The community's written list of topics, goals and open questions, kept by the steward as a community record | A Garden's domains or Actions |
+| Assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | A review decision. An approval |
 | Personal review | The author's own check and correction before anything is shared | Community review |
 | Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
 | Share approval | The author's recorded approval of one projection for named recipients, a purpose and a destination | A release approval. WorkApproval |
@@ -33,7 +35,7 @@ These words mean one thing each across the hub. They describe Grove's local cont
 
 | Audience | Who can read | What crosses the boundary | Who approves (D17) |
 |---|---|---|---|
-| Local | The person on their unlocked device, and their own paired devices | Nothing by default. Local AI reads only the selected local context | Nobody; it is theirs |
+| Local | The person on their unlocked device, and their own paired devices | Nothing by default. On the laptop, what the agent brings in as the person browses lands here first. Local AI reads only the selected local context | Nobody; it is theirs |
 | Community | Named members' devices | A selected, end-to-end encrypted copy | The author, for every share of their own capture |
 | Partner community | Named recipients in another community | A new, minimized projection with its own recipients, purpose and provenance | A steward. Also the author, if a corrected version of their capture is leaving |
 | Public | Anyone | A separately prepared release: a report, knowledge resource, claim or attestation | A steward, in a later lane |
@@ -51,6 +53,18 @@ Three limits belong beside that requirement wherever it is stated:
 - **Removal cannot make anyone forget.** A recipient keeps what it already received.
 
 Hosts still see file sizes, timing, addresses and how many recipients a file has.
+
+## What the agent reads
+
+On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant.
+
+- **What it may read (D27):** the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend.
+- **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged.
+- **Where it runs:** on the laptop only, with a local model. Nothing a page contains leaves the device because the agent read it.
+- **What it decides (D28):** only whether to bring an item in. It never brings in something it would recommend discarding, and it never shares. A person reviews every item and can discard it; sharing follows the approvals below (D17).
+- **What the assessment says (D29):** why the item was brought in, its source, author and date, and what to check before sharing, such as names, contact details and exact locations. It is advice. It cannot establish that a claim is true or that work happened.
+
+Reading every page is the largest privacy exposure in this design. The block list is the only thing between a private page and local storage, so it ships covering banking, mail, health, government accounts and password managers, and the agent skips any page with a password field (R18). E27 tests all of this, and O12 asks whether a browser store will accept the access it needs.
 
 ## Identity belongs to the community first
 

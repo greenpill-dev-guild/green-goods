@@ -172,7 +172,8 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       </div>
       <ul class="actors">
         <li class="actor" data-actor="phone"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>Phone web app</strong><span>Capture, review, share</span></li>
-        <li class="actor" data-actor="laptop"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></svg>Desktop extension</strong><span>The same, plus page capture, a graph, and Gemma suggestions run by Pi</span></li>
+        <li class="actor" data-actor="laptop"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></svg>Desktop extension</strong><span>The same, plus page capture, a graph, and the agent</span></li>
+        <li class="actor" data-actor="agent"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Agent on the laptop</strong><span>Brings in what fits the community's focus as you browse, and assesses it</span></li>
         <li class="actor" data-actor="vault"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/></svg>Vault on each device</strong><span>Opened by an existing passkey where supported, or a passphrase</span></li>
         <li class="actor is-later" data-actor="hub" data-later hidden><strong>Admin Hub snapshot</strong><span><b class="tag-later">Next lane.</b> Read-only import of a garden's public records into the graph</span></li>
       </ul>
@@ -194,7 +195,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       <ul class="actors">
         <li class="actor" data-actor="reviewer"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19M9 10.5l2 2 4-4"/></svg>Reviewer's device</strong><span>Checks, decrypts, stores, returns a receipt</span></li>
         <li class="actor" data-actor="together"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="3"/><circle cx="16.5" cy="10" r="2.5"/><path d="M2.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M14.5 15c2.6-.5 5.4.6 6.5 4"/></svg>Review together</strong><span>Signed decisions and corrections</span></li>
-        <li class="actor" data-actor="steward"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg>Steward</strong><span>Signs the member list and release approvals</span></li>
+        <li class="actor" data-actor="steward"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg>Steward</strong><span>Writes the community's focus. Signs the member list and release approvals</span></li>
         <li class="actor is-later" data-actor="yjs" data-later hidden><strong>Co-editing</strong><span><b class="tag-later">Later lane.</b> Yjs for merging, when two people must edit one draft at once</span></li>
       </ul>
     </section>
@@ -288,7 +289,8 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       <li>Passkey unlock where supported, passphrase otherwise, and a recovery code</li>
       <li>One steward signs the member list</li>
       <li>Sharing by encrypted file</li>
-      <li>On the laptop: a graph of Grove's own records, Gemma suggestions and Pi investigations</li>
+      <li>On the laptop: an agent that brings in relevant pages as you browse and assesses each one, a graph of Grove's own records, and Pi investigations</li>
+      <li>The steward writes the community's focus, which tells the agent what is relevant</li>
     </ul>
   </section>
   <section aria-labelledby="s-next">
@@ -327,9 +329,14 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       approver: "Nobody. It is the member's own.",
       keys: "The device's own public key, so saving works while the vault is locked.",
       sees: "Nothing. The capture has not left the device." },
-    { title: "Review it yourself", lane: "mvp", bands: ["local"], actors: ["vault", "laptop"], gate: null,
-      text: "The member unlocks the vault and corrects the capture by hand. On the laptop, a Gemma investigation run by Pi may propose connections with exact quotes; the member accepts, rejects or corrects each one. Review works the same with no model.",
-      approver: "The member decides. Local AI only proposes.",
+    { title: "The agent brings in what fits", lane: "mvp", bands: ["local"], actors: ["agent", "laptop"], gate: null,
+      text: "As a person browses on the laptop, the agent reads each page on the device, except private windows and a block list of sensitive sites. It keeps only what fits the focus the steward wrote, as a capture in that person's own inbox. Nothing is kept from any other page, and the phone does none of this.",
+      approver: "Nobody yet. The agent only decides whether to bring an item in. The person reviews it next.",
+      keys: "The device's own public key, as for any capture.",
+      sees: "Nothing. Page text is read on the device and is never sent anywhere." },
+    { title: "Review it yourself", lane: "mvp", bands: ["local"], actors: ["vault", "laptop", "agent"], gate: null,
+      text: "The member unlocks the vault and reviews by hand. Each item the agent brought in comes with an assessment: why it was brought in, its source, author and date, and what to check before sharing. The member keeps, corrects or discards it. A Gemma investigation run by Pi may also propose connections with exact quotes. Review works the same with no model.",
+      approver: "The member decides. The assessment is advice, and the agent never discards or shares.",
       keys: "The vault key, unwrapped by the passkey's secret combined with a key held on the device, or by a passphrase.",
       sees: "Nothing. Review happens on the device." },
     { title: "Carry it from phone to laptop", lane: "mvp", bands: ["local"], actors: ["phone", "laptop"], gate: null,

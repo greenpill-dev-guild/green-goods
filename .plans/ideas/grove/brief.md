@@ -12,7 +12,7 @@ Grove helps place-based communities **capture → review → share** knowledge a
 
 Identity starts on the device and is governed by the community. Nobody needs a wallet, a provider account, a model or a connection to begin. Shared records are encrypted for named members' devices, and the design requirement is that whoever stores or relays them cannot read them. That requirement is unbuilt and untested, and it covers storage and relay hosts, not Green Goods as the publisher of the app's code.
 
-Two clients ship together: a phone web app for capture, review and sharing, and a desktop extension that adds page capture, a graph of what the community holds, and optional local AI suggestions. Records travel between devices as encrypted files. An existing Green Goods passkey can unlock the local vault where its provider supports that; a passphrase does otherwise.
+Two clients ship together: a phone web app for capture, review and sharing, and a desktop extension that adds page capture, a graph of what the community holds, and a local agent. The agent brings in relevant knowledge and resources as a person browses, guided by the focus the steward writes, and assesses each item before the person reviews it. People keep every decision. Records travel between devices as encrypted files. An existing Green Goods passkey can unlock the local vault where its provider supports that; a passphrase does otherwise.
 
 ## Read this plan
 
@@ -57,7 +57,7 @@ Two clients ship together: a phone web app for capture, review and sharing, and 
 
 ## First success
 
-A steward creates a community with no wallet. A member captures a useful soil-care guide and a field observation on a phone, with source and consent context, and reviews them by hand. They pair their laptop and carry the captures across as an encrypted file. They share a selected, encrypted copy with a reviewer, who sees where it came from and corrects it. The author approves the corrected version, and the steward sends a separately approved summary to a named partner community. Reopening offline loses nothing, and a device that was not named cannot read the file. On the laptop, a local AI investigation proposes a connection, survives a closed tab, and the member accepts it in the graph. No public upload, hosted storage or provider account is involved.
+A steward creates a community with no wallet. A member captures a useful soil-care guide and a field observation on a phone, with source and consent context, and reviews them by hand. They pair their laptop and carry the captures across as an encrypted file. They share a selected, encrypted copy with a reviewer, who sees where it came from and corrects it. The author approves the corrected version, and the steward sends a separately approved summary to a named partner community. Reopening offline loses nothing, and a device that was not named cannot read the file. On the laptop, the agent brings in a funding call that fits the community's focus while the member browses, and shows why it was brought in, where it came from and what to check before sharing; the member keeps it and shares it. A local AI investigation proposes a connection, survives a closed tab, and the member accepts it in the graph. No public upload, hosted storage or provider account is involved.
 
 Repeat with a community learning or cultural record. Community acceptance, evidence interpretation and protocol WorkApproval remain separate.
 

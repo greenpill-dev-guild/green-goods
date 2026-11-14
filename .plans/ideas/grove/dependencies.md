@@ -87,6 +87,8 @@ The renderer does not supply the timeline, permission logic, evidence inspector 
 
 | Component | Role / where it runs | Decision |
 |---|---|---|
+| Access to all sites, with a block list | Lets the agent read pages as the person browses | MVP (D27). A manifest change that needs its own review and a store justification (O12) |
+| Plain text match, or [MiniSearch](https://lucaong.github.io/minisearch/) | First-stage relevance filter against the community's focus | MVP candidate (R16). No embedding model or vector store |
 | Bounded Coop capture adapter | Extract a permitted page snapshot; conservative deduplication | Adapt only after exact source license/compatibility check |
 | [Mozilla Readability](https://github.com/mozilla/readability) (`@mozilla/readability`) | Optional readable article extraction from a DOM copy | Compare against Coop extractor; choose one path. Render stored text as text, not imported HTML |
 | [Transformers.js](https://huggingface.co/blog/transformersjs-chrome-extension) (`@huggingface/transformers`) | Tokenization and local model execution API in isolated inference host | New; leading runtime candidate, based on Coop/Hugging Face pattern |

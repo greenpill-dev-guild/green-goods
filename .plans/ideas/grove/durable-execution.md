@@ -80,6 +80,16 @@ For example, a member records workshop notes or a field observation. Grove saves
 
 Pi supplies **execution recovery**, while Dexie supplies authoritative source/review history. A CRDT supplies **concurrent merge**, while a storage adapter supplies **remote persistence**. None replaces community authorization or content encryption. This separation keeps capture/manual review useful if Pi is unavailable, a model is too large for the phone, or the browser suspends processing.
 
+### The agent's two jobs, decided 14 November
+
+D26 to D30 in [spec.md](spec.md#decision-log) give Pi its clearest work.
+
+**Passive capture.** As the person browses, a plain text match against the community's focus runs in ordinary code on every page the agent may read. A page that matches is queued, and one bounded Pi phase asks the model whether it is relevant. Only a relevant page is saved, as a capture.
+
+**Assessment.** Each item the agent brought in gets three bounded phases: why it was brought in, its source, author and date, and what to check before sharing. Each phase checkpoints, so a closed tab costs one phase, and the result is stored beside the item through an idempotent command.
+
+The text match, the block list and the rule that nothing is kept from other pages are not Pi's. They are ordinary code that runs before anything is queued. Pi never sees a page that was not queued, and its records hold references, not page text.
+
 ### Privacy and proof for the refreshed flow
 
 Persist only opaque source/workspace/revision references, phase keys and sanitized receipts in Pi's execution store. References can themselves reveal metadata; enumerate that leakage and protect sensitive execution fields instead of treating every reference as harmless. The supplied IndexedDB adapter does not establish a Grove encrypted vault by itself. Decrypted prompts/source packets remain transient or in erasure-controlled encrypted Grove stores; no key material enters task state, telemetry, errors or transcripts.
