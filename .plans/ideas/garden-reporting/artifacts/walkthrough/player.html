@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garden Reporting Walkthrough</title>
+<style>
+:root {
+  --ground: #f4f1ea;
+  --surface: #fffdf9;
+  --ink: #1f1c18;
+  --ink-sub: #57514a;
+  --ink-soft: #6e675e;
+  --line: #e1dbd0;
+  --accent: #2f6b4f;
+  --accent-ink: #ffffff;
+  --mark: #c2410c;
+  --focus: #1d4ed8;
+  --radius: 12px;
+  --bar-h: 56px;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--ground);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { display: grid; grid-template-rows: var(--bar-h) minmax(0, 1fr); min-height: 100vh; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Top bar: one row, one height on every screen. */
+.bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 0 20px; border-bottom: 1px solid var(--line); background: var(--surface);
+  height: var(--bar-h); min-width: 0;
+}
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.brand strong { font-size: 15px; white-space: nowrap; }
+.brand span { font-size: 13px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modes { display: flex; gap: 8px; flex-shrink: 0; }
+.pill {
+  height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); font-size: 14px; font-weight: 500;
+}
+.pill[aria-pressed="true"], .pill[aria-expanded="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+/* Stage and panel: the frame keeps the screen's 16:10 shape; the panel's blocks keep fixed heights. */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
+.stage { position: relative; display: grid; place-items: center; padding: 20px; min-height: 0; container-type: size; }
+.frame {
+  position: relative; width: min(100cqw, calc(100cqh * 1.6)); aspect-ratio: 1440 / 900;
+  border-radius: var(--radius); overflow: hidden; background: #ece7de;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 28px rgb(0 0 0 / 0.10);
+}
+.frame img { display: block; width: 100%; height: 100%; }
+.marker {
+  position: absolute; border: 2px dashed var(--mark); border-radius: 10px; pointer-events: none;
+}
+.marker span {
+  position: absolute; top: -12px; left: 10px; padding: 1px 8px; border-radius: 999px;
+  background: var(--mark); color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+}
+.markers-off .marker { display: none; }
+.hotspot {
+  position: absolute; border: 0; padding: 0; background: transparent; border-radius: 10px;
+  box-shadow: 0 0 0 3px var(--focus), 0 0 0 7px rgb(29 78 216 / 0.22);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.back-spot { position: absolute; border: 0; padding: 0; background: transparent; border-radius: 8px; }
+.hot-next {
+  position: absolute; height: 36px; padding: 0 14px; border-radius: 999px; border: 0;
+  background: var(--focus); color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap;
+  box-shadow: 0 4px 14px rgb(29 78 216 / 0.35);
+}
+@keyframes pulse { 50% { box-shadow: 0 0 0 3px var(--focus), 0 0 0 12px rgb(29 78 216 / 0.10); } }
+@media (prefers-reduced-motion: reduce) { .hotspot { animation: none; } }
+.end {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 32px;
+  background: rgb(244 241 234 / 0.94); text-align: center;
+}
+.end[hidden] { display: none; }
+.end h2 { margin: 0 0 8px; font-size: 24px; }
+.end p { margin: 0 auto 20px; max-width: 34rem; color: var(--ink-sub); font-size: 15px; line-height: 1.5; }
+.end .actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+.panel {
+  display: grid; grid-template-rows: 20px 64px 22px 196px 88px 44px 48px; row-gap: 12px;
+  padding: 24px 22px; border-left: 1px solid var(--line); background: var(--surface); min-height: 0;
+  align-content: start;
+}
+.chapter-line { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.panel h1 { margin: 0; font-size: 22px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.where { margin: 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+.caption { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink-sub); overflow: auto; }
+.screen-title { display: block; margin-bottom: 6px; font-weight: 600; color: var(--ink); }
+.who { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--ground); font-size: 13px; line-height: 1.45; color: var(--ink-sub); overflow: hidden; }
+.legend { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
+.legend i { flex: none; width: 22px; height: 14px; border: 2px dashed var(--mark); border-radius: 4px; }
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.controls .count { font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.btn { height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+
+/* Chapter list: a sheet under the bar. */
+.sheet {
+  position: absolute; top: calc(var(--bar-h) + 8px); right: 20px; z-index: 5; width: min(420px, calc(100vw - 40px));
+  max-height: calc(100vh - var(--bar-h) - 32px); overflow: auto; padding: 8px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
+}
+.sheet[hidden] { display: none; }
+.sheet h2 { margin: 10px 10px 4px; font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+.sheet ol { list-style: none; margin: 0 0 6px; padding: 0; }
+.sheet button {
+  display: flex; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-size: 14px;
+}
+.sheet button:hover { background: var(--ground); }
+.sheet button[aria-current="step"] { background: #e6efe9; font-weight: 600; }
+.sheet .n { flex: none; width: 22px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.sheet .tag { margin-left: auto; font-size: 12px; color: var(--ink-soft); }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; }
+  .stage { min-height: 56vw; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); grid-template-rows: 20px 64px 22px 150px 88px 44px 48px; }
+  .brand span { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <strong>Garden Reporting Walkthrough</strong>
+    <span>Prototype screens built from the cockpit's own components, with sample data</span>
+  </div>
+  <div class="modes">
+    <button class="pill" id="markersBtn" type="button" aria-pressed="true">Mark New Parts</button>
+    <button class="pill" id="everyBtn" type="button" aria-pressed="false">See Every Step</button>
+    <button class="pill" id="chaptersBtn" type="button" aria-expanded="false" aria-controls="chapters">All Chapters</button>
+  </div>
+</header>
+<div class="layout">
+  <main class="stage" aria-label="Screen">
+    <div class="frame" id="frame">
+      <img id="shot" alt="">
+      <div id="markers"></div>
+      <button class="back-spot" id="backSpot" type="button" hidden></button>
+      <button class="hotspot" id="hotspot" type="button"></button>
+      <button class="hot-next" id="hotNext" type="button">Next ›</button>
+      <div class="end" id="end" hidden>
+        <div>
+          <h2 id="endTitle"></h2>
+          <p id="endText"></p>
+          <div class="actions">
+            <button class="btn primary" id="restart" type="button">Start Again</button>
+            <button class="btn" id="endEvery" type="button">See Every Step</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <aside class="panel" aria-live="polite">
+    <p class="chapter-line" id="chapterLine"></p>
+    <h1 id="chapterTitle"></h1>
+    <p class="where" id="where"></p>
+    <p class="caption" id="caption"></p>
+    <p class="who" id="who"></p>
+    <p class="legend"><i aria-hidden="true"></i>Dashed outlines mark what the prototype adds; the rest follows the cockpit as it ships.</p>
+    <div class="controls">
+      <button class="btn" id="back" type="button">‹ Back</button>
+      <span class="count" id="count"></span>
+      <button class="btn primary" id="next" type="button">Next ›</button>
+    </div>
+  </aside>
+</div>
+<div class="sheet" id="chapters" hidden></div>
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (id) => document.getElementById(id);
+const state = { every: false, markers: true, index: 0, ended: false };
+const chapterOf = (screen) => DATA.chapters.find((chapter) => chapter.id === screen.chapter);
+const path = () => DATA.screens.filter((screen) => state.every || !screen.extra);
+const pct = (value) => `${(value * 100).toFixed(3)}%`;
+
+function place(el, box) {
+  el.style.left = pct(box.x); el.style.top = pct(box.y);
+  el.style.width = pct(box.w); el.style.height = pct(box.h);
+}
+
+function render() {
+  const screens = path();
+  state.index = Math.max(0, Math.min(state.index, screens.length - 1));
+  const screen = screens[state.index];
+  const chapter = chapterOf(screen);
+  const chapterIndex = DATA.chapters.indexOf(chapter);
+  $("shot").src = screen.src;
+  $("shot").alt = screen.alt;
+  $("chapterLine").textContent = `Chapter ${chapterIndex + 1} of ${DATA.chapters.length}`;
+  $("chapterTitle").textContent = chapter.title;
+  $("where").textContent = chapter.where;
+  $("caption").innerHTML = "";
+  const title = document.createElement("strong");
+  title.className = "screen-title"; title.textContent = screen.title;
+  $("caption").append(title, document.createTextNode(screen.caption));
+  $("who").textContent = DATA.persona;
+  $("count").textContent = `${state.index + 1} / ${screens.length}`;
+  $("back").disabled = state.index === 0 && !state.ended;
+
+  const markers = $("markers");
+  markers.innerHTML = "";
+  for (const box of screen.fresh) {
+    const marker = document.createElement("div");
+    marker.className = "marker"; place(marker, box);
+    const tag = document.createElement("span"); tag.textContent = box.label || "New";
+    marker.append(tag); markers.append(marker);
+  }
+  $("frame").classList.toggle("markers-off", !state.markers);
+
+  const hotspot = $("hotspot"); const hotNext = $("hotNext");
+  place(hotspot, screen.hotspot);
+  hotspot.setAttribute("aria-label", `${screen.hint}: next screen`);
+  hotNext.textContent = `${screen.hint} ›`;
+  placeNext(screen.hotspot);
+
+  const backSpot = $("backSpot");
+  backSpot.hidden = !screen.back || state.index === 0;
+  if (screen.back) { place(backSpot, screen.back); backSpot.setAttribute("aria-label", "Back a screen"); }
+
+  $("end").hidden = !state.ended;
+  for (const el of [hotspot, hotNext, backSpot]) el.tabIndex = state.ended ? -1 : 0;
+  history.replaceState(null, "", `#${screen.id}`);
+  renderChapters();
+}
+
+// The Next button sits beside the hotspot: right of it, else left, else below, else above,
+// whichever fits inside the frame at its current size.
+function placeNext(hot) {
+  const frame = $("frame");
+  const button = $("hotNext");
+  const width = frame.clientWidth, height = frame.clientHeight;
+  const bw = button.offsetWidth, bh = button.offsetHeight, gap = 12, edge = 8;
+  const x = hot.x * width, y = hot.y * height, w = hot.w * width, h = hot.h * height;
+  const middle = y + h / 2 - bh / 2, centre = x + w / 2 - bw / 2;
+  const options = [
+    { left: x + w + gap, top: middle },
+    { left: x - gap - bw, top: middle },
+    { left: centre, top: y + h + gap },
+    { left: centre, top: y - gap - bh },
+  ];
+  const fits = (o) => o.left >= edge && o.top >= edge && o.left + bw <= width - edge && o.top + bh <= height - edge;
+  const chosen = options.find(fits) ?? {
+    left: Math.min(Math.max(centre, edge), width - bw - edge),
+    top: Math.min(Math.max(y + h + gap, edge), height - bh - edge),
+  };
+  button.style.left = `${chosen.left}px`;
+  button.style.top = `${chosen.top}px`;
+}
+
+function go(step) {
+  const screens = path();
+  if (state.ended) { state.ended = false; if (step > 0) return render(); return render(); }
+  if (step > 0 && state.index === screens.length - 1) { state.ended = true; showEnd(); return render(); }
+  state.index += step; render();
+}
+
+function showEnd() {
+  $("endTitle").textContent = DATA.end.title;
+  $("endText").textContent = DATA.end.text;
+}
+
+function renderChapters() {
+  const sheet = $("chapters");
+  sheet.innerHTML = "";
+  const screens = path();
+  DATA.chapters.forEach((chapter, chapterIndex) => {
+    const heading = document.createElement("h2");
+    heading.textContent = `${chapterIndex + 1}. ${chapter.title}`;
+    const list = document.createElement("ol");
+    screens.forEach((screen, index) => {
+      if (screen.chapter !== chapter.id) return;
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      if (index === state.index && !state.ended) button.setAttribute("aria-current", "step");
+      button.innerHTML = `<span class="n">${index + 1}</span><span></span>${screen.extra ? '<span class="tag">Every step</span>' : ""}`;
+      button.children[1].textContent = screen.title;
+      button.addEventListener("click", () => { state.index = index; state.ended = false; toggleChapters(false); render(); });
+      item.append(button); list.append(item);
+    });
+    sheet.append(heading, list);
+  });
+}
+
+function toggleChapters(open) {
+  $("chapters").hidden = !open;
+  $("chaptersBtn").setAttribute("aria-expanded", String(open));
+  if (open) $("chapters").querySelector('[aria-current="step"]')?.focus();
+}
+
+function setEvery(every) {
+  const current = path()[state.index];
+  state.every = every; state.ended = false;
+  $("everyBtn").setAttribute("aria-pressed", String(every));
+  const screens = path();
+  const keep = screens.indexOf(current);
+  state.index = keep >= 0 ? keep : screens.findIndex((screen) => !screen.extra && DATA.screens.indexOf(screen) > DATA.screens.indexOf(current));
+  if (state.index < 0) state.index = 0;
+  render();
+}
+
+$("next").addEventListener("click", () => go(1));
+$("back").addEventListener("click", () => go(-1));
+$("hotspot").addEventListener("click", () => go(1));
+$("hotNext").addEventListener("click", () => go(1));
+$("backSpot").addEventListener("click", () => go(-1));
+$("restart").addEventListener("click", () => { state.ended = false; state.index = 0; render(); });
+$("endEvery").addEventListener("click", () => { setEvery(true); state.index = 0; render(); });
+$("everyBtn").addEventListener("click", () => setEvery(!state.every));
+$("markersBtn").addEventListener("click", () => {
+  state.markers = !state.markers;
+  $("markersBtn").setAttribute("aria-pressed", String(state.markers));
+  render();
+});
+$("chaptersBtn").addEventListener("click", () => toggleChapters($("chapters").hidden));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("chapters").hidden) { toggleChapters(false); $("chaptersBtn").focus(); return; }
+  if (event.target.closest && event.target.closest(".sheet")) return;
+  if (event.key === "ArrowRight") go(1);
+  if (event.key === "ArrowLeft") go(-1);
+});
+document.addEventListener("click", (event) => {
+  if (!$("chapters").hidden && !event.target.closest(".sheet") && event.target !== $("chaptersBtn")) toggleChapters(false);
+});
+// Preload every screen so a step never waits on its picture.
+for (const screen of DATA.screens) { const image = new Image(); image.src = screen.src; }
+// A screen's id in the address opens that screen, on load and whenever the hash changes.
+function openFromHash() {
+  const screen = DATA.screens.find((item) => `#${item.id}` === location.hash);
+  if (!screen) return false;
+  if (screen.extra && !state.every) { state.every = true; $("everyBtn").setAttribute("aria-pressed", "true"); }
+  state.index = path().indexOf(screen);
+  state.ended = false;
+  return true;
+}
+window.addEventListener("hashchange", () => { if (openFromHash()) render(); });
+openFromHash();
+render();
+// Keep the Next button beside its hotspot when the frame changes size.
+new ResizeObserver(() => { if (!state.ended) placeNext(path()[state.index].hotspot); }).observe($("frame"));
+</script>
+</body>
+</html>
