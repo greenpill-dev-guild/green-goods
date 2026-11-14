@@ -103,21 +103,21 @@ sequenceDiagram
   participant F as Encrypted file
   participant R as Reviewer in the cockpit, on a laptop
   participant A as Grove's agent, beside the screen
-  G->>G: Report work in their own words, with photos
+  G->>G: Report work in their own words, spoken or written, with photos
   Note over G: Saved first. No form, model or network
   G->>F: Approve the share and export
   F->>R: Arrives, is verified and stored
   R->>A: The report under review, through the bridge
-  A->>A: Read the gardener's words. Photos are attached as evidence
-  A-->>R: Structured version beside the screen. Each value with its source words
+  A->>A: Transcribe a voice note, then read the gardener's words
+  A-->>R: One record or several beside the screen. Each value with its source words
   Note over A,R: The Action is filled only when the garden's Action list is on the device
-  R->>R: Accept or correct each value by hand
+  R->>R: Accept or correct each record and value by hand
   R->>F: The structured version, as a new revision
   F->>G: Arrives on the gardener's phone
   G->>G: Approve it before it leaves the garden
 ```
 
-A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the cockpit as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
+A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the cockpit as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. A voice note is transcribed on the laptop first, and one note can become several records, each with the photos and documents that support it (D49). The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
 
 ### Phone to laptop
 

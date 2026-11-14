@@ -171,7 +171,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
         <p>One person's phone and laptop. Readable only on their own unlocked devices.</p>
       </div>
       <ul class="actors">
-        <li class="actor" data-actor="phone"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>Green Goods on a phone</strong><span>Report work and make promises, by form or in your own words. Review and share</span></li>
+        <li class="actor" data-actor="phone"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/></svg>Green Goods on a phone</strong><span>Report work and make promises, by form or in your own words, spoken or written. Review and share</span></li>
         <li class="actor" data-actor="browser"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18"/></svg>Green Goods in a browser</strong><span>The app and the steward cockpit, as local builds</span></li>
         <li class="actor" data-actor="laptop"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2.5 19h19"/></svg>Grove, the extension</strong><span>Knowledge and page capture, and a graph. Works beside the app's screens</span></li>
         <li class="actor" data-actor="agent"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Grove's agent</strong><span>Brings in what fits the garden's focus as you browse, assesses it, and structures free-form reports</span></li>
@@ -288,7 +288,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       <li>The gardener app and the steward cockpit as separate local builds, with Grove, the extension</li>
       <li>Every current function, in the order of the Green Goods chain: Actions and assessment, work, approval, the report, then promises, joining and roles</li>
       <li>A new garden with no chain, or an existing one brought local with one connected read and one onchain record of its identifier</li>
-      <li>Work reports and promises, through today's screens or in your own words</li>
+      <li>Work reports and promises, through today's screens or in your own words, spoken or written</li>
       <li>Money and certificates prepared and approved locally, and settled when connected</li>
       <li>Capture and manual review with no wallet, account, model or network</li>
       <li>Passkey unlock where supported, passphrase otherwise, and a recovery code</li>
@@ -330,7 +330,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
 (() => {
   const steps = [
     { title: "Capture", lane: "mvp", bands: ["local"], actors: ["phone", "browser", "laptop"], gate: null,
-      text: "A gardener reports work or makes a promise in Green Goods, through today's screens or in their own words with photos. In Grove, a member saves a note, file or page. Each capture is encrypted to that device's own key and saved before anything else happens. No unlock, model, account or network is needed.",
+      text: "A gardener reports work or makes a promise in Green Goods, through today's screens or in their own words, spoken or written, with photos. In Grove, a member saves a note, file or page. Each capture is encrypted to that device's own key and saved before anything else happens. No unlock, model, account or network is needed.",
       approver: "Nobody. It is the member's own.",
       keys: "The device's own public key, so saving works while the vault is locked.",
       sees: "Nothing. The capture has not left the device." },
@@ -350,7 +350,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       keys: "A fresh key for the file, wrapped to the laptop's device key and signed by the phone's.",
       sees: "Whoever carries the file sees its size and when it moved." },
     { title: "The agent structures a free-form report", lane: "mvp", bands: ["local"], actors: ["browser", "laptop", "agent"], gate: null,
-      text: "When a free-form work report or promise is opened for review on a laptop, Grove's agent proposes its structured version beside the app's own screen, in the shape Green Goods already uses: for a report, the title, time spent, notes, details and photos. Every value shows the words it was read from, and anything the words do not state stays empty. The member accepts or corrects each value. A report made through today's work screen skips this step.",
+      text: "When a free-form work report or promise is opened for review on a laptop, Grove's agent transcribes it if it was spoken and proposes its structured version beside the app's own screen, as one record or several, in the shape Green Goods already uses: for a report, the title, time spent, notes, details and photos. Every value shows the words it was read from, and anything the words do not state stays empty. The member accepts or corrects each value. A report made through today's work screen skips this step.",
       approver: "The member. The agent proposes, and never approves, shares or publishes.",
       keys: "The vault key. The structured version is a new revision, encrypted like any record.",
       sees: "Nothing. The model runs on the laptop." },
