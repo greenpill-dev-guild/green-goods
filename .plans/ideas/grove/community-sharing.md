@@ -18,11 +18,12 @@ These words mean one thing each across the hub. They describe Grove's local cont
 | Member list | The community's signed, versioned list of members, devices, roles and controllers | A Pod's access list. A garden's role graph |
 | Controller | A steward whose device may sign changes to the member list | A garden owner or operator, unless the community chooses the same person |
 | Capture | A saved source with its origin, time and consent context, kept as immutable revisions | Green Goods Work |
-| Focus | The community's written list of topics, goals and open questions, kept by the steward as a community record | A Garden's domains or Actions |
+| Focus | The community's written list of topics, goals and open questions, written and signed by a steward as a community record | A Garden's domains or Actions |
 | Assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | A review decision. An approval |
 | Personal review | The author's own check and correction before anything is shared | Community review |
 | Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
 | Share approval | The author's recorded approval of one projection for named recipients, a purpose and a destination | A release approval. WorkApproval |
+| Destination | Where an approved projection is going: a named community, a named partner community, or later a public service | The recipients, which are the devices a file names. The carrier that moves the file |
 | Shared file | The signed, encrypted file that carries approved projections to named devices | A backup |
 | Receipt | A recipient device's signed statement that it stored a shared file | A review. A command receipt in the workspace lane |
 | Review decision | A member's signed accept, reject or comment on a revision they received | WorkApproval. Evaluator verification |
@@ -56,12 +57,13 @@ Hosts still see file sizes, timing, addresses and how many recipients a file has
 
 ## What the agent reads
 
-On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant.
+On the laptop, an agent brings in relevant knowledge and resources as the person browses, and assesses each item before the person reviews it (D26 to D30). The steward's written focus tells it what is relevant. A focus counts only when a steward's device signed it; a focus from anyone else is refused.
 
 - **What it may read (D27):** the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend.
 - **What it keeps (R17):** only what it brings in. Text from any other page is discarded on the device, and no address is logged.
 - **Where it runs:** on the laptop only, with a local model. Nothing a page contains leaves the device because the agent read it.
 - **What it decides (D28):** only whether to bring an item in. It never brings in something it would recommend discarding, and it never shares. A person reviews every item and can discard it; sharing follows the approvals below (D17).
+- **When the vault locks:** the agent stops. The focus is an encrypted record, so the agent cannot judge relevance while locked. Queued page text is dropped, a check in progress is cancelled, and nothing resumes until the person unlocks.
 - **What the assessment says (D29):** why the item was brought in, its source, author and date, and what to check before sharing, such as names, contact details and exact locations. It is advice. It cannot establish that a claim is true or that work happened.
 
 Reading every page is the largest privacy exposure in this design. The block list is the only thing between a private page and local storage, so it ships covering banking, mail, health, government accounts and password managers, and the agent skips any page with a password field (R18). E27 tests all of this, and O12 asks whether a browser store will accept the access it needs.
@@ -88,14 +90,14 @@ No maintained browser library provides community membership and key grants (see 
 - One steward's device signs changes in the MVP (D18). A version signed by anyone else is ignored.
 - Each version lists members, their device keys, their roles and the controllers. Adding or removing a member or device is a new version.
 - A second controller is required before real data (D18). Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them (O6).
-- A recovery code is created at setup (D18). It opens a recovery export; it can appoint a new controller device and do nothing else.
+- A recovery code is created at setup (D18). It opens the steward's recovery export, which holds a succession key; that key can appoint a new controller device and do nothing else.
 - A partner community is another member list. Two communities exchange their current list heads through the same pairing step members use.
 
 Recipient clients verify the member list themselves. An edit to a Pod's access list, a storage administrator, or a login to any service cannot add a member or a device.
 
 ### Who approves
 
-- **The author** approves every share of their own capture. The approval names the exact revision, the fields, the recipients, the purpose and the destination. Changed content or recipients need a new approval.
+- **The author** approves every share of their own capture. The approval names the exact revision, the fields, the recipients, the purpose and the destination. Changed content, recipients or destination need a new approval, and an approval for one destination cannot be used for another.
 - **Recipients** record review decisions and corrections. Reading a record gives no authority to release it.
 - **The author again**, if a corrected version of their capture is to leave the community.
 - **A steward** approves partner summaries and public releases.
@@ -115,13 +117,13 @@ A fresh key for every file means removing a member needs no group key to rotate:
 - Sender authentication comes from the signature, not from the encryption format.
 - MLS (RFC 9420) would add forward secrecy and post-compromise security for live groups. It stays research until co-editing or frequent membership change justifies it.
 
-**At rest.** Each device keeps a random vault key. Private keys and record payloads are stored encrypted under it. The vault key is itself stored wrapped, once per way of opening it:
+**At rest.** Each device keeps a random vault key. Private keys and record payloads are stored encrypted under it. The vault key is itself stored wrapped, once per way of opening the vault on that device. The recovery code is listed for contrast: it opens a recovery export, not the vault.
 
 | Way in | How | Standing |
 |---|---|---|
 | Passkey | A secret the passkey returns through WebAuthn PRF, combined with a key that never leaves the device | D19, where the provider supports it. C0a proves which providers do |
 | Passphrase | A memory-hard key derivation | D19, everywhere the passkey path is unavailable |
-| Recovery code | A high-entropy code created at setup, held off the device | D18. Opens a recovery export |
+| Recovery code | A high-entropy code created at setup, held off the device. It does not unwrap the vault key | D18. Opens a recovery export only |
 
 The passkey is never the only way in (R4). Its secret belongs to the credential, so it is the same from every `greengoods.app` site and from any extension with permission for that domain, and it follows the passkey wherever it syncs. Combining it with a device-held key means neither a copied browser profile nor another site is enough alone. A passkey assertion is not an encryption key, and a synced passkey never enrols or re-admits a device.
 
@@ -130,7 +132,7 @@ New captures are encrypted to the device's own public key, so saving works while
 ## Keys, recovery and lifecycle
 
 - **Pairing:** each side shows a code; the other scans it and both confirm a short comparison string read aloud or compared by eye. Pairing exchanges public keys and the member-list head. It grants nothing by itself: the controller's next list version does.
-- **Recovery:** a member restores from a recovery export with their recovery code, or from their second device. A restored device creates new keys and is added to the list again; an old device key is never revived. Restoring a vault restores no Ethereum account. Losing every path fails visibly.
+- **Recovery:** a member restores from a recovery export with their recovery code, or from their second device. A recovery export holds records and the member's place in the community. It never holds a device's private keys, so a backup cannot bring back the identity of a lost or removed device. A restored device creates new keys and is added to the list again; an old device key is never revived. Restoring a vault restores no Ethereum account. Losing every path fails visibly.
 - **Removal:** the controller signs a version without the device. Files made after a sender holds that version are not wrapped to it. Where history must be excluded, start a new collection.
 - **Stale member lists (D24):** a device stops sharing when its copy of the list is older than seven days, until a newer one arrives in any shared file. Each community can change the number. Capture and personal review never pause. The controller re-signs the current head at least that often so that an unchanged list still counts as fresh; C0 proves the mechanism.
 - **Derived data:** thumbnails, model outputs, indexes and backups are encrypted at the same boundary as their source. Pi keeps references and receipts, never decrypted sources or keys.

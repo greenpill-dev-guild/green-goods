@@ -20,7 +20,7 @@ flowchart TB
   subgraph PUBLIC["PUBLIC · by choice"]
     Rel["Release<br/>report, resource or claim"]
   end
-  PRev -->|"The author approves:<br/>revision, fields, recipients, purpose"| File["Signed, encrypted file"]
+  PRev -->|"The author approves:<br/>revision, fields, recipients,<br/>purpose, destination"| File["Signed, encrypted file"]
   File --> Recv
   File -.->|"Next lane: ciphertext only"| Box[("Hosted mailbox<br/>Solid preferred")]
   Box -.-> Recv
@@ -37,7 +37,7 @@ Local means one person's own phone and laptop; community means named members' de
 | 1. Start locally | Create a community or accept a verified invitation | Same; a public garden can be linked later | No wallet or provider login. Each device gets its own keys. A recovery code is created. The steward writes the community's focus |
 | 2. Capture | Save a guide, page excerpt, lesson or note | Save an observation, photo or account of work | Saved first, with source, time and consent. No model, network or unlock is needed to save. On the laptop, the agent also brings in pages that fit the community's focus as the person browses |
 | 3. Review personally | Correct a summary, inspect sources, add a connection | Check date, attribution and evidence; keep planned, reported and recorded apart | By hand on either client. On the laptop, each item the agent brought in comes with its assessment; the person decides and can discard. No protocol attestation is created |
-| 4. Share for review | Choose an excerpt or resource and named reviewers | Choose the evidence fields and reviewers; leave out unneeded personal and location data | The author approves the exact revision, fields, recipients and purpose. The file is encrypted before it leaves; the original stays |
+| 4. Share for review | Choose an excerpt or resource and named reviewers | Choose the evidence fields and reviewers; leave out unneeded personal and location data | The author approves the exact revision, fields, recipients, purpose and destination. The file is encrypted before it leaves; the original stays |
 | 5. Review together | Members discuss and correct a lesson | Reviewers assess the evidence and prepare notes for a summary | Each reviewer's decision is recorded with their identity and the revision. Reading gives no authority to release |
 | 6. Share an outcome | Send a useful summary to a partner community | Send a report to a named funder or partner | A steward approves a new, minimized projection. The author approves too if a corrected version of their capture is leaving |
 | 7. Publish by choice | Release a public learning resource | Release selected impact information or use a protocol flow | Later lane. A steward approves before the first upload. Existing Work and WorkApproval rules still apply |
@@ -89,6 +89,7 @@ sequenceDiagram
   A->>V: Relevant. Save it as a capture in the person's own inbox
   A->>V: Assessment. Why it was brought in, source and date, what to check before sharing
   P->>X: Reviews the inbox and keeps, corrects or discards
+  Note over X,A: While the vault is locked the agent reads nothing and queued text is dropped
   Note over P,V: Sharing with the community still needs the author's approval
 ```
 
@@ -119,7 +120,7 @@ sequenceDiagram
   participant M as Member list held by the author
   participant F as Encrypted file
   participant R as Reviewer's device
-  A->>A: Choose revision, fields, recipients and purpose
+  A->>A: Choose revision, fields, recipients, purpose and destination
   A->>M: Are the recipients current members and is the list fresh
   M-->>A: Yes, or sharing pauses when the list is older than seven days
   A->>A: Record the author's share approval
@@ -176,17 +177,18 @@ sequenceDiagram
 flowchart LR
   PK["Existing passkey<br/>where the provider supports it"] --> K1["Passkey secret combined with<br/>a key held on the device"]
   PP["Passphrase"] --> K2["Derived key"]
-  RC["Recovery code<br/>kept off the device"] --> K3["Derived key"]
-  K1 --> VK["Vault key"]
+  K1 --> VK["Vault key on this device"]
   K2 --> VK
-  K3 -->|"Opens a recovery export"| VK
-  VK --> DK["Device private keys"]
+  VK --> DK["This device's private keys"]
   VK --> Rec["Record payloads"]
   DK --> Sign["Sign what this device sends"]
   DK --> Open["Open files addressed to this device"]
+  RC["Recovery code<br/>kept off the device"] --> K3["Derived key"]
+  K3 --> EX["Recovery export<br/>records and membership,<br/>no device keys"]
+  EX --> NEW["Restored device makes new keys<br/>and is added to the member list again"]
 ```
 
-The passkey unlocks; it does not identify a device, sign Grove records or decrypt shared files. A restored device makes new keys and is added to the member list again.
+The passkey unlocks; it does not identify a device, sign Grove records or decrypt shared files. The recovery code does not open a device's vault. It opens a recovery export, which holds records and the member's place in the community and never a device's private keys, so a restore cannot bring back the identity of a lost or removed device.
 
 ### Optional publication, a later lane
 
@@ -272,7 +274,7 @@ The internal loop asks what was done, what is known, what is missing and what to
 
 Example: a garden records a composting activity. A steward wants a more useful record of the method used. They capture a public playbook; Grove suggests a relationship to the Action and exposes its quote. The steward accepts the link and sees it in the Hub. Later work can cite the method and report what happened. A future, separately reviewed case study could contribute the lesson back to the Commons. Neither reading the playbook nor accepting the link proves an ecological outcome.
 
-For this MVP, “find” means local lookup in a pinned resource pack, a selected KOI resource collection, and the user's consented research. Garden context stays local. Unattended web search, background crawling and publishing a Commons contribution are later capabilities.
+In the MVP, “find” means what the agent brings in as the person browses and what people capture by hand. Lookup in a pinned resource pack arrives after the MVP with S10, and a selected KOI resource collection with the KOI lane. Garden context stays local. Unattended web search, background crawling and publishing a Commons contribution are later capabilities.
 
 ## Internal and external ingestion
 

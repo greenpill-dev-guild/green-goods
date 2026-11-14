@@ -182,7 +182,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
     <div class="gate" data-gate="share">
       <span class="arrow" aria-hidden="true">↓</span>
       <div>
-        <p><strong>The author approves</strong> the exact revision, fields, recipients and purpose. The record leaves as a signed, encrypted file.</p>
+        <p><strong>The author approves</strong> the exact revision, fields, recipients, purpose and destination. The record leaves as a signed, encrypted file.</p>
         <p class="later-note" data-later hidden><b>Next lane.</b> A hosted mailbox, Solid preferred, would hold the same file as ciphertext only.</p>
       </div>
     </div>
@@ -252,7 +252,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
   <tbody>
     <tr><th scope="row">Existing Green Goods passkey</th><td>The person, through their passkey provider. It can sync</td><td>Unlocks the vault where the provider supports it. It never identifies a device, signs a record or opens a shared file</td><td>Use the passphrase or the recovery code</td></tr>
     <tr><th scope="row">Passphrase</th><td>The person</td><td>Unlocks the vault wherever passkey unlock is unavailable</td><td>Use the recovery code</td></tr>
-    <tr><th scope="row">Recovery code</th><td>The person, off the device. For a community, the steward</td><td>Opens a recovery export. For a community, appoints a new controller device and nothing else</td><td>A second device or a second controller. Otherwise nothing can be recovered</td></tr>
+    <tr><th scope="row">Recovery code</th><td>The person, off the device. For a community, the steward</td><td>Opens a recovery export, which holds records and membership and never a device's keys. For a community, appoints a new controller device and nothing else</td><td>A second device or a second controller. Otherwise nothing can be recovered</td></tr>
     <tr><th scope="row">Vault key</th><td>Each device, stored wrapped</td><td>Protects private keys and records at rest</td><td>Restore from a recovery export</td></tr>
     <tr><th scope="row">Device keys</th><td>Each device, a separate pair for each community. Never exported</td><td>One signs what the device sends. One opens files addressed to the device</td><td>Enrol a new device. A lost device key is never revived</td></tr>
     <tr><th scope="row">File key</th><td>Nobody keeps it. It travels inside each shared file, wrapped once per recipient device</td><td>Encrypts one shared file</td><td>Removing a member needs no rotation: the next file is not wrapped to them</td></tr>
@@ -345,7 +345,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       keys: "A fresh key for the file, wrapped to the laptop's device key and signed by the phone's.",
       sees: "Whoever carries the file sees its size and when it moved." },
     { title: "Share for review", lane: "mvp", bands: ["local", "community"], actors: ["phone", "laptop", "reviewer"], gate: "share",
-      text: "The author picks the revision, the fields, the recipients and the purpose, and approves. The client signs a manifest, encrypts it with the content under a fresh key, and wraps that key to each named device. Sharing pauses if the member list on the device is older than seven days.",
+      text: "The author picks the revision, the fields, the recipients, the purpose and the destination, and approves. The client signs a manifest, encrypts it with the content under a fresh key, and wraps that key to each named device. Sharing pauses if the member list on the device is older than seven days.",
       approver: "The author, for every share of their own capture.",
       keys: "The sender's signing key and each recipient's device key.",
       sees: "The file's size, its timing and how many recipients it has. Not its content." },

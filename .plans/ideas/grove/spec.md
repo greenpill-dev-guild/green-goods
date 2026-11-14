@@ -33,7 +33,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 5. Pair a member's own phone and laptop, and admit another member's device.
 6. Move captures from phone to laptop as an encrypted file (D21).
 7. On the laptop, an agent brings in relevant knowledge and resources as the person browses, guided by that focus, and assesses each item before the person reviews it (D26 to D29). The person browses records as lists and as a graph, and accepts, rejects or corrects what the agent proposes (D25).
-8. Share: the author approves an exact projection, meaning which revision and which fields, for named recipients; the client signs and encrypts it; the recipient verifies, stores it and returns a receipt (D17).
+8. Share: the author approves an exact projection, meaning which revision and which fields, for named recipients, a purpose and a destination; the client signs and encrypts it; the recipient verifies, stores it and returns a receipt (D17).
 9. Review together: recipients record decisions and corrections. A corrected version leaves the community only with the author's fresh approval (D17).
 10. Send a partner summary under a steward's approval, as a new projection with no private history (D17).
 11. Remove a member or device, pause sharing on a stale member list (D24), and recover a lost device.
@@ -57,7 +57,7 @@ The exact supported versions are a result of C0b and C0a, not a promise made her
 6. Passkey unlock works with the network blocked where the provider supports it, the passphrase works where it does not, and a synced passkey cannot bring back a removed device (E24).
 7. A corrected record cannot leave the community without its author's approval, and a partner summary carries a steward's approval and no private history (E17).
 8. On the laptop, a real local Gemma investigation produces proposals with exact quotes, survives a closed tab through Pi with one result, and appears in the graph as new (E4, E6, E12–E14). Capture and manual review behave the same with the model absent.
-9. As a person browses on the laptop, the agent brings in pages that fit the community's focus and nothing from a blocked site or a private window. It keeps nothing from a page it did not bring in. Each item it brings in shows why it was brought in, its source, author and date, and anything to check before sharing (E27, E28).
+9. As a person browses on the laptop, the agent brings in pages that fit the community's focus and nothing from a blocked site or a private window. It keeps nothing from a page it did not bring in. Each item it brings in shows why it was brought in, its source, author and date, and anything to check before sharing. An item it brought in can be kept and shared like any capture (E27, E28).
 10. In a moderated check, participants say correctly who can see a record in each of the four audiences.
 
 ## Decision log
@@ -97,7 +97,7 @@ The project owner decides. **Accepted** means the owner chose it, on the date sh
 | D27 | The agent may read every page the person visits, except private windows and a block list of sensitive sites that the person can extend | Closest to "as a user uses their browser" and catches the most. The extension must ask for access to all sites, which browser stores scrutinize, and a gap in the block list would let a private page's text reach local storage | Accepted 14 Nov |
 | D28 | A person reviews everything the agent brings in and can discard it. The agent brings in only what it judges relevant, and never an item it would recommend discarding | Relevance is decided before anything is stored, so the agent makes no keep-or-discard recommendation. Getting relevance right matters more than bringing in more | Accepted 14 Nov |
 | D29 | The assessment of a brought-in item first covers three things: why it was brought in, its source, author and date, and whether it is safe to share | Checking an item's claims against its source comes later; it is the hardest check for a small local model. The assessment is advice and never a decision (D17) | Accepted 14 Nov |
-| D30 | The steward writes the community's focus, its topics, goals and open questions, in Grove | It is a community record shared with members, and each member's agent uses it. It needs no wallet and no Garden. Reading it from a Garden's records waits for the Hub lane | Accepted 14 Nov |
+| D30 | The steward writes the community's focus, its topics, goals and open questions, in Grove | It is a community record signed by a steward's device and shared with members. Each member's agent uses it and refuses a focus signed by anyone else. It needs no wallet and no Garden. Reading it from a Garden's records waits for the Hub lane | Accepted 14 Nov |
 
 The 25 [prototype decisions](prototype.md#decisions) stay as dated history. Where they conflict with this table, this table governs: decisions 18 to 21 (the Hub connection) and 5 (the KOI community node) describe next lanes, not the MVP.
 
@@ -293,7 +293,7 @@ In the MVP the sources are explicit captures on either client and, on the laptop
 
 Passive capture runs in the extension while the browser is open (D26, D27). The agent may read the text of any page the person visits, except in private windows and on a block list of sensitive sites the person can extend. It keeps nothing from a page it does not bring in, and it does not read browser history. The earlier design limited this to selected domains inside a research session; the owner replaced it on 14 November. Pi investigations resume only when their supported host is running; source capture remains independent. The first host is the graph document or its dedicated worker, with isolated model execution. Offscreen execution is conditional on valid browser reasons and lifecycle proof; unsupported/interrupted inference remains persisted. Do not keep service workers alive with artificial loops.
 
-Curated external sourcing in the MVP means a versioned list of public resources indexed by commons concepts and linked to garden questions. Refresh known resources on demand. Arbitrary search engines, autonomous crawling, availability verification and private-context-bearing external searches are deferred.
+In the MVP, sourcing is explicit capture and what the agent brings in as the person browses. Curated external sourcing arrives after the MVP with S10: a versioned list of public resources indexed by commons concepts and linked to garden questions, refreshed on demand. Arbitrary search engines, autonomous crawling, availability verification and private-context-bearing external searches are deferred.
 
 ## Graph, queries and dependencies
 
