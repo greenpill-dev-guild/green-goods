@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { valueFundingReceiptsUsdCents } from "../modules/commitment-pooling/funding-valuation";
+import { withoutAbortSignalAny } from "./test-utils/abort-signal-any";
 
 const TOKEN = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
 const COIN = `celo:${TOKEN}`;
@@ -76,6 +77,14 @@ describe("receipt-time funding valuation", () => {
       `https://coins.llama.fi/prices/historical/${RECEIVED_AT}/${COIN}`,
       { signal: expect.any(AbortSignal) }
     );
+  });
+
+  it("reads historical quotes where AbortSignal.any is missing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => price() }));
+    const total = await withoutAbortSignalAny(() =>
+      valueFundingReceiptsUsdCents([receipt], undefined, new AbortController().signal)
+    );
+    expect(total).toBe(10000n);
   });
 
   it("rejects a failed price-service response", async () => {
