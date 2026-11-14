@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-14T08:41:08Z"
+    "updated_at": "2026-11-14T09:51:06Z"
   },
   "links": {
     "brief": "brief.md",
@@ -311,6 +311,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "Reworked the plan function by function on eight owner answers (D37–D44): nine function blocks in the order of the Green Goods chain, checkpoints C7–C10 and F1–F7, gates E30–E38, and three new sequences. Folded in the four open review points on C1, E16, E27 and S10. Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-14T09:51:06Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "The owner confirmed that the connected read for an existing garden also brings its current assessment (D38). Folded in fifteen review points with it: the authority proof for an imported garden moved into C8 and E31, settlement rechecks and recovery in E38, the user-extended block list in E27, three languages in E29, the meaning of no hosted calls in E30, partner-list pairing in E17, and an uninterrupted fourteen-day run in C0b. Gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }

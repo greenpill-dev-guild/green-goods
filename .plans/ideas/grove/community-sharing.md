@@ -26,7 +26,7 @@ These words mean one thing each across the hub. They describe the local environm
 | Focus | What the agent takes its direction from: the garden's current assessment, plus any extra topics a steward adds to watch, such as funding or partnerships (D43) | A separate record that must be written before the agent can work |
 | Agent's assessment | The agent's advice on an item it brought in: why it was brought in, its source, author and date, and what to check before sharing | The garden's assessment. A review decision. An approval |
 | Intention | A signed, locally approved request to move money or tokens: a claim, an award, a vault action or a certificate. It settles only when a device connects and the right person confirms (D40) | A payment. A balance |
-| Local build | The gardener app or the steward cockpit published at its own address, with no analytics and no hosted calls (D44) | Today's hosted app at its current address |
+| Local build | The gardener app or the steward cockpit published at its own address, with no analytics and no calls to Green Goods' hosted services (D44) | Today's hosted app at its current address |
 | Personal review | The author's own check and correction before anything is shared | Community review |
 | Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
 | Share approval | The author's approval of one projection for named recipients, a purpose and a destination, signed by one of the author's devices | A release approval. WorkApproval |
@@ -100,7 +100,7 @@ No maintained browser library provides community membership and key grants (see 
 - Each version lists members, their device keys, their roles and the controllers. Adding or removing a member or device is a new version.
 - A second controller is required before real data (D18). The list names it. It can sign one kind of version, a takeover, which makes its own device the active signer and removes the old one. A takeover needs neither the lost controller's devices nor the recovery code, and after it anything the old signer signs is refused. Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them. How the garden then gets back to one head, without the lost controller, is part of O6 and is settled before a second controller is added.
 - A recovery code is created at setup (D18). It opens the steward's recovery export, which holds a succession key; that key can appoint a new controller device and do nothing else.
-- A partner community is another member list. Two communities exchange their current list heads through the same pairing step members use.
+- A partner community is another member list. Two communities exchange their current list heads through the same pairing step members use. A sender wraps only to devices in the partner's current list, and a forged or stale partner list pauses that sharing.
 
 Recipient clients verify the member list themselves. An edit to a Pod's access list, a storage administrator, or a login to any service cannot add a member or a device.
 
@@ -169,7 +169,7 @@ Encrypted record exchange is the baseline, and immutable captures and review dec
 
 ## Money settles when connected
 
-Money and tokens cannot move on local devices (D40). A cookie-jar claim, a voucher award, a vault action or a certificate is prepared and approved locally as a signed intention, under today's rules and limits. An intention names its amount, its purpose and its approver. It settles only when a device connects and the right person confirms it, once. Until then nothing has moved, and every screen says so. Balances shown locally are last-known and carry their date. F7 designs the intention's format and who may confirm each kind (O14), and E38 tests it.
+Money and tokens cannot move on local devices (D40). A cookie-jar claim, a voucher award, a vault action or a certificate is prepared and approved locally as a signed intention, under today's rules and limits. An intention names its amount, its purpose and its approver. It settles only when a device connects and the right person confirms it, once. At settlement the device rechecks the current authority, limits and balances and refuses an intention that is no longer valid, and a settlement interrupted by a lost response still happens exactly once. Until then nothing has moved, and every screen says so. Balances shown locally are last-known and carry their date. F7 designs the intention's format and who may confirm each kind (O14), and E38 tests it.
 
 ## Share and publish are separate decisions
 

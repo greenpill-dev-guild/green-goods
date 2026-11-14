@@ -39,7 +39,7 @@ Read from code on develop at `3ee6594ef` and from platform sources on 14 Novembe
 - No existing credential was created with PRF requested. Registration asks for a platform authenticator with user verification and no extensions.
 - A page on any `greengoods.app` subdomain can use a current credential. An extension can too, with host permission for that domain, since Chrome 122 and Firefox 150; the origin recorded is the extension's own.
 - The passkey directory accepts calls only from its configured origins, which do not include an extension. Unlock must work from locally held credential details, without the directory.
-- A PRF secret belongs to the credential. It is the same from every `greengoods.app` site and on every device the passkey syncs to. So the vault key is wrapped under that secret combined with a key held on the device (R4), and a passphrase wrap and a recovery-code wrap always exist beside it.
+- A PRF secret belongs to the credential. It is the same from every `greengoods.app` site and on every device the passkey syncs to. So the vault key is wrapped under that secret combined with a key held on the device (R4), and a passphrase wrap always exists beside it. The recovery code opens a recovery export, not the vault.
 
 Still unknown, and what this pass is for: whether each passkey provider returns a PRF secret for a credential created without the request; whether it does so on an extension page; and whether it works with the network blocked. A vendor-compiled matrix reports that iCloud Keychain and Google Password Manager do, that Windows Hello needs recent updates, and that Chrome's own profile authenticator does not. Treat that as a lead.
 

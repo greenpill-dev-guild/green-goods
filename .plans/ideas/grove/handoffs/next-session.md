@@ -16,7 +16,7 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - Work and promises can be reported free-form or through the existing screens (D34).
 - An agent structures a free-form report or promise at any review on a laptop (D35), into the existing report contract and promise fields (D36).
 - The gardener app and the steward cockpit gain local operation together, so every current function is available locally from the first version (D37).
-- A new garden starts fully locally; an existing garden is brought local with one connected read of its public roles and Actions (D38).
+- A new garden starts fully locally; an existing garden is brought local with one connected read of its public roles, Actions and current assessment (D38).
 - The plan follows the Green Goods chain: Actions and assessment, work, approval, the report; then promises, joining and roles, and money and certificates (D39).
 - Money and certificates are recorded now and settled when connected (D40).
 - On a laptop, Grove works beside the app's screens through a bridge limited to the Green Goods pages, and keeps its own page for the graph (D41).
@@ -44,7 +44,7 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 Each step needs its own authorization before anything is installed or built.
 
 1. Two owner decisions unblock the build: the exact addresses of the local builds (O2), and whether any Coop code may be copied (O5).
-2. Three questions from the reframing stay open. Design settles how local records map onto the onchain ones when published (O16) and which side holds a garden's keys on a laptop (O17, in C9). E29 answers whether a small local model can structure a report well enough (O18). One addition is this plan's and awaits the owner's word: the connected read for an existing garden also brings its current assessment (D38).
+2. Three questions from the reframing stay open. Design settles how local records map onto the onchain ones when published (O16) and which side holds a garden's keys on a laptop (O17, in C9). E29 answers whether a small local model can structure a report well enough (O18).
 3. **C0b**, then **C0a**. Both are experiments on a physical phone and laptop and need no protocol code. C0b decides which phones may hold keys. C0a decides who gets passkey unlock and who gets the passphrase.
 4. **P0** alongside: the Pi tab-close proof on persistent storage, which the G0 spike left owed and nothing blocks now.
 5. Then C7, C1, C0, recovery, C8, and the function blocks F1 to F7 with C2, in the [MVP order](../plan.todo.md#mvp-order).

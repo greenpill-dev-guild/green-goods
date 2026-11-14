@@ -50,8 +50,8 @@ D19 makes the existing Green Goods passkey a way to unlock a vault where its pro
 
 | Job | Mechanism | Can the existing passkey do it? |
 |---|---|---|
-| Show it is you | A passkey assertion with user verification, checked locally against the stored public key | Yes, on any `greengoods.app` page and in an extension with permission for that domain. It proves a holder of the passkey, not which device |
-| Unlock the vault | The vault key wrapped under the passkey's PRF secret combined with a key held on the device, with passphrase and recovery-code wraps beside it | Yes, where the provider returns that secret. C0a proves which providers do. It is never the only wrap |
+| Show it is you | A passkey assertion with user verification, checked locally against the stored public key | Yes for credentials issued under `greengoods.app`, on any `greengoods.app` page and in an extension with permission for that domain. Older credentials answer only on the site that created them, or in an extension with permission for that site. It proves a holder of the passkey, not which device |
+| Unlock the vault | The vault key wrapped under the passkey's PRF secret combined with a key held on the device, with a passphrase wrap beside it. The recovery code opens a recovery export, not the vault | Yes, where the provider returns that secret. C0a proves which providers do. It is never the only wrap |
 | Enrol a device | A new device key and a member-list version signed by the controller | No. A passkey syncs, so it identifies no device and must never re-admit one |
 | Sign local records | The device's signing key | No. It would prompt for every signature and produce a WebAuthn-shaped result |
 | Encrypt shared content | A fresh key per file, wrapped to recipients' device keys | No. A passkey cannot decrypt to a public key |
