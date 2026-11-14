@@ -2,18 +2,18 @@
 
 Open [the demo index](index.html) in a browser, then choose a study. Each HTML file contains its own styles, fixtures and JavaScript; there is no package install, build, private file dependency or network data fetch. An ordinary static server also works. Public source links open only when selected.
 
-The [current architecture view](grove-architecture.html) adds capture → review → share, local identity/keys, preferred optional Solid storage and Yjs co-editing, and EDV/Automerge + Keyhive research alternatives. Its [editable fragment](grove-architecture.fragment.html) is the source for the inline view; open the standalone page for normal browser use. It contains synthetic examples and no live accounts, keys, network sharing or production capability proof. Standalone state storage restores display choices only.
+The [current architecture view](grove-architecture.html) was rebuilt on 14 November 2026 as one self-contained page: one file, no network requests and no stored state. It replaces the earlier exported widget and its separate fragment, which loaded a script from a CDN. It steps one capture through the four audiences (local, community, partner community, public), names who approves each crossing and who holds which key, and marks next lanes and later work apart from the MVP. It follows the [decision log](../../spec.md#decision-log). It contains synthetic examples and no live accounts, keys, network sharing or proof of any capability.
 
 | Demo | Explore |
 |---|---|
-| [Current architecture](grove-architecture.html) | Privacy contexts, approval boundaries, local identity and optional storage/collaboration/public connections |
+| [Current architecture](grove-architecture.html) | One capture stepped through the four audiences, with approvers, key ownership, and the MVP set apart from next lanes |
 | [Follow a connection](grove-follow-a-connection.html) | Garden overview → Soil care → new connection → source → Back |
 | [Garden scenarios](grove-real-gardens.html) | TAS and Vida Verde topic journeys, proposed work and source inspection |
 | [Garden timelines](grove-gardens-timeline.html) | Both gardens growing through illustrative steps, with projected work kept distinct |
 | [Mycelium studies](grove-mycelium-studies.html) | Earlier visual directions for branching threads and focused neighborhoods |
 | [Knowledge over time](garden-graph-over-time.html) | Earlier synthetic graph, filters and temporal exploration |
 
-These are the 11 October design explorations, made standalone for this public handoff on 23 October 2026. They are reference material, not an accepted production design or an implementation of Sigma, Dexie, Gemma, Pi Durable, KOI or the Hub bridge. Their in-memory navigation does not establish durable history. Optional host widget-state hooks are harmless outside their original host; ordinary-browser reloads reset the demo.
+The five studies below the architecture view are the 11 October design explorations, made standalone for this public handoff on 23 October 2026. They are reference material, not an accepted production design or an implementation of Sigma, Dexie, Gemma, Pi Durable, KOI or the Hub bridge. Their in-memory navigation does not establish durable history. Optional host widget-state hooks are harmless outside their original host; ordinary-browser reloads reset the demo.
 
 The named-garden copies preserve historical public anchors (garden-published pages, an onchain registration and external reference pages). These were read for the original studies on 11 October; their contents and eligibility are not asserted current. Private meeting/report/planning records, their URLs, internal figures and related assertions have been replaced with explicitly synthetic examples. No actual garden priority, partnership, funding application, approval total or field outcome is established by those examples. The original local files were preserved separately.
 

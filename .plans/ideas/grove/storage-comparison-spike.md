@@ -1,8 +1,14 @@
 # Grove: Solid versus EDV comparison spike
 
-**Accepted research scope:** 13 November 2026. **State:** planned, unrun. This specifies C1a in [the delivery plan](plan.todo.md#community-sharing-delivery-order), with E22 in [the acceptance gates](eval.md#community-sharing-gates). It authorizes planning the experiment, not installation, deployment or private-data collection.
+**Accepted research scope:** 13 November 2026. **State:** planned, unrun. This specifies C1a in [the delivery plan](plan.todo.md#community-sharing-delivery-order), with E22 in [the acceptance gates](eval.md#community-sharing-gates). It authorizes planning the experiment, not installation, deployment or private-data collection. **Sequenced 14 November (D21 in [spec.md](spec.md#decision-log)):** this is the next lane after the MVP, which moves records by encrypted file only.
 
 **Solid plus client-side encryption is the preferred optional storage adapter. EDV remains a research alternative.** Validate Solid first against the local-key, two-device flow; repeat the same fixture on an EDV client/server pair when that research is pursued. Local/direct sharing needs neither API, and a failed privacy/permission/recovery gate blocks private use of that adapter. Do not require an EDV implementation or two backends to complete a passing Solid slice. [C5 research](collaboration-passkey-spike.md) can still compare a native ciphertext relay, with Keyhive experimental.
+
+## The store interface comes first
+
+Grove reaches hosted storage through one small interface: put, get, list and delete of immutable, opaque objects under unguessable names, with a conditional write. Prove that interface with a plain folder before any provider. Solid is then one adapter behind it, and the preferred one (D12).
+
+Everything a store holds is a shared file as [the contract](community-sharing.md#encryption-contract) defines it. A store never holds a key that is not wrapped, and Solid's access rules are a second control, not the confidentiality mechanism. Once content is ciphertext, what Solid adds over a plain blob store is a standard protocol and a community's own choice of operator. What it costs is a browser sign-in flow in both clients and a server to run. This spike measures both, so the preference rests on evidence.
 
 ## Fixed test conditions
 

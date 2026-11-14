@@ -1,94 +1,203 @@
 # Grove: capture → review → share
 
-**Current direction:** 13 November 2026. These are proposed flows, not runtime proof. [Community identity and encrypted sharing](community-sharing.md) owns the contract: local identity/keys, preferred optional Solid storage and Yjs co-editing. [C0a/C5 research](collaboration-passkey-spike.md) retains passkey/recovery proof and experimental Automerge + Keyhive; EDV is a storage research alternative. Dotted arrows show optional connections.
+**Current direction:** 13 November 2026, with the decisions of 14 November. These are proposed flows, not runtime proof. [Community sharing](community-sharing.md) owns the contract and its [terms](community-sharing.md#terms); [spec.md](spec.md#decision-log) owns the decisions cited here as D-numbers. Solid lines are the MVP. Dotted lines are next lanes or later work.
 
-## Local, shared and public contexts
+## Four audiences
 
 ```mermaid
 flowchart TB
-  subgraph PRIVATE["LOCAL · person and their paired devices"]
-    Input["Page / note / photo / observation"] --> Capture["Capture source and consent context"]
-    Capture --> Vault[("Encrypted local workspace")]
-    Vault --> Review["Review and correct<br/>Optional local AI and graph"]
-    Identity["Local member and community identity<br/>Device keys and signed policy"] --> Review
+  subgraph LOCAL["LOCAL · own devices"]
+    Cap["Capture<br/>source, time, consent"] --> Vault[("Encrypted vault<br/>on each device")]
+    Vault --> PRev["Personal review<br/>by hand, with optional local AI on the laptop"]
   end
-  subgraph COMMUNITY["SHARED · named community members"]
-    Gate["Choose exact revision, fields,<br/>recipients and purpose"] --> E2EE["Encrypt on sender device<br/>Keys for authorized devices only"]
-    E2EE <-.-> Pod[("Solid: preferred optional store<br/>Ciphertext, no content keys")]
-    E2EE <--> Direct["Encrypted file / WebRTC transfer"]
-    Pod --> Receive["Verify grant and sender<br/>Decrypt on recipient device"]
-    Direct --> Receive
-    Receive --> Together["Community review<br/>Correction / lesson / draft report"]
+  subgraph COMMUNITY["COMMUNITY · members"]
+    Recv["Verify sender, member list and recipients<br/>decrypt and store"] --> CRev["Review together<br/>decisions and corrections"]
   end
-  subgraph CROSS["BETWEEN COMMUNITIES · a new audience"]
-    Select["Approve a minimized projection"] --> Other["Fresh encrypted copy<br/>for named partner community"]
+  subgraph PARTNER["PARTNER COMMUNITY"]
+    PSum["Read a minimized summary<br/>no private history"]
   end
-  subgraph COMMONS["PUBLIC · publish by choice"]
-    Release["Preview and approve public release<br/>before any public upload"] --> Public["Public report or knowledge resource"]
-    Release -.-> AT["Optional ATProto / Certified"]
-    Release -.-> ETH["Optional Green Goods / Ethereum"]
-    Release -.-> Archive["Optional IPFS / Filecoin archive"]
+  subgraph PUBLIC["PUBLIC · by choice"]
+    Rel["Release<br/>report, resource or claim"]
   end
-  Review --> Gate
-  Identity --> Gate
-  Together --> Select
-  Together --> Release
-  Other -.-> KOI["Optional KOI discovery and exchange<br/>Only approved audience data"]
+  PRev -->|"The author approves:<br/>revision, fields, recipients, purpose"| File["Signed, encrypted file"]
+  File --> Recv
+  File -.->|"Next lane: ciphertext only"| Box[("Hosted mailbox<br/>Solid preferred")]
+  Box -.-> Recv
+  CRev -->|"A steward approves a new projection.<br/>The author too, if their corrected capture leaves"| PSum
+  CRev -.->|"Later lane: a steward approves<br/>before any upload"| Rel
 ```
 
-These contexts are the privacy rings. Moving outward creates a deliberate disclosure, not a change of visibility on the entire source archive. Local-only use is complete without any outer ring. A recipient can read a public summary without acquiring the underlying private evidence. Public destinations are independent choices, not a required sequence or a guarantee of permanence.
-
-Yjs is the preferred optional draft-merge engine, with encrypted updates and verified writers; it supplies neither community identity nor content-key custody. EDV and Automerge + Keyhive remain research alternatives. None is required to capture, review or exchange selected encrypted records locally.
+Local means one person's own phone and laptop; community means named members' devices; a partner community is named recipients elsewhere; public is anyone. Moving outward is a deliberate disclosure of one projection, never a change of visibility on the source. Local-only use is complete without any other audience. A partner can read a summary without receiving the evidence under it. Each crossing has its own approval and its own approver (D17).
 
 ## Initial user flows
 
-| Step | Knowledge capture | Impact evidence capture | Privacy/authority boundary |
+| Step | Knowledge capture | Impact evidence capture | Boundary and authority |
 |---|---|---|---|
-| 1. Start locally | Create a community workspace or accept a verified invitation | Same; optionally bind an existing public garden later | No wallet or provider login needed. Each device gets separate keys. |
-| 2. Capture | Save a guide, page excerpt, lesson or note | Save an observation, photo or account of work; sensor imports later | Save locally first, with source/time/context and consent. A failed model/network never loses the capture. |
-| 3. Review personally | Correct a summary, inspect sources, add a connection | Check date, attribution and evidence; preserve planned/reported/recorded distinctions | Local AI proposes. The person decides. No protocol attestation is created. |
-| 4. Share for review | Choose an excerpt or resource and named reviewers | Choose the evidence fields and reviewers; omit unnecessary personal/location data | Confirm exact revision, audience and purpose. Encrypt before sending; original remains local. |
-| 5. Review together | Members discuss/correct a lesson or approve a shared resource | Authorized reviewers assess the evidence and prepare a report or claim draft | Record reviewer identity and version. The community's policy governs approval; decryption alone gives no review authority. |
-| 6. Share an outcome | Send a useful summary to a partner community | Send a report to a named funder or partner | New audience, fresh minimized projection, new approval and keys. A report need not be public. |
-| 7. Publish by choice | Release a public learning resource | Release selected impact information or use a protocol publication flow | Separate review before the first upload. Existing Work/WorkApproval rules still apply. |
+| 1. Start locally | Create a community or accept a verified invitation | Same; a public garden can be linked later | No wallet or provider login. Each device gets its own keys. A recovery code is created |
+| 2. Capture | Save a guide, page excerpt, lesson or note | Save an observation, photo or account of work | Saved first, with source, time and consent. No model, network or unlock is needed to save |
+| 3. Review personally | Correct a summary, inspect sources, add a connection | Check date, attribution and evidence; keep planned, reported and recorded apart | By hand on either client. On the laptop, local AI may propose; the person decides. No protocol attestation is created |
+| 4. Share for review | Choose an excerpt or resource and named reviewers | Choose the evidence fields and reviewers; leave out unneeded personal and location data | The author approves the exact revision, fields, recipients and purpose. The file is encrypted before it leaves; the original stays |
+| 5. Review together | Members discuss and correct a lesson | Reviewers assess the evidence and prepare notes for a summary | Each reviewer's decision is recorded with their identity and the revision. Reading gives no authority to release |
+| 6. Share an outcome | Send a useful summary to a partner community | Send a report to a named funder or partner | A steward approves a new, minimized projection. The author approves too if a corrected version of their capture is leaving |
+| 7. Publish by choice | Release a public learning resource | Release selected impact information or use a protocol flow | Later lane. A steward approves before the first upload. Existing Work and WorkApproval rules still apply |
 
-Example: a steward captures soil observations offline, while a learning facilitator saves a workshop lesson. Each reviews on their own device and shares selected records with the community's reviewers. A funder receives a reviewed summary; culturally restricted knowledge, participant details and precise ecological locations can remain in narrower contexts.
+Example: a steward captures soil observations offline on a phone, while a learning facilitator saves a workshop lesson on a laptop. Each reviews on their own device and shares selected records with the community's reviewers. A funder receives a reviewed summary; culturally restricted knowledge, participant details and precise ecological locations stay in narrower audiences.
 
-## What happens when two devices share
+## Sequences
+
+### Capture and personal review
 
 ```mermaid
 sequenceDiagram
-  participant A as Capturing phone or laptop
-  participant G as Local policy and key store
-  participant T as File / WebRTC / selected storage
-  participant B as Authorized reviewer device
-  A->>A: Save encrypted capture, optionally enrich locally
-  A->>G: Select revision, recipient, purpose and fields
-  G-->>A: Verify current grant and explicit share approval
-  A->>A: Create signed encrypted envelope and recipient key wrap
-  A->>T: Send ciphertext and persist retry intent
-  T->>B: Deliver opaque envelope when reachable
-  B->>B: Check sender, grant, epoch, revision and duplicate ID
-  B->>B: Decrypt and commit locally
-  B-->>A: Authenticated receipt for the committed version
-  B->>B: Review or correct, retain provenance
-  Note over A,B: Receipt, review, community approval and public release are separate states
+  participant P as Person
+  participant C as Phone app or extension
+  participant V as Vault and local store
+  P->>C: Capture a note, photo, file or page
+  C->>V: Encrypt to this device's own key and save revision 1
+  V-->>C: Committed
+  C-->>P: Saved locally
+  Note over C,V: Saving needs no unlock, model, account or network
+  P->>C: Unlock with passkey or passphrase
+  P->>C: Review by hand, correct, add context
+  C->>V: Save revision 2 and the review
+  opt On the laptop, when the model is available
+    C->>V: Record a keyed investigation request
+    Note over C,V: Pi runs Gemma, checks each quote and stores proposals
+    P->>C: Accept, reject or correct each proposal
+    C->>V: Save the decision against the exact revision
+  end
 ```
 
-Show delivery as **saved locally → queued → stored by selected destination / received by device**. Show review and publication separately. If only a Pod upload is confirmed, do not claim that the reviewer received or read the record. Changed content or recipients invalidate the prior approval. If offline membership is stale, preserve the capture and queue the share pending policy reconciliation.
+A save is acknowledged only after its transaction commits. Inference is optional and happens after the save, never before it.
+
+### Phone to laptop
+
+```mermaid
+sequenceDiagram
+  participant Ph as Phone web app
+  participant F as Encrypted file
+  participant L as Desktop extension
+  Ph->>Ph: Select captures and build a file for the member's own laptop key
+  Ph->>F: Export through the share sheet
+  F->>L: Import in the extension
+  L->>L: Check the signature, the sending device and the recipient
+  L->>L: Decrypt and store, skipping anything already held
+  L-->>Ph: Receipt, carried by the next file in the other direction
+```
+
+The two clients have separate storage. Nothing moves between them except through a file a person carries across (D21).
+
+### Share and recipient review
+
+```mermaid
+sequenceDiagram
+  participant A as Author's device
+  participant M as Member list held by the author
+  participant F as Encrypted file
+  participant R as Reviewer's device
+  A->>A: Choose revision, fields, recipients and purpose
+  A->>M: Are the recipients current members and is the list fresh
+  M-->>A: Yes, or sharing pauses when the list is older than seven days
+  A->>A: Record the author's share approval
+  A->>A: Sign the manifest, encrypt under a fresh key, wrap the key to each recipient device
+  A->>F: Export the file
+  F->>R: Arrives by any channel
+  R->>R: Check signature, sender in the list, named as recipient, not a duplicate
+  R->>R: Decrypt and store
+  R-->>A: Signed receipt for the stored file
+  R->>R: Record a review decision or a correction
+  Note over A,R: Stored, received, reviewed and released are four separate states
+```
+
+Show delivery as **saved locally → exported → received by device**. Show review and release separately. A receipt means a device stored the file, not that anyone read or accepted it. Changed content or recipients need a new approval.
+
+### Correction and partner summary
+
+```mermaid
+sequenceDiagram
+  participant R as Reviewer
+  participant A as Author
+  participant S as Steward
+  participant P as Partner contact
+  R->>A: Correction, a new revision that supersedes the shared one
+  A->>A: Approve the corrected version if it will leave the community
+  S->>S: Build a minimized projection from approved revisions
+  S->>S: Record the release approval, naming the decisions it relied on
+  S->>P: Signed, encrypted file for named partner devices
+  P->>P: Verify against the paired community's member list, decrypt, store
+  P-->>S: Receipt
+  Note over S,P: The partner receives the summary only. Sources and draft history stay behind
+```
+
+### Removing a device
+
+```mermaid
+sequenceDiagram
+  participant S as Steward, the controller
+  participant A as Sender, offline
+  participant X as Removed device
+  S->>S: Sign member list version n+1 without the device
+  Note over A: Still holds version n
+  A-->>X: A file shared now is still wrapped to the removed device
+  Note over A,X: The seven-day limit bounds this window
+  S-->>A: Any file that carries version n+1
+  A->>A: Adopt version n+1
+  A->>A: Later files leave the removed device out
+  Note over X: Keeps everything it already received
+```
+
+### Unlock and recovery
+
+```mermaid
+flowchart LR
+  PK["Existing passkey<br/>where the provider supports it"] --> K1["Passkey secret combined with<br/>a key held on the device"]
+  PP["Passphrase"] --> K2["Derived key"]
+  RC["Recovery code<br/>kept off the device"] --> K3["Derived key"]
+  K1 --> VK["Vault key"]
+  K2 --> VK
+  K3 -->|"Opens a recovery export"| VK
+  VK --> DK["Device private keys"]
+  VK --> Rec["Record payloads"]
+  DK --> Sign["Sign what this device sends"]
+  DK --> Open["Open files addressed to this device"]
+```
+
+The passkey unlocks; it does not identify a device, sign Grove records or decrypt shared files. A restored device makes new keys and is added to the member list again.
+
+### Optional publication, a later lane
+
+```mermaid
+sequenceDiagram
+  participant S as Steward
+  participant G as Grove
+  participant Q as Green Goods upload queue
+  participant I as Public IPFS
+  participant C as Chain
+  S->>G: Choose approved revisions and fields for release
+  G-->>S: Preview the exact payload that would be uploaded
+  S->>G: Release approval, bound to that payload's digest
+  G->>Q: Hand over only after the approval is recorded
+  Note over Q,I: Today the queue uploads during background preparation, before Upload all
+  Q->>I: Pin media and metadata. Public from this moment
+  S->>Q: Upload all, which only signs
+  Q->>C: Work attestation under the existing garden rules
+  Note over G,C: Community review is not WorkApproval. Existing authority is unchanged
+```
+
+This sequence is why the release approval sits before the hand-over and not before the signature. The upload behavior is current code, read on 14 November; the Grove steps are proposed.
 
 ## Identity and processing ownership
 
-The [identity/role map](identity-role-mapping.md) separates the community's GardenAccount/WebID/group account from each member's wallet/WebID/personal account. Account associations are private by default and confer no role or decryption key. Local/community role grants, service delegations and public protocol authority each retain their own scope.
+The [identity and role map](identity-role-mapping.md) separates a community's garden, WebID and group accounts from each member's wallet, WebID and personal account. Associations are private by default and confer no role and no key.
 
-The [Pi capture/review flow](durable-execution.md#where-pi-belongs-in-capture--review--share) keeps source saving and human review in Grove transactions. Pi resumes optional multi-step enrichment, then finishes ready for review; a human correction can enqueue a new keyed investigation. The [storage comparison](storage-comparison-spike.md) tests two backends on the same two-device flow, while [local-first options](local-first-options.md) remain conditional collaboration choices.
+The [Pi capture and review contract](durable-execution.md#where-pi-belongs-in-capture--review--share) keeps saving and human review in Grove transactions. Pi resumes optional multi-step enrichment on the laptop and finishes ready for review; a human correction can request a new investigation.
 
 ## How this extends Green Goods and Coop
 
 ```mermaid
 flowchart LR
   Local["NEW: local community identity<br/>Capture and personal review"] --> Shared["NEW: encrypted community sharing<br/>Member review and corrections"]
-  Shared --> Consent["Separate public-release approval"]
+  Shared --> Consent["Separate release approval"]
   Existing["EXISTING: Green Goods local drafts<br/>and public Ethereum garden identity"] --> Consent
   Consent --> Protocol["Existing public upload and<br/>Work / WorkApproval workflows"]
   Protocol -.-> Local
@@ -96,11 +205,11 @@ flowchart LR
   Coop -.-> Shared
 ```
 
-Grove adds local/community identity and shared evidence contexts before the existing public boundary. Existing draft queues, public IPFS uploads and onchain identity are not an encrypted shared layer. Coop provides inspected patterns, not a pre-proven host-blind implementation. No application or contract behavior changes in this plan revision.
+Grove adds local and community identity and shared evidence before the existing public boundary. Existing draft queues, public IPFS uploads and onchain identity are not an encrypted shared layer. Coop provides patterns that were read from source, not an implementation that has been shown to keep a host blind, and its code cannot be copied until its license is settled. No application or contract behavior changes in this plan revision.
 
-## Earlier graph and ingestion baseline
+## The laptop workspace
 
-The diagrams below preserve the earlier research/work interpretation loop and command-recovery detail. Their public-safe controlled KOI peer is optional. For confidential data, the encryption/recipient boundary above applies before every outbound adapter. Pi owns resumable investigations; the graph and review lists derive from scoped committed knowledge.
+The diagrams below describe the laptop's graph and investigation lane, which is part of the MVP (D25). Three things in them are next lanes and not the MVP (D22): the Admin Hub import and digest, the KOI peer, and structured Garden, Work and WorkApproval records, which arrive with the Hub import. In the MVP the graph shows Grove's own captures, reviewed links and received records. For confidential records, the encryption and recipient rules above apply before any outbound adapter. Pi owns resumable investigations; the graph and the review lists read committed knowledge.
 
 ## Two loops joined by garden memory
 

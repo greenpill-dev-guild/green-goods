@@ -1,6 +1,6 @@
 # First end-to-end spike: Vida Verde and TAS
 
-> **13 November scope update:** this remains the public-fixture graph/Hub/KOI baseline. The current first pilot is [capture → review → share](architecture-flows.md#initial-user-flows), delivered through [C0–C4](plan.todo.md#community-sharing-delivery-order). Its community identity and encryption gates take precedence for confidential content. This earlier spike is not evidence of multi-user privacy or phone support.
+> **13 November scope update:** this remains the public-fixture graph/Hub/KOI baseline. The current first pilot is [capture → review → share](architecture-flows.md#initial-user-flows), delivered through [C0–C4](plan.todo.md#community-sharing-delivery-order). Its community identity and encryption gates take precedence for confidential content. This earlier spike is not evidence of multi-user privacy or phone support. **14 November:** the order is now the [MVP order](plan.todo.md#mvp-order); this spike's Hub import and KOI exchange are next lanes.
 
 **Status:** scoped, unstarted. **Updated:** 16 October 2026.
 **Purpose:** demonstrate that Pi Durable investigations inside a local-first KOI partial node turn one relevant resource into an inspectable garden connection, preserve its history offline, and exchange only an explicitly selected object with a controlled full node.

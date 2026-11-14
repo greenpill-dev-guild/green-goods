@@ -1,55 +1,68 @@
 # Grove by Green Goods
 
-**Slug:** `grove` · **Stage:** ideas · **Updated:** 2026-11-13
+**Slug:** `grove` · **Stage:** ideas · **Updated:** 2026-11-14
 
 *Your garden’s living knowledge.*
 
 **Coordinate locally. Govern together. Share by context. Publish by choice.**
 
-**Linear:** [Grove — Garden Knowledge](https://linear.app/green-goods/project/grove-garden-knowledge-8582c2970974), a focused project within [Community Evidence Mesh](https://linear.app/green-goods/initiative/community-evidence-mesh-f7bdee530343). [RESR-103](https://linear.app/green-goods/issue/RESR-103/grove-by-green-goods-roadmap) remains the Backlog parent; this hub owns the implementation checkpoints. Five undated project milestones mirror A0–A4.
+**Linear:** [Grove — Garden Knowledge](https://linear.app/green-goods/project/grove-garden-knowledge-8582c2970974), a focused project within [Community Evidence Mesh](https://linear.app/green-goods/initiative/community-evidence-mesh-f7bdee530343). [RESR-103](https://linear.app/green-goods/issue/RESR-103/grove-by-green-goods-roadmap) remains the Backlog parent; this hub owns the implementation checkpoints. Its five undated project milestones still mirror the earlier A0–A4 sequence and have not been reconciled with the order below.
 
-Grove helps place-based communities **capture → review → share** knowledge and evidence of their work. Capture on a phone or laptop, keep the source locally, review it with local AI when available, and choose what to share with named community members. Community review can produce a lesson, a report or a public contribution. Raw sources can stay private throughout.
+Grove helps place-based communities **capture → review → share** knowledge and evidence of their work. People capture on a phone or a laptop, keep the source on their own device, review it by hand, and choose what to share with named members of their community. Community review can lead to a lesson, a report for a partner, or later a public contribution. Raw sources can stay private throughout. A report is one possible output; not every capture becomes an impact claim or a public record.
 
-Identity starts locally and is governed by the community. Only authorized member devices receive decryption keys; the hosting operator cannot grant itself access. **Solid is the preferred optional storage adapter**, with client-side encryption before upload; EDV remains a research alternative. Local/direct sharing needs neither. A community can later connect to ATProto/Certified, an Ethereum garden or other public destinations by choice. Neither a wallet nor a provider login is needed to begin.
+Identity starts on the device and is governed by the community. Nobody needs a wallet, a provider account, a model or a connection to begin. Shared records are encrypted for named members' devices, and the design requirement is that whoever stores or relays them cannot read them. That requirement is unbuilt and untested, and it covers storage and relay hosts, not Green Goods as the publisher of the app's code.
 
-The desktop extension provides capture, review and a living graph; a phone browser/PWA companion is the first mobile candidate. Dexie owns local knowledge, Pi Durable coordinates resumable processing, and Gemma supplies optional local suggestions. Direct transfer and encrypted files support device exchange. **Yjs is preferred when optional co-editing is needed**, with encrypted updates and verified writer permissions. Automerge + Keyhive remains an experimental research alternative. Existing-passkey reuse, offline unlock, device support and recovery still require proof before private use. KOI remains optional for semantic exchange.
+Two clients ship together: a phone web app for capture, review and sharing, and a desktop extension that adds page capture, a graph of what the community holds, and optional local AI suggestions. Records travel between devices as encrypted files. An existing Green Goods passkey can unlock the local vault where its provider supports that; a passphrase does otherwise.
 
 ## Read this plan
 
-- [Two-device collaboration and passkey spike](collaboration-passkey-spike.md): Yjs versus Automerge + Keyhive; existing credential/RP reuse, offline unlock, device/credential loss and recovery. Planned, unrun.
-- [Solid versus EDV comparison spike](storage-comparison-spike.md): two devices, local keys, recovery, permissions, host privacy and actual build burden.
-- [Identity and role mapping](identity-role-mapping.md): separate community/member associations and scoped roles across local, Solid, ATProto/Certified and Ethereum contexts.
-- [Local-first package research](local-first-options.md): Yjs, Automerge/Keyhive, Loro, RxDB and version-specific Jazz tradeoffs.
-- [Community identity and encrypted sharing](community-sharing.md): current privacy, identity, key custody, storage and device-networking contract.
-- [Capture → review → share diagrams](architecture-flows.md): initial flows for both knowledge and impact evidence, privacy contexts and publication gates.
-- [Sharing research](sharing-research.md): Solid alternatives, inspected Coop patterns, browser limits and source-backed open questions.
-- [Prototype: four parts, one loop](prototype.md): the smallest build that shows Gemma, KOI, Pi Durable and WebMCP together, with its decisions, code and demo checks.
-- [Prototype architecture](prototype-architecture.md): packages, dependencies, where the code runs, module layers, the types that cross boundaries, UI components and data flows.
-- [Prototype design brief](prototype-design.md): Grove as the cockpit's dialect on a graph; the shared core, the dials, the garden tone, the canvas legend, states, copy and the Storybook proof.
-- [Mesh alignment and evidence boundary](mesh-alignment.md): accepted project relationship, authority mapping and conformance gates.
-- [Continue in another session](handoffs/next-session.md): current state, next bounded step and portable source locations.
-- [Interactive design demos](artifacts/demos/README.md): five standalone HTML studies, including public-safe TAS/Vida Verde scenarios and timelines.
-- [Pi Durable execution contract](durable-execution.md): browser storage, task ownership, graph-command receipts, recovery and privacy.
-- [KOI integration and evidence](koi-integration.md): partial/full-node boundary, identity, signatures, durable recovery and reuse limits.
-- [Vida Verde and TAS spike](first-spike.md): public-source fixtures, walkthrough, scope and exit conditions.
-- [Unified ontology proposal](ontology-alignment.md): one Grove language with traceable Green Goods and Commons meanings.
-- [Learning loops and ingestion diagrams](architecture-flows.md): internal work, external knowledge, and their shared memory.
-- [Dependencies by category](dependencies.md): responsibilities, reuse, candidates and deferred additions.
-- [Visualizer references and design directions](visual-design.md): actual Sigma/Cytoscape screenshots and comparison.
-- [Claude Code design prompt](handoffs/claude-design-exploration.md): a bounded exploration of three graph compositions.
-- [Architecture and reuse](spec.md): scope, Coop and Green Goods components, ownership, ingestion and temporal contracts.
-- [Implementation sequence](plan.todo.md): current community-sharing checkpoints C0–C6 and the preserved S/P/K graph/runtime baseline.
-- [Acceptance gates](eval.md): domain, history, model, connection, graph, capacity and recovery criteria.
-- [Execution state](status.json): idea-stage product work; a disposable G0 feasibility experiment exists, but the community-sharing layer is unbuilt.
+**The current contract**
+
+- [MVP contract and decision log](spec.md): who the MVP is for, what it includes and excludes, how it is judged done, and every decision, recommendation, assumption and open question.
+- [Community identity and encrypted sharing](community-sharing.md): terms, audiences, who approves, the member list, encryption, unlock, recovery and carriers.
+- [Capture → review → share flows](architecture-flows.md): the four audiences and the sequences for capture, review, sharing, correction, removal, recovery and later publication.
+- [Identities and roles](identity-role-mapping.md): who controls which account and key, what the passkey does, and how the six Green Goods roles relate.
+- [Implementation sequence](plan.todo.md): the MVP order, each checkpoint's exit, the next lanes and research.
+- [Acceptance gates](eval.md): which gates the MVP needs and what passes each.
+- [Interactive architecture](artifacts/demos/grove-architecture.html): the same model as one page to step through.
+
+**Experiments designed and not run**
+
+- [Passkey unlock and recovery on two devices](collaboration-passkey-spike.md): an MVP gate. Its second half, a co-editing comparison, is backlog research.
+- [Hosted mailbox and Solid](storage-comparison-spike.md): the next lane after the MVP.
+
+**The laptop workspace**
+
+- [Pi Durable execution contract](durable-execution.md): where Pi runs investigations, and what it never gates.
+- [Dependencies by category](dependencies.md): roles, candidates, versions and licenses.
+- [Unified ontology proposal](ontology-alignment.md), [visualizer references](visual-design.md) and the [design brief](prototype-design.md).
+
+**Research and alignment**
+
+- [Sharing research](sharing-research.md): standards, Coop patterns and browser limits, with sources.
+- [Local-first package research](local-first-options.md): Yjs, Automerge + Keyhive, Loro, RxDB and Jazz.
+- [Mesh alignment and evidence boundary](mesh-alignment.md): the relationship to Community Evidence Mesh.
+
+**Earlier baselines, kept as history**
+
+- [Prototype: four parts, one loop](prototype.md) and its [architecture](prototype-architecture.md): the October plan. Its investigation slice is the workspace lane; its Hub connection, KOI exchange and agent tools are next lanes.
+- [Vida Verde and TAS spike](first-spike.md) and the [KOI contract](koi-integration.md).
+- [G0 feasibility report, 24 October](reports/2026-10-24-g0-feasibility.md): the one experiment that has run.
+- [Interactive design demos](artifacts/demos/README.md) and the [Claude Code design prompt](handoffs/claude-design-exploration.md).
+
+**State**
+
+- [Continue in another session](handoffs/next-session.md): current state and the next bounded step.
+- [Execution state](status.json): idea stage; a disposable G0 experiment exists and nothing else is built.
 
 ## First success
 
-Create a local community without a wallet. Capture a useful soil-care guide and a field observation on a phone, including source and consent context. Review them locally, pair a laptop, and explicitly share a selected encrypted copy with an authorized reviewer. The reviewer sees its origin, corrects or accepts it, and helps prepare a lesson or report. A second community receives only a newly approved summary. Reopen offline without losing the capture; show that the Pod operator and an uninvited device cannot decrypt it. No public upload is necessary for this success.
+A steward creates a community with no wallet. A member captures a useful soil-care guide and a field observation on a phone, with source and consent context, and reviews them by hand. They pair their laptop and carry the captures across as an encrypted file. They share a selected, encrypted copy with a reviewer, who sees where it came from and corrects it. The author approves the corrected version, and the steward sends a separately approved summary to a named partner community. Reopening offline loses nothing, and a device that was not named cannot read the file. On the laptop, a local AI investigation proposes a connection, survives a closed tab, and the member accepts it in the graph. No public upload, hosted storage or provider account is involved.
 
-Repeat with a community learning/cultural record and with isolated Vida Verde/TAS fixtures. Reports are one possible share output. Community acceptance, evidence interpretation and protocol WorkApproval remain separate.
+Repeat with a community learning or cultural record. Community acceptance, evidence interpretation and protocol WorkApproval remain separate.
 
 ## Boundaries
 
-The [24 October G0 report](reports/2026-10-24-g0-feasibility.md) proves limited synthetic desktop feasibility, not phone suitability, persistent Pi tab-close recovery or private sharing. Earlier graph/KOI prototypes remain useful baselines; the 13 November sharing contract takes precedence for identity, privacy and pilot scope. The earlier five Linear milestones have not been updated by this revision.
+The [24 October G0 report](reports/2026-10-24-g0-feasibility.md) proves limited synthetic desktop feasibility. It does not show phone suitability, Pi recovery across a closed tab on persistent storage, or private sharing. Records are synthetic or non-sensitive until the loop's gates pass and a second controller exists.
 
-No dedicated hardware node or cloud inference is required. Always-on storage, sensors, live co-editing, multi-hop networking and public publication are optional later capabilities. This request updates the plan only: it does not authorize product implementation, dependency installation, deployment or external tracker changes.
+No dedicated hardware node or cloud inference is required. Hosted storage, the Admin Hub connection, KOI exchange, co-editing, sensors and public publication are next lanes or later work. This revision updates the plan only: it authorizes no product implementation, dependency installation, deployment or tracker change.

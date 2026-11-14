@@ -1,20 +1,72 @@
 # Continue Grove
 
-**State as of 13 November 2026:** capture → review → share remains the product loop. Solid is now the preferred optional storage adapter, with client-side encryption; Yjs is preferred for optional co-editing, with verified writers. Community/member identity and private keys remain local. EDV and Automerge + Keyhive stay research alternatives; Keyhive is experimental and synthetic-data-only. C0a/E24 passkey/offline unlock/recovery and all other runtime gates remain unrun. This updates the idea-stage design, not application behavior.
+**State as of 14 November 2026:** two independent reviewers examined the architecture and MVP, and the owner settled ten decisions. The hub's documents were aligned to those decisions and the architecture page was rebuilt. Nothing is built beyond the disposable G0 spike, and every gate is unrun. The edits are uncommitted in a review worktree on top of draft PR #1601's content; nothing was committed, pushed or published.
 
 ## Start here
 
-Read the [brief](../brief.md), [architecture](../spec.md), [community-sharing contract](../community-sharing.md), [flow diagrams](../architecture-flows.md), [source-backed research](../sharing-research.md), [C0–C6 delivery order](../plan.todo.md#community-sharing-delivery-order) and [acceptance gates](../eval.md#community-sharing-gates). The earlier prototype, first spike and KOI contract are labeled baselines where their scope differs.
+Read [spec.md](../spec.md) first. It holds the MVP contract and the one decision log: decisions D1 to D25, recommendations R1 to R15, assumptions W1 to W4 and open questions O1 to O11. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
-Remain on the current checkout/branch unless explicitly authorized otherwise. Inspect current instructions and status before editing; unrelated concurrent edits were present during this revision. Do not recreate a second Grove hub, install dependencies, change runtime code or publish externally from this planning request.
+Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second Grove hub, install dependencies, change runtime code or publish externally from a planning request.
 
-## What exists and what remains unbuilt
+## Decided on 14 November
+
+- A desktop extension and a phone web app ship together (D2).
+- The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
+- One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).
+- The existing passkey unlocks the vault where its provider supports it; a passphrase does otherwise. C0a is a gate (D19).
+- "The operator cannot decrypt" covers storage and relay hosts. Green Goods is trusted as publisher of the client code (D20).
+- Encrypted files carry records in the MVP; a hosted mailbox with Solid preferred is the next lane (D21).
+- The MVP graph shows Grove's own records; the Hub snapshot and KOI exchange are next lanes (D22).
+- "Community" is Grove's term, defined apart from a Garden and the Community role (D23).
+- A device stops sharing when its member list is older than seven days, adjustable per community (D24).
+- The graph, Gemma suggestions and Pi investigations stay in the MVP (D14, D25).
+
+## Next bounded work
+
+Each step needs its own authorization before anything is installed or built.
+
+1. Two owner decisions unblock the build: where the phone app and the code both clients share will live (O2), and whether any Coop code may be copied (O5).
+2. **C0b**, then **C0a**. Both are experiments on a physical phone and laptop and need no protocol code. C0b decides which phones may hold keys. C0a decides who gets passkey unlock and who gets the passphrase.
+3. **P0** alongside: the Pi tab-close proof on persistent storage, which the G0 spike left owed and nothing blocks now.
+4. Then C1, C0, recovery and C2, in the [MVP order](../plan.todo.md#mvp-order).
+
+The recommendations R1 to R15 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts.
+
+## Validation and phase record, 14 November
+
+Checked on the working copy, develop `3ee6594ef` plus this hub:
+
+- `node scripts/harness/plan-hub.mjs validate`: 31 hubs validated.
+- A local link and anchor checker over the hub's 26 Markdown files: every local link resolves. Before the edits, one link pointed into an uninitialized submodule; it now points upstream at the pinned commit.
+- All 25 Mermaid diagrams parse with Mermaid 11.4.1, and the 11 new or changed ones were rendered and looked at. Two diagrams in `prototype-architecture.md` failed to parse before; a semicolon in each was the cause and both are fixed.
+- The architecture page was rendered in a browser pane from a local static server (isolated profile, not authenticated): desktop in light and dark, and 360 px wide. Stepping by button, by menu and by keyboard works; the later-work toggle shows and hides seven items; there are no console messages, no request beyond the page itself and no stored state. Computed contrast is at least 5.4:1 for text and 3.6:1 for control borders in both themes.
+- Draft PR #1601's checks were green at `175d3051f` when read; they do not cover these edits.
+
+Not checked: a screen reader, forced-colors mode, a real phone, GitHub's own Mermaid rendering, Linear, and any gate in [eval.md](../eval.md). No experiment was run. The outside facts in [dependencies](../dependencies.md#versions-maturity-and-licenses) were read by a reviewer on 13 November except where a row says it was verified on 14 November.
+
+Task record: Grove architecture review (PR #1601) | Type: review and guidance | Outcome: complete (documentation aligned; no gate run)
+Agent/model: Claude Code / claude-fable-5-2, with reviewer subagents claude-opus-5-5 and claude-fable-5-2 | Coverage: this session
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | 2026-11-14 02:17 → 03:48 | Hub and code read; two independent reviews; code and source re-checks |
+| Wait | 03:48 → about 04:58 | Ten owner decisions, in two rounds of five |
+| Implement plan and visual | about 04:58 → 05:21 | Documents aligned; architecture page rebuilt as one self-contained file |
+| Verify | 05:13 → 05:23 | Hub validator, links, diagrams and rendered page, as listed above |
+
+Human corrections: 0 observed; three recommended defaults were declined in favor of the fuller plan. Attention: unknown.
+
+## Earlier records, 13 November
+
+These records are kept as written, with one dead link removed. Where they differ from the sections above, the sections above govern.
+
+### What exists and what remains unbuilt
 
 The immutable [24 October G0 report](../reports/2026-10-24-g0-feasibility.md) records synthetic desktop graph/model feasibility, in-memory Pi recovery and a WebMCP fixture. It does not establish phone performance, actual Hub integration, persistent Pi tab-close recovery, local vault protection or private community sharing. Product lanes and all 18 S/P/K checkpoints remain unchanged; C0–C6 and E15–E21 are newly planned and unrun.
 
 The five existing Linear A0–A4 milestones and parent-only RESR-103 metadata remain historical coordination state. No Linear query/write or sync confirmation was performed for this revision. Reconcile externally only under an accepted coordination/execution scope; do not advance lastSyncedAt from local edits.
 
-## Follow-up accepted in this session
+### Follow-up accepted in this session
 
 C1a/E22 specify the [two-device storage spike](../storage-comparison-spike.md), now validating preferred optional Solid first and retaining EDV as research. Independent local keys, recovery, scoped permissions and host privacy remain hard gates. Record actual library reuse, Grove-owned code, services, licences and bundle cost. No experiment or installation ran.
 
@@ -26,7 +78,7 @@ The [Pi refresh](../durable-execution.md#research-refresh-13-november-2026) insp
 
 Interactive companion: synthetic identity/role map shown in this chat. DOM-simulated interaction and 320/520/736 geometry checks pass; browser rendering remains unverified. The preview helper could not bind a sandboxed loopback server; browser security then rejected file-protocol navigation. No workaround or additional browser surface was used. The local modern-web-guidance command also hit a network allowlist block; semantic/native controls and repository guidance were used without a package refresh.
 
-## Latest accepted comparison scope
+### Latest accepted comparison scope
 
 [The comparison contract](../collaboration-passkey-spike.md) owns two independent passes. **C0a/E24** tests the actual existing credential/RP/account recipe, PRF availability, blocked-network lock/reopen, unsupported/cancelled unlock, device and credential loss, protected export and revoked-device readmission. A synced passkey is not a device identity; local recovery does not prove Ethereum account recovery. Keep an independently proven local unlock/recovery path when existing-passkey reuse fails.
 
@@ -34,13 +86,13 @@ Interactive companion: synthetic identity/role map shown in this chat. DOM-simul
 
 Keyhive's inspected core warns against production use and records unresolved revocation gaps; the integration guide describes no recovery and full history for new readers. Exact packaged-version applicability is unverified. Keep it experimental and synthetic-data-only even if the happy path succeeds. No package was installed or experiment run. Prior observations below remain historical evidence, not completion of the new gates.
 
-## Next bounded work
+### Next bounded work
 
 Scope **C0 identity/pairing/recovery** and **C1 envelope/key custody** before private use. C0a proves existing-passkey/offline unlock/recovery. For hosted storage, validate preferred Solid in C1a/C3; EDV remains research. For optional co-editing, validate Yjs in C5/E20; retain experimental Automerge + Keyhive comparison under E25. Start with synthetic fixtures and keep local/direct capture → review → share complete without either optional feature.
 
 The first complete experience needs no wallet, provider login or model to capture and review. Pair a phone companion and desktop extension, share one selected encrypted capture with an authorized reviewer, and produce a separately approved partner summary. Prove unauthorized-device and operator views. C3 adds Solid/EDV storage only if justified and selected; C4 proves actual networking/device support. C5 compares Yjs/Automerge + Keyhive as research; production co-editing and MLS remain conditional. External associations and public release are optional C6 work, with no public upload or chain transaction authorized here.
 
-## Evidence that affects implementation
+### Evidence that affects implementation
 
 - Coop source pin is `901f57871ec578b0a31bb38c1eacdd0a85eed83a`. Local encrypted payloads/redacted records are useful patterns, but the wrapping secret is in the same DB. Its server-side Y.Doc sees ordinary synced content. HMAC receiver frames authenticate without encrypting. Do not import these as proof of Grove E2EE.
 - Solid runs as a client in the extension; a conventional Pod runs separately. Local DIDs need explicit service-principal associations. Pod ACLs never confer decryption grants.
@@ -49,7 +101,7 @@ The first complete experience needs no wallet, provider login or model to captur
 - Existing Green Goods uploads data before its onchain Work submission. Public-release review belongs before the first upload. Verify contract accounts through ERC-1271 and actual garden roles; Certified's inspected EVM-link schema is EOA-only.
 - Exact source licensing, trusted phone app/update delivery, crypto-library maturity and browser support remain prerequisites. The source note distinguishes established behavior from inferred design and unresolved proof.
 
-## Validation and phase record
+### Validation and phase record
 
 Validation passed: `node scripts/harness/plan-hub.mjs validate` validated 32 hubs; the QA selector selected formatting only for the 16 Grove paths; its local Biome formatting command passed after formatting status.json. Focused checks resolved 142 local links/anchors, preserved lane/Linear values and found unique unchecked C0–C6 and E15–E21 entries. Installed Mermaid 11.17.2 parsed all eight diagrams in architecture-flows.md/spec.md. `git diff --check -- .plans/ideas/grove` passed. Initial formatter and sequence-syntax failures were corrected before these final passes. No dependencies were installed. No application UI changed; rendered Grove runtime proof for this revision: **none**. The Mermaid diagrams describe a proposal, not a working network.
 
@@ -63,7 +115,7 @@ Agent/model: Codex / unknown | Coverage: this plan revision
 | Verify | unknown → 2026-11-13 09:30:00 | Hub, links, scope/state, format, diff and Mermaid syntax checks above passed; runtime gates remain unrun. |
 
 
-### Follow-up verification record
+#### Follow-up verification record
 
 Task: Grove storage spike, identity/roles and local-first/Pi research | Type: planning/research | Outcome: plan and interactive explanation complete; runtime experiments unrun.
 Agent/model: Codex / unknown. Coverage: this follow-up. Working-copy evidence, base HEAD `a0d503abc`, with prior Grove edits and unrelated checkout changes present; no commit-attributed implementation receipt.
@@ -76,7 +128,7 @@ Agent/model: Codex / unknown. Coverage: this follow-up. Working-copy evidence, b
 
 All C/E experiment checkpoints remain unchecked/unrun. No Linear write or sync confirmation, branch switch, dependency install, deployment or public identity binding was performed.
 
-### Passkey and collaboration planning verification
+#### Passkey and collaboration planning verification
 
 Task record: Grove two-device collaboration and passkey comparison | Type: planning | Outcome: complete (plan only)
 Agent/model: Codex / gpt-6.1-sol | Coverage: this follow-up, existing dirty checkout at base HEAD `a0d503abc`; no commit-attributed runtime receipt.
@@ -89,7 +141,7 @@ Agent/model: Codex / gpt-6.1-sol | Coverage: this follow-up, existing dirty chec
 
 Human corrections: 0 observed in this segment; attention: unknown. All experiment gates remain unrun. No dependency installation, public identity binding, account migration, chain transaction, external tracker write or branch change occurred. Grove runtime rendered proof: **none**, as this revision changes plan documents only. Keyhive remains experimental and synthetic-data-only; Solid/EDVs remain optional.
 
-### Preferred adapters: plan and visual verification
+#### Preferred adapters: plan and visual verification
 
 Task record: Grove preferred Solid/Yjs adapters | Type: planning/visual | Outcome: complete (design update)
 Agent/model: Codex / gpt-6.1-sol | Coverage: this follow-up; dirty working copy at base HEAD `a0d503abc`, no commit-attributed implementation receipt.
@@ -102,8 +154,8 @@ Agent/model: Codex / gpt-6.1-sol | Coverage: this follow-up; dirty working copy 
 
 Human corrections: 0 observed in this segment; attention: unknown. Solid/Yjs preferences do not complete any privacy, recovery, phone or production gate. EDV and Automerge + Keyhive remain research alternatives, Keyhive experimental/synthetic only. No installation, account migration, branch change, chain/public upload or Linear sync occurred. Final diff/state/format checks follow this record.
 
-### Publication preparation
+#### Publication preparation
 
-The user authorized commit and push of the Grove updates on 13 November 2026. The [standalone architecture page](../artifacts/demos/grove-architecture.html) and [editable fragment](../artifacts/demos/grove-architecture.fragment.html) are now included in the hub, with the demo index updated. They contain synthetic display state only, no live keys or private account bindings. The exported copy uses only widget-state APIs from its host integration.
+The user authorized commit and push of the Grove updates on 13 November 2026. The [standalone architecture page](../artifacts/demos/grove-architecture.html) and an editable fragment (removed on 14 November, when the page was rebuilt as one file) are now included in the hub, with the demo index updated. They contain synthetic display state only, no live keys or private account bindings. The exported copy uses only widget-state APIs from its host integration.
 
 Publication scope is the Grove hub only; unrelated application and infrastructure edits in the shared checkout are excluded. Current branch: `fix/work-approval-feedback`. No open PR exists for that branch. The live GitHub connector reports develop at `3ee6594ef3e5a7259881119e5c6a9fa3f4e2833b`, matching the existing local remote-tracking ref. Git network fetches over SSH and HTTPS were blocked by the execution environment; the connected GitHub integration is the publication fallback. Commit, exact-tree push-gate evidence and remote verification will be reported in chat after execution. This preparation record does not claim a successful push or CI readiness.

@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-14T00:58:39Z"
+    "updated_at": "2026-11-14T05:22:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -57,7 +57,11 @@
     "2026-11-13 follow-up: C1a/E22 define a planned, unrun two-device Solid-versus-EDV comparison with local keys, recovery, scoped roles, host privacy and build burden. E23 and identity-role-mapping.md separate community/member associations and current protocol roles from proposed local grants. local-first-options.md shortlists candidates; Pi source refresh records 1.5.2 manifest and deferred-progress limits, without changing installed versions. Lanes/Linear metadata remain unchanged; no backend selected by this plan revision.",
     "2026-11-13 accepted follow-up: C0a/E24 plan existing-passkey reuse, actual PRF support, offline unlock and independent recovery on phone/laptop. C5/E25 now compare Yjs with Automerge + Keyhive using the same synthetic two-device fixture, scoped permissions, host privacy, revocation, history and engine-state recovery. Keyhive remains experimental; Solid/EDVs remain optional and a tested ciphertext relay may serve the slice without either. collaboration-passkey-spike.md owns the experiment. All product gates remain unrun; lane and Linear metadata preserved; no dependency/runtime/account changes.",
     "2026-11-13 accepted preferences: Solid is the preferred optional hosted-storage adapter with client-side encryption; Yjs is preferred for optional co-editing with verified writer permissions. Community/member identity and private keys remain local. EDV and Automerge + Keyhive remain research alternatives, Keyhive experimental and synthetic-data-only. Encrypted record exchange stays the baseline. C1a/C3/E18/E22 validate Solid first; C5/E20 gates optional Yjs, while E25 alternative research is independent. No implementation, installation or completed runtime gate; lane and Linear metadata preserved.",
-    "2026-11-13: user authorized commit and push of Grove plan/visual updates. Added the synthetic standalone architecture page and editable fragment under artifacts/demos. Publication preparation only; result/commit/gate evidence to be reported after execution. No implementation gate, lane or Linear state advanced."
+    "2026-11-13: user authorized commit and push of Grove plan/visual updates. Added the synthetic standalone architecture page and editable fragment under artifacts/demos. Publication preparation only; result/commit/gate evidence to be reported after execution. No implementation gate, lane or Linear state advanced.",
+    "2026-11-14: two independent reviewers examined the architecture and MVP (one on product, flows and scope; one on identity, encryption and synchronization), and their findings were reconciled. spec.md now owns the MVP contract and the single decision log: D1–D25, recommendations R1–R15, assumptions W1–W4 and open questions O1–O11.",
+    "2026-11-14 owner decisions: the desktop extension and a phone web app ship together; the author approves every share of their own capture and a steward approves partner summaries and public releases; one steward signs member changes, with a recovery code at setup and a second controller before real data; the existing passkey unlocks the vault where its provider supports it and a passphrase does otherwise, so C0a is a gate; the graph, Gemma and Pi stay in the MVP; the no-decrypt requirement covers storage and relay hosts, with Green Goods trusted as publisher of the client code.",
+    "2026-11-14 owner decisions, continued: encrypted files carry records in the MVP and a hosted mailbox with Solid preferred is the next lane; the MVP graph shows Grove's own records, with the Hub snapshot and KOI exchange as next lanes; community is Grove's term, defined apart from a Garden and the Community role; a device stops sharing when its member list is older than seven days, adjustable per community. The earlier note that the living graph is the core interface is superseded: the graph is one view beside capture and review lists.",
+    "2026-11-14: C0b/E26 added (device durability, run first). MVP order: C0b, C0a, C1, C0, recovery, C2, C4, with the workspace lane (S1–S6, S8, P0–P2) alongside. Open with the owner: where the phone app and shared core live (O2) and whether Coop code may be reused (O5). The architecture page was rebuilt as one self-contained file. All gates remain unrun; no lane, Linear, dependency or runtime change; the documentation edits are uncommitted in a review worktree."
   ],
   "lanes": {
     "ui": {
@@ -264,6 +268,14 @@
       "status": "idea",
       "branch": "fix/work-approval-feedback",
       "note": "Recorded user-selected Solid/Yjs optional design preferences, retained EDV/Automerge + Keyhive research and local key/identity boundaries; updated plan and interactive architecture. Gates remain unrun; no runtime or external sync."
+    },
+    {
+      "timestamp": "2026-11-14T05:22:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "claude/grove-architecture-review-bdbda6",
+      "note": "Recorded ten owner decisions after an independent two-reviewer architecture review; aligned the hub's documents to them and rebuilt the architecture page. Gates remain unrun; no lane, Linear, dependency or runtime change; nothing committed."
     }
   ]
 }

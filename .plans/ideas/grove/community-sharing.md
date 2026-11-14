@@ -1,25 +1,56 @@
 # Grove: community identity and encrypted sharing
 
-**Accepted direction:** 13 November 2026. **State:** design, not implemented. This is the current identity, privacy and device-sharing contract referenced by [spec.md](spec.md). [Research and source limits](sharing-research.md) distinguish observed capabilities from proposals. [Flows](architecture-flows.md) show the initial experience; [delivery checkpoints](plan.todo.md#community-sharing-delivery-order) define the next proof.
+**Accepted direction:** 13 November 2026; ten decisions recorded 14 November. **State:** design, not implemented, and no property below has been tested. This is the identity, privacy and device-sharing contract. [spec.md](spec.md#decision-log) owns the decision log and cites decisions as D-numbers, recommendations as R-numbers and open questions as O-numbers. [Flows](architecture-flows.md) show the sequences, [identity and roles](identity-role-mapping.md) maps accounts and authority, the [plan](plan.todo.md#mvp-order) gives the proof order, and [research](sharing-research.md) records the sources.
 
 **Coordinate locally. Govern together. Share by context. Publish by choice.**
 
-Grove's common loop is **capture → review → share**. A useful article, a community lesson and evidence of regenerative work enter the same loop. Their meanings stay distinct: a saved observation is not automatically Green Goods Work, and community review is not protocol WorkApproval. The living graph helps people explore connections; it is one view of the records, alongside capture and review lists.
+Grove's common loop is **capture → review → share**. A useful article, a community lesson and evidence of regenerative work enter the same loop. Their meanings stay distinct: a saved observation is not automatically Green Goods Work, and community review is not protocol WorkApproval. On the laptop, a graph helps people explore connections; it is one view of the records, alongside capture and review lists.
+
+## Terms
+
+These words mean one thing each across the hub. They describe Grove's local context and are proposals for the ontology change protocol, not ontology edits (D23).
+
+| Term | Meaning in Grove | Not the same as |
+|---|---|---|
+| Community | A group that keeps and shares records under its own member list. It exists locally and can be linked to a Garden by choice | A Garden, which the ontology defines as "a community of gardeners" with an onchain account. The Community garden role |
+| Member | A person admitted to a community. In Grove a member is the set of that person's enrolled devices in that community | A garden member, which the protocol derives from Hats |
+| Device | One browser profile holding its own keys: the web app on a phone, or the extension on a laptop | A person. A passkey, which can sync to many devices |
+| Member list | The community's signed, versioned list of members, devices, roles and controllers | A Pod's access list. A garden's role graph |
+| Controller | A steward whose device may sign changes to the member list | A garden owner or operator, unless the community chooses the same person |
+| Capture | A saved source with its origin, time and consent context, kept as immutable revisions | Green Goods Work |
+| Personal review | The author's own check and correction before anything is shared | Community review |
+| Projection | The exact fields of one revision selected for one audience | The stored record. A computed view of the graph, which the workspace lane also calls a projection |
+| Share approval | The author's recorded approval of one projection for named recipients, a purpose and a destination | A release approval. WorkApproval |
+| Shared file | The signed, encrypted file that carries approved projections to named devices | A backup |
+| Receipt | A recipient device's signed statement that it stored a shared file | A review. A command receipt in the workspace lane |
+| Review decision | A member's signed accept, reject or comment on a revision they received | WorkApproval. Evaluator verification |
+| Correction | A new revision that supersedes a received one | An edit in place |
+| Release approval | A steward's recorded approval of a projection for a partner community or the public | The author's share approval |
+| Vault | The encrypted store on one device | Hosted storage |
+| Recovery code | A secret created at setup that opens a recovery export without a passkey or the lost device | A password to a service |
 
 ## Privacy follows the audience
 
-| Context | Who can read | What crosses the boundary |
-|---|---|---|
-| Local | The person on their unlocked device; optionally their paired devices | Nothing by default. Local AI reads only the selected local context. |
-| Community | Explicitly authorized members and devices | A selected, end-to-end encrypted copy or collaboration collection. A storage operator receives ciphertext. |
-| Between communities | Named recipients approved by the source community | A new, minimized projection with its own audience, keys, purpose and provenance. |
-| Public commons | Anyone | A separately prepared and approved release: a report, knowledge resource, claim or attestation. |
+| Audience | Who can read | What crosses the boundary | Who approves (D17) |
+|---|---|---|---|
+| Local | The person on their unlocked device, and their own paired devices | Nothing by default. Local AI reads only the selected local context | Nobody; it is theirs |
+| Community | Named members' devices | A selected, end-to-end encrypted copy | The author, for every share of their own capture |
+| Partner community | Named recipients in another community | A new, minimized projection with its own recipients, purpose and provenance | A steward. Also the author, if a corrected version of their capture is leaving |
+| Public | Anyone | A separately prepared release: a report, knowledge resource, claim or attestation | A steward, in a later lane |
 
-These are audience contexts, not an automatic publication ladder. A community can share a summary while keeping the source private, or keep all records local indefinitely. Each additional audience requires an explicit decision. In the hair metaphor, “black hair,” “black with gray,” and the family history are separate disclosures, each supported by the appropriate source context. A public reader does not need access to the family record.
+These are audiences, not a ladder toward publication. A community can share a summary while keeping the source private, or keep everything local indefinitely. Each additional audience requires an explicit decision. Take a description of someone's hair: "black hair", "black with gray" and the family history behind it are three separate disclosures, each resting on the right source. A public reader does not need the family record. In the same way a funder can read that soil cover improved without receiving the field notes, the participants' names or the plot's coordinates.
 
-**Accepted preferences:** Solid for optional hosted storage, with encryption on authorized clients; Yjs for optional co-editing, with encrypted updates and verified writer permissions. Identity, community authority and private keys remain local. Encrypted record exchange is still the baseline. EDV and Automerge + Keyhive remain research alternatives, with Keyhive experimental and synthetic-data-only. These are design choices, not implementation or security receipts.
+## Who cannot decrypt, and who can
 
-The [two-device collaboration/passkey comparison](collaboration-passkey-spike.md) includes independent existing-passkey, offline-unlock and recovery proof. The [storage spike](storage-comparison-spike.md) validates preferred Solid first and retains EDV comparison as research. Local/direct sharing needs no provider account or CRDT. [Role mapping](identity-role-mapping.md) distinguishes community/member associations, protocol roles and local grants; [local-first research](local-first-options.md) records alternatives.
+**Required (D20):** whoever stores or relays shared records cannot read them and cannot grant itself access. That covers a Pod, a mailbox, a relay, and anyone who obtains a shared file. Storage permissions are an extra control, never the confidentiality mechanism.
+
+Three limits belong beside that requirement wherever it is stated:
+
+- **The publisher of the client code is trusted.** The extension is packaged code. The phone web app is served from the web each time it updates, so whoever serves it could ship code that reads an unlocked vault. Green Goods is that publisher and is trusted. O8 asks what constrains updates before sensitive records are admitted.
+- **An unlocked or compromised device exposes what it can decrypt** and can sign as its owner until it is removed.
+- **Removal cannot make anyone forget.** A recipient keeps what it already received.
+
+Hosts still see file sizes, timing, addresses and how many recipients a file has.
 
 ## Identity belongs to the community first
 
@@ -27,87 +58,101 @@ Keep **identity, authority, encryption and service login separate**:
 
 | Identity or key | Purpose | Control and visibility |
 |---|---|---|
-| Local member identity | Identify an author and their devices in a workspace | Created offline. No Ethereum wallet, email account, public registry or Solid login required. Use distinct identifiers/keys across communities where correlation is unwanted. |
-| Community identity | Identify the group and its governance policy | A community-controlled identifier with signed controller changes, member/device grants and recovery rules. Initial policy may delegate to one steward; multi-steward approval is a supported design requirement. |
-| Device signing and encryption keys | Authenticate changes and deliver decryption keys | Separate keys per device and purpose. Adding a phone does not clone a community root key. A sensor can submit observations without reading the community archive. |
-| Solid WebID/OIDC account | Authenticate to a selected Pod | Optional service binding. It does not replace the local member identity or decide who receives content keys. |
-| ATProto/Certified account | Attribute a deliberately shared or published record | Optional binding, using a community-chosen provider or self-hosted PDS. No requirement to expose the private member roster. |
-| Ethereum account/GardenAccount | Connect to existing public protocol identity and actions | Optional, scoped binding with proof of control and applicable garden authority. Linking can reveal correlations. |
+| Device keys | Sign what a device sends and receive what is encrypted to it | Created on the device and never exported. One signing key and one key-agreement key per device, and a separate pair for each community (W3) |
+| Member | Identify an author across their devices in one community | Created offline. No wallet, email, public registry or Solid login. Not reused across communities unless the member chooses |
+| Community | Identify the group and its controllers | The member list. Its identifier is the hash of its first version, so no provider account can be its root |
+| Passkey | Unlock a vault where supported (D19) | Held by the passkey provider and able to sync. It identifies no device and admits none |
+| Solid WebID, ATProto or Certified account, Ethereum account, GardenAccount | Optional associations for storage, attribution or protocol actions | Later lanes. Each is a private, signed link that grants no role and no key; see [identity and roles](identity-role-mapping.md) |
 
-Select and pin the offline DID method in **C0**, after testing rotation, recovery and portability. `did:key` is useful for immutable device keys but cannot itself rotate or deactivate; do not make it the permanent community governance root. Peer DIDs are a candidate, not a completed selection. DIDs provide identifiers and verification material; Grove still needs an explicit membership policy and encrypted key delivery.
+**No identifier scheme is selected (R2).** The MVP identifies a device by its public keys and a community by the hash of its first member list. An earlier draft required choosing a DID method first. Nothing in the MVP needs an outside verifier, so that choice waits until one does; `did:key` can express a device key then, and it cannot rotate, so it never becomes the community's root.
 
-The community's signed policy and grants are verified by recipient clients. Pod ACL edits, a CRDT roster edit, or an administrator at a hosting company cannot issue valid decryption grants. A community can appoint an identity-service operator while retaining its own controller/recovery keys. Provider login is a replaceable convenience, with the extent of custody visible to members.
+### The member list
 
-### Connecting offchain and onchain identity
+No maintained browser library provides community membership and key grants (see [dependencies](dependencies.md#community-identity-encryption-and-device-sharing)), so Grove defines this part itself and keeps it small (R3). This is a design to prove in C0, not a selected format:
 
-1. Create a local workspace and community identity. Store local workspace IDs independently of any chain address.
-2. Invite a member or pair another device through an authenticated, expiring exchange. Confirm the recipient key using a QR code plus a human-verifiable fingerprint or equivalent authenticated channel. Issue only the intended grants.
-3. If requested, add a **private association** between the local community and a service account or garden. Have both sides prove control of the exact association, including audience, purpose, nonce, expiry and version. A service login alone does not prove community authority.
-4. For an Ethereum binding, identify the account with chain and address (CAIP-10). Use a domain-separated signed challenge/typed statement. Verify EOAs and ERC-1271 contract accounts through separate paths, and check the relevant GardenAccount/Hats authority. A valid wallet signature is not automatically authority to represent a garden.
-5. Publish the association only if separately approved. A signature can remain offchain; a transaction is needed only for the selected protocol action. Future contract enforcement of a Grove credential is a separate integration, not something a DID grants automatically.
+- The list is a chain of signed versions. Each version names the one before it by hash. The first version's hash is the community's identifier.
+- One steward's device signs changes in the MVP (D18). A version signed by anyone else is ignored.
+- Each version lists members, their device keys, their roles and the controllers. Adding or removing a member or device is a new version.
+- A second controller is required before real data (D18). Two versions that claim the same predecessor are a fork: clients refuse both and show the conflict. They never merge them (O6).
+- A recovery code is created at setup (D18). It opens a recovery export; it can appoint a new controller device and do nothing else.
+- A partner community is another member list. Two communities exchange their current list heads through the same pairing step members use.
 
-Certified's currently inspected EVM-link schema is EOA-only. Do not route GardenAccount signatures through that path or claim compatibility without a tested contract-wallet adapter. SIWE can authenticate a wallet session; it does not encrypt content. Changes in garden authority require revalidation, and external publication does not silently change community membership.
+Recipient clients verify the member list themselves. An edit to a Pod's access list, a storage administrator, or a login to any service cannot add a member or a device.
+
+### Who approves
+
+- **The author** approves every share of their own capture. The approval names the exact revision, the fields, the recipients, the purpose and the destination. Changed content or recipients need a new approval.
+- **Recipients** record review decisions and corrections. Reading a record gives no authority to release it.
+- **The author again**, if a corrected version of their capture is to leave the community.
+- **A steward** approves partner summaries and public releases.
+- Grove stores each reviewer's decision and does not compute a "community approved" state (R14). A steward's release approval names the decisions it relied on.
+
+Community acceptance is never Green Goods WorkApproval, evaluator verification or a certified impact claim.
 
 ## Encryption contract
 
-**Required:** only authorized endpoints can decrypt shared content, including when the Pod or relay operator is curious or compromised. Solid permissioning is an additional server-side control, not the confidentiality mechanism.
+**Shared files (R1).** For each share, the client builds a manifest, signs it with the sending device's key, and encrypts manifest and content together under a fresh random key. It wraps that key to each recipient device's public key using one existing multi-recipient format. The candidates are age v1 and HPKE (RFC 9180); C1 chooses on what the supported devices can run (O3). Do not hand-build a cryptographic protocol.
 
-The first implementation candidate is an **encrypted resource envelope**: encrypt a resource revision with a fresh random data key using authenticated encryption, then wrap that key to the authorized recipient-device keys through a reviewed implementation of a standard envelope/HPKE scheme. Web Crypto can supply AES-GCM; it is not a complete sharing protocol. The library, envelope format, signature format, algorithms and version migration remain **C1** decisions. Do not hand-build a new cryptographic protocol.
+The signed manifest binds the community, the member-list version the sender used, the sender, the named recipients, the purpose and destination, the approval, and a digest of each included revision and field selection. Signing before encrypting, with the recipients inside the signed part, stops a recipient passing the file on as if it were addressed to someone else. Recipients reject a file that fails its signature, names a sender who is not in the list, does not name them, repeats a file they already stored, or was built on a list older than one they hold.
 
-Bind encrypted content and key grants to the community, collection, record/revision, sender and key epoch. Authenticate the sender separately from the ability to decrypt. Use unique nonces under each encryption key, validate size/schema before applying content, and reject tampering, replay and audience substitution. Keep sensitive provenance, titles, coordinates and recipient details inside encrypted payloads wherever routing permits. Use opaque external identifiers; avoid publicly exposing plaintext hashes of guessable private observations.
+A fresh key for every file means removing a member needs no group key to rotate: the next file is simply not wrapped to them. It also sets the limits:
 
-For small groups exchanging reviewed resources, per-resource key wrapping is the first candidate. Evaluate **MLS (RFC 9420)** if live collaboration and frequent membership changes justify group epoch machinery. MLS manages group keys; it does not replace storage, local recovery, community governance or record authorization. Do not require both key-management approaches in the first pilot, and do not claim forward secrecy or post-compromise security from AES-GCM alone.
+- There is no forward secrecy. A device key that leaks later opens every stored file addressed to it, so a hosted store should delete files once they are received.
+- Sender authentication comes from the signature, not from the encryption format.
+- MLS (RFC 9420) would add forward secrecy and post-compromise security for live groups. It stays research until co-editing or frequent membership change justifies it.
 
-### Keys, recovery and lifecycle
+**At rest.** Each device keeps a random vault key. Private keys and record payloads are stored encrypted under it. The vault key is itself stored wrapped, once per way of opening it:
 
-- **Local unlock:** keep a random vault key wrapped by an actual unlock secret or supported WebAuthn PRF-derived key. Do not persist an unprotected wrapping secret beside the ciphertext and claim protection from a copied browser profile. Passkey assertions are not reusable encryption keys. C0a/E24 tests actual existing-credential reuse, origin/RP boundaries, blocked-network reopen, unsupported PRF and independent recovery; no silent credential/account migration. Local capture remains available through the independently proven local unlock path.
-- **Pairing:** generate a new device key, authenticate it, and grant the minimum collections. Pairing credentials are single-use/expiring; content keys never travel as URL query parameters or general relay credentials. A phone's private inbox stays private until its owner shares selected records.
-- **Recovery:** provide an encrypted offline recovery export for individuals. Community succession uses a documented controller policy; any recovery member able to decrypt counts as an authorized recipient. No provider-held universal decryption key. The exact threshold mechanism and loss scenarios are C0/C1 gates, not invented capabilities.
-- **Membership changes:** remove a device from future grants, rotate affected collection/epoch keys, and create a fresh collaboration document where history must be excluded. New members receive no prior history unless explicitly granted. Old recipients can retain old plaintext and keys; revocation cannot make them forget.
-- **Offline changes:** retain captures and proposed edits locally. If membership freshness cannot be established under the agreed offline policy, queue new shared writes/key grants rather than claiming immediate global revocation. Reconcile signed epochs before applying pending shared changes.
-- **Derived data:** encrypt captures, media, thumbnails, model outputs, indexes, shared history and backups at their relevant audience boundary. Pi persists references and receipts, not decrypted source packets or key material. Locking clears usable in-memory key/context caches and pauses protected tasks.
-- **Failure and erasure:** failed unlock or decryption is visible, never an empty successful record. Erasure invalidates local derivatives and pending tasks. Shared withdrawal requests cannot guarantee deletion from other members' devices or public archives.
-
-E2EE protects content from the storage operator. It does not hide all traffic, file sizes or access timing, prevent denial of service, or protect an unlocked compromised endpoint. Clients track signed versions/epochs to detect known rollback; first-contact completeness and isolated offline forks need explicit reconciliation proof. Use packaged trusted client code, with a separately evaluated phone-app update boundary. A host serving malicious executable code to an unlocked client is a different threat from storing ciphertext.
-
-## Solid as an optional encrypted mailbox and store
-
-Solid is the preferred optional adapter, subject to C1a/C3 proof. Start with one community-selected Pod and separate containers for audience-scoped collections. Write opaque encrypted resource envelopes and encrypted manifests over HTTPS. Use immutable revision/object IDs, conditional writes where needed, and local outbox receipts; fetch and verify the stored version before displaying delivery success. Notifications can prompt reconciliation but do not prove delivery. A receipt means stored or received, not reviewed or published. EDV remains a research alternative, not a second required backend.
-
-A Pod may be community-operated on an existing laptop or hosted by a chosen operator. Local capture and review work when it is unavailable. Members need no dedicated node purchase. Always-on asynchronous sharing still needs some reachable replica or storage service; a sleeping laptop cannot provide that availability.
-
-The extension runs a **Solid client**, not a complete Pod server. Browser libraries exist; MV3 redirect/login, CORS, token handling, CSP and suspension still require C3 proof. A conventional Community Solid Server runs outside the extension. Local DIDs do not automatically log in through Solid-OIDC: map a selected service principal to the privately verified community membership. Import/export must preserve encrypted records and their key grants independently of the Pod URL.
-
-## Networking and synchronization
-
-| Layer | First choice | Boundary |
+| Way in | How | Standing |
 |---|---|---|
-| Durable local capture | Encrypted local store, scoped revisions and outbox | Works without connectivity or model availability. |
-| Device discovery/pairing | QR invitation and fingerprint confirmation | Establishes trust, not a data transport or permission to read everything. |
-| Offline transfer | Encrypted export/import bundles | Dependable initial fallback; OS file sharing can carry ciphertext. |
-| Direct active-device transfer | WebRTC data channel, authenticated peer identity | Requires signaling; STUN/TURN may be needed across networks. LAN-only signaling is a separate tested path. |
-| Internet asynchronous sharing | Solid is preferred when optional hosted storage is needed | Ciphertext only; local identity/keys stay independent. EDV remains research. Reconcile when online; never auto-publish. |
-| Collaborative draft merge | Yjs is preferred for optional co-editing | Encrypt updates and verify writers. One audience per document; domain roles/approvals remain Grove-owned. Automerge + Keyhive stays experimental research. |
-| Nearby sensor input | File import first; Web Bluetooth GATT where supported | Browser/device-specific, user-initiated. Not generic browser-to-browser Bluetooth mesh. |
-| Later cross-community exchange | Optional KOI adapter | Semantic discovery and selected exchange. It receives only data approved for its audience. |
+| Passkey | A secret the passkey returns through WebAuthn PRF, combined with a key that never leaves the device | D19, where the provider supports it. C0a proves which providers do |
+| Passphrase | A memory-hard key derivation | D19, everywhere the passkey path is unavailable |
+| Recovery code | A high-entropy code created at setup, held off the device | D18. Opens a recovery export |
 
-**A CRDT is optional for the first shared flow.** Immutable captures, versioned review decisions and approved release artifacts can move as signed encrypted records. C5 compares Yjs with Automerge + Keyhive using synthetic data, without making co-editing a pilot requirement. Maintain one audience per document, including awareness/presence. Yjs client IDs are not member identities; Keyhive cryptographic powers are not community roles. Validate writer authority independently of mutable draft content and keep governance in verified policy state. A reader with a decryption key still cannot issue an accepted writer command. Keyhive's protected creation, revocation, recovery and new-reader history behavior require explicit negative cases in E25.
+The passkey is never the only way in (R4). Its secret belongs to the credential, so it is the same from every `greengoods.app` site and from any extension with permission for that domain, and it follows the passkey wherever it syncs. Combining it with a device-held key means neither a copied browser profile nor another site is enough alone. A passkey assertion is not an encryption key, and a synced passkey never enrols or re-admits a device.
 
-Never send a private collaborative document's history to a broader audience by filtering its current visible state. Build a fresh projection/document: removed text can remain in CRDT history, and Keyhive's inspected integration grants new readers the existing document's whole history. All carriers must preserve the same confidentiality and authorization requirements, with format differences tested explicitly. Stock `y-websocket` with a readable server-side Y.Doc does not meet the hosting-operator requirement.
+New captures are encrypted to the device's own public key, so saving works while the vault is locked (R15). Reading, reviewing and sharing need it unlocked. Locking clears keys and decrypted context from memory and pauses protected tasks.
 
-This is a **community replica network**: devices keep selected local copies and exchange them when reachable. It is not yet an automatic radio mesh or an always-running browser network. Multi-hop store-and-forward needs deduplication, quotas, expiry, encrypted routing and reconciliation tests; it is deferred. Phone capture uses a browser/PWA companion as the first candidate, with the desktop extension as a richer workspace. Do not promise one extension runs on every phone or that mobile browsers stay alive in the background. Existing hardware remains the target; local model suitability must be measured per device, with manual capture/review always usable.
+## Keys, recovery and lifecycle
+
+- **Pairing:** each side shows a code; the other scans it and both confirm a short comparison string read aloud or compared by eye. Pairing exchanges public keys and the member-list head. It grants nothing by itself: the controller's next list version does.
+- **Recovery:** a member restores from a recovery export with their recovery code, or from their second device. A restored device creates new keys and is added to the list again; an old device key is never revived. Restoring a vault restores no Ethereum account. Losing every path fails visibly.
+- **Removal:** the controller signs a version without the device. Files made after a sender holds that version are not wrapped to it. Where history must be excluded, start a new collection.
+- **Stale member lists (D24):** a device stops sharing when its copy of the list is older than seven days, until a newer one arrives in any shared file. Each community can change the number. Capture and personal review never pause. The controller re-signs the current head at least that often so that an unchanged list still counts as fresh; C0 proves the mechanism.
+- **Derived data:** thumbnails, model outputs, indexes and backups are encrypted at the same boundary as their source. Pi keeps references and receipts, never decrypted sources or keys.
+- **Telemetry (R7):** private records never pass through Shared's upload or telemetry helpers, which record file names and content identifiers today.
+- **Failure and erasure:** a failed unlock or decryption is shown, never an empty successful record. Erasure invalidates local derivatives and pending tasks. A withdrawal cannot delete copies on other devices or in public archives (O7).
+
+Clients track signed versions to detect a rollback they have seen before. A first contact cannot know it has the latest list, and devices that were offline together can disagree; C0 must show what each does.
+
+## Carriers
+
+| Carrier | Standing | Boundary |
+|---|---|---|
+| Encrypted file | MVP (D21) | Share sheet, a cable or any messenger can carry it. It is the only carrier and the permanent fallback |
+| Hosted mailbox | Next lane | A generic store of opaque objects: put, get, list and delete by an unguessable name. Solid is the preferred adapter (D12); the interface is proved first so identity and keys never depend on a provider. See the [storage spike](storage-comparison-spike.md) |
+| WebRTC between open devices | Research | Needs a signalling service and often a relay; both devices must be awake |
+| Sensors | Later | File import first. Web Bluetooth reaches supported peripherals in Chromium only and is absent on iOS |
+| KOI | Next lane | Discovery and provenance between communities. It receives only what was approved for its audience and grants no membership |
+
+Devices keep selected copies and exchange them when a person carries a file across. This is not a mesh and no browser stays reachable in the background. Unattended delivery needs a reachable store, which is why the mailbox is the next lane.
+
+## Co-editing, later
+
+Encrypted record exchange is the baseline, and immutable captures and review decisions need no merge engine. Yjs is the preferred engine when two people must edit one draft at once (D16). It supplies merging only: it has no encryption and no check on who wrote an update, its WebRTC provider's password protects signalling, and its IndexedDB provider stores plaintext. When the lane opens, use the Yjs core with one new document per audience in which every key holder may write (R9), and give non-editors immutable records. Never send a private document's history to a wider audience by filtering what is visible now; build a new projection.
 
 ## Share and publish are separate decisions
 
-A share approval binds **exact revision/digest, audience, purpose, included fields and permitted destination**. A broader audience or changed content needs a new approval. Recipient/community review happens after the initial consented encrypted share and records its own decision. Community review can authorize a subsequent report or public projection according to policy; it does not automatically authorize publication.
+Publication is a later lane. Three facts about the existing Green Goods path shape it:
 
-Optional adapters consume that approved projection:
+- **Data becomes public at upload, not at the transaction.** Work media and metadata are pinned to public IPFS before the transaction is sent. For queued work that happens during background preparation, once the connection is confirmed and before the person taps Upload all.
+- **The existing gate is a standing consent per account**, and that consent record is published inside the metadata.
+- **Location and camera metadata are stripped** before a photo is pinned.
 
-- **ATProto/Certified:** attributable knowledge, activity claims and social distribution. A Certified group service is a chosen delegated publisher, not Grove's private identity root or key custodian. Spaces is unnecessary for the initial encrypted shared layer and does not supply host-blind E2EE by itself.
-- **Ethereum/Green Goods:** garden association and deliberate protocol actions. Existing Work/WorkApproval authority remains unchanged. Review the payload before the first public upload, not merely before signing the transaction.
-- **IPFS/Filecoin:** optional distribution/archive of approved public artifacts, or separately approved encrypted backups with explicit retention/key policy. Do not claim permanent availability without storage/renewal arrangements or place all private evidence there by default.
-- **KOI:** optional discovery and source/provenance exchange between communities. A node signature does not grant membership or certify impact.
+So a release approval must be recorded before a record is handed to that queue, must bind a digest of the exact payload to be uploaded, and must be honored again at every send (R6). Grove does not reuse the public Work queue for private records.
 
-## Decisions still requiring implementation evidence
+A link between a community and a Garden is proved by an account that wears that garden's steward or owner Hat, with a fresh role check, and kept private unless separately approved (R8). The GardenAccount's own signature follows whoever holds the garden token and is not steward authority. ATProto and Certified are optional publishers: a Certified group service holds the group account's credentials and is a delegated publisher, never Grove's identity root. IPFS and Filecoin are optional destinations for approved public artifacts. Details are in [identity and roles](identity-role-mapping.md).
 
-Offline DID and controller succession; reviewed encryption library/envelope; existing-passkey/PRF unlock and recovery; historic-access policy; browser/phone support; optional storage interoperability; authenticated signaling and TURN arrangement; and the Yjs/Automerge + Keyhive comparison. MLS remains conditional. These are bounded gates in the delivery plan. No provider account, infrastructure deployment or dependency installation is required to complete this design revision.
+## What still needs proof
+
+Everything. In order: whether keys and captures survive on real devices (C0b), whether existing passkeys can unlock a vault (C0a), the file format and its rejections (C1), pairing and the member list (C0), recovery, and then the whole loop on a phone and a laptop (C2). The [plan](plan.todo.md#mvp-order) gives each step's exit and the [gates](eval.md#community-sharing-gates) give its pass condition. No provider account, infrastructure deployment or dependency installation is authorized by this revision.

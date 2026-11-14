@@ -1,6 +1,6 @@
 # Grove prototype architecture: packages, dependencies, modules, types
 
-> **13 November scope update:** preserve this as the earlier graph/runtime package design. [spec.md](spec.md) and [community-sharing.md](community-sharing.md) now govern community identity, encrypted storage, phone pairing and optional adapters. The [G0 report](reports/2026-10-24-g0-feasibility.md) records the experiment actually built; proposed paths below are not all implemented.
+> **13 November scope update:** preserve this as the earlier graph/runtime package design. [spec.md](spec.md) and [community-sharing.md](community-sharing.md) now govern community identity, encrypted storage, phone pairing and optional adapters. The [G0 report](reports/2026-10-24-g0-feasibility.md) records the experiment actually built; proposed paths below are not all implemented. **14 November:** the capture, investigation and review parts describe the MVP's laptop workspace lane; the Hub connection, KOI exchange and agent tools are next lanes ([decision log](spec.md#decision-log)).
 
 **Status:** earlier prototype architecture; disposable G0 evidence exists, product integration unbuilt. **Updated:** 24 October 2026.
 **Companion to:** [prototype.md](prototype.md), which owns what we build and why. This document owns how: the packages, their dependencies, where code runs, the module layers, the types that cross module boundaries, the UI components and the data flows. Names below are proposals until G0 and G1 land them; every type is grounded in a source named next to it.
@@ -345,7 +345,7 @@ sequenceDiagram
   PI->>K: apply: applyKnowledgeCommand(addProposals) → receipt, seq n+1
   PI->>PI: ready, outcome proposed
   T->>K: review(accept | reject | correct, expectedRevision) → seq n+2
-  Note over T,PI: Closing the tab between any two steps and reopening resumes the phase from its checkpoint; apply replays to the same receipt
+  Note over T,PI: Closing the tab between any two steps and reopening resumes the phase from its checkpoint, and apply replays to the same receipt
 ```
 
 Share and receive:
@@ -363,7 +363,7 @@ sequenceDiagram
   TAS->>N: poll_events
   N-->>TAS: events_payload [NEW ...]
   TAS->>TAS: verify envelope, target, hash → inbox → applyKnowledgeCommand(ingestPeerObject)
-  TAS->>TAS: review like any suggestion; origin "peer", provenance peerNodeRid
+  TAS->>TAS: review like any suggestion, with origin "peer" and provenance peerNodeRid
 ```
 
 Ask: a browser agent calls `grove_query_graph` on the graph tab, or an allowlisted extension sends `{ op: "query_graph" }` to the background worker, which forwards to the tab; both return a `GraphAnswer` with `asOfSeq`.

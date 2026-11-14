@@ -1,6 +1,6 @@
 # Grove: two-device collaboration and passkey comparison
 
-**Accepted planning scope:** 13 November 2026. **State:** planned, unrun. This owns C0a/E24 and C5/E25 in [the delivery plan](plan.todo.md#community-sharing-delivery-order) and [acceptance gates](eval.md#community-sharing-gates). It adds no implementation, installation, account migration or deployment authorization.
+**Accepted planning scope:** 13 November 2026. **State:** planned, unrun. This owns C0a/E24 and C5/E25 in [the delivery plan](plan.todo.md#community-sharing-delivery-order) and [acceptance gates](eval.md#community-sharing-gates). It adds no implementation, installation, account migration or deployment authorization. **14 November:** Pass A is an MVP gate, because the existing passkey unlocks the vault where its provider supports that (D19 in [spec.md](spec.md#decision-log)). Pass B is backlog research and gates nothing (R11).
 
 **Yjs with encrypted, authenticated adapters is preferred for optional co-editing. Automerge Repo + Keyhive remains an experimental research alternative.** Retain the two-device comparison and independently prove existing-passkey reuse, offline unlock and recovery. Solid is the preferred optional storage adapter; EDV remains research. All content keys and community/member identity stay local. Completing an experiment records its result without implying production readiness or installing the alternative.
 
@@ -11,7 +11,7 @@
 - Use the same synthetic lesson/page, field observation, bounded attachment and shared draft on both engines. Save before enrichment; bind review and sharing to exact revision, audience and purpose. A sync receipt is not a review decision or WorkApproval.
 - Keep the encrypted record/outbox baseline. Dexie owns authoritative captures/review/consent; each engine owns only its selected collaborative draft state. Do not dual-write the same authoritative record into Dexie and Repo. Return a versioned proposal through Grove commands; concurrent editing cannot rewrite grants or release approvals.
 - Give the operator full relay/storage access, logs, service credentials and the ability to bypass server ACLs. Test local storage separately with a copied locked profile. A trusted packaged client/update path remains an assumption; E2EE does not defend an unlocked compromised endpoint.
-- No wallet, provider account, cloud inference or new hardware is required for ordinary local capture/review. Existing-passkey reuse is an optional convenience to prove, not a prerequisite for the no-account flow. No production transaction, owner change or public identity link is part of the fixture.
+- No wallet, provider account, cloud inference or new hardware is required for ordinary local capture/review. Passkey unlock is part of the MVP where the provider supports it (D19). The passphrase path keeps the flow whole for everyone else, so no account is ever a prerequisite. No production transaction, owner change or public identity link is part of the fixture.
 
 ## Pass A: existing passkey, offline unlock and recovery
 
@@ -29,10 +29,22 @@ flowchart LR
 
 The inspected [account construction](../../../packages/shared/src/modules/auth/passkey-kernel-account.ts) already uses a WebAuthn owner with Kernel; [configuration](../../../packages/shared/src/config/passkeyServer.ts) uses `greengoods.app` for current registrations and retains legacy RP handling. No PRF vault path was found in the inspected auth files. This is working-copy source evidence, not live account or phone proof. Preserve the existing credential ID, RP, chain/profile recipe and account address; do not silently create a new account to make a test pass.
 
+### What is already settled
+
+Read from code on develop at `3ee6594ef` and from platform sources on 14 November. These need no experiment:
+
+- There are two populations of existing credentials: current ones under the relying-party ID `greengoods.app`, and older ones bound to each site's own hostname. Test both.
+- No existing credential was created with PRF requested. Registration asks for a platform authenticator with user verification and no extensions.
+- A page on any `greengoods.app` subdomain can use a current credential. An extension can too, with host permission for that domain, since Chrome 122 and Firefox 150; the origin recorded is the extension's own.
+- The passkey directory accepts calls only from its configured origins, which do not include an extension. Unlock must work from locally held credential details, without the directory.
+- A PRF secret belongs to the credential. It is the same from every `greengoods.app` site and on every device the passkey syncs to. So the vault key is wrapped under that secret combined with a key held on the device (R4), and a passphrase wrap and a recovery-code wrap always exist beside it.
+
+Still unknown, and what this pass is for: whether each passkey provider returns a PRF secret for a credential created without the request; whether it does so on an extension page; and whether it works with the network blocked. A vendor-compiled matrix reports that iCloud Keychain and Google Password Manager do, that Windows Hello needs recent updates, and that Chrome's own profile authenticator does not. Treat that as a lead.
+
 | Case | Required observation / rejection |
 |---|---|
 | U1: existing credential reuse | Request the already enrolled credential through a supported origin/RP path; record the exact credential/RP and unchanged smart-account recipe/address locally. Test wrong origin/RP, wrong credential, cancellation and expired/replayed association challenges. A replacement credential is a separate recovery result, not successful reuse. Keep credential identifiers out of public reports. |
-| U2: existing-credential PRF | Check the actual credential's PRF result, not browser support alone. If supported, derive a purpose-bound wrapping key and protect a random vault key with a reviewed implementation. Never use signature bytes, a credential ID or a stored adjacent plaintext secret as wrapping material. Existing PRF availability is unproven. |
+| U2: existing-credential PRF | Check the actual credential's PRF result, not browser support alone. If supported, derive a purpose-bound wrapping key and protect a random vault key with a reviewed implementation. Never use signature bytes, a credential ID or a stored adjacent plaintext secret as wrapping material. Combine the PRF secret with a key held on the device, so that neither a copied profile nor another `greengoods.app` site is enough alone. Existing PRF availability is unproven. |
 | U3: offline unlock | After initial supported setup and local caching, block internet, auth directory, PDS/Pod, RPC and signaling. Lock, close/reopen each client and attempt local unlock, capture and review. Distinguish a locally available credential from cloud sync or cross-device authentication requiring another reachable device. Record cold/evicted-app limits separately. |
 | U4: unsupported or failed unlock | On each device test no PRF, denied prompt, missing credential and wrong/corrupt wrapper. Show the failure without losing ciphertext or reporting an empty successful vault. A documented local recovery-secret/second-device path may restore access; record passkey reuse as Fail/Unproven when it did not work. No silent cloud custody fallback. |
 | U5: one device lost | Erase only a disposable fixture profile. Recover through an authorized remaining device and independently through a protected offline export. Restore authorized records, key/grant history and pending review without reviving stale approvals; enroll a fresh device key and reconcile revocation. Record required unlock/recovery material and all manual steps. |
