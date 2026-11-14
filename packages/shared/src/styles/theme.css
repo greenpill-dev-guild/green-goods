@@ -2826,10 +2826,12 @@
   --color-gray-800: rgb(var(--gray-800));
   --color-gray-900: rgb(var(--gray-900));
   --color-gray-950: rgb(var(--gray-950));
-  /* Alpha variants using relative color syntax (Baseline Sept 2024) */
-  --color-gray-alpha-24: rgb(from rgb(var(--gray-400)) r g b / 24%);
-  --color-gray-alpha-16: rgb(from rgb(var(--gray-400)) r g b / 16%);
-  --color-gray-alpha-10: rgb(from rgb(var(--gray-400)) r g b / 10%);
+  /* Alpha variants: the channel triple at an alpha, which every supported browser
+   * reads. Not relative color syntax (rgb(from …)): it needs Chrome 119, and below
+   * that every color drawn from the token drops out. */
+  --color-gray-alpha-24: rgb(var(--gray-400) / 24%);
+  --color-gray-alpha-16: rgb(var(--gray-400) / 16%);
+  --color-gray-alpha-10: rgb(var(--gray-400) / 10%);
 
   /* Slate color palette */
   --color-slate-0: rgb(var(--slate-0));
@@ -2845,10 +2847,10 @@
   --color-slate-850: rgb(var(--slate-850));
   --color-slate-900: rgb(var(--slate-900));
   --color-slate-950: rgb(var(--slate-950));
-  /* Alpha variants using relative color syntax */
-  --color-slate-alpha-24: rgb(from rgb(var(--slate-400)) r g b / 24%);
-  --color-slate-alpha-16: rgb(from rgb(var(--slate-400)) r g b / 16%);
-  --color-slate-alpha-10: rgb(from rgb(var(--slate-400)) r g b / 10%);
+  /* Alpha variants */
+  --color-slate-alpha-24: rgb(var(--slate-400) / 24%);
+  --color-slate-alpha-16: rgb(var(--slate-400) / 16%);
+  --color-slate-alpha-10: rgb(var(--slate-400) / 10%);
 
   /* Neutral color palette */
   --color-neutral-0: rgb(var(--neutral-0));
@@ -2863,10 +2865,10 @@
   --color-neutral-800: rgb(var(--neutral-800));
   --color-neutral-900: rgb(var(--neutral-900));
   --color-neutral-950: rgb(var(--neutral-950));
-  /* Alpha variants using relative color syntax */
-  --color-neutral-alpha-24: rgb(from rgb(var(--neutral-400)) r g b / 24%);
-  --color-neutral-alpha-16: rgb(from rgb(var(--neutral-400)) r g b / 16%);
-  --color-neutral-alpha-10: rgb(from rgb(var(--neutral-400)) r g b / 10%);
+  /* Alpha variants */
+  --color-neutral-alpha-24: rgb(var(--neutral-400) / 24%);
+  --color-neutral-alpha-16: rgb(var(--neutral-400) / 16%);
+  --color-neutral-alpha-10: rgb(var(--neutral-400) / 10%);
 
   /* Blue color palette */
   --color-blue-50: rgb(var(--blue-50));
@@ -2880,10 +2882,10 @@
   --color-blue-800: rgb(var(--blue-800));
   --color-blue-900: rgb(var(--blue-900));
   --color-blue-950: rgb(var(--blue-950));
-  /* Alpha variants using relative color syntax */
-  --color-blue-alpha-24: rgb(from rgb(var(--blue-500)) r g b / 24%);
-  --color-blue-alpha-16: rgb(from rgb(var(--blue-500)) r g b / 16%);
-  --color-blue-alpha-10: rgb(from rgb(var(--blue-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-blue-alpha-24: rgb(var(--blue-500) / 24%);
+  --color-blue-alpha-16: rgb(var(--blue-500) / 16%);
+  --color-blue-alpha-10: rgb(var(--blue-500) / 10%);
 
   /* Orange color palette */
   --color-orange-50: rgb(var(--orange-50));
@@ -2897,10 +2899,10 @@
   --color-orange-800: rgb(var(--orange-800));
   --color-orange-900: rgb(var(--orange-900));
   --color-orange-950: rgb(var(--orange-950));
-  /* Alpha variants using relative color syntax */
-  --color-orange-alpha-24: rgb(from rgb(var(--orange-500)) r g b / 24%);
-  --color-orange-alpha-16: rgb(from rgb(var(--orange-500)) r g b / 16%);
-  --color-orange-alpha-10: rgb(from rgb(var(--orange-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-orange-alpha-24: rgb(var(--orange-500) / 24%);
+  --color-orange-alpha-16: rgb(var(--orange-500) / 16%);
+  --color-orange-alpha-10: rgb(var(--orange-500) / 10%);
 
   /* Red color palette */
   --color-red-50: rgb(var(--red-50));
@@ -2914,10 +2916,10 @@
   --color-red-800: rgb(var(--red-800));
   --color-red-900: rgb(var(--red-900));
   --color-red-950: rgb(var(--red-950));
-  /* Alpha variants using relative color syntax */
-  --color-red-alpha-24: rgb(from rgb(var(--red-500)) r g b / 24%);
-  --color-red-alpha-16: rgb(from rgb(var(--red-500)) r g b / 16%);
-  --color-red-alpha-10: rgb(from rgb(var(--red-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-red-alpha-24: rgb(var(--red-500) / 24%);
+  --color-red-alpha-16: rgb(var(--red-500) / 16%);
+  --color-red-alpha-10: rgb(var(--red-500) / 10%);
 
   /* Green color palette */
   --color-green-50: rgb(var(--green-50));
@@ -2931,10 +2933,10 @@
   --color-green-800: rgb(var(--green-800));
   --color-green-900: rgb(var(--green-900));
   --color-green-950: rgb(var(--green-950));
-  /* Alpha variants using relative color syntax */
-  --color-green-alpha-24: rgb(from rgb(var(--green-500)) r g b / 24%);
-  --color-green-alpha-16: rgb(from rgb(var(--green-500)) r g b / 16%);
-  --color-green-alpha-10: rgb(from rgb(var(--green-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-green-alpha-24: rgb(var(--green-500) / 24%);
+  --color-green-alpha-16: rgb(var(--green-500) / 16%);
+  --color-green-alpha-10: rgb(var(--green-500) / 10%);
 
   /* Yellow color palette */
   --color-yellow-50: rgb(var(--yellow-50));
@@ -2948,10 +2950,10 @@
   --color-yellow-800: rgb(var(--yellow-800));
   --color-yellow-900: rgb(var(--yellow-900));
   --color-yellow-950: rgb(var(--yellow-950));
-  /* Alpha variants using relative color syntax */
-  --color-yellow-alpha-24: rgb(from rgb(var(--yellow-500)) r g b / 24%);
-  --color-yellow-alpha-16: rgb(from rgb(var(--yellow-500)) r g b / 16%);
-  --color-yellow-alpha-10: rgb(from rgb(var(--yellow-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-yellow-alpha-24: rgb(var(--yellow-500) / 24%);
+  --color-yellow-alpha-16: rgb(var(--yellow-500) / 16%);
+  --color-yellow-alpha-10: rgb(var(--yellow-500) / 10%);
 
   /* Purple color palette */
   --color-purple-50: rgb(var(--purple-50));
@@ -2965,10 +2967,10 @@
   --color-purple-800: rgb(var(--purple-800));
   --color-purple-900: rgb(var(--purple-900));
   --color-purple-950: rgb(var(--purple-950));
-  /* Alpha variants using relative color syntax */
-  --color-purple-alpha-24: rgb(from rgb(var(--purple-500)) r g b / 24%);
-  --color-purple-alpha-16: rgb(from rgb(var(--purple-500)) r g b / 16%);
-  --color-purple-alpha-10: rgb(from rgb(var(--purple-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-purple-alpha-24: rgb(var(--purple-500) / 24%);
+  --color-purple-alpha-16: rgb(var(--purple-500) / 16%);
+  --color-purple-alpha-10: rgb(var(--purple-500) / 10%);
 
   /* Sky color palette */
   --color-sky-50: rgb(var(--sky-50));
@@ -2982,10 +2984,10 @@
   --color-sky-800: rgb(var(--sky-800));
   --color-sky-900: rgb(var(--sky-900));
   --color-sky-950: rgb(var(--sky-950));
-  /* Alpha variants using relative color syntax */
-  --color-sky-alpha-24: rgb(from rgb(var(--sky-500)) r g b / 24%);
-  --color-sky-alpha-16: rgb(from rgb(var(--sky-500)) r g b / 16%);
-  --color-sky-alpha-10: rgb(from rgb(var(--sky-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-sky-alpha-24: rgb(var(--sky-500) / 24%);
+  --color-sky-alpha-16: rgb(var(--sky-500) / 16%);
+  --color-sky-alpha-10: rgb(var(--sky-500) / 10%);
 
   /* Pink color palette */
   --color-pink-50: rgb(var(--pink-50));
@@ -2999,10 +3001,10 @@
   --color-pink-800: rgb(var(--pink-800));
   --color-pink-900: rgb(var(--pink-900));
   --color-pink-950: rgb(var(--pink-950));
-  /* Alpha variants using relative color syntax */
-  --color-pink-alpha-24: rgb(from rgb(var(--pink-500)) r g b / 24%);
-  --color-pink-alpha-16: rgb(from rgb(var(--pink-500)) r g b / 16%);
-  --color-pink-alpha-10: rgb(from rgb(var(--pink-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-pink-alpha-24: rgb(var(--pink-500) / 24%);
+  --color-pink-alpha-16: rgb(var(--pink-500) / 16%);
+  --color-pink-alpha-10: rgb(var(--pink-500) / 10%);
 
   /* Teal color palette */
   --color-teal-50: rgb(var(--teal-50));
@@ -3016,23 +3018,23 @@
   --color-teal-800: rgb(var(--teal-800));
   --color-teal-900: rgb(var(--teal-900));
   --color-teal-950: rgb(var(--teal-950));
-  /* Alpha variants using relative color syntax */
-  --color-teal-alpha-24: rgb(from rgb(var(--teal-500)) r g b / 24%);
-  --color-teal-alpha-16: rgb(from rgb(var(--teal-500)) r g b / 16%);
-  --color-teal-alpha-10: rgb(from rgb(var(--teal-500)) r g b / 10%);
+  /* Alpha variants */
+  --color-teal-alpha-24: rgb(var(--teal-500) / 24%);
+  --color-teal-alpha-16: rgb(var(--teal-500) / 16%);
+  --color-teal-alpha-10: rgb(var(--teal-500) / 10%);
 
   /* White and Black colors */
   --color-white: rgb(255, 255, 255);
-  /* Alpha variants using relative color syntax */
-  --color-white-alpha-24: rgb(from white r g b / 24%);
-  --color-white-alpha-16: rgb(from white r g b / 16%);
-  --color-white-alpha-10: rgb(from white r g b / 10%);
+  /* Alpha variants */
+  --color-white-alpha-24: rgb(255 255 255 / 24%);
+  --color-white-alpha-16: rgb(255 255 255 / 16%);
+  --color-white-alpha-10: rgb(255 255 255 / 10%);
 
   --color-black: rgb(0, 0, 0);
-  /* Alpha variants using relative color syntax */
-  --color-black-alpha-24: rgb(from black r g b / 24%);
-  --color-black-alpha-16: rgb(from black r g b / 16%);
-  --color-black-alpha-10: rgb(from black r g b / 10%);
+  /* Alpha variants */
+  --color-black-alpha-24: rgb(0 0 0 / 24%);
+  --color-black-alpha-16: rgb(0 0 0 / 16%);
+  --color-black-alpha-10: rgb(0 0 0 / 10%);
 
   /* Primary color variations */
   --color-primary-dark: rgb(var(--primary-dark));
@@ -3043,10 +3045,10 @@
   --color-primary-action-hover: rgb(var(--primary-action-hover));
   --color-primary-action-foreground: rgb(var(--primary-action-foreground));
   --color-primary-on-surface: rgb(var(--primary-on-surface));
-  /* Alpha variants using relative color syntax */
-  --color-primary-alpha-24: rgb(from rgb(var(--primary-base)) r g b / 24%);
-  --color-primary-alpha-16: rgb(from rgb(var(--primary-base)) r g b / 16%);
-  --color-primary-alpha-10: rgb(from rgb(var(--primary-base)) r g b / 10%);
+  /* Alpha variants */
+  --color-primary-alpha-24: rgb(var(--primary-base) / 24%);
+  --color-primary-alpha-16: rgb(var(--primary-base) / 16%);
+  --color-primary-alpha-10: rgb(var(--primary-base) / 10%);
 
   /* Static colors */
   --color-static-black: rgb(var(--static-black));
