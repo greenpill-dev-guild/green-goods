@@ -6,6 +6,7 @@ import babel from "@rolldown/plugin-babel";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import { SUPPORTED_BROWSER_TARGETS } from "../../scripts/lib/browser-support.mjs";
 import {
   assertEnvParity,
   assertSentryDsnResolvable,
@@ -244,6 +245,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
+      // The supported minimum, named so a Vite upgrade cannot move it; the CSS target follows it.
+      target: [...SUPPORTED_BROWSER_TARGETS],
       // 'hidden' emits .map files for server-side upload (PostHog / Sentry) but
       // omits the sourceMappingURL comment, so the maps are never referenced from
       // — or served to — browsers. The upload lane deletes them after upload.

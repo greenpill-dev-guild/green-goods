@@ -35,6 +35,11 @@ export interface AddressDisplayProps {
   list?: boolean;
 }
 
+/** The tooltip opens through the Popover API: Chrome 114 and Safari 17, newer than the floor. */
+function hasPopoverApi(): boolean {
+  return typeof HTMLElement !== "undefined" && "popover" in HTMLElement.prototype;
+}
+
 export function AddressDisplay({
   address,
   className,
@@ -66,12 +71,11 @@ export function AddressDisplay({
     }
   };
 
+  const fullName = preferredName ? `${preferredName} · ${address}` : address;
+
   if (!interactive) {
     return (
-      <span
-        className={cn("font-mono text-sm text-text-strong", className)}
-        title={preferredName ? `${preferredName} · ${address}` : address}
-      >
+      <span className={cn("font-mono text-sm text-text-strong", className)} title={fullName}>
         {display}
       </span>
     );
@@ -79,33 +83,43 @@ export function AddressDisplay({
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <button
-        type="button"
-        popoverTarget={tooltipId}
-        className="text-sm font-mono text-text-strong hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
-        style={{ background: "none", border: "none", padding: 0 }}
-      >
-        {display}
-      </button>
+      {hasPopoverApi() ? (
+        <>
+          <button
+            type="button"
+            popoverTarget={tooltipId}
+            className="text-sm font-mono text-text-strong hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
+            style={{ background: "none", border: "none", padding: 0 }}
+          >
+            {display}
+          </button>
 
-      <div
-        id={tooltipId}
-        popover="hint"
-        className="px-2 py-1 bg-bg-sub text-text-strong text-xs rounded whitespace-nowrap m-0 border-0"
-        style={{
-          inset: "unset",
-          margin: "unset",
-        }}
-      >
-        {preferredName ? (
-          <div className="flex flex-col text-left">
-            <span>{preferredName}</span>
-            <span className="text-[10px] text-text-disabled">{address}</span>
+          <div
+            id={tooltipId}
+            popover="hint"
+            className="px-2 py-1 bg-bg-sub text-text-strong text-xs rounded whitespace-nowrap m-0 border-0"
+            style={{
+              inset: "unset",
+              margin: "unset",
+            }}
+          >
+            {preferredName ? (
+              <div className="flex flex-col text-left">
+                <span>{preferredName}</span>
+                <span className="text-[10px] text-text-disabled">{address}</span>
+              </div>
+            ) : (
+              address
+            )}
           </div>
-        ) : (
-          address
-        )}
-      </div>
+        </>
+      ) : (
+        // Without the API a button could open nothing, so the name carries the full
+        // address as its title, as the non-interactive name does.
+        <span className="font-mono text-sm text-text-strong" title={fullName}>
+          {display}
+        </span>
+      )}
 
       {showCopyButton && (
         <IconButton

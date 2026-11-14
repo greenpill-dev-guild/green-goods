@@ -371,12 +371,13 @@ export function FinishedCycles({
       {/* Rows share the list's columns (subgrid), so every row's dates and
           counts start on the same line. Narrow, the record line drops under
           the name; wide, it sits beside its counts with the name taking the
-          slack. */}
+          slack. Before Chrome 117 (no subgrid), each row inherits the list's
+          columns and gaps instead and loses only that shared line. */}
       <ul className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 divide-y divide-stroke-soft-200 border-y border-stroke-soft-200 @[48rem]:grid-cols-[minmax(0,1fr)_auto_auto] @[48rem]:gap-x-10">
         {visible.map((cycle) => (
           <li
             key={cycle.id}
-            className="col-span-full grid grid-cols-subgrid items-baseline gap-y-1 py-3"
+            className="col-span-full grid grid-cols-subgrid items-baseline gap-y-1 py-3 not-supports-[grid-template-columns:subgrid]:grid-cols-[inherit] not-supports-[grid-template-columns:subgrid]:gap-x-[inherit]"
           >
             <p
               className="truncate font-serif text-base text-text-strong-950 md:text-lg"
