@@ -319,6 +319,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "The owner confirmed that the connected read for an existing garden also brings its current assessment (D38). Folded in fifteen review points with it: the authority proof for an imported garden moved into C8 and E31, settlement rechecks and recovery in E38, the user-extended block list in E27, three languages in E29, the meaning of no hosted calls in E30, partner-list pairing in E17, and an uninterrupted fourteen-day run in C0b. Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-14T10:11:14Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "Folded in eight review points, with no decision changed. D45 covers a work report in a revision its author shared or approved, and a version someone else corrected or structured still needs its author's approval (F4, E35). An imported garden's signed challenge names the first signer's device key, and members take the garden by pairing (C8, E31). Open joining goes through the signer's device, O19 asks whether an open garden needs a way in without it, and today's rules on who may change a role are gated (F6, E37). The connected read's public sources are named (C8, E30). Exported files carry random names (C1, E16). A recovery appointment retires its succession key, and member-list hashes cover canonical bytes (C0, E15). Gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }
