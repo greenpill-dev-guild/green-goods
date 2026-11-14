@@ -85,12 +85,12 @@ Use these terms when describing admin UI:
 |------|---------|
 | `restrained steward cockpit` | Admin identity anchor: always lead with this |
 | `CanvasLayout` | The top-level grid: AppBar + MainSheet + NavigationBar |
-| `command surface` | Hub and Actions: primary control surfaces |
+| `command surface` | Review and Actions: primary control surfaces |
 | `data landscape` | Garden: monitoring and exploration |
 | `single-mode operations surface` | Community: single dominant workflow |
 | `AdminDialog inspector` | Centered overlay for config & alerts (notifications, settings, account) **and** every detail/inspection flow; full-viewport scrim, bottom-sheet on mobile |
 | `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action): inner chrome of a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`); bottom-sheet on mobile |
-| `workspace tint` | Subtle atmospheric color: Hub=blue, Garden=green, Community=orange, Actions=purple |
+| `workspace tint` | Subtle atmospheric color: Review=blue, Garden=green, Community=orange, Actions=purple |
 | `workbench list` | Primary data surface inside MainSheet |
 | `stage rail` | Inline secondary actions/filters adjacent to the workspace |
 | `view rail` | Collapsible navigation rail when the AppBar is tight |
@@ -125,8 +125,8 @@ changes, FAB menus, dialogs, and interaction state ride the admin motion role al
 
 ### Workspace Tone
 
-Each workspace carries an accent hue (Hub=blue, Garden=green, Community=orange, Actions=purple),
-but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
+Each workspace carries an accent hue (Review=blue, Garden=green, Community=orange, Actions=purple;
+Review's tone keeps its code name, `hub`, DL-182), but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
 light and m3 surface in dark. Tone spends a **6-use budget**: (1) the active tab: its 10% tint,
 label and underline (DL-100), (2) the active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (3) the
 single filled header action (`--tone-action`), (4) the nav-shell FAB fill (`Shell/FabButton`), the
@@ -181,7 +181,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `ActionFlowShell` | Full-surface action-flow chrome: pinned header + scrolling body + pinned footer; rendered inside a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`), bottom-sheet on mobile |
 | `AdminDialog` | Centered overlay for **every** workspace action and detail/inspection flow (config, alerts, work/assessment/hypercert/action detail, create/edit). Full-viewport scrim; bottom-sheet on mobile; pass workspace `tone`. Replaces the retired `LeftSheet`/`RightSheet`/`BottomSheet` for workspace flows. |
 | `AdminSideSheet` | Right-docked modal side sheet for **only** the three global AppBar surfaces (Profile, Settings, Notifications). Bottom-sheet presentation on mobile (bell only); `tone="hub"`; scope enforced by `AdminSideSheetStandard.guard`. |
-| `NavigationBar` | Bottom workspace tabs: Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
+| `NavigationBar` | Bottom workspace tabs: Review, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
 | `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell, a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
 
 **Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 22 wrappers across 19 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow` and DL-119's retires `AdminButton` and `AdminIconButton`, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):

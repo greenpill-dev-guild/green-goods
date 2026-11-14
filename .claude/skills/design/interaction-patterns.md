@@ -25,9 +25,9 @@ violated half of these. Validators check structure; this contract is what "desig
 - **The primary is rightmost; secondaries sit left of it in declaration order.** Destructive acts
   never share a cluster with routine acts: they get their own row, region, or the confirm
   dialog's danger slot. (Brief: destructive separation; Fitts's Law.)
-- **A review surface renders its action set outlined.** The Hub exists to review work, so its
-  trio (Submit Work, Create Assessment, Create Hypercert) fills no button above the queue. The
-  declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
+- **A review surface renders its action set outlined.** Review, the `/hub` workspace, exists to
+  review work, so its trio (Submit Work, Create Assessment, Create Hypercert) fills no button
+  above the queue. The declared primary still sorts rightmost and fills the FAB (DL-043). Proof:
   [hub.utils.ts](../../../packages/shared/src/hooks/admin-ui/hub/hub.utils.ts),
   where `buildHubViewActions` declares every action `secondary` and keeps Submit Work `primary`.
 - **Tab-specific actions live in the tab's content**, end-aligned in the section they act on:
@@ -36,7 +36,7 @@ violated half of these. Validators check structure; this contract is what "desig
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
   trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts):
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
-- **Empty-state Create repeats a hidden header action only.** The Hub's Assessments and
+- **Empty-state Create repeats a hidden header action only.** Review's Assessments and
   Hypercerts keep their Create button below 1024px, where the FAB carries the route actions,
   and hide it from 1024px, where the header trio is visible (DL-138). Proof:
   [HubRecordLists.tsx](../../../packages/admin/src/views/Hub/components/HubRecordLists.tsx).
@@ -83,7 +83,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   why it cannot go on, because no tab behind it will. A choice inside the dialog may still lead
   elsewhere: Fix Limit First goes to the jar's limit editor under Payouts, and Done after a send
   lands on the result (DL-080, § 3), replacing the dialog's history entry. Every shipped case
-  follows this: Fund Cookie Jar, Add Member, Edit Garden, and the Hub's Submit Work, Create
+  follows this: Fund Cookie Jar, Add Member, Edit Garden, and Review's Submit Work, Create
   Assessment and Create Hypercert, whose old paths now redirect to their items. Proof:
   `buildCommunityViewActions`, `buildGardenViewActions` and `buildHubViewActions` hand each press
   the active tab; [useRouteItemClose](../../../packages/shared/src/hooks/navigation/useCanvasSearchParams.ts)
@@ -187,7 +187,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   when, then what for, one line each; the name keeps its length and the age gives way first),
   with Decline… and Approve. A decided row keeps its place with its outcome until the steward
   leaves the tab, here and wherever a steward decides in a list (a commitment's waiting list,
-  the Hub's Confirm queue).
+  Review's Confirm queue).
 - **A card is titled by its subject.** When a card is about one object, that object heads the
   card (title, chips, counts, and its one act in the header) rather than a generic title with
   the object stacked beneath as a second header. Peers list below a quiet section divider whose
@@ -225,7 +225,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   [AccountProfilePanel.tsx](../../../packages/admin/src/components/Layout/AccountProfilePanel.tsx)
   and [useStewardAccessRequestController.ts](../../../packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts).
 - **Work age is metadata, never an alarm (DL-044).** A waiting card shows a neutral Pending chip
-  with its age ("submitted 6 months ago"), and the Hub header counts work waiting over a week in
+  with its age ("submitted 6 months ago"), and the Review header counts work waiting over a week in
   plain ink. A garden's health turns Critical only when work has waited 7 days or more *and* no
   review landed in the last 7 days; work waiting over a week while reviews still land reads Needs
   attention. An unknown review time (a decision only this device knows, a row restored from an
