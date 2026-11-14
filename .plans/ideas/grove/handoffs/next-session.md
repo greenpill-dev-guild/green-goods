@@ -4,7 +4,7 @@
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D49, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D51, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -29,6 +29,9 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - Running a pool's seasons, support allocations and editing an Action are in the first version, as part of every current function working locally (D37).
 - Each function block starts with an inventory of every action its screens and contracts offer today, and its gate covers that list (D48).
 - A free-form report can be a voice note with photos and documents. On a laptop the local agent transcribes it and structures it to the Green Goods schema, as one record or several, and only a structured record can be approved (D49).
+- From a voice note the agent also proposes knowledge, such as a lesson or the questions people asked, and the reviewer can discard it (D50).
+- An owner of the garden can replace an imported garden's onchain record, so a first importer who pairs nobody cannot lock the garden out (D51).
+- Leaving a current function out of the first version takes the owner's recorded decision (D48).
 - The phone and the extension ship together (D2). The phone runs Green Goods itself.
 - The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
 - One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).

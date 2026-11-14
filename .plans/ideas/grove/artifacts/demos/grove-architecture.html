@@ -222,7 +222,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
     <div class="gate is-later" data-gate="public">
       <span class="arrow" aria-hidden="true">↓</span>
       <div>
-        <p><strong>A steward approves</strong> the exact payload before it is handed to any upload queue. <span class="tag-later">Later lane, not in the MVP.</span></p>
+        <p><strong>A steward approves</strong> the exact payload before it is handed to any upload queue, and <strong>the author approves</strong> it too when it carries their own capture. <span class="tag-later">Later lane, not in the MVP.</span></p>
       </div>
     </div>
 
@@ -350,7 +350,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       keys: "A fresh key for the file, wrapped to the laptop's device key and signed by the phone's.",
       sees: "Whoever carries the file sees its size and when it moved." },
     { title: "The agent structures a free-form report", lane: "mvp", bands: ["local"], actors: ["browser", "laptop", "agent"], gate: null,
-      text: "When a free-form work report or promise is opened for review on a laptop, Grove's agent transcribes it if it was spoken and proposes its structured version beside the app's own screen, as one record or several, in the shape Green Goods already uses: for a report, the title, time spent, notes, details and photos. Every value shows the words it was read from, and anything the words do not state stays empty. The member accepts or corrects each value. A report made through today's work screen skips this step.",
+      text: "When a free-form work report or promise is opened for review on a laptop, Grove's agent transcribes it if it was spoken and proposes its structured version beside the app's own screen, as one record or several, with any knowledge the note holds, in the shape Green Goods already uses: for a report, the title, time spent, notes, details and photos. Every value shows the words it was read from, and anything the words do not state stays empty. The member accepts or corrects each value. A report made through today's work screen skips this step.",
       approver: "The member. The agent proposes, and never approves, shares or publishes.",
       keys: "The vault key. The structured version is a new revision, encrypted like any record.",
       sees: "Nothing. The model runs on the laptop." },
@@ -375,8 +375,8 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
       keys: "A fresh key, wrapped to the partner devices whose keys came from pairing the two communities.",
       sees: "The file's size, its timing and its recipient count." },
     { title: "Publish by choice", lane: "later", bands: ["public"], actors: ["steward", "release"], gate: "public",
-      text: "Not in the MVP. Publishing a work report, an approval or a promise to the chain is a separate choice. A steward would approve the exact payload before it is handed to any upload queue, because Green Goods uploads work to public storage during background preparation, before the transaction is signed.",
-      approver: "A steward, before the first upload.",
+      text: "Not in the MVP. Publishing a work report, an approval or a promise to the chain is a separate choice. A steward would approve the exact payload before it is handed to any upload queue, and so would the author of any capture it carries, because Green Goods uploads work to public storage during background preparation, before the transaction is signed.",
+      approver: "A steward, before the first upload, and the author too when the payload carries their own capture.",
       keys: "None. A public release is not encrypted.",
       sees: "Everything in the release. It cannot be recalled." }
   ];

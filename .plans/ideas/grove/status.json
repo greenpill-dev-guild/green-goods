@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-14T09:51:06Z"
+    "updated_at": "2026-11-14T23:35:27Z"
   },
   "links": {
     "brief": "brief.md",
@@ -67,7 +67,8 @@
     "2026-11-14 owner answers that shape the plan (D37–D44): the gardener app and the steward cockpit gain local operation together; a new garden starts fully locally and an existing one is brought local with one connected read; the plan follows the Green Goods chain (Actions and assessment, work, approval, report), then promises, joining and roles, and money and certificates; money is recorded now and settled when connected; Grove works beside the app's screens through a bridge; carried files first, then direct sync between open devices; the garden's assessment is the agent's focus; local operation lives in separate local builds. Added C7–C10, F1–F7 and E30–E38, all unrun. Resolved O2, O14 and O15. The owner also decided that a steward alone may include an approved work report in a report to a funder (D45). No lane, Linear, dependency or runtime change.",
     "2026-11-14 owner decision on where the local builds are developed (D46): at alpha.greengoods.app for the app and alpha.admin.greengoods.app for the cockpit, new subdomains of greengoods.app, and not in the beta environment. Whether real gardens first install from those addresses is confirmed before a pilot with real data (O2). No lane, Linear, dependency or runtime change.",
     "2026-11-14 owner decisions from review: an imported garden records its local identifier onchain, so a second steward finds it and joins instead of making a copy (D47); and running a pool's seasons, support allocations and editing an Action are in the first version (D37). No lane, Linear, dependency or runtime change.",
-    "2026-11-14 owner decisions, evening: each function block starts with an inventory of every action its screens and contracts offer today, and its gate covers that list (D48); a free-form report can be a voice note with photos and documents, which the local agent transcribes and structures on a laptop into one record or several, and only a structured record can be approved (D49, amending D34–D36). No lane, Linear, dependency or runtime change."
+    "2026-11-14 owner decisions, evening: each function block starts with an inventory of every action its screens and contracts offer today, and its gate covers that list (D48); a free-form report can be a voice note with photos and documents, which the local agent transcribes and structures on a laptop into one record or several, and only a structured record can be approved (D49, amending D34–D36). No lane, Linear, dependency or runtime change.",
+    "2026-11-14 owner decisions, late evening: from a voice note the agent also proposes knowledge, such as a lesson or the questions people asked (D50); an owner of the garden can replace an imported garden's onchain record, so a first importer who pairs nobody cannot lock the garden out (D51); and leaving a current function out of the first version takes the owner's recorded decision, without which its gate does not pass (D48). No lane, Linear, dependency or runtime change."
   ],
   "lanes": {
     "ui": {
@@ -370,6 +371,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "Two owner decisions. Each function block starts with an inventory of every action its screens and contracts offer today, and its gate covers that list (D48). A free-form report can be a voice note with photos and documents; on a laptop the local agent transcribes it and structures it to the Green Goods schema, as one record or several, and only a structured record can be approved (D49, amending D34 to D36). S16 and E29 gain transcription, several records from one note and a document as evidence; F2 and E34 state what a report must contain; O18 now asks about transcription too, which nothing has measured. Six points held from review went in with them: a list's age runs from the controller's signing time (E15), campaigns (F5, E36), leaving a garden and garden settings (F6, E37), settling two assessments that replace the same one (F1, S13, E33), and every labelled sensitive detail (E28). The architecture page names voice. Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-14T23:35:27Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "Three owner decisions: knowledge is proposed from a voice note as well as work records (D50), an owner can replace an imported garden's onchain record (D51), and leaving a function out of the first version takes the owner's decision (D48). Twelve points held from review went in with them: the onchain record also shows the importing account and the time (D47); settlement happens exactly once at the chain (F7, E38); each pairing answers a one-time challenge (C0, E15); the passkey combination is a named, versioned construction (C1, E24); a withdrawal stops other devices only once it reaches them (C2, E17); approval is refused while something an Action requires is missing (F2, E34); a set-aside assessment is tried again when the focus changes (S13, E33); voice notes in every language (E29); the architecture page shows both approvals for a public release; and workflow.updated_at now follows the history. Gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }

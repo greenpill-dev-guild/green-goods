@@ -117,7 +117,7 @@ sequenceDiagram
   G->>G: Approve it before it leaves the garden
 ```
 
-A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the cockpit as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. A voice note is transcribed on the laptop first, and one note can become several records, each with the photos and documents that support it (D49). The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
+A promise follows the same steps. So does the author's own review when they have a laptop (D35). The reviewer works in the app or the cockpit as today, and Grove's part appears beside that screen through the bridge (D41). A report made through the existing work screen is already structured and skips them. A voice note is transcribed on the laptop first, and one note can become several records, each with the photos and documents that support it (D49). Any knowledge the note holds is proposed beside them (D50). The agent proposes and never decides: it cannot approve, share or publish, and a value the words do not state stays empty (D36). A gardener with only a phone sees the structured version when it comes back, and it leaves the garden only with their approval (D17).
 
 ### Phone to laptop
 
