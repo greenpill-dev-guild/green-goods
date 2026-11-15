@@ -286,6 +286,6 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 
 - `audit` — Find problems (read-only). Use when you want a report, not fixes.
 - `review` — Review specific changes. Use when reviewing a PR or recent commits.
-- `plan` (`teams.md` § Part 11) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
+- `plan` (`.agents/adapter.md` § plan, **Teams**) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
 
 Recommended flow: `clean` assessment -> approve numbered finding IDs -> targeted implementation -> Codex final review -> `review` the changes.

@@ -529,6 +529,7 @@ function main() {
 
   const guidanceFiles = [
     ...walkMarkdown(path.join(repoRoot, ".claude")),
+    path.join(repoRoot, ".agents", "adapter.md"),
     ...walkMarkdown(path.join(repoRoot, ".github", "instructions")),
     ...fs.readdirSync(path.join(repoRoot, "packages"))
       .map((directory) => path.join(repoRoot, "packages", directory, "AGENTS.md")),
