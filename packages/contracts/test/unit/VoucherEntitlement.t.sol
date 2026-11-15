@@ -620,7 +620,8 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
     }
 
     function testVoucherEntitlement_upgradeCannotChangeLocalChainIdentity() public {
-        uint256 localChain = block.chainid;
+        // Under via-IR a block.chainid local is re-read after vm.chainId, so take the chain from the module.
+        uint256 localChain = vouchers.LOCAL_CHAIN_ID();
         vm.chainId(localChain + 1);
         VoucherEntitlementModule replacement = new VoucherEntitlementModule(address(router));
         vm.chainId(localChain);
