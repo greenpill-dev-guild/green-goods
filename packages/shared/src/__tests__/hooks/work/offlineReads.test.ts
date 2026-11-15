@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 import { onlineManager, QueryClient } from "@tanstack/react-query";
-import { cleanup, waitFor } from "@testing-library/react";
+import { act, cleanup, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
@@ -13,6 +13,11 @@ const seams = vi.hoisted(() => ({
   mine: vi.fn(),
   images: vi.fn(),
   preview: vi.fn((_file: File, _owner: string, _identity: string) => "blob:restored-evidence"),
+  /** Live views of the job store open now; `storeChanged` has each answer again. */
+  storeViews: new Set<() => void>(),
+  storeChanged() {
+    for (const answer of this.storeViews) answer();
+  },
 }));
 vi.mock("../../../modules/job-queue/work-completions", () => ({
   retireWorkCompletionSnapshots: seams.retire,
@@ -45,6 +50,19 @@ vi.mock("../../../modules/job-queue/db", () => ({
       subscribe: (observer: { next: (rows: unknown[]) => void }) => {
         queueMicrotask(() => observer.next(seams.completions()));
         return { unsubscribe() {} };
+      },
+    }),
+    // Like the live view of the store, it answers with the jobs the queue holds now, and again
+    // after every write, whoever made it.
+    observeJobs: (filter: { userAddress: string; kind?: string; synced?: boolean }) => ({
+      subscribe: (observer: { next: (jobs: unknown[]) => void }) => {
+        const answer = () =>
+          void Promise.resolve(
+            seams.jobs(filter.userAddress, { kind: filter.kind, synced: filter.synced })
+          ).then((jobs) => observer.next((jobs as unknown[] | undefined) ?? []));
+        seams.storeViews.add(answer);
+        queueMicrotask(answer);
+        return { unsubscribe: () => seams.storeViews.delete(answer) };
       },
     }),
   },
@@ -148,6 +166,32 @@ describe("offline work reading", () => {
     await waitFor(() =>
       expect(result.current.works.map((work) => work.id)).toContain("local-work")
     );
+  });
+  it("follows a queued work as preparation records its answer, which no queue event announces", async () => {
+    // Preparation saves what it found under its claim and emits nothing. A read refreshed only
+    // by queue events kept the work's page on Preparing uploads after it was ready (PRD-1488).
+    seams.jobs.mockResolvedValue([queuedJob]);
+    const { result, unmount } = mount();
+    const queued = () =>
+      JSON.parse(result.current.works.find((work) => work.id === "local-work")?.metadata ?? "{}");
+    await waitFor(() => expect(queued().submissionState).toBe("preparing"));
+
+    const answer = (preparation: Record<string, unknown>) => {
+      seams.jobs.mockResolvedValue([{ ...queuedJob, meta: { preparation } }]);
+      act(() => seams.storeChanged());
+    };
+    answer({ status: "ready", checkedAt: "2026-11-14T00:04:27.400Z" });
+    await waitFor(() => expect(queued().submissionState).toBe("ready"));
+    answer({ status: "blocked", reason: "NotGardenMember", checkedAt: "2026-11-14T00:05:00.000Z" });
+    await waitFor(() =>
+      expect(queued()).toMatchObject({
+        submissionState: "blocked",
+        blockedReason: "NotGardenMember",
+      })
+    );
+
+    unmount();
+    expect(seams.storeViews.size).toBe(0);
   });
   it("records the cold-cache paused state that the garden route currently labels success", async () => {
     seams.list.mockRejectedValue(new TypeError("Failed to fetch"));

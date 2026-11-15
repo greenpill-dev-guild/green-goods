@@ -57,6 +57,23 @@ describe("AddressDisplay", () => {
     expect(mockUseEnsName).toHaveBeenCalledWith(TEST_ADDRESS);
   });
 
+  it("gives the full address as the name's title where the browser has no Popover API", () => {
+    // happy-dom has the API; removing it stands in for Chrome before 114 and Safari before 17.
+    const popover = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "popover");
+    expect(popover).toBeDefined();
+    delete (HTMLElement.prototype as { popover?: unknown }).popover;
+    try {
+      const { container } = renderAddressDisplay(<AddressDisplay address={TEST_ADDRESS} />);
+
+      expect(screen.queryByRole("button", { name: SHORT_TEST_ADDRESS })).not.toBeInTheDocument();
+      expect(screen.getByText(SHORT_TEST_ADDRESS)).toHaveAttribute("title", TEST_ADDRESS);
+      expect(container.querySelector("[popover]")).toBeNull();
+      expect(screen.getByTitle("Copy Address")).toBeInTheDocument();
+    } finally {
+      if (popover) Object.defineProperty(HTMLElement.prototype, "popover", popover);
+    }
+  });
+
   it("keeps the copy button usable", async () => {
     const execCommand = vi.fn(() => true);
     Object.defineProperty(document, "execCommand", {

@@ -15,12 +15,14 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, screen, userEvent, within } from "storybook/test";
-import { STORYBOOK_NOW_SECONDS } from "../../../../shared/.storybook/fixtures";
+import { STORYBOOK_NOW_SECONDS, daysAgo } from "../../../../shared/.storybook/fixtures";
 import { ProfileBadges } from "./Badges";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 
 const ACCOUNT = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
+/** Midday UTC on 19 November 2025, so the earned day reads the same in every time zone. */
+const EARNED_AT = daysAgo(58) + 12 * 3_600;
 
 function badge(
   slug: "genesis" | "first-work" | "first-support",
@@ -44,7 +46,20 @@ function badge(
     updatedAt: STORYBOOK_NOW_SECONDS,
     owned,
     claimableNow: !owned,
-    ownership: null,
+    ownership: owned
+      ? {
+          id: `${DEFAULT_CHAIN_ID}-${badgeId}-${ACCOUNT}`,
+          chainId: DEFAULT_CHAIN_ID,
+          badgeId,
+          owner: ACCOUNT,
+          sourceRef: badgeId,
+          issuer: ZERO,
+          unlockTokenId: 7n,
+          issuedAt: EARNED_AT,
+          definitionId: `${DEFAULT_CHAIN_ID}-${badgeId}`,
+          lastGrantId: `${DEFAULT_CHAIN_ID}-grant-${badgeId}`,
+        }
+      : null,
   };
 }
 
@@ -58,7 +73,7 @@ function withBadges({ claiming = false } = {}) {
   return () => {
     const badges = [badge("first-work", true), badge("genesis", false)];
     mocked(usePrimaryAddress).mockReturnValue(ACCOUNT);
-    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "afo.greengoods.eth" } as ReturnType<
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
       typeof useGreenGoodsEnsName
     >);
     mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
@@ -100,9 +115,11 @@ function withBadges({ claiming = false } = {}) {
 }
 
 /**
- * Profile badges: earned badges and ones ready to claim. A claimable badge opens its sheet with the
- * claim as the one action in the shared bar (DL-016); an earned badge's sheet has no bar. Badge,
- * membership, and claim hooks are mocked per story.
+ * Profile badges: earned badges and ones ready to claim. A badge opens a `tall` sheet with its
+ * artwork, its standing and, once earned, the day it was earned. A claimable badge's claim is the
+ * one action in the shared bar (DL-016); an earned badge's sheet has no bar. The fixtures have no
+ * Unlock collection, so the artwork shows each badge's own glyph. Badge, membership, and claim
+ * hooks are mocked per story.
  */
 const meta: Meta<typeof ProfileBadges> = {
   title: "Client/Profile/ProfileBadges",
@@ -161,5 +178,6 @@ export const EarnedBadge: Story = {
     await userEvent.click(await screen.findByRole("button", { name: "View First Work badge" }));
     const sheet = await screen.findByRole("dialog", { name: "First Work" });
     await expect(sheet.querySelector('[data-component="SheetActions"]')).toBeNull();
+    await expect(within(sheet).getByText("November 19, 2025")).toBeVisible();
   },
 };

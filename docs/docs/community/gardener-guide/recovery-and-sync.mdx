@@ -34,6 +34,8 @@ source_of_truth:
   - packages/shared/src/modules/job-queue/draft-snapshot.ts
   - packages/shared/src/modules/work/draft-lifecycle.ts
   - packages/shared/src/hooks/work/useQueuedWorkActions.ts
+  - packages/shared/src/hooks/work/useUploadPolicy.ts
+  - packages/shared/src/hooks/work/useWorkUploads.ts
   - packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts
   - packages/shared/src/providers/JobQueue.tsx
   - packages/shared/src/providers/Auth.tsx
@@ -112,6 +114,16 @@ Removing the local item does not delete media already prepared in public storage
 - **Not in this garden:** ask your steward which action to use. Record a replacement under that action only after resolving the saved item.
 - **A photo won't convert:** the saved photo cannot be read. After keeping any photos and notes you need, **Discard** the item and record it again with a different photo.
 - **The record refused it:** tap **Try Again** once. If it fails again, send your steward the garden, action, and exact message you see.
+- **Accept the current Terms of Use:** tap **Try Again** and agree to the Terms when they appear. Once you agree on this phone, the app stops asking.
+
+An item that is still getting ready says on its page what it is waiting for:
+
+- **Couldn't get it ready:** a try did not finish. The app keeps trying while it is open, or tap **Try Again** to try now.
+- **Waiting for a steady connection:** it gets ready once your connection is steady.
+- **Paused for Data Saver:** tap **Prepare now** to get it ready on this connection.
+- **Waiting for an app update:** update the app when it asks, and the item gets ready.
+
+While it waits for any of these, you can still **Discard** it.
 
 After **Try Again**, wait for preparation to finish, then send the saved item with **Upload now** or **Upload all**. **Try Again** alone does not send the work record.
 
