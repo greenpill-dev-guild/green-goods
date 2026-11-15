@@ -858,7 +858,7 @@
     },
     {
       "id": "PUB-027",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1627,7 +1627,7 @@
     },
     {
       "id": "PUB-014",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -1657,7 +1657,7 @@
     },
     {
       "id": "PUB-017",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "transaction",
@@ -1685,7 +1685,7 @@
     },
     {
       "id": "PUB-020",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "transaction",
@@ -1710,7 +1710,7 @@
     },
     {
       "id": "PUB-021",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1735,7 +1735,7 @@
     },
     {
       "id": "PUB-022",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P2",
       "kind": "journey",
@@ -1760,7 +1760,7 @@
     },
     {
       "id": "PUB-023",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1786,7 +1786,7 @@
     },
     {
       "id": "PUB-024",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -1811,7 +1811,7 @@
     },
     {
       "id": "PUB-004",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P0",
       "kind": "journey",
@@ -1832,7 +1832,7 @@
     },
     {
       "id": "PUB-005",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Mobile Browser",
       "priority": "P1",
       "kind": "accessibility",
@@ -1853,7 +1853,7 @@
     },
     {
       "id": "PUB-009",
-      "tab": "Green Goods Website",
+      "tab": "Public Website",
       "platform": "Desktop Browser",
       "priority": "P1",
       "kind": "journey",
@@ -2201,7 +2201,7 @@
     },
     {
       "id": "PWA-095",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "journey",
@@ -2772,7 +2772,7 @@
     },
     {
       "id": "PWA-074",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "journey",
@@ -3269,7 +3269,7 @@
     },
     {
       "id": "PWA-082",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -3341,7 +3341,7 @@
     },
     {
       "id": "PWA-083",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -3855,7 +3855,7 @@
     },
     {
       "id": "PWA-034",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -4004,7 +4004,7 @@
     },
     {
       "id": "PWA-093",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -4101,7 +4101,7 @@
     },
     {
       "id": "PWA-104",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "journey",
@@ -4541,7 +4541,7 @@
     },
     {
       "id": "PWA-062",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -4905,7 +4905,7 @@
     },
     {
       "id": "PWA-AND-003",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Android Chrome Installed PWA",
       "priority": "P0",
       "kind": "data-integrity",
@@ -4933,7 +4933,7 @@
     },
     {
       "id": "PWA-021",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -4962,7 +4962,7 @@
     },
     {
       "id": "PWA-027",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "journey",
@@ -4988,7 +4988,7 @@
     },
     {
       "id": "PWA-029",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -5013,7 +5013,7 @@
     },
     {
       "id": "PWA-030",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "journey",
@@ -5039,7 +5039,7 @@
     },
     {
       "id": "PWA-031",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -5065,7 +5065,7 @@
     },
     {
       "id": "PWA-032",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -5091,7 +5091,7 @@
     },
     {
       "id": "PWA-033",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -5132,7 +5132,7 @@
     },
     {
       "id": "PWA-035",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P0",
       "kind": "transaction",
@@ -5158,7 +5158,7 @@
     },
     {
       "id": "PWA-036",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -5183,7 +5183,7 @@
     },
     {
       "id": "PWA-037",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -5208,7 +5208,7 @@
     },
     {
       "id": "PWA-038",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "transaction",
@@ -5234,7 +5234,7 @@
     },
     {
       "id": "PWA-039",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "journey",
@@ -5259,7 +5259,7 @@
     },
     {
       "id": "PWA-043",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P1",
       "kind": "resilience",
@@ -5287,7 +5287,7 @@
     },
     {
       "id": "PWA-044",
-      "tab": "Green Goods App",
+      "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
       "priority": "P2",
       "kind": "data-integrity",
@@ -5994,15 +5994,15 @@
     },
     {
       "id": "ADM-013",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Review · Confirm",
+      "area": "Hub · Confirm",
       "scenario": "Commitment confirmation states who and what before commit",
       "preconditions": ["Steward session; at least one pending commitment confirmation"],
       "steps": [
-        "Open /review/confirm",
+        "Open /hub/confirm",
         "Open a commitment",
         "Verify who and what is affected is stated",
         "Confirm or decline",
@@ -6611,7 +6611,7 @@
     },
     {
       "id": "ADM-175",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "content",
@@ -6845,7 +6845,7 @@
     },
     {
       "id": "ADM-185",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P2",
       "kind": "journey",
@@ -6853,10 +6853,10 @@
       "scenario": "The floating action button shows its primary action's icon",
       "preconditions": ["Steward session at phone width"],
       "steps": [
-        "On Garden, Community, and Review read the floating action button",
+        "On Garden, Community, and the Hub read the floating action button",
         "Open its menu, then close it"
       ],
-      "expected": "Garden's button shows Edit Garden's gear, Community's shows Add Member's icon, and Review's shows a plus; while the menu is open the button shows a close icon",
+      "expected": "Garden's button shows Edit Garden's gear, Community's shows Add Member's icon, and the Hub's shows a plus; while the menu is open the button shows a close icon",
       "evidence": "Screenshots of each button closed and open",
       "role": "steward",
       "tags": ["shell", "responsive"],
@@ -7146,7 +7146,7 @@
     },
     {
       "id": "ADM-063",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7241,7 +7241,7 @@
     },
     {
       "id": "ADM-026",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7341,7 +7341,7 @@
     },
     {
       "id": "ADM-039",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -7671,7 +7671,7 @@
     },
     {
       "id": "ADM-129",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -7814,7 +7814,7 @@
     },
     {
       "id": "ADM-150",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -8058,7 +8058,7 @@
     },
     {
       "id": "ADM-076",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8182,7 +8182,7 @@
     },
     {
       "id": "ADM-078",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8485,7 +8485,7 @@
     },
     {
       "id": "ADM-083",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -8603,7 +8603,7 @@
     },
     {
       "id": "ADM-085",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -9366,7 +9366,7 @@
     },
     {
       "id": "ADM-072",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9390,7 +9390,7 @@
     },
     {
       "id": "ADM-073",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9575,7 +9575,7 @@
     },
     {
       "id": "ADM-009",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -9596,7 +9596,7 @@
     },
     {
       "id": "ADM-010",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -9617,7 +9617,7 @@
     },
     {
       "id": "ADM-020",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -9643,7 +9643,7 @@
     },
     {
       "id": "ADM-021",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -9668,7 +9668,7 @@
     },
     {
       "id": "ADM-022",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -9703,7 +9703,7 @@
     },
     {
       "id": "ADM-023",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
@@ -9729,7 +9729,7 @@
     },
     {
       "id": "ADM-024",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9754,11 +9754,11 @@
     },
     {
       "id": "ADM-025",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Review Confirmations",
+      "area": "Hub Confirmations",
       "scenario": "Commitment inspector steward acts: confirm ordinary/fallback, raise & resolve dispute, expire, recovery overrides",
       "preconditions": ["Commitments in confirmable states"],
       "steps": [
@@ -9769,7 +9769,7 @@
       "expected": "Ordinary confirms queue offline; reasoned acts require connection+reason; dispute freezes and each resolve outcome lands correctly; recovery acts (count work, mark ready, attach assessment, cancel) record their reasons",
       "evidence": "Screenshots per act",
       "role": "steward",
-      "tags": ["review-confirmations", "tx"],
+      "tags": ["hub-confirmations", "tx"],
       "requiresProduction": false,
       "status": "retired",
       "source": "qa-session-2026-08-29",
@@ -9788,7 +9788,7 @@
     },
     {
       "id": "ADM-027",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9813,7 +9813,7 @@
     },
     {
       "id": "ADM-028",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
@@ -9838,7 +9838,7 @@
     },
     {
       "id": "ADM-029",
-      "tab": "Green Goods Hub",
+      "tab": "Admin Dashboard",
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "journey",
@@ -10464,7 +10464,7 @@
         "Follow creating-a-garden, reviewing-work, making-an-assessment, managing actions/payouts/endowments",
         "Note drift incl. renamed roles and relabeled buttons"
       ],
-      "expected": "Guide steps and screenshots match the post-revamp Hub incl. renamed roles and Title Case labels; drifted pages are listed",
+      "expected": "Guide steps and screenshots match the post-revamp cockpit incl. renamed roles and Title Case labels; drifted pages are listed",
       "evidence": "List of drifted pages",
       "role": "steward",
       "tags": ["guide-truth"],
