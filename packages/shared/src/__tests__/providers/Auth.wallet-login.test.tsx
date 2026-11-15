@@ -855,6 +855,49 @@ describe("AuthProvider wallet login bridge", () => {
     }
   });
 
+  // PRD-1499: a remembered wallet that never answered held the App behind its
+  // launch screen for the whole restore window, 15 s at every launch.
+  it("opens a remembered wallet account at once when its wallet never answers", async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+      actor.stop();
+      actor = createAuthTestActor("wallet", TEST_WALLET);
+      actor.start();
+      mocks.mockGetAuthActor.mockReturnValue(actor);
+
+      // No connector ever reports, and asking it again changes nothing.
+      const view = renderAuth();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+
+      // The App is usable on the remembered account while the wallet is still asked.
+      expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.isAuthenticated).toBe(true);
+      expect(view.result.current.authMode).toBe("wallet");
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+      expect(view.result.current.walletRestore).toBe("restoring");
+
+      await act(async () => void (await vi.advanceTimersByTimeAsync(15_000)));
+
+      // The window ends without an answer: the session stays and says so.
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.walletAddress).toBe(TEST_WALLET);
+      expect(view.result.current.walletRestore).toBe("failed");
+      expect(mocks.mockTrackWalletRestore).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: "failed", reason: "timeout", sessionKept: true })
+      );
+
+      // The wallet answering later clears it.
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+      view.rerender();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(0)));
+      expect(view.result.current.walletRestore).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("ends a bounded restore with privacy-safe timeout telemetry", async () => {
     vi.useFakeTimers();
     try {
@@ -904,11 +947,12 @@ describe("AuthProvider wallet login bridge", () => {
         await vi.advanceTimersByTimeAsync(20_000);
       });
 
-      // Offline, the remembered wallet keeps the session mounted read-only and
+      // Offline, the remembered wallet keeps the session usable read-only and
       // the connector is never asked to reconnect.
       expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true);
       expect(view.result.current.isAuthenticated).toBe(true);
-      expect(view.result.current.isReady).toBe(false);
+      expect(view.result.current.isReady).toBe(true);
+      expect(view.result.current.walletRestore).toBe("restoring");
       expect(mocks.mockTrackWalletRestore).not.toHaveBeenCalledWith(
         expect.objectContaining({ outcome: "failed", reason: "timeout" })
       );

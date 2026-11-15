@@ -3,6 +3,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useJoinGarden } from "@green-goods/shared/hooks/garden/useJoinGarden";
 import type { Address } from "@green-goods/shared/types/domain";
+import { wasAskedToReconnect } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiRefreshLine, RiSearchLine, RiUserAddLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -194,6 +195,8 @@ export function JoinToAct({
   }
   const join = () => {
     void joinGarden(garden.address).catch((error: unknown) => {
+      // A wallet that has not answered was already asked to reconnect.
+      if (wasAskedToReconnect(error)) return;
       const message = error instanceof Error ? error.message : String(error);
       if (CANCELLED.test(message)) return;
       toastService.error({ title: formatMessage({ id: "app.commitment.join.failed" }) });

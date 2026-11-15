@@ -49,6 +49,7 @@ export function useServiceIssuerDesk(selection?: ServiceIssuerDeskSelection | nu
               assertCurrent();
               return createAccountMessageSigner({
                 authMode: auth.authMode,
+                walletRestore: auth.walletRestore,
                 signMessage: current.current.signMessageAsync,
                 account: account?.account,
               })(message);

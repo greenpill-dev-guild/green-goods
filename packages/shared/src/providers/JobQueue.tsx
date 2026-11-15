@@ -31,6 +31,7 @@ import type {
   WorkJobPayload,
 } from "../types/job-queue";
 import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
+import { WALLET_RECONNECT_REQUIRED } from "../utils/errors/unsent-failures";
 
 interface JobQueueContextValue {
   stats: QueueStats;
@@ -472,7 +473,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({
             // Not syncError: one act, and a non-skipped failure is one the
             // queue gave up on rather than rescheduled.
             queueToasts.retryFailed();
-          } else {
+          } else if (result.error !== WALLET_RECONNECT_REQUIRED) {
             queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
         } catch (error) {

@@ -1,6 +1,6 @@
 import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
 import { AuthGate } from "@green-goods/shared/providers/AuthGate";
-import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useAuthState, useWalletReconnectPrompt } from "@green-goods/shared/hooks/auth/useAuth";
 import { APP_DESCRIPTION } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
@@ -20,7 +20,15 @@ function PwaAnalyticsIdentity() {
   return null;
 }
 
+/** Asks a wallet account to reconnect when its wallet has not answered (PRD-1499). */
+function WalletReconnectPrompt() {
+  useWalletReconnectPrompt();
+  return null;
+}
+
 export function PwaStartupReadySignal() {
+  // Ready includes a remembered wallet account whose wallet is still being
+  // asked, so the launch screen does not wait on that wallet.
   const { isReady } = useAuthState();
 
   useEffect(() => {
@@ -72,6 +80,7 @@ export default function WalletRuntimeProviders({
       {/* AuthGate uses DevAuthProvider in dev when ?mockAuth= is present */}
       <AuthGate>
         <PwaStartupReadySignal />
+        <WalletReconnectPrompt />
         {analyticsIdentity ? <PwaAnalyticsIdentity /> : null}
         {children}
       </AuthGate>

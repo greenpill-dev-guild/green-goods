@@ -16,6 +16,7 @@ import {
 } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 
 const USER = "0x1111111111111111111111111111111111111111";
 
@@ -820,6 +821,56 @@ describe("processJob", () => {
     expect(vi.mocked(deps.analytics.jobProcessingError).mock.calls[0]?.[4]).toEqual(
       new Error("send failed")
     );
+  });
+
+  // PRD-1499: a wallet account whose wallet has not answered can read but not sign.
+  describe("while the wallet has not answered", () => {
+    function unansweredWallet() {
+      return {
+        assertReadyToSign: vi.fn(() => {
+          throw new WalletReconnectRequiredError(true);
+        }),
+        assertOwnership: vi.fn(() => {
+          throw new WalletReconnectRequiredError(false);
+        }),
+      } as unknown as TransactionSender & { assertReadyToSign: ReturnType<typeof vi.fn> };
+    }
+
+    it("asks to reconnect before a send the person started, and keeps its attempts", async () => {
+      const store = createInMemoryJobQueueStore([queuedJob()]);
+      const executors = { execute: vi.fn() };
+      const { deps, queue } = setup({ store, executors });
+      const sender = unansweredWallet();
+
+      await expect(
+        queue.processJob("job-1", { transactionSender: sender, explicit: true })
+      ).resolves.toEqual({ success: false, error: "wallet-reconnect-required", skipped: true });
+      expect(sender.assertReadyToSign).toHaveBeenCalledOnce();
+      expect(executors.execute).not.toHaveBeenCalled();
+      const job = await store.getJob("job-1");
+      expect(job?.attempts).toBe(0);
+      expect(job?.lastError).toBeUndefined();
+      expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
+    });
+
+    it("rechecks a send already on record without asking, leaving it awaiting confirmation", async () => {
+      const recorded = queuedJob({
+        payload: { uploadCheckpoint: { transactionHash: `0x${"ab".repeat(32)}` } },
+      } as Partial<Job>);
+      const store = createInMemoryJobQueueStore([recorded]);
+      const executors = { execute: vi.fn() };
+      const { queue } = setup({ store, executors });
+      const sender = unansweredWallet();
+
+      await expect(queue.processJob("job-1", { transactionSender: sender })).resolves.toEqual({
+        success: false,
+        error: "awaiting-confirmation",
+        skipped: true,
+      });
+      expect(sender.assertReadyToSign).not.toHaveBeenCalled();
+      expect(executors.execute).not.toHaveBeenCalled();
+      expect((await store.getJob("job-1"))?.attempts).toBe(0);
+    });
   });
 });
 

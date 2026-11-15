@@ -31,7 +31,10 @@ import {
 } from "../../utils/errors/contract-errors";
 import { JarReviewChangedError } from "../../utils/errors/hats-cookie-jar-errors";
 import { classifyTxError, isCancelledTxError } from "../../utils/errors/tx-error-classifier";
-import { ConnectionNeededError } from "../../utils/errors/unsent-failures";
+import {
+  ConnectionNeededError,
+  WalletReconnectRequiredError,
+} from "../../utils/errors/unsent-failures";
 import { VOUCHER_ENTITLEMENT_ERRORS } from "../../utils/errors/voucher-entitlement-errors";
 
 describe("contract error recovery fields", () => {
@@ -380,6 +383,7 @@ describe("contract error recovery fields", () => {
         parseContractError(loggedConflict),
         parseContractError("You are offline"),
         parseContractError(new ConnectionNeededError()),
+        parseContractError(new WalletReconnectRequiredError(false)),
       ];
       for (const parsed of parsedErrors) {
         for (const key of [parsed.titleKey, parsed.messageKey]) {
