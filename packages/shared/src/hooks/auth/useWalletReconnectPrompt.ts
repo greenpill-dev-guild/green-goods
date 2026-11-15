@@ -72,4 +72,7 @@ export function useWalletReconnectPrompt(): void {
       toastService.dismiss(WALLET_RECONNECT_TOAST_ID);
     }
   }, [walletRestore, ask]);
+
+  // The ask belongs to this prompt's session: it leaves with it.
+  useEffect(() => () => toastService.dismiss(WALLET_RECONNECT_TOAST_ID), []);
 }
