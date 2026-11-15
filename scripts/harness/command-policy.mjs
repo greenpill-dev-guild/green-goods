@@ -224,10 +224,14 @@ function commandDecision(words, harness) {
   const operation = /(?:^|[/:._-])(deploy|upgrade)(?:$|[/:._-])/i.test(script ?? "");
   const mainnet = values.some((arg) => /(?:^|[/:=._-])mainnet(?:$|[/:._-])/i.test(arg));
   const contractsOperation = values[2] === "contracts" && values.some((arg) => /^(deploy|upgrade)$/.test(arg));
+  // The last occurrence wins, as the contracts scripts read repeated options.
   const option = (name) => {
-    const index = values.indexOf(name);
-    if (index >= 0) return values[index + 1] ?? "";
-    return values.find((arg) => arg.startsWith(`${name}=`))?.slice(name.length + 1);
+    let value;
+    values.forEach((arg, index) => {
+      if (arg === name) value = values[index + 1] ?? "";
+      else if (arg.startsWith(`${name}=`)) value = arg.slice(name.length + 1);
+    });
+    return value;
   };
   // The contracts wrappers broadcast with --mode broadcast; these networks are live chains.
   const productionBroadcast = ["bun", "npm", "pnpm", "node", "bash", "sh"].includes(executable) &&
@@ -253,11 +257,12 @@ export function evaluateCommand(command, harness, depth = 0) {
   const decisions = [];
   let nestedPartial = false;
   for (const words of commands) {
+    // The outer command keeps its own checks (an input redirect is a read) before its call string.
+    const decision = commandDecision(words, harness);
+    if (decision) decisions.push(decision);
     const { call } = executableWords(words);
-    if (call === undefined) {
-      const decision = commandDecision(words, harness);
-      if (decision) decisions.push(decision);
-    } else if (call && depth < 3) {
+    if (call === undefined) continue;
+    if (call && depth < 3) {
       const nested = evaluateCommand(call, harness, depth + 1);
       decisions.push(...nested.decisions);
       nestedPartial ||= nested.partial;

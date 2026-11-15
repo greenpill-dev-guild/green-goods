@@ -105,6 +105,7 @@ for (const command of [
   "cat <<'DOC'\nbun run test\nDOC\nbun test",
   // Path-qualified wrappers and package-runner call strings: the floor reads them, the guards do not yet.
   "/usr/bin/env bun test", "/usr/bin/timeout 5 bun test", "npm exec --call 'bun test'", "npx --call='bun test'",
+  "npx -c cat <.env",
 ]) {
   test(`restricted command: ${command.split("\n")[0]}`, () => {
     for (const harness of ["claude", "codex"]) {
@@ -187,6 +188,7 @@ const commandFloor = {
       "bun run contracts -- deploy core --network gnosis --mode broadcast",
       "bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast",
       "bun script/deploy/backfill-pools.ts --network arbitrum --broadcast",
+      "bun script/upgrade.ts signal-pool-yield-wiring --network sepolia --network arbitrum --broadcast",
     ],
     ...production,
   },
