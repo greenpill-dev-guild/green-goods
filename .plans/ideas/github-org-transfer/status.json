@@ -1,0 +1,159 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "github-org-transfer",
+    "title": "GitHub Organization Transfer",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-11-15T03:38:20.457Z",
+    "updated_at": "2026-11-15T03:58:13.331Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "docs"],
+    "work_types": ["ops", "research"],
+    "surfaces": [".github", "docs", "docs/routines", "scripts/docs", "packages/client"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Idea stage: documented on 2026-11-15 and waiting for the 2.1.0 release, which triggers scheduling (decision 15). Target green-goods/platform, renamed in the transfer step.",
+    "Every lane is n/a: the move changes no product behavior. Execution is maintainer-run organization, integration and settings work plus one reference sweep pull request; see plan.todo.md.",
+    "This hub stores no live inventory of apps, teams, people or hosted projects. Re-derive them on the day of execution with the commands named in spec.md.",
+    "No Linear mirror until the work is scheduled; add one with linear-sync and record-linear at promotion."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Not applicable: the organization transfer and its reference sweep change no product behavior; integration health is proven by eval.md acceptance checks."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Not applicable: the organization transfer and its reference sweep change no product behavior; integration health is proven by eval.md acceptance checks."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Not applicable: the organization transfer and its reference sweep change no product behavior; integration health is proven by eval.md acceptance checks."
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "n/a",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-11-15T03:38:20.466Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in ideas"
+    },
+    {
+      "timestamp": "2026-11-15T03:41:04.214Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "documented",
+      "branch": null,
+      "note": "Recorded the research brief, decision log, sequence and acceptance checks for moving the repository to green-goods/platform. Lanes set to n/a; not scheduled."
+    },
+    {
+      "timestamp": "2026-11-15T03:58:13.331Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "decisions_recorded",
+      "branch": null,
+      "note": "Recorded the maintainer's decisions 8 to 15 from 2026-11-14: keep the fork label, ask Envio to move the indexer, enforce web sign-off and owner-only public repos, move the guardrail script to green-goods/.github, three teams, owner bypass kept, Linear links in living files only, schedule after 2.1.0."
+    }
+  ]
+}
