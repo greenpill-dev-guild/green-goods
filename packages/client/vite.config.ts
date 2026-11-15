@@ -674,6 +674,19 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── @green-goods/shared imports the startup scan misses (checked by vite/prebundle.test.ts) ──
+        "@radix-ui/react-dialog",
+        "@remixicon/react",
+        "@tanstack/react-query",
+        "@green-goods/shared > @wagmi/core/query",
+        "embla-carousel-react",
+        "@green-goods/shared > permissionless/actions/passkeyServer",
+        "@green-goods/shared > permissionless/utils",
+        "react-intl",
+        "react-router-dom",
+        "viem",
+        "viem/actions",
+        "wagmi",
         // ── the service worker (src/sw/sw.ts) ──
         // It is not reached from index.html, so the scan misses its imports too. A page that
         // registers the dev worker, as the browser suite's do, asks for them at request time.
