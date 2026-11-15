@@ -73,7 +73,7 @@ vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
   useBrowserNavigation: vi.fn(),
 }));
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
-  toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+  toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn(), dismiss: vi.fn() },
 }));
 
 // The launchers and their sheets have their own tests.
@@ -812,20 +812,52 @@ describe("a garden the member was added to", () => {
     expect(selectGarden).not.toHaveBeenCalled();
   });
 
-  it("lets the first-login page list a new garden among the member's, with no toast", () => {
-    setActive(
-      "choose",
-      [
-        [TAS, ["steward"]],
-        [VIDA, ["gardener"]],
-      ],
-      null,
-      [VIDA]
-    );
-    renderHome();
+  // Codex on #1610: the first-login page marked new gardens told without saying so, so a reload
+  // there lost the news. The page lists them; the toast waits until a garden is chosen.
+  it("keeps the news through the first-login page, and tells it once a garden is chosen", () => {
+    const mine: Array<[Garden, Role[]]> = [
+      [TAS, ["steward"]],
+      [VIDA, ["gardener"]],
+      [AIYELOJA, ["gardener"]],
+    ];
+    setActive("choose", mine, null, [VIDA, AIYELOJA]);
+    const view = renderHome();
 
     expect(toastService.info).not.toHaveBeenCalled();
-    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    // Picking one new garden opens Home there; the other is still news.
+    setActive("ready", mine, VIDA.id, [AIYELOJA]);
+    view.rerender();
+    expect(shownToast()).toMatchObject({ title: "You're now part of Aiyeloja Family Garden" });
+  });
+
+  // Codex on #1610: the toast outlived its account, so the next account to sign in on this
+  // device could read the previous account's garden and press its action.
+  it("takes the toast away, unanswered, when another account signs in or the account leaves", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    const view = renderHome();
+    expect(toastService.info).toHaveBeenCalledOnce();
+    expect(toastService.dismiss).not.toHaveBeenCalled();
+
+    state.account = OTHER_ACCOUNT;
+    setActive("ready", [[TAS, ["steward"]]], TAS.id);
+    view.rerender();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
+    // Still the first account's news: it shows again when that account comes back.
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
+
+    vi.mocked(toastService.dismiss).mockClear();
+    view.unmount();
+    expect(toastService.dismiss).toHaveBeenCalledWith("garden-added");
   });
 });
 
