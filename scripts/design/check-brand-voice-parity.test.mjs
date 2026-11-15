@@ -109,7 +109,7 @@ const DIFFERENCES = [
   ["a model line's punctuation changed", HOW, "leaves no trace.", "leaves no trace!", "model lines", /from How It Works/],
   ["an unknown model line source", PAGE, "trace.\" | How It Works |", "trace.\" | How It Works page |", "model lines", /"How It Works page"/],
   ["an uncited decision id", PAGE, "DL-087, DL-090 to DL-094", `DL-087, ${UNRECORDED}, DL-090 to DL-094`, "decision ids", new RegExp(UNRECORDED)],
-  ["a decision inside a cited range", LEDGER, "| DL-084 |", "| DL-184 |", "decision ids", /DL-084/],
+  ["a decision inside a cited range", LEDGER, "| DL-084 |", `| ${UNRECORDED} |`, "decision ids", /DL-084/],
   ["a term the vocabulary check adds", "scripts/data/banned-vocabulary.json", "\"retention hook\"", "\"retention hook\", \"daily goal\"", "banned list", /leaves out daily goal/],
   ["a term the page adds", PAGE, "re-engagement, retention hook.", "re-engagement, retention hook, daily goal.", "banned list", /names daily goal/],
   ["a heading the check reads", PAGE, "### We are / we are not", "### Pillars", "layout", /"We are \/ we are not" table/],
