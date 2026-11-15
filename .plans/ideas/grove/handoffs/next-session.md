@@ -4,7 +4,7 @@
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D53, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O20. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D55, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O20. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -34,6 +34,8 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - Leaving a current function out of the first version takes the owner's recorded decision (D48).
 - When an owner replaces an imported garden's onchain record, the garden is carried over: the owner's device takes over as signer, and its members, roles and records stay as they are (D52).
 - A device the steward adds for a member who has lost every device and their recovery code approves sharing only for records made after it was added (D53).
+- A time-based rule uses when the work happened, as the report says. Work done inside an Action's window counts even when it is reported, approved or brought onchain after the window (D54).
+- The record of a local garden's identifier lives in one new attestation schema with no resolver, registered once on each chain, and each device checks the writer's Hat itself (D55).
 - The phone and the extension ship together (D2). The phone runs Green Goods itself.
 - The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
 - One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).
@@ -54,10 +56,10 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 Each step needs its own authorization before anything is installed or built.
 
 1. One owner decision unblocks the build: whether any Coop code may be copied (O5). The addresses are named (D46). Whether real gardens first install from them is confirmed before a pilot with real data (O2).
-2. Three questions from the reframing stay open. Design settles how local records map onto the onchain ones when published (O16) and which side holds a garden's keys on a laptop (O17, in C9). E29 answers whether local models can transcribe a voice note and structure a report well enough (O18). Review raised a fourth: whether an open garden needs a way in when its signer's device cannot be reached (O19), which the owner decides with a design from F6. The owner raised a fifth on 14 November: once work is done offline and brought onchain later, the attestation's time is no longer when it was done or approved, and today's resolvers judge an Action's window by that time (O20).
+2. Three questions from the reframing stay open. Design settles how local records map onto the onchain ones when published (O16) and which side holds a garden's keys on a laptop (O17, in C9). E29 answers whether local models can transcribe a voice note and structure a report well enough (O18). Review raised a fourth: whether an open garden needs a way in when its signer's device cannot be reached (O19), which the owner decides with a design from F6. The owner raised a fifth on 14 November: once work is done offline and brought onchain later, the attestation's time is no longer when it was done or approved. D54 settles which time the rules use. What makes a device's time believable, and the contract change publication needs, stay open (O20).
 3. **C0b**, then **C0a**. Both are experiments on a physical phone and laptop and need no protocol code. C0b decides which phones may hold keys. C0a decides who gets passkey unlock and who gets the passphrase.
 4. **P0** alongside: the Pi tab-close proof on persistent storage, which the G0 spike left owed and nothing blocks now.
-5. Then C7, C1, C0, recovery, C8, and the function blocks F1 to F7 with C2, in the [MVP order](../plan.todo.md#mvp-order).
+5. Then C7, C1, C0, recovery, C11 with C8, and the function blocks F1 to F7 with C2, in the [MVP order](../plan.todo.md#mvp-order).
 6. The agent's checkpoints, S13 to S16, and the bridge, C9, belong to Grove's lane. S14 asks for access to all sites, a manifest change that needs its own review (O12).
 
 The recommendations R1 to R19 in the decision log are advice from the review. None is decided. R2 (no identifier scheme in the MVP) and R3 (the member list's shape) change what C0 builds and should be confirmed or rejected before C0 starts. O8, what limits code updates to the Green Goods app, must be answered before any sensitive record is admitted.
