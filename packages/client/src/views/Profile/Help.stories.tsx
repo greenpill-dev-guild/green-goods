@@ -14,6 +14,21 @@ import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { ProfileHelp } from "./Help";
 
 /**
+ * Signed in as the story account with these gardens, their roles deciding the Hub row; with
+ * none, a member of no garden. The tab reads the account and its gardens, so every story sets
+ * them: the real hooks need the app's wallet runtime, which a story does not mount.
+ */
+const signedInWith =
+  (gardens: Parameters<typeof activeGarden>[1] = [], gardenId: string | null = null) =>
+  () => {
+    mocked(usePrimaryAddress).mockReturnValue(STORY_ACCOUNT);
+    mocked(useActiveGarden).mockReturnValue(
+      gardenId ? activeGarden("ready", gardens, gardenId) : activeGarden("none")
+    );
+    return resetHookMocks(usePrimaryAddress, useActiveGarden);
+  };
+
+/**
  * Profile › Help: guides and socials under Learn & Connect, the policies and support
  * requests under Privacy & Safety, then the questions by category. A question that a
  * gardener guide walks through ends with a link to it. Promises have their own
@@ -33,6 +48,7 @@ const meta: Meta<typeof ProfileHelp> = {
     ),
     withAppPage,
   ],
+  beforeEach: signedInWith(),
 };
 
 export default meta;
@@ -49,13 +65,6 @@ export const Promises: Story = {
     // Promises moved out of Funds and Wallet: no question there says "pool" any more.
     await expect(canvas.queryByText(/What are pools\?/)).toBeNull();
   },
-};
-
-/** The account's gardens, signed in as the story account; their roles decide the Hub row. */
-const signedInWith = (gardens: Parameters<typeof activeGarden>[1], gardenId: string) => () => {
-  mocked(usePrimaryAddress).mockReturnValue(STORY_ACCOUNT);
-  mocked(useActiveGarden).mockReturnValue(activeGarden("ready", gardens, gardenId));
-  return resetHookMocks(usePrimaryAddress, useActiveGarden);
 };
 
 /** A steward of TAS HUB: the Green Goods Hub leads Learn & Connect and opens this build's Hub. */
