@@ -214,7 +214,7 @@ const contracts = [
         file: ".claude/skills/plan/brainstorm.md",
         section: "Process",
         pattern:
-          /Never ask what the code or docs already answer[\s\S]{0,900}bounded factual prerequisites[\s\S]{0,80}to the `research` skill/i,
+          /Never ask what the code or docs already answer\.[\s\S]{0,900}send bounded factual prerequisites that need reconciled evidence to the `research` skill\./,
         marker: "research-before-questioning route",
       },
       {
@@ -405,6 +405,12 @@ const contracts = [
         marker: "implementation lifecycle update",
       },
       {
+        file: ".claude/skills/plan/SKILL.md",
+        section: "Close a plan",
+        pattern: /The PR that finishes a plan carries steps 1 to 5; step 6 lands right after the human merge/,
+        marker: "finished plans close in the finishing PR",
+      },
+      {
         file: ".agents/adapter.md",
         section: "Closeout",
         pattern: /plan-hub\.mjs move --feature <slug> --to archive/i,
@@ -421,7 +427,7 @@ const contracts = [
         file: ".claude/skills/ship/SKILL.md",
         section: "Activation",
         pattern:
-          /"QA mode", "quick fix", "get this to staging"[\s\S]{0,160}do not publish unless the user also asks to commit, open a PR, merge, release,[\s\S]{0,80}prove the branch ready/i,
+          /^"QA mode", "quick fix", "get this to staging", and similar requests stay in the `targeted` tier and do not publish unless the user also asks to commit, open a PR, merge, release,[\s\S]{0,80}prove the branch ready/m,
         marker: "QA-to-Ship anti-trigger",
       },
     ],

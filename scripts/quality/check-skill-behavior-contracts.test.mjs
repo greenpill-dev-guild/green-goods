@@ -128,6 +128,27 @@ for (const [title, file, marker, replacement, failureId] of [
     "implemented-plans-transition-and-archive",
   ],
   [
+    "plan lifecycle guard fails when finished plans stay open",
+    ".claude/skills/plan/SKILL.md",
+    /The PR that finishes a plan carries steps 1 to 5/,
+    "Finished plans stay active; the PR carries steps 1 to 5",
+    "implemented-plans-transition-and-archive",
+  ],
+  [
+    "brainstorm contract fails when the user is asked for discoverable facts",
+    ".claude/skills/plan/brainstorm.md",
+    /to the `research` skill\./,
+    "to the `research` skill or ask the user to reconstruct them.",
+    "brainstorm-researches-facts-and-asks-frontier-rounds",
+  ],
+  [
+    "Ship activation guard fails when a prefix turns QA language into a trigger",
+    ".claude/skills/ship/SKILL.md",
+    /^"QA mode"/m,
+    'Activate for "QA mode"',
+    "qa-language-does-not-trigger-ship",
+  ],
+  [
     "Ship activation guard fails when QA language becomes a trigger",
     ".claude/skills/ship/SKILL.md",
     /do not publish unless the user also asks/i,

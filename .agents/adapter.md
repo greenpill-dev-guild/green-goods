@@ -33,6 +33,8 @@ The live PR base when one exists, otherwise `origin/develop`. Fetch it before co
 | full | Ship Gate | `bun format && bun lint && bun run test && bun run build` |
 | release | release gate | `node scripts/dev/ci-local.js --intent release`, adding `--attest browser-proof="<engine, session, date, what was observed>"` when the change touches the authenticated surface class |
 
+Plan every tier through **Selector** and run the plan it returns. The `full` and `readiness` tiers add **Conditional checks**, and a critical path adds the **Criticality** override; a fix verified in `debug` follows the same plan.
+
 A format or lint fix outside any gate: `bun format && bun lint`.
 
 ### Conditional checks
@@ -257,7 +259,7 @@ Contract changes and frontend changes are always separate steps.
 ### Start gate
 Linear sync is the default first step before code changes or agent dispatch on active implementation work.
 1. Run `node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> --json`.
-2. Respect `manifest.stateSyncMode`: `preserve` actions are read-only; verify their issue IDs against live Linear without writing fields, and apply only `create` and `update` actions. Respect `manifest.laneSyncMode`: when it is `parent_only`, create or update only the parent mirror and no lane issues unless Afo explicitly expands the Linear footprint; record that mode with `--lane-sync-mode parent_only`.
+2. Respect `manifest.stateSyncMode`: `preserve` actions are read-only; verify their issue IDs against live Linear without writing fields, and apply only `create` and `update` actions. Respect `manifest.laneSyncMode`: when it is `parent_only`, create or update only the parent mirror and no lane issues unless the maintainer explicitly expands the Linear footprint; record that mode with `--lane-sync-mode parent_only`.
 3. When `manifest.laneSyncMode` is `lane_issues` and the manifest shows a missing parent or actionable lane issue, create or update the Linear mirror before work begins. Parent and lane issues carry `source:plans` and `protocol:green-goods`; Linear is only for visibility, prioritization, and coordination.
 4. Record the identifiers back to the hub. Parent only: `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane-sync-mode parent_only --actor <agent>`. Lane issues: `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --lane-sync-mode lane_issues --actor <agent>`.
 5. `.plans/<stage>/<feature-slug>/status.json` stays execution truth: lane status, TDD proof, handoffs, and validation evidence go there first.
@@ -354,7 +356,7 @@ Conventional commits: `type(scope): description`, with the repository's allowed 
 Create only when requested, using `.github/pull_request_template.md`, the draft label, the automation label, validation evidence, and the Linear reference line.
 
 ### Merge
-Merge commits by default for authorized PR merges into `develop` and `main`, including promotions from `develop` to `main`. Squash only when documented repository policy calls for it or the user explicitly requests it for that PR. Verify that GitHub allows the selected method and pass it explicitly to the merge tool; if it is unavailable, ask before merging (`AGENTS.md` § Scope and workflow).
+The tier is the check selector's risk for the PR's changed paths (`bun run check --plan -- --intent merge`), and `.agents/merge-policy.json` states what each tier allows: a critical change is never auto-merged and waits for the owner; a sensitive one merges on green after a fresh agent's adversarial review; a routine one may auto-merge on green. Merge commits by default for authorized PR merges into `develop` and `main`, including promotions from `develop` to `main`. Squash only when documented repository policy calls for it or the user explicitly requests it for that PR. Verify that GitHub allows the selected method and pass it explicitly to the merge tool; if it is unavailable, ask before merging (`AGENTS.md` § Scope and workflow).
 
 ### After merge
 `.claude/context/linear-routing-rules.md` § After a merge owns the steps, their conditions, and what the closeout may write; `Done` waits for a person's review.

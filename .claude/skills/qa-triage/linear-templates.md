@@ -288,7 +288,7 @@ an agent with only Linear access can read the whole session. Rules:
 
 Title exactly `Product decisions from QA session YYYY-MM-DD`, a sub-issue of the session parent via
 `parentId`, state `Backlog`, labels = the parent set, no `package:*`. The missing package label is
-load-bearing: slice pickup (`debug` § QA Slice Fix Protocol) takes only sub-issues that carry one, so
+load-bearing: slice pickup (`debug` § Slice loop) takes only sub-issues that carry one, so
 this record is never mistaken for a slice. The interactive skill assigns
 the product owner; an unattended run leaves it unassigned. It exists so a ruling has a place to land that
 outlives the parent, and so a Linear-only agent reads the open questions before touching the slices
