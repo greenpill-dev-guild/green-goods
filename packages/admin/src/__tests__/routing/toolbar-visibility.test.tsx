@@ -316,7 +316,7 @@ describe("Toolbar Visibility", () => {
     const nav = screen.getByTestId("navigation-bar");
     const navLinks = nav.querySelectorAll("a");
     expect(navLinks).toHaveLength(3);
-    expect(navLinks[0]).toHaveTextContent("Hub");
+    expect(navLinks[0]).toHaveTextContent("Review");
     expect(navLinks[1]).toHaveTextContent("Actions");
     expect(navLinks[2]).toHaveTextContent("Profile");
   });

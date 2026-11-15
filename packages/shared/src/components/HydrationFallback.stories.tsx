@@ -49,7 +49,7 @@ export const WithMessage: Story = {
 
 export const WithIconAndMessage: Story = {
   args: {
-    appName: "Green Goods Admin",
+    appName: "Green Goods Hub",
     showIcon: true,
     showMessage: true,
   },

@@ -22,7 +22,7 @@ export default function NotFound() {
             <Link to="/hub">
               {formatMessage({
                 id: "app.admin.nav.backToHub",
-                defaultMessage: "Back to Hub",
+                defaultMessage: "Back to Review",
               })}
             </Link>
           </Button>

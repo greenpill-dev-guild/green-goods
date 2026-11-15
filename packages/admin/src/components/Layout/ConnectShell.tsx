@@ -18,7 +18,7 @@ export function ConnectShell({
   titleId = "cockpit.auth.connectWalletTitle",
   defaultTitle = "Connect your wallet to continue",
   descriptionId = "cockpit.auth.connectWalletDescription",
-  defaultDescription = "Sign in to access the admin canvas",
+  defaultDescription = "Sign in to open the Green Goods Hub",
   action,
   icon,
   testId = "connect-shell",
@@ -46,9 +46,9 @@ export function WalletRequiredConnectShell(props: { action: ReactNode }) {
   return (
     <ConnectShell
       titleId="app.admin.auth.walletRequired"
-      defaultTitle="Wallet required"
+      defaultTitle="Wallet or passkey required"
       descriptionId="app.admin.auth.walletRequiredPrompt"
-      defaultDescription="The admin panel requires a wallet connection. Email and social logins are not supported here."
+      defaultDescription="The Green Goods Hub needs a wallet or a passkey. Email and social logins are not supported here."
       icon={<RiLockLine className="h-7 w-7 text-warning-dark" />}
       action={props.action}
       testId="wallet-required-shell"

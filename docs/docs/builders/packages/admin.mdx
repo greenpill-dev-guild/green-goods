@@ -18,27 +18,27 @@ keywords:
 
 # Admin
 
-`packages/admin` is the steward cockpit at [admin.greengoods.app](https://admin.greengoods.app):
+`packages/admin` is the Green Goods Hub at [admin.greengoods.app](https://admin.greengoods.app):
 where stewards review submitted work, manage gardens and actions, and run their community's
 operations. It's an operator surface by design, so it favors utility copy, one dominant workspace
 per route, and restrained color over marketing polish.
 
 <figure className="gg-figure">
-    <img src="/img/builders/admin-hub-work.webp" alt="The Hub workspace: the app bar with the garden chip, the Work tab listing approved submissions as cards, and the navigation dock" loading="lazy" width="2000" height="1250" />
-    <figcaption>The Hub’s Work tab within the dashboard shell.</figcaption>
+    <img src="/img/builders/admin-hub-work.webp" alt="The Review workspace: the app bar with the garden chip, the Work tab listing approved submissions as cards, and the navigation dock" loading="lazy" width="2000" height="1250" />
+    <figcaption>Review’s Work tab within the Hub’s shell.</figcaption>
   </figure>
 
-The cockpit opens for an address that is a steward, owner, or evaluator of at least one garden; the
+The Hub opens for an address that is a steward, owner, or evaluator of at least one garden; the
 deployment registry's owner also gets the protocol garden. Anyone else who signs in sees a no-access
 screen, where they can request steward access, or create a garden if the Green Goods team has put
 their account on the garden creator allowlist. That allowlist opens Create Garden and nothing else.
-A gardener or funder role alone does not open the cockpit, though it names both throughout.
+A gardener or funder role alone does not open the Hub, though it names both throughout.
 
 ## The shell
 
 The canonical shell is `CanvasLayout`: an admin-owned top `AppBar` (garden chip, search, account
 actions), the `.workspace-canvas`, a `MainSheet`, and a bottom `NavigationBar` whose canonical
-items are Hub, Garden, Community, and Actions; a slot can be hidden, so a garden may show three. Every workspace overlay is a centered `AdminDialog`;
+items are Review, Garden, Community, and Actions; a slot can be hidden, so a garden may show three. Every workspace overlay is a centered `AdminDialog`;
 profile, settings, and notifications render in a right-docked `AdminSideSheet` (bottom sheet on
 mobile). The `/hub` route is the reference surface for new page composition.
 
@@ -60,7 +60,7 @@ live.
 | Directory | What lives there |
 |---|---|
 | `src/router.tsx` and `src/routes/` | Route definitions, the canvas shell, and role guards like `RequireRole.tsx` |
-| `src/views/` | One folder per workspace: Hub, Garden, Community, Actions, Cookies, and Profile |
+| `src/views/` | One folder per workspace: Hub (the Review workspace), Garden, Community, Actions, Cookies, and Profile |
 | `src/components/` | Admin-owned building blocks such as `AdminCard`, `AdminDialog`, and the field family, each with a story, plus `Shell/` for the AppBar, NavigationBar, MainSheet, and FAB; actions are the shared `Button` and `IconButton` |
 | `src/styles/` | The admin's Material 3 tokens, component styles, and type scale |
 | `src/__tests__/` | Vitest suites for views and components |
@@ -87,7 +87,7 @@ participation, work counting, confirmation and season close. Settlement and tran
 remain outside these release guides.
 
 Commitment pooling spans three scopes. The pool console owns the selected garden's pool and
-cycle context, the Hub's Confirm tab uses the selected confirming garden, and Community's
+cycle context, Review's Confirm tab uses the selected confirming garden, and Community's
 Coordination tab holds protocol confirmations. Keep those scopes distinct when you change the
 data projections they share.
 
@@ -97,7 +97,7 @@ data projections they share.
   (`.surface-section`, `.surface-card`, `.workspace-canvas`) before composing raw
   border-and-shadow layouts.
 - `NavigationBar` is pure navigation. No leading or trailing slots, no extra items.
-- The client PWA's `AppBar` pattern doesn't belong here; admin has its own.
+- The Green Goods App's `AppBar` pattern doesn't belong here; admin has its own.
 - `DashboardLayout`, `Sidebar`, and `Header` are legacy migration code, not templates for new
   work.
 - Cards mark discrete records or action targets, not decoration; avoid nested bordered-panel

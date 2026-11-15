@@ -43,7 +43,7 @@ export function AdminAccessHomeShell({
           gardenChip={
             <span className="inline-flex items-center gap-1.5 type-body font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
-              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
+              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods Hub" })}
             </span>
           }
           onOpenProfile={showProfile ? () => setProfileOpen(true) : undefined}

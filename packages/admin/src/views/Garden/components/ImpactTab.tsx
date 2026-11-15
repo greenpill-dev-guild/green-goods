@@ -150,7 +150,7 @@ export function ImpactTab({
                     title={formatMessage({ id: "app.hypercerts.list.empty.title" })}
                     description={formatMessage({
                       id: "app.garden.detail.impact.noHypercertsHint",
-                      defaultMessage: "Hypercerts are created in the Hub from approved work.",
+                      defaultMessage: "Hypercerts are created in Review from approved work.",
                     })}
                     action={
                       canCertify ? (

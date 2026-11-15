@@ -18,7 +18,7 @@ interface ControlledChromeContractProps {
 const slots: ToolbarSlot[] = [
   {
     id: "hub",
-    label: "Hub",
+    label: "Review",
     labelId: "cockpit.nav.hub",
     icon: RiAppsLine,
     path: "/hub",

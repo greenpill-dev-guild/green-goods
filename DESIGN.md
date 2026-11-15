@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Green Goods Warm Earth Core
-description: Core semantic tokens and reasoning for Warm Earth across admin cockpit, installed PWA, public browser, and docs surfaces.
+description: Core semantic tokens and reasoning for Warm Earth across the Green Goods Hub, App, and Website, and the docs.
 colors:
   primary: "#292524"
   primary-inverse: "#F5F5F4"
@@ -229,11 +229,11 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 | Role | Font | Weight | Use |
 |------|------|--------|-----|
 | **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only (garden/impact editorial pages) |
-| **App headlines** | Plus Jakarta Sans (installed app and admin) | 600-700 | Functional headings |
-| **Body** | Plus Jakarta Sans (installed app and admin) / Inter (public website) | 400-500 | Core reading text |
-| **Labels / timestamps** | Plus Jakarta Sans (installed app and admin) / Inter (public website) | 500 | Utility text, metadata; the website's button labels are Inter 600 (`website-label`) |
+| **App headlines** | Plus Jakarta Sans (installed app and Hub) | 600-700 | Functional headings |
+| **Body** | Plus Jakarta Sans (installed app and Hub) / Inter (public website) | 400-500 | Core reading text |
+| **Labels / timestamps** | Plus Jakarta Sans (installed app and Hub) / Inter (public website) | 500 | Utility text, metadata; the website's button labels are Inter 600 (`website-label`) |
 
-**Rationale:** The installed app and the admin cockpit share one sans face, so the two read as one product (DL-096). The public website keeps Inter beside its editorial serif, which only appears there, where editorial weight matters; a public page opened inside the installed app keeps the website's Inter.
+**Rationale:** The installed app and the Hub share one sans face, so the two read as one product (DL-096). The public website keeps Inter beside its editorial serif, which only appears there, where editorial weight matters; a public page opened inside the installed app keeps the website's Inter.
 
 **Type roles.** Text takes its size from one set of role names on both surfaces: the `type-*` utilities in shared `theme.css`. Each surface sets its own sizes, so a shared component keeps one class and takes the density of the surface that draws it. The installed app reads at 16px and the cockpit at 14px.
 
@@ -280,7 +280,7 @@ Tone shifts by context while voice stays constant:
 | **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
 | **Errors** | Calm, constructive | "That didn't go through. Your work is saved. Try again when you're ready." |
 | **Offline** | Reassuring, matter-of-fact | "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." |
-| **Admin / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
+| **Hub / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
 | **Funding / impact** | Respectful, concrete | "This garden has documented [count] actions across [seasons] seasons." (both values from live data) |
 
 ### Terminology
@@ -296,10 +296,13 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Funder | Investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
 | Work | Task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself. |
-| Action | Action type | The thing a gardener can do. "Action template" names the browsable template records on the public site. |
+| Action | Action type | The thing a gardener can do. "Action template" names the browsable template records on the Green Goods Website. |
 | Fund | Invest | Funding a garden. "Contribute" is the umbrella word before a supporter picks Donate or Endow; "Donate" names only the direct-giving path. |
 | Impact | Result (as a vague synonym) | Bridges community and chain. "Output" and "Outcome" are stages of the impact model, not synonyms; "Metric" names an assessment field (DL-079). |
 | Document | Log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps. |
+| Green Goods Hub | Admin, dashboard, admin panel, steward dashboard | The steward surface at admin.greengoods.app; "the Hub" after the first mention. Its workspace for reviewing work is Review, and "cockpit" names only its design dialect. |
+| Green Goods App | Client app | The app installed on a phone; "the app" after the first mention. |
+| Green Goods Website | Public site | The site anyone reads in a browser at greengoods.app. |
 
 **Lower case in running text (DL-090).** In a sentence, garden, gardener, steward, evaluator,
 funder, and community member stay lower case in English, Spanish, and Portuguese ("this garden",

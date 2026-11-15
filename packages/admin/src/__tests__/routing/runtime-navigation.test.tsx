@@ -91,7 +91,7 @@ function HubMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
       slots={[
         {
           id: "hub",
-          label: "Hub",
+          label: "Review",
           labelId: "cockpit.nav.hub",
           icon: TestIcon,
           path: "/hub",
