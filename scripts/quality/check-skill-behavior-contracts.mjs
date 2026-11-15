@@ -23,6 +23,7 @@ export const SOURCE_PATHS = [
   ".claude/skills/research/SKILL.md",
   ".claude/skills/review/SKILL.md",
   ".claude/skills/ship/SKILL.md",
+  ".agents/adapter.md",
 ];
 
 function escapeRegExp(value) {
@@ -79,15 +80,21 @@ const contracts = [
     requirements: [
       {
         file: ".claude/skills/plan/SKILL.md",
-        section: "Architecture Opportunity Mode",
+        section: "Architecture mode",
         pattern: /three to six candidate cards[\s\S]{0,220}deletion-test result/i,
         marker: "ranked candidate cards with deletion test",
       },
       {
         file: ".claude/skills/plan/SKILL.md",
-        section: "Architecture Opportunity Mode",
-        pattern: /Stop for human selection[\s\S]{0,180}Do not[\s\S]{0,120}machine registry/i,
+        section: "Architecture mode",
+        pattern: /Stop for human selection[\s\S]{0,180}outside any registry/i,
         marker: "human selection before registry",
+      },
+      {
+        file: ".agents/adapter.md",
+        section: "Seam registry",
+        pattern: /Unselected and deferred cards[\s\S]{0,80}never in the machine registry/i,
+        marker: "unselected cards stay out of the registry",
       },
     ],
   },
@@ -98,13 +105,13 @@ const contracts = [
     requirements: [
       {
         file: ".claude/skills/review/SKILL.md",
-        section: "Pass 1 — Regressions",
-        pattern: /Require a concrete failure or repeated maintenance cost[\s\S]{0,180}deletion test/i,
+        section: "Pass 1: Regressions",
+        pattern: /name the concrete failure or repeated cost[\s\S]{0,180}deletion test/i,
         marker: "concrete harm and deletion-test rule",
       },
       {
         file: ".claude/skills/review/SKILL.md",
-        pattern: /repository-wide architecture opportunity discovery to `plan`/i,
+        pattern: /repository-wide architecture opportunity discovery belongs to `plan`/i,
         marker: "architecture discovery routing",
       },
     ],
@@ -136,6 +143,12 @@ const contracts = [
       {
         file: ".claude/skills/research/SKILL.md",
         section: "2. Resolve authority",
+        pattern: /\*\*Plan entry point\*\*[\s\S]{0,200}only the canonical documents those pointers identify/i,
+        marker: "plan entry point and targeted loading",
+      },
+      {
+        file: ".agents/adapter.md",
+        section: "Plan entry point",
         pattern: new RegExp(
           String.raw`status\.json.*links[\s\S]{0,220}document map[\s\S]{0,300}targeted`,
           "i",
@@ -174,7 +187,7 @@ const contracts = [
         file: ".claude/skills/research/SKILL.md",
         section: "Persistence",
         pattern:
-          /read-only by default[\s\S]{0,240}explicitly asks[\s\S]{0,300}canonical Plan Hub/i,
+          /read-only by default[\s\S]{0,240}explicitly asks[\s\S]{0,300}owning plan's canonical files/i,
         marker: "explicit persistence and canonical decision routing",
       },
       {
@@ -187,7 +200,7 @@ const contracts = [
       {
         file: ".claude/skills/research/SKILL.md",
         section: "Map escalation",
-        pattern: /Do not create tracker records automatically/i,
+        pattern: /Create no tracker records/i,
         marker: "no automatic tracker writes",
       },
     ],
@@ -199,23 +212,23 @@ const contracts = [
     requirements: [
       {
         file: ".claude/skills/plan/brainstorm.md",
-        section: "3. Resolve the decision frontier",
+        section: "Process",
         pattern:
-          /Route bounded factual\s+prerequisites through the `research` skill[\s\S]{0,220}do not ask the\s+user/i,
+          /Never ask what the code or docs already answer[\s\S]{0,900}bounded factual prerequisites[\s\S]{0,80}to the `research` skill/i,
         marker: "research-before-questioning route",
       },
       {
         file: ".claude/skills/plan/brainstorm.md",
-        section: "3. Resolve the decision frontier",
+        section: "Process",
         pattern:
-          /Ask every independent question on the current frontier[\s\S]{0,220}numbered round[\s\S]{0,220}recommended answer/i,
+          /Ask every independent frontier question[\s\S]{0,120}numbered round[\s\S]{0,120}recommended answer/i,
         marker: "recommended frontier rounds",
       },
       {
         file: ".claude/skills/plan/brainstorm.md",
-        section: "3. Resolve the decision frontier",
+        section: "Process",
         pattern:
-          /depends on another unsettled question[\s\S]{0,200}later round/i,
+          /Defer a question that depends on an unsettled one[\s\S]{0,120}update the frontier after each answer/i,
         marker: "deferred dependent questions",
       },
     ],
@@ -319,9 +332,15 @@ const contracts = [
       },
       {
         file: ".claude/skills/review/SKILL.md",
-        section: "False-Positive Guardrails",
+        section: "False positives",
+        pattern: /Skip everything in \*\*Not findings\*\*/i,
+        marker: "review reads the adapter's non-findings",
+      },
+      {
+        file: ".agents/adapter.md",
+        section: "Not findings",
         pattern:
-          /Zero\/missing deployment addresses[\s\S]{0,140}pending broadcast[\s\S]{0,140}unless broadcast was claimed/i,
+          /Zero or missing deployment addresses[\s\S]{0,140}pending broadcast[\s\S]{0,140}unless a broadcast was claimed/i,
         marker: "review false-positive guard",
       },
     ],
@@ -333,9 +352,15 @@ const contracts = [
     requirements: [
       {
         file: ".claude/skills/review/SKILL.md",
-        section: "Pass 3 — Evidence or Production Quality",
-        pattern: /Visible-UI\s+claims[\s\S]{0,200}Browser Evidence/i,
+        section: "Pass 3: Evidence or readiness",
+        pattern: /Visible UI claims need rendered proof labeled by engine and session[\s\S]{0,80}\*\*Rendered proof\*\*/i,
         marker: "labeled rendered proof rule",
+      },
+      {
+        file: ".agents/adapter.md",
+        section: "Rendered proof",
+        pattern: /Browser Evidence owns the rules[\s\S]{0,120}Label every rendered proof by engine and session/i,
+        marker: "Browser Evidence ownership",
       },
     ],
   },
@@ -353,16 +378,16 @@ const contracts = [
       },
       {
         file: ".claude/skills/review/SKILL.md",
-        section: "Pass 3 — Evidence or Production Quality",
+        section: "Pass 3: Evidence or readiness",
         pattern:
           /required stage that fails[\s\S]{0,50}`REQUEST_CHANGES`[\s\S]{0,100}cannot run[\s\S]{0,50}`COMMENT_ONLY`/i,
         marker: "failed and blocked readiness mapping",
       },
       {
         file: ".claude/skills/review/SKILL.md",
-        section: "Output Contract",
+        section: "Output",
         pattern:
-          /failed required check[\s\S]{0,50}`REQUEST_CHANGES`[\s\S]{0,160}`BLOCKED`[\s\S]{0,100}`COMMENT_ONLY`/i,
+          /failed required check[\s\S]{0,50}`REQUEST_CHANGES`[\s\S]{0,160}`BLOCKED`[\s\S]{0,120}`COMMENT_ONLY`/i,
         marker: "verdict mapping",
       },
     ],
@@ -374,15 +399,15 @@ const contracts = [
     requirements: [
       {
         file: ".claude/skills/plan/SKILL.md",
-        section: "Part 5: Plan Lifecycle Management",
+        section: "Lifecycle rules",
         pattern:
-          /fully implements a plan[\s\S]{0,160}Status[\s\S]{0,100}status\.json/i,
+          /On full or partial implementation, update the plan's status[\s\S]{0,80}machine state[\s\S]{0,40}close only through Close a plan/i,
         marker: "implementation lifecycle update",
       },
       {
-        file: ".claude/skills/plan/SKILL.md",
-        section: "Part 5: Plan Lifecycle Management",
-        pattern: /If fully implemented, close the hub with `plan-hub\.mjs move --to archive/i,
+        file: ".agents/adapter.md",
+        section: "Closeout",
+        pattern: /plan-hub\.mjs move --feature <slug> --to archive/i,
         marker: "completed-plan closeout transition",
       },
     ],
@@ -396,7 +421,7 @@ const contracts = [
         file: ".claude/skills/ship/SKILL.md",
         section: "Activation",
         pattern:
-          /Do not activate this skill for "QA mode", "quick fix", "get this to staging"[\s\S]{0,160}unless the user also asks to commit, open a PR, merge, release,[\s\S]{0,80}prove the branch is ready/i,
+          /"QA mode", "quick fix", "get this to staging"[\s\S]{0,160}do not publish unless the user also asks to commit, open a PR, merge, release,[\s\S]{0,80}prove the branch ready/i,
         marker: "QA-to-Ship anti-trigger",
       },
     ],
