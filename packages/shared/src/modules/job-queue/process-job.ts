@@ -6,6 +6,10 @@ import {
   WorkTransactionReverted,
 } from "../work/work-confirmation";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
+import {
+  WALLET_RECONNECT_REQUIRED,
+  WalletReconnectRequiredError,
+} from "../../utils/errors/unsent-failures";
 import { JobMaintenance } from "./job-maintenance";
 import type {
   JobQueueAnalytics,
@@ -274,6 +278,9 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       const processingDuration = deps.clock.now() - startedAt;
       if (errorMessage === "submission-ownership-changed")
         return { success: false, error: errorMessage, skipped: true };
+      // The wallet has not answered: nothing was tried, and the person was asked to reconnect.
+      if (error instanceof WalletReconnectRequiredError)
+        return { success: false, error: WALLET_RECONNECT_REQUIRED, skipped: true };
       // Its partner in a request that goes only whole never came, so this was never tried.
       if (error instanceof BundleIncompleteError)
         return { success: false, error: errorMessage, skipped: true };

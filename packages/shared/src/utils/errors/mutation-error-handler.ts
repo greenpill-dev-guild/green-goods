@@ -11,6 +11,7 @@ import { type FormatMessageFn, toastService, walletProgressToasts } from "../../
 import { trackContractError } from "../../modules/app/error-tracking";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
 import { type ParsedContractError, parseAndFormatError } from "./contract-errors";
+import { WalletReconnectRequiredError } from "./unsent-failures";
 
 /**
  * Configuration for creating a mutation error handler
@@ -152,8 +153,8 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
         ? getFallbackTitle(authMode ?? null)
         : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
 
-    // Show error toast
-    if (showToast) {
+    // Show error toast, unless the wallet reconnect prompt already asked for this act
+    if (showToast && !(error instanceof WalletReconnectRequiredError && error.asked)) {
       if (useWalletProgressToast && authMode === "wallet") {
         walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
       } else {

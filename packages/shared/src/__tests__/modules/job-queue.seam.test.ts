@@ -16,6 +16,7 @@ import {
 } from "../test-utils/job-queue-fakes";
 import { queuedTakeUpChain } from "../test-utils/queued-jobs";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 
 const USER = "0x1111111111111111111111111111111111111111";
 
@@ -820,6 +821,27 @@ describe("processJob", () => {
     expect(vi.mocked(deps.analytics.jobProcessingError).mock.calls[0]?.[4]).toEqual(
       new Error("send failed")
     );
+  });
+
+  // PRD-1499: a wallet account whose wallet has not answered is asked to reconnect first.
+  it("leaves a job untried, its attempts unspent, while the wallet has not answered", async () => {
+    const store = createInMemoryJobQueueStore([queuedJob()]);
+    const executors = { execute: vi.fn() };
+    const { deps, queue } = setup({ store, executors });
+    const sender = {
+      assertOwnership: () => {
+        throw new WalletReconnectRequiredError(true);
+      },
+    } as unknown as TransactionSender;
+
+    await expect(
+      queue.processJob("job-1", { transactionSender: sender, explicit: true })
+    ).resolves.toEqual({ success: false, error: "wallet-reconnect-required", skipped: true });
+    expect(executors.execute).not.toHaveBeenCalled();
+    const job = await store.getJob("job-1");
+    expect(job?.attempts).toBe(0);
+    expect(job?.lastError).toBeUndefined();
+    expect(deps.analytics.jobProcessingError).not.toHaveBeenCalled();
   });
 });
 
