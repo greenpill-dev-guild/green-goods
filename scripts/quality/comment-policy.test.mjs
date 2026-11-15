@@ -226,3 +226,12 @@ test("a JSX container whose comment sits on its own line goes with its braces", 
   const code = "export const View = () => (\n  <div>\n    {\n      /* narration */\n    }\n    <p>Text</p>\n  </div>\n);\n";
   assert.equal(purgeSource(code, "example.tsx").code, "export const View = () => (\n  <div>\n    <p>Text</p>\n  </div>\n);\n");
 });
+
+test("every JavaScript line terminator inside a removed comment leaves a line break", () => {
+  for (const terminator of ["\r", " ", " "]) {
+    const code = `function f(value) {\n  return/* narration${terminator}*/value;\n}\n`;
+    const purged = purgeSource(code, "example.ts").code;
+    assert.equal(purged, "function f(value) {\n  return\nvalue;\n}\n", JSON.stringify(terminator));
+    assert.equal(new Function("value", purged.slice(purged.indexOf("{") + 1, purged.lastIndexOf("}")))(42), undefined);
+  }
+});

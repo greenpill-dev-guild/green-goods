@@ -269,8 +269,9 @@ function removal(code, comment) {
   }
   let from = comment.start;
   while (from > start && /[ \t]/.test(code[from - 1])) from--;
-  // A line break inside the comment can end a statement (`return/* x\n*/value` returns nothing), so it stays.
-  if (code.slice(comment.start, comment.end).includes("\n")) return { from, to: comment.end, text: "\n" };
+  // A line terminator inside the comment can end a statement (`return/* x\n*/value` returns nothing),
+  // so one stays. JavaScript has four: line feed, carriage return, and U+2028 and U+2029.
+  if (/[\n\r\u2028\u2029]/.test(code.slice(comment.start, comment.end))) return { from, to: comment.end, text: "\n" };
   const joins = from > 0 && /\S/.test(code[from - 1]) && /\S/.test(code[comment.end] ?? "");
   return { from, to: comment.end, text: joins ? " " : "" };
 }
