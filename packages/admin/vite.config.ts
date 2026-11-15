@@ -391,7 +391,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared > @zerodev/permissions/signers",
         "@green-goods/shared > @zerodev/sdk",
         "@green-goods/shared > @zerodev/sdk/constants",
-        "@green-goods/shared > embla-carousel-react",
         "@green-goods/shared > permissionless/actions/passkeyServer",
         "@green-goods/shared > permissionless/utils",
         "react-intl",

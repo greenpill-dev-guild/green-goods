@@ -679,7 +679,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@remixicon/react",
         "@tanstack/react-query",
         "@green-goods/shared > @wagmi/core/query",
-        "embla-carousel-react",
         "@green-goods/shared > permissionless/actions/passkeyServer",
         "@green-goods/shared > permissionless/utils",
         "react-intl",
