@@ -23,19 +23,19 @@ const addMember: FabAction = {
   id: "add-member",
   icon: RiUserAddLine,
   label: "Add Member",
-  labelId: "cockpit.community.action.addMember",
+  labelId: "hub.community.action.addMember",
 };
 const depositWithdraw: FabAction = {
   id: "deposit-withdraw",
   icon: RiMoneyDollarCircleLine,
   label: "Deposit / Withdraw",
-  labelId: "cockpit.community.action.depositWithdraw",
+  labelId: "hub.community.action.depositWithdraw",
 };
 const fundCookieJar: FabAction = {
   id: "fund-payout-jar",
   icon: RiHandCoinLine,
   label: "Fund Cookie Jar",
-  labelId: "cockpit.community.action.fundPayoutJar",
+  labelId: "hub.community.action.fundPayoutJar",
 };
 
 // Each workspace's action set, as its view declares it.
@@ -44,19 +44,19 @@ const hubDial = fabConfig(
     id: "submit-work",
     icon: RiAddLine,
     label: "Submit Work",
-    labelId: "cockpit.hub.action.submitWork",
+    labelId: "hub.review.action.submitWork",
   },
   {
     id: "create-assessment",
     icon: RiCheckLine,
     label: "Create Assessment",
-    labelId: "cockpit.hub.action.createAssessment",
+    labelId: "hub.review.action.createAssessment",
   },
   {
     id: "create-hypercert",
     icon: RiMedalLine,
     label: "Create Hypercert",
-    labelId: "cockpit.hub.action.createHypercert",
+    labelId: "hub.review.action.createHypercert",
   }
 );
 const gardenDial = fabConfig(
@@ -64,13 +64,13 @@ const gardenDial = fabConfig(
     id: "edit-garden",
     icon: RiSettings3Line,
     label: "Edit Garden",
-    labelId: "cockpit.garden.action.editGarden",
+    labelId: "hub.garden.action.editGarden",
   },
   {
     id: "view-public",
     icon: RiExternalLinkLine,
     label: "View Public",
-    labelId: "cockpit.garden.action.viewPublic",
+    labelId: "hub.garden.action.viewPublic",
   }
 );
 const communityDial = fabConfig(addMember, depositWithdraw, fundCookieJar);
@@ -78,7 +78,7 @@ const actionsFab = fabConfig({
   id: "create-action",
   icon: RiAddLine,
   label: "Create Action",
-  labelId: "cockpit.actions.action.createAction",
+  labelId: "hub.actions.action.createAction",
 });
 
 const meta = {
@@ -221,7 +221,7 @@ export const DisabledActionSaysWhy: Story = {
     config: fabConfig(addMember, {
       ...fundCookieJar,
       disabled: true,
-      disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+      disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
       disabledReason: "This garden has no payout jar yet.",
     }),
   },

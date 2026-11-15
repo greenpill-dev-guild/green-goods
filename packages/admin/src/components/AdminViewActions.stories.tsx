@@ -29,7 +29,7 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
     {
       id: "submit-work",
       label: "Submit Work",
-      labelId: "cockpit.hub.action.submitWork",
+      labelId: "hub.review.action.submitWork",
       icon: RiAddLine,
       onClick: fn(),
       variant: (activeId === "submit-work" ? "primary" : "secondary") as "primary" | "secondary",
@@ -38,7 +38,7 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
     {
       id: "create-assessment",
       label: "Create Assessment",
-      labelId: "cockpit.hub.action.createAssessment",
+      labelId: "hub.review.action.createAssessment",
       icon: RiCheckLine,
       onClick: fn(),
       variant: (activeId === "create-assessment" ? "primary" : "secondary") as
@@ -49,7 +49,7 @@ function hubTrio(activeId: "submit-work" | "create-assessment" | "create-hyperce
     {
       id: "create-hypercert",
       label: "Create Hypercert",
-      labelId: "cockpit.hub.action.createHypercert",
+      labelId: "hub.review.action.createHypercert",
       icon: RiMedalLine,
       onClick: fn(),
       variant: (activeId === "create-hypercert" ? "primary" : "secondary") as
@@ -90,7 +90,7 @@ export const WithGhostLink: Story = {
       {
         id: "view-public",
         label: "View Public",
-        labelId: "cockpit.garden.action.viewPublic",
+        labelId: "hub.garden.action.viewPublic",
         icon: RiExternalLinkLine,
         onClick: fn(),
         variant: "ghost",

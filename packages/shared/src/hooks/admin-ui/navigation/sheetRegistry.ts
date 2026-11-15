@@ -26,17 +26,17 @@ export const ADMIN_RIGHT_SHEET_REGISTRY = {
   [PROFILE_SHEET_CONTENT_ID]: {
     id: PROFILE_SHEET_CONTENT_ID,
     side: "right",
-    title: { id: "cockpit.profile.title", defaultMessage: "Profile" },
+    title: { id: "hub.profile.title", defaultMessage: "Profile" },
   },
   [SETTINGS_SHEET_CONTENT_ID]: {
     id: SETTINGS_SHEET_CONTENT_ID,
     side: "right",
-    title: { id: "cockpit.settings.title", defaultMessage: "Settings" },
+    title: { id: "hub.settings.title", defaultMessage: "Settings" },
   },
   [NOTIFICATIONS_SHEET_CONTENT_ID]: {
     id: NOTIFICATIONS_SHEET_CONTENT_ID,
     side: "right",
-    title: { id: "cockpit.notifications.title", defaultMessage: "Notifications" },
+    title: { id: "hub.notifications.title", defaultMessage: "Notifications" },
   },
 } satisfies Record<string, AdminRightSheetRegistryEntry>;
 

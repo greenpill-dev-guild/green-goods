@@ -40,18 +40,18 @@ const JAR_READ_NOTICES: Record<
   checking: { variant: "info", bodyId: "app.cookieJar.loading" },
   offline: {
     variant: "warning",
-    titleId: "cockpit.community.payouts.jarsOffline.title",
-    bodyId: "cockpit.community.payouts.jarsOffline.body",
+    titleId: "hub.community.payouts.jarsOffline.title",
+    bodyId: "hub.community.payouts.jarsOffline.body",
   },
   failed: {
     variant: "error",
-    titleId: "cockpit.community.payouts.jarsReadFailed.title",
-    bodyId: "cockpit.community.payouts.jarsReadFailed.body",
+    titleId: "hub.community.payouts.jarsReadFailed.title",
+    bodyId: "hub.community.payouts.jarsReadFailed.body",
   },
   "no-jar": {
     variant: "info",
     titleId: "app.cookieJar.noJars",
-    bodyId: "cockpit.community.payouts.noJarHow",
+    bodyId: "hub.community.payouts.noJarHow",
   },
   unavailable: {
     variant: "info",

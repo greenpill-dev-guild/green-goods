@@ -101,8 +101,8 @@ function renderHarness(initialEntry: string) {
         <IntlProvider
           locale="en"
           messages={{
-            "cockpit.gardenChip.allGardens": "All Gardens",
-            "cockpit.gardenChip.createGarden": "Create Garden",
+            "hub.gardenChip.allGardens": "All Gardens",
+            "hub.gardenChip.createGarden": "Create Garden",
           }}
         >
           <LocationProbe />

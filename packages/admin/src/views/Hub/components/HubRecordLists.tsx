@@ -67,11 +67,11 @@ function HubRecordGrid({
           tone="error"
           icon={<RiErrorWarningLine />}
           title={formatMessage({
-            id: "cockpit.hub.error.title",
+            id: "hub.review.error.title",
             defaultMessage: "Review data could not be loaded",
           })}
           description={formatMessage({
-            id: "cockpit.hub.error.description",
+            id: "hub.review.error.description",
             defaultMessage: "Refresh the workspace and try again.",
           })}
         />
@@ -99,7 +99,7 @@ function HubRecordGrid({
         <EmptyState
           icon={<RiSearchLine className="h-6 w-6" />}
           title={formatMessage(
-            { id: "cockpit.hub.noMatch", defaultMessage: 'Nothing matching "{query}"' },
+            { id: "hub.review.noMatch", defaultMessage: 'Nothing matching "{query}"' },
             { query: searchQuery }
           )}
           description={older?.notLoaded}
@@ -107,7 +107,7 @@ function HubRecordGrid({
             <div className="flex flex-wrap justify-center gap-2">
               {older ? <HubShowOlderButton older={older.records} label={older.label} /> : null}
               <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
-                {formatMessage({ id: "cockpit.hub.clearSearch", defaultMessage: "Clear Search" })}
+                {formatMessage({ id: "hub.review.clearSearch", defaultMessage: "Clear Search" })}
               </Button>
             </div>
           }
@@ -170,11 +170,11 @@ export function HubAssessmentList({
         <EmptyState
           icon={<RiFileList3Line className="h-6 w-6" />}
           title={formatMessage({
-            id: "cockpit.hub.assessments.empty.title",
+            id: "hub.review.assessments.empty.title",
             defaultMessage: "No assessments yet",
           })}
           description={formatMessage({
-            id: "cockpit.hub.assessments.empty.description",
+            id: "hub.review.assessments.empty.description",
             defaultMessage:
               "An assessment records where the garden stands and what it aims for over a reporting period. Write one when a period opens. It is optional and never holds up a season.",
           })}
@@ -184,7 +184,7 @@ export function HubAssessmentList({
                 <CreateRecordLink
                   href={createHref}
                   label={formatMessage({
-                    id: "cockpit.hub.action.createAssessment",
+                    id: "hub.review.action.createAssessment",
                     defaultMessage: "Create Assessment",
                   })}
                 />
@@ -242,11 +242,11 @@ export function HubHypercertList({
           ? {
               records: older,
               label: formatMessage({
-                id: "cockpit.hub.hypercerts.showOlder",
+                id: "hub.review.hypercerts.showOlder",
                 defaultMessage: "Show Older Hypercerts",
               }),
               notLoaded: formatMessage({
-                id: "cockpit.hub.hypercerts.olderNotLoaded",
+                id: "hub.review.hypercerts.olderNotLoaded",
                 defaultMessage: "Older hypercerts aren't loaded yet.",
               }),
             }
@@ -261,7 +261,7 @@ export function HubHypercertList({
             defaultMessage: "No hypercerts yet",
           })}
           description={formatMessage({
-            id: "cockpit.hub.hypercerts.empty.description",
+            id: "hub.review.hypercerts.empty.description",
             defaultMessage:
               "A hypercert bundles the garden's approved work into a certificate funders can hold. Create one when a reporting period closes.",
           })}
@@ -271,7 +271,7 @@ export function HubHypercertList({
                 <CreateRecordLink
                   href={createHref}
                   label={formatMessage({
-                    id: "cockpit.hub.action.createHypercert",
+                    id: "hub.review.action.createHypercert",
                     defaultMessage: "Create Hypercert",
                   })}
                 />

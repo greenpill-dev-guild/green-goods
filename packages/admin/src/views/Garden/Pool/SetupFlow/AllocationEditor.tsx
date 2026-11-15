@@ -142,22 +142,22 @@ export function AllocationEditor({
     {
       key: "gardeners",
       label: formatMessage({
-        id: "cockpit.garden.pool.split.gardeners",
+        id: "hub.garden.pool.split.gardeners",
         defaultMessage: "Gardeners",
       }),
       hint: formatMessage({
-        id: "cockpit.garden.pool.split.gardenersHint",
+        id: "hub.garden.pool.split.gardenersHint",
         defaultMessage: "Shared among the gardeners whose promises were kept",
       }),
     },
     {
       key: "treasury",
       label: formatMessage({
-        id: "cockpit.garden.pool.split.treasury",
+        id: "hub.garden.pool.split.treasury",
         defaultMessage: "Treasury",
       }),
       hint: formatMessage({
-        id: "cockpit.garden.pool.split.treasuryHint",
+        id: "hub.garden.pool.split.treasuryHint",
         defaultMessage: "Held by the garden itself",
       }),
     },
@@ -165,39 +165,39 @@ export function AllocationEditor({
     // `steward`, the word stewards read for their own role.
     {
       key: "steward",
-      label: formatMessage({ id: "cockpit.garden.pool.split.steward", defaultMessage: "Steward" }),
+      label: formatMessage({ id: "hub.garden.pool.split.steward", defaultMessage: "Steward" }),
       hint: formatMessage({
-        id: "cockpit.garden.pool.split.stewardHint",
+        id: "hub.garden.pool.split.stewardHint",
         defaultMessage: "For the garden's stewards",
       }),
     },
     {
       key: "evaluator",
       label: formatMessage({
-        id: "cockpit.garden.pool.split.evaluator",
+        id: "hub.garden.pool.split.evaluator",
         defaultMessage: "Evaluator",
       }),
       hint: formatMessage({
-        id: "cockpit.garden.pool.split.evaluatorHint",
+        id: "hub.garden.pool.split.evaluatorHint",
         defaultMessage: "For those who assess the garden's impact",
       }),
     },
     {
       key: "community",
       label: formatMessage({
-        id: "cockpit.garden.pool.split.community",
+        id: "hub.garden.pool.split.community",
         defaultMessage: "Community",
       }),
       hint: formatMessage({
-        id: "cockpit.garden.pool.split.communityHint",
+        id: "hub.garden.pool.split.communityHint",
         defaultMessage: "For the wider community around the garden",
       }),
     },
     {
       key: "funder",
-      label: formatMessage({ id: "cockpit.garden.pool.split.funder", defaultMessage: "Funder" }),
+      label: formatMessage({ id: "hub.garden.pool.split.funder", defaultMessage: "Funder" }),
       hint: formatMessage({
-        id: "cockpit.garden.pool.split.funderHint",
+        id: "hub.garden.pool.split.funderHint",
         defaultMessage: "For those who fund the garden",
       }),
     },
@@ -211,7 +211,7 @@ export function AllocationEditor({
       <p className="type-body font-medium text-text-strong" data-slot="split-fixed">
         {formatMessage(
           {
-            id: "cockpit.garden.pool.split.fixed",
+            id: "hub.garden.pool.split.fixed",
             defaultMessage:
               "{kind, select, campaign {This split is fixed for good once the campaign opens, and it decides how the campaign's impact certificate is shared.} other {This split is fixed for good once the season opens, and it decides how the season's impact certificate is shared.}}",
           },
@@ -220,7 +220,7 @@ export function AllocationEditor({
       </p>
       <AdminChoiceGroup
         ariaLabel={formatMessage({
-          id: "cockpit.garden.pool.split.preset",
+          id: "hub.garden.pool.split.preset",
           defaultMessage: "Preset",
         })}
         value={preset}
@@ -234,7 +234,7 @@ export function AllocationEditor({
           {
             value: "model1",
             label: formatMessage({
-              id: "cockpit.garden.pool.split.preset.model1",
+              id: "hub.garden.pool.split.preset.model1",
               defaultMessage: "Garden-led (standard)",
             }),
             description: presetShares("model1"),
@@ -243,7 +243,7 @@ export function AllocationEditor({
           {
             value: "model2",
             label: formatMessage({
-              id: "cockpit.garden.pool.split.preset.model2",
+              id: "hub.garden.pool.split.preset.model2",
               defaultMessage: "Treasury-led",
             }),
             description: presetShares("model2"),
@@ -252,7 +252,7 @@ export function AllocationEditor({
           {
             value: "model3",
             label: formatMessage({
-              id: "cockpit.garden.pool.split.preset.model3",
+              id: "hub.garden.pool.split.preset.model3",
               defaultMessage: "Balanced",
             }),
             description: presetShares("model3"),
@@ -261,11 +261,11 @@ export function AllocationEditor({
           {
             value: "custom",
             label: formatMessage({
-              id: "cockpit.garden.pool.split.preset.custom",
+              id: "hub.garden.pool.split.preset.custom",
               defaultMessage: "Custom",
             }),
             description: formatMessage({
-              id: "cockpit.garden.pool.split.preset.customHint",
+              id: "hub.garden.pool.split.preset.customHint",
               defaultMessage: "Edit any share below",
             }),
             disabled,
@@ -297,7 +297,7 @@ export function AllocationEditor({
           <p className="flex items-center gap-1.5 text-[rgb(var(--tone-on-surface-accent))]">
             <RiCheckLine className="h-3.5 w-3.5" aria-hidden />
             {formatMessage({
-              id: "cockpit.garden.pool.split.sumOk",
+              id: "hub.garden.pool.split.sumOk",
               defaultMessage: "Total: 100 %",
             })}
           </p>
@@ -306,7 +306,7 @@ export function AllocationEditor({
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />
             {formatMessage(
               {
-                id: "cockpit.garden.pool.split.sumInvalid",
+                id: "hub.garden.pool.split.sumInvalid",
                 defaultMessage: "The six shares must total exactly 100 %. Right now: {sum} %.",
               },
               { sum: Number.isFinite(sum) ? String(sum) : "—" }
@@ -317,7 +317,7 @@ export function AllocationEditor({
           <p className="flex items-center gap-1.5 text-warning-dark">
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />
             {formatMessage({
-              id: "cockpit.garden.pool.split.treasuryLow",
+              id: "hub.garden.pool.split.treasuryLow",
               defaultMessage: "Guidance keeps the treasury share at 15 % or more.",
             })}
           </p>
@@ -327,13 +327,13 @@ export function AllocationEditor({
       <div className="space-y-2 border-t border-stroke-soft pt-3">
         <AdminCardTitle as="h4">
           {formatMessage({
-            id: "cockpit.garden.pool.split.recognition",
+            id: "hub.garden.pool.split.recognition",
             defaultMessage: "Gardeners' part",
           })}
         </AdminCardTitle>
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.split.recognitionHint",
+            id: "hub.garden.pool.split.recognitionHint",
             defaultMessage:
               "How the gardeners' share divides: a part shared equally for taking part, the rest by proven contribution.",
           })}
@@ -341,7 +341,7 @@ export function AllocationEditor({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.split.recognition.equal",
+              id: "hub.garden.pool.split.recognition.equal",
               defaultMessage: "Taking part",
             })}
             value={recognition.equal}
@@ -356,7 +356,7 @@ export function AllocationEditor({
           />
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.split.recognition.verified",
+              id: "hub.garden.pool.split.recognition.verified",
               defaultMessage: "Proven contribution",
             })}
             value={recognition.verified}
@@ -380,7 +380,7 @@ export function AllocationEditor({
           >
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />
             {formatMessage({
-              id: "cockpit.garden.pool.split.recognitionInvalid",
+              id: "hub.garden.pool.split.recognitionInvalid",
               defaultMessage: "The two parts must total exactly 100 %.",
             })}
           </p>

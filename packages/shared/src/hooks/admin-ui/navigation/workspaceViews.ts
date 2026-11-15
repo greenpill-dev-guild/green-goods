@@ -19,7 +19,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
     id: "hub",
     label: "Review",
-    labelId: "cockpit.nav.hub",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
     rootPath: "/hub",
     href: adminRoutes.hub(),
@@ -28,7 +28,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     rootPath: "/garden",
     href: adminRoutes.garden(),
@@ -37,7 +37,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     rootPath: "/community",
     href: adminRoutes.community(),
@@ -57,7 +57,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
 const ADMIN_TEAM_COMMAND_ROUTES = [
   {
     id: "page-cookies",
-    labelId: "cockpit.community.cookies.title",
+    labelId: "hub.community.cookies.title",
     defaultLabel: "Campaign Cookie Jars",
     href: adminRoutes.cookies(),
     permission: "showActions" as AdminWorkspacePermission,

@@ -12,7 +12,7 @@ import { NavigationBar, type ToolbarSlot } from "./NavigationBar";
 const workSlot: ToolbarSlot = {
   id: "hub",
   label: "Review",
-  labelId: "cockpit.nav.hub",
+  labelId: "hub.nav.review",
   icon: RiClipboardLine,
   path: "/hub",
   visible: true,
@@ -21,7 +21,7 @@ const workSlot: ToolbarSlot = {
 const gardenSlot: ToolbarSlot = {
   id: "garden",
   label: "Garden",
-  labelId: "cockpit.nav.garden",
+  labelId: "hub.nav.garden",
   icon: RiSeedlingLine,
   path: "/garden",
   visible: true,
@@ -30,7 +30,7 @@ const gardenSlot: ToolbarSlot = {
 const communitySlot: ToolbarSlot = {
   id: "community",
   label: "Community",
-  labelId: "cockpit.nav.community",
+  labelId: "hub.nav.community",
   icon: RiTeamLine,
   path: "/community",
   visible: true,
@@ -74,13 +74,13 @@ const speedDialFab = {
       id: "create-assessment",
       icon: RiClipboardLine,
       label: "Create Assessment",
-      labelId: "cockpit.hub.action.createAssessment",
+      labelId: "hub.review.action.createAssessment",
     },
     {
       id: "create-hypercert",
       icon: RiSeedlingLine,
       label: "Create Hypercert",
-      labelId: "cockpit.hub.action.createHypercert",
+      labelId: "hub.review.action.createHypercert",
     },
   ],
   onAction: fn(),

@@ -9,7 +9,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "hub",
     label: "Review",
-    labelId: "cockpit.nav.hub",
+    labelId: "hub.nav.review",
     icon: RiAppsLine,
     path: "/hub",
     visible: true,
@@ -17,7 +17,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: RiSeedlingLine,
     path: "/garden",
     visible: true,
@@ -25,7 +25,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: RiTeamLine,
     path: "/community",
     visible: true,

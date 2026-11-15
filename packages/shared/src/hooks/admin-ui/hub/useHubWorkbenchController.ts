@@ -390,11 +390,11 @@ export function useHubWorkbenchController() {
     () => [
       {
         value: "newest",
-        label: formatMessage({ id: "cockpit.hub.sort.newest", defaultMessage: "Newest" }),
+        label: formatMessage({ id: "hub.review.sort.newest", defaultMessage: "Newest" }),
       },
       {
         value: "oldest",
-        label: formatMessage({ id: "cockpit.hub.sort.oldest", defaultMessage: "Oldest" }),
+        label: formatMessage({ id: "hub.review.sort.oldest", defaultMessage: "Oldest" }),
       },
     ],
     [formatMessage]

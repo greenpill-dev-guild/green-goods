@@ -49,11 +49,11 @@ export function CampaignImageInput({
       onChange(imageUrl);
       toastService.success({
         title: formatMessage({
-          id: "cockpit.community.cookies.imageUploaded",
+          id: "hub.community.cookies.imageUploaded",
           defaultMessage: "Campaign image uploaded",
         }),
         message: formatMessage({
-          id: "cockpit.community.cookies.imageUploadedMessage",
+          id: "hub.community.cookies.imageUploadedMessage",
           defaultMessage: "The image is ready for this cookie jar.",
         }),
         context: "campaign cookie jar image upload",
@@ -73,13 +73,13 @@ export function CampaignImageInput({
       logger.error("Campaign cookie jar image upload failed", { error });
       toastService.error({
         title: formatMessage({
-          id: "cockpit.community.cookies.imageUploadFailed",
+          id: "hub.community.cookies.imageUploadFailed",
           defaultMessage: "Image upload failed",
         }),
         message:
           unreadable ??
           formatMessage({
-            id: "cockpit.community.cookies.imageUploadFailedMessage",
+            id: "hub.community.cookies.imageUploadFailedMessage",
             defaultMessage: "Could not upload the campaign image. Try again or paste a URL.",
           }),
         context: "campaign cookie jar image upload",
@@ -95,11 +95,11 @@ export function CampaignImageInput({
       <FileUploadField
         surface="admin"
         label={formatMessage({
-          id: "cockpit.community.cookies.campaignImageUpload",
+          id: "hub.community.cookies.campaignImageUpload",
           defaultMessage: "Campaign image",
         })}
         helpText={formatMessage({
-          id: "cockpit.community.cookies.campaignImageUploadHelp",
+          id: "hub.community.cookies.campaignImageUploadHelp",
           defaultMessage: "Upload the campaign image. URL entry is available as a fallback.",
         })}
         accept="image/*"
@@ -117,7 +117,7 @@ export function CampaignImageInput({
       {isUploading ? (
         <p className="type-meta text-text-sub">
           {formatMessage({
-            id: "cockpit.community.cookies.imageUploading",
+            id: "hub.community.cookies.imageUploading",
             defaultMessage: "Uploading campaign image...",
           })}
         </p>
@@ -141,11 +141,11 @@ export function CampaignImageInput({
       >
         {showUrlFallback
           ? formatMessage({
-              id: "cockpit.community.cookies.hideImageUrl",
+              id: "hub.community.cookies.hideImageUrl",
               defaultMessage: "Hide Image URL",
             })
           : formatMessage({
-              id: "cockpit.community.cookies.pasteImageUrl",
+              id: "hub.community.cookies.pasteImageUrl",
               defaultMessage: "Paste image URL",
             })}
       </Button>
@@ -153,7 +153,7 @@ export function CampaignImageInput({
         <AdminTextField
           id={`${source}-url`}
           label={formatMessage({
-            id: "cockpit.community.cookies.campaignImage",
+            id: "hub.community.cookies.campaignImage",
             defaultMessage: "Campaign image URL",
           })}
           value={value}
@@ -164,7 +164,7 @@ export function CampaignImageInput({
           error={
             value && !isValidCampaignCookieJarMetadataUrl(value)
               ? formatMessage({
-                  id: "cockpit.community.cookies.invalidMetadataUrl",
+                  id: "hub.community.cookies.invalidMetadataUrl",
                   defaultMessage: "Use an http(s), IPFS, or site-relative URL.",
                 })
               : undefined

@@ -15,9 +15,9 @@ interface ConnectShellProps {
 }
 
 export function ConnectShell({
-  titleId = "cockpit.auth.connectWalletTitle",
+  titleId = "hub.auth.connectWalletTitle",
   defaultTitle = "Connect your wallet to continue",
-  descriptionId = "cockpit.auth.connectWalletDescription",
+  descriptionId = "hub.auth.connectWalletDescription",
   defaultDescription = "Sign in to open the Green Goods Hub",
   action,
   icon,

@@ -77,7 +77,7 @@ describe("buildGardenHeaderStats", () => {
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual(["cockpit.garden.stats.gardeners", "cockpit.garden.stats.impact"]);
+    expect(ids).toEqual(["hub.garden.stats.gardeners", "hub.garden.stats.impact"]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 1 });
   });
@@ -149,10 +149,7 @@ describe("buildCommunityHeaderStats", () => {
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual([
-      "cockpit.community.stats.treasury",
-      "cockpit.community.stats.distributed",
-    ]);
+    expect(ids).toEqual(["hub.community.stats.treasury", "hub.community.stats.distributed"]);
   });
 
   it("omits distributed totals when allocations span multiple assets", () => {
@@ -226,7 +223,7 @@ describe("buildHubHeaderStats", () => {
     });
     // No valueTone: work age never takes the critical pair.
     expect(items).toEqual([
-      { id: "waiting-over-week", value: "3", label: "cockpit.hub.stats.waitingOverWeek" },
+      { id: "waiting-over-week", value: "3", label: "hub.review.stats.waitingOverWeek" },
     ]);
   });
 });
@@ -251,8 +248,8 @@ describe("buildActionsHeaderStats", () => {
     const formatMessage = makeFormatMessage();
     buildActionsHeaderStats({ totalCount: 1, domainsCovered: 4, formatMessage });
     expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
-      "cockpit.actions.stats.total",
-      "cockpit.actions.stats.domains",
+      "hub.actions.stats.total",
+      "hub.actions.stats.domains",
     ]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 4 });

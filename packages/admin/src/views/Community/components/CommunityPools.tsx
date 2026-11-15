@@ -114,7 +114,7 @@ function GardenPoolCard({
           </AdminCardTitle>
           <p className="mt-1 type-body text-text-soft">
             {formatMessage({
-              id: "cockpit.community.pools.currentGardenHint",
+              id: "hub.community.pools.currentGardenHint",
               defaultMessage:
                 "This garden's pool runs from the Garden workspace. One tap takes you there; nothing is duplicated here.",
             })}
@@ -125,7 +125,7 @@ function GardenPoolCard({
             {pool
               ? chip.label
               : formatMessage({
-                  id: "cockpit.garden.pool.unregistered.title",
+                  id: "hub.garden.pool.unregistered.title",
                   defaultMessage: "This garden has no commitment pool",
                 })}
           </StatusBadge>
@@ -140,14 +140,14 @@ function GardenPoolCard({
         disabled={!canManage}
       >
         {formatMessage({
-          id: "cockpit.community.pools.openConsole",
+          id: "hub.community.pools.openConsole",
           defaultMessage: "Open the Pool Console",
         })}
       </Button>
       {!canManage ? (
         <p className="type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.community.pools.stewardOnly",
+            id: "hub.community.pools.stewardOnly",
             defaultMessage: "The pool console is for this garden's stewards.",
           })}
         </p>
@@ -199,7 +199,7 @@ function ProtocolOperations({
           className="space-y-3"
           role="status"
           aria-label={formatMessage({
-            id: "cockpit.community.pools.loading",
+            id: "hub.community.pools.loading",
             defaultMessage: "Loading the protocol pool",
           })}
         >
@@ -219,11 +219,11 @@ function ProtocolOperations({
             tone="error"
             icon={<RiErrorWarningLine />}
             title={formatMessage({
-              id: "cockpit.community.pools.readError.title",
+              id: "hub.community.pools.readError.title",
               defaultMessage: "Couldn’t read the protocol pool",
             })}
             description={formatMessage({
-              id: "cockpit.community.pools.readError.body",
+              id: "hub.community.pools.readError.body",
               defaultMessage:
                 "The module could not be reached. Nothing about the protocol pool has changed.",
             })}
@@ -236,7 +236,7 @@ function ProtocolOperations({
                 onClick={() => void protocolPool.refetch()}
               >
                 {formatMessage({
-                  id: "cockpit.garden.pool.readError.retry",
+                  id: "hub.garden.pool.readError.retry",
                   defaultMessage: "Try Again",
                 })}
               </Button>
@@ -255,11 +255,11 @@ function ProtocolOperations({
           <EmptyState
             icon={<RiSeedlingLine />}
             title={formatMessage({
-              id: "cockpit.community.pools.unregistered.title",
+              id: "hub.community.pools.unregistered.title",
               defaultMessage: "No protocol pool is registered yet",
             })}
             description={formatMessage({
-              id: "cockpit.community.pools.unregistered.body",
+              id: "hub.community.pools.unregistered.body",
               defaultMessage:
                 "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
             })}
@@ -273,19 +273,19 @@ function ProtocolOperations({
     <AdminCard
       className="space-y-2"
       aria-label={formatMessage({
-        id: "cockpit.community.pools.confirmations",
+        id: "hub.community.pools.confirmations",
         defaultMessage: "Protocol Confirmations",
       })}
     >
       <AdminCardTitle>
         {formatMessage({
-          id: "cockpit.community.pools.confirmations",
+          id: "hub.community.pools.confirmations",
           defaultMessage: "Protocol Confirmations",
         })}
       </AdminCardTitle>
       <p className="type-body text-text-soft">
         {formatMessage({
-          id: "cockpit.community.pools.confirmationsHint",
+          id: "hub.community.pools.confirmationsHint",
           defaultMessage:
             "Promises from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
         })}

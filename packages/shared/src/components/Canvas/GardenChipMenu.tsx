@@ -113,7 +113,7 @@ export function GardenChipMenu({
                 data-slot="create-action"
               >
                 <RiAddLine className="h-4 w-4" />
-                {formatMessage({ id: "cockpit.gardenChip.createGarden" })}
+                {formatMessage({ id: "hub.gardenChip.createGarden" })}
               </button>
             </>
           )}

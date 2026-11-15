@@ -38,7 +38,7 @@ export function SeedStepWhat({
       <AdminSelect
         id={`${noteId}-cycle`}
         label={formatMessage({
-          id: "cockpit.garden.pool.seed.contextQuestion",
+          id: "hub.garden.pool.seed.contextQuestion",
           defaultMessage: "What does this promise tie to?",
         })}
         value={values.cycleId}
@@ -59,13 +59,13 @@ export function SeedStepWhat({
           <fieldset className="space-y-2">
             <legend className="type-body font-medium text-text-strong">
               {formatMessage({
-                id: "cockpit.garden.pool.seed.workQuestion",
+                id: "hub.garden.pool.seed.workQuestion",
                 defaultMessage: "What type of work is it?",
               })}
             </legend>
             <AdminChoiceGroup
               ariaLabel={formatMessage({
-                id: "cockpit.garden.pool.seed.workQuestion",
+                id: "hub.garden.pool.seed.workQuestion",
                 defaultMessage: "What type of work is it?",
               })}
               value={field.value}
@@ -81,22 +81,22 @@ export function SeedStepWhat({
                 {
                   value: "SERVICE",
                   label: formatMessage({
-                    id: "cockpit.garden.pool.seed.work.support",
+                    id: "hub.garden.pool.seed.work.support",
                     defaultMessage: "Support",
                   }),
                   description: formatMessage({
-                    id: "cockpit.garden.pool.seed.kind.serviceHint",
+                    id: "hub.garden.pool.seed.kind.serviceHint",
                     defaultMessage: "Proof of the support or service delivered",
                   }),
                 },
                 {
                   value: "GARDEN_WORK",
                   label: formatMessage({
-                    id: "cockpit.garden.pool.seed.work.gardenWork",
+                    id: "hub.garden.pool.seed.work.gardenWork",
                     defaultMessage: "Garden work",
                   }),
                   description: formatMessage({
-                    id: "cockpit.garden.pool.seed.kind.gardenWorkHint",
+                    id: "hub.garden.pool.seed.kind.gardenWorkHint",
                     defaultMessage: "Linked work approved by garden stewards",
                   }),
                 },
@@ -111,7 +111,7 @@ export function SeedStepWhat({
         render={({ field }) => (
           <AdminChoiceGroup
             ariaLabel={formatMessage({
-              id: "cockpit.garden.pool.seed.direction",
+              id: "hub.garden.pool.seed.direction",
               defaultMessage: "What is the pool doing?",
             })}
             value={field.value}
@@ -121,14 +121,14 @@ export function SeedStepWhat({
               {
                 value: "OFFER",
                 label: formatMessage({
-                  id: "cockpit.garden.pool.seed.direction.offer",
+                  id: "hub.garden.pool.seed.direction.offer",
                   defaultMessage: "The pool offers",
                 }),
               },
               {
                 value: "REQUEST",
                 label: formatMessage({
-                  id: "cockpit.garden.pool.seed.direction.request",
+                  id: "hub.garden.pool.seed.direction.request",
                   defaultMessage: "The pool asks",
                 }),
               },
@@ -138,7 +138,7 @@ export function SeedStepWhat({
       />
       <AdminTextField
         label={formatMessage({
-          id: "cockpit.garden.pool.seed.titleField",
+          id: "hub.garden.pool.seed.titleField",
           defaultMessage: "Title",
         })}
         value={values.title}
@@ -156,7 +156,7 @@ export function SeedStepWhat({
       />
       <AdminTextArea
         id={noteId}
-        label={formatMessage({ id: "cockpit.garden.pool.seed.note", defaultMessage: "Note" })}
+        label={formatMessage({ id: "hub.garden.pool.seed.note", defaultMessage: "Note" })}
         value={values.note ?? ""}
         onChange={(event) => form.setValue("note", event.target.value, { shouldDirty: true })}
         error={errorOf("note")}

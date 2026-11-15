@@ -167,7 +167,7 @@ export function useCanvasShellController({
       {
         id: "profile",
         label: "Profile",
-        labelId: "cockpit.nav.profile",
+        labelId: "hub.nav.profile",
         icon: RiUserLine,
         path: adminRoutes.profile(),
         visible: true,

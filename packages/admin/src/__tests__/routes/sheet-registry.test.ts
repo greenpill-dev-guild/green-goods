@@ -15,13 +15,13 @@ import {
 describe("admin sheet registry", () => {
   it("registers global right sheet content", () => {
     expect(getRightSheetRegistryEntry(PROFILE_SHEET_CONTENT_ID)?.title.id).toBe(
-      "cockpit.profile.title"
+      "hub.profile.title"
     );
     expect(getRightSheetRegistryEntry(SETTINGS_SHEET_CONTENT_ID)?.title.id).toBe(
-      "cockpit.settings.title"
+      "hub.settings.title"
     );
     expect(getRightSheetRegistryEntry(NOTIFICATIONS_SHEET_CONTENT_ID)?.title.id).toBe(
-      "cockpit.notifications.title"
+      "hub.notifications.title"
     );
   });
 

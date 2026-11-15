@@ -52,7 +52,7 @@ export default function GardenView() {
       />
 
       <CanvasRouteHeader
-        title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
+        title={formatMessage({ id: "hub.garden.title", defaultMessage: "Garden" })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
@@ -66,7 +66,7 @@ export default function GardenView() {
       >
         <AdminTabRail
           ariaLabel={formatMessage({
-            id: "cockpit.garden.viewSwitcher",
+            id: "hub.garden.viewSwitcher",
             defaultMessage: "Garden views",
           })}
           activeId={garden.view}
@@ -75,7 +75,7 @@ export default function GardenView() {
             {
               id: "health",
               label: formatMessage({
-                id: "cockpit.garden.health",
+                id: "hub.garden.health",
                 defaultMessage: "Health",
               }),
               count: garden.derived.overviewAlerts.length || undefined,
@@ -87,7 +87,7 @@ export default function GardenView() {
                   {
                     id: "pool",
                     label: formatMessage({
-                      id: "cockpit.garden.pool.tab",
+                      id: "hub.garden.pool.tab",
                       defaultMessage: "Promises",
                     }),
                   },
@@ -96,14 +96,14 @@ export default function GardenView() {
             {
               id: "activity",
               label: formatMessage({
-                id: "cockpit.garden.activity",
+                id: "hub.garden.activity",
                 defaultMessage: "Activity",
               }),
             },
             {
               id: "impact",
               label: formatMessage({
-                id: "cockpit.garden.impact",
+                id: "hub.garden.impact",
                 defaultMessage: "Impact",
               }),
             },

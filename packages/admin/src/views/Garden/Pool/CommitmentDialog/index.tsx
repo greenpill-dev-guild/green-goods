@@ -104,7 +104,7 @@ function CommitmentRecord({
     }
   }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
-    id: "cockpit.garden.pool.offline",
+    id: "hub.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
 
@@ -124,7 +124,7 @@ function CommitmentRecord({
   const title =
     dialog.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
@@ -340,23 +340,23 @@ function CommitmentRecord({
         target={target}
         variant="warning"
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.title",
+          id: "hub.garden.pool.commitment.reconciliation.title",
           defaultMessage: "Count Approved Linked Work",
         })}
         description={`${formatMessage(
           {
-            id: "cockpit.garden.pool.commitment.reconciliation.body",
+            id: "hub.garden.pool.commitment.reconciliation.body",
             defaultMessage:
               "{count, plural, one {# approved link is} other {# approved links are}} waiting to count.",
           },
           { count: dialog.reconciliation.count }
         )} ${formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.warning",
+          id: "hub.garden.pool.commitment.reconciliation.warning",
           defaultMessage:
             "Counting work can make the promise ready for confirmation and freeze its contributor roster.",
         })}`}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.reconciliation.confirm",
+          id: "hub.garden.pool.commitment.reconciliation.confirm",
           defaultMessage: "Count Linked Work",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -364,7 +364,7 @@ function CommitmentRecord({
         onError={() =>
           toastService.error({
             title: formatMessage({
-              id: "cockpit.garden.pool.commitment.reconciliation.unavailable",
+              id: "hub.garden.pool.commitment.reconciliation.unavailable",
               defaultMessage: "Work decision readback is unavailable.",
             }),
             message: formatMessage({ id: "app.error.garden.tryAgain" }),

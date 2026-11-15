@@ -380,7 +380,7 @@ export function ManageMembersDialog({
         height="stable"
         tone={tone}
         title={formatMessage({
-          id: review ? "admin.manageRoles.reviewTitle" : "cockpit.community.members.manageRoles",
+          id: review ? "admin.manageRoles.reviewTitle" : "hub.community.members.manageRoles",
         })}
         target={gardenName}
         description={

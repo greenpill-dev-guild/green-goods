@@ -66,7 +66,7 @@ export default function HubView() {
       <HubFlowDialogs item={hub.routeItem} />
       {!hub.selectedGarden && !hub.routeWorkId && !hub.isSubmitRoute ? (
         <CanvasWorkspaceSelectionState
-          workspaceLabel={formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Review" })}
+          workspaceLabel={formatMessage({ id: "hub.nav.review", defaultMessage: "Review" })}
           gardens={hub.gardenOptions}
           onSelectGarden={hub.handleSelectGarden}
         />
@@ -79,9 +79,9 @@ export default function HubView() {
         >
           <CanvasRouteHeader
             wrapperClassName="hub-route-content flex flex-col gap-4 sm:gap-5"
-            title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Review" })}
+            title={formatMessage({ id: "hub.review.title", defaultMessage: "Review" })}
             description={formatMessage({
-              id: "cockpit.hub.description",
+              id: "hub.review.description",
               defaultMessage: "Review and triage pending submissions.",
             })}
             metadata={
@@ -112,7 +112,7 @@ export default function HubView() {
                       className="flex flex-wrap items-center gap-1.5"
                       role="group"
                       aria-label={formatMessage({
-                        id: "cockpit.hub.work.scope",
+                        id: "hub.review.work.scope",
                         defaultMessage: "Work status",
                       })}
                     >
@@ -153,7 +153,7 @@ export default function HubView() {
               }))}
               activeId={hub.stage}
               ariaLabel={formatMessage({
-                id: "cockpit.hub.tabRail",
+                id: "hub.review.tabRail",
                 defaultMessage: "Review pipeline stages",
               })}
               onChange={hub.handleStageChange}
@@ -169,7 +169,7 @@ export default function HubView() {
                 {hub.debouncedSearch &&
                   formatMessage(
                     {
-                      id: "cockpit.hub.resultsCount",
+                      id: "hub.review.resultsCount",
                       defaultMessage:
                         "{count, plural, one {# result found} other {# results found}}",
                     },

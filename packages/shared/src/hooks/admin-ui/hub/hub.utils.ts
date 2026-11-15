@@ -78,7 +78,7 @@ export function buildHubHeaderStats({
       id: "waiting-over-week",
       value: String(waitingOverWeekCount),
       label: formatMessage({
-        id: "cockpit.hub.stats.waitingOverWeek",
+        id: "hub.review.stats.waitingOverWeek",
         defaultMessage: "waiting over a week",
       }),
     },
@@ -115,7 +115,7 @@ export function parseWorkScope(value: string | null | undefined): HubWorkScope {
 export const PIPELINE_STAGE_CONFIG = [
   {
     id: "work" as const,
-    labelId: "cockpit.hub.tab.work",
+    labelId: "hub.review.tab.work",
     defaultMessage: "Work",
     icon: RiCheckLine,
   },
@@ -123,19 +123,19 @@ export const PIPELINE_STAGE_CONFIG = [
     // Promises waiting on the steward's confirmation (uiux-spec §6.9), second
     // on the rail (PRD-1045).
     id: "confirm" as const,
-    labelId: "cockpit.hub.tab.confirm",
+    labelId: "hub.review.tab.confirm",
     defaultMessage: "Confirm",
     icon: RiShakeHandsLine,
   },
   {
     id: "assess" as const,
-    labelId: "cockpit.hub.tab.assess",
+    labelId: "hub.review.tab.assess",
     defaultMessage: "Assessments",
     icon: RiFileList3Line,
   },
   {
     id: "certify" as const,
-    labelId: "cockpit.hub.tab.certify",
+    labelId: "hub.review.tab.certify",
     defaultMessage: "Hypercerts",
     icon: RiMedalLine,
   },
@@ -151,21 +151,21 @@ type FormatMessage = (
 ) => string;
 
 const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
-  work: { id: "cockpit.hub.tab.work", defaultMessage: "Work" },
-  assess: { id: "cockpit.hub.tab.assess", defaultMessage: "Assessments" },
-  certify: { id: "cockpit.hub.tab.certify", defaultMessage: "Hypercerts" },
-  confirm: { id: "cockpit.hub.tab.confirm", defaultMessage: "Confirm" },
+  work: { id: "hub.review.tab.work", defaultMessage: "Work" },
+  assess: { id: "hub.review.tab.assess", defaultMessage: "Assessments" },
+  certify: { id: "hub.review.tab.certify", defaultMessage: "Hypercerts" },
+  confirm: { id: "hub.review.tab.confirm", defaultMessage: "Confirm" },
 };
 
 const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
-  work: { id: "cockpit.hub.search.placeholder", defaultMessage: "Search submissions" },
-  assess: { id: "cockpit.hub.search.assessPlaceholder", defaultMessage: "Search assessments" },
+  work: { id: "hub.review.search.placeholder", defaultMessage: "Search submissions" },
+  assess: { id: "hub.review.search.assessPlaceholder", defaultMessage: "Search assessments" },
   certify: {
-    id: "cockpit.hub.search.certifyPlaceholder",
+    id: "hub.review.search.certifyPlaceholder",
     defaultMessage: "Search hypercerts",
   },
   confirm: {
-    id: "cockpit.hub.search.confirmPlaceholder",
+    id: "hub.review.search.confirmPlaceholder",
     defaultMessage: "Search promises to confirm",
   },
 };
@@ -227,7 +227,7 @@ export function buildHubViewActions(
     {
       id: "submit-work",
       label: "Submit work",
-      labelId: "cockpit.hub.action.submitWork",
+      labelId: "hub.review.action.submitWork",
       icon: RiAddLine,
       onClick: openFlow(SUBMIT_WORK_ROUTE_ITEM),
       variant: "secondary",
@@ -237,7 +237,7 @@ export function buildHubViewActions(
     {
       id: "create-assessment",
       label: "Create assessment",
-      labelId: "cockpit.hub.action.createAssessment",
+      labelId: "hub.review.action.createAssessment",
       icon: RiCheckLine,
       onClick: openFlow(CREATE_ASSESSMENT_ROUTE_ITEM),
       variant: "secondary",
@@ -247,7 +247,7 @@ export function buildHubViewActions(
     {
       id: "create-hypercert",
       label: "Create hypercert",
-      labelId: "cockpit.hub.action.createHypercert",
+      labelId: "hub.review.action.createHypercert",
       icon: RiMedalLine,
       onClick: openFlow(CREATE_HYPERCERT_ROUTE_ITEM),
       variant: "secondary",

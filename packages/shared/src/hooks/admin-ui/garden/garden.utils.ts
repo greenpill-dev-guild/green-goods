@@ -48,7 +48,7 @@ export function buildGardenHeaderStats({
       value: String(gardenerCount),
       label: formatMessage(
         {
-          id: "cockpit.garden.stats.gardeners",
+          id: "hub.garden.stats.gardeners",
           defaultMessage: "{count, plural, one {gardener} other {gardeners}}",
         },
         { count: gardenerCount }
@@ -62,7 +62,7 @@ export function buildGardenHeaderStats({
       value: String(impactCount),
       label: formatMessage(
         {
-          id: "cockpit.garden.stats.impact",
+          id: "hub.garden.stats.impact",
           defaultMessage: "{count, plural, one {impact} other {impacts}}",
         },
         { count: impactCount }
@@ -115,7 +115,7 @@ export function buildGardenViewActions(
     {
       id: "view-public",
       label: "View public",
-      labelId: "cockpit.garden.action.viewPublic",
+      labelId: "hub.garden.action.viewPublic",
       icon: RiExternalLinkLine,
       onClick: () => {
         if (!gardenAddress) return;
@@ -130,7 +130,7 @@ export function buildGardenViewActions(
     {
       id: "edit-garden",
       label: "Edit garden",
-      labelId: "cockpit.garden.action.editGarden",
+      labelId: "hub.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () =>
         pushRouteItem(

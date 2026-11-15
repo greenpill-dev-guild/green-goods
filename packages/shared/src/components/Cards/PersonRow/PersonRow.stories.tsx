@@ -47,7 +47,7 @@ function Column({ width, children }: { width: number; children: ReactNode }) {
 function Roster() {
   const { formatMessage, formatDate } = useIntl();
   const roles = (count: number) =>
-    formatMessage({ id: "cockpit.community.members.roleCount" }, { count });
+    formatMessage({ id: "hub.community.members.roleCount" }, { count });
   // The installed app's member detail, at noon UTC so every timezone reads the same day.
   const gardenerSince = formatMessage(
     { id: "app.garden.gardeners.gardenerSince" },

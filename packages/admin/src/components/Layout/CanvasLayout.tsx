@@ -55,7 +55,7 @@ export function AdminAccessHomeShell({
         <AdminSideSheet
           open={profileOpen}
           onOpenChange={setProfileOpen}
-          title={intl.formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
+          title={intl.formatMessage({ id: "hub.profile.title", defaultMessage: "Profile" })}
           tone="hub"
         >
           <AccountProfilePanelContainer />

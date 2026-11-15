@@ -90,20 +90,20 @@ export function PoolDialogs({
         tone={tone}
         variant="danger"
         title={formatMessage({
-          id: "cockpit.garden.pool.close.title",
+          id: "hub.garden.pool.close.title",
           defaultMessage: "Close This Pool",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.close.description",
+          id: "hub.garden.pool.close.description",
           defaultMessage:
             "Closing ends participation for every member. Every cycle is finished and no promise is live; history stays with the garden. Archiving and reopening stay available.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.close.confirm",
+          id: "hub.garden.pool.close.confirm",
           defaultMessage: "Close Pool",
         })}
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.close.keep",
+          id: "hub.garden.pool.close.keep",
           defaultMessage: "Keep Open",
         })}
         isLoading={pool.isActing}
@@ -120,20 +120,20 @@ export function PoolDialogs({
         tone={tone}
         variant="warning"
         title={formatMessage({
-          id: "cockpit.garden.pool.compost.title",
+          id: "hub.garden.pool.compost.title",
           defaultMessage: "Archive This Pool",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.compost.description",
+          id: "hub.garden.pool.compost.description",
           defaultMessage:
             "Archiving keeps this closed pool’s seasons, promises, reasons, and history readable. Reopening later begins from set-up.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.compost.confirm",
+          id: "hub.garden.pool.compost.confirm",
           defaultMessage: "Archive Pool",
         })}
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.compost.keep",
+          id: "hub.garden.pool.compost.keep",
           defaultMessage: "Keep Closed",
         })}
         isLoading={pool.isActing}
@@ -149,20 +149,20 @@ export function PoolDialogs({
         onClose={() => setConfirmDialog(null)}
         tone={tone}
         title={formatMessage({
-          id: "cockpit.garden.pool.reopen.title",
+          id: "hub.garden.pool.reopen.title",
           defaultMessage: "Reopen This Pool",
         })}
         description={formatMessage({
-          id: "cockpit.garden.pool.reopen.description",
+          id: "hub.garden.pool.reopen.description",
           defaultMessage:
             "Reopening moves the archived pool back to set-up. Members still cannot take part until a season opens again; history is preserved.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.reopen.confirm",
+          id: "hub.garden.pool.reopen.confirm",
           defaultMessage: "Reopen to Set-Up",
         })}
         cancelLabel={formatMessage({
-          id: "cockpit.garden.pool.reopen.keep",
+          id: "hub.garden.pool.reopen.keep",
           defaultMessage: "Keep Archived",
         })}
         isLoading={pool.isActing}

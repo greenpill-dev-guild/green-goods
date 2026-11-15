@@ -39,7 +39,7 @@ const COOLDOWN_PRESETS = [
 
 export function cooldownLabel(formatMessage: IntlShape["formatMessage"], seconds: bigint) {
   const secs = Number(seconds);
-  if (secs <= 0) return formatMessage({ id: "cockpit.community.payouts.noCooldown" });
+  if (secs <= 0) return formatMessage({ id: "hub.community.payouts.noCooldown" });
   if (secs >= 86_400) return `${Math.floor(secs / 86_400)}d`;
   if (secs >= 3_600) return `${Math.floor(secs / 3_600)}h`;
   if (secs >= 60) return `${Math.floor(secs / 60)}m`;

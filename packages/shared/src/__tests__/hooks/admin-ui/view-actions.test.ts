@@ -266,7 +266,7 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(visibleIds(actions)).toEqual(["add-member", "deposit-withdraw", "fund-payout-jar"]);
     expect(fund).toMatchObject({
       disabled: true,
-      disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+      disabledReasonId: "hub.community.action.fundPayoutJarNoJar",
       disabledReason: "This garden has no payout jar yet.",
     });
   });

@@ -66,7 +66,7 @@ describe("seedStepModel", () => {
       );
       expect(issue).toBeDefined();
       expect(seedErrorText(issue!.message, format)).toBe(
-        messages[`cockpit.garden.pool.seed.error.${key}`]
+        messages[`hub.garden.pool.seed.error.${key}`]
       );
     }
   });
@@ -91,13 +91,13 @@ describe("seedStepModel", () => {
     const open = { poolOpen: true, capacityOver: false, priceUnavailable: false };
     expect(seedBlockedReason(open)).toBeNull();
     expect(seedBlockedReason({ ...open, poolOpen: false, capacityOver: true })?.id).toBe(
-      "cockpit.garden.pool.seed.blocked.poolClosed"
+      "hub.garden.pool.seed.blocked.poolClosed"
     );
     expect(seedBlockedReason({ ...open, capacityOver: true })?.id).toBe(
-      "cockpit.garden.pool.seed.blocked.capacity"
+      "hub.garden.pool.seed.blocked.capacity"
     );
     expect(seedBlockedReason({ ...open, priceUnavailable: true })?.id).toBe(
-      "cockpit.garden.pool.seed.blocked.price"
+      "hub.garden.pool.seed.blocked.price"
     );
   });
 

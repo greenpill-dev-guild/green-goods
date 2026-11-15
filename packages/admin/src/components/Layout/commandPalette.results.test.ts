@@ -144,13 +144,13 @@ describe("buildCommandPaletteResults", () => {
     const staticRoutes = [
       {
         id: "page-community",
-        labelId: "cockpit.nav.community",
+        labelId: "hub.nav.community",
         defaultLabel: "Community",
         href: "/community",
       },
       {
         id: "page-cookies",
-        labelId: "cockpit.community.cookies.title",
+        labelId: "hub.community.cookies.title",
         defaultLabel: "Campaign cookie jars",
         href: "/cookies",
         permission: "showActions" as const,
@@ -195,14 +195,14 @@ describe("buildCommandPaletteResults", () => {
     const staticRoutes = [
       {
         id: "page-garden",
-        labelId: "cockpit.nav.garden",
+        labelId: "hub.nav.garden",
         defaultLabel: "Garden",
         href: "/garden",
         permission: "showGarden" as const,
       },
       {
         id: "page-community",
-        labelId: "cockpit.nav.community",
+        labelId: "hub.nav.community",
         defaultLabel: "Community",
         href: "/community",
         permission: "showCommunity" as const,

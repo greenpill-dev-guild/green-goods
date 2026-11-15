@@ -67,7 +67,7 @@ export function HubConfirmQueue({
   const titleOf = (row: ConfirmQueueRow) =>
     row.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
+      { id: "hub.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: row.commitment.commitmentId.toString() }
     );
 
@@ -82,11 +82,11 @@ export function HubConfirmQueue({
           tone="error"
           icon={<RiErrorWarningLine />}
           title={formatMessage({
-            id: "cockpit.hub.confirm.readError.title",
+            id: "hub.review.confirm.readError.title",
             defaultMessage: "The confirmation queue could not be read",
           })}
           description={formatMessage({
-            id: "cockpit.hub.confirm.readError.description",
+            id: "hub.review.confirm.readError.description",
             defaultMessage:
               "Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
           })}
@@ -98,7 +98,7 @@ export function HubConfirmQueue({
               onClick={() => void toConfirm.refetch()}
             >
               {formatMessage({
-                id: "cockpit.garden.pool.readError.retry",
+                id: "hub.garden.pool.readError.retry",
                 defaultMessage: "Try Again",
               })}
             </Button>
@@ -114,17 +114,17 @@ export function HubConfirmQueue({
         <EmptyState
           icon={<RiShakeHandsLine className="h-6 w-6" />}
           title={formatMessage({
-            id: "cockpit.hub.confirm.empty.title",
+            id: "hub.review.confirm.empty.title",
             defaultMessage: "Nothing to confirm",
           })}
           description={
             normalizedSearch.trim()
               ? formatMessage({
-                  id: "cockpit.hub.confirm.empty.search",
+                  id: "hub.review.confirm.empty.search",
                   defaultMessage: "Nothing waiting on you matches that search.",
                 })
               : formatMessage({
-                  id: "cockpit.hub.confirm.empty.description",
+                  id: "hub.review.confirm.empty.description",
                   defaultMessage:
                     "Promises kept and sent for this garden's confirmation, or yours, will wait here.",
                 })
@@ -148,7 +148,7 @@ export function HubConfirmQueue({
           const selectedRow = selectedCommitmentId === id;
           const progressLabel = formatMessage(
             {
-              id: "cockpit.hub.confirm.progress",
+              id: "hub.review.confirm.progress",
               defaultMessage: "{count} of {threshold} confirmed",
             },
             { count, threshold }
@@ -187,7 +187,7 @@ export function HubConfirmQueue({
                         ·{" "}
                         {formatMessage(
                           {
-                            id: "cockpit.hub.confirm.inPool",
+                            id: "hub.review.confirm.inPool",
                             defaultMessage: "in {garden}’s pool",
                           },
                           { garden: otherPool }
@@ -204,7 +204,7 @@ export function HubConfirmQueue({
                         ·{" "}
                         {formatMessage(
                           {
-                            id: "cockpit.hub.confirm.fromGroup",
+                            id: "hub.review.confirm.fromGroup",
                             defaultMessage: "from a group of {count}",
                           },
                           { count: row.groupSize }
@@ -216,7 +216,7 @@ export function HubConfirmQueue({
                 <StatusBadge variant={eligibility?.variant ?? "warning"} size="sm">
                   {eligibility?.label ??
                     formatMessage({
-                      id: "cockpit.hub.confirm.disputed",
+                      id: "hub.review.confirm.disputed",
                       defaultMessage: "Under review",
                     })}
                 </StatusBadge>
@@ -241,7 +241,7 @@ export function HubConfirmQueue({
                     onClick={() => onOpenCommitment(id)}
                   >
                     {formatMessage({
-                      id: "cockpit.hub.confirm.act.resolve",
+                      id: "hub.review.confirm.act.resolve",
                       defaultMessage: "Resolve…",
                     })}
                   </Button>
@@ -259,7 +259,7 @@ export function HubConfirmQueue({
                         disabled={actDisabled}
                       >
                         {formatMessage({
-                          id: "cockpit.hub.confirm.act.notYet",
+                          id: "hub.review.confirm.act.notYet",
                           defaultMessage: "Not yet…",
                         })}
                       </Button>
@@ -274,7 +274,7 @@ export function HubConfirmQueue({
                         disabled={queue.isConfirming}
                       >
                         {formatMessage({
-                          id: "cockpit.hub.confirm.act.confirm",
+                          id: "hub.review.confirm.act.confirm",
                           defaultMessage: "Confirm Kept…",
                         })}
                       </Button>
@@ -286,7 +286,7 @@ export function HubConfirmQueue({
                         onClick={() => onOpenCommitment(id)}
                       >
                         {formatMessage({
-                          id: "cockpit.hub.confirm.act.confirm",
+                          id: "hub.review.confirm.act.confirm",
                           defaultMessage: "Confirm Kept…",
                         })}
                       </Button>
@@ -306,7 +306,7 @@ export function HubConfirmQueue({
       {!queue.isOnline && queue.rows.length > 0 ? (
         <p className="mb-2 type-meta text-warning-dark" role="status">
           {formatMessage({
-            id: "cockpit.hub.confirm.offline",
+            id: "hub.review.confirm.offline",
             defaultMessage:
               "Confirmations queue on this device; disputes and fallbacks need a connection.",
           })}
@@ -328,29 +328,29 @@ export function HubConfirmQueue({
           ) : null
         }
         title={formatMessage({
-          id: "cockpit.hub.confirm.notYet.title",
+          id: "hub.review.confirm.notYet.title",
           defaultMessage: "Not Yet: Raise a Dispute",
         })}
         description={formatMessage({
-          id: "cockpit.hub.confirm.notYet.description",
+          id: "hub.review.confirm.notYet.description",
           defaultMessage:
             "Freezes the promise for review instead of confirming it. Members see “under review by stewards”, never dispute language.",
         })}
         confirmLabel={formatMessage({
-          id: "cockpit.garden.pool.commitment.dispute.confirm",
+          id: "hub.garden.pool.commitment.dispute.confirm",
           defaultMessage: "Raise Dispute",
         })}
         suggestions={[
           formatMessage({
-            id: "cockpit.garden.pool.commitment.dispute.suggestion.contested",
+            id: "hub.garden.pool.commitment.dispute.suggestion.contested",
             defaultMessage: "Delivery contested",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.dispute.suggestion.details",
+            id: "hub.garden.pool.commitment.dispute.suggestion.details",
             defaultMessage: "Details look wrong",
           }),
           formatMessage({
-            id: "cockpit.garden.pool.commitment.dispute.suggestion.secondLook",
+            id: "hub.garden.pool.commitment.dispute.suggestion.secondLook",
             defaultMessage: "Needs a second look",
           }),
         ]}
@@ -358,7 +358,7 @@ export function HubConfirmQueue({
           queue.isOnline
             ? undefined
             : formatMessage({
-                id: "cockpit.garden.pool.offline",
+                id: "hub.garden.pool.offline",
                 defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
               })
         }
@@ -393,7 +393,7 @@ export function HubConfirmQueue({
         size="lg"
         tone="hub"
         title={formatMessage({
-          id: "cockpit.garden.pool.commitment.title",
+          id: "hub.garden.pool.commitment.title",
           defaultMessage: "Promise",
         })}
         bodyClassName="p-0"
@@ -411,7 +411,7 @@ export function HubConfirmQueue({
           ) : (
             <p className="p-4 type-body text-text-soft">
               {formatMessage({
-                id: "cockpit.hub.confirm.notInQueue",
+                id: "hub.review.confirm.notInQueue",
                 defaultMessage: "This promise is not in your confirmation queue any more.",
               })}
             </p>
@@ -446,7 +446,7 @@ function ConfirmOutcome({
         </time>
         <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
           {formatMessage({
-            id: "cockpit.hub.confirm.outcome.confirmed",
+            id: "hub.review.confirm.outcome.confirmed",
             defaultMessage: "Confirmed",
           })}
         </StatusBadge>
@@ -457,11 +457,11 @@ function ConfirmOutcome({
     <StatusBadge variant="neutral" size="sm" showIcon={false}>
       {state.status === "queued"
         ? formatMessage({
-            id: "cockpit.hub.confirm.outcome.queued",
+            id: "hub.review.confirm.outcome.queued",
             defaultMessage: "Queued on this device",
           })
         : formatMessage({
-            id: "cockpit.garden.pool.approvals.gone",
+            id: "hub.garden.pool.approvals.gone",
             defaultMessage: "No longer waiting",
           })}
     </StatusBadge>

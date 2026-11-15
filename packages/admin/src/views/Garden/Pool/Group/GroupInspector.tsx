@@ -79,7 +79,7 @@ export function GroupInspector({
       "all",
       counts.published,
       formatMessage(
-        { id: "cockpit.garden.pool.group.scope.all", defaultMessage: "All ({count})" },
+        { id: "hub.garden.pool.group.scope.all", defaultMessage: "All ({count})" },
         { count: counts.published }
       ),
     ],
@@ -87,7 +87,7 @@ export function GroupInspector({
       "available",
       counts.available,
       formatMessage(
-        { id: "cockpit.garden.pool.group.scope.available", defaultMessage: "Available ({count})" },
+        { id: "hub.garden.pool.group.scope.available", defaultMessage: "Available ({count})" },
         { count: counts.available }
       ),
     ],
@@ -96,7 +96,7 @@ export function GroupInspector({
       counts.inProgress,
       formatMessage(
         {
-          id: "cockpit.garden.pool.group.scope.inProgress",
+          id: "hub.garden.pool.group.scope.inProgress",
           defaultMessage: "In progress ({count})",
         },
         { count: counts.inProgress }
@@ -106,7 +106,7 @@ export function GroupInspector({
       "kept",
       counts.kept,
       formatMessage(
-        { id: "cockpit.garden.pool.group.scope.kept", defaultMessage: "Kept ({count})" },
+        { id: "hub.garden.pool.group.scope.kept", defaultMessage: "Kept ({count})" },
         { count: counts.kept }
       ),
     ],
@@ -114,7 +114,7 @@ export function GroupInspector({
       "ended",
       counts.ended,
       formatMessage(
-        { id: "cockpit.garden.pool.group.scope.ended", defaultMessage: "Ended ({count})" },
+        { id: "hub.garden.pool.group.scope.ended", defaultMessage: "Ended ({count})" },
         { count: counts.ended }
       ),
     ],
@@ -125,13 +125,13 @@ export function GroupInspector({
       <p className="min-w-0 type-meta text-text-soft sm:flex-1">
         {canEditReward
           ? formatMessage({
-              id: "cockpit.garden.pool.group.editRewardNote",
+              id: "hub.garden.pool.group.editRewardNote",
               defaultMessage: "Edit Reward is open until one of this group is kept.",
             })
           : !canSeedMore
-            ? formatMessage({ id: "cockpit.garden.pool.group.rewardDeferredNote" })
+            ? formatMessage({ id: "hub.garden.pool.group.rewardDeferredNote" })
             : formatMessage({
-                id: "cockpit.garden.pool.group.seedMoreNote",
+                id: "hub.garden.pool.group.seedMoreNote",
                 defaultMessage: "Seed More Like This can add to this group or start a new one.",
               })}
       </p>
@@ -139,7 +139,7 @@ export function GroupInspector({
         {canEditReward ? (
           <Button type="button" emphasis="secondary" size="sm" onClick={onEditReward}>
             {formatMessage({
-              id: "cockpit.garden.pool.reward.title",
+              id: "hub.garden.pool.reward.title",
               defaultMessage: "Edit Reward",
             })}
           </Button>
@@ -153,7 +153,7 @@ export function GroupInspector({
             onClick={onSeedMore}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.seedMore.title",
+              id: "hub.garden.pool.seedMore.title",
               defaultMessage: "Seed More Like This",
             })}
           </Button>
@@ -174,10 +174,10 @@ export function GroupInspector({
       description={
         cycleName
           ? formatMessage(
-              { id: "cockpit.garden.pool.group.kicker", defaultMessage: "Group · {cycle}" },
+              { id: "hub.garden.pool.group.kicker", defaultMessage: "Group · {cycle}" },
               { cycle: cycleName }
             )
-          : formatMessage({ id: "cockpit.garden.pool.group.kickerPlain", defaultMessage: "Group" })
+          : formatMessage({ id: "hub.garden.pool.group.kickerPlain", defaultMessage: "Group" })
       }
       className="max-h-[min(700px,calc(100dvh-1rem))] sm:max-h-[min(720px,calc(100dvh-2rem))]"
       bodyClassName="p-0 sm:flex sm:flex-col sm:overflow-hidden"
@@ -187,7 +187,7 @@ export function GroupInspector({
         <section className="space-y-1">
           <AdminCardTitle as="h3">
             {formatMessage({
-              id: "cockpit.garden.pool.group.each",
+              id: "hub.garden.pool.group.each",
               defaultMessage: "Each promise",
             })}
           </AdminCardTitle>
@@ -204,14 +204,14 @@ export function GroupInspector({
         >
           <span>
             {formatMessage(
-              { id: "cockpit.garden.pool.group.total", defaultMessage: "<b>{count}</b> promises:" },
+              { id: "hub.garden.pool.group.total", defaultMessage: "<b>{count}</b> promises:" },
               { count: counts.published, b: bold }
             )}
           </span>
           <span>
             {formatMessage(
               {
-                id: "cockpit.garden.pool.group.available",
+                id: "hub.garden.pool.group.available",
                 defaultMessage: "<b>{count}</b> available",
               },
               { count: counts.available, b: bold }
@@ -220,7 +220,7 @@ export function GroupInspector({
           <span>
             {formatMessage(
               {
-                id: "cockpit.garden.pool.group.inProgress",
+                id: "hub.garden.pool.group.inProgress",
                 defaultMessage: "<b>{count}</b> in progress",
               },
               { count: counts.inProgress, b: bold }
@@ -228,14 +228,14 @@ export function GroupInspector({
           </span>
           <span>
             {formatMessage(
-              { id: "cockpit.garden.pool.group.kept", defaultMessage: "<b>{count}</b> kept" },
+              { id: "hub.garden.pool.group.kept", defaultMessage: "<b>{count}</b> kept" },
               { count: counts.kept, b: bold }
             )}
           </span>
           {counts.ended > 0 ? (
             <span>
               {formatMessage(
-                { id: "cockpit.garden.pool.group.ended", defaultMessage: "<b>{count}</b> ended" },
+                { id: "hub.garden.pool.group.ended", defaultMessage: "<b>{count}</b> ended" },
                 { count: counts.ended, b: bold }
               )}
             </span>
@@ -245,7 +245,7 @@ export function GroupInspector({
           className="flex flex-wrap gap-1.5"
           role="group"
           aria-label={formatMessage({
-            id: "cockpit.garden.pool.group.scope",
+            id: "hub.garden.pool.group.scope",
             defaultMessage: "Which promises to show",
           })}
         >
@@ -274,7 +274,7 @@ export function GroupInspector({
         />
         <p className="mt-3 type-meta text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.group.independent",
+            id: "hub.garden.pool.group.independent",
             defaultMessage:
               "Each promise is confirmed on its own. There is no group approval, and one finishing never waits for the others.",
           })}

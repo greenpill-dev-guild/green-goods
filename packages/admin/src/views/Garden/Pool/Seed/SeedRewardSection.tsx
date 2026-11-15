@@ -46,7 +46,7 @@ export function SeedRewardSection({
   const cents = rewardCentsOf(values);
   const unavailable = priceUnavailableReason(price, formatMessage);
   const question = formatMessage({
-    id: "cockpit.garden.pool.seed.rewardQuestion",
+    id: "hub.garden.pool.seed.rewardQuestion",
     defaultMessage: "Does this come with a reward?",
   });
 
@@ -80,14 +80,14 @@ export function SeedRewardSection({
     (cents !== null && cents > 0n && price.status === "ready"
       ? formatMessage(
           {
-            id: "cockpit.garden.pool.seed.rewardEstimate",
+            id: "hub.garden.pool.seed.rewardEstimate",
             defaultMessage:
               "About {amount} G$ at today's rate. The G$ amount is fixed when you create.",
           },
           { amount: formatGoodDollars(usdCentsToGoodDollarWei(cents, price.price), locale) }
         )
       : formatMessage({
-          id: "cockpit.garden.pool.seed.rewardRate",
+          id: "hub.garden.pool.seed.rewardRate",
           defaultMessage: "Paid in G$ at today's rate. The G$ amount is fixed when you create.",
         }));
 
@@ -103,9 +103,9 @@ export function SeedRewardSection({
           {
             value: "no",
             disabled: busy,
-            label: formatMessage({ id: "cockpit.garden.pool.seed.rewardNo", defaultMessage: "No" }),
+            label: formatMessage({ id: "hub.garden.pool.seed.rewardNo", defaultMessage: "No" }),
             description: formatMessage({
-              id: "cockpit.garden.pool.seed.rewardNoHint",
+              id: "hub.garden.pool.seed.rewardNoHint",
               defaultMessage: "Nothing is paid",
             }),
           },
@@ -113,16 +113,16 @@ export function SeedRewardSection({
             value: "yes",
             disabled: busy || !settlementActive,
             label: formatMessage({
-              id: "cockpit.garden.pool.seed.rewardYes",
+              id: "hub.garden.pool.seed.rewardYes",
               defaultMessage: "Yes",
             }),
             description: settlementActive
               ? formatMessage({
-                  id: "cockpit.garden.pool.seed.rewardYesHint",
+                  id: "hub.garden.pool.seed.rewardYesHint",
                   defaultMessage: "Paid in G$ after each one is kept",
                 })
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.rail.celoUnavailable",
+                  id: "hub.garden.pool.seed.rail.celoUnavailable",
                   defaultMessage: "Needs this garden's settlement account to be active first",
                 }),
           },
@@ -132,7 +132,7 @@ export function SeedRewardSection({
         <div className="space-y-1">
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.seed.rewardAmountUsd",
+              id: "hub.garden.pool.seed.rewardAmountUsd",
               defaultMessage: "Amount for each (USD)",
             })}
             value={values.considerationUsd ?? ""}
@@ -153,14 +153,14 @@ export function SeedRewardSection({
             {cents !== null && cents > 0n && count > 1
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.seed.rewardTotal",
+                    id: "hub.garden.pool.seed.rewardTotal",
                     defaultMessage:
                       "Up to {total} if all {count} are kept, paid in G$ through this garden's settlement account. Nothing is reserved or paid here.",
                   },
                   { total: formatUsd(cents * BigInt(count), locale), count }
                 )
               : formatMessage({
-                  id: "cockpit.garden.pool.seed.rewardTotalOne",
+                  id: "hub.garden.pool.seed.rewardTotalOne",
                   defaultMessage:
                     "Paid in G$ through this garden's settlement account once it's kept. Nothing is reserved or paid here.",
                 })}

@@ -15,7 +15,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "hub",
     label: "Review",
-    labelId: "cockpit.nav.hub",
+    labelId: "hub.nav.review",
     icon: () => null,
     path: "/hub",
     visible: true,
@@ -23,7 +23,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "garden",
     label: "Garden",
-    labelId: "cockpit.nav.garden",
+    labelId: "hub.nav.garden",
     icon: () => null,
     path: "/garden",
     visible: true,
@@ -31,7 +31,7 @@ const slots: ToolbarSlot[] = [
   {
     id: "community",
     label: "Community",
-    labelId: "cockpit.nav.community",
+    labelId: "hub.nav.community",
     icon: () => null,
     path: "/community",
     visible: true,
@@ -123,7 +123,7 @@ describe("NavigationBar", () => {
                 id: "submit-work",
                 icon: () => null,
                 label: "Submit Work",
-                labelId: "cockpit.hub.action.submitWork",
+                labelId: "hub.review.action.submitWork",
               },
             ],
             onAction: vi.fn(),

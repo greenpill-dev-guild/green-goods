@@ -79,7 +79,7 @@ export function GardenChip({
   const displayName =
     selectedGarden?.name ??
     emptyLabel ??
-    formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select Garden" });
+    formatMessage({ id: "hub.gardenChip.selectGarden", defaultMessage: "Select Garden" });
 
   const hasMultiple = gardens.length >= 2;
   // A capsule on the raised surface with a 1px edge and no shadow: 36px with

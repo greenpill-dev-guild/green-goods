@@ -317,7 +317,7 @@ export default function WorkDetail() {
   const baseHeaderProps = {
     backLink: {
       to: adminRoutes.hub(hubContext),
-      label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Review" }),
+      label: formatMessage({ id: "hub.nav.review", defaultMessage: "Review" }),
     },
     sticky: true,
   } as const;

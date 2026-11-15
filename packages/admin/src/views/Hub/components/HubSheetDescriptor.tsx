@@ -134,11 +134,11 @@ export function HubSheetDescriptor({
           <SheetResolutionState
             isResolving={isResolvingSelection}
             loadingLabel={formatMessage({
-              id: "cockpit.hub.sheet.resolving",
+              id: "hub.review.sheet.resolving",
               defaultMessage: "Loading selection...",
             })}
             message={formatMessage({
-              id: "cockpit.hub.sheet.assessmentNotFound",
+              id: "hub.review.sheet.assessmentNotFound",
               defaultMessage: "Assessment could not be found.",
             })}
           />

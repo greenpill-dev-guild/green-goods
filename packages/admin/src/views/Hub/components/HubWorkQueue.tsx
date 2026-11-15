@@ -42,16 +42,16 @@ const EMPTY_SCOPE_COPY: Record<
   }
 > = {
   pending: {
-    title: { id: "cockpit.work.allCaughtUp", defaultMessage: "All caught up" },
+    title: { id: "hub.work.allCaughtUp", defaultMessage: "All caught up" },
     description: {
-      id: "cockpit.work.allCaughtUpDescription",
+      id: "hub.work.allCaughtUpDescription",
       defaultMessage: "Work submitted to this garden waits here for review.",
     },
   },
   approved: {
-    title: { id: "cockpit.work.noApproved", defaultMessage: "No approved work yet" },
+    title: { id: "hub.work.noApproved", defaultMessage: "No approved work yet" },
     description: {
-      id: "cockpit.work.noApprovedDescription",
+      id: "hub.work.noApprovedDescription",
       defaultMessage: "Work you approve moves here from Pending.",
     },
   },
@@ -60,9 +60,9 @@ const EMPTY_SCOPE_COPY: Record<
 // While older work is not loaded, a scope that finds nothing in the newest page
 // cannot say the garden has none, so it names where it looked instead.
 const EMPTY_RECENT_SCOPE_TITLE: Record<HubWorkScope, { id: string; defaultMessage: string }> = {
-  pending: { id: "cockpit.work.noRecentPending", defaultMessage: "Nothing pending in recent work" },
+  pending: { id: "hub.work.noRecentPending", defaultMessage: "Nothing pending in recent work" },
   approved: {
-    id: "cockpit.work.noRecentApproved",
+    id: "hub.work.noRecentApproved",
     defaultMessage: "Nothing approved in recent work",
   },
 };
@@ -183,7 +183,7 @@ function HubWorkQueueItem({
       actionDomain={actionSummary?.domain}
       actionTitle={actionSummary?.title}
       gardenName={
-        selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Review" })
+        selectedGardenName ?? formatMessage({ id: "hub.nav.review", defaultMessage: "Review" })
       }
       gardenerDisplayName={gardenerDisplayName}
       // The card reads its own state: a waiting card is a neutral Pending with
@@ -206,8 +206,8 @@ export function HubWorkQueue(props: HubWorkQueueProps) {
     <>
       {reviewBatch?.holdFeedback ? <TxHoldFeedback {...reviewBatch.holdFeedback} /> : null}
       {props.hasDataError && props.items.length > 0 ? (
-        <Alert variant="error" title={formatMessage({ id: "cockpit.hub.error.title" })}>
-          {formatMessage({ id: "cockpit.hub.error.description" })}
+        <Alert variant="error" title={formatMessage({ id: "hub.review.error.title" })}>
+          {formatMessage({ id: "hub.review.error.description" })}
         </Alert>
       ) : null}
       <HubWorkQueueList {...props} />
@@ -236,11 +236,11 @@ function HubWorkQueueList({
   const { formatMessage } = useIntl();
   const isPhone = useMediaQuery(PHONE_QUERY);
   const olderLabel = formatMessage({
-    id: "cockpit.hub.work.showOlder",
+    id: "hub.review.work.showOlder",
     defaultMessage: "Show Older Work",
   });
   const olderNotLoaded = formatMessage({
-    id: "cockpit.hub.work.olderNotLoaded",
+    id: "hub.review.work.olderNotLoaded",
     defaultMessage: "Older work isn't loaded yet.",
   });
   // From the cockpit's desktop breakpoint each card lies wide, its mosaic on
@@ -255,11 +255,11 @@ function HubWorkQueueList({
           tone="error"
           icon={<RiErrorWarningLine />}
           title={formatMessage({
-            id: "cockpit.hub.error.title",
+            id: "hub.review.error.title",
             defaultMessage: "Review data could not be loaded",
           })}
           description={formatMessage({
-            id: "cockpit.hub.error.description",
+            id: "hub.review.error.description",
             defaultMessage: "Refresh the workspace and try again.",
           })}
           // Without loaded work, the retry belongs in the empty error state.
@@ -294,7 +294,7 @@ function HubWorkQueueList({
           icon={<RiSearchLine className="h-6 w-6" />}
           title={formatMessage(
             {
-              id: "cockpit.hub.noResults",
+              id: "hub.review.noResults",
               defaultMessage: 'No submissions matching "{query}"',
             },
             { query: debouncedSearch }
@@ -305,7 +305,7 @@ function HubWorkQueueList({
               {older ? <HubShowOlderButton older={older} label={olderLabel} /> : null}
               <Button type="button" emphasis="tertiary" size="compact" onClick={onClearSearch}>
                 {formatMessage({
-                  id: "cockpit.hub.clearSearch",
+                  id: "hub.review.clearSearch",
                   defaultMessage: "Clear Search",
                 })}
               </Button>

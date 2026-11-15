@@ -41,7 +41,7 @@ export default function CreateAssessment() {
   // Assessment); the final button still reads Submit Assessment
   // (app.assessment.submitAssessment), the act it performs.
   const title = formatMessage({
-    id: "cockpit.assessment.createTitle",
+    id: "hub.assessment.createTitle",
     defaultMessage: "Create Assessment",
   });
 
@@ -191,7 +191,7 @@ export default function CreateAssessment() {
         preventClose={createAssessment.isSubmitting}
         title={title}
         description={formatMessage({
-          id: "cockpit.assessment.createDescription",
+          id: "hub.assessment.createDescription",
           defaultMessage: "Describe the work, its goals, and the period it covers.",
         })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"

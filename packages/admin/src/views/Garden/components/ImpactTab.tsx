@@ -156,7 +156,7 @@ export function ImpactTab({
                       canCertify ? (
                         <Button emphasis="secondary" size="compact" asChild>
                           <Link to={adminRoutes.hubCertifyCreate(gardenRouteContext)}>
-                            {formatMessage({ id: "cockpit.hub.action.createHypercert" })}
+                            {formatMessage({ id: "hub.review.action.createHypercert" })}
                           </Link>
                         </Button>
                       ) : undefined
@@ -243,7 +243,7 @@ export function ImpactTab({
                       canReview ? (
                         <Button emphasis="secondary" size="compact" asChild>
                           <Link to={adminRoutes.hubAssessCreate(gardenRouteContext)}>
-                            {formatMessage({ id: "cockpit.hub.action.createAssessment" })}
+                            {formatMessage({ id: "hub.review.action.createAssessment" })}
                           </Link>
                         </Button>
                       ) : undefined

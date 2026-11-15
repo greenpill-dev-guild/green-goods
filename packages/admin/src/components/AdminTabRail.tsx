@@ -261,7 +261,7 @@ export function AdminTabRail({
                   className="pointer-events-none select-none"
                 />
                 <span className="sr-only">
-                  {formatMessage({ id: "cockpit.tabRail.waitingCount" }, { count: tab.count })}
+                  {formatMessage({ id: "hub.tabRail.waitingCount" }, { count: tab.count })}
                 </span>
               </>
             ) : null}

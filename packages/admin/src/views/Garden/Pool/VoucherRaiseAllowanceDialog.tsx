@@ -66,7 +66,7 @@ export function VoucherRaiseAllowanceDialog({
           tone={tone}
           title={formatMessage(
             {
-              id: "cockpit.garden.pool.voucher.raise.title",
+              id: "hub.garden.pool.voucher.raise.title",
               defaultMessage: "Raise the Allowance for {garden}",
             },
             { garden: reserve?.allowance.garden ?? "" }
@@ -75,7 +75,7 @@ export function VoucherRaiseAllowanceDialog({
             waiting
               ? formatMessage(
                   {
-                    id: "cockpit.garden.pool.voucher.reserve.shortTitle",
+                    id: "hub.garden.pool.voucher.reserve.shortTitle",
                     defaultMessage:
                       "{name}’s reward of {count, plural, one {# voucher} other {# vouchers}} is waiting.",
                   },
@@ -84,7 +84,7 @@ export function VoucherRaiseAllowanceDialog({
               : undefined
           }
           confirmLabel={formatMessage({
-            id: "cockpit.garden.pool.voucher.raise.confirm",
+            id: "hub.garden.pool.voucher.raise.confirm",
             defaultMessage: "Raise Allowance",
           })}
           confirmDisabled={disabled || !valid}
@@ -97,21 +97,21 @@ export function VoucherRaiseAllowanceDialog({
             <FactList frame="card">
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.fact.allowance",
+                  id: "hub.garden.pool.voucher.fact.allowance",
                   defaultMessage: "Allowance",
                 })}
                 value={
                   reserve.allowance.left === 0n
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.fact.allowanceUsed",
+                          id: "hub.garden.pool.voucher.fact.allowanceUsed",
                           defaultMessage: "{count}, all used",
                         },
                         { count: count(reserve.allowance.limit) }
                       )
                     : formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.reserve.allowanceLeft",
+                          id: "hub.garden.pool.voucher.reserve.allowanceLeft",
                           defaultMessage: "{left} left of {of}",
                         },
                         {
@@ -124,14 +124,14 @@ export function VoucherRaiseAllowanceDialog({
               {waiting ? (
                 <FactRow
                   label={formatMessage({
-                    id: "cockpit.garden.pool.voucher.fact.waiting",
+                    id: "hub.garden.pool.voucher.fact.waiting",
                     defaultMessage: "Waiting rewards",
                   })}
                   value={
                     <FactValue
                       value={formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.vouchers",
+                          id: "hub.garden.pool.voucher.vouchers",
                           defaultMessage:
                             "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
                         },
@@ -139,7 +139,7 @@ export function VoucherRaiseAllowanceDialog({
                       )}
                       note={formatMessage(
                         {
-                          id: "cockpit.garden.pool.voucher.fact.waitingNote",
+                          id: "hub.garden.pool.voucher.fact.waitingNote",
                           defaultMessage: "{name}, {title}",
                         },
                         { name, title: waiting.title }
@@ -150,7 +150,7 @@ export function VoucherRaiseAllowanceDialog({
               ) : null}
               <FactRow
                 label={formatMessage({
-                  id: "cockpit.garden.pool.voucher.reserve.inReserve",
+                  id: "hub.garden.pool.voucher.reserve.inReserve",
                   defaultMessage: "In reserve",
                 })}
                 value={count(reserve.inReserve)}
@@ -159,7 +159,7 @@ export function VoucherRaiseAllowanceDialog({
           ) : null}
           <AdminTextField
             label={formatMessage({
-              id: "cockpit.garden.pool.voucher.raise.field",
+              id: "hub.garden.pool.voucher.raise.field",
               defaultMessage: "New allowance",
             })}
             value={text}
@@ -170,21 +170,21 @@ export function VoucherRaiseAllowanceDialog({
                 : waiting && raise?.coversWaiting === false
                   ? formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.raise.belowWaiting",
+                        id: "hub.garden.pool.voucher.raise.belowWaiting",
                         defaultMessage: "At least {count}, so the waiting reward can be sent",
                       },
                       { count: count(waiting.units) }
                     )
                   : formatMessage(
                       {
-                        id: "cockpit.garden.pool.voucher.raise.tooLow",
+                        id: "hub.garden.pool.voucher.raise.tooLow",
                         defaultMessage: "More than the {left} left now",
                       },
                       { left: count(reserve?.allowance.left ?? 0n) }
                     )
             }
             helperText={formatMessage({
-              id: "cockpit.garden.pool.voucher.raise.hint",
+              id: "hub.garden.pool.voucher.raise.hint",
               defaultMessage: "Vouchers still come from your reserve",
             })}
             inputProps={{ inputMode: "decimal", autoComplete: "off" }}
@@ -192,12 +192,12 @@ export function VoucherRaiseAllowanceDialog({
           <Alert
             variant="info"
             title={formatMessage({
-              id: "cockpit.garden.pool.voucher.raise.noteTitle",
+              id: "hub.garden.pool.voucher.raise.noteTitle",
               defaultMessage: "Lets promised rewards be sent",
             })}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.voucher.raise.noteBody",
+              id: "hub.garden.pool.voucher.raise.noteBody",
               defaultMessage:
                 "It doesn’t create vouchers. Then the waiting reward can be retried, and it’s sent only once.",
             })}

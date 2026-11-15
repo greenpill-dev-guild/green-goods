@@ -42,9 +42,9 @@ const STATUS: Record<
 
 /** The pool listing's words, as the Voucher Issuers card says them. */
 const POOL_STATUS = {
-  setup: { id: "cockpit.community.voucherIssuers.st.setup", defaultMessage: "Setup pending" },
-  listed: { id: "cockpit.community.voucherIssuers.st.listed", defaultMessage: "Listed" },
-  delisted: { id: "cockpit.community.voucherIssuers.st.delisted", defaultMessage: "Delisted" },
+  setup: { id: "hub.community.voucherIssuers.st.setup", defaultMessage: "Setup pending" },
+  listed: { id: "hub.community.voucherIssuers.st.listed", defaultMessage: "Listed" },
+  delisted: { id: "hub.community.voucherIssuers.st.delisted", defaultMessage: "Delisted" },
 } as const;
 
 /** The issuer's name, else its token's symbol, else its account, so a line never has a hole. */
@@ -63,7 +63,7 @@ function poolAdmissionRows(
   const { admission } = payment;
   if (!admission) return null;
   const label = formatMessage({
-    id: "cockpit.garden.pool.outcome.payment.listing",
+    id: "hub.garden.pool.outcome.payment.listing",
     defaultMessage: "Pool listing",
   });
   if (admission.status === "unread") {
@@ -71,7 +71,7 @@ function poolAdmissionRows(
       <FactRow
         label={label}
         value={formatMessage({
-          id: "cockpit.garden.pool.outcome.payment.unread",
+          id: "hub.garden.pool.outcome.payment.unread",
           defaultMessage: "Not read",
         })}
       />
@@ -89,7 +89,7 @@ function poolAdmissionRows(
             <FactValue
               value={status}
               note={formatMessage({
-                id: "cockpit.garden.pool.outcome.payment.delistedNote",
+                id: "hub.garden.pool.outcome.payment.delistedNote",
                 defaultMessage: "The pool takes in no more",
               })}
             />
@@ -101,14 +101,14 @@ function poolAdmissionRows(
       {admission.status === "setup" ? null : (
         <FactRow
           label={formatMessage({
-            id: "cockpit.community.voucherIssuers.df.cap",
+            id: "hub.community.voucherIssuers.df.cap",
             defaultMessage: "Pool holding limit",
           })}
           value={
             <FactValue
               value={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.vouchers",
+                  id: "hub.garden.pool.voucher.vouchers",
                   defaultMessage:
                     "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
                 },
@@ -119,7 +119,7 @@ function poolAdmissionRows(
               )}
               note={formatMessage(
                 {
-                  id: "cockpit.garden.pool.outcome.payment.holding",
+                  id: "hub.garden.pool.outcome.payment.holding",
                   defaultMessage: "{count, number} in the pool now",
                 },
                 { count: voucherCount(admission.holding, decimals) }
@@ -136,7 +136,7 @@ function poolAdmissionRows(
 function rewardAmount(reward: CommitmentRewardOutcome, intl: IntlShape): string {
   if (reward.kind === "gd") {
     return intl.formatMessage(
-      { id: "cockpit.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
+      { id: "hub.garden.pool.reward.inGoodDollars", defaultMessage: "{amount} G$" },
       {
         amount: formatTokenAmount(reward.amount, reward.asset.decimals ?? 18, 2, intl.locale, true),
       }
@@ -144,7 +144,7 @@ function rewardAmount(reward: CommitmentRewardOutcome, intl: IntlShape): string 
   }
   return intl.formatMessage(
     {
-      id: "cockpit.garden.pool.voucher.vouchers",
+      id: "hub.garden.pool.voucher.vouchers",
       defaultMessage: "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
     },
     {
@@ -161,23 +161,23 @@ function rewardDetail(reward: CommitmentRewardOutcome, formatMessage: FormatMess
     switch (reward.status) {
       case "received":
         return formatMessage({
-          id: "cockpit.garden.pool.outcome.gd.received",
+          id: "hub.garden.pool.outcome.gd.received",
           defaultMessage: "Paid on Celo",
         });
       case "delayed":
         return formatMessage({
-          id: "cockpit.garden.pool.outcome.gd.delayed",
+          id: "hub.garden.pool.outcome.gd.delayed",
           defaultMessage:
             "The payout didn’t go through, and nothing was paid. Retrying sends the same payout once.",
         });
       case "after-work":
         return formatMessage({
-          id: "cockpit.garden.pool.outcome.gd.afterWork",
+          id: "hub.garden.pool.outcome.gd.afterWork",
           defaultMessage: "Paid on Celo by the payout plan once the work is confirmed",
         });
       default:
         return formatMessage({
-          id: "cockpit.garden.pool.outcome.gd.onTheWay",
+          id: "hub.garden.pool.outcome.gd.onTheWay",
           defaultMessage: "The payout is running on Celo",
         });
     }
@@ -190,7 +190,7 @@ function rewardDetail(reward: CommitmentRewardOutcome, formatMessage: FormatMess
     case "received":
       return formatMessage(
         {
-          id: "cockpit.garden.pool.outcome.voucher.received",
+          id: "hub.garden.pool.outcome.voucher.received",
           defaultMessage: "Sent from {issuer}’s reserve",
         },
         { issuer }
@@ -199,27 +199,27 @@ function rewardDetail(reward: CommitmentRewardOutcome, formatMessage: FormatMess
       return reward.shortOf === "reserve"
         ? formatMessage(
             {
-              id: "cockpit.garden.pool.outcome.voucher.waitingReserve",
+              id: "hub.garden.pool.outcome.voucher.waitingReserve",
               defaultMessage: "Waits for {issuer} to top up its reserve. It isn’t lost.",
             },
             { issuer }
           )
         : formatMessage(
             {
-              id: "cockpit.garden.pool.outcome.voucher.waitingAllowance",
+              id: "hub.garden.pool.outcome.voucher.waitingAllowance",
               defaultMessage: "Waits for {issuer} to raise the allowance. It isn’t lost.",
             },
             { issuer }
           );
     case "delayed":
       return formatMessage({
-        id: "cockpit.garden.pool.outcome.voucher.delayed",
+        id: "hub.garden.pool.outcome.voucher.delayed",
         defaultMessage: "The delivery didn’t go through. It’s retried and sent only once.",
       });
     case "after-work":
       return formatMessage(
         {
-          id: "cockpit.garden.pool.outcome.voucher.afterWork",
+          id: "hub.garden.pool.outcome.voucher.afterWork",
           defaultMessage: "From {issuer}’s reserve once the work is confirmed",
         },
         { issuer }
@@ -227,7 +227,7 @@ function rewardDetail(reward: CommitmentRewardOutcome, formatMessage: FormatMess
     default:
       return formatMessage(
         {
-          id: "cockpit.garden.pool.outcome.voucher.onTheWay",
+          id: "hub.garden.pool.outcome.voucher.onTheWay",
           defaultMessage: "Being sent from {issuer}’s reserve",
         },
         { issuer }
@@ -251,7 +251,7 @@ export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) 
     reward.kind === "gd"
       ? formatMessage({ id: "app.voucher.rw.sh.gd", defaultMessage: "G$" })
       : formatMessage({
-          id: "cockpit.garden.pool.voucher.fact.vouchers",
+          id: "hub.garden.pool.voucher.fact.vouchers",
           defaultMessage: "Vouchers",
         });
 
@@ -266,13 +266,13 @@ export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) 
           <div>
             <AdminCardTitle as="h4" id="commitment-rewards-title">
               {formatMessage({
-                id: "cockpit.garden.pool.outcome.title",
+                id: "hub.garden.pool.outcome.title",
                 defaultMessage: "Rewards",
               })}
             </AdminCardTitle>
             <p className="mt-1 type-meta text-text-soft">
               {formatMessage({
-                id: "cockpit.garden.pool.outcome.description",
+                id: "hub.garden.pool.outcome.description",
                 defaultMessage:
                   "Each reward is sent on its own, with its own receipt. Nothing is set aside before the work is confirmed.",
               })}
@@ -317,14 +317,14 @@ export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) 
                   {reward.receipt
                     ? formatMessage(
                         {
-                          id: "cockpit.garden.pool.outcome.receipt",
+                          id: "hub.garden.pool.outcome.receipt",
                           defaultMessage: "{reward}: {receipt}",
                         },
                         { reward: label(reward), receipt: reward.receipt }
                       )
                     : formatMessage(
                         {
-                          id: "cockpit.garden.pool.outcome.noReceipt",
+                          id: "hub.garden.pool.outcome.noReceipt",
                           defaultMessage: "{reward}: no receipt yet",
                         },
                         { reward: label(reward) }
@@ -342,19 +342,19 @@ export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) 
         >
           <AdminCardTitle as="h4" id="commitment-voucher-payment-title">
             {formatMessage({
-              id: "cockpit.garden.pool.outcome.payment.title",
+              id: "hub.garden.pool.outcome.payment.title",
               defaultMessage: "Voucher Payment",
             })}
           </AdminCardTitle>
           <FactList frame="inset">
             <FactRow
               label={formatMessage({
-                id: "cockpit.garden.pool.outcome.payment.booking",
+                id: "hub.garden.pool.outcome.payment.booking",
                 defaultMessage: "A booking takes",
               })}
               value={formatMessage(
                 {
-                  id: "cockpit.garden.pool.voucher.vouchers",
+                  id: "hub.garden.pool.voucher.vouchers",
                   defaultMessage:
                     "{count, plural, one {# {issuer} voucher} other {# {issuer} vouchers}}",
                 },
@@ -366,11 +366,11 @@ export function CommitmentVoucherOutcomes({ outcomes }: { outcomes: Outcomes }) 
             />
             <FactRow
               label={formatMessage({
-                id: "cockpit.garden.pool.voucher.fact.terms",
+                id: "hub.garden.pool.voucher.fact.terms",
                 defaultMessage: "Terms",
               })}
               value={formatMessage(
-                { id: "cockpit.garden.pool.voucher.version", defaultMessage: "Version {version}" },
+                { id: "hub.garden.pool.voucher.version", defaultMessage: "Version {version}" },
                 { version: payment.revision.toString() }
               )}
             />

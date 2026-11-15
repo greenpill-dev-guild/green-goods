@@ -92,7 +92,7 @@ function HubMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
         {
           id: "hub",
           label: "Review",
-          labelId: "cockpit.nav.hub",
+          labelId: "hub.nav.review",
           icon: TestIcon,
           path: "/hub",
           visible: true,
@@ -100,7 +100,7 @@ function HubMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
         {
           id: "garden",
           label: "Garden",
-          labelId: "cockpit.nav.garden",
+          labelId: "hub.nav.garden",
           icon: TestIcon,
           path: "/garden",
           visible: true,

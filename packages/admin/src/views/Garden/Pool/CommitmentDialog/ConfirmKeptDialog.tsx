@@ -55,7 +55,7 @@ export function ConfirmKeptDialog({
       onClose={onClose}
       tone={tone}
       title={formatMessage({
-        id: "cockpit.garden.pool.confirmKept.title",
+        id: "hub.garden.pool.confirmKept.title",
         defaultMessage: "Confirm This Promise Kept",
       })}
       target={
@@ -67,7 +67,7 @@ export function ConfirmKeptDialog({
             keptBy
               ? {
                   label: formatMessage({
-                    id: "cockpit.garden.pool.confirmKept.keptBy",
+                    id: "hub.garden.pool.confirmKept.keptBy",
                     defaultMessage: "Kept by",
                   }),
                   value: <AddressDisplay address={keptBy} interactive={false} />,
@@ -79,12 +79,12 @@ export function ConfirmKeptDialog({
       description={
         closes
           ? formatMessage({
-              id: "cockpit.garden.pool.confirmKept.closes",
+              id: "hub.garden.pool.confirmKept.closes",
               defaultMessage: "This closes the promise as kept, for everyone. It cannot be undone.",
             })
           : formatMessage(
               {
-                id: "cockpit.garden.pool.confirmKept.counts",
+                id: "hub.garden.pool.confirmKept.counts",
                 defaultMessage:
                   "Yours is confirmation {next} of the {threshold} needed, and it cannot be taken back. The promise closes as kept when the last one lands.",
               },
@@ -92,11 +92,11 @@ export function ConfirmKeptDialog({
             )
       }
       confirmLabel={formatMessage({
-        id: "cockpit.garden.pool.confirmKept.confirm",
+        id: "hub.garden.pool.confirmKept.confirm",
         defaultMessage: "Confirm Kept",
       })}
       cancelLabel={formatMessage({
-        id: "cockpit.garden.pool.confirmKept.keep",
+        id: "hub.garden.pool.confirmKept.keep",
         defaultMessage: "Not Now",
       })}
       isLoading={isLoading}

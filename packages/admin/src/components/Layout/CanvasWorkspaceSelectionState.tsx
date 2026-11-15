@@ -37,18 +37,18 @@ export function CanvasWorkspaceSelectionState({
               titleAs="h2"
               icon={<RiSeedlingLine />}
               title={formatMessage({
-                id: "cockpit.workspace.noGardens",
+                id: "hub.workspace.noGardens",
                 defaultMessage: "No gardens yet",
               })}
               description={formatMessage({
-                id: "cockpit.workspace.noGardensDescription",
+                id: "hub.workspace.noGardensDescription",
                 defaultMessage: "Create your first garden to start using the Hub's workspaces.",
               })}
               action={
                 <Button size="sm" asChild>
                   <Link to={adminRoutes.gardenCreate()}>
                     {formatMessage({
-                      id: "cockpit.workspace.createGarden",
+                      id: "hub.workspace.createGarden",
                       defaultMessage: "Create Garden",
                     })}
                   </Link>
@@ -68,14 +68,14 @@ export function CanvasWorkspaceSelectionState({
           <div>
             <AdminCardTitle as="h2">
               {formatMessage({
-                id: "cockpit.workspace.chooseGardenTitle",
+                id: "hub.workspace.chooseGardenTitle",
                 defaultMessage: "Choose a Garden",
               })}
             </AdminCardTitle>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage(
                 {
-                  id: "cockpit.workspace.chooseGardenDescription",
+                  id: "hub.workspace.chooseGardenDescription",
                   defaultMessage: "Select a garden to open the {workspace} workspace.",
                 },
                 { workspace: workspaceLabel }
@@ -93,7 +93,7 @@ export function CanvasWorkspaceSelectionState({
                 className="flex items-center justify-between gap-3 rounded-xl border border-stroke-soft bg-bg-white px-4 py-3 text-left transition hover:bg-[rgb(var(--text-strong-950)/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
                 aria-label={formatMessage(
                   {
-                    id: "cockpit.workspace.openGarden",
+                    id: "hub.workspace.openGarden",
                     defaultMessage: "Open {garden}",
                   },
                   { garden: garden.name }

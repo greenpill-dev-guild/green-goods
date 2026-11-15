@@ -104,7 +104,7 @@ export function HubAssessmentInspector({
           <FactRow
             icon={<RiUserLine />}
             label={formatMessage({
-              id: "cockpit.hub.assessments.author",
+              id: "hub.review.assessments.author",
               defaultMessage: "Written by",
             })}
             value={<AddressDisplay address={assessment.authorAddress} />}
@@ -113,7 +113,7 @@ export function HubAssessmentInspector({
             <FactRow
               icon={<RiTimeLine />}
               label={formatMessage({
-                id: "cockpit.hub.assessments.recordedLabel",
+                id: "hub.review.assessments.recordedLabel",
                 defaultMessage: "Recorded",
               })}
               value={
@@ -141,7 +141,7 @@ export function HubAssessmentInspector({
         {canMint ? (
           <p className="type-body text-text-sub">
             {formatMessage({
-              id: "cockpit.hub.certify.stewardDescription",
+              id: "hub.review.certify.stewardDescription",
               defaultMessage:
                 "Create a hypercert from the garden's approved work. Choose this assessment there to narrow the work to its period and domain.",
             })}
@@ -149,7 +149,7 @@ export function HubAssessmentInspector({
         ) : (
           <Alert variant="info">
             {formatMessage({
-              id: "cockpit.hub.certify.readOnlyDescription",
+              id: "hub.review.certify.readOnlyDescription",
               defaultMessage: "Only garden owners and stewards can create the hypercert.",
             })}
           </Alert>
@@ -166,7 +166,7 @@ export function HubAssessmentInspector({
             className="w-full justify-center"
           >
             {formatMessage({
-              id: "cockpit.hub.action.createHypercert",
+              id: "hub.review.action.createHypercert",
               defaultMessage: "Create Hypercert",
             })}
           </Button>

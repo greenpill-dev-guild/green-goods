@@ -79,8 +79,8 @@ function JarReadNotice({ readState }: { readState: Exclude<CookieJarReadState, "
                 <RiErrorWarningLine className="h-6 w-6" />
               )
             }
-            title={formatMessage({ id: `cockpit.community.payouts.${state}.title` })}
-            description={formatMessage({ id: `cockpit.community.payouts.${state}.body` })}
+            title={formatMessage({ id: `hub.community.payouts.${state}.title` })}
+            description={formatMessage({ id: `hub.community.payouts.${state}.body` })}
           />
         </AdminCardBody>
       </AdminCard>
@@ -95,7 +95,7 @@ function JarReadNotice({ readState }: { readState: Exclude<CookieJarReadState, "
             icon={<RiCookieLine className="h-6 w-6" />}
             title={formatMessage({ id: "app.cookieJar.noJars" })}
             // Says how a jar appears, since funding one is impossible without it (D10).
-            description={formatMessage({ id: "cockpit.community.payouts.noJarHow" })}
+            description={formatMessage({ id: "hub.community.payouts.noJarHow" })}
           />
         </AdminCardBody>
       </AdminCard>
@@ -181,12 +181,12 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
               </AdminCardTitle>
               <p className="mt-1 type-body text-text-sub">
                 {allocationCountUnread
-                  ? formatMessage({ id: "cockpit.community.payouts.totalUnread" })
+                  ? formatMessage({ id: "hub.community.payouts.totalUnread" })
                   : formatMessage(
                       {
                         id: allocationCountAtLeast
-                          ? "cockpit.community.payouts.totalAtLeast"
-                          : "cockpit.community.payouts.total",
+                          ? "hub.community.payouts.totalAtLeast"
+                          : "hub.community.payouts.total",
                       },
                       { count: allocationCount }
                     )}

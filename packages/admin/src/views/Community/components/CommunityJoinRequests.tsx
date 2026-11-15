@@ -112,7 +112,7 @@ function CommunityJoinRequestQueue({
         resolveRequest: join.resolveRequest,
         failureMessage: formatMessage({
           id: stewardRequest
-            ? "cockpit.community.stewardRequests.assignFailed"
+            ? "hub.community.stewardRequests.assignFailed"
             : "app.garden.joinQueue.membershipAddFailed",
         }),
       });
@@ -123,11 +123,11 @@ function CommunityJoinRequestQueue({
         formatMessage({
           id: stewardRequest
             ? pendingRole
-              ? "cockpit.community.stewardRequests.pending"
-              : "cockpit.community.stewardRequests.confirmed"
+              ? "hub.community.stewardRequests.pending"
+              : "hub.community.stewardRequests.confirmed"
             : pendingRole
-              ? "cockpit.community.joinRequests.membershipPending"
-              : "cockpit.community.joinRequests.welcomed",
+              ? "hub.community.joinRequests.membershipPending"
+              : "hub.community.joinRequests.welcomed",
         })
       );
     } catch (caught) {
@@ -136,7 +136,7 @@ function CommunityJoinRequestQueue({
       setLocalError(
         caught instanceof Error
           ? caught.message
-          : formatMessage({ id: "cockpit.community.joinRequests.updateFailed" })
+          : formatMessage({ id: "hub.community.joinRequests.updateFailed" })
       );
     } finally {
       setActiveId(undefined);
@@ -156,7 +156,7 @@ function CommunityJoinRequestQueue({
       });
       setDeclineError(undefined);
       setDeclining(undefined);
-      setNotice(formatMessage({ id: "cockpit.community.joinRequests.declined" }));
+      setNotice(formatMessage({ id: "hub.community.joinRequests.declined" }));
     } finally {
       setActiveId(undefined);
     }
@@ -176,20 +176,20 @@ function CommunityJoinRequestQueue({
             <AdminCardTitle>
               {formatMessage({
                 id: stewardRequest
-                  ? "cockpit.community.stewardRequests.title"
-                  : "cockpit.community.joinRequests.title",
+                  ? "hub.community.stewardRequests.title"
+                  : "hub.community.joinRequests.title",
               })}
             </AdminCardTitle>
             <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: stewardRequest
-                  ? "cockpit.community.stewardRequests.description"
-                  : "cockpit.community.joinRequests.description",
+                  ? "hub.community.stewardRequests.description"
+                  : "hub.community.joinRequests.description",
               })}
             </p>
             {stewardRequest ? null : (
               <p className="mt-1 type-meta text-text-sub">
-                {formatMessage({ id: "cockpit.community.joinRequests.countNotice" })}
+                {formatMessage({ id: "hub.community.joinRequests.countNotice" })}
               </p>
             )}
           </div>
@@ -202,7 +202,7 @@ function CommunityJoinRequestQueue({
             onClick={() => void load()}
           >
             {formatMessage({
-              id: loaded ? "app.common.refresh" : "cockpit.community.joinRequests.load",
+              id: loaded ? "app.common.refresh" : "hub.community.joinRequests.load",
             })}
           </Button>
         </div>
@@ -219,7 +219,7 @@ function CommunityJoinRequestQueue({
               {error ? formatMessage(gardenJoinRequestErrorMessage(error)) : localError}
               {localError ? (
                 <p className="mt-2">
-                  {formatMessage({ id: "cockpit.community.joinRequests.assignmentRecovery" })}
+                  {formatMessage({ id: "hub.community.joinRequests.assignmentRecovery" })}
                 </p>
               ) : null}
             </Alert>
@@ -232,8 +232,8 @@ function CommunityJoinRequestQueue({
             icon={<RiInbox2Line />}
             title={formatMessage({
               id: stewardRequest
-                ? "cockpit.community.stewardRequests.empty"
-                : "cockpit.community.joinRequests.empty",
+                ? "hub.community.stewardRequests.empty"
+                : "hub.community.joinRequests.empty",
             })}
           />
         ) : null}
@@ -256,7 +256,7 @@ function CommunityJoinRequestQueue({
                     className="mt-1 block type-meta text-text-sub"
                   >
                     {formatMessage(
-                      { id: "cockpit.community.joinRequests.requestedAt" },
+                      { id: "hub.community.joinRequests.requestedAt" },
                       {
                         date: formatDate(new Date(request.requestedAt), {
                           dateStyle: "medium",
@@ -284,7 +284,7 @@ function CommunityJoinRequestQueue({
                     setDeclining(request);
                   }}
                 >
-                  {formatMessage({ id: "cockpit.community.joinRequests.decline" })}
+                  {formatMessage({ id: "hub.community.joinRequests.decline" })}
                 </Button>
                 <Button
                   type="button"
@@ -296,8 +296,8 @@ function CommunityJoinRequestQueue({
                 >
                   {formatMessage({
                     id: stewardRequest
-                      ? "cockpit.community.stewardRequests.approve"
-                      : "cockpit.community.joinRequests.welcome",
+                      ? "hub.community.stewardRequests.approve"
+                      : "hub.community.joinRequests.welcome",
                   })}
                 </Button>
               </div>
@@ -330,20 +330,20 @@ function CommunityJoinRequestQueue({
           setDeclineError(
             caught instanceof Error
               ? caught.message
-              : formatMessage({ id: "cockpit.community.joinRequests.updateFailed" })
+              : formatMessage({ id: "hub.community.joinRequests.updateFailed" })
           );
         }}
         title={formatMessage({
           id: stewardRequest
-            ? "cockpit.community.stewardRequests.declineTitle"
-            : "cockpit.community.joinRequests.declineTitle",
+            ? "hub.community.stewardRequests.declineTitle"
+            : "hub.community.joinRequests.declineTitle",
         })}
         description={formatMessage(
-          { id: "cockpit.community.joinRequests.declineDescription" },
+          { id: "hub.community.joinRequests.declineDescription" },
           { name: formatEnsNameForDisplay(declining?.displayName) ?? "" }
         )}
-        confirmLabel={formatMessage({ id: "cockpit.community.joinRequests.confirmDecline" })}
-        reasonLabel={formatMessage({ id: "cockpit.community.joinRequests.reason" })}
+        confirmLabel={formatMessage({ id: "hub.community.joinRequests.confirmDecline" })}
+        reasonLabel={formatMessage({ id: "hub.community.joinRequests.reason" })}
         maxReasonLength={GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH}
         variant="danger"
         tone="community"

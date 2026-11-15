@@ -91,12 +91,12 @@ export function useVoucherConsole(input: { chainId: number; garden: Address }): 
       formatMessage,
       getFallbackTitle: () =>
         formatMessage({
-          id: "cockpit.garden.pool.voucher.retry.failedTitle",
+          id: "hub.garden.pool.voucher.retry.failedTitle",
           defaultMessage: "The transfer wasn’t retried",
         }),
       getFallbackMessage: () =>
         formatMessage({
-          id: "cockpit.garden.pool.voucher.retry.failedBody",
+          id: "hub.garden.pool.voucher.retry.failedBody",
           defaultMessage: "Nothing changed. You can retry the same transfer.",
         }),
     });

@@ -211,16 +211,16 @@ export function CookieJarPayoutCard({
 
           <FactList frame="inset">
             <FactRow
-              label={formatMessage({ id: "cockpit.community.payouts.claimHistory" })}
-              value={formatMessage({ id: "cockpit.community.payouts.claimHistoryUnavailable" })}
+              label={formatMessage({ id: "hub.community.payouts.claimHistory" })}
+              value={formatMessage({ id: "hub.community.payouts.claimHistoryUnavailable" })}
             />
             <FactRow
-              label={formatMessage({ id: "cockpit.community.payouts.fundingSource" })}
-              value={formatMessage({ id: "cockpit.community.payouts.fundingSourceUnavailable" })}
+              label={formatMessage({ id: "hub.community.payouts.fundingSource" })}
+              value={formatMessage({ id: "hub.community.payouts.fundingSourceUnavailable" })}
             />
             <FactRow
-              label={formatMessage({ id: "cockpit.community.payouts.lastJarYield" })}
-              value={formatMessage({ id: "cockpit.community.payouts.lastJarYieldUnavailable" })}
+              label={formatMessage({ id: "hub.community.payouts.lastJarYield" })}
+              value={formatMessage({ id: "hub.community.payouts.lastJarYieldUnavailable" })}
             />
           </FactList>
 
@@ -249,8 +249,8 @@ export function CookieJarPayoutCard({
               {formatMessage(
                 {
                   id: allocationCountAtLeast
-                    ? "cockpit.community.payouts.jarFundingContextAtLeast"
-                    : "cockpit.community.payouts.jarFundingContext",
+                    ? "hub.community.payouts.jarFundingContextAtLeast"
+                    : "hub.community.payouts.jarFundingContext",
                 },
                 { count: allocationCount }
               )}
