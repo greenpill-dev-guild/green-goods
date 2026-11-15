@@ -312,7 +312,7 @@ describe("config/passkeyServer", () => {
       expect(
         classifyPasskeyCeremonyContext({
           env: { PROD: true },
-          location: locationFor("https://green-goods-abc123-greenpilldevguild.vercel.app"),
+          location: locationFor("https://green-goods-abc123-greengoods.vercel.app"),
         })
       ).toMatchObject({
         supported: false,

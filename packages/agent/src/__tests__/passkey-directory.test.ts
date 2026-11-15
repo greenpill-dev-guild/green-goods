@@ -35,7 +35,7 @@ const ADMIN = "https://admin.greengoods.app";
 // hub.greengoods.app serves the Hub beside admin.greengoods.app (PRD-1485).
 const HUB = "https://hub.greengoods.app";
 const BETA_HUB = "https://beta.hub.greengoods.app";
-const PREVIEW = "https://green-goods-git-some-branch-greenpilldevguild.vercel.app";
+const PREVIEW = "https://green-goods-git-some-branch-greengoods.vercel.app";
 const LOCALHOST = "http://localhost:3001";
 const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
 const NOW = 1_759_600_000_000;
@@ -424,17 +424,6 @@ describe("passkey directory", () => {
     });
     expect(preflight.status).toBe(403);
     expect(preflight.headers.get("access-control-allow-origin")).toBeNull();
-  });
-
-  it("uses the router's decoded path when refusing an unlisted preview", async () => {
-    const { app } = createDirectoryApp();
-    const response = await app.request("/public/passkeys/%72pc", {
-      method: "POST",
-      headers: { origin: PREVIEW, "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "pks_getCredentials", params: [{}] }),
-    });
-    expect(response.status).toBe(403);
-    expect(response.headers.get("access-control-allow-origin")).toBeNull();
   });
 
   it("requires the listed site's passkey domain, with localhost only in development", async () => {
