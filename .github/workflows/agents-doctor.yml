@@ -1,0 +1,33 @@
+name: Agents Doctor
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/agents-doctor.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".agents/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/agents-doctor.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  agents-doctor:
+    uses: greenpill-dev-guild/.github/.github/workflows/agents-doctor.yml@main
+    with:
+      mode: advisory
