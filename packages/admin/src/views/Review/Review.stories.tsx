@@ -163,6 +163,22 @@ export const CreateHypercertRoute: Story = {
   },
 };
 
+// Review lived under /hub until 2026-11-14 (PRD-1485). A saved /hub address
+// still opens Review in the same place, through the real route table.
+export const LegacyHubAddress: Story = {
+  args: { initialPath: "/hub/work?sort=newest" },
+  decorators: reviewDecorators(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      await canvas.findByRole("heading", { name: "Review" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByRole("tab", { name: /Work/ }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toHaveAttribute("aria-selected", "true");
+  },
+};
+
 // The History stage is retired (2026-08-25 AD-3): /review/history and its
 // detail deep links redirect to Review's default stage, so the retired
 // stage keeps no stories.
