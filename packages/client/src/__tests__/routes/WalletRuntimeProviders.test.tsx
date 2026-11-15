@@ -12,6 +12,7 @@ const mockAppKitProvider = vi.fn();
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => mockUseAuthState(),
+  useWalletReconnectPrompt: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared/providers/App", () => ({

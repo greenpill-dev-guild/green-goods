@@ -101,7 +101,7 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
         icon={<RiTimeLine />}
         title={formatMessage({
           id: "cockpit.garden.pool.unavailable.title",
-          defaultMessage: "Commitment pooling isn't switched on in this app yet",
+          defaultMessage: "Commitment pooling isn't switched on in the Hub yet",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.unavailable.body",

@@ -51,6 +51,8 @@ function garden(suffix: string, gardeners: string[]): Garden {
 const shared = garden("01", [ALICE, BOB]);
 const alicesOwn = garden("02", [ALICE]);
 const bobsOwn = garden("03", [BOB]);
+/** Alice's own garden as a list read before she was added to it, or one that lags behind. */
+const alicesOwnWithoutHer = { ...alicesOwn, gardeners: [] };
 
 let client: QueryClient;
 
@@ -72,7 +74,7 @@ function otherStoredRecords(): Record<string, string | null> {
 beforeEach(() => {
   client = createTestQueryClient();
   localStorage.clear();
-  useActiveGardenStore.setState({ gardenIdsByScope: {} });
+  useActiveGardenStore.setState({ gardenIdsByScope: {}, seenGardenIdsByScope: {} });
   useWorkFlowStore.getState().reset();
   getGardens.mockReset();
   signedIn.account = ALICE;
@@ -158,6 +160,57 @@ describe("useActiveGarden", () => {
     signedIn.account = ALICE;
     rerender();
     expect(result.current).toMatchObject({ status: "ready", gardenId: shared.id });
+  });
+
+  // PRD-1492: a steward added to a second garden chose it, and a later launch opened the community
+  // garden again. A list that came back holding one garden selected it and replaced the
+  // remembered choice, so the next full list no longer brought that choice back.
+  it("keeps the remembered garden through a list that comes back holding only another", async () => {
+    useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, alicesOwn.id);
+    getGardens
+      .mockResolvedValueOnce([shared, alicesOwnWithoutHer])
+      .mockResolvedValue([shared, alicesOwn]);
+
+    const { result } = renderActiveGarden();
+
+    // Only the shared garden is hers in that list, so Home opens there, and her choice stays.
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.gardenId).toBe(shared.id);
+    expect(useActiveGardenStore.getState().gardenIdsByScope[ALICE_SCOPE]).toBe(alicesOwn.id);
+
+    await act(async () => {
+      await client.refetchQueries();
+    });
+    await waitFor(() => expect(result.current.gardenId).toBe(alicesOwn.id));
+  });
+
+  it("names the gardens the account was added to since this device last read them", async () => {
+    getGardens
+      .mockResolvedValueOnce([shared, alicesOwnWithoutHer])
+      .mockResolvedValue([shared, alicesOwn]);
+
+    const { result, unmount } = renderActiveGarden();
+
+    // The first list a device reads for an account records what it holds and announces nothing.
+    await waitFor(() => expect(result.current.gardenId).toBe(shared.id));
+    expect(result.current.addedGardens).toEqual([]);
+
+    await act(async () => {
+      await client.refetchQueries();
+    });
+    await waitFor(() =>
+      expect(result.current.addedGardens.map(({ id }) => id)).toEqual([alicesOwn.id])
+    );
+    // Being added moves nothing: Home stays in the garden she chose until she switches.
+    expect(result.current.gardenId).toBe(shared.id);
+
+    act(() => result.current.acknowledgeAddedGardens([alicesOwn.id]));
+    expect(result.current.addedGardens).toEqual([]);
+    // Reopening the app does not announce it again.
+    unmount();
+    const reopened = renderActiveGarden();
+    await waitFor(() => expect(reopened.result.current.status).toBe("ready"));
+    expect(reopened.result.current.addedGardens).toEqual([]);
   });
 
   it("writes only its own choice: no draft, queued job or promise link changes", async () => {

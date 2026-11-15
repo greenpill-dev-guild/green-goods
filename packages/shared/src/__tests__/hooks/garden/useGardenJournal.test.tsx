@@ -12,6 +12,7 @@ import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { useTakeUpChoices } from "../../../hooks/commitment-pooling/useTakeUpChoices";
+import { useViewerTakeUps } from "../../../hooks/commitment-pooling/useViewerTakeUps";
 import { useGardenOpenCycles, useGardenOpenPromises } from "../../../hooks/garden/useGardenJournal";
 import type {
   CommitmentCycleRecord,
@@ -337,6 +338,23 @@ describe("useGardenJournal", () => {
       act(() => failRequests(new Error("indexer down")));
       // The promise's own page still shows a pending request, so a failed read hides nothing.
       await waitFor(() => expect(ids(result)).toEqual({ takePart: [12n] }));
+    });
+
+    // Codex on #1610: a requests read waiting for a connection answers nothing, but its empty
+    // list read as "nobody asked", so Take Part called a fully asked-for reviewed set available.
+    it("knows of no requests while their first read waits for a connection", async () => {
+      onlineManager.setOnline(false);
+      try {
+        const { result } = renderHookWithProviders(() =>
+          useViewerTakeUps({ chainId: 42161, poolId: 7n, viewer: READER, enabled: true })
+        );
+
+        // The section stops waiting, as before, but whose copies are asked for stays unknown.
+        await waitFor(() => expect(result.current.settled).toBe(true));
+        expect(result.current.takeUps.askedFor).toBeNull();
+      } finally {
+        onlineManager.setOnline(true);
+      }
     });
 
     it("waits for the end of an undated ask's cycle, and leaves the ask out once it has passed", async () => {

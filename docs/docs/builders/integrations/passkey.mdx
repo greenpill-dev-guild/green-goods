@@ -77,8 +77,8 @@ name across both.
 
 The sites the directory answers are the agent's allowed origins (`AGENT_ALLOWED_ORIGINS`; the
 production list that `bun run dev:smoke -- prod` expects lives in `scripts/dev/smoke-prod.js`).
-Every directory RPC and its preflight require an explicitly listed origin, and the public API's
-automatic Vercel-preview exception does not apply here, so adding a subdomain does not approve it.
+Every directory RPC and its preflight require an explicitly listed origin, as every public API
+route does, so adding a subdomain or deploying a Vercel preview does not approve it.
 Of the listed origins, only `https` pages under `greengoods.app` are issued a passkey. The app's
 own check that a page sits under the passkey domain (`classifyPasskeyCeremonyContext`) is a first
 filter, not the list.

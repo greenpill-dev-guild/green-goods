@@ -1216,7 +1216,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(mockToastError).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Work was not submitted",
-        message: "Reconnect and submit again from admin so the transaction can be confirmed.",
+        message: "Reconnect and submit again from the Hub so the transaction can be confirmed.",
         context: "admin work submission",
       })
     );

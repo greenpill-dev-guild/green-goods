@@ -367,7 +367,7 @@ describe("Garden (Work) View", () => {
     expect(mockDraftRetry).toHaveBeenCalledOnce();
   });
 
-  it("says under the steps where the work goes when its garden is not the active one", () => {
+  it("says under the steps where the work goes", () => {
     mockActiveTab = "Media";
     mockNamedGarden = {
       id: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -383,7 +383,7 @@ describe("Garden (Work) View", () => {
     expect(within(line).getByTitle("Logging work in Hilltop Garden")).toHaveClass("line-clamp-2");
   });
 
-  it("names no garden while the work goes to the active one, and settles the Start step's garden", () => {
+  it("names no garden until the flow has one, and settles the Start step's garden", () => {
     mockGardenSettled = true;
     renderWithProviders();
 

@@ -46,7 +46,7 @@ export function useGardenJoinRequests(
   const kind = options.kind ?? "garden_membership";
   const chainId = useCurrentChain();
   const accountAddress = usePrimaryAddress() as Address | null;
-  const { authMode, smartAccountClient, resolveSmartAccountClient } = useAuth();
+  const { authMode, walletRestore, smartAccountClient, resolveSmartAccountClient } = useAuth();
   const { signMessageAsync } = useSignMessage();
   const session = useGardenJoinRequestSession(
     chainId,
@@ -126,6 +126,7 @@ export function useGardenJoinRequests(
       };
       const signer = createAccountMessageSigner({
         authMode,
+        walletRestore,
         signMessage: signMessageAsync,
         account,
       });
@@ -153,6 +154,7 @@ export function useGardenJoinRequests(
     [
       accountAddress,
       authMode,
+      walletRestore,
       smartAccountClient,
       resolveSmartAccountClient,
       chainId,

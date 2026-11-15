@@ -68,7 +68,7 @@ function HubRecordGrid({
           icon={<RiErrorWarningLine />}
           title={formatMessage({
             id: "cockpit.hub.error.title",
-            defaultMessage: "Hub data could not be loaded",
+            defaultMessage: "Review data could not be loaded",
           })}
           description={formatMessage({
             id: "cockpit.hub.error.description",

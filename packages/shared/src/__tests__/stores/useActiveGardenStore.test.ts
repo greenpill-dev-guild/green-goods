@@ -25,7 +25,7 @@ function saveChoices(gardenIdsByScope: unknown) {
 
 beforeEach(() => {
   localStorage.clear();
-  useActiveGardenStore.setState({ gardenIdsByScope: {} });
+  useActiveGardenStore.setState({ gardenIdsByScope: {}, seenGardenIdsByScope: {} });
 });
 
 afterEach(() => {
@@ -51,7 +51,10 @@ describe("stores/useActiveGardenStore", () => {
     useActiveGardenStore.getState().rememberGarden(ALICE_SCOPE, GARDEN_A);
 
     const saved = JSON.parse(localStorage.getItem(ACTIVE_GARDEN_STORAGE_KEY) ?? "null");
-    expect(saved?.state).toEqual({ gardenIdsByScope: { [ALICE_SCOPE]: GARDEN_A } });
+    expect(saved?.state).toEqual({
+      gardenIdsByScope: { [ALICE_SCOPE]: GARDEN_A },
+      seenGardenIdsByScope: {},
+    });
     expect(storedKeys()).toEqual([ACTIVE_GARDEN_STORAGE_KEY]);
   });
 
@@ -63,6 +66,37 @@ describe("stores/useActiveGardenStore", () => {
     expect(useActiveGardenStore.getState().gardenIdsByScope).toEqual({
       [ALICE_SCOPE]: GARDEN_A,
       [BOB_SCOPE]: GARDEN_B,
+    });
+  });
+
+  // PRD-1492: which gardens this device has seen each account hold, so a later one is news.
+  it("keeps the gardens seen for each account, lowercased and never forgotten", async () => {
+    const { markGardensSeen } = useActiveGardenStore.getState();
+
+    markGardensSeen(BOB_SCOPE, []);
+    markGardensSeen(ALICE_SCOPE, [GARDEN_A]);
+    markGardensSeen(ALICE_SCOPE, [GARDEN_B, GARDEN_A]);
+
+    expect(useActiveGardenStore.getState().seenGardenIdsByScope).toEqual({
+      // A first read that held no garden still counts, so the account's first garden is news.
+      [BOB_SCOPE]: [],
+      [ALICE_SCOPE]: [GARDEN_A.toLowerCase(), GARDEN_B.toLowerCase()],
+    });
+
+    // Saved lists are untrusted input: only garden id strings survive a reload.
+    localStorage.setItem(
+      ACTIVE_GARDEN_STORAGE_KEY,
+      JSON.stringify({
+        state: {
+          gardenIdsByScope: {},
+          seenGardenIdsByScope: { [ALICE_SCOPE]: [GARDEN_A, 7, ""], [BOB_SCOPE]: "not a list" },
+        },
+        version: 0,
+      })
+    );
+    await useActiveGardenStore.persist.rehydrate();
+    expect(useActiveGardenStore.getState().seenGardenIdsByScope).toEqual({
+      [ALICE_SCOPE]: [GARDEN_A],
     });
   });
 

@@ -150,7 +150,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/shared/src/modules/app/posthog.ts": 553,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 536,
-  "packages/shared/src/providers/Auth.tsx": 730,
+  "packages/shared/src/providers/Auth.tsx": 723,
   "packages/shared/src/public-contracts/index.ts": 582,
   "packages/shared/src/types/domain.ts": 614,
   "packages/shared/src/utils/action/translations.ts": 564,

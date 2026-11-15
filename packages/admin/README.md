@@ -1,6 +1,6 @@
-# Green Goods Admin Canvas
+# Green Goods Hub
 
-Operator canvas for Green Goods stewards and deployers.
+The Green Goods Hub, at admin.greengoods.app, is where stewards and deployers run their gardens. The package keeps its code name, `admin`.
 
 ## Contract
 
@@ -8,7 +8,7 @@ Operator canvas for Green Goods stewards and deployers.
 - Canonical shell: `CanvasLayout`
 - Canonical routes: `/hub`, `/garden`, `/community`, `/actions`, `/profile`
 - Secondary admin flows stay under `/garden/create`, `/garden/impact/*`, and `/community/*`
-- Public garden URLs (`/gardens`, `/gardens/:id`, `/gardens/:id/*`) redirect to the client app
+- Public garden URLs (`/gardens`, `/gardens/:id`, `/gardens/:id/*`) redirect to the Green Goods Website
 
 ## Ownership
 

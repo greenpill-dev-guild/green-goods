@@ -2,7 +2,7 @@
 title: Manage Garden Funding
 sidebar_label: Manage Garden Funding
 slug: /community/steward-guide/funding-and-governance
-description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the dashboard does not offer yet."
+description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the Green Goods Hub does not offer yet."
 audience: steward
 owner: docs
 last_verified: "2026-11-02"
@@ -49,7 +49,7 @@ keywords:
 
 # Manage Garden Funding
 
-A garden can hold money in two ways. This page explains both, shows what you can do with each from the dashboard, and is plain about what is not there yet. Everything here is in the **Community** workspace.
+A garden can hold money in two ways. This page explains both, shows what you can do with each from the Green Goods Hub, and is plain about what is not there yet. Everything here is in the **Community** workspace.
 
 <GuideImage src="/img/screenshots/admin-cookie-jars.webp" alt="The Cookie Jars card with two jars, WETH and DAI. Each shows its Jar Balance, a Per-claim limit and a Withdrawal cooldown with an Edit link beside each, the line 4 yield payouts so far, and the buttons Deposit and Claim. Both jars are marked Active, and the DAI jar also carries a Limit too low label" loading="eager" width="2000" height="736" className="gg-figure">
 
@@ -61,9 +61,9 @@ Each jar shows its balance, claim limit and cooldown.
 
 | | Shared fund | Endowment |
 |---|---|---|
-| **The dashboard calls it** | Cookie Jar | Endowment, or vault |
+| **The Hub calls it** | Cookie Jar | Endowment, or vault |
 | **What it is for** | Money the garden uses now: supplies, transport, thanking gardeners | Long-term support that is meant to stay in place |
-| **How money gets in** | Donations from the public Fund page, deposits from the dashboard, and the garden's share of the endowment's earnings | Deposits from funders, who can take their deposit back out |
+| **How money gets in** | Donations from the public Fund page, deposits from the Hub, and the garden's share of the endowment's earnings | Deposits from funders, who can take their deposit back out |
 | **How money gets out** | Gardeners claim from it, up to a limit per claim | Funders request withdrawals of their deposits; eligible earnings are collected and split separately |
 | **Where it is** | **Community**, **Payouts** tab | **Community**, **Endowment** tab |
 
@@ -73,13 +73,13 @@ Both are normally set up when the garden is created. If **Payouts** says **No co
 
 [Commitment Pooling](/community/steward-guide/open-a-pool) coordinates specific promises and their evidence. It is separate from the shared fund and endowment described here. Approving work or confirming a promise does not send money.
 
-A promise can carry a G$ reward, paid from the paying garden's Celo Safe after it's kept. Keeping a promise doesn't send the money by itself. Open the kept promise on the **Promises** tab and follow **G$ Payout**: it takes you through **Create Payout Plan**, **Finalize Payout Plan**, the prepare step and **Dispatch**, then waits for the Celo acknowledgment. If **G$ Payout** isn't there on a kept promise with a reward, your dashboard hasn't been updated with G$ payouts yet. If it says a settlement account isn't active, ask the Green Goods team, because the app has no screen for setting up or turning on that account. Earlier payout records remain on the shared record. A request that another garden took up pays that garden's Safe; every other reward pays the promise's team. A member sees support sent to them under **Recent support** in their wallet, where **Support on its way** has not arrived yet and only **Arrived** means it was received.
+A promise can carry a G$ reward, paid from the paying garden's Celo Safe after it's kept. Keeping a promise doesn't send the money by itself. Open the kept promise on the **Promises** tab and follow **G$ Payout**: it takes you through **Create Payout Plan**, **Finalize Payout Plan**, the prepare step and **Dispatch**, then waits for the Celo acknowledgment. If **G$ Payout** isn't there on a kept promise with a reward, the Hub hasn't been updated with G$ payouts yet. If it says a settlement account isn't active, ask the Green Goods team, because the app has no screen for setting up or turning on that account. Earlier payout records remain on the shared record. A request that another garden took up pays that garden's Safe; every other reward pays the promise's team. A member sees support sent to them under **Recent support** in their wallet, where **Support on its way** has not arrived yet and only **Arrived** means it was received.
 
-G$ for promises lives on the Celo network, in the garden's own Celo account. That account is a Safe with a different address from the garden's account in this dashboard, which is on Arbitrum One. Both addresses are correct. To see it, open **Pool Funding** on the **Promises** tab and choose **View Details**; the **Celo Safe** row links to the Celo explorer, or reads **No settlement Safe configured** if the garden has none. A member's own Celo account has the same address as their account in the app.
+G$ for promises lives on the Celo network, in the garden's own Celo account. That account is a Safe with a different address from the garden's account in the Hub, which is on Arbitrum One. Both addresses are correct. To see it, open **Pool Funding** on the **Promises** tab and choose **View Details**; the **Celo Safe** row links to the Celo explorer, or reads **No settlement Safe configured** if the garden has none. A member's own Celo account has the same address as their account in the app.
 
 ## Before you start
 
-- Be a steward or owner of the garden, and check that its name shows at the top left of the dashboard.
+- Be a steward or owner of the garden, and check that its name shows at the top left of the Hub.
 - Agree with your community what the shared fund is for. The app records every claim and does not judge it or check it against a work submission.
 - Be online. Every change here is confirmed and saved straight away.
 
@@ -127,7 +127,7 @@ Each token has its own balance and yield.
 ### Move the earnings to the garden
 
 Only a steward or owner can collect earnings from the endowment. Once collected, anyone can
-trigger their distribution when its conditions are met. The dashboard offers both steps together;
+trigger their distribution when its conditions are met. The Hub offers both steps together;
 your garden does not control distribution timing exclusively. A deposit does not itself trigger
 either step.
 
@@ -138,7 +138,7 @@ either step.
 
 Small amounts wait. If the card says an amount "is waiting until the minimum is reached", there is nothing to do yet.
 
-The dashboard shows the split and has no control for changing it.
+The Hub shows the split and has no control for changing it.
 
 <GuideImage src="/img/screenshots/guide-garden-distribution.webp" alt="An example distribution result reports DAI allocated to the Cookie Jar, hypercert funding and protocol treasury." loading="lazy" width="464" height="210" className="gg-figure" maxWidth="480px">
 
@@ -170,7 +170,7 @@ Check the recorded distribution result, not only the submitted transaction.
 
 Say these plainly when your community asks.
 
-- **Community voting on priorities.** Green Goods has designed tools for members to signal what matters most. They are switched off in the dashboard today. Decide how to use your funds the way your community already decides things.
+- **Community voting on priorities.** Green Goods has designed tools for members to signal what matters most. They are switched off in the Hub today. Decide how to use your funds the way your community already decides things.
 - **Changing how earnings are split.** There is no control for it.
 - **Creating or pausing a shared fund.** A garden's jars are created with the garden.
 - **Paying a gardener when work is approved.** Approval and payment are separate. Nothing is paid automatically.
@@ -193,7 +193,7 @@ Funders and gardeners will ask you questions. These answers are safe because the
 | **No cookie jars found for this garden** | The garden has no shared fund. Ask the Green Goods team about adding one |
 | **Limit too low** on a jar | The per-claim limit is too small to be useful. Raise it from the owner's wallet |
 | **Only the garden owner's wallet can change this jar** | Sign in with the account shown, or ask the owner to make the change |
-| **Paused** on a jar | Claims are stopped. Ask the Green Goods team, because the dashboard cannot resume a jar |
+| **Paused** on a jar | Claims are stopped. Ask the Green Goods team, because the Hub cannot resume a jar |
 | **Deposits disabled** on the endowment | The endowment is not accepting deposits right now, usually because it was paused |
 | **Yield distribution is not available for this vault on this network** | Earnings cannot be moved for this garden yet. Ask the Green Goods team |
 | A harvest or distribution is still being checked | Use **Check Status**. Do not repeat a transaction while its outcome is uncertain |

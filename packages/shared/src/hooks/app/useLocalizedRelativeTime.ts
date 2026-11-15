@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useIntl } from "react-intl";
 
-import { getRelativeTimeParts } from "../../utils/relativeTime";
+import { getRelativeTimeParts, relativeTimeStyle } from "../../utils/relativeTime";
 import { normalizeTimestamp } from "../../utils/time";
 
 /** Past this age an event reads as its calendar date rather than "N days ago". */
@@ -16,7 +16,8 @@ const EVENT_AGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
  * sub-minute floor falls back to `numeric: "auto"` for "now" / "agora" /
  * "ahora" without needing a catalog key. `style: "short"` gives the short form
  * a card's detail line takes in every language ("2 hr. ago", "hace 2 h",
- * "há 2 h").
+ * "há 2 h"), with a month and a year in full (`relativeTimeStyle`), so a month
+ * never reads as a minute.
  */
 export function useLocalizedRelativeTime({
   style = "long",
@@ -29,7 +30,10 @@ export function useLocalizedRelativeTime({
     (timestamp: number | string | Date) => {
       const parts = getRelativeTimeParts(timestamp);
       return parts
-        ? formatRelativeTime(parts.value, parts.unit, { numeric: "always", style })
+        ? formatRelativeTime(parts.value, parts.unit, {
+            numeric: "always",
+            style: relativeTimeStyle(parts.unit, style),
+          })
         : formatRelativeTime(0, "second", { numeric: "auto", style });
     },
     [formatRelativeTime, style]

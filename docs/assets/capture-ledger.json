@@ -5,7 +5,7 @@
     {
       "page": "docs/docs/builders/architecture.mdx",
       "images": ["/img/builders/admin-garden-promises.webp"],
-      "capture_note": "A garden's commitment pool in the admin cockpit: seasons, promises to review, and the pool's status, all read from the module's register."
+      "capture_note": "A garden's commitment pool in the Green Goods Hub: seasons, promises to review, and the pool's status, all read from the module's register."
     },
     {
       "page": "docs/docs/builders/getting-started.mdx",
@@ -237,7 +237,23 @@
     {
       "page": "docs/docs/builders/packages/admin.mdx",
       "images": ["/img/builders/admin-hub-work.webp"],
-      "capture_note": "The Hub on its Work tab: AppBar, workspace canvas, and the navigation dock."
+      "capture_note": "Review on its Work tab with the Approved scope: AppBar, workspace canvas, and the navigation dock.",
+      "recorded_at": "2026-11-14",
+      "proof_class": "Storybook",
+      "engine": "Chromium (Playwright 1.65, headless)",
+      "data": "Fictional garden, account, work and certificate records.",
+      "capture_name": "review-approved-work",
+      "width": 2000,
+      "height": 1250,
+      "sha256": "0c3018f0a7a3f7ea7041dd62d0fc324a224e111d1a21037f0fae24753c3c1d45",
+      "source_revision": "76f1b1fd3",
+      "status": "current",
+      "story_id": "admin-workspaces-hub--approved-work",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "framing": "The full 1280 by 800 viewport at 1.5625x device pixels, light theme; no UI compositing"
     },
     {
       "page": "docs/docs/builders/packages/admin.mdx",
@@ -415,7 +431,23 @@
     {
       "page": "docs/docs/community/steward-guide/index.mdx",
       "images": ["/img/screenshots/admin-hub.webp"],
-      "capture_note": "The dashboard's Hub with nothing waiting. The garden's name is at the top left, and the bar at the bottom moves between workspaces. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
+      "capture_note": "Review with nothing waiting. The garden's name is at the top left, and the bar at the bottom moves between workspaces.",
+      "recorded_at": "2026-11-14",
+      "proof_class": "Storybook",
+      "engine": "Chromium (Playwright 1.65, headless)",
+      "data": "Fictional garden, account, work and certificate records.",
+      "capture_name": "review-empty-queue",
+      "width": 2000,
+      "height": 1250,
+      "sha256": "b5cda84161d15868b62e722d98c41befdfb159cbb163ad64951a01f0c3862576",
+      "source_revision": "76f1b1fd3",
+      "status": "current",
+      "story_id": "admin-workspaces-hub--work-queue",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "framing": "The full 1280 by 800 viewport at 1.5625x device pixels, light theme; no UI compositing"
     },
     {
       "page": "docs/docs/community/steward-guide/index.mdx",
@@ -425,7 +457,23 @@
     {
       "page": "docs/docs/community/steward-guide/creating-impact-certificates.mdx",
       "images": ["/img/builders/admin-hub-hypercerts.webp"],
-      "capture_note": "The Hub's Hypercerts tab, where a garden's certificates are listed. Source: earlier Storybook fixture, October 2026. Exact capture day and build revision unrecorded; inspected 13 October 2026. Fictional example data."
+      "capture_note": "The Hypercerts tab in Review, where a garden's certificates are listed with the date each was minted and how many works it bundles.",
+      "recorded_at": "2026-11-14",
+      "proof_class": "Storybook",
+      "engine": "Chromium (Playwright 1.65, headless)",
+      "data": "Fictional garden, account, work and certificate records.",
+      "capture_name": "review-hypercerts",
+      "width": 2000,
+      "height": 1250,
+      "sha256": "fa64133047259179349d59614b11bb22dcc5a0b294dd562de9d5ce9114932b83",
+      "source_revision": "76f1b1fd3",
+      "status": "current",
+      "story_id": "admin-workspaces-hub--hypercerts-tab",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "framing": "The full 1280 by 800 viewport at 1.5625x device pixels, light theme; no UI compositing"
     },
     {
       "page": "docs/docs/community/steward-guide/reviewing-work.mdx",

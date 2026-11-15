@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: Green Goods Admin Cockpit Dialect
-description: The steward cockpit, the installed app's Warm Earth language at a denser setting. Extends the Warm Earth core DesignMD tokens.
+name: Green Goods Hub Cockpit Dialect
+description: The Green Goods Hub's cockpit dialect, the installed app's Warm Earth language at a denser setting. Extends the Warm Earth core DesignMD tokens.
 extends: ../../DESIGN.md
 surface: admin
 dialect: cockpit
@@ -23,9 +23,9 @@ typography:
     lineHeight: 28px
 ---
 
-# Green Goods Admin: Design Brief
+# Green Goods Hub: Design Brief
 
-> Surface-specific creative direction for the admin dashboard. Use with the root `DESIGN.md`; lint this overlay and the root file separately.
+> Surface-specific creative direction for the Green Goods Hub. Use with the root `DESIGN.md`; lint this overlay and the root file separately.
 
 ## Surface Identity
 
@@ -72,7 +72,7 @@ Each shared piece that follows joins this list with its decision-log row.
 
 - **Density**: the compact control metric (buttons 28/32/40, each tier with a 44px finger box) and 14px body and labels (DL-011, DL-030; § Cockpit M3 1a Invariants).
 - **Pill buttons**: every button is a pill, and the FAB is a capsule at both sizes (DL-010).
-- **Workspace tones**: Hub, Garden, Community and Actions each carry their own tone, spent on a fixed budget (§ Workspace Tinting); the active nav pill is drawn in it.
+- **Workspace tones**: Review, Garden, Community and Actions each carry their own tone, spent on a fixed budget (§ Workspace Tinting); the active nav pill is drawn in it.
 - **Inline filters**: filter chips and sort sit in the toolbar, so Pending and Approved stay one tap apart (DL-082).
 - **Motion**: the Standard scheme on the spring tokens; a hover is an elevation step or the neutral ink layer, never a lift, and a card or item row takes the ink layer only (DL-102).
 - **Navigation**: the AppBar, the NavigationBar dock and its FAB (§ Navigation).
@@ -136,7 +136,7 @@ The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface
 
 1. **Active tab**: the `AdminTabRail`'s active cell, a 10% tint of `--tone-on-surface-accent` under the accent label and its 2px underline (DL-100).
 2. **Active nav pill**: the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
-3. **At most one filled header action**: the single `--tone-action` filled button per route. A review surface such as the Hub fills none: its whole action set renders outlined, and the declared primary still sorts rightmost and fills the FAB (DL-043).
+3. **At most one filled header action**: the single `--tone-action` filled button per route. A review surface such as Review fills none: its whole action set renders outlined, and the declared primary still sorts rightmost and fills the FAB (DL-043).
 4. **The FAB**: the nav-shell `FabButton`, the workspace's primary action, filled with `--tone-action` and labeled in `--tone-on-action`.
 5. **Count badges**: the shared `CountBadge` on an `AdminTabRail` tab where something waits on the steward, active or not, filled with `--tone-on-surface-accent` and inked with `--tone-on-action` (DL-099, DL-134).
 6. **A selected filter chip**: `AdminFilterChip` while it is selected, filled with `--tone-action` and labeled in `--tone-on-action`, the installed app's selected look in the workspace tone (DL-101).
@@ -176,7 +176,7 @@ Where a shared piece fits, the wrapper draws it in place and keeps its name and 
 - **Jars and vaults** (DL-113): a garden's cookie jar on Community → Payouts, an endowment position on Community → Endowment and a campaign cookie jar are item rows with no action on the row. The row names the asset (a campaign jar, its title) and takes one pill (a garden jar's Paused, then Limit too low in place of Active; a campaign jar's Needs review when its details could not be read; a position's only when deposits are off), one detail (what a claim pays, or how many have deposited) and, in the action's right slot, the amount: the value with its asset, never cut, over what it is. The row opens its page in place, right under it on the card surface at the row's 16px corner, with what the row leaves out: a jar's address, limit and cooldown editors, signer note, funding, Deposit and Claim; a position's contract, yield, harvests, Deposit, Withdraw, harvest and pause. The page stays mounted while it is closed, so a write in flight keeps its state. A campaign jar's row opens its Manage dialog.
 - **The fact row** (DL-109): the facts about one thing, on a review before a send, a record's detail panel or a settings list, are the shared `FactRow` in a `FactList`: the label beside its value in divided rows, the labels in one column as wide as the longest (up to 40%) at 12px in the sub ink and the value at 14px and weight 500, wrapping rather than cut. The list is a card of its own, or sits inset in the dialog section, card or status box that frames it. A review's Edit or a link out takes a row's right slot; a setting is a row with no value whose control takes the slot and whose label reads as a field title (Rule 15). It replaces `AdminSettingRow` and the local detail, info and review rows; a dialog's write target (`PoolTarget`) and a row that opens a record keep their own anatomy.
 - `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) is for the Actions workspace's actions, which stewards scan and compare in a grid; assessment and hypercert records are item rows (DL-111).
-- `HubWorkCard`, the Hub's work card, is the shared media card (`MediaCard`, the card for an object with a picture of its own) with the work's photo mosaic as its picture and the domain and photo count as marks on it. From 600 to 1023px it stacks the mosaic on top, and on a phone the queue takes the work row (F7); from 1024px it lies wide, with a 192px mosaic column and the title, status, action, gardener and age beside it. The queue keeps at most two columns, even when sparse; each card grows with its column, with a 14px title and 12px meta. Every card in the queue keeps one height (DL-103, amended by DL-135).
+- `HubWorkCard`, the Review workspace's work card, is the shared media card (`MediaCard`, the card for an object with a picture of its own) with the work's photo mosaic as its picture and the domain and photo count as marks on it. From 600 to 1023px it stacks the mosaic on top, and on a phone the queue takes the work row (F7); from 1024px it lies wide, with a 192px mosaic column and the title, status, action, gardener and age beside it. The queue keeps at most two columns, even when sparse; each card grows with its column, with a 14px title and 12px meta. Every card in the queue keeps one height (DL-103, amended by DL-135).
 - **Headline metrics** use the shared `StatTile`: a 12px / 500 label in the sub ink, a 22px / 600 value, and an optional 12px delta. Garden Health, Endowment balances and the Promises stats strip share it; list facts stay `FactRow` (DL-136).
 - **Garden activity** uses the shared `ItemRow`: a work photo or event icon, title, status pill when known, and a detail line naming the actor and action. The whole row opens its item. The full feed groups events under localized day labels, shows twenty before Show More, and omits the category mark while a category filter is active (DL-142).
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
@@ -190,7 +190,7 @@ Where a shared piece fits, the wrapper draws it in place and keeps its name and 
 - `EmptyState` (shared) is the state block for an empty list, a loading screen with words, a failed read, a feature that is not ready yet, and a route that cannot open: a 56px round tile, a 16px title, one line, and a shared `Button`. Its calm tile is neutral, never the workspace tone; a failure is announced (DL-106). It sits in its context's frame (a card body, a dialog, the route's space) and draws none of its own.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered dialog on the cockpit's own surface; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. At every width a structured dialog's header is the shared `SheetHeader` (DL-117): the cockpit's 22px title, an optional target line under the title for what a consequential act writes to, the description and Close on the title's line, no leading icon, and a hairline under the header only while the body scrolls; flows and the command palette keep their own header. Below 640px the sheet is the installed app's in look (DL-104): the shared sheet material and the grip, which marks the sheet and does not drag it. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible; AdminConfirmDialog and AdminReasonDialog pin theirs in the shared `SheetActions` (DL-117). Focus returns to the control that opened the dialog. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
+Hub modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered dialog on the cockpit's own surface; every mobile variant renders as a full-width bottom sheet, with padding inside the surface. At every width a structured dialog's header is the shared `SheetHeader` (DL-117): the cockpit's 22px title, an optional target line under the title for what a consequential act writes to, the description and Close on the title's line, no leading icon, and a hairline under the header only while the body scrolls; flows and the command palette keep their own header. Below 640px the sheet is the installed app's in look (DL-104): the shared sheet material and the grip, which marks the sheet and does not drag it. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible; AdminConfirmDialog and AdminReasonDialog pin theirs in the shared `SheetActions` (DL-117). Focus returns to the control that opened the dialog. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet (right-docked within the canvas chrome bounds on desktop, an AdminDialog-identical full-width bottom sheet on mobile), with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
@@ -202,7 +202,7 @@ Edit Garden fits a 900px-tall desktop viewport without scrolling its body: Name 
 
 This is the admin's application of the root [Interface Principles](../../DESIGN.md#interface-principles) (4, 9, 12, 15). The principles are the source; this section names the admin pieces that carry them.
 
-- **The GardenChip sets the scope.** Every workspace (Hub, Garden, Community, Actions) acts only on the garden the AppBar's GardenChip shows. No tab, card, or dialog writes to another garden's records.
+- **The GardenChip sets the scope.** Every workspace (Review, Garden, Community, Actions) acts only on the garden the AppBar's GardenChip shows. No tab, card, or dialog writes to another garden's records.
 - **The protocol lives in its own garden.** The protocol pool is the Green Goods Community Garden's pool. Its console is that garden's Garden → Promises tab, like any garden's, and the protocol's operations (settlement, protocol funding, protocol confirmations, garden creators) appear in that garden's Community → Coordination tab and nowhere else.
 - **Campaign cookie jars are protocol surfaces too** (DL-046). They span gardens, so they sit in that same garden: a Campaign Cookie Jars card on its Community → Payouts, shown to the protocol team only (`isProtocolTeam`, DL-174). Creating one is a flow dialog like every other create, and the `/cookies` URLs redirect to the card. `useIsProtocolGarden` is the one test both Community surfaces share.
 - **Who may create a garden is decided there too** (DL-174). The Garden Creators card, last on that Coordination tab, lists the accounts on the deployment registry's allowlist, which may create a garden (the registry's owner may too); whoever creates one becomes its owner. The registry decides who sees the card: only an account it says may manage the list (the registry's owner and the Community Garden's owners and stewards). It renders nothing for anyone else, and a registry too old to answer hides it from everyone. The list is the chain's answer, never the request just sent: a `PersonRow` per account, two to a row once the card is 560px wide, with Remove as each row's one action. Add Creator sits in the card's header, or in its empty state while the list is empty, and opens a small dialog with one address field. Remove confirms first, naming the account and saying the gardens it created stay as they are. A change that may still land counts as sent: its dialog closes instead of offering to send it again. The list reads the chain again 2, 5 and 15 seconds after a send, so a change that lands later shows only on a later read.
@@ -215,9 +215,9 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 ## Navigation
 
 - **AppBar** (top context bar, Z3): GardenChip selector (with DL-124's code change, the garden's banner as its avatar, the app's chip apart from size), search, settings, notifications, avatar
-- **NavigationBar** (bottom, Z3): Workspace tabs (Hub, Garden, Community, Actions). Symbol-first. Role-adaptive visibility via permissions. The active tab carries a pill of the workspace tone's container behind its icon, with its label in ink at weight 600. The installed app's bottom bar draws the same pill in its green, and each bar keeps its own chrome (DL-107).
+- **NavigationBar** (bottom, Z3): Workspace tabs (Review, Garden, Community, Actions). Symbol-first. Role-adaptive visibility via permissions. The active tab carries a pill of the workspace tone's container behind its icon, with its label in ink at weight 600. The installed app's bottom bar draws the same pill in its green, and each bar keeps its own chrome (DL-107).
 - **FAB** (`Shell/FabButton`): Per-workspace primary action, a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Closed, it shows a plus in every workspace, in the workspace tone, whether it fires one act or opens a speed dial; a dial shows a close icon while open, and its rows name each act beside the act's own icon (DL-078). Integrated into NavigationBar via FabProvider.
-- **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
+- **Desktop profile**: On desktop, Profile redirects to Review and opens the AdminSideSheet account inspector with profile content.
 - **Steward access in Profile**: a titled "Steward access" section says it asks to steward another garden and offers "Request Access to Another Garden". Its picker excludes gardens the account already owns or stewards; a link to one explains that the account already stewards it (DL-139).
 - **Garden tabs**: Health, Promises, Activity, Impact, with Promises present when the account can access it (DL-144).
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent, with flat `rgb(var(--admin-surface-0) / 0.85)`, a 12px blur, a warm ambient shadow, and a 1px ink ring (every dialog surface, menu and the account side sheet are solid, DL-108). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
@@ -242,7 +242,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 - Start from layout and flow before reaching for Card
 - Use status language: "3 pending reviews" not "You have work to do!"
 - Keep one dominant workspace surface per route
-- Use the Hub route as reference composition for new cockpit surfaces
+- Use the Review route (`/hub`) as reference composition for new cockpit surfaces
 - Take the shared piece where Shared has one, and tune it through the cockpit's tokens, never a restyle (DL-031)
 - Use solid material for any text-dense surface (forms, tables, review panels)
 - Reserve the Controlled Chrome dock material (flat 85% surface, 12px blur, warm shadow, ink ring) for the floating nav/FAB chrome only

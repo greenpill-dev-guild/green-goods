@@ -325,7 +325,7 @@ describe("WorkDetail view", () => {
     // The real route builder: the way back is the Hub's work list with the garden and the order.
     mockSearch = "?gardenId=0xGarden&sort=oldest";
     const view = renderWithIntl();
-    const back = () => screen.getByRole("link", { name: "Hub" }).getAttribute("href");
+    const back = () => screen.getByRole("link", { name: "Review" }).getAttribute("href");
     expect(back()).toBe("/hub/work?gardenId=0xGarden&sort=oldest");
 
     // Another work opens in the same view from a Hub filtered another way, with no page load.

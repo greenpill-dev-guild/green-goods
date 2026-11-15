@@ -183,7 +183,7 @@ function HubWorkQueueItem({
       actionDomain={actionSummary?.domain}
       actionTitle={actionSummary?.title}
       gardenName={
-        selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
+        selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Review" })
       }
       gardenerDisplayName={gardenerDisplayName}
       // The card reads its own state: a waiting card is a neutral Pending with
@@ -256,7 +256,7 @@ function HubWorkQueueList({
           icon={<RiErrorWarningLine />}
           title={formatMessage({
             id: "cockpit.hub.error.title",
-            defaultMessage: "Hub data could not be loaded",
+            defaultMessage: "Review data could not be loaded",
           })}
           description={formatMessage({
             id: "cockpit.hub.error.description",

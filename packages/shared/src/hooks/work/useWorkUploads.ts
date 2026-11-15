@@ -22,6 +22,7 @@ import {
 } from "../../modules/work/upload-state";
 import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job } from "../../types/job-queue";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useConnectivityStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -171,6 +172,8 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       // Check before loading: the upload modules may not be on this device yet,
       // and an import that fails offline stays failed for the life of the page.
       if (!(await connectivityStore.confirmOnline())) return { status: "connection-unconfirmed" };
+      // A wallet that has not answered is asked to reconnect before anything is sent.
+      sender.assertReadyToSign?.();
       const [{ uploadQueuedWork }, { createDefaultUploadQueuedWorkPorts }] = await Promise.all([
         import("../../modules/work/upload-queued-work"),
         import("../../modules/work/upload-queued-work-defaults"),
@@ -195,6 +198,8 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
       });
     },
     onError: (error) => {
+      // The reconnect prompt already asked, and the work is still queued.
+      if (wasAskedToReconnect(error)) return;
       logger.error("[useWorkUploads] Upload all stopped", { error });
       if (appCodeRecovery.report(error)) return;
       toastService.error({
