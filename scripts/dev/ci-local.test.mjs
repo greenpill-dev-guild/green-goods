@@ -21,6 +21,7 @@ import {
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
+  remediationLines,
   runCommandCheck,
   savePassingReceiptStore,
   validateAttestation,
@@ -336,6 +337,10 @@ test("a needs-focus plan starts no checks and exits non-zero", async () => {
   assert.equal(result.status, "needs-focus");
   assert.equal(result.exitCode, 2);
   assert.deepEqual(calls, []);
+  // The selector's advice is one sentence; printed per character it read one letter a line.
+  const advice = "Add focused proof with --test-path client:<package-relative-test>, or narrow the change.";
+  assert.deepEqual(remediationLines({ remediation: advice }), [advice]);
+  assert.deepEqual(remediationLines({ remediation: null }), []);
 });
 
 test("a saturated host suspends the hard deadline and runs the plan in full", async () => {

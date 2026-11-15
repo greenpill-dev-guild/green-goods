@@ -985,6 +985,11 @@ export async function executePlan(plan, options = {}) {
 }
 
 /** Summarize observed evidence only; never copy subprocess logs, environment or attestation text. */
+/** The needs-focus advice as whole lines: the selector returns it as one sentence. */
+export function remediationLines(plan) {
+  return [plan.remediation ?? []].flat().filter(Boolean);
+}
+
 export function summarizeExecution(plan, execution, { loadAverage = loadavg(), cpuCount = availableParallelism() } = {}) {
   const results = execution.results ?? [];
   const blocked = (execution.blocked ?? []).map(({ id, blockedBy }) => ({ id, blockedBy: [...blockedBy] }));
@@ -1237,7 +1242,7 @@ async function main() {
     console.log(`\n${colors.yellow}Validation cancelled; no additional checks will run.${colors.reset}`);
   } else if (execution.status === "needs-focus") {
     console.log(`\n${colors.yellow}Validation needs focused proof; no checks were started.${colors.reset}`);
-    for (const instruction of plan.remediation ?? []) console.log(`  - ${instruction}`);
+    for (const instruction of remediationLines(plan)) console.log(`  - ${instruction}`);
   } else if (execution.status === "budget-exceeded") {
     console.log(
       `\n${colors.red}Validation exceeded its ${plan.budget.hardLimitSeconds}s local budget; remaining noncritical checks were stopped.${colors.reset}`,
