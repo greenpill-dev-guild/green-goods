@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "mergeMethod": "merge",
+  "autoMerge": true,
+  "deleteBranchOnMerge": true,
+  "requiredChecks": ["CI Gate"],
+  "tiers": {
+    "critical": {
+      "about": "AGENTS.md Change Criticality: contract source and release tooling, and Shared code that signs, sends a transaction, moves funds, or changes auth, session or queue state. scripts/data/validation-policy.json criticalOverrides is authoritative: the check selector also escalates every Shared file its exact list names and any file that reaches a sharedMutationPrimitives call. The owner reviews and merges; never auto-merged.",
+      "paths": [
+        "packages/contracts/src/**",
+        "packages/contracts/script/**",
+        "scripts/contracts/**",
+        "packages/contracts/config/*release*",
+        ".github/workflows/release.yml",
+        ".github/release.yml",
+        "packages/shared/src/providers/Auth.tsx",
+        "packages/shared/src/providers/AuthGate.tsx",
+        "packages/shared/src/providers/JobQueue.tsx",
+        "packages/shared/src/providers/Work.tsx",
+        "packages/shared/src/modules/auth/**",
+        "packages/shared/src/modules/job-queue/**",
+        "packages/shared/src/modules/work/**",
+        "packages/shared/src/modules/media/**",
+        "packages/shared/src/modules/transactions/**",
+        "packages/shared/src/workflows/**",
+        "packages/shared/src/hooks/auth/**",
+        "packages/shared/src/hooks/client-ui/submission/**",
+        "packages/shared/src/hooks/work/**",
+        "packages/shared/src/hooks/vault/**"
+      ],
+      "requireCodeOwnerReview": true,
+      "autoMerge": false
+    },
+    "sensitive": {
+      "about": "AGENTS.md Change Criticality and Essential rules: agent runtime, indexer lifecycle, plan evidence, validation and migration tooling, admin workflow state, client journeys, read-only Shared hooks, and manifests, lockfiles, CI, agent instructions and harness configuration. A fresh agent reviews the change adversarially before it merges on green.",
+      "paths": [
+        ".github/**",
+        ".agents/**",
+        ".claude/**",
+        ".codex/**",
+        ".plans/**",
+        "AGENTS.md",
+        "**/AGENTS.md",
+        "CLAUDE.md",
+        "**/package.json",
+        "bun.lock",
+        "scripts/dev/**",
+        "scripts/harness/**",
+        "scripts/quality/**",
+        "scripts/data/validation-policy.json",
+        "packages/agent/src/**",
+        "packages/indexer/src/**",
+        "packages/indexer/schema.graphql",
+        "packages/indexer/config.yaml",
+        "packages/shared/src/hooks/assessment/**",
+        "packages/shared/src/hooks/blockchain/**",
+        "packages/shared/src/hooks/conviction/**",
+        "packages/shared/src/hooks/ens/**",
+        "packages/shared/src/hooks/garden/**",
+        "packages/shared/src/hooks/greenwill/**"
+      ],
+      "requireCodeOwnerReview": false,
+      "autoMerge": true
+    },
+    "routine": {
+      "about": "Everything else: documentation, stories, cleanup and test-only refactors without runtime changes. Auto-merges once CI Gate is green.",
+      "paths": ["**"],
+      "requireCodeOwnerReview": false,
+      "autoMerge": true
+    }
+  }
+}

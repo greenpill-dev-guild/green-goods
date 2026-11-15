@@ -195,6 +195,11 @@ function commandDecision(words, harness) {
   return null;
 }
 
+/** The words of each simple command after wrappers, as `.agents/policy.json` rules see them. */
+export function commandValues(command) {
+  return scanCommands(command).commands.map((words) => executableWords(words).map((word) => word.dynamic ? "" : word.value));
+}
+
 export function evaluateCommand(command, harness) {
   const { commands, partial } = scanCommands(command);
   const decisions = commands.map((words) => commandDecision(words, harness)).filter(Boolean);

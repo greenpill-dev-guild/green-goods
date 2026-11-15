@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { evaluateCommand } from "./command-policy.mjs";
+import { commandValues, evaluateCommand } from "./command-policy.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const claude = JSON.parse(readFileSync(join(root, ".claude/settings.json"), "utf8"));
@@ -153,5 +153,109 @@ test("unsupported shell programs are explicitly partial and events never certify
       assert.equal(result.code, 0);
       assert.match(result.output, /no policy decision/i);
     }
+  }
+});
+
+// .agents/policy.json declares these rules for the machine-wide guards. This repository's own
+// hooks stay their floor where those guards are absent (cloud sessions, other contributors), so
+// every declared rule keeps an enforcer here, in the harnesses named, and no declared command
+// pattern fires on the harmless inputs above.
+const policy = JSON.parse(readFileSync(join(root, ".agents/policy.json"), "utf8"));
+const commandFloor = {
+  "bun-test": { samples: ["bun test", "MODE=qa bun test"], claude: "block", codex: "block" },
+  "forge-direct": { samples: ["forge build", "forge test"], codex: "block" },
+  "vercel-prod": { samples: ["vercel --prod"], claude: "warn", codex: "block" },
+  "fly-deploy": { samples: ["fly deploy"], codex: "block" },
+  "mainnet-deploy": { samples: ["bun script/deploy.ts core --network mainnet --broadcast"], claude: "warn", codex: "block" },
+  "mainnet-contracts": { samples: ["bun run contracts upgrade --network mainnet"], claude: "warn", codex: "block" },
+};
+const critical = { claude: "notice", codex: "notice" };
+const pathFloor = {
+  "package-env": { file: "packages/client/.env.local", claude: "block", codex: "block" },
+  "client-hooks": { file: "packages/client/src/hooks/useThing.ts", claude: "block" },
+  "admin-hooks": { file: "packages/admin/src/hooks/useThing.ts", claude: "block" },
+  "critical-contracts": { file: "packages/contracts/src/Garden.sol", ...critical },
+  "critical-auth-provider": { file: "packages/shared/src/providers/Auth.tsx", ...critical },
+  "critical-job-queue-provider": { file: "packages/shared/src/providers/JobQueue.tsx", ...critical },
+  "critical-work-provider": { file: "packages/shared/src/providers/Work.tsx", ...critical },
+  "critical-job-queue": { file: "packages/shared/src/modules/job-queue/send.ts", ...critical },
+  "critical-auth-hooks": { file: "packages/shared/src/hooks/auth/useThing.ts", ...critical },
+  "critical-work-hooks": { file: "packages/shared/src/hooks/work/useThing.ts", ...critical },
+  "critical-vault-hooks": { file: "packages/shared/src/hooks/vault/useThing.ts", ...critical },
+  "critical-blockchain-hooks": { file: "packages/shared/src/hooks/blockchain/useThing.ts", ...critical },
+  "config-manifests": { file: "packages/client/package.json", codex: "notice" },
+  "config-lockfile": { file: "bun.lock", codex: "notice" },
+  "config-workflows": { file: ".github/workflows/client.yml", codex: "notice" },
+  "config-codex": { file: ".codex/hooks.json", codex: "notice" },
+  "config-claude": { file: ".claude/settings.json", codex: "notice" },
+  "config-agents": { file: ".agents/skills/review/SKILL.md", codex: "notice" },
+};
+
+// The shared guards' glob rule: ** spans folders, * and ? stay inside one.
+function globRegex(glob) {
+  const source = glob.replace(/\*\*\/|\*\*|\*|\?|[.+^${}()|[\]\\]/g, (token) =>
+    ({ "**/": "(?:.*/)?", "**": ".*", "*": "[^/]*", "?": "[^/]" })[token] ?? `\\${token}`);
+  return new RegExp(`^${source}$`);
+}
+
+function policyMatches(rule, command) {
+  return commandValues(command).some((values) => Array.isArray(rule.prefix)
+    ? rule.prefix.every((word, index) => values[index] === word)
+    : new RegExp(rule.pattern).test(values.filter(Boolean).join(" ")));
+}
+
+function editHooks(harness, file) {
+  if (harness === "codex") {
+    const patch = `*** Begin Patch\n*** Update File: ${file}\n*** End Patch`;
+    return codex.hooks.PreToolUse.filter((entry) => /apply_patch/.test(entry.matcher)).flatMap((entry) => entry.hooks)
+      .map((hook) => invoke(hook.command, { tool_name: "apply_patch", tool_input: { command: patch }, cwd: root }));
+  }
+  // Claude Code runs a hook only when its `if` condition names the tool and matches the path.
+  const absolute = join(root, file);
+  return claude.hooks.PreToolUse.filter((entry) => /Write/.test(entry.matcher)).flatMap((entry) => entry.hooks)
+    .filter((hook) => {
+      const condition = /^([\w|]+)\((.+)\)$/.exec(hook.if ?? "");
+      return !hook.if || (condition[1].split("|").includes("Write") && globRegex(condition[2]).test(absolute));
+    })
+    .map((hook) => invoke(hook.command, { tool_name: "Write", tool_input: { file_path: absolute } }));
+}
+
+function assertFloor(want, results, label) {
+  if (want === "block") assert.ok(results.some((result) => result.code === 2), `${label} must block`);
+  else {
+    assert.ok(results.every((result) => result.code === 0), `${label} must not block`);
+    assert.ok(results.some((result) => result.output.trim()), `${label} must say why`);
+  }
+}
+
+test("every .agents/policy.json rule keeps an enforcer in this repository's own hooks", () => {
+  assert.deepEqual(policy.commands.map((rule) => rule.id).sort(), Object.keys(commandFloor).sort());
+  assert.deepEqual(policy.paths.map((rule) => rule.id).sort(), Object.keys(pathFloor).sort());
+  for (const rule of policy.commands) {
+    const floor = commandFloor[rule.id];
+    assert.ok(floor.claude || floor.codex, `${rule.id} has no floor enforcer`);
+    for (const sample of floor.samples) {
+      assert.ok(policyMatches(rule, sample), `${rule.id} must match ${sample}`);
+      for (const harness of ["claude", "codex"]) {
+        if (!floor[harness]) continue;
+        const results = commandHooks(harness, sample);
+        assertFloor(floor[harness], results, `${harness} ${sample}`);
+        assert.ok(results.some((result) => result.output.includes(rule.message)), `${harness} ${sample}: same message as ${rule.id}`);
+      }
+    }
+  }
+  for (const rule of policy.paths) {
+    const floor = pathFloor[rule.id];
+    assert.ok(floor.claude || floor.codex, `${rule.id} has no floor enforcer`);
+    assert.ok(globRegex(rule.glob).test(floor.file), `${rule.id} must match ${floor.file}`);
+    for (const harness of ["claude", "codex"]) {
+      if (floor[harness]) assertFloor(floor[harness], editHooks(harness, floor.file), `${harness} ${floor.file}`);
+    }
+  }
+});
+
+test("no .agents/policy.json command rule fires on harmless input", () => {
+  for (const command of harmless) {
+    for (const rule of policy.commands) assert.equal(policyMatches(rule, command), false, `${rule.id}: ${command}`);
   }
 });

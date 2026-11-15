@@ -1,4 +1,4 @@
-# Green Goods — Agent Guide
+# Green Goods Agent Guide
 
 Green Goods connects regenerative work, community verification, and funding. This file owns
 shared repository instructions for every coding agent. Read the nearest `AGENTS.md` before
@@ -212,6 +212,9 @@ or owning handoff; unknown timing and human attention stay unknown.
 Edit shared skills in `.claude/skills`; `.agents/skills` is its symlinked Codex discovery path.
 Do not replace the symlink with a second copy. Project-specific settings and hooks live in
 `.claude/settings.json` and `.codex/`; they enforce tool behavior beyond prose instructions.
+`.agents/policy.json` declares the same command and path rules for the machine-wide guards, and
+these hooks stay their floor where those guards are absent; `scripts/harness/agent-hooks.test.mjs`
+fails when the two disagree. `.agents/merge-policy.json` states the merge tiers.
 Keep `CLAUDE.md` as a compatibility import until supported Claude environments load `AGENTS.md`
 directly; it must not duplicate repository policy.
 

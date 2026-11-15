@@ -381,7 +381,7 @@ workflow does not merge PRs or change required checks.
 | Script | Caller | Purpose |
 |---|---|---|
 | `command-policy.mjs` | Claude Bash hook and `.codex/hooks/pre_tool_policy.sh` | Inspect ordinary shell commands without executing input; share command matching while preserving Claude production warnings and Codex blocks |
-| `agent-hooks.test.mjs` | `bun run check --only review-guardrails-test` | Synthetic hook events and command fixtures covering advisory lifecycle events, harmless quoted data, restricted commands, and harness registration |
+| `agent-hooks.test.mjs` | `bun run check --only review-guardrails-test` | Synthetic hook events and command fixtures covering advisory lifecycle events, harmless quoted data, restricted commands, harness registration, and the floor enforcer for every `.agents/policy.json` rule |
 | `plan-hub.mjs` | `plan` skill | Manage `.plans/{ideas,backlog,active,archive}/` queue, lane status, TDD gates, taxonomy summaries, and root-layout validation. `linear.stateSyncMode: preserve_existing` emits read-only preserve actions for existing mirrors; new issues keep stage-derived create fields. |
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
 | `skill-trigger-eval.mjs` | `bun run check --only skill-evaluation` (on-demand, not CI) | Routes the fixture queries in `scripts/data/skill-trigger-eval.json` against the live SKILL.md descriptions via a cheap `claude -p` call — catches description-routing regressions after trigger edits |
