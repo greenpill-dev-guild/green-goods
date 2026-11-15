@@ -169,6 +169,19 @@ export function trackJobSkipped(
   });
 }
 
+/**
+ * Makes a record without letting it change what the person's action did. A mutation callback
+ * that throws stops a send before it starts or turns a finished one into a failure, so a record
+ * that fails is logged and dropped, as `track` does when its transport throws.
+ */
+export function recordBestEffort(record: () => void): void {
+  try {
+    record();
+  } catch (error) {
+    logger.warn("[Telemetry] A record could not be made", { error: String(error) });
+  }
+}
+
 type QueuedUploadScope = "all" | "selected";
 
 /** Track an Upload all or Upload now tap, before anything is signed. */

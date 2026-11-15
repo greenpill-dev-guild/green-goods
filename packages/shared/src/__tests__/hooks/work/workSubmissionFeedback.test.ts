@@ -177,6 +177,22 @@ describe("recording a Submit's ending", () => {
     expect(walletProgressToasts.error).not.toHaveBeenCalled();
   });
 
+  it("never lets a record that fails reach the Submit it records", () => {
+    const broken = () => {
+      throw new Error("record failed");
+    };
+    // Each throw is set just before its call, so a failure here cannot leak into the next test.
+    vi.mocked(trackWorkSubmissionFailed).mockImplementationOnce(broken);
+    const terms = new UploadPolicyCancelledError();
+    expect(() =>
+      recordWorkSubmissionFailure(terms, options, journey, { images: [] })
+    ).not.toThrow();
+    vi.mocked(trackWorkSubmissionSuccess).mockImplementationOnce(broken);
+    expect(() => recordWorkSubmissionOutcome(journey, "0xsent", options)).not.toThrow();
+    expect(trackWorkSubmissionFailed).toHaveBeenCalledOnce();
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledOnce();
+  });
+
   it("records a declined Terms prompt as a Submit the person cancelled, not a failure", () => {
     recordWorkSubmissionFailure(new UploadPolicyCancelledError(), options, journey, { images: [] });
     expect(trackWorkSubmissionFailed).toHaveBeenCalledExactlyOnceWith(

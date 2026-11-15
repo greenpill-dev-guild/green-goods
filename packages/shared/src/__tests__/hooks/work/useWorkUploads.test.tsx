@@ -58,6 +58,18 @@ vi.mock("../../../modules/work/upload-preparation", async (importOriginal) => ({
 vi.mock("../../../modules/work/upload-queued-work", () => ({
   uploadQueuedWork: mocks.uploadQueuedWork,
 }));
+// The upload trackers run for real unless a test makes one throw.
+const analytics = vi.hoisted(() => ({ started: vi.fn(), finished: vi.fn() }));
+vi.mock("../../../modules/job-queue/job-analytics", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../modules/job-queue/job-analytics")>();
+  analytics.started.mockImplementation(actual.trackQueuedUploadStarted);
+  analytics.finished.mockImplementation(actual.trackQueuedUploadFinished);
+  return {
+    ...actual,
+    trackQueuedUploadStarted: analytics.started,
+    trackQueuedUploadFinished: analytics.finished,
+  };
+});
 vi.mock("../../../modules/work/upload-queued-work-defaults", () => ({
   createDefaultUploadQueuedWorkPorts: mocks.createPorts,
 }));
@@ -436,6 +448,30 @@ describe("useWorkUploads", () => {
     } finally {
       unregister();
     }
+  });
+
+  // Both records run inside the mutation: a throw would stop the upload or fail a finished one.
+  it.each([
+    "started",
+    "finished",
+  ] as const)("keeps an upload's outcome when its %s record cannot be made", async (record) => {
+    analytics[record].mockImplementationOnce(() => {
+      throw new Error("record failed");
+    });
+    mocks.uploadQueuedWork.mockResolvedValue({ status: "uploaded", sent: 2, flagged: 0 });
+    const { result } = renderHookWithProviders(() => useWorkUploads());
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.upload();
+    });
+
+    expect(outcome).toEqual({ status: "uploaded", sent: 2, flagged: 0 });
+    expect(analytics[record]).toHaveBeenCalledOnce();
+    expect(mocks.toast.success).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Uploaded 2 items" })
+    );
+    expect(mocks.toast.error).not.toHaveBeenCalled();
   });
 
   it("asks the person to sign in when nothing can sign, and sends nothing", async () => {

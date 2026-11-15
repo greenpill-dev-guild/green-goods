@@ -631,6 +631,28 @@ describe("hooks/work/useWorkMutation", () => {
     );
   });
 
+  it("keeps a Submit's success when its record cannot be made", async () => {
+    // The record runs inside the mutation's callbacks, where a throw would turn success into failure.
+    vi.mocked(trackWorkSubmissionSuccess).mockImplementationOnce(() => {
+      throw new Error("record failed");
+    });
+    mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(
+      () => useWorkMutation({ ...defaultOptions, onSuccess, onError }),
+      { wrapper: createWrapper() }
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+
+    expect(trackWorkSubmissionSuccess).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledWith(MOCK_TX_HASH);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it("records a Submit that failed after the person left the flow, without telling them", async () => {
     let fail!: (error: Error) => void;
     vi.mocked(submitWorkDirectly).mockReturnValueOnce(

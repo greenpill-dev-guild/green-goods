@@ -1,6 +1,7 @@
 import type { IntlShape } from "react-intl";
 import type { UseWorkMutationOptions, WorkMutationOrigin } from "./useWorkMutation.types";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { recordBestEffort } from "../../modules/job-queue/job-analytics";
 import { isOfflineTxHash } from "../../modules/job-queue/queue-policy";
 import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
@@ -174,14 +175,17 @@ export function recordWorkSubmissionFailure(
   origin: Pick<WorkMutationOrigin, "journeyId">,
   variables: { images: readonly File[] }
 ): void {
-  recordFailure(error, {
-    authMode: options.authMode,
-    actionUID: options.actionUID,
-    allowOfflineQueue: options.allowOfflineQueue ?? true,
-    chainId: DEFAULT_CHAIN_ID,
-    imageCount: variables.images.length,
-    workSubmissionJourneyId: origin.journeyId,
-  });
+  // Called from the mutation's own callbacks: a record that fails must not change the Submit.
+  recordBestEffort(() =>
+    recordFailure(error, {
+      authMode: options.authMode,
+      actionUID: options.actionUID,
+      allowOfflineQueue: options.allowOfflineQueue ?? true,
+      chainId: DEFAULT_CHAIN_ID,
+      imageCount: variables.images.length,
+      workSubmissionJourneyId: origin.journeyId,
+    })
+  );
 }
 
 /**
@@ -194,24 +198,27 @@ export function recordWorkSubmissionOutcome(
   txHash: unknown,
   { authMode, actionUID }: SubmissionOptions
 ): void {
-  const submission = {
-    actionUID: actionUID ?? 0,
-    authMode,
-    workSubmissionJourneyId: origin.journeyId,
-    chainId: DEFAULT_CHAIN_ID,
-  };
-  if (origin.outcome?.kind === "awaiting-confirmation") {
-    trackWorkSubmissionQueued({
+  // Called from the mutation's own callbacks: a record that fails must not change the Submit.
+  recordBestEffort(() => {
+    const submission = {
+      actionUID: actionUID ?? 0,
+      authMode,
+      workSubmissionJourneyId: origin.journeyId,
+      chainId: DEFAULT_CHAIN_ID,
+    };
+    if (origin.outcome?.kind === "awaiting-confirmation") {
+      trackWorkSubmissionQueued({
+        ...submission,
+        status: "awaiting-confirmation",
+        ...(origin.outcome.reason ? { reason: origin.outcome.reason } : {}),
+      });
+      return;
+    }
+    trackWorkSubmissionSuccess({
       ...submission,
-      status: "awaiting-confirmation",
-      ...(origin.outcome.reason ? { reason: origin.outcome.reason } : {}),
+      wasOffline: typeof txHash === "string" && isOfflineTxHash(txHash),
+      submissionPhase: "success",
     });
-    return;
-  }
-  trackWorkSubmissionSuccess({
-    ...submission,
-    wasOffline: typeof txHash === "string" && isOfflineTxHash(txHash),
-    submissionPhase: "success",
   });
 }
 
