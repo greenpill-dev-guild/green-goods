@@ -23,14 +23,16 @@
  *  - Architecture: exported client/admin hooks stay in shared unless explicitly local
  *
  * Modes:
- *   --report          emit JSON for blocking and heuristic advisory rules
- *   --baseline-write  rewrite the advisory triage inventory
- *   default           run only high-confidence blocking rules and fail on any hit
+ *   --report           emit JSON for blocking and heuristic advisory rules
+ *   --baseline-shrink  lower the ratchet baseline to the counts that remain
+ *   default            fail on any blocking hit, and on any ratcheted count above its baseline
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseBaseArgs, resolveGitBase } from "../lib/git-guardrails.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../..");
@@ -72,6 +74,20 @@ const BLOCKING_RULES = new Set([
   "rule-14-whole-env-read",
   "rule-19-client-shared-controls",
 ]);
+
+// Rules whose existing hits are debt: counts per rule and file may go down, never up. A new hit
+// fails, a count below its baseline fails until --baseline-shrink records it, and the baseline
+// itself may not grow over the base branch's copy.
+export const RATCHETED_RULES = new Set([
+  "rule-1-raw-timer",
+  "rule-2-raw-addeventlistener",
+  "rule-5-address-as-string",
+]);
+const RATCHET_REMEDIATION = {
+  "rule-1-raw-timer": "use useTimeout, useDelayedInvalidation or useProgressiveInvalidation from @green-goods/shared",
+  "rule-2-raw-addeventlistener": "use useEventListener, useWindowEvent or useDocumentEvent from @green-goods/shared, or pass { once: true }",
+  "rule-5-address-as-string": "type the value as Address from @green-goods/shared/types/domain",
+};
 
 // Globs of files in scope. Mirror the scopes from `.claude/rules/*.md` frontmatter.
 const SCOPES = {
@@ -115,15 +131,8 @@ const SCOPES = {
 
 // File-level allowlist for hooks that legitimately implement timer/event utilities.
 // These ARE the utility hooks the rules ask consumers to use.
-const RULE_1_FILE_ALLOWLIST = new Set([
-  "packages/shared/src/hooks/utils/useTimeout.ts",
-  "packages/shared/src/hooks/utils/useDelayedInvalidation.ts",
-]);
-const RULE_2_FILE_ALLOWLIST = new Set([
-  "packages/shared/src/hooks/utils/useEventListener.ts",
-  "packages/shared/src/hooks/utils/useWindowEvent.ts",
-  "packages/shared/src/hooks/utils/useDocumentEvent.ts",
-]);
+const RULE_1_FILE_ALLOWLIST = new Set(["packages/shared/src/hooks/utils/useTimeout.ts"]);
+const RULE_2_FILE_ALLOWLIST = new Set(["packages/shared/src/hooks/utils/useEventListener.ts"]);
 
 const sharedPackage = JSON.parse(readFileSync(sharedPackagePath, "utf8"));
 const DECLARED_SHARED_IMPORTS = new Set(
@@ -930,36 +939,120 @@ const RULE_SCANNERS = {
   "rule-19-client-shared-controls": scanRule19,
 };
 
-// ---------------- baseline ----------------
+// ---------------- ratchet baseline ----------------
 
-function writeBaseline(allHits) {
-  const grouped = {};
-  for (const hit of allHits) {
-    if (!grouped[hit.rule]) {
-      grouped[hit.rule] = { count: 0, entries: [] };
-    }
-    grouped[hit.rule].count += 1;
-    grouped[hit.rule].entries.push({
-      file: hit.file,
-      line: hit.line,
-      snippet: hit.snippet,
-    });
+const BASELINE_RELATIVE_PATH = relative(repoRoot, baselinePath);
+
+export function countRatchetHits(hits) {
+  const counts = {};
+  for (const hit of hits) {
+    if (!RATCHETED_RULES.has(hit.rule)) continue;
+    counts[hit.rule] ??= {};
+    counts[hit.rule][hit.file] = (counts[hit.rule][hit.file] ?? 0) + 1;
   }
-  // Sort entries for stable diffs.
-  for (const rule of Object.keys(grouped)) {
-    grouped[rule].entries.sort((a, b) =>
-      a.file !== b.file ? a.file.localeCompare(b.file) : a.line - b.line,
-    );
+  return sortCounts(counts);
+}
+
+function sortCounts(counts) {
+  return Object.fromEntries(
+    Object.keys(counts)
+      .sort()
+      .map((rule) => [
+        rule,
+        Object.fromEntries(Object.keys(counts[rule]).sort().map((file) => [file, counts[rule][file]])),
+      ]),
+  );
+}
+
+function eachCount(counts, visit) {
+  for (const [rule, files] of Object.entries(counts ?? {})) {
+    for (const [file, count] of Object.entries(files)) visit(rule, file, count);
   }
-  const baseline = {
-    note:
-      "Auto-generated advisory inventory from `bun run check --only react-patterns -- --baseline-write`. Default lint ignores this file and blocks every high-confidence hit. Use the inventory only for dedicated heuristic cleanup. See .claude/rules/ for rule sources.",
-    generatedAt: new Date().toISOString(),
-    rules: grouped,
+}
+
+/** Counts above the baseline (grown, including files it does not list) and below it (stale). */
+export function compareRatchet(baselineCounts, counts) {
+  const grown = [];
+  const stale = [];
+  eachCount(counts, (rule, file, now) => {
+    const was = baselineCounts?.[rule]?.[file] ?? 0;
+    if (now > was) grown.push({ rule, file, was, now });
+  });
+  eachCount(baselineCounts, (rule, file, was) => {
+    const now = counts?.[rule]?.[file] ?? 0;
+    if (now < was) stale.push({ rule, file, was, now });
+  });
+  return { grown, stale };
+}
+
+/** Baseline counts above the base branch's copy; nothing when the base has no ratchet baseline. */
+export function findRatchetBaselineGrowth(baselineCounts, previousCounts) {
+  if (previousCounts === null) return [];
+  const grown = [];
+  eachCount(baselineCounts, (rule, file, now) => {
+    const was = previousCounts[rule]?.[file] ?? 0;
+    if (now > was) grown.push({ rule, file, was, now });
+  });
+  return grown;
+}
+
+export function shrinkRatchet(baselineCounts, counts) {
+  const { grown } = compareRatchet(baselineCounts, counts);
+  if (grown.length) throw new Error(`refusing to shrink: ${grown.length} count(s) grew`);
+  const next = {};
+  eachCount(baselineCounts, (rule, file, was) => {
+    const now = Math.min(was, counts[rule]?.[file] ?? 0);
+    if (now > 0) (next[rule] ??= {})[file] = now;
+  });
+  return sortCounts(next);
+}
+
+export function parseRatchetBaseline(source) {
+  const document = JSON.parse(source);
+  if (document?.version !== 1 || typeof document.counts !== "object") return null;
+  return document.counts;
+}
+
+function readRatchetBaseline() {
+  const counts = parseRatchetBaseline(readFileSync(baselinePath, "utf8"));
+  if (counts === null) throw new Error(`${BASELINE_RELATIVE_PATH} is not a version 1 ratchet baseline`);
+  return counts;
+}
+
+function writeRatchetBaseline(counts) {
+  const document = {
+    version: 1,
+    note: "Shrink-only: per rule and file, the raw timers, raw listeners and address strings still allowed. Counts may go down, never up; record a lower count with `node scripts/quality/check-react-patterns.js --baseline-shrink`.",
+    counts,
   };
   mkdirSync(dirname(baselinePath), { recursive: true });
-  writeFileSync(baselinePath, JSON.stringify(baseline, null, 2) + "\n");
-  return baseline;
+  writeFileSync(baselinePath, `${JSON.stringify(document, null, 2)}\n`);
+}
+
+// The base branch's baseline, when the base and that file resolve: the base CI's package workflows
+// pass, then origin/develop. A shallow checkout without the base skips this comparison.
+function readPreviousRatchetBaseline(argv) {
+  const base = resolveGitBase({
+    repoRoot,
+    explicitBase: parseBaseArgs(argv).base,
+    environmentVariables: ["REACT_PATTERNS_BASE_REF", "SOURCE_STRUCTURE_BASE_REF"],
+  });
+  if (!base) return { base: null, counts: null };
+  const git = (args) => {
+    try {
+      return execFileSync("git", args, { cwd: repoRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch {
+      return "";
+    }
+  };
+  const ref = git(["merge-base", "HEAD", base]) || base;
+  const source = git(["show", `${ref}:${BASELINE_RELATIVE_PATH}`]);
+  if (!source) return { base, counts: null };
+  try {
+    return { base, counts: parseRatchetBaseline(source) };
+  } catch {
+    return { base, counts: null };
+  }
 }
 
 // ---------------- main ----------------
@@ -967,7 +1060,7 @@ function writeBaseline(allHits) {
 function gatherAllHits({ includeAdvisory = true } = {}) {
   const allHits = gatherArchitectureHits();
   const fileLists = {};
-  const enabledRules = includeAdvisory ? Object.keys(SCOPES) : BLOCKING_RULES;
+  const enabledRules = includeAdvisory ? Object.keys(SCOPES) : [...BLOCKING_RULES, ...RATCHETED_RULES];
 
   for (const rule of enabledRules) {
     const scopes = SCOPES[rule];
@@ -993,8 +1086,8 @@ function summarize(hits) {
 }
 
 export function main(argv = process.argv.slice(2)) {
-  const selectedMode = argv.includes("--baseline-write")
-    ? "baseline-write"
+  const selectedMode = argv.includes("--baseline-shrink")
+    ? "baseline-shrink"
     : argv.includes("--report")
       ? "report"
       : "lint";
@@ -1006,20 +1099,26 @@ export function main(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  if (selectedMode === "baseline-write") {
-    const hits = gatherAllHits();
-    writeBaseline(hits);
-    const summary = summarize(hits);
-    console.log("Baseline written:", baselinePath);
-    console.log("Per-rule counts:");
-    for (const [rule, count] of Object.entries(summary)) {
-      console.log(`  ${rule}: ${count}`);
+  if (selectedMode === "baseline-shrink") {
+    const counts = countRatchetHits(gatherAllHits({ includeAdvisory: false }));
+    try {
+      writeRatchetBaseline(shrinkRatchet(readRatchetBaseline(), counts));
+    } catch (error) {
+      console.error(`❌ check-react-patterns: ${error.message}. Fix the new hits first; the baseline only shrinks.`);
+      return 1;
     }
-    console.log(`Total: ${hits.length}`);
+    console.log(`Ratchet baseline shrunk: ${BASELINE_RELATIVE_PATH}`);
     return 0;
   }
 
-  const allHits = gatherAllHits({ includeAdvisory: false });
+  const scannedHits = gatherAllHits({ includeAdvisory: false });
+  const allHits = scannedHits.filter((hit) => !RATCHETED_RULES.has(hit.rule));
+  const ratchetFailures = ratchetFailureLines(scannedHits, argv);
+
+  if (ratchetFailures.length > 0) {
+    console.error(`\n❌ check-react-patterns: the debt ratchet failed (${BASELINE_RELATIVE_PATH}):`);
+    for (const line of ratchetFailures) console.error(`  ${line}`);
+  }
 
   if (allHits.length > 0) {
     console.error(`\n❌ check-react-patterns: ${allHits.length} blocking violation(s):`);
@@ -1044,15 +1143,13 @@ export function main(argv = process.argv.slice(2)) {
           "object wherever import.meta.env is read whole; pass an object of named reads instead.",
       );
     }
-  } else {
+  } else if (ratchetFailures.length === 0) {
     console.log(
-      `✅ check-react-patterns: 0 blocking violations across ${BLOCKING_RULES.size} source-pattern rules plus package/export/hook boundary checks.`,
+      `✅ check-react-patterns: 0 blocking violations across ${BLOCKING_RULES.size} source-pattern rules plus package/export/hook boundary checks, and no ratcheted count above its baseline (${RATCHETED_RULES.size} rules).`,
     );
   }
 
-  console.log(
-    "Heuristic cleanup rules are quiet in lint mode; use --report for advisory analysis.",
-  );
+  console.log("Other heuristic rules are quiet in lint mode; use --report for advisory analysis.");
 
   console.log("\nRule sources:");
   console.log("  .claude/rules/react-patterns.md  (Rules 1, 2, 6)");
@@ -1060,7 +1157,27 @@ export function main(argv = process.argv.slice(2)) {
   console.log("  .claude/rules/frontend-design.md (Rules 13, 16, 19)");
   console.log("  scripts/quality/check-react-patterns.js (package/export/hook boundaries)");
 
-  return allHits.length > 0 ? 1 : 0;
+  return allHits.length > 0 || ratchetFailures.length > 0 ? 1 : 0;
+}
+
+function ratchetFailureLines(hits, argv) {
+  const counts = countRatchetHits(hits);
+  const baseline = readRatchetBaseline();
+  const { grown, stale } = compareRatchet(baseline, counts);
+  const lines = [];
+  for (const item of grown) {
+    const where = hits.filter((hit) => hit.rule === item.rule && hit.file === item.file).map((hit) => hit.line).join(", ");
+    lines.push(`${item.rule} ${item.file}: ${item.now} hit(s) (lines ${where}), baseline allows ${item.was}; ${RATCHET_REMEDIATION[item.rule]}`);
+  }
+  if (stale.length) {
+    lines.push(`${stale.length} count(s) fell below the baseline; record them with \`node scripts/quality/check-react-patterns.js --baseline-shrink\` and commit the baseline:`);
+    for (const item of stale) lines.push(`  ${item.rule} ${item.file}: ${item.was} -> ${item.now}`);
+  }
+  const previous = readPreviousRatchetBaseline(argv);
+  for (const item of findRatchetBaselineGrowth(baseline, previous.counts)) {
+    lines.push(`${item.rule} ${item.file}: the baseline allows ${item.now}, above ${item.was} on ${previous.base}; the baseline may not grow`);
+  }
+  return lines;
 }
 
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);

@@ -64,7 +64,11 @@ jobs:
         run: node scripts/quality/check-commit-identity.mjs --pull-request
 
       - name: Check package and source architecture rules
-        run: node scripts/quality/check-react-patterns.js
+        env:
+          REACT_PATTERNS_BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$REACT_PATTERNS_BASE_REF" || echo "Base commit unavailable; the ratchet baseline is checked against the tree only."
+          node scripts/quality/check-react-patterns.js
 
       - name: Verify all expected CI workflows pass
         env:

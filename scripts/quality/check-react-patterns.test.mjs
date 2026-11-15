@@ -2,14 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  compareRatchet,
+  countRatchetHits,
   extractExportedHookNames,
   extractInternalPackageImports,
   findDirectedCycles,
   findPackageArchitectureViolations,
+  findRatchetBaselineGrowth,
   findSharedExportTargetViolations,
   parseJsxAttributes,
+  parseRatchetBaseline,
   scanRule14Source,
   scanRule19Source,
+  shrinkRatchet,
   stripJsComments,
 } from "./check-react-patterns.js";
 
@@ -269,4 +274,39 @@ test("rule 19 ignores TypeScript generics that share a tag name", () => {
   ].join("\n");
 
   assert.deepEqual(rule19Lines(source), []);
+});
+
+test("the debt ratchet fails a new or grown count and asks for a shrink when one falls", () => {
+  const timer = (file) => ({ rule: "rule-1-raw-timer", file, line: 1, snippet: "setTimeout(" });
+  const baseline = { "rule-1-raw-timer": { "a.ts": 2, "b.ts": 1 } };
+  const counts = countRatchetHits([
+    timer("a.ts"),
+    timer("a.ts"),
+    timer("a.ts"),
+    timer("c.ts"),
+    { rule: "rule-6-zustand-whole-state", file: "a.ts" },
+  ]);
+  assert.deepEqual(counts, { "rule-1-raw-timer": { "a.ts": 3, "c.ts": 1 } });
+  assert.deepEqual(compareRatchet(baseline, counts), {
+    grown: [
+      { rule: "rule-1-raw-timer", file: "a.ts", was: 2, now: 3 },
+      { rule: "rule-1-raw-timer", file: "c.ts", was: 0, now: 1 },
+    ],
+    stale: [{ rule: "rule-1-raw-timer", file: "b.ts", was: 1, now: 0 }],
+  });
+  assert.throws(() => shrinkRatchet(baseline, counts), /refusing to shrink/);
+  assert.deepEqual(shrinkRatchet(baseline, { "rule-1-raw-timer": { "a.ts": 1 } }), {
+    "rule-1-raw-timer": { "a.ts": 1 },
+  });
+});
+
+test("the ratchet baseline may not grow over the base branch's copy", () => {
+  const base = { "rule-5-address-as-string": { "a.ts": 2 } };
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 1 } }, base), []);
+  assert.deepEqual(
+    findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 2, "b.ts": 1 } }, base),
+    [{ rule: "rule-5-address-as-string", file: "b.ts", was: 0, now: 1 }],
+  );
+  assert.deepEqual(findRatchetBaselineGrowth({ "rule-5-address-as-string": { "a.ts": 9 } }, null), []);
+  assert.equal(parseRatchetBaseline(JSON.stringify({ note: "an old advisory inventory", rules: {} })), null);
 });
