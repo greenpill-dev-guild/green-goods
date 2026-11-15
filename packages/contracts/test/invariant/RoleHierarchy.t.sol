@@ -12,18 +12,50 @@ import { MockHats } from "../../src/mocks/Hats.sol";
 // Handler: target contract for Foundry invariant fuzzer
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// @title RoleStranger
+/// @notice A caller that holds no role in either garden: every role change it attempts must revert.
+contract RoleStranger {
+    HatsModule public adapter;
+
+    constructor(HatsModule _adapter) {
+        adapter = _adapter;
+    }
+
+    function tryGrant(address garden, address user, IHatsModule.GardenRole role) external returns (bool) {
+        try adapter.grantRole(garden, user, role) {
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function tryRevoke(address garden, address user, IHatsModule.GardenRole role) external returns (bool) {
+        try adapter.revokeRole(garden, user, role) {
+            return true;
+        } catch {
+            return false;
+        }
+    }
+}
+
 /// @title RoleHierarchyHandler
 /// @notice Exposes role operations as target functions for Foundry's invariant fuzzer.
 ///         The fuzzer calls grantRole/revokeRole in arbitrary sequences, then invariants
-///         are checked after each call.
+///         are checked after each call. It counts the calls that landed, so a run that
+///         changed nothing cannot pass for one that did.
 contract RoleHierarchyHandler {
     HatsModule public adapter;
+    RoleStranger public stranger;
     address public garden1;
     address public garden2;
     address[5] public users;
+    uint256 public grants;
+    uint256 public revokes;
+    uint256 public strangerChanges;
 
-    constructor(HatsModule _adapter, address _garden1, address _garden2, address[5] memory _users) {
+    constructor(HatsModule _adapter, RoleStranger _stranger, address _garden1, address _garden2, address[5] memory _users) {
         adapter = _adapter;
+        stranger = _stranger;
         garden1 = _garden1;
         garden2 = _garden2;
         users = _users;
@@ -34,7 +66,9 @@ contract RoleHierarchyHandler {
         address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
         address user = users[userSeed % 5];
         IHatsModule.GardenRole role = _seedToRole(roleSeed);
-        try adapter.grantRole(garden, user, role) { } catch { }
+        try adapter.grantRole(garden, user, role) {
+            ++grants;
+        } catch { }
     }
 
     /// @notice Revoke a role from a random user in a random garden
@@ -42,7 +76,18 @@ contract RoleHierarchyHandler {
         address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
         address user = users[userSeed % 5];
         IHatsModule.GardenRole role = _seedToRole(roleSeed);
-        try adapter.revokeRole(garden, user, role) { } catch { }
+        try adapter.revokeRole(garden, user, role) {
+            ++revokes;
+        } catch { }
+    }
+
+    /// @notice The same role changes from a caller with no role, which must never land
+    function strangerChangesRole(uint8 gardenSeed, uint8 userSeed, uint8 roleSeed, bool revoke) external {
+        address garden = gardenSeed % 2 == 0 ? garden1 : garden2;
+        address user = users[userSeed % 5];
+        IHatsModule.GardenRole role = _seedToRole(roleSeed);
+        bool landed = revoke ? stranger.tryRevoke(garden, user, role) : stranger.tryGrant(garden, user, role);
+        if (landed) ++strangerChanges;
     }
 
     function _seedToRole(uint8 seed) internal pure returns (IHatsModule.GardenRole) {
@@ -116,8 +161,8 @@ contract RoleHierarchyInvariantTest is Test {
         users[3] = address(0x3004);
         users[4] = address(0x3005);
 
-        // Deploy handler and authorize it as gardenToken for role operations
-        handler = new RoleHierarchyHandler(adapter, garden1, garden2, users);
+        // Deploy handler and authorize it as gardenToken for role operations; the stranger holds no role
+        handler = new RoleHierarchyHandler(adapter, new RoleStranger(adapter), garden1, garden2, users);
         adapter.setGardenToken(address(handler));
 
         // Only target the handler — fuzzer will call grantRole/revokeRole randomly
@@ -130,6 +175,8 @@ contract RoleHierarchyInvariantTest is Test {
     // Funder or Community roles.
     // =========================================================================
 
+    /// forge-config: default.invariant.runs = 32
+    /// forge-config: default.invariant.depth = 64
     function invariant_funderAndCommunityNeverAutoGranted() public {
         for (uint256 i = 0; i < 5; i++) {
             assertFalse(adapter.isFunderOf(garden1, users[i]), "Funder must never be auto-granted in garden1");
@@ -144,6 +191,8 @@ contract RoleHierarchyInvariantTest is Test {
     // Role operations must never corrupt the garden hat configuration.
     // =========================================================================
 
+    /// forge-config: default.invariant.runs = 32
+    /// forge-config: default.invariant.depth = 64
     function invariant_configurationPreserved() public {
         assertTrue(adapter.isConfigured(garden1), "Garden1 must remain configured");
         assertTrue(adapter.isConfigured(garden2), "Garden2 must remain configured");
@@ -154,6 +203,8 @@ contract RoleHierarchyInvariantTest is Test {
     // No role query should revert (no corrupted hat IDs or broken state).
     // =========================================================================
 
+    /// forge-config: default.invariant.runs = 32
+    /// forge-config: default.invariant.depth = 64
     function invariant_allRoleQueriesSucceed() public {
         for (uint256 i = 0; i < 5; i++) {
             // These must never revert on configured gardens
@@ -171,6 +222,22 @@ contract RoleHierarchyInvariantTest is Test {
             adapter.isFunderOf(garden2, users[i]);
             adapter.isCommunityOf(garden2, users[i]);
         }
+    }
+
+    // =========================================================================
+    // Invariant 4: A Caller With No Role Never Changes Roles
+    // The handler also tries every role change from a contract that holds no role.
+    // =========================================================================
+
+    /// forge-config: default.invariant.runs = 32
+    /// forge-config: default.invariant.depth = 64
+    function invariant_RoleHierarchy_aCallerWithNoRoleNeverChangesRoles() public {
+        assertEq(handler.strangerChanges(), 0, "A caller with no role changed a role");
+    }
+
+    /// @notice A run in which no grant landed checked an untouched tree, so it fails.
+    function afterInvariant() public {
+        assertGt(handler.grants(), 0, "No role grant landed in this run");
     }
 }
 
