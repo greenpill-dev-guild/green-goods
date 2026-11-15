@@ -20,8 +20,8 @@ import {
   isPinnedCiNodeVersion,
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
+  needsFocusReport,
   parseArguments,
-  remediationLines,
   runCommandCheck,
   savePassingReceiptStore,
   validateAttestation,
@@ -337,10 +337,22 @@ test("a needs-focus plan starts no checks and exits non-zero", async () => {
   assert.equal(result.status, "needs-focus");
   assert.equal(result.exitCode, 2);
   assert.deepEqual(calls, []);
-  // The selector's advice is one sentence; printed per character it read one letter a line.
-  const advice = "Add focused proof with --test-path client:<package-relative-test>, or narrow the change.";
-  assert.deepEqual(remediationLines({ remediation: advice }), [advice]);
-  assert.deepEqual(remediationLines({ remediation: null }), []);
+});
+
+test("a needs-focus report prints the selector's advice as one line", () => {
+  // Iterated as a list, the selector's one-sentence advice printed one letter a line.
+  const unfocused = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"],
+  });
+  assert.equal(unfocused.status, "needs-focus");
+  assert.equal(typeof unfocused.remediation, "string");
+  assert.deepEqual(needsFocusReport(unfocused).split("\n"), [
+    "",
+    "Validation needs focused proof; no checks were started.",
+    `  - ${unfocused.remediation}`,
+  ]);
+  assert.deepEqual(needsFocusReport({ remediation: null }).split("\n"), ["", "Validation needs focused proof; no checks were started."]);
 });
 
 test("a saturated host suspends the hard deadline and runs the plan in full", async () => {
