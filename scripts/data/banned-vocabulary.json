@@ -27,10 +27,18 @@
       "packages/client/src/i18n/*.json",
       "packages/admin/src/i18n/*.json"
     ],
-    "terms": ["operator", "operators", "operador", "operadores", "operadora"],
+    "terms": [
+      "operator",
+      "operators",
+      "operador",
+      "operadores",
+      "operadora",
+      "cockpit",
+      "cockpits"
+    ],
     "exempt_keys": ["app.admin.assessment.strategyKernel.diagnosisPlaceholder.edu"],
-    "replacement": "steward",
-    "rationale": "The garden role is a Steward. Deployed GardenRole and isOperator wire names remain code identifiers; visible role copy uses Steward. The exempt key refers to literal solar field technicians.",
+    "replacement": "steward for the operator terms; the Hub (the Green Goods Hub, or its Hub dialect) for cockpit",
+    "rationale": "The garden role is a Steward. Deployed GardenRole and isOperator wire names remain code identifiers; visible role copy uses Steward. The exempt key refers to literal solar field technicians. The steward surface is the Green Goods Hub and its design dialect is the Hub dialect; cockpit, their name until 2026-11-14 (PRD-1485), never returns to copy or to a message key.",
     "locale_terms": {
       "packages/shared/src/i18n/es.json": [
         "steward",
@@ -303,10 +311,10 @@
       "(?<!\\w)(?:precisa|precisam) de ligação(?!\\w)|(?<!\\w)ligação (?:à internet|estável|instável)"
     ],
     "exempt_keys": [],
-    "rationale": "The Portuguese catalog is Brazilian Portuguese with você (confirmed 2026-10-21). European forms had drifted in, mostly in the cockpit pool copy, and were rewritten then. Each term and pattern here is European in this register: tu forms and the -te clitic, the está a + infinitive progressive, registado, equipa, secção, boleia, ecrã, utilizador, ficheiro, partilhar, contactar, planear, European accents such as económico, «» quotes, and precisa de ligação for a connection. Forms that are also Brazilian are left to review: ligação for a call or a link, de facto, partilha, à espera, a confirmar (to be confirmed), passa a + infinitive, está a par, Aceite as an imperative, precisas (also the adjective precise) and consola (also the verb consolar)."
+    "rationale": "The Portuguese catalog is Brazilian Portuguese with você (confirmed 2026-10-21). European forms had drifted in, mostly in the Hub's pool copy, and were rewritten then. Each term and pattern here is European in this register: tu forms and the -te clitic, the está a + infinitive progressive, registado, equipa, secção, boleia, ecrã, utilizador, ficheiro, partilhar, contactar, planear, European accents such as económico, «» quotes, and precisa de ligação for a connection. Forms that are also Brazilian are left to review: ligação for a call or a link, de facto, partilha, à espera, a confirmar (to be confirmed), passa a + infinitive, está a par, Aceite as an imperative, precisas (also the adjective precise) and consola (also the verb consolar)."
   },
   "prompt_vocabulary_admin_banned": {
-    "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",
+    "scope": "AI-prompt vocabulary for Green Goods Hub screens; guidance only",
     "terms": [
       "hero moment",
       "hero section",
@@ -326,7 +334,7 @@
       "glass",
       "frosted"
     ],
-    "rationale": "Admin is a restrained steward cockpit. Hero moments belong to the client PWA. Glass is restricted to Navigation and FAB chrome; dense surfaces remain solid."
+    "rationale": "The Hub is a restrained steward workspace. Hero moments belong to the client PWA. Glass is restricted to Navigation and FAB chrome; dense surfaces remain solid."
   },
   "prompt_vocabulary_client_banned": {
     "scope": "AI-prompt vocabulary for client PWA screens; guidance only",
@@ -347,7 +355,7 @@
       "glass",
       "frosted"
     ],
-    "rationale": "The client PWA is a garden journal, not a steward cockpit. It shares the cockpit's typeface but keeps warm narrative copy; cockpit and KPI language belongs to admin. Its surfaces are solid (DL-108), so glass, liquid and frosted framing is out too."
+    "rationale": "The client PWA is a garden journal, not a steward workspace, so the Hub's operator framing (its former cockpit wording included), dashboard and KPI language stay out of it. It shares the Hub's typeface but keeps warm narrative copy. Its surfaces are solid (DL-108), so glass, liquid and frosted framing is out too."
   },
   "consumers": [
     {
