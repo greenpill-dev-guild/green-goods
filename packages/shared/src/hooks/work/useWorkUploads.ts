@@ -22,7 +22,7 @@ import {
 } from "../../modules/work/upload-state";
 import { connectivityStore } from "../../stores/connectivity";
 import type { ApprovalJobPayload, Job } from "../../types/job-queue";
-import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
+import { wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { useConnectivityStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -190,7 +190,7 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
     },
     onError: (error) => {
       // The reconnect prompt already asked, and the work is still queued.
-      if (error instanceof WalletReconnectRequiredError && error.asked) return;
+      if (wasAskedToReconnect(error)) return;
       logger.error("[useWorkUploads] Upload all stopped", { error });
       if (appCodeRecovery.report(error)) return;
       toastService.error({

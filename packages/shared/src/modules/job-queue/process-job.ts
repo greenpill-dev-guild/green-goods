@@ -205,6 +205,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
 
     try {
       await context.assertOwnership?.();
+      // A send the person started, of a job with nothing on record, asks them to
+      // reconnect a wallet that has not answered (PRD-1499). A recheck asks nobody.
+      const unsent = !retainedWorkBroadcast(jobId) && !hasRecordedSend(job);
+      if (context.explicit && unsent) sender.assertReadyToSign?.();
       await sender.assertOwnership?.(job.userAddress, chainId);
       const guardedSender = Object.create(sender) as TransactionSender;
       guardedSender.assertOwnership = async (address, chainId) => {
@@ -278,8 +282,13 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
       const processingDuration = deps.clock.now() - startedAt;
       if (errorMessage === "submission-ownership-changed")
         return { success: false, error: errorMessage, skipped: true };
-      // The wallet has not answered: nothing was tried, and the person was asked to reconnect.
-      if (error instanceof WalletReconnectRequiredError)
+      // The wallet has not answered: a job with nothing on record was not tried, and keeps
+      // its attempts. A send on record still waits for its confirmation, below.
+      if (
+        error instanceof WalletReconnectRequiredError &&
+        !retainedWorkBroadcast(jobId) &&
+        !hasRecordedSend(job)
+      )
         return { success: false, error: WALLET_RECONNECT_REQUIRED, skipped: true };
       // Its partner in a request that goes only whole never came, so this was never tried.
       if (error instanceof BundleIncompleteError)

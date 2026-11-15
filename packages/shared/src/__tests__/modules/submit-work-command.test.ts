@@ -218,9 +218,10 @@ describe("submitWork", () => {
   describe("a wallet that has not answered", () => {
     function unansweredWallet() {
       const sender = createMockTransactionSender({ authMode: "wallet" });
-      sender.assertReadyToSign = () => {
+      sender.readyToSign = () => false;
+      sender.assertReadyToSign = vi.fn(() => {
         throw new WalletReconnectRequiredError(true);
-      };
+      });
       return sender;
     }
 
@@ -246,6 +247,21 @@ describe("submitWork", () => {
       await expect(submitWork(baseCommand, ports)).resolves.toMatchObject({ kind: "queued" });
       expect(enqueue).toHaveBeenCalledOnce();
       expect(direct).not.toHaveBeenCalled();
+    });
+
+    it("admits work to wait on a connection the browser reports but the origin has not confirmed", async () => {
+      const sender = unansweredWallet();
+      const { ports } = createPorts({ sender });
+      ports.connectivity = { isOnline: () => true, confirm: async () => false };
+      // Stop at admission: what follows it is the queued path's own concern.
+      const admit = vi
+        .fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>()
+        .mockRejectedValue(new Error("admitted"));
+      ports.queue.admit = admit;
+
+      await expect(submitWork(baseCommand, ports)).rejects.toThrow("admitted");
+      expect(admit).toHaveBeenCalledOnce();
+      expect(sender.assertReadyToSign).not.toHaveBeenCalled();
     });
   });
 

@@ -98,6 +98,8 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
       if (!primaryAddress) {
         throw new Error("Connected account required");
       }
+      // Before the approval starts: a wallet that has not answered is asked to reconnect.
+      sender.assertReadyToSign?.();
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
 

@@ -35,13 +35,16 @@ import {
   type TransactionSenderOptions,
 } from "../../modules/transactions/factory";
 import type { TransactionSender } from "../../modules/transactions/types";
+import { WalletReconnectRequiredError } from "../../utils/errors/unsent-failures";
 import { useUser } from "../auth/useUser";
 
 /**
  * A wallet account whose wallet has not answered can read but not sign
- * (PRD-1499). Every way into the wallet refuses before anything starts and asks
- * the person to reconnect. The wallet's answer is read when the act starts, not
- * when the sender was made, so a wallet that came back meanwhile sends as usual.
+ * (PRD-1499). Every way into a signature refuses before anything starts and
+ * asks the person to reconnect. The ownership check refuses too, but asks
+ * nobody: the job queue also runs it to recheck a send already on record, which
+ * waits quietly for the wallet. The wallet's answer is read when the act starts,
+ * not when the sender was made, so a wallet that came back meanwhile sends.
  */
 function refuseUntilWalletAnswers(sender: TransactionSender, unanswered: () => boolean): void {
   const guard = () => {
@@ -50,8 +53,9 @@ function refuseUntilWalletAnswers(sender: TransactionSender, unanswered: () => b
   const { assertOwnership, sendContractCall, sendAtomicBatch, submitAtomicBatch, signTypedData } =
     sender;
   sender.assertReadyToSign = guard;
+  sender.readyToSign = () => !unanswered();
   sender.assertOwnership = async (address, chainId) => {
-    guard();
+    if (unanswered()) throw new WalletReconnectRequiredError(false);
     await assertOwnership?.(address, chainId);
   };
   // Each send runs on the sender it was called on: the job queue calls them on a

@@ -468,8 +468,12 @@ describe("createMutationErrorHandler", () => {
       const handler = createMutationErrorHandler({ source: "useTest", toastContext: "test" });
 
       handler(new WalletReconnectRequiredError(true), { authMode: "wallet" });
+      // An act that wraps the refusal in an error of its own is followed to it.
+      handler(new Error("Approval failed", { cause: new WalletReconnectRequiredError(true) }), {
+        authMode: "wallet",
+      });
       expect(mockToastError).not.toHaveBeenCalled();
-      expect(mockTrackContractError).toHaveBeenCalledOnce();
+      expect(mockTrackContractError).toHaveBeenCalledTimes(2);
 
       // With no prompt mounted to ask, the act says so itself.
       handler(new WalletReconnectRequiredError(false), { authMode: "wallet" });

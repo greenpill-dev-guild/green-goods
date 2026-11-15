@@ -42,6 +42,20 @@ export class WalletReconnectRequiredError extends Error {
 }
 
 /**
+ * Whether an act failed only because the wallet has not answered and the
+ * reconnect prompt already asked, so its own error can stay quiet. Follows the
+ * causes an act wraps its failures in.
+ */
+export function wasAskedToReconnect(error: unknown): boolean {
+  let current = error;
+  for (let depth = 0; current instanceof Error && depth < 5; depth++) {
+    if (current instanceof WalletReconnectRequiredError) return current.asked;
+    current = current.cause;
+  }
+  return false;
+}
+
+/**
  * How the queue refuses a second, different act behind an identity it already
  * holds. The code names the queue ("offline job"), not the phone's connection.
  */

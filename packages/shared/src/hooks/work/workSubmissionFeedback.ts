@@ -12,10 +12,7 @@ import {
 import { trackContractError, trackUploadError } from "../../modules/app/error-tracking";
 import { walletProgressToasts, toastService } from "../../components/toast";
 import { formatErrorForToast, parseAndFormatError } from "../../utils/errors/contract-errors";
-import {
-  connectionNeededFailure,
-  WalletReconnectRequiredError,
-} from "../../utils/errors/unsent-failures";
+import { connectionNeededFailure, wasAskedToReconnect } from "../../utils/errors/unsent-failures";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
 
 /** Without the offline queue nothing is kept to sync, so offline means nothing was sent. */
@@ -104,7 +101,7 @@ export function showWorkSubmissionFailure(
 
   // Refused before it started because the wallet has not answered: the reconnect
   // prompt already asked, and the draft is still on Review.
-  if (originalError instanceof WalletReconnectRequiredError && originalError.asked) return;
+  if (wasAskedToReconnect(error)) return;
 
   if (authMode === "wallet" && parsed.name === "WalletRequestExpired") {
     trackWorkWalletRequestExpired({

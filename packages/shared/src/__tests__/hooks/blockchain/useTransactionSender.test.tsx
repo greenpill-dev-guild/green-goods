@@ -149,26 +149,30 @@ describe("useTransactionSender wallet ownership", () => {
       const { result, rerender } = renderHook(() => useTransactionSender());
       const sender = result.current!;
 
+      expect(sender.readyToSign!()).toBe(false);
       expect(() => sender.assertReadyToSign!()).toThrow(WalletReconnectRequiredError);
       await expect(sender.sendContractCall(call)).rejects.toMatchObject({
         name: "WalletReconnectRequiredError",
         asked: true,
       });
-      await expect(sender.assertOwnership!(account, 42161)).rejects.toBeInstanceOf(
-        WalletReconnectRequiredError
-      );
+      // Who signs refuses too, but asks nobody: the job queue also runs it to recheck a send.
+      await expect(sender.assertOwnership!(account, 42161)).rejects.toMatchObject({
+        name: "WalletReconnectRequiredError",
+        asked: false,
+      });
       // Nothing was asked of the wallet or sent.
       expect(mocks.account).not.toHaveBeenCalled();
       expect(mocks.send).not.toHaveBeenCalled();
-      expect(asked).toHaveBeenCalledTimes(3);
+      expect(asked).toHaveBeenCalledTimes(2);
 
       // The answer is read when an act starts, so the sender already made sends once it is back.
       mocks.user = { ...mocks.user, walletRestore: null };
       rerender();
       expect(result.current).toBe(sender);
+      expect(sender.readyToSign!()).toBe(true);
       await sender.sendContractCall(call);
       expect(mocks.send).toHaveBeenCalledWith(call, undefined);
-      expect(asked).toHaveBeenCalledTimes(3);
+      expect(asked).toHaveBeenCalledTimes(2);
 
       // A sender the job queue makes from this one keeps its own checks for the send.
       const queued = Object.create(sender) as typeof sender;
