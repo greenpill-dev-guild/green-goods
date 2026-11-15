@@ -188,7 +188,7 @@ describe("qa:pull artifact-set commit", () => {
     const outDir = mkdtempSync(path.join(repoRoot, "tmp", "qa-pull-snapshot-lock-"));
     const testCase: CatalogCase = {
       id: "PUB-001",
-      tab: "Public Website",
+      tab: "Green Goods Website",
       platform: "Desktop Browser",
       priority: "P0",
       kind: "journey",
@@ -204,7 +204,7 @@ describe("qa:pull artifact-set commit", () => {
     };
     const catalog: Catalog = {
       version: 3,
-      tabs: ["Public Website"],
+      tabs: ["Green Goods Website"],
       kinds: [{ id: "journey", label: "Journey", verifies: "An end-to-end journey" }],
       statuses: [],
       cases: [testCase],

@@ -11,7 +11,7 @@ import type { CatalogCase } from "./qa-workbook-build";
 function makeCase(overrides: Partial<CatalogCase> = {}): CatalogCase {
   return {
     id: "PUB-001",
-    tab: "Public Website",
+    tab: "Green Goods Website",
     platform: "Desktop Browser",
     priority: "P0",
     area: "Home",
@@ -40,7 +40,7 @@ describe("QA status per-surface coverage", () => {
     const cases = [
       makeCase(),
       makeCase({ id: "PUB-002" }),
-      makeCase({ id: "ADM-001", tab: "Admin Dashboard" }),
+      makeCase({ id: "ADM-001", tab: "Green Goods Hub" }),
     ];
     const merged = mergeShards([
       shard("Afo", {
@@ -53,7 +53,7 @@ describe("QA status per-surface coverage", () => {
     ]);
 
     expect(summarize(cases, merged).perTab).toEqual({
-      "Public Website": {
+      "Green Goods Website": {
         total: 2,
         recorded: 1,
         untouched: 1,
@@ -63,7 +63,7 @@ describe("QA status per-surface coverage", () => {
         blocked: 0,
         na: 0,
       },
-      "Admin Dashboard": {
+      "Green Goods Hub": {
         total: 1,
         recorded: 1,
         untouched: 0,
@@ -98,7 +98,7 @@ describe("QA status recency", () => {
 
 describe("QA status issue linkage", () => {
   it("renders agent-supplied open issue keys beside failing cases", () => {
-    const cases = [makeCase(), makeCase({ id: "ADM-001", tab: "Admin Dashboard" })];
+    const cases = [makeCase(), makeCase({ id: "ADM-001", tab: "Green Goods Hub" })];
     const merged = mergeShards([
       shard("Afo", {
         "PUB-001": { s: "fail", n: "", at: "2026-08-30T12:00:00.000Z" },
