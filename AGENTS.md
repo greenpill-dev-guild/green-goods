@@ -48,19 +48,19 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 
 | Rule | Enforcer | Where |
 | --- | --- | --- |
-| `bun run test`, never `bun test` | blocked by the shared guards and both harnesses' hooks | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
+| `bun run test`, never `bun test` | `bun test` (with `test` right after `bun`) is blocked by the shared guards and both harnesses' hooks | `.agents/policy.json` `bun-test`, `scripts/harness/command-policy.mjs` |
 | Bun contract wrappers, not raw `forge build` or `forge test` | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `forge-direct` |
-| Mainnet deploys, and broadcasts that name a live `--network`, need out-of-band confirmation | the shared guards ask; the Codex hook blocks | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
+| Mainnet deploys and live broadcasts need out-of-band confirmation | the shared guards ask and the Codex hook blocks a broadcast or Safe signature whose last `--network` or `-n` is live, a contracts broadcast not pinned to a test network, and the release operator | `.agents/policy.json` `mainnet-*`, `production-broadcast`, `vercel-prod`, `fly-deploy` |
 | No env files under `packages/*` | edits to `packages/*/.env*` are blocked | `.agents/policy.json` `package-env`, `.claude/settings.json`, `.codex/hooks/edit_policy.sh` |
-| No secrets in Git | push protection; reading a `.env` file with a common reader such as `cat`, `grep` or `sed` is blocked | GitHub secret scanning, `scripts/harness/command-policy.mjs` |
-| React hooks live in `packages/shared/src/hooks` | edits to app hook folders are blocked; exported consumer hooks fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
+| No secrets in Git | push protection for the secret patterns GitHub supports; reading a `.env` file with a common reader such as `cat`, `grep` or `sed` is blocked | GitHub secret scanning, `scripts/harness/command-policy.mjs` |
+| React hooks live in `packages/shared/src/hooks` | edits to app hook folders are blocked; exported hooks defined in Client or Admin fail lint | `.agents/policy.json` `client-hooks`, `admin-hooks`, `check-react-patterns.js` |
 | Admin, Client, Agent and Indexer consume Shared through its declared exports | lint | `check-react-patterns.js` rule 11 |
 | No new raw timers (in React modules), raw listeners or address strings in Shared, Client and Admin | shrink-only lint baseline | `check-react-patterns.js`, `scripts/quality/data/lint-rules-baseline.json` |
 | Default chain through `getDefaultChain()` or `DEFAULT_CHAIN_ID` | an import rule; chain-id literals are not linted | `check-source-structure.js` |
 | Package boundaries, placement and file size | structure check in each package workflow, the extension's excepted | `check-source-structure.js` |
-| Debt baselines only shrink | growth against the base fails | `check-source-structure.js`, `check-react-patterns.js` |
+| The structure and React-pattern debt baselines only shrink | growth against the base fails | `check-source-structure.js`, `check-react-patterns.js` |
 | The shared `logger`, not `console`, outside the indexer | lint with warnings denied | `.oxlintrc.json` `no-console` |
-| Lockfile and release-age gate | frozen installs and a minimum release age | `.github/actions/setup-js`, `bunfig.toml` |
+| Lockfile and release-age gate | frozen installs; a minimum release age when versions are resolved | `.github/actions/setup-js`, `bunfig.toml` |
 | Report changes to sensitive surfaces | the shared guards print a notice on edits to manifests, the lockfile, workflows, `.agents`, `.claude` and `.codex`, and critical paths | `.agents/policy.json` `config-*`, `critical-*` |
 | Critical changes keep their proof | the check selector's critical overrides | `scripts/data/validation-policy.json` |
 | Run the push intent before publication | pre-push hook | `.husky/pre-push` |
@@ -75,9 +75,11 @@ the machine-wide hooks that read `.agents/policy.json`; this repository's own ho
 | Linear is the backlog | GitHub Issues are off; Linear writes are shape-checked | repository settings, the `lint-linear-issue.sh` hook |
 
 Review alone holds the rest: reading the nearest `AGENTS.md`, Bun for package operations other
-than tests, approval before installing dependencies, merge commits only (both rulesets still allow
-squash), broadcasts that rely on a script's default network, `forge script`, env files in other
-package folders such as `docs/`, reading `.env` through other programs, a notice for edits to
+than tests, `bun test` after Bun's global options, approval before installing dependencies, merge
+commits only (both rulesets still allow squash), live writers with no broadcast flag (`cast send`,
+`open-minting.mjs`), `forge script`, private hooks outside hook folders, the other debt baselines,
+secrets GitHub has no pattern for, the release age of versions already in the lockfile, env files
+in other package folders such as `docs/`, reading `.env` through other programs, a notice for edits to
 `AGENTS.md`, code owners for `.agents` and `.github/actions`, `context.log` rather than `console` in
 the indexer, Shared's declared exports in contracts tooling, raw timers outside React modules and
 the three ratcheted patterns outside Shared, Client and Admin, the extension's structure, guide
