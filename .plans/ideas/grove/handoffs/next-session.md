@@ -4,7 +4,7 @@
 
 ## Start here
 
-Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D51, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
+Read [spec.md](../spec.md) first. It holds the MVP contract with its nine function blocks, a table of each Green Goods function's local form, and the one decision log: decisions D1 to D53, recommendations R1 to R19, assumptions W1 to W4 and open questions O1 to O19. Then read the [sharing contract](../community-sharing.md), the [flows](../architecture-flows.md), the [MVP order](../plan.todo.md#mvp-order) and the [gates the MVP needs](../eval.md#which-gates-the-mvp-needs). The [architecture page](../artifacts/demos/grove-architecture.html) shows the same model as one page.
 
 Remain on the current checkout and branch unless explicitly authorized otherwise. Inspect current instructions and status before editing. Do not create a second hub, install dependencies, change runtime code or publish externally from a planning request.
 
@@ -32,6 +32,8 @@ Remain on the current checkout and branch unless explicitly authorized otherwise
 - From a voice note the agent also proposes knowledge, such as a lesson or the questions people asked, and the reviewer can discard it (D50).
 - An owner of the garden can replace an imported garden's onchain record, so a first importer who pairs nobody cannot lock the garden out (D51).
 - Leaving a current function out of the first version takes the owner's recorded decision (D48).
+- When an owner replaces an imported garden's onchain record, the garden is carried over: the owner's device takes over as signer, and its members, roles and records stay as they are (D52).
+- A device the steward adds for a member who has lost every device and their recovery code approves sharing only for records made after it was added (D53).
 - The phone and the extension ship together (D2). The phone runs Green Goods itself.
 - The author approves every share of their own capture, and again if a corrected version leaves the community. A steward approves partner summaries and public releases (D17).
 - One steward signs member and device changes, with a recovery code at setup and a second controller before real data (D18).

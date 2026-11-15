@@ -257,7 +257,7 @@ footer { margin-top: 2.5rem; border-top: 1px solid var(--rule); padding-top: 1re
     <tr><th scope="row">Vault key</th><td>Each device, stored wrapped</td><td>Protects private keys and records at rest</td><td>Restore from a recovery export</td></tr>
     <tr><th scope="row">Device keys</th><td>Each device, a separate pair for each garden. Stored wrapped under the vault key; they never leave the device</td><td>One signs what the device sends. One opens files addressed to the device</td><td>Enrol a new device. A lost device key is never revived</td></tr>
     <tr><th scope="row">File key</th><td>Nobody keeps it. It travels inside each shared file, wrapped once per recipient device</td><td>Encrypts one shared file</td><td>Removing a member needs no rotation: the next file is not wrapped to them</td></tr>
-    <tr><th scope="row">Controller key</th><td>The steward's device. A second controller before real data</td><td>Signs every change to the member list</td><td>The recovery code appoints a new controller device, or the second controller takes over signing</td></tr>
+    <tr><th scope="row">Controller key</th><td>The steward's device. A second controller before real data</td><td>Signs every change to the member list</td><td>The recovery code appoints a new controller device, or the second controller takes over signing. For a garden brought local from the chain, an owner can take over too</td></tr>
   </tbody>
 </table>
 </div>

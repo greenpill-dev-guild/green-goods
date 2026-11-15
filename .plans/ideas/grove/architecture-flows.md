@@ -255,6 +255,7 @@ sequenceDiagram
   Note over A,X: The seven-day limit bounds this window
   S-->>A: Any file that carries version n+1
   A->>A: Adopt version n+1
+  A->>A: A file prepared earlier is rebuilt without the device
   A->>A: Later files leave the removed device out
   Note over X: Keeps everything it already received
 ```
