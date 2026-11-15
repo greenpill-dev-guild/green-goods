@@ -184,8 +184,11 @@ export async function submitWork(
     // A wallet that has not answered is asked to reconnect before the work is
     // admitted (PRD-1499), once the connection is confirmed. On a connection that
     // is not, the work is admitted to wait, as it would be with the wallet there.
+    // A send already on record needs no signature: its check goes ahead.
+    const recorded = resolved.draft.uploadCheckpoint;
     if (
       resolved.authMode === "wallet" &&
+      !(recorded?.transactionHash || recorded?.broadcast || recorded?.broadcastPending) &&
       ports.sender?.readyToSign?.() === false &&
       (await ports.connectivity.confirm())
     )

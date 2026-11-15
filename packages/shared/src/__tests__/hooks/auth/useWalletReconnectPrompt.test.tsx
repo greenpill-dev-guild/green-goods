@@ -96,7 +96,12 @@ describe("useWalletReconnectPrompt", () => {
     expect(mocks.info).toHaveBeenCalledTimes(1);
 
     setWalletRestore(view, null);
+    expect(mocks.dismiss).toHaveBeenCalledWith("wallet-reconnect");
 
+    // A prompt that unmounts with its ask still showing takes the ask with it.
+    mocks.dismiss.mockClear();
+    setWalletRestore(view, "failed");
+    view.unmount();
     expect(mocks.dismiss).toHaveBeenCalledWith("wallet-reconnect");
   });
 

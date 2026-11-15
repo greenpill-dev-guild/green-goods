@@ -263,6 +263,29 @@ describe("submitWork", () => {
       expect(admit).toHaveBeenCalledOnce();
       expect(sender.assertReadyToSign).not.toHaveBeenCalled();
     });
+
+    it("goes on to check a resumed submission whose send is already on record", async () => {
+      const sender = unansweredWallet();
+      const { ports } = createPorts({ sender });
+      const admit = vi
+        .fn<NonNullable<SubmitWorkPorts["queue"]["admit"]>>()
+        .mockRejectedValue(new Error("admitted"));
+      ports.queue.admit = admit;
+      const resumed = {
+        ...baseCommand,
+        draft: createMockWorkDraft({
+          uploadCheckpoint: {
+            submittedAt: "2026-11-15",
+            files: {},
+            transactionHash: `0x${"cd".repeat(32)}`,
+          },
+        }),
+      };
+
+      await expect(submitWork(resumed, ports)).rejects.toThrow("admitted");
+      expect(admit).toHaveBeenCalledOnce();
+      expect(sender.assertReadyToSign).not.toHaveBeenCalled();
+    });
   });
 
   it("queues transient upload failures for retry", async () => {
