@@ -30,8 +30,11 @@ const OMAR = "0x3333333333333333333333333333333333333333" as Address;
 const mocks = vi.hoisted(() => ({
   /** The pool's cycles; undefined while unread. */
   cycles: undefined as CommitmentCycleRecord[] | undefined,
-  /** The pool's requests waiting on a steward, by copy; `failed` when that read failed. */
-  asks: [] as bigint[] | "failed",
+  /**
+   * The pool's requests waiting on a steward, by copy; `failed` when that read failed, `paused`
+   * when its first read waits for a connection.
+   */
+  asks: [] as bigint[] | "failed" | "paused",
   metadata: new Map<string, CommitmentMetadataV1>([
     ["cid-dated", { version: 1, title: "Water survey", displayGroup: { version: 1, id: "dated" } }],
     ["cid-season", { version: 1, title: "Seed swap", displayGroup: { version: 1, id: "season" } }],
@@ -42,14 +45,14 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   useCommitmentMetadata: () => ({ byCID: mocks.metadata, isLoading: false }),
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
-  usePoolClaimRequests: () => ({
-    rows:
-      mocks.asks === "failed"
-        ? []
-        : mocks.asks.map((commitmentId) => ({ claim: { commitmentId } })),
-    isLoading: false,
-    isError: mocks.asks === "failed",
-  }),
+  usePoolClaimRequests: () => {
+    // TanStack reports a first read waiting for a connection neither loading nor failed.
+    const data =
+      mocks.asks === "failed" || mocks.asks === "paused"
+        ? undefined
+        : mocks.asks.map((commitmentId) => ({ claim: { commitmentId } }));
+    return { data, rows: data ?? [], isLoading: false, isError: mocks.asks === "failed" };
+  },
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentPooling", () => ({
   useCommitmentCycles: () => ({
@@ -110,8 +113,12 @@ describe("usePoolPromiseEntries", () => {
     expect(countsOf(result.current, "dated")).toMatchObject({ available: 1, requested: 1 });
     expect(groupOf(result.current, "dated").availabilityKnown).toBe(true);
 
-    // Requests that could not be read leave a reviewed set's availability unknown.
+    // Requests that could not be read leave a reviewed set's availability unknown, and so do
+    // requests whose first read waits for a connection (Codex on #1610).
     mocks.asks = "failed";
+    rerender();
+    expect(groupOf(result.current, "dated").availabilityKnown).toBe(false);
+    mocks.asks = "paused";
     rerender();
     expect(groupOf(result.current, "dated").availabilityKnown).toBe(false);
   });

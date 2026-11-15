@@ -73,12 +73,14 @@ export function usePoolPromiseEntries<R extends { commitment: CommitmentReadMode
     { chainId, poolId, state: "PENDING" },
     { enabled: listedCopies.some((copy) => copy.claimMode === "APPROVAL_GATED") }
   );
+  // Unknown while the read failed or has answered nothing yet, its first read waiting for a
+  // connection included: an empty list is no proof that nobody asked.
   const askedFor = useMemo(
     () =>
-      asks.isError || asks.isLoading
+      asks.isError || asks.data === undefined
         ? null
-        : new Set(asks.rows.map((row) => row.claim.commitmentId.toString())),
-    [asks.rows, asks.isError, asks.isLoading]
+        : new Set(asks.data.map((row) => row.claim.commitmentId.toString())),
+    [asks.data, asks.isError]
   );
   return entries.map((entry) =>
     entry.kind === "group"

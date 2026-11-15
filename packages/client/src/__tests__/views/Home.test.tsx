@@ -762,13 +762,32 @@ describe("a garden the member was added to", () => {
       persistent: true,
       action: { label: "Switch" },
     });
-    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
-    // Being added moves nothing until the member chooses.
+    // Being added moves nothing until the member chooses, and only an answer marks it told, so
+    // a reload before one shows the news again (Codex on #1610).
     expect(selectGarden).not.toHaveBeenCalled();
+    expect(acknowledgeAddedGardens).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /TAS HUB/ })).toBeVisible();
 
     act(() => shownToast()?.action?.onClick());
     expect(selectGarden).toHaveBeenCalledExactlyOnceWith(VIDA.id);
+    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
+  });
+
+  it("marks the news told when the member closes the toast", () => {
+    setActive(
+      "ready",
+      [
+        [TAS, ["steward"]],
+        [VIDA, ["steward"]],
+      ],
+      TAS.id,
+      [VIDA]
+    );
+    renderHome();
+
+    act(() => shownToast()?.onDismiss?.());
+    expect(acknowledgeAddedGardens).toHaveBeenCalledExactlyOnceWith([VIDA.id]);
+    expect(selectGarden).not.toHaveBeenCalled();
   });
 
   it("names how many gardens when there are several, and opens Your Gardens to choose", async () => {

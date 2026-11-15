@@ -13,11 +13,12 @@ export interface AddedGardensToastProps {
 }
 
 /**
- * Says once that the member was added to a garden since this device last read their gardens
+ * Says that the member was added to a garden since this device last read their gardens
  * (PRD-1492): a steward added them, or welcomed their request. The toast stays until it is acted
- * on. Switch opens Home in that garden; with several, See Your Gardens opens the switcher. Being
- * added moves nothing by itself, so Home stays in the garden it shows until the member chooses.
- * The first-login page lists every garden of the member's, so there it says nothing more.
+ * on, and only an answer marks the gardens told, so news a reload or a closed app cut short shows
+ * again on the next launch. Switch opens Home in that garden; with several, See Your Gardens
+ * opens the switcher; closing the toast keeps Home where it is. Being added moves nothing by
+ * itself. The first-login page lists every garden of the member's, so there it says nothing more.
  * Renders nothing.
  */
 export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToastProps) {
@@ -27,8 +28,12 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
   useEffect(() => {
     if (!home || addedGardens.length === 0) return;
     if (status !== "ready" && status !== "choose") return;
-    acknowledgeAddedGardens(addedGardens.map(({ id }) => id));
-    if (status === "choose") return;
+    const gardenIds = addedGardens.map(({ id }) => id);
+    const told = () => acknowledgeAddedGardens(gardenIds);
+    if (status === "choose") {
+      told();
+      return;
+    }
     const single = addedGardens.length === 1 ? addedGardens[0] : undefined;
     toastService.info({
       id: "garden-added",
@@ -43,9 +48,15 @@ export function AddedGardensToast({ home, onSwitch, onChoose }: AddedGardensToas
         label: intl.formatMessage({
           id: single ? "app.home.added.action" : "app.home.chooser.action",
         }),
-        onClick: single ? () => onSwitch(single.id) : onChoose,
+        onClick: () => {
+          told();
+          if (single) onSwitch(single.id);
+          else onChoose();
+        },
         dismissOnClick: true,
       },
+      // The action closes the toast without this; the close button and a tap call it.
+      onDismiss: told,
       suppressLogging: true,
     });
   }, [acknowledgeAddedGardens, addedGardens, home, intl, onChoose, onSwitch, status]);

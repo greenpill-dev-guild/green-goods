@@ -69,8 +69,8 @@ const mocks = vi.hoisted(() => ({
   retryMetadata: vi.fn(),
   membershipUnavailable: false,
   retryMembership: vi.fn(),
-  /** The copies with a request waiting on a steward, anyone's. */
-  asks: [] as bigint[],
+  /** The copies with a request waiting on a steward, anyone's; null while the first read waits. */
+  asks: [] as bigint[] | null,
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => LINA }));
@@ -106,12 +106,10 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMetadata", () => ({
   }),
 }));
 vi.mock("../../../hooks/commitment-pooling/usePoolClaimRequests", () => ({
-  usePoolClaimRequests: () => ({
-    rows: mocks.asks.map((commitmentId) => ({ claim: { commitmentId } })),
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
+  usePoolClaimRequests: () => {
+    const data = mocks.asks?.map((commitmentId) => ({ claim: { commitmentId } }));
+    return { data, rows: data ?? [], isLoading: false, isError: false, refetch: vi.fn() };
+  },
 }));
 vi.mock("../../../hooks/commitment-pooling/useCommitmentQueueState", () => ({
   useCommitmentQueueState: () => ({
@@ -225,6 +223,13 @@ describe("usePromiseGroupController", () => {
     rerender();
     expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: "none" });
     expect(result.current.counts).toMatchObject({ available: 0, requested: 2 });
+
+    // A first read of the requests that waits for a connection answers nothing: unknown, never
+    // a copy offered that someone may have asked for (Codex on #1610).
+    mocks.asks = null;
+    rerender();
+    expect(result.current.availabilityKnown).toBe(false);
+    expect(result.current.bar).toEqual({ act: "askToTakeUp", hold: "unknown" });
   });
 
   it("on the protocol pool, sends nothing until the person chooses who takes it up", async () => {

@@ -221,8 +221,12 @@ export function usePromiseGroupController(input: {
     poolId: pool ? poolId : null,
     commitments: group?.children ?? NO_COPIES,
   });
+  // A requests read that failed or has answered nothing yet, its first read waiting for a
+  // connection included, leaves a reviewed group's availability unknown.
   const availabilityKnown =
-    due.known && !commitments.isError && !(approvalGated && (asks.isError || asks.isLoading));
+    due.known &&
+    !commitments.isError &&
+    !(approvalGated && (asks.isError || asks.data === undefined));
   const choice =
     group && availabilityKnown
       ? pickCopyToTakeUp(group.children, { viewer, askedFor, skip: queued, clock: due.clock })

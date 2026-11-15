@@ -59,10 +59,11 @@ export function useViewerTakeUps(input: {
         viewer,
         pendingRequests: requests.rows.map((row) => row.claim),
         queued: queue.takeUpIds,
-        // As on a group's page, a failed read leaves whose copies are asked for unknown.
-        requestsRead: !requests.isError,
+        // As on a group's page, a read that failed or has answered nothing yet, its first read
+        // waiting for a connection included, leaves whose copies are asked for unknown.
+        requestsRead: !requests.isError && requests.data !== undefined,
       }),
-    [viewer, requests.rows, requests.isError, queue.takeUpIds]
+    [viewer, requests.rows, requests.isError, requests.data, queue.takeUpIds]
   );
   const requestsAnswered =
     requests.availability.status !== "available" ||
