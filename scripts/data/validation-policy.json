@@ -26,6 +26,7 @@
     {
       "risk": "sensitive",
       "prefixes": [
+        ".agents/",
         ".github/",
         ".claude/",
         ".codex/",
@@ -431,6 +432,7 @@
       "runInQa": true,
       "runInEvidence": true,
       "exact": [
+        ".agents/adapter.md",
         "AGENTS.md",
         "CLAUDE.md",
         ".claude/context/codebase-architecture.md",

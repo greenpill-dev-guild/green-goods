@@ -22,7 +22,7 @@ duplicate them:
 | Retrospective meeting-notes triage, PostHog cross-ref, Linear + Sheet writes | [`qa-triage`](../qa-triage/SKILL.md) (this skill hands off to it) |
 | Linear payload templates, label scheme, disposition rules | [`qa-triage/linear-templates.md`](../qa-triage/linear-templates.md) |
 | Sheet/workbook schemas, surface vocabulary, severity defaults | [`qa-triage/sheet-schema.md`](../qa-triage/sheet-schema.md) |
-| Reproduce-first diagnosis, rendered-DOM-geometry-first UI regression protocol | [`debug`](../debug/SKILL.md) § User-Facing Bug Triage, § User-Observed UI Regression Protocol |
+| Reproduce-first diagnosis, rendered-DOM-geometry-first UI regression protocol | [`debug`](../debug/SKILL.md) § Reported-bug triage, § UI protocol |
 | Casual phrase → `data-component`/`data-region` resolution (admin) | [`design/defect-grammar.md`](../design/defect-grammar.md) |
 | Locked design decisions (DL-NNN ledger, graduation ladder) | [`design/decision-log.md`](../design/decision-log.md) |
 | In-session fast validation rungs (QA Speed Mode) | [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) § Partial rungs |
