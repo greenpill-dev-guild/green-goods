@@ -7,6 +7,10 @@ import { logger } from "../../modules/app/logger";
 import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import {
+  trackQueuedUploadFinished,
+  trackQueuedUploadStarted,
+} from "../../modules/job-queue/job-analytics";
 import { takeUpOf } from "../../modules/job-queue/take-up-hold";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
 import {
@@ -182,6 +186,34 @@ export function useWorkUploads(options: { inScope?: GardenScopeFilter } = {}): W
         { userAddress, chainId, sender, jobIds },
         await createDefaultUploadQueuedWorkPorts()
       );
+    },
+    // Each tap leaves its start before anything is signed, and its end, even one that sent
+    // nothing: a page suspended mid-prompt still shows that someone tried (PRD-1495).
+    onMutate: (jobIds) => {
+      const scope = jobIds ? ("selected" as const) : ("all" as const);
+      const authMode = sender?.authMode;
+      trackQueuedUploadStarted({
+        scope,
+        itemCount: jobIds?.length ?? summary.readyCount,
+        authMode,
+      });
+      return { scope, authMode, startedAt: Date.now() };
+    },
+    onSettled: (outcome, error, _jobIds, tap) => {
+      if (!tap) return;
+      trackQueuedUploadFinished({
+        scope: tap.scope,
+        authMode: tap.authMode,
+        durationMs: Date.now() - tap.startedAt,
+        status: error
+          ? wasAskedToReconnect(error)
+            ? "wallet-reconnect-required"
+            : "stopped"
+          : (outcome?.status ?? "not-signed-in"),
+        sent: outcome && "sent" in outcome ? outcome.sent : 0,
+        flagged: outcome && "flagged" in outcome ? outcome.flagged : 0,
+        error: error ?? (outcome?.status === "failed" ? outcome.error : undefined),
+      });
     },
     onSuccess: (outcome) => {
       if (outcome?.status === "failed" && appCodeRecovery.report(outcome.error)) return;

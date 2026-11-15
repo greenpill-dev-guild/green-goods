@@ -66,6 +66,7 @@ import { useWorkUploads } from "../../../hooks/work/useWorkUploads";
 import en from "../../../i18n/en.json";
 import { connectivityStore } from "../../../stores/connectivity";
 import { appCodeRecovery } from "../../../modules/app/cache-recovery";
+import { registerTelemetrySink } from "../../../modules/app/telemetry-sink";
 
 const CHECKED = "2026-09-17T10:00:00.000Z";
 const WORK_UID = `0x${"AB".repeat(32)}`;
@@ -379,6 +380,61 @@ describe("useWorkUploads", () => {
       );
     } finally {
       confirm.mockRestore();
+    }
+  });
+
+  it("records each Upload tap before anything is signed, and how it ended (PRD-1495)", async () => {
+    const captured: Array<[string, Record<string, unknown>]> = [];
+    const unregister = registerTelemetrySink({
+      capture: (event, properties) => {
+        if (event.startsWith("queued_upload_")) captured.push([event, properties]);
+      },
+      isReady: () => true,
+    });
+    try {
+      mocks.jobs = [queued("work", { preparation: { status: "ready", checkedAt: CHECKED } })];
+      mocks.uploadQueuedWork
+        .mockResolvedValueOnce({ status: "declined", sent: 0, flagged: 0 })
+        .mockRejectedValueOnce(new Error("submission-ownership-changed"));
+      const { result } = renderHookWithProviders(() => useWorkUploads());
+      await waitFor(() => expect(result.current.readyCount).toBe(1));
+
+      await act(async () => {
+        await result.current.upload();
+      });
+      await act(async () => {
+        await result.current.uploadOne("one-job").catch(() => undefined);
+      });
+
+      expect(
+        captured.map(([event, { scope, item_count, status, sent, auth_mode }]) => ({
+          event,
+          scope,
+          item_count,
+          status,
+          sent,
+          auth_mode,
+        }))
+      ).toEqual([
+        { event: "queued_upload_started", scope: "all", item_count: 1, auth_mode: "passkey" },
+        {
+          event: "queued_upload_finished",
+          scope: "all",
+          status: "declined",
+          sent: 0,
+          auth_mode: "passkey",
+        },
+        { event: "queued_upload_started", scope: "selected", item_count: 1, auth_mode: "passkey" },
+        {
+          event: "queued_upload_finished",
+          scope: "selected",
+          status: "stopped",
+          sent: 0,
+          auth_mode: "passkey",
+        },
+      ]);
+    } finally {
+      unregister();
     }
   });
 
