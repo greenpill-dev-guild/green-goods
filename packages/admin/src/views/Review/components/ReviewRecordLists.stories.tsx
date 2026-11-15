@@ -32,7 +32,7 @@ const ASSESSMENTS: ReviewAssessmentListItem[] = [
     createdAt: daysAgo(40),
   },
   {
-    // An attestation with no period and a domain the cockpit does not know.
+    // An attestation with no period and a domain the Hub does not know.
     id: "0xabc3",
     title: "",
     description: "An early assessment recorded before reporting periods were kept.",

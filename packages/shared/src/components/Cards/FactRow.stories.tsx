@@ -249,7 +249,7 @@ export const WithIcons: Story = {
 
 /**
  * The same facts at each surface's density: the label on `type-label-sm` and the value on
- * `type-body`, 14px and 16px in the app, 12px and 14px in the cockpit.
+ * `type-body`, 14px and 16px in the app, 12px and 14px in the Hub.
  */
 export const Densities: Story = {
   render: () => (
@@ -265,7 +265,7 @@ export const Densities: Story = {
         </Column>
       </section>
       <section className="flex flex-col gap-2" data-surface-scope="admin">
-        <h3 className="type-label-sm text-text-sub-600">Cockpit</h3>
+        <h3 className="type-label-sm text-text-sub-600">Hub</h3>
         <Column width={366}>
           <FactList>
             {WORK_FACTS.slice(0, 3).map(([label, value]) => (
@@ -277,12 +277,12 @@ export const Densities: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    const [app, cockpit] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
+    const [app, hub] = [...canvasElement.querySelectorAll<HTMLElement>("section")];
     const size = (section: HTMLElement, part: string) =>
       getComputedStyle(section.querySelector(part) as HTMLElement).fontSize;
     await expect(size(app, ".gg-fact-label")).toBe("14px");
     await expect(size(app, ".gg-fact-value")).toBe("16px");
-    await expect(size(cockpit, ".gg-fact-label")).toBe("12px");
-    await expect(size(cockpit, ".gg-fact-value")).toBe("14px");
+    await expect(size(hub, ".gg-fact-label")).toBe("12px");
+    await expect(size(hub, ".gg-fact-value")).toBe("14px");
   },
 };

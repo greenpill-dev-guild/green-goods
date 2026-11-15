@@ -91,7 +91,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The cockpit's creation FAB (Cockpit M3, finished): circular, tone-action filled, warm chrome shadow at rest. Closed, it shows a plus in every workspace, whether it fires one act or opens a dial; the workspace tone says which tab it belongs to (DL-078). A multi-action config opens the speed dial, where each act keeps its own icon and label, and shows a close icon while open. Single-action configs fire directly and get a hover tooltip. Floats above the nav bar on tablet/mobile only — desktop carries inline header actions instead.",
+          "The Hub's creation FAB (Hub M3, finished): circular, tone-action filled, warm chrome shadow at rest. Closed, it shows a plus in every workspace, whether it fires one act or opens a dial; the workspace tone says which tab it belongs to (DL-078). A multi-action config opens the speed dial, where each act keeps its own icon and label, and shows a close icon while open. Single-action configs fire directly and get a hover tooltip. Floats above the nav bar on tablet/mobile only — desktop carries inline header actions instead.",
       },
     },
   },

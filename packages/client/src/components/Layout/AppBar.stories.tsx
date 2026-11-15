@@ -35,7 +35,7 @@ const withRouter = (initialEntries: string[] = ["/home"]) => {
 };
 
 /**
- * The active tab carries the cockpit's pill in the app's green (F6): its icon slot paints
+ * The active tab carries the Hub's pill in the app's green (F6): its icon slot paints
  * the green container, and no other tab's slot paints anything. The bar keeps its 69px,
  * the height #app-scroll and AppScreenError reserve for it.
  */

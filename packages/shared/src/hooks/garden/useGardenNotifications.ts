@@ -117,7 +117,7 @@ export function useGardenNotifications(gardenId: string): GardenNotifications {
   });
 
   // The garden's page of works, read as the installed app's other work screens read it, so they
-  // share one projection and the bell never writes the cockpit's merged rows, which those screens
+  // share one projection and the bell never writes the Hub's merged rows, which those screens
   // take as overlays.
   const workRead = useWorks(gardenId, { offline: true });
   // The week's works and decisions, however far back each work began: the page holds only the

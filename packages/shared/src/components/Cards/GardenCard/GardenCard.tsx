@@ -1,6 +1,6 @@
 /**
  * GardenCard — a garden in the installed app, the shared media card with the garden's banner
- * (step 16 of the app and cockpit unification).
+ * (step 16 of the app and Hub unification).
  *
  * The banner is the garden's own picture, or its name's gradient when it has none; then the
  * garden's name on one line and one detail line: how many members, then where (the place

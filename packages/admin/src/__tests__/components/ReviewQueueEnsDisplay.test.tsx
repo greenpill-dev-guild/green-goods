@@ -204,7 +204,7 @@ describe("Review work queue on a phone", () => {
   });
 });
 
-// F12: from the cockpit's desktop breakpoint the work card lies wide and the
+// F12: from the Hub's desktop breakpoint the work card lies wide and the
 // grid takes the wide column rule; from 600px to 1023px the card stays stacked,
 // and below 600px the queue lists work rows (above).
 describe("Review work queue layout", () => {

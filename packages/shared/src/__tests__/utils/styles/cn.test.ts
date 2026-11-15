@@ -3,7 +3,7 @@ import { cn } from "../../../utils/styles/cn";
 
 describe("cn", () => {
   it("keeps a type role beside an arbitrary text colour", () => {
-    // A type role, then an arbitrary text colour (the cockpit's old floating label):
+    // A type role, then an arbitrary text colour (the Hub's old floating label):
     // tailwind-merge used to read a custom size as a colour and drop it for the rgb() class.
     expect(cn("type-meta", "text-[rgb(var(--m3-error))]")).toBe(
       "type-meta text-[rgb(var(--m3-error))]"

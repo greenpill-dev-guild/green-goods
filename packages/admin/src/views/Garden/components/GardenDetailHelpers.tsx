@@ -66,7 +66,7 @@ export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowPro
       variant="outlined"
       density="compact"
       // The View act centres on the label's first line, however many lines the
-      // label takes: the compact button's 40px block (28px plus the cockpit's 6px
+      // label takes: the compact button's 40px block (28px plus the Hub's 6px
       // reserve each side) stays at the top, and the label's first 20px line
       // starts 10px down to share its centre, with the icon centred on that line
       // too (qa-session 2026-10-30 OBS-07).

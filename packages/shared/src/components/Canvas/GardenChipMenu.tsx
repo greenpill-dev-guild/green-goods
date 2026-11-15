@@ -25,7 +25,7 @@ export interface GardenChipMenuProps {
 }
 
 /**
- * The cockpit's garden menu (decisions D47 and D50): the chip as a Radix Popover trigger, the
+ * The Hub's garden menu (decisions D47 and D50): the chip as a Radix Popover trigger, the
  * garden list, a divider and Create Garden. `GardenChip` loads it with the chip's first press,
  * so the popover and its positioning stay out of the installed app's startup bundle; the app
  * opens its own switcher instead.
@@ -59,7 +59,7 @@ export function GardenChipMenu({
 
       <Popover.Portal>
         {/* Solid, like every menu (DL-108): the chip's own raised surface, white in light
-            and the cockpit's card in dark. */}
+            and the Hub's card in dark. */}
         <Popover.Content
           align="start"
           sideOffset={8}
@@ -87,7 +87,7 @@ export function GardenChipMenu({
           ))}
 
           {/* Divider + Create Garden. The divider is the raised surface's hairline, so it
-              still reads on the cockpit's dark card. */}
+              still reads on the Hub's dark card. */}
           {onCreateGarden && (
             <>
               <div className="mx-2 my-1 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))]" />
@@ -98,7 +98,7 @@ export function GardenChipMenu({
                   onOpenChange(false);
                 }}
                 className={cn(
-                  // Menu row on cockpit roles (tone-aware with shared fallbacks
+                  // Menu row on the Hub roles (tone-aware with shared fallbacks
                   // — this popover only ever renders inside the admin shell):
                   // accent from the workspace, ink hover layer, the canonical
                   // focus-ring role. Previously client-green + raw primary ring.

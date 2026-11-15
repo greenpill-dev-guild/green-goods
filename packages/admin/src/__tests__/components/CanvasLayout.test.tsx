@@ -626,7 +626,7 @@ describe("CanvasLayout", () => {
     expect(mockNavigationBarProps.mock.calls[0]?.[0].onNavigate).toBe(firstProps.onNavigate);
   });
 
-  // One chip on both surfaces: the cockpit's avatar is the garden's banner too (DL-124).
+  // One chip on both surfaces: the Hub's avatar is the garden's banner too (DL-124).
   it("hands the chip the selected garden's banner for its avatar", () => {
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
@@ -871,7 +871,7 @@ describe("CanvasLayout", () => {
     expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
   });
 
-  it("rings the skip link in the cockpit's focus role, not the browser's own ring", () => {
+  it("rings the skip link in the Hub's focus role, not the browser's own ring", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/review"]}>
         <CanvasLayout />

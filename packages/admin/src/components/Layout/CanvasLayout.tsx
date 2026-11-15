@@ -152,7 +152,7 @@ export function CanvasLayout() {
             data-tone={workspaceId}
             className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
           >
-            {/* Skip to content. Keyboard focus draws the cockpit's focus ring (DL-098): one
+            {/* Skip to content. Keyboard focus draws the Hub's focus ring (DL-098): one
                 solid 2px ring in the workspace tone, 2px off the link's fill. */}
             <a
               href="#main-content"

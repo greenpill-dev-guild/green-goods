@@ -330,7 +330,7 @@ export function AdminDialog({
           }}
         >
           {/* Below 640px the sheet's grip tops the surface. It marks the
-              sheet only: the cockpit's sheet does not drag. */}
+              sheet only: the Hub's sheet does not drag. */}
           {rendersAsSheet ? <SheetGrip /> : null}
 
           {/* Close button - absolute top-right for palette and flow, under the

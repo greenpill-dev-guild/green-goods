@@ -2,7 +2,7 @@
  * The button and control rules of each surface, as expectations the specimens
  * grade against. Sources: language.md § Button Corners and Emphasis and
  * § Button System (DL-023, DL-026), DESIGN.browser.md § Buttons and Fields
- * (DL-024), packages/admin/DESIGN.md § Cockpit M3 1a Invariants (DL-011,
+ * (DL-024), packages/admin/DESIGN.md § Hub M3 1a Invariants (DL-011,
  * Rule 18), and frontend-design.md Rules 15, 18, 19.
  */
 import type { Expectation } from "./measure";
@@ -41,7 +41,7 @@ export const APP = {
     "Heights 48 / 44 / 40 / 32; sm and compact keep a 48px hit area (DL-023)",
     "Icon buttons are circles, chips are 32px capsules with a 44px hit area",
     "Fields: 16px corner, a single-line field is exactly its step (DL-022)",
-    "Plus Jakarta Sans, the cockpit's face, from the shared primitives only (DL-025, DL-096, Rule 19)",
+    "Plus Jakarta Sans, the Hub's face, from the shared primitives only (DL-025, DL-096, Rule 19)",
   ],
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
@@ -111,9 +111,9 @@ export const WEBSITE = {
   }),
 };
 
-/** Admin cockpit: pills on the DL-011 compact metric. */
+/** Hub: pills on the DL-011 compact metric. */
 export const ADMIN = {
-  name: "Admin cockpit",
+  name: "Hub",
   family: "Plus Jakarta Sans",
   corners: [4, 8, 12, 16, 9999],
   rules: [
@@ -162,7 +162,7 @@ export const ADMIN = {
   checkbox: (): Expectation => ({ hit: 44 }),
   /** The label above every field, the family's and the shared pieces' (`gg-field-label`): the setting-row title. */
   fieldTitle: (): Expectation => ({ labelSize: 14, weight: 500, family: "Plus Jakarta Sans" }),
-  /** The shared Button at its sm size, which the cockpit lands on the 32px md pill (DL-031). */
+  /** The shared Button at its sm size, which the Hub lands on the 32px md pill (DL-031). */
   sharedButton: (): Expectation => ({
     height: 32,
     radius: "pill",
@@ -171,7 +171,7 @@ export const ADMIN = {
     family: "Plus Jakarta Sans",
     hit: 44,
   }),
-  /** Shared chips keep their capsule in the cockpit (AssetSelector, ConfidenceSelector). */
+  /** Shared chips keep their capsule in the Hub (AssetSelector, ConfidenceSelector). */
   sharedChip: (): Expectation => ({ height: 32, radius: "pill", labelSize: 14, hit: 44 }),
   /** The shared Switch on the admin surface: the M3 52 × 32 track with a 44px hit box. */
   sharedSwitch: (): Expectation => ({ height: 32, hit: 44 }),

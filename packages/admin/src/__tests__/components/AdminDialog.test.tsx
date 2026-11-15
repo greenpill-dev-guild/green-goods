@@ -24,7 +24,7 @@ type ChangeListener = (event: MediaQueryListEvent) => void;
 const PHONE_QUERY = "(max-width: 639px)";
 
 /**
- * Below 640px the cockpit's dialogs present as the shared bottom sheet (F5).
+ * Below 640px the Hub's dialogs present as the shared bottom sheet (F5).
  * Returns the restore function, with `resize` to cross 640px mid-test.
  */
 function emulateViewport(initial: Width) {

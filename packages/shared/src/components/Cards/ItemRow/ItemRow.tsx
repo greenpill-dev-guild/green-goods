@@ -1,5 +1,5 @@
 /**
- * ItemRow — one item in a list, the same on the installed app and the cockpit (F7).
+ * ItemRow — one item in a list, the same on the installed app and the Hub (F7).
  *
  * Every row is one height in every state and language (88px at the default text size), on
  * the card surface with a 16px corner. It leads with the item's own photo, a centered
@@ -7,7 +7,7 @@
  * full title shows on hover), the item's one status pill under it, and one detail line; the
  * row's one action, when it has one, takes the right slot, and otherwise an amount the item
  * carries (a jar's balance) can. Each surface sets the density through tokens (the title is
- * 15px in the app and 13px in the cockpit), so the component takes no density prop.
+ * 15px in the app and 13px in the Hub), so the component takes no density prop.
  *
  * The detail line follows the agreed rules: each card type passes at most two details,
  * most important first; the line never wraps, and a detail that does not fit drops whole,

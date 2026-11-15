@@ -19,7 +19,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The cockpit's own tokens, read live on the admin surface: the M3 shape set (4 / 8 / 12 / 16 / 9999), the compressed type scale (14px body and labels, 12px meta, 11px in chips), the DL-011 compact heights (28 / 32 / 36 / 40 / 44), the five workspace tones, and the single elevation ladder. It replaced the Tier 1a token story, whose aliases (--ink, --stone, --g-action, --r-*) had no consumer in admin source.",
+          "The Hub's own tokens, read live on the admin surface: the M3 shape set (4 / 8 / 12 / 16 / 9999), the compressed type scale (14px body and labels, 12px meta, 11px in chips), the DL-011 compact heights (28 / 32 / 36 / 40 / 44), the five workspace tones, and the single elevation ladder. It replaced the Tier 1a token story, whose aliases (--ink, --stone, --g-action, --r-*) had no consumer in admin source.",
       },
     },
   },
@@ -50,7 +50,7 @@ export const Tokens: Story = {
   tags: ["storybook-ci"],
   render: () => (
     <Page
-      title="Admin cockpit · Foundations"
+      title="Hub · Foundations"
       lede="Strict M3 backbone, Warm Earth material. Everything below is read from the admin surface as the runtime resolves it."
     >
       <Section id="shape" title="Shape set" lede="4 / 8 / 12 / 16 / 9999px. The shared rounded-xl and rounded-2xl utilities land on the 16px page-container step through the unlayered remap in index.css (DL-030).">
@@ -78,7 +78,7 @@ export const Tokens: Story = {
         />
       </Section>
 
-      <Section id="type" title="Type roles" lede="Plus Jakarta Sans on the type roles, at the cockpit's density: type-title-lg 22px for dialog, flow and step titles and the app bar; type-title-md 16px for route headers and card titles; type-body and type-label 14px (every button size); type-label-sm and type-meta 12px; type-meta-sm 11px for chips and small supporting lines. Field text is type-field: 16px on touch widths, 14px from 640px.">
+      <Section id="type" title="Type roles" lede="Plus Jakarta Sans on the type roles, at the Hub's density: type-title-lg 22px for dialog, flow and step titles and the app bar; type-title-md 16px for route headers and card titles; type-body and type-label 14px (every button size); type-label-sm and type-meta 12px; type-meta-sm 11px for chips and small supporting lines. Field text is type-field: 16px on touch widths, 14px from 640px.">
         <TokenTable
           tokens={[
             { name: "--gg-type-title-lg-size", expected: "1.375rem", note: "22px: dialog, flow and step titles, the app bar" },
@@ -247,7 +247,7 @@ export const Tokens: Story = {
   play: async ({ canvasElement }) => {
     const root = getComputedStyle(document.documentElement);
     const token = (name: string) => root.getPropertyValue(name).trim();
-    // Production today: the type roles at the cockpit's density.
+    // Production today: the type roles at the Hub's density.
     await expect(token("--gg-type-body-size")).toBe("0.875rem");
     await expect(token("--gg-type-label-sm-size")).toBe("0.75rem");
     await expect(token("--gg-type-meta-sm-size")).toBe("0.6875rem");

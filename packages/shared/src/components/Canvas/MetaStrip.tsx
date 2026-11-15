@@ -24,7 +24,7 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
   if (items.length === 0) return null;
 
   if (density === "inline") {
-    // Cockpit M3 1a status line: 12px with 0.3px tracking, plain 400 labels;
+    // Hub M3 1a status line: 12px with 0.3px tracking, plain 400 labels;
     // only the counts carry weight (600), in strong ink. Counts are metadata,
     // never alarms (DL-044), so they take no status colour.
     return (

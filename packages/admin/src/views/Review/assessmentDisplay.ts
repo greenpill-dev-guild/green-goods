@@ -3,7 +3,7 @@ import type { Domain } from "@green-goods/shared/types/domain";
 
 /**
  * The label id of the domain an assessment's attestation names, or null when
- * the value names no domain the cockpit knows.
+ * the value names no domain the Hub knows.
  */
 export function assessmentDomainLabelId(domain: number | null | undefined): string | null {
   if (domain === null || domain === undefined) return null;

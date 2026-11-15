@@ -175,7 +175,7 @@
   --neutral-alpha-10: var(--gray-alpha-10);
 
   /* Earth: the one warm dark ladder (hue ~65, raised chroma so a dark surface
-   * still reads warm). The installed app and the cockpit both build their dark
+   * still reads warm). The installed app and the Hub both build their dark
    * theme from it; higher steps are lighter, so a card sits above the canvas by
    * a lightness step rather than a shadow. OKLCH intent in the comments. */
   --earth-975: 10 7 4;    /* oklch(13% .010 65): sunken wells */
@@ -407,7 +407,7 @@
   --stroke-strong-950: var(--neutral-950);
   --stroke-sub-300: var(--neutral-300);  /* 202 207 216 - visible borders with blue tint */
   /* The control-grade boundary of the shared fields, secondary buttons and chips.
-   * The public website keeps its hairline; the installed app and the cockpit set a
+   * The public website keeps its hairline; the installed app and the Hub set a
    * 3:1 outline (F3). Declared once here, so a dark ground resolves it too. */
   --gg-control-outline: var(--stroke-sub-300);
   --stroke-soft-200: var(--neutral-100); /* 225 228 234 - softer borders */
@@ -421,7 +421,7 @@
   /* Focus rings - Light theme */
   --focus-ring: var(--blue-500);
   --focus-ring-offset: var(--neutral-0);
-  /* How the shared controls draw focus. The installed app and the cockpit draw
+  /* How the shared controls draw focus. The installed app and the Hub draw
    * one solid 2px ring (F3) and set these to 2px and 0; the public website keeps
    * its soft halo. Plain values, so they inherit into any scope unchanged. */
   --gg-focus-ring-width: 0px;
@@ -537,8 +537,8 @@
   --radius-none: var(--gg-radius-none);
   --radius-md: var(--gg-radius-md);
   /* The shared control family's own label sizes (16 / 14px); a surface sets its
-     own (the cockpit's 14px, in admin index.css). The family reads these, not
-     the --text-label-* scale: while the cockpit remapped that scale for its
+     own (the Hub's 14px, in admin index.css). The family reads these, not
+     the --text-label-* scale: while the Hub remapped that scale for its
      Material utilities, shared buttons and chips rendered there (toast actions,
      empty-state actions) shrank to 11 and 12px (DL-029). */
   --gg-label-md: 1rem;
@@ -546,7 +546,7 @@
   /* Type roles: the one set of type names for every surface (title, body,
      label and meta), applied through the `type-*` utilities at the end of this
      file. These are the installed app's values, equal to its shared scale; the
-     cockpit sets its own density in packages/admin/src/index.css. Field text is
+     Hub sets its own density in packages/admin/src/index.css. Field text is
      a control size (DL-030), kept beside the roles so fields take it by name. */
   --gg-type-title-lg-size: 1.5rem;
   --gg-type-title-lg-line: 2rem;
@@ -591,7 +591,7 @@
   --gg-type-field-weight: 400;
   --gg-type-field-tracking: -0.011em;
   /* The card title (typography.card-title): every card's one-line title, item
-   * rows and media cards. 15px at 500 here, the work row's weight; the cockpit
+   * rows and media cards. 15px at 500 here, the work row's weight; the Hub
    * sets 13px at 600 in packages/admin/src/index.css. Its own role, so a
    * surface that moves title-sm never moves a card title. */
   --gg-type-card-title-size: 0.9375rem;
@@ -608,7 +608,7 @@
   /* ── Cards, rows and lists (F7, F11) ── One card surface on both surfaces:
    * the card's fill, a 1px edge and a faint shadow, on a 24px corner. The fill
    * and edge read --gg-card-surface and --gg-card-edge where a surface sets them
-   * (the cockpit, in admin index.css) and the element's own --bg-white-0 and
+   * (the Hub, in admin index.css) and the element's own --bg-white-0 and
    * --stroke-soft-200 otherwise, so a dark scope below the root resolves its
    * own. An item row takes a 16px corner and one 88px height, and every card
    * list keeps 12px between its cards. Read by .gg-card and .gg-item-row in the
@@ -620,14 +620,14 @@
   --gg-item-row-tile: 3.5rem;
   --gg-list-gap: 0.75rem;
 
-  /* ── Glass residue ── The cockpit's .glass-surface rule reads these two. Every
+  /* ── Glass residue ── The Hub's .glass-surface rule reads these two. Every
    * surface is solid (DL-108); new UI never uses them.
    */
   --glass-blur: 16px;
   --glass-bg: 255 255 255 / 80%;
 
   /* ── Material ── Every surface is solid (surfaces.md § Solid Surfaces, DL-108):
-   * --color-material-solid is the solid fill, and the cockpit's nav dock reads its
+   * --color-material-solid is the solid fill, and the Hub's nav dock reads its
    * blur from --blur-material-regular. The translucent steps are residue that stays
    * only until nothing renders them; they resolve solid under
    * @media (prefers-contrast: more) at the end of the theme layer.
@@ -640,7 +640,7 @@
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
    * surface-colored cover that rides the end of the content to hide it. Both
    * follow the sheet's own hairline and fill where a surface sets them
-   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the Hub's phone dialogs). */
   --sheet-scroll-edge-line: linear-gradient(
     var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
     var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
@@ -935,7 +935,7 @@
   /* Scroll edge above pinned sheet actions (DL-016): a hairline image and the
    * surface-colored cover that rides the end of the content to hide it. Both
    * follow the sheet's own hairline and fill where a surface sets them
-   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the cockpit's phone dialogs). */
+   * (`--gg-sheet-edge`, `--gg-sheet-fill`: the Hub's phone dialogs). */
   --sheet-scroll-edge-line: linear-gradient(
     var(--gg-sheet-edge, rgb(var(--stroke-soft-200))),
     var(--gg-sheet-edge, rgb(var(--stroke-soft-200)))
@@ -955,7 +955,7 @@
   --social-amazon: 255 255 255;
   --social-zendesk: 255 255 255;
 }
-/* The installed app's ground (F2): white cards on the cockpit's linen canvas,
+/* The installed app's ground (F2): white cards on the Hub's linen canvas,
  * with a hairline that still reads on linen. The boot marker covers sign-in and
  * portalled sheets as well as the app shell; Storybook declares its app surface
  * explicitly. The public website keeps its white ground. Every property set
@@ -964,18 +964,18 @@
 [data-surface="app"] {
   --bg-canvas: var(--gg-design-neutral, 250 248 245);
   --stroke-soft-200: var(--neutral-200);
-  /* One focus role (F3): the app rings in its own green, the cockpit in its
+  /* One focus role (F3): the app rings in its own green, the Hub in its
    * workspace tone. Fields, secondary buttons and chips take the 3:1 outline. */
   --focus-ring: var(--primary-on-surface);
   --gg-control-outline: var(--neutral-500);
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
-  /* The bottom bar's active pill (F6): the cockpit's Garden container pair,
+  /* The bottom bar's active pill (F6): the Hub's Garden container pair,
    * the pale green behind a deep green icon. */
   --primary-container: var(--green-100);
   --primary-container-foreground: var(--green-900);
   /* The app's icon tiles (DL-133): the pill's pair, pale green behind a deep green glyph, on
-   * every item row's 56px tile. The cockpit keeps the tile's quiet fill. */
+   * every item row's 56px tile. The Hub keeps the tile's quiet fill. */
   --gg-item-row-tile-fill: var(--primary-container);
   --gg-item-row-tile-ink: var(--primary-container-foreground);
   /* The garden context chip at the app's density (DL-124): a 32px capsule, the
@@ -983,7 +983,7 @@
    * garden's banner as a 22px avatar inset 4px inside the edge (a 14px glyph
    * where it falls back to the seedling), a 16px caret, the 16px label role,
    * the control outline, and focus in the app's green. Unset, the chip keeps
-   * the cockpit's 36px pill. Its two colors are set again in the dark block. */
+   * the Hub's 36px pill. Its two colors are set again in the dark block. */
   --gg-garden-chip-height: 2rem;
   --gg-garden-chip-hit: var(--gg-hit-block, 3rem);
   --gg-garden-chip-inline-start: 0.25rem;
@@ -1092,9 +1092,9 @@
     color: rgb(var(--text-soft-400));
   }
 
-  /* One focus role (F3): the workspace tone in the cockpit, the installed app's
+  /* One focus role (F3): the workspace tone in the Hub, the installed app's
      green in the app. Declared on each control, and on the message line under a
-     field, so the cockpit's tone resolves where the control sits. The ring
+     field, so the Hub's tone resolves where the control sits. The ring
      replaces a 3px halo that measured about 1.3:1; fields keep three quarters of
      the halo where it remains. */
   :where(.gg-control, .gg-button, .gg-chip, .gg-switch, .gg-field-message) {
@@ -1168,7 +1168,7 @@
        background-image survives — the shorthand resets background-image. */
     background-color: rgb(var(--m3-surface, var(--bg-white-0)));
     color: rgb(var(--m3-on-surface, var(--text-strong-950)));
-    /* The cockpit field tier (DL-030): 16px text on touch widths, where the
+    /* The Hub field tier (DL-030): 16px text on touch widths, where the
        field matches the installed app, and 14px from 640px. */
     font-size: var(--type-body-lg, 1rem);
     line-height: var(--type-body-lg-lh, 1.5rem);
@@ -1318,7 +1318,7 @@
      select's own surface and inherit only its text colour, so a dark-theme
      select drew light text on the UA's light list (PRD-922). Pin the pair to
      the themed surface for every native select — shared controls, the admin
-     cockpit fields, and the sort rails alike — so the popup survives a UA that
+     Hub fields, and the sort rails alike — so the popup survives a UA that
      ignores color-scheme. */
   [data-theme="dark"] select option,
   [data-theme="dark"] select optgroup {
@@ -1373,11 +1373,11 @@
 
   /* ── Field label and message (DL-031, F3) ── One anatomy on both surfaces:
    * the label above the control and the message line under it. The label
-   * reads the surface's small label size (14px in the app; the cockpit sets
-   * --gg-label-sm) at weight 500, the same as the cockpit's setting-row titles,
+   * reads the surface's small label size (14px in the app; the Hub sets
+   * --gg-label-sm) at weight 500, the same as the Hub's setting-row titles,
    * so a field never reads smaller or grayer than the fields beside it. The
    * message text is the type-meta role; an error takes the field family's
-   * error role, red-700 in the cockpit, since red-500 measured under 4.5:1 at
+   * error role, red-700 in the Hub, since red-500 measured under 4.5:1 at
    * this size. */
   .gg-field-label {
     display: block;
@@ -1401,7 +1401,7 @@
   /* The message line reserves the surface's message lines whether or not it
    * shows a message, so a message that fits never moves the form; a longer one
    * grows the line instead of scrolling inside it (DL-018, DL-064). Two lines in
-   * the installed app, and the cockpit sets its own (admin index.css). */
+   * the installed app, and the Hub sets its own (admin index.css). */
   .gg-field-message {
     flex-shrink: 0;
     min-block-size: calc(var(--gg-field-message-lines, 2) * 1lh);
@@ -1461,7 +1461,7 @@
   }
 
   /* A surface whose buttons keep still while pressed sets
-   * --gg-button-pressed-transform to none (the cockpit, DL-115). */
+   * --gg-button-pressed-transform to none (the Hub, DL-115). */
   .gg-button:active {
     transform: var(--gg-button-pressed-transform, scale(0.985));
   }
@@ -1469,7 +1469,7 @@
   /* A disabled button dims and takes no pointer. A surface can draw its own
    * disabled look through tokens instead: no dim, a fill and ink of its own
    * (painted after the emphases below), and an aria-disabled button that keeps
-   * its pointer so a reason given on hover still shows (the cockpit, DL-115). */
+   * its pointer so a reason given on hover still shows (the Hub, DL-115). */
   .gg-button:disabled,
   .gg-button[aria-disabled="true"] {
     pointer-events: none;
@@ -1488,7 +1488,7 @@
    * the two short sizes carry a 48px hit area. This is the only button contract:
    * the legacy gg-button-<variant> classes were retired with DL-029. */
   /* Sizes read one block token each, with the app scale as the fallback, so a
-   * surface can move the whole family onto its own metric: the admin cockpit
+   * surface can move the whole family onto its own metric: the Hub
    * sets --gg-button-block-* / --gg-button-inline-* in its index.css (DL-031)
    * and every shared piece rendered there lands on the 28 / 32 / 40 tiers. The
    * vertical padding derives from the block and the line, so a one-line button
@@ -1508,7 +1508,7 @@
    * cards, dialogs, and panels stay square. The website shell carries
    * data-site="website"; the tokens sit on :root so dialogs and sheets that
    * portal out of the shell match the page. Icon buttons stay circles and chips
-   * capsules on both. The admin cockpit sets the same tokens, plus the block,
+   * capsules on both. The Hub sets the same tokens, plus the block,
    * inline, icon, and hit tokens read below, in packages/admin/src/index.css
    * (DL-031). */
   :root {
@@ -1527,7 +1527,7 @@
     --gg-button-weight: var(--font-weight-semibold, 600);
   }
 
-  /* The installed app's buttons take the cockpit's 500 label weight (F3). */
+  /* The installed app's buttons take the Hub's 500 label weight (F3). */
   :root[data-boot-presentation="pwa"]:not(:has([data-site="website"])),
   [data-surface="app"] {
     --gg-button-weight: 500;
@@ -1551,7 +1551,7 @@
 
   /* A surface whose rows were laid out around fixed-height buttons caps each
    * size at its block, so a row that stretches never grows one, and can reserve
-   * a block margin for the finger box's reach (the cockpit, DL-119). The app
+   * a block margin for the finger box's reach (the Hub, DL-119). The app
    * sets neither, and a shared piece's own buttons take neither (below). */
   .gg-button[data-size="lg"] {
     --gg-button-block: var(--gg-button-block-lg, 3rem);
@@ -1604,7 +1604,7 @@
   }
 
   /* Hit areas: every size carries an absolute box that reaches the surface's
-   * finger size (48px in the app; the cockpit sets --gg-hit-block to 44px). The
+   * finger size (48px in the app; the Hub sets --gg-hit-block to 44px). The
    * box is laid out against the padding box, inside the 1px border, so the
    * inset gives the border back to reach the full size. Sideways it is exactly
    * the button: an overhang counts as scrollable overflow, and a full-width
@@ -1707,7 +1707,7 @@
     --gg-button-fill: rgb(var(--error-base) / 0.08);
   }
 
-  /* Disabled: a surface's own fill and ink when it sets them (the cockpit's
+  /* Disabled: a surface's own fill and ink when it sets them (the Hub's
    * neutral pair, DL-115), else the emphasis's own under the dim above. Last, so
    * a hover or press on an aria-disabled button that keeps its pointer changes
    * nothing. */
@@ -1757,7 +1757,7 @@
       border-radius var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
   }
 
-  /* The glyph is 20px; a denser surface sets --gg-icon-button-glyph (the cockpit
+  /* The glyph is 20px; a denser surface sets --gg-icon-button-glyph (the Hub
    * draws 18px, DL-115, over any size class the icon carries, DL-119). The
    * compact size keeps 16px. */
   .gg-icon-button svg {
@@ -1794,7 +1794,7 @@
 
   /* The garden chip's hit area (DL-124), drawn as the icon button's: where a
    * surface sets --gg-garden-chip-hit (the app's 48px), the box reaches it above
-   * and below, inside the 1px border; sideways it is the chip. The cockpit sets
+   * and below, inside the 1px border; sideways it is the chip. The Hub sets
    * none, so its chip keeps its own box. */
   .gg-garden-chip::after {
     content: "";
@@ -1814,7 +1814,7 @@
   }
 
   /* Pressed, the circle tightens to the squircle; a surface whose icon buttons
-   * stay circles sets --gg-icon-button-radius-pressed (the cockpit, DL-115). */
+   * stay circles sets --gg-icon-button-radius-pressed (the Hub, DL-115). */
   .gg-icon-button:active {
     border-radius: var(--gg-icon-button-radius-pressed, var(--radius-squircle));
   }
@@ -1894,9 +1894,9 @@
 
   /* ── Count badge (F10) ── One count on both surfaces: a capsule 16px tall and
    * at least 16px wide, with the count role's 11px numerals at weight 600 on a
-   * 16px line, on the action pair (DL-017). The cockpit fills it with its
+   * 16px line, on the action pair (DL-017). The Hub fills it with its
    * workspace tone's on-surface accent, which equals the action fill in every
-   * tone but Community: there it is orange-800, white at 7.09:1 on the cockpit's
+   * tone but Community: there it is orange-800, white at 7.09:1 on the Hub's
    * amber ramp, beside the orange-700 fill at 5.02:1. A badge
    * that sits on an icon or a control's edge draws a 2px ring of the surface
    * behind it: the page canvas, unless that surface sets
@@ -1970,7 +1970,7 @@
     outline-offset: 2px;
   }
 
-  /* The cockpit fills a selected chip in its workspace tone (DL-101, DL-116),
+  /* The Hub fills a selected chip in its workspace tone (DL-101, DL-116),
      read where the chip sits so each tone scope resolves; outside a tone it is
      the theme's action pair. */
   .gg-chip[aria-pressed="true"],
@@ -1982,9 +1982,9 @@
   }
 
   /* A selected chip answers a hover or a press with the neutral ink layer over
-     its fill, as the cockpit's filled controls do (Rule 18, DL-116). The layer is
+     its fill, as the Hub's filled controls do (Rule 18, DL-116). The layer is
      a background image, so it paints beneath the label and the label keeps its
-     contrast. Its opacities are the cockpit's chip state tokens (index.css): the
+     contrast. Its opacities are the Hub's chip state tokens (index.css): the
      app sets none, so its selected chips do not change. */
   .gg-chip[aria-pressed="true"]:hover,
   .gg-chip[aria-checked="true"]:hover,
@@ -2052,7 +2052,7 @@
   }
 
   /* ── Switch ── A 44 × 24 track in the app; the admin surface takes the M3
-   * 52 × 32 track (the cockpit's md-button height). Both carry a 44px hit box
+   * 52 × 32 track (the Hub's md-button height). Both carry a 44px hit box
    * (DL-031). */
   .gg-switch {
     --gg-switch-inline: 2.75rem;
@@ -2120,11 +2120,11 @@
     transform: translateX(calc(var(--gg-switch-inline) - var(--gg-switch-thumb) - 4px));
   }
 
-  /* Admin cockpit surface variant — the component's own opt-in API
+  /* Hub surface variant — the component's own opt-in API
    * (`surface="admin"`). Rides the admin M3 roles, which only resolve inside
    * the admin app / admin stories; the tone fallbacks keep it sane elsewhere.
    * Moved here from admin-m3-overrides.css when that remote-override file was
-   * retired (Cockpit M3 1a, Step 5). */
+   * retired (Hub M3 1a, Step 5). */
   .gg-switch[data-surface="admin"] {
     --gg-switch-inline: 3.25rem;
     --gg-switch-block: 2rem;
@@ -2690,7 +2690,7 @@
   /* ── State mark ── The round tile that leads the state block (`EmptyState`):
    * 56px with a 24px glyph on both surfaces. A calm state takes the surface's
    * quiet accent: the app's green tint, or what a surface sets in
-   * `--gg-state-mark-fill` and `--gg-state-mark-ink` (the cockpit keeps it
+   * `--gg-state-mark-fill` and `--gg-state-mark-ink` (the Hub keeps it
    * neutral, because its workspace tone is held to its budget, Rule 18). A
    * warning and a failure take their status tints. */
   .gg-state-mark {
@@ -2770,7 +2770,7 @@
    * Loaded via packages/client/index.html. Tailwind's `font-serif` utility
    * resolves to this stack. Body, nav and UI take each app's own face instead:
    * Inter on the website and Plus Jakarta Sans in the installed app (on :root,
-   * client index.css) and the cockpit (on body, admin index.css). To trial an
+   * client index.css) and the Hub (on body, admin index.css). To trial an
    * alternative serif, see the
    * options table in packages/client/DESIGN.browser.md → Typography. */
   --font-serif: "Fraunces", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -3478,7 +3478,7 @@
 /* ============================================================================
  * TYPE ROLES
  * The type-* utilities: one name per role on every surface, each reading its
- * role's --gg-type-* tokens (above, and the cockpit's in admin index.css). A
+ * role's --gg-type-* tokens (above, and the Hub's in admin index.css). A
  * leading, weight or tracking utility on the same element adjusts the role,
  * because each property reads the --tw-* value those utilities set first.
  * ============================================================================ */

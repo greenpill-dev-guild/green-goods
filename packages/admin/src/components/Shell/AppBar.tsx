@@ -13,7 +13,7 @@ import type React from "react";
 import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
-// Admin fork of the shared Canvas AppBar (Cockpit M3, finished — 1a).
+// Admin fork of the shared Canvas AppBar (Hub M3, finished — 1a).
 //
 // Forked so the bar's styling lives in admin's own JSX, ending the remote
 // overrides in admin-m3-overrides.css. Behavior (slots, refresh registration,

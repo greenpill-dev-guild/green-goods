@@ -28,7 +28,7 @@ import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
-/** How often to look for a garden the cockpit knows of before the indexer does. */
+/** How often to look for a garden the Hub knows of before the indexer does. */
 const GARDEN_ARRIVAL_SCHEDULE_MS = [2_000, 5_000, 15_000, 30_000, 60_000] as const;
 
 function parseActivityFilter(value: string): ActivityFilter {

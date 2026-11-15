@@ -1,7 +1,7 @@
 // The photos staged on Submit Work's media step: how many against what the
 // action requires, and each one as a tile that opens larger and can be removed.
 // The count follows the PWA's media rule pill (amber until the requirement is
-// met, then green with a tick) in the cockpit's own status badge. The tiles sit
+// met, then green with a tick) in the Hub's own status badge. The tiles sit
 // beside the shared FileUploadField, which keeps only its label and upload well
 // here, so the four other admin forms that use it are untouched.
 

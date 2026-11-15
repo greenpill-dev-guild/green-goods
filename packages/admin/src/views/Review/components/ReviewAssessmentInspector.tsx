@@ -34,7 +34,7 @@ export type ReviewAssessmentRecord = Pick<
 /**
  * An assessment's record as its attestation carries it: what it is about, the
  * period it covers, where, who wrote it and when. The challenge and the
- * outcomes live in the assessment's IPFS config, which the cockpit does not
+ * outcomes live in the assessment's IPFS config, which the Hub does not
  * read yet, so the record links to the attestation for the rest.
  */
 export function ReviewAssessmentInspector({

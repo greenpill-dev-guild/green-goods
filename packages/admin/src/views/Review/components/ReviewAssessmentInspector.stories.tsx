@@ -76,7 +76,7 @@ export const ReadOnly: Story = {
   args: { canMint: false },
 };
 
-/** An attestation with no description, period or location, in a domain the cockpit does not know. */
+/** An attestation with no description, period or location, in a domain the Hub does not know. */
 export const SparseRecord: Story = {
   args: {
     canMint: true,

@@ -6,7 +6,7 @@ import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
 // FAB + Speed Dial — the creation entry that floats above the nav bar on
-// tablet/mobile (Cockpit M3, finished — 1a). Split out of the forked
+// tablet/mobile (Hub M3, finished — 1a). Split out of the forked
 // Shell/NavigationBar so each shell module stays readable.
 //
 // The FAB is the one tone-filled control in the floating chrome: circular

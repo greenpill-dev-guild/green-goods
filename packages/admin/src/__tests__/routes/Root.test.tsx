@@ -4,7 +4,7 @@
  *
  * Root mounts the toast viewport beside the routed canvas, outside the canvas's
  * `[data-tone]`. The viewport carries the route's workspace tone itself, so a
- * toast's action draws the cockpit's focus ring rather than the generic blue.
+ * toast's action draws the Hub's focus ring rather than the generic blue.
  */
 
 import { MemoryRouter, Route, Routes } from "react-router-dom";

@@ -53,7 +53,7 @@ export function VaultEventHistory({
   const visibleEvents = useMemo(() => events.slice(0, visibleCount), [events, visibleCount]);
 
   return (
-    // The shared card surface, as every cockpit card (DL-102).
+    // The shared card surface, as every Hub card (DL-102).
     <AdminCard className="sm:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="type-title-md font-semibold text-text-strong">

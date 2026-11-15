@@ -32,7 +32,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Shared components that render inside the admin cockpit. Every one rides the shared family (Button, IconButton, Chip, and the control classes), and the cockpit sets that family's tokens in its index.css (DL-031): pills, one 14px label, the 28 / 32 / 40 tiers, the 44px finger box, and the responsive field tier. Each specimen is the real component measured live against the cockpit rules.",
+          "Shared components that render inside the Hub. Every one rides the shared family (Button, IconButton, Chip, and the control classes), and the Hub sets that family's tokens in its index.css (DL-031): pills, one 14px label, the 28 / 32 / 40 tiers, the 44px finger box, and the responsive field tier. Each specimen is the real component measured live against the Hub rules.",
       },
     },
   },
@@ -64,7 +64,7 @@ function ToastAction() {
   return <ToastViewport />;
 }
 
-/** A shared field's trigger on the cockpit field tier, with its 14px title above. */
+/** A shared field's trigger on the Hub field tier, with its 14px title above. */
 const FIELD_TARGETS = (trigger: string) => [
   {
     name: "control",
@@ -86,7 +86,7 @@ function Pieces() {
       <Section
         id="actions"
         title="Actions"
-        lede="EmptyState takes a ready Button element (Rule 18). Toast actions and the AudioRecorder controls are the shared Button at its sm size, which the cockpit's tokens land on the 32px md pill with a 14px label and a 44px finger box (DL-031)."
+        lede="EmptyState takes a ready Button element (Rule 18). Toast actions and the AudioRecorder controls are the shared Button at its sm size, which the Hub's tokens land on the 32px md pill with a 14px label and a 44px finger box (DL-031)."
       >
         <Row>
           <Specimen title="EmptyState action · Button (Actions workspace)" target="button" expect={ADMIN.button("md")} wide>
@@ -131,7 +131,7 @@ function Pieces() {
       <Section
         id="fields"
         title="Fields"
-        lede="FileUploadField's upload well and the DatePicker trigger are shared controls on the admin surface: the 8px corner and the responsive field tier (44px with 16px text on touch widths, 40px with 14px text from 640px), with a 14px title above, like a setting-row label (DL-030, DL-031). AdminSortSelect stays the 36px toolbar pill, and the shared Switch takes the M3 track at the cockpit's 32px md height."
+        lede="FileUploadField's upload well and the DatePicker trigger are shared controls on the admin surface: the 8px corner and the responsive field tier (44px with 16px text on touch widths, 40px with 14px text from 640px), with a 14px title above, like a setting-row label (DL-030, DL-031). AdminSortSelect stays the 36px toolbar pill, and the shared Switch takes the M3 track at the Hub's 32px md height."
       >
         <Row>
           <Specimen title="FileUploadField · upload well" targets={FIELD_TARGETS('[data-component="FileUploadTrigger"]')} wide>
@@ -185,7 +185,7 @@ function Pieces() {
       <Section
         id="chips-and-icons"
         title="Chips and icon buttons"
-        lede="AssetSelector and ConfidenceSelector are shared radio chips: 32px capsules with a 44px hit area on every surface. AddressDisplay's copy and Alert's dismiss are the shared compact IconButton, which the cockpit lands on its 28px sm circle."
+        lede="AssetSelector and ConfidenceSelector are shared radio chips: 32px capsules with a 44px hit area on every surface. AddressDisplay's copy and Alert's dismiss are the shared compact IconButton, which the Hub lands on its 28px sm circle."
       >
         <Row>
           <Specimen title="AssetSelector · radio chips" target='[role="radio"]' all expect={ADMIN.sharedChip()} wide>
@@ -229,14 +229,14 @@ function Pieces() {
   );
 }
 
-/** Every shared piece the cockpit renders, measured on the cockpit metric. */
+/** Every shared piece the Hub renders, measured on the Hub metric. */
 export const Pieces_: Story = {
   name: "Pieces",
   tags: ["storybook-ci"],
   render: () => (
     <Page
-      title="Admin cockpit · Shared pieces"
-      lede="Rule 18 keeps admin views on the Admin* family. Shared components still render inside the cockpit; they ride the shared family, and the cockpit sets that family's tokens, so one primitive update reaches every surface (DL-031)."
+      title="Hub · Shared pieces"
+      lede="Rule 18 keeps admin views on the Admin* family. Shared components still render inside the Hub; they ride the shared family, and the Hub sets that family's tokens, so one primitive update reaches every surface (DL-031)."
     >
       <Pieces />
     </Page>
@@ -246,7 +246,7 @@ export const Pieces_: Story = {
     const px = (value: string) => Number.parseFloat(value);
     const touch = window.innerWidth < 640;
 
-    // Shared sm buttons land on the cockpit's 32px md pill with a 14px / 500 label.
+    // Shared sm buttons land on the Hub's 32px md pill with a 14px / 500 label.
     const start = canvas.getByRole("button", { name: "Start recording audio note" });
     await expect(start.getBoundingClientRect().height).toBe(32);
     await expect(px(getComputedStyle(start).borderTopLeftRadius)).toBeGreaterThanOrEqual(16);
@@ -278,14 +278,14 @@ export const Pieces_: Story = {
     await expect(toggle.getBoundingClientRect().width).toBe(52);
     await expect(px(getComputedStyle(toggle, "::after").height)).toBe(44);
 
-    // Compact icon buttons land on the cockpit's 28px sm circle.
+    // Compact icon buttons land on the Hub's 28px sm circle.
     const copy = canvas.getByRole("button", { name: "Copy Address" });
     await expect(copy.getBoundingClientRect().height).toBe(28);
     await expect(px(getComputedStyle(copy, "::after").height)).toBe(44);
   },
 };
 
-/** ImagePreviewDialog inside admin: its controls are the shared IconButton, on the cockpit's 40px close tier. */
+/** ImagePreviewDialog inside admin: its controls are the shared IconButton, on the Hub's 40px close tier. */
 export const ImagePreviewDialog_: Story = {
   name: "ImagePreviewDialog",
   render: () => (

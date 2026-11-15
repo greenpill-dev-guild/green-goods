@@ -15,7 +15,7 @@ import { wrongWalletNetwork } from "./wallet-network-refusal";
 /**
  * A send refused before anything left the device, because the connection is
  * offline or unconfirmed, where nothing is kept to send later (the admin
- * cockpit's Submit Work). Read before any "offline" in a message is: here
+ * Hub's Submit Work). Read before any "offline" in a message is: here
  * nothing is saved to sync.
  */
 export class ConnectionNeededError extends Error {

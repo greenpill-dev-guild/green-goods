@@ -101,7 +101,7 @@ export function ManagePermissionsLink() {
 
 /**
  * Account and Help for a reporting page, opened from the top bar's profile button. It is the app's
- * sheet below 640px and comes in from the right from there, under the top bar, as the cockpit shows
+ * sheet below 640px and comes in from the right from there, under the top bar, as the Hub shows
  * Profile. One scroll, as the app's Profile page stacks its sections: who is signed in to this page
  * and what they can do about it, how to reach a person, then the page's own questions as the app's
  * Help draws its dropdowns.
