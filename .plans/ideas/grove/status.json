@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-11-15T00:13:50Z"
+    "updated_at": "2026-11-15T00:25:55Z"
   },
   "links": {
     "brief": "brief.md",
@@ -69,7 +69,8 @@
     "2026-11-14 owner decisions from review: an imported garden records its local identifier onchain, so a second steward finds it and joins instead of making a copy (D47); and running a pool's seasons, support allocations and editing an Action are in the first version (D37). No lane, Linear, dependency or runtime change.",
     "2026-11-14 owner decisions, evening: each function block starts with an inventory of every action its screens and contracts offer today, and its gate covers that list (D48); a free-form report can be a voice note with photos and documents, which the local agent transcribes and structures on a laptop into one record or several, and only a structured record can be approved (D49, amending D34–D36). No lane, Linear, dependency or runtime change.",
     "2026-11-14 owner decisions, late evening: from a voice note the agent also proposes knowledge, such as a lesson or the questions people asked (D50); an owner of the garden can replace an imported garden's onchain record, so a first importer who pairs nobody cannot lock the garden out (D51); and leaving a current function out of the first version takes the owner's recorded decision, without which its gate does not pass (D48). No lane, Linear, dependency or runtime change.",
-    "Owner decisions, 14 November (15 November UTC): when an owner replaces an imported garden's onchain record the garden is carried over, with the owner's device as signer and its members, roles and records as they were (D52); and a device the steward adds for a member who has lost every device and their recovery code approves sharing only for records made after it was added (D53). No lane, Linear, dependency or runtime change."
+    "Owner decisions, 14 November (15 November UTC): when an owner replaces an imported garden's onchain record the garden is carried over, with the owner's device as signer and its members, roles and records as they were (D52); and a device the steward adds for a member who has lost every device and their recovery code approves sharing only for records made after it was added (D53). No lane, Linear, dependency or runtime change.",
+    "Owner's observation, 14 November (15 November UTC): work, approvals and promises now happen offline first, so an attestation's time would be when a record was brought onchain, not when the work or promise was done or approved. Recorded as open question O20, with what today's Work and WorkApproval resolvers do with that time. No decision, lane, Linear, dependency or runtime change."
   ],
   "lanes": {
     "ui": {
@@ -388,6 +389,14 @@
       "status": "idea",
       "branch": "research/grove-architecture-alignment",
       "note": "Two owner decisions: an owner's replacement of an imported garden's onchain record carries the garden over (D52), and a device the steward adds alone approves sharing only for later records (D53). Six points held from review went in with them: a device joins an existing member only on that member's signed request or recovery proof (C0, E15); the owner's takeover and its record are designed in C8 and tested in E31, and no replacement switches a device silently; imported records are confirmed against the chain, not only found through the index (C8, E31); an intention names everything that executes (F7, E38); bridge messages name their garden (C9, E32); and a prepared file's recipients are checked again at every send (C2, E15, E17). Gates remain unrun; no lane, Linear, dependency or runtime change."
+    },
+    {
+      "timestamp": "2026-11-15T00:25:55Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "idea",
+      "branch": "research/grove-architecture-alignment",
+      "note": "The owner observed that once work, approvals and promises happen offline first, an attestation's time is when a record was brought onchain, not when it was done or approved. Recorded as open question O20: which time reports and the public record show, and which time time-based rules use. Today the Work resolver accepts work only while its Action is active at attestation and the WorkApproval resolver refuses an approval once the Action has ended. No decision was made; gates remain unrun; no lane, Linear, dependency or runtime change."
     }
   ]
 }
