@@ -170,3 +170,41 @@ test("a hashbang is never read as a comment", () => {
   assert.deepEqual(kinds(code, "tool.mjs"), ["remove"]);
   assert.equal(purgeSource(code, "tool.mjs").code, "#!/usr/bin/env node\nconst x = 1;\n");
 });
+
+test("only a JSX container that holds just comments goes with them; object and function braces stay", () => {
+  const code = "const options = { /* defaults */ };\nfunction noop() { /* nothing */ }\nexport const View = () => <div>{/* a */ /* b */}</div>;\n";
+  assert.equal(
+    purgeSource(code, "example.tsx").code,
+    "const options = { };\nfunction noop() { }\nexport const View = () => <div></div>;\n",
+  );
+});
+
+test("deleting an inline comment never joins two tokens", () => {
+  const code = "function f(a, b, value) {\n  if (a) return/* narration */value;\n  return 1/* note */.toString() + (a +/* note */+b);\n}\n";
+  assert.equal(
+    purgeSource(code, "example.ts").code,
+    "function f(a, b, value) {\n  if (a) return value;\n  return 1 .toString() + (a + +b);\n}\n",
+  );
+});
+
+test("blank lines change only where a comment line went, never inside a template literal", () => {
+  const code = "const text = `a\n\n\nb`;\n\n// Narration that goes.\n\nconst next = 1;\n";
+  assert.equal(purgeSource(code, "example.ts").code, "const text = `a\n\n\nb`;\n\nconst next = 1;\n");
+  assert.equal(purgeSource("const text = `a\n\n\nb`;\n", "example.ts").code, "const text = `a\n\n\nb`;\n");
+});
+
+test("markers that repository tools read are directives", () => {
+  const code = [
+    "/** Staged \u2014 not yet wired into the live checkout. */",
+    "// @direct-test-subject packages/shared/src/modules/work/queue.ts",
+    "// @direct-test-command bun run --cwd packages/shared test",
+    "// @shared-graph isolate",
+    "const x = 1;",
+  ].join("\n");
+  assert.deepEqual(kinds(code), ["directive", "directive", "directive", "directive"]);
+});
+
+test("documentation stays on declarations exported later by name or as the default", () => {
+  const code = "/** Counts unread items. */\nfunction CountBadge() {}\n/** The badge. */\nconst Badge = () => null;\n/** Private. */\nfunction helper() {}\nexport { CountBadge };\nexport default Badge;\n";
+  assert.deepEqual(kinds(code), ["documentation", "documentation", "remove"]);
+});

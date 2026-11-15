@@ -44,6 +44,10 @@ const DIRECTIVES = [
   /^\/\s*<reference\b/,
   /^\s*TEST-QUALITY:/,
   /^\s*design-guard:\s*allow-/,
+  // Read by check-direct-tested-seams.mjs, the Shared test graph and check-staged-modules.mjs.
+  /@direct-test-(command|subject)\b/,
+  /@shared-graph\b/,
+  /Staged — not yet wired into the live checkout\./,
 ];
 const SOLIDITY_DIRECTIVES = [/^\s*(solhint|slither)-(disable|enable)/, /^\s*(forge-lint|forge-fmt|forgefmt):/];
 // A comment that claims the code around it must stay as it is, for a reason the code cannot show.
@@ -97,16 +101,45 @@ function languageOf(file) {
 }
 
 // Spans of exported declarations: documentation inside one, or right before one, is API documentation.
+function declaredNames(statement) {
+  if (statement.type === "VariableDeclaration") return statement.declarations.map((declaration) => declaration.id?.name).filter(Boolean);
+  return statement.id?.name ? [statement.id.name] : [];
+}
+
 function exportedSpans(program) {
+  // Names a later `export { a, b }` or `export default a` makes public: their declarations are API too.
+  const exportedLater = new Set();
+  for (const statement of program.body) {
+    if (statement.type === "ExportNamedDeclaration" && !statement.declaration && !statement.source) {
+      for (const specifier of statement.specifiers) if (specifier.local?.name) exportedLater.add(specifier.local.name);
+    }
+    if (statement.type === "ExportDefaultDeclaration" && statement.declaration?.type === "Identifier") {
+      exportedLater.add(statement.declaration.name);
+    }
+    if (statement.type === "TSExportAssignment" && statement.expression?.type === "Identifier") exportedLater.add(statement.expression.name);
+  }
   const spans = [];
   let previousEnd = 0;
   for (const statement of program.body) {
-    if (/^Export(Named|Default|All)Declaration$/.test(statement.type) || statement.type === "TSExportAssignment") {
-      spans.push([previousEnd, statement.end]);
-    }
+    const exported = /^Export(Named|Default|All)Declaration$/.test(statement.type) || statement.type === "TSExportAssignment" ||
+      declaredNames(statement).some((name) => exportedLater.has(name));
+    if (exported) spans.push([previousEnd, statement.end]);
     previousEnd = statement.end;
   }
   return spans;
+}
+
+// JSX expression containers that hold only comments (`{/* note */}`): removing the comment removes them too.
+function emptyJsxContainers(program) {
+  const containers = [];
+  const visit = (node) => {
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (!node || typeof node !== "object") return;
+    if (node.type === "JSXExpressionContainer" && node.expression?.type === "JSXEmptyExpression") containers.push([node.start, node.end]);
+    for (const value of Object.values(node)) if (value && typeof value === "object") visit(value);
+  };
+  visit(program);
+  return containers;
 }
 
 export function classifyComment(comment, { exported }) {
@@ -191,10 +224,12 @@ export function classifySource(code, file) {
   const { program, comments, errors } = parseSync(file, code, { lang: languageOf(file), sourceType: "module" });
   if (errors.length) throw new Error(`${file}: does not parse (${errors[0].message})`);
   const spans = exportedSpans(program);
+  const containers = emptyJsxContainers(program);
   // Oxc also reports a hashbang (`#!/usr/bin/env node`) as a line comment; it is the program's, not a comment.
   const real = comments.filter((comment) => comment.start !== program.hashbang?.start);
   return groupComments(code, real).map((comment) => ({
     ...comment,
+    container: containers.find(([start, end]) => comment.start > start && comment.end < end) ?? null,
     kind: classifyComment(comment, { exported: spans.some(([start, end]) => comment.start >= start && comment.end <= end) }),
   }));
 }
@@ -208,39 +243,48 @@ function lineEnd(code, index) {
   return end < 0 ? code.length : end;
 }
 
-// The span a removal takes: a whole line when the comment is alone on it, a JSX container that holds
-// only the comment, or the comment and the spaces before it.
-function removalSpan(code, comment) {
+// What a removal takes and leaves: a whole line when the comment is alone on it, the JSX container
+// that holds only comments, or the comment itself, with a space where deleting it would join two
+// tokens (`return/* x */value` stays `return value`).
+function removal(code, comment) {
   const start = lineStart(code, comment.start);
   const end = lineEnd(code, comment.end);
   if (!code.slice(start, comment.start).trim() && !code.slice(comment.end, end).trim()) {
-    return [start, Math.min(end + 1, code.length)];
+    return { from: start, to: Math.min(end + 1, code.length), text: "" };
   }
-  const before = code.slice(0, comment.start).match(/\{\s*$/);
-  const after = code.slice(comment.end).match(/^\s*\}/);
-  if (before && after) {
-    const open = comment.start - before[0].length;
-    const close = comment.end + after[0].length;
+  if (comment.container) {
+    const [open, close] = comment.container;
     if (!code.slice(lineStart(code, open), open).trim() && !code.slice(close, lineEnd(code, close)).trim()) {
-      return [lineStart(code, open), Math.min(lineEnd(code, close) + 1, code.length)];
+      return { from: lineStart(code, open), to: Math.min(lineEnd(code, close) + 1, code.length), text: "" };
     }
-    return [open, close];
+    return { from: open, to: close, text: "" };
   }
   let from = comment.start;
   while (from > start && /[ \t]/.test(code[from - 1])) from--;
-  return [from, comment.end];
+  const joins = from > 0 && /\S/.test(code[from - 1]) && /\S/.test(code[comment.end] ?? "");
+  return { from, to: comment.end, text: joins ? " " : "" };
 }
 
 /** The source with every removable comment taken out, and what was removed. */
 export function purgeSource(code, file) {
   const comments = classifySource(code, file);
   const removed = comments.filter((comment) => comment.kind === "remove");
+  // A JSX container goes only when every comment in it goes, and only once.
+  const keptContainers = new Set(comments.filter((comment) => comment.kind !== "remove" && comment.container).map((comment) => comment.container[0]));
+  const removedContainers = new Set();
   let output = code;
   for (const comment of [...removed].sort((a, b) => b.start - a.start)) {
-    const [from, to] = removalSpan(output, comment);
-    output = output.slice(0, from) + output.slice(to);
+    const container = comment.container && !keptContainers.has(comment.container[0]) ? comment.container : null;
+    if (container && removedContainers.has(container[0])) continue;
+    if (container) removedContainers.add(container[0]);
+    const { from, to, text } = removal(output, { ...comment, container });
+    output = output.slice(0, from) + text + output.slice(to);
+    // Close the gap a removed line leaves, at that point only: blank lines elsewhere (a template
+    // literal's included) are not the codemod's to change.
+    while (output[from] === "\n" && (from === 0 || (output[from - 1] === "\n" && output[from - 2] === "\n"))) {
+      output = output.slice(0, from) + output.slice(from + 1);
+    }
   }
-  output = output.replace(/\n{3,}/g, "\n\n");
   return { code: output, removed, kept: comments.filter((comment) => comment.kind !== "remove") };
 }
 
