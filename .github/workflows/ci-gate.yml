@@ -67,7 +67,7 @@ jobs:
         env:
           REACT_PATTERNS_BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: |
-          git fetch --no-tags --depth=1 origin "$REACT_PATTERNS_BASE_REF" || echo "Base commit unavailable; the ratchet baseline is checked against the tree only."
+          git fetch --no-tags --depth=1 origin "$REACT_PATTERNS_BASE_REF"
           node scripts/quality/check-react-patterns.js
 
       - name: Verify all expected CI workflows pass

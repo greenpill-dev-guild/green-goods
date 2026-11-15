@@ -10,6 +10,7 @@ import {
   findPackageArchitectureViolations,
   findRatchetBaselineGrowth,
   findSharedExportTargetViolations,
+  isReactModule,
   parseJsxAttributes,
   parseRatchetBaseline,
   ratchetFailures,
@@ -349,4 +350,10 @@ test("a stale count fails where the change touches it, and everywhere when the b
   assert.ok(unknown.notes.some((note) => /checked against the tree only/.test(note)));
   const grown = ratchetFailures({ hits: [...hits, ...hits, ...hits], baseline, context });
   assert.match(grown.failures[0], /touched\.ts: 3 hit\(s\) \(lines 4, 4, 4\), baseline allows 2/);
+});
+
+test("the timer rule reads React modules only, where its hook wrappers apply", () => {
+  assert.equal(isReactModule('import { useEffect } from "react";\nsetTimeout(run, 10);'), true);
+  assert.equal(isReactModule("export function useCountdown() {\n  return setInterval(tick, 1000);\n}"), true);
+  assert.equal(isReactModule("export function withDeadline(task) {\n  const timer = setTimeout(abort, 10);\n  return task.finally(() => clearTimeout(timer));\n}"), false);
 });

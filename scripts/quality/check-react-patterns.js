@@ -493,6 +493,11 @@ function gatherArchitectureHits() {
 
 // Each scanner returns array of { file, line, snippet, rule }.
 
+/** A module that defines React state: it imports React or declares a use* hook. Every .tsx file counts too. */
+export function isReactModule(source) {
+  return /from\s+["']react["']/.test(source) || /\b(function\s+use[A-Z]\w*|const\s+use[A-Z]\w*\s*=)/.test(source);
+}
+
 function scanRule1(files) {
   const hits = [];
   // Match raw setTimeout/setInterval/setImmediate calls.
@@ -501,6 +506,7 @@ function scanRule1(files) {
   for (const file of files) {
     if (RULE_1_FILE_ALLOWLIST.has(file)) continue;
     const content = readFile(file);
+    if (!file.endsWith(".tsx") && !isReactModule(content)) continue;
     const lines = content.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -1084,12 +1090,17 @@ function git(args) {
  * the base's baseline, and the paths changed and renamed since it. A shallow checkout without
  * the base gets none of these, which the report says.
  */
+export const MODE_FLAGS = new Set(["--report", "--baseline-shrink"]);
+
 function readRatchetContext(argv) {
   const base = resolveGitBase({
     repoRoot,
-    explicitBase: parseBaseArgs(argv).base,
+    explicitBase: parseBaseArgs(argv.filter((argument) => !MODE_FLAGS.has(argument))).base,
     environmentVariables: ["REACT_PATTERNS_BASE_REF", "SOURCE_STRUCTURE_BASE_REF"],
   });
+  // CI names the base it fetched; when that base did not resolve, the growth check cannot run.
+  const required = process.env.REACT_PATTERNS_BASE_REF;
+  if (required && base !== required) throw new Error(`the base commit ${required} is not available, so the baseline cannot be compared with it`);
   if (!base) return { base: null, previous: null, changed: null, renames: new Map() };
   const ref = git(["merge-base", "HEAD", base])?.trim() || base;
   const source = git(["show", `${ref}:${BASELINE_RELATIVE_PATH}`]);
