@@ -3547,3 +3547,26 @@ test("the Indexer keeps its typecheck, its build, as owner and consumer proof on
   assert.ok(manual.checks.find((check) => check.id === "indexer-build")?.selectedBy.includes("critical-owner-types:indexer"));
   assert.deepEqual(manual.checks.find((check) => check.id === "indexer-test").focusedPaths, ["test/handlers.test.ts"]);
 });
+
+test("the merge policy's tiers cover every path the selector calls critical or sensitive", () => {
+  const policy = loadPolicy();
+  const merge = JSON.parse(readFileSync(join(repositoryRoot, ".agents/merge-policy.json"), "utf8"));
+  // dev merge-settings reads these globs: ** spans folders, * and ? stay inside one.
+  const globRegex = (glob) =>
+    new RegExp(`^${glob.replace(/\*\*|\*|\?|[.+^${}()|[\]\\]/g, (token) => ({ "**": ".*", "*": "[^/]*", "?": "[^/]" })[token] ?? `\\${token}`)}$`);
+  const covers = (tier, path) => merge.tiers[tier].paths.some((glob) => globRegex(glob).test(path));
+  const probes = (rule) => [
+    ...(rule.exact ?? []),
+    ...(rule.contains?.length
+      ? rule.prefixes.flatMap((prefix) => rule.contains.map((part) => `${prefix}probe/${part}-probe.ts`))
+      : (rule.prefixes ?? []).map((prefix) => (prefix.endsWith("/") ? `${prefix}probe.ts` : prefix))),
+  ];
+  const sensitive = policy.riskRules.filter((rule) => rule.risk === "sensitive").flatMap(probes);
+  assert.deepEqual(
+    [
+      ...policy.criticalOverrides.flatMap(probes).filter((path) => !covers("critical", path)).map((path) => `critical ${path}`),
+      ...sensitive.filter((path) => !covers("sensitive", path) && !covers("critical", path)).map((path) => `sensitive ${path}`),
+    ],
+    [],
+  );
+});

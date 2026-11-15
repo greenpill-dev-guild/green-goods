@@ -103,6 +103,8 @@ for (const command of [
   "rg 'secret' .env", "grep -e 'secret' .env", "sed -n '1p' .env", "cat 0<.env",
   "cat .env.secrets", "cat .env.production.local",
   "cat <<'DOC'\nbun run test\nDOC\nbun test",
+  // Path-qualified wrappers and package-runner call strings: the floor reads them, the guards do not yet.
+  "/usr/bin/env bun test", "/usr/bin/timeout 5 bun test", "npm exec --call 'bun test'", "npx --call='bun test'",
 ]) {
   test(`restricted command: ${command.split("\n")[0]}`, () => {
     for (const harness of ["claude", "codex"]) {
@@ -113,7 +115,7 @@ for (const command of [
 
 test("deployment and direct Forge enforcement retain the harness differences", () => {
   // The contracts package retired its deploy scripts, so the direct script stands in for one.
-  for (const command of ["vercel --prod", "bun script/deploy.ts core --network mainnet --broadcast", "bun run contracts upgrade --network mainnet"]) {
+  for (const command of ["vercel --prod", "npx -c 'vercel --prod'", "bun script/deploy.ts core --network mainnet --broadcast", "bun run contracts upgrade --network mainnet"]) {
     const warning = commandHooks("claude", command);
     assert.ok(warning.every((result) => result.code === 0));
     assert.ok(warning.some((result) => /PRODUCTION DEPLOYMENT/.test(result.output)));
@@ -183,6 +185,8 @@ const commandFloor = {
       "bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast",
       "bun run contracts -- ens migrate --network=mainnet --mode=broadcast",
       "bun run contracts -- deploy core --network gnosis --mode broadcast",
+      "bun run contracts -- ens deploy-mainnet --network mainnet --mode broadcast",
+      "bun script/deploy/backfill-pools.ts --network arbitrum --broadcast",
     ],
     ...production,
   },

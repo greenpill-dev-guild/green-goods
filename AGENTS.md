@@ -214,7 +214,9 @@ Do not replace the symlink with a second copy. Project-specific settings and hoo
 `.claude/settings.json` and `.codex/`; they enforce tool behavior beyond prose instructions.
 `.agents/policy.json` declares the same command and path rules for the machine-wide guards, and
 these hooks stay their floor where those guards are absent; `scripts/harness/agent-hooks.test.mjs`
-fails when the two disagree. `.agents/merge-policy.json` states the merge tiers.
+fails when a declared rule loses its floor enforcer on its listed fixtures. `.agents/merge-policy.json`
+states the merge tiers, and `scripts/quality/select-validation.test.mjs` keeps them covering the
+selector's critical and sensitive paths.
 Keep `CLAUDE.md` as a compatibility import until supported Claude environments load `AGENTS.md`
 directly; it must not duplicate repository policy.
 

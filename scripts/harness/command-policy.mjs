@@ -143,13 +143,19 @@ function executableWords(words) {
   const args = words.filter((word) => !word.inputFile);
   for (;;) {
     while (args.length && ASSIGNMENT.test(args[0].value)) args.shift();
-    const wrapper = [`${args[0]?.value} ${args[1]?.value}`, args[0]?.value].find((name) => WRAPPERS.has(name));
+    const head = basename(args[0]?.value ?? "");
+    const wrapper = [`${head} ${args[1]?.value}`, head].find((name) => WRAPPERS.has(name));
     if (!wrapper) return args;
     args.splice(0, wrapper.split(" ").length);
     const valueOptions = WRAPPERS.get(wrapper);
     while (args.length && (args[0].value.startsWith("-") || (wrapper === "env" && ASSIGNMENT.test(args[0].value)))) {
       const [option] = args.splice(0, 1);
       if (option.value === "--") break;
+      // A package runner's call string is a command of its own, evaluated by evaluateCommand.
+      if (PACKAGE_RUNNERS.has(wrapper) && /^(-c|--call)(=|$)/.test(option.value)) {
+        const call = option.value.includes("=") ? { value: option.value.slice(option.value.indexOf("=") + 1) } : args.shift();
+        return Object.assign([], { call: call && !call.dynamic ? call.value : "" });
+      }
       if (valueOptions.includes(option.value)) args.shift();
     }
     if (wrapper === "timeout") args.shift();
@@ -225,7 +231,7 @@ function commandDecision(words, harness) {
   };
   // The contracts wrappers broadcast with --mode broadcast; these networks are live chains.
   const productionBroadcast = ["bun", "npm", "pnpm", "node", "bash", "sh"].includes(executable) &&
-    option("--mode") === "broadcast" &&
+    (option("--mode") === "broadcast" || values.includes("--broadcast")) &&
     /^(mainnet|arbitrum|celo|gnosis)$/i.test(option("--network") ?? "");
   const production = ((operation || contractsOperation) && mainnet) || productionBroadcast ||
     (executable === "vercel" && values.includes("--prod")) ||
@@ -242,15 +248,27 @@ export function commandValues(command) {
   return scanCommands(command).commands.map((words) => executableWords(words).map((word) => word.dynamic ? "" : word.value));
 }
 
-export function evaluateCommand(command, harness) {
+export function evaluateCommand(command, harness, depth = 0) {
   const { commands, partial } = scanCommands(command);
-  const decisions = commands.map((words) => commandDecision(words, harness)).filter(Boolean);
+  const decisions = [];
+  let nestedPartial = false;
+  for (const words of commands) {
+    const { call } = executableWords(words);
+    if (call === undefined) {
+      const decision = commandDecision(words, harness);
+      if (decision) decisions.push(decision);
+    } else if (call && depth < 3) {
+      const nested = evaluateCommand(call, harness, depth + 1);
+      decisions.push(...nested.decisions);
+      nestedPartial ||= nested.partial;
+    } else nestedPartial = true;
+  }
   const opaqueProgram = commands.some((words) => {
     const args = executableWords(words);
     return args[0]?.dynamic || ["eval", "bash", "sh", "zsh", "if", "for", "while", "case", "function"]
       .includes(basename(args[0]?.value ?? ""));
   });
-  return { decisions, partial: partial || opaqueProgram };
+  return { decisions, partial: partial || opaqueProgram || nestedPartial };
 }
 
 function main() {

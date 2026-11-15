@@ -39,7 +39,7 @@
     },
     {
       "id": "production-broadcast",
-      "pattern": "^(\\S*/)?(bun|npm|pnpm|node|bash|sh)(?= |$)(?=.* --mode(=| )broadcast( |$))(?=.* --network(=| )(mainnet|arbitrum|celo|gnosis)( |$))",
+      "pattern": "^(\\S*/)?(bun|npm|pnpm|node|bash|sh)(?= |$)(?=.* (--mode(=| )broadcast|--broadcast)( |$))(?=.* --network(=| )(mainnet|arbitrum|celo|gnosis)( |$))",
       "action": "ask",
       "message": "PRODUCTION DEPLOYMENT: requires explicit out-of-band confirmation before proceeding."
     }

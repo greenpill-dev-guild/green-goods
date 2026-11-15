@@ -156,6 +156,7 @@
         "scripts/dev/test-lease.mjs",
         "turbo.json",
         "scripts/data/validation-policy.json",
+        ".agents/merge-policy.json",
         "scripts/quality/select-validation.mjs",
         "scripts/quality/shared-mutation-surface.mjs",
         "scripts/dev/ci-local.js",
